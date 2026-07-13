@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:macro name="human_backpack" params="parent">
+
+    <material name="skin"><color rgba="0.85 0.72 0.60 1"/></material>
+    <material name="shirt"><color rgba="0.25 0.35 0.55 1"/></material>
+    <material name="pack"><color rgba="0.15 0.15 0.15 1"/></material>
+
+    <link name="torso">
+      <visual><geometry><box size="0.28 0.14 0.44"/></geometry>
+        <material name="shirt"/></visual>
+    </link>
+    <joint name="${parent}_to_torso" type="fixed">
+      <parent link="${parent}"/><child link="torso"/>
+      <origin xyz="0 0 1.05" rpy="0 0 0"/>
+    </joint>
+
+    <link name="head">
+      <visual><geometry><sphere radius="0.10"/></geometry>
+        <material name="skin"/></visual>
+    </link>
+    <joint name="torso_to_head" type="fixed">
+      <parent link="torso"/><child link="head"/>
+      <origin xyz="0 0 0.35" rpy="0 0 0"/>
+    </joint>
+
+    <link name="hips">
+      <visual><geometry><box size="0.20 0.14 0.12"/></geometry>
+        <material name="shirt"/></visual>
+    </link>
+    <joint name="torso_to_hips" type="fixed">
+      <parent link="torso"/><child link="hips"/>
+      <origin xyz="0 0 -0.28" rpy="0 0 0"/>
+    </joint>
+
+    <link name="left_leg">
+      <visual><geometry><cylinder radius="0.05" length="0.7"/></geometry>
+        <material name="shirt"/></visual>
+    </link>
+    <joint name="hips_to_left_leg" type="fixed">
+      <parent link="hips"/><child link="left_leg"/>
+      <origin xyz="0.07 0 -0.45" rpy="0 0 0"/>
+    </joint>
+
+    <link name="right_leg">
+      <visual><geometry><cylinder radius="0.05" length="0.7"/></geometry>
+        <material name="shirt"/></visual>
+    </link>
+    <joint name="hips_to_right_leg" type="fixed">
+      <parent link="hips"/><child link="right_leg"/>
+      <origin xyz="-0.07 0 -0.45" rpy="0 0 0"/>
+    </joint>
+
+    <link name="backpack">
+      <visual><geometry><box size="0.26 0.10 0.40"/></geometry>
+        <material name="pack"/></visual>
+    </link>
+    <joint name="torso_to_backpack" type="fixed">
+      <parent link="torso"/><child link="backpack"/>
+      <origin xyz="0 -0.12 0.02" rpy="0 0 0"/>
+    </joint>
+
+    <link name="left_mount"/>
+    <joint name="backpack_to_left_mount" type="fixed">
+      <parent link="backpack"/><child link="left_mount"/>
+      <origin xyz="0.15 0.0 0.18" rpy="0 0.6 0"/>
+    </joint>
+
+    <link name="right_mount"/>
+    <joint name="backpack_to_right_mount" type="fixed">
+      <parent link="backpack"/><child link="right_mount"/>
+      <origin xyz="-0.15 0.0 0.18" rpy="0 -0.6 0"/>
+    </joint>
+
+  </xacro:macro>
+</robot>

@@ -1,0 +1,10 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: srl_description
+    relative_path: urdf/srl_dual.urdf.xacro
+  srdf:
+    relative_path: config/srl_dual.srdf
+  package_settings:
+    author_name: gaus
+    author_email: gmsayyadsvc4@gmail.com
+    generated_timestamp: 1783605891

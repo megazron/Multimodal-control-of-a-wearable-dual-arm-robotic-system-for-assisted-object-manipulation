@@ -1,0 +1,8 @@
+build/
+install/
+log/
+src/ros2_kortex/
+src/ros2_robotiq_gripper/
+src/ros2_kortex_vision/
+__pycache__/
+*.pyc

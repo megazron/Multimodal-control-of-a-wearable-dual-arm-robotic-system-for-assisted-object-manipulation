@@ -112,11 +112,29 @@ def grip_for(width_mm):
 
 GRIP_HOLD_MIN, GRIP_FREE_AIR = 0.10, 0.74
 
+# Fraction of the transit at which the plan hands the gripper back to the
+# schedule so it can open and PLACE. These match the thresholds already inside
+# grip_schedule(), so the release stays defined in exactly one place; the hold
+# above only stops the object being dropped BEFORE it.
+RELEASE_FRAC = {"t2": 0.80, "t5": 0.86}
 
-def holding(knuckle):
-    """True only when the fingers are closed ON SOMETHING."""
-    return (knuckle is not None and knuckle == knuckle
-            and GRIP_HOLD_MIN <= knuckle < GRIP_FREE_AIR)
+
+def holding(knuckle, width_mm=None):
+    """True only when the fingers are closed ON SOMETHING.
+
+    With `width_mm` given, the test is that the fingers have actually reached
+    the object's own width rather than merely left the open position. Without
+    it the band alone attached the marker the instant the knuckle passed 0.10,
+    so a 40 mm block (which needs 0.42) jumped to the gripper while the
+    fingers were still visibly open -- the object appeared to be grasped
+    before it was touched. 0.90 of the target absorbs the mock's first-order
+    tracking lag without accepting a gripper that has barely moved.
+    """
+    if knuckle is None or knuckle != knuckle:
+        return False
+    if width_mm is not None:
+        return knuckle >= 0.90 * grip_for(width_mm)
+    return GRIP_HOLD_MIN <= knuckle < GRIP_FREE_AIR
 
 
 KNUCKLE = "%s_robotiq_85_left_knuckle_joint"
@@ -354,8 +372,8 @@ class Scene:
         sep = float(np.linalg.norm(a - b))
         if not live or sep > 0.60:
             return          # not holding it yet -- draw nothing, fail nothing
-        if not (holding(self.knuck.get("left"))
-                and holding(self.knuck.get("right"))):
+        if not (holding(self.knuck.get("left"), 20)
+                and holding(self.knuck.get("right"), 20)):
             return          # fingers are not closed on it, so it is not held
         dz = float(a[2] - b[2])
         tilt = math.degrees(math.atan2(abs(dz), max(sep, 1e-6)))
@@ -449,12 +467,12 @@ class Scene:
         # released the moment the fingers open.
         k = self.knuck.get(fa)
         near_pick = float(np.linalg.norm(fill_ee - pick)) < 0.12
-        if holding(k) and (self.carrying_block or near_pick):
+        if holding(k, side * 1000.0) and (self.carrying_block or near_pick):
             self.carrying_block = True
             b = mk("carry", 0, Marker.CUBE)
             add(rgba(scale(at(b, (fill_ee[0], fill_ee[1], fill_ee[2] - 0.055)),
                            side, side, side), 1.0, .45, .0))
-        elif self.carrying_block and not holding(k):
+        elif self.carrying_block and not holding(k, side * 1000.0):
             self.carrying_block = False
             self.placed.append(np.array([opening[0], opening[1],
                                          opening[2] - 0.06]))
@@ -473,11 +491,11 @@ class Scene:
         recv = np.asarray(sc["receive"], float)
         obj = np.asarray(sc["object"], float)
         k = self.knuck.get(arm)
-        if holding(k) and ee is not None and self.tool_released_at is None:
+        if holding(k, 32) and ee is not None and self.tool_released_at is None:
             # in the hand
             p = np.asarray(ee, float) + np.array([0.0, 0.0, -0.03])
             self.carrying_block = True
-        elif self.carrying_block and not holding(k):
+        elif self.carrying_block and not holding(k, 32):
             p = recv
             self.tool_released_at = recv
         elif self.tool_released_at is not None:
@@ -833,9 +851,22 @@ def run_one(dr, pub, hud_pub, run, cond, out_dir, fps=10.0):
     def knuckles():
         return {a: dr.js.get(KNUCKLE % a) for a in ("left", "right")}
 
+    # The gripper needs exactly ONE owner at a time. The scripted grasp issues
+    # send_gripper() and then tick() re-issued the frac schedule on the same
+    # cycle, so the two alternated every frame: the recorded trace showed the
+    # knuckle sawing 0.42 -> 0.18 -> 0.24 through the lift and reaching 0.05
+    # (fully open) at the start of transit, i.e. the object was grasped and
+    # then immediately dropped, then re-grasped in mid-air when the schedule's
+    # frac crossed its closing threshold. `grip_hold` is that owner: while it
+    # holds a value for an arm, the schedule does not touch that arm.
+    grip_hold = {}
+
     def set_grips(frac, phase):
         for a in ("left", "right"):
-            dr.send_gripper(a, grip_schedule(task, sc, a, frac, phase))
+            g = grip_hold.get(a)
+            if g is None:
+                g = grip_schedule(task, sc, a, frac, phase)
+            dr.send_gripper(a, g)
 
     # ---- plan a REAL grasp where the generator allows one
     plan = None
@@ -920,7 +951,7 @@ def run_one(dr, pub, hud_pub, run, cond, out_dir, fps=10.0):
             sol = dr.solve_joints(ga, list(pose), quat)
             if sol is not None:
                 dr.send(ga, sol, secs)
-            dr.send_gripper(ga, grip)
+            grip_hold[ga] = grip          # the plan owns this arm's gripper
             for _ in range(max(2, int(secs * fps))):
                 dr.spin(1.0 / fps)
                 tick(phase, frac, {ga: np.asarray(pose, float)})
@@ -933,8 +964,8 @@ def run_one(dr, pub, hud_pub, run, cond, out_dir, fps=10.0):
                0.05 * k / max(1, len(plan["path"])), GRIP_OPEN)
         # 3 CLOSE to the object's width -- not fully shut
         gw = grip_for(plan["width_mm"])
+        grip_hold[ga] = gw
         for _ in range(int(1.4 * fps)):
-            dr.send_gripper(ga, gw)
             dr.spin(1.0 / fps)
             tick("close", 0.12, {ga: np.asarray(plan["grasp"], float)})
         # 4 LIFT back along the approach vector before transiting
@@ -965,7 +996,13 @@ def run_one(dr, pub, hud_pub, run, cond, out_dir, fps=10.0):
             if sol is not None:
                 dr.send(arm, sol, 0.28)
         dr.spin(0.28)
-        tick("task", i / max(1, nmax - 1), cmd)
+        frac = i / max(1, nmax - 1)
+        # PLACE: hand the gripper back so the schedule opens it at the target.
+        # Releasing is what makes the block count as placed, so a plan that
+        # never let go would also never register an outcome.
+        if frac >= RELEASE_FRAC.get(task, 2.0):
+            grip_hold.clear()
+        tick("task", frac, cmd)
 
     # release, and let the fingers be SEEN to open before the clip ends
     for _ in range(int(1.8 * fps)):

@@ -1,3 +1,110 @@
+# SESSION IN PROGRESS — 2026-08-08 (five-task verification + grasp)
+
+Scope of this session, deliberately narrow: finish the N=10 verification,
+confirm the five-task set, finish the grasp sequence, commit. **Clip
+re-recording, figures and the thesis are NOT in scope** — each has run the
+context out when bundled with anything else.
+
+## 1. N=10 full-path verification — DONE, 0 failures
+
+Both arms verified at **0.0000 rad from home** before any sample was taken
+(the script refuses otherwise, and that refusal is what invalidated the
+previous attempt at 0.87/0.59 rad off home).
+
+    task 1 positioning     left 3/3, right 3/3 targets
+    task 2 pick and place  left 3/3 approaches + 3/3 places, right the same
+    task 3/4 coupled carry S1 4 wp, S2 11 wp, S3 10 wp -- all VERIFIED
+    task 5 dual pursuit    26/26 shell directions, both arms
+    TOTAL FAILURES: 0
+
+**No figure changed.** The result is byte-identical to the run committed in
+`abd0c74` (`detail` compares equal), which is the first time a reachability
+figure in this project has been reproduced across runs rather than merely
+re-asserted. The reason it reproduces is that the 500 mm respec moved every
+coupled waypoint off the feasibility boundary; the earlier 310 mm geometry
+failed 10 of 25 and would not have.
+
+## 2. Grasp sequence — a real defect found in the RECORDED TRACE
+
+The previous session proved the gripper was commanded (109 samples,
+0.050–0.424 rad). That was true and still insufficient: **two owners were
+writing the gripper on the same cycle.** The scripted grasp called
+`send_gripper()`, then `tick()` re-issued the frac schedule immediately after,
+so the recorded knuckle sawed through the lift and reached **0.05 (fully
+open) at the start of transit** — the object was grasped, dropped, and
+re-grasped in mid-air when the schedule's fraction crossed its own threshold.
+
+    BEFORE  lift  0.42 -> 0.275 -> 0.181 -> 0.238 -> ... -> 0.116
+            task  0.05 at t=8.79   (dropped)   0.424 at t=10.44 (re-grasped)
+
+    AFTER   lift  0.424 flat, n=18, min == max
+            task  0.424 held to t=18.50, then 0.05 once, at the placement
+
+Fixed by giving the gripper a single owner (`grip_hold`): the plan owns it
+from pre-grasp to the release fraction, the schedule owns it after, so the
+place still happens in one place in the code.
+
+Second defect, same area: the marker attached on the 0.10–0.74 band, so a
+40 mm block (needing 0.42) snapped to the gripper at knuckle **0.157**, while
+the fingers were still visibly open. `holding()` now takes the object's width
+and requires 0.90 of it.
+
+## 3. Five-task set — confirmed, with two honest limits
+
+All five are specified, internally consistent and verified at N=10. The
+arithmetic reproduces: sling `s_max = 0.5340` matches the spec exactly, the
+33.6 mm length margin is real, and `fail_tilt_deg = 6.8` is `atan(60/500)`.
+Two stale figures were found and corrected — the Task 3 docstring still
+described a 310 mm span, and `time_above_11_3_s` still named the tilt
+threshold of that superseded span.
+
+**LIMIT 1: there are two genuinely bimanual MECHANISMS, not three.** Tasks 3
+and 4 are the same mechanism — a coupled object spanning the dead band — run
+with a rigid and a compliant object. Task 5 is the second mechanism, two
+simultaneous targets in the disjoint sets. That is what the geometry supports.
+It is not a shortfall: rigid-versus-compliant is the scientific contrast, so
+two objects on one mechanism is deliberate. But the set should not be
+described as three independent bimanual demands, because it is not.
+
+**LIMIT 2: nothing runs this spec.** `final5/tasks.py` is consumed by
+`verify_final5.py` and by nothing else — no runner, no analyser, no recorder.
+The five-task set is verified as a GEOMETRY and unbuilt as an EXPERIMENT. The
+superseded nine-task package under `experiments/bimanual/` is what the runner
+and the recorded clips still use, and it carries a different span (300/310 mm
+against 500 mm) — see the trap comment in `tasks.py`.
+
+## 4. Wrist alignment under `orientation_mode: fixed` — stated plainly
+
+**Under direct teleoperation the wrist cannot align to a grasp, and the
+grasp clips do not demonstrate that it can.**
+
+`master_pose_node` declares `orientation_mode` default `"fixed"`: the
+commanded orientation is pinned to the home anchor for the whole trial.
+Measured, for the Task 2 block at (0.32, 0.35, 1.15):
+
+    anchor quaternion (home EE, what "fixed" pins to)  (-0.0896, 0.4861, 0.8693, 0.0032)
+    top-down grasp quaternion required                 ( 1.0,    0.0,    0.0,    0.0)
+    WRIST ROTATION NEEDED                              169.7 deg
+
+169.7 deg is very nearly a reversal. There is no channel to command it: the
+master's wrist is unmeasurable (left j7 railed and j6 clamped, right j3/j5/j7
+dead), which is *why* the mode defaults to fixed, and mode 3
+(ORIENTATION_ASSIST) — which exists to supply it — is a STUB because this
+`/compute_ik` plugin ignores `OrientationConstraint`.
+
+The grasp sequence works in the recordings because the recorder is a
+**scripted path that calls `/compute_ik` directly** with the grasp
+quaternion, bypassing the teleop orientation lock entirely. So the clips
+demonstrate the ROBOT can execute an aligned grasp; they do **not**
+demonstrate an OPERATOR can command one. The three recorded conditions
+(direct / assisted / shared) differ only in trajectory smoothing and all use
+the same scripted wrist, so they do not distinguish this either.
+
+This is the one place where the autonomy earns a categorical rather than a
+quantitative advantage, and it should be claimed exactly that narrowly.
+
+---
+
 # CHECKPOINT — 2026-08-08 (updated after the reachability audit)
 
 Repo: https://github.com/megazron/dococthefinal (`main`). Verified: a clean

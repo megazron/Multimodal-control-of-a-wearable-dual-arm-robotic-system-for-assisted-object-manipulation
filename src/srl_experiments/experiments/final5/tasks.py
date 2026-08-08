@@ -26,6 +26,12 @@ Y = 0.35                    # the only fore/aft band both arms can work in
 # smallest half-span clearing the 120 mm wearer floor (0.134 m at 6/6
 # reachable). One change satisfies both constraints.
 TRAY_SEP = 0.500
+# TRAP FOR WHOEVER WIRES THIS UP. The superseded nine-task package still
+# carries its own span: bimanual_metrics.TRAY_SEPARATION_M = 0.300 is the
+# DEFAULT argument of tilt_deg(), and coupled_metrics.SLING_NOMINAL_SEP =
+# 0.310. Feeding this spec's heights to those functions without passing the
+# separation explicitly yields a tilt computed over the wrong baseline -- an
+# angle that is wrong by 5/3 and looks entirely plausible. Pass TRAY_SEP.
 # The sling must lengthen with the span or it is taut before the trial starts:
 # retention needs sag >= 2r, i.e. L >= 2*sqrt((s/2)^2 + (2r)^2). For s = 0.50
 # and r = 0.020 that is L >= 0.5064, so 0.540 leaves a 34 mm margin and keeps
@@ -84,14 +90,17 @@ TASK2 = dict(
 # ---------------------------------------------------------------------------
 # TASK 3 -- RIGID COORDINATED CARRY  (genuinely bimanual, route (a))
 # ---------------------------------------------------------------------------
-# A rigid tray is held at two points 310 mm apart, one gripper on each end.
-# The object SPANS the dead band between the two reachable sets, which is
-# exactly why it needs both arms: no single arm can hold a rigid body at two
-# separated points, and no amount of time changes that.
+# A rigid tray is held at two points TRAY_SEP (500 mm) apart, one gripper on
+# each end. The object SPANS the dead band between the two reachable sets,
+# which is exactly why it needs both arms: no single arm can hold a rigid body
+# at two separated points, and no amount of time changes that.
 #
 # The failure mode is TILT: the tray is rigid, so any height difference
-# between the grippers transmits instantly. 20 mm over a 300 mm span is
-# 3.8 deg (visible wobble); 60 mm is 11.3 deg and the ball rolls off.
+# between the grippers transmits instantly. Over the 500 mm span, 20 mm of
+# height difference is 2.3 deg (visible wobble) and 60 mm is 6.8 deg, at which
+# the ball rolls off. Both rescaled from the superseded 310 mm span, where the
+# same millimetre figures read 3.7 and 11.0 deg -- the ANGLE is the failure
+# criterion, so it must be recomputed whenever the span changes.
 TASK3 = dict(
     name="rigid_carry",
     arms_used="both, simultaneously",
@@ -106,7 +115,7 @@ TASK3 = dict(
     ),
     # tilt rescales with the span: 60 mm over 500 mm is 6.8 deg, not 11.3
     fail_tilt_deg=6.8,
-    metrics=("tilt_rms_deg", "tilt_max_deg", "time_above_11_3_s",
+    metrics=("tilt_rms_deg", "tilt_max_deg", "time_above_fail_tilt_s",
              "height_diff_rms_mm", "path_efficiency", "ball_retained"),
 )
 

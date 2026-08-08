@@ -4544,3 +4544,115 @@ them, and INDEX.md says so at the top.
    reusing one figure brought it to ~38 s per run.
 
 Fifth instance of the standing rule, and the reason it is a rule.
+
+---
+
+# SCREEN-RECORDING RVIZ UNDER WSLg (2026-08-08) — READ THIS BEFORE TRYING
+
+## x11grab ON `:0` RECORDS BLACK. This will cost you a day.
+
+`ffmpeg -f x11grab -i :0` with RViz plainly visible on screen produces a
+**black video**. Measured, not inferred:
+
+| grab | mean pixel value |
+| --- | --- |
+| full screen 1920x1200 on `:0`, RViz visible | **0.0** |
+| the RViz window region on `:0` | **0.0** |
+| the same RViz on **Xvfb `:99`** | **126.8** (std 110.4, 40742 distinct colours) |
+
+**Why.** WSLg runs a Wayland compositor with XWayland. Window contents are
+composited by Wayland and **never land in the X root window** that x11grab
+reads. There is nothing wrong with the ffmpeg command; the pixels are not
+there to be read. Nothing on the X side can fix it — not window ids, not
+`-window_id`, not region offsets. All were tried.
+
+## THE FIX: a virtual display with its own RViz
+
+```bash
+Xvfb :99 -screen 0 1600x1000x24 &
+DISPLAY=:99 LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe QT_QPA_PLATFORM=xcb \
+  rviz2 -d src/srl_experiments/config/verification_capture.rviz &
+ffmpeg -f x11grab -video_size 1600x1000 -framerate 12 -i :99.0 out.mp4
+```
+
+Xvfb has **no compositor**, so its root window really does hold the rendered
+pixels. `LIBGL_ALWAYS_SOFTWARE=1` is required — llvmpipe renders RViz's
+OpenGL fine and reports GL 4.5. This is a **second** RViz instance subscribing
+to the same ROS graph; it is not a second stack and does not violate the
+one-stack rule (no `master_pose_node` involved).
+
+`scripts/record_rviz.py` does all of this itself and is idempotent about it.
+
+**ffmpeg is not installed system-wide.** A static build was obtained without
+root via `pip install --target <dir> imageio-ffmpeg` and copied to
+`~/.local/bin/ffmpeg`. **`ffprobe` was NOT** — a verifier that shells out to
+`ffprobe` silently reports "0 frames" for every clip, which is what the first
+version of `verify_rviz_clips.py` did. Sample frames by TIME (`-ss`) instead
+of by frame index; it needs no frame count.
+
+## THE CLIP VERIFIER MUST BE CALIBRATED ON *RENDERED* COLOUR
+
+`verify_rviz_clips.py` proves an object is on screen by counting pixels of its
+colour. **Matching against the RGB set on the marker fails**, because RViz
+lights and shades every surface:
+
+| object | requested RGB | actually rendered |
+| --- | --- | --- |
+| ball | 242, 191, 26 | **189, 165, 74** |
+| sling | 140, 89, 46 | 136, 111, 63 |
+| target green | 26, 230, 51 | **68, 151, 63** |
+| container teal | 13, 191, 179 | **45, 141, 140** |
+| block orange | 255, 115, 0 | **207, 138, 35** |
+
+The first version failed **11 clips whose objects I had just looked at**.
+Detection now uses RELATIONS between channels (`R - B > 65`, `G - R > 45`),
+which survive shading, with thresholds taken from pixel counts measured on
+frames confirmed by eye. Validated both ways: every confirmed-good frame
+detects its object (38-860 px), a black frame detects none.
+
+**FOUR more calibration traps in the same file, all found by checking the
+instrument against clips I had already looked at:**
+
+- **The overlay text is detected as the object.** The HUD is white and
+  orange-yellow — the same channel relations the ball and sling detectors
+  match. Measured on one T6 frame: **587 "ball" pixels, of which 58 were the
+  ball and 529 were the letters.** Because the text never moves it dragged
+  every centroid toward a fixed point and made carried objects read as
+  static. Every detector now ignores the top 24% of the frame.
+- **Four temporal samples is UNDERSAMPLING.** Every clip carries ~1.5 s of
+  approach and ~1.4 s of hold, so on a short scenario the moving part is a
+  thin slice and four probes land mostly in the static hold. T3 S1 (a 50 mm
+  lift) read 7.1 px and was called static; with nine samples it reads
+  25.9 px. T7 S1 went 0.0 -> 27.5 px the same way.
+- **Two targets share one centroid.** T7 and T9 draw a target per arm; their
+  COMBINED centroid sits between them and barely moves even when both are
+  orbiting. Measure each half of the frame separately.
+- **A target sphere gets OCCLUDED BY THE GRIPPER** once the arm arrives on
+  it, so the colour vanishes from the later frames of a perfectly good clip.
+  Pursuit and reach tasks (T7/T8/T9) have no carried object at all and are
+  judged by the arm's own travel and tracking error instead. The target
+  marker was also enlarged to 100 mm and made translucent so it reads as a
+  halo around the gripper rather than disappearing inside it.
+
+**Two structural traps:**
+
+- **"Nothing moved" is not a failure.** T9's zero-sway scenario is a
+  stationary arm holding a world-fixed point ON PURPOSE. The check must fail
+  only a genuinely FROZEN capture (frame delta < 0.05), not a still one.
+- **Objects must be gated to the phase that owns them.** Drawing the sling
+  during the approach — when the grippers are still ~1.46 m apart, because
+  they start at home — makes a 350 mm sling read as taut and the ball "falls"
+  before the task begins. S4 reported a drop on a scenario whose 58 mm sag
+  clears the 40 mm ball comfortably.
+- **MarkerArray must begin with DELETEALL every frame.** The topic is
+  TRANSIENT_LOCAL and ids are reassigned per frame, so without it the previous
+  run's container and blocks stay on screen underneath the next task's
+  objects — two scenes in one picture.
+
+## Two recordings per run, and they answer different questions
+
+| file | what it is |
+| --- | --- |
+| `rviz.mp4` | **real screen capture.** What you would see at the machine. Watch this |
+| `clip.mp4` | TF-rendered 3-D + front view. Ugly, but drawn from exactly the samples that produced `summary.json`, so picture and numbers cannot disagree |
+

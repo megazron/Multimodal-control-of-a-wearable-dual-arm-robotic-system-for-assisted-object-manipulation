@@ -1,0 +1,13 @@
+{
+  "frames": 47,
+  "duration_s": 8.224358370003756,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t8/S4_right_step_forward/shared/rviz.mp4",
+  "blocks_placed": 0,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "task": "t8",
+  "scenario": "S4_right_step_forward",
+  "condition": "shared",
+  "note": "right arm; wearer must step forward",
+  "bytes": 519813
+}

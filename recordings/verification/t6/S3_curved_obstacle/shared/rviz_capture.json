@@ -1,0 +1,13 @@
+{
+  "frames": 43,
+  "duration_s": 7.0993915630097035,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t6/S3_curved_obstacle/shared/rviz.mp4",
+  "blocks_placed": 0,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "task": "t6",
+  "scenario": "S3_curved_obstacle",
+  "condition": "shared",
+  "note": "compliant sling, 310 mm span",
+  "bytes": 655292
+}

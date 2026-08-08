@@ -1,0 +1,13 @@
+{
+  "frames": 35,
+  "duration_s": 4.6703170129912905,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t6/S1_short_straight/direct/rviz.mp4",
+  "blocks_placed": 0,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "task": "t6",
+  "scenario": "S1_short_straight",
+  "condition": "direct",
+  "note": "compliant sling, 310 mm span",
+  "bytes": 447428
+}

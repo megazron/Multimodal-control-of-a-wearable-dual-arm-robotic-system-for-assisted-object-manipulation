@@ -1,0 +1,1256 @@
+[
+  {
+    "task": "t2",
+    "scenario": "S1_short_reach",
+    "condition": "assisted",
+    "duration_s": 11.7,
+    "ok": true,
+    "why": "",
+    "bright": 69.1,
+    "variety": 4500,
+    "delta": 0.65,
+    "objects": {
+      "container_teal": 624,
+      "block_orange": 119
+    }
+  },
+  {
+    "task": "t2",
+    "scenario": "S1_short_reach",
+    "condition": "direct",
+    "duration_s": 11.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.1,
+    "variety": 4467,
+    "delta": 0.46,
+    "objects": {
+      "container_teal": 621,
+      "block_orange": 122
+    }
+  },
+  {
+    "task": "t2",
+    "scenario": "S1_short_reach",
+    "condition": "shared",
+    "duration_s": 11.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.1,
+    "variety": 4427,
+    "delta": 0.46,
+    "objects": {
+      "container_teal": 619,
+      "block_orange": 112
+    }
+  },
+  {
+    "task": "t2",
+    "scenario": "S2_long_reach",
+    "condition": "assisted",
+    "duration_s": 10.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 4468,
+    "delta": 1.25,
+    "objects": {
+      "container_teal": 862,
+      "block_orange": 149
+    }
+  },
+  {
+    "task": "t2",
+    "scenario": "S2_long_reach",
+    "condition": "direct",
+    "duration_s": 10.8,
+    "ok": true,
+    "why": "",
+    "bright": 69.1,
+    "variety": 4442,
+    "delta": 1.04,
+    "objects": {
+      "container_teal": 850,
+      "block_orange": 152
+    }
+  },
+  {
+    "task": "t2",
+    "scenario": "S2_long_reach",
+    "condition": "shared",
+    "duration_s": 10.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 4507,
+    "delta": 1.27,
+    "objects": {
+      "container_teal": 866,
+      "block_orange": 156
+    }
+  },
+  {
+    "task": "t2",
+    "scenario": "S3_height_change",
+    "condition": "assisted",
+    "duration_s": 12.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 4510,
+    "delta": 0.72,
+    "objects": {
+      "container_teal": 806,
+      "block_orange": 148
+    }
+  },
+  {
+    "task": "t2",
+    "scenario": "S3_height_change",
+    "condition": "direct",
+    "duration_s": 12.9,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 4562,
+    "delta": 0.71,
+    "objects": {
+      "container_teal": 821,
+      "block_orange": 148
+    }
+  },
+  {
+    "task": "t2",
+    "scenario": "S3_height_change",
+    "condition": "shared",
+    "duration_s": 13.2,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 4541,
+    "delta": 0.74,
+    "objects": {
+      "container_teal": 820,
+      "block_orange": 146
+    }
+  },
+  {
+    "task": "t2",
+    "scenario": "S4_tight_tolerance",
+    "condition": "assisted",
+    "duration_s": 11.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 4318,
+    "delta": 0.51,
+    "objects": {
+      "container_teal": 783,
+      "block_orange": 57
+    }
+  },
+  {
+    "task": "t2",
+    "scenario": "S4_tight_tolerance",
+    "condition": "direct",
+    "duration_s": 11.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.1,
+    "variety": 4372,
+    "delta": 0.49,
+    "objects": {
+      "container_teal": 767,
+      "block_orange": 62
+    }
+  },
+  {
+    "task": "t2",
+    "scenario": "S4_tight_tolerance",
+    "condition": "shared",
+    "duration_s": 11.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.1,
+    "variety": 4358,
+    "delta": 0.54,
+    "objects": {
+      "container_teal": 776,
+      "block_orange": 58
+    }
+  },
+  {
+    "task": "t3",
+    "scenario": "S1_short_straight",
+    "condition": "assisted",
+    "duration_s": 7.0,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3460,
+    "delta": 2.59,
+    "objects": {
+      "tray_tan": 342,
+      "ball_yellow": 275
+    }
+  },
+  {
+    "task": "t3",
+    "scenario": "S1_short_straight",
+    "condition": "direct",
+    "duration_s": 6.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 3508,
+    "delta": 2.79,
+    "objects": {
+      "tray_tan": 345,
+      "ball_yellow": 278
+    }
+  },
+  {
+    "task": "t3",
+    "scenario": "S1_short_straight",
+    "condition": "shared",
+    "duration_s": 6.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3438,
+    "delta": 2.9,
+    "objects": {
+      "tray_tan": 331,
+      "ball_yellow": 272
+    }
+  },
+  {
+    "task": "t3",
+    "scenario": "S2_long_height",
+    "condition": "assisted",
+    "duration_s": 10.3,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 3604,
+    "delta": 1.7,
+    "objects": {
+      "tray_tan": 386,
+      "ball_yellow": 255
+    }
+  },
+  {
+    "task": "t3",
+    "scenario": "S2_long_height",
+    "condition": "direct",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3628,
+    "delta": 1.9,
+    "objects": {
+      "tray_tan": 361,
+      "ball_yellow": 285
+    }
+  },
+  {
+    "task": "t3",
+    "scenario": "S2_long_height",
+    "condition": "shared",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 3626,
+    "delta": 1.53,
+    "objects": {
+      "tray_tan": 356,
+      "ball_yellow": 276
+    }
+  },
+  {
+    "task": "t3",
+    "scenario": "S3_curved_obstacle",
+    "condition": "assisted",
+    "duration_s": 8.3,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3583,
+    "delta": 2.34,
+    "objects": {
+      "tray_tan": 373,
+      "ball_yellow": 222
+    }
+  },
+  {
+    "task": "t3",
+    "scenario": "S3_curved_obstacle",
+    "condition": "direct",
+    "duration_s": 8.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3605,
+    "delta": 2.06,
+    "objects": {
+      "tray_tan": 434,
+      "ball_yellow": 283
+    }
+  },
+  {
+    "task": "t3",
+    "scenario": "S3_curved_obstacle",
+    "condition": "shared",
+    "duration_s": 8.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3579,
+    "delta": 2.19,
+    "objects": {
+      "tray_tan": 368,
+      "ball_yellow": 288
+    }
+  },
+  {
+    "task": "t3",
+    "scenario": "S4_tight",
+    "condition": "assisted",
+    "duration_s": 7.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 3508,
+    "delta": 2.31,
+    "objects": {
+      "tray_tan": 396,
+      "ball_yellow": 286
+    }
+  },
+  {
+    "task": "t3",
+    "scenario": "S4_tight",
+    "condition": "direct",
+    "duration_s": 7.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.0,
+    "variety": 3528,
+    "delta": 2.23,
+    "objects": {
+      "tray_tan": 361,
+      "ball_yellow": 291
+    }
+  },
+  {
+    "task": "t3",
+    "scenario": "S4_tight",
+    "condition": "shared",
+    "duration_s": 8.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 3475,
+    "delta": 2.74,
+    "objects": {
+      "tray_tan": 393,
+      "ball_yellow": 282
+    }
+  },
+  {
+    "task": "t5",
+    "scenario": "S1_near",
+    "condition": "assisted",
+    "duration_s": 10.3,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 3633,
+    "delta": 0.87,
+    "objects": {
+      "target_green": 38
+    }
+  },
+  {
+    "task": "t5",
+    "scenario": "S1_near",
+    "condition": "direct",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.1,
+    "variety": 3615,
+    "delta": 0.87,
+    "objects": {
+      "target_green": 38
+    }
+  },
+  {
+    "task": "t5",
+    "scenario": "S1_near",
+    "condition": "shared",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 3635,
+    "delta": 0.86,
+    "objects": {
+      "target_green": 38
+    }
+  },
+  {
+    "task": "t5",
+    "scenario": "S2_far",
+    "condition": "assisted",
+    "duration_s": 10.8,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 3571,
+    "delta": 1.04,
+    "objects": {
+      "target_green": 47
+    }
+  },
+  {
+    "task": "t5",
+    "scenario": "S2_far",
+    "condition": "direct",
+    "duration_s": 10.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.1,
+    "variety": 3606,
+    "delta": 1.06,
+    "objects": {
+      "target_green": 47
+    }
+  },
+  {
+    "task": "t5",
+    "scenario": "S2_far",
+    "condition": "shared",
+    "duration_s": 10.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.1,
+    "variety": 3574,
+    "delta": 1.05,
+    "objects": {
+      "target_green": 47
+    }
+  },
+  {
+    "task": "t5",
+    "scenario": "S3_busy",
+    "condition": "assisted",
+    "duration_s": 10.4,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 3601,
+    "delta": 1.15,
+    "objects": {
+      "target_green": 32
+    }
+  },
+  {
+    "task": "t5",
+    "scenario": "S3_busy",
+    "condition": "direct",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.1,
+    "variety": 3591,
+    "delta": 0.95,
+    "objects": {
+      "target_green": 32
+    }
+  },
+  {
+    "task": "t5",
+    "scenario": "S3_busy",
+    "condition": "shared",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 3612,
+    "delta": 0.96,
+    "objects": {
+      "target_green": 32
+    }
+  },
+  {
+    "task": "t6",
+    "scenario": "S1_short_straight",
+    "condition": "assisted",
+    "duration_s": 6.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3819,
+    "delta": 2.74,
+    "objects": {
+      "sling_orange": 158,
+      "ball_yellow": 26
+    }
+  },
+  {
+    "task": "t6",
+    "scenario": "S1_short_straight",
+    "condition": "direct",
+    "duration_s": 6.8,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3845,
+    "delta": 2.52,
+    "objects": {
+      "sling_orange": 167,
+      "ball_yellow": 26
+    }
+  },
+  {
+    "task": "t6",
+    "scenario": "S1_short_straight",
+    "condition": "shared",
+    "duration_s": 6.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3798,
+    "delta": 2.81,
+    "objects": {
+      "sling_orange": 156,
+      "ball_yellow": 26
+    }
+  },
+  {
+    "task": "t6",
+    "scenario": "S2_long_height",
+    "condition": "assisted",
+    "duration_s": 10.5,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3930,
+    "delta": 1.62,
+    "objects": {
+      "sling_orange": 186,
+      "ball_yellow": 26
+    }
+  },
+  {
+    "task": "t6",
+    "scenario": "S2_long_height",
+    "condition": "direct",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 3981,
+    "delta": 1.63,
+    "objects": {
+      "sling_orange": 173,
+      "ball_yellow": 27
+    }
+  },
+  {
+    "task": "t6",
+    "scenario": "S2_long_height",
+    "condition": "shared",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3993,
+    "delta": 1.75,
+    "objects": {
+      "sling_orange": 164,
+      "ball_yellow": 26
+    }
+  },
+  {
+    "task": "t6",
+    "scenario": "S3_curved_obstacle",
+    "condition": "assisted",
+    "duration_s": 8.9,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3865,
+    "delta": 2.36,
+    "objects": {
+      "sling_orange": 173,
+      "ball_yellow": 26
+    }
+  },
+  {
+    "task": "t6",
+    "scenario": "S3_curved_obstacle",
+    "condition": "direct",
+    "duration_s": 8.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3873,
+    "delta": 1.93,
+    "objects": {
+      "sling_orange": 187,
+      "ball_yellow": 28
+    }
+  },
+  {
+    "task": "t6",
+    "scenario": "S3_curved_obstacle",
+    "condition": "shared",
+    "duration_s": 8.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3888,
+    "delta": 2.05,
+    "objects": {
+      "sling_orange": 186,
+      "ball_yellow": 28
+    }
+  },
+  {
+    "task": "t6",
+    "scenario": "S4_tight",
+    "condition": "assisted",
+    "duration_s": 8.3,
+    "ok": true,
+    "why": "",
+    "bright": 69.2,
+    "variety": 3826,
+    "delta": 2.07,
+    "objects": {
+      "sling_orange": 158,
+      "ball_yellow": 26
+    }
+  },
+  {
+    "task": "t6",
+    "scenario": "S4_tight",
+    "condition": "direct",
+    "duration_s": 7.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3798,
+    "delta": 2.4,
+    "objects": {
+      "sling_orange": 162,
+      "ball_yellow": 26
+    }
+  },
+  {
+    "task": "t6",
+    "scenario": "S4_tight",
+    "condition": "shared",
+    "duration_s": 7.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.1,
+    "variety": 3814,
+    "delta": 2.19,
+    "objects": {
+      "sling_orange": 164,
+      "ball_yellow": 26
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "B1_left_only",
+    "condition": "assisted",
+    "duration_s": 12.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.5,
+    "variety": 3571,
+    "delta": 0.68,
+    "objects": {
+      "target_green": 57
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "B1_left_only",
+    "condition": "direct",
+    "duration_s": 12.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3608,
+    "delta": 0.89,
+    "objects": {
+      "target_green": 118
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "B1_left_only",
+    "condition": "shared",
+    "duration_s": 12.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3579,
+    "delta": 0.75,
+    "objects": {
+      "target_green": 61
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "B2_right_only",
+    "condition": "assisted",
+    "duration_s": 12.4,
+    "ok": true,
+    "why": "",
+    "bright": 69.5,
+    "variety": 3627,
+    "delta": 0.59,
+    "objects": {
+      "target_green": 52
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "B2_right_only",
+    "condition": "direct",
+    "duration_s": 12.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3626,
+    "delta": 0.93,
+    "objects": {
+      "target_green": 101
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "B2_right_only",
+    "condition": "shared",
+    "duration_s": 12.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3630,
+    "delta": 0.54,
+    "objects": {
+      "target_green": 106
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "S1_both_slow",
+    "condition": "assisted",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3879,
+    "delta": 1.31,
+    "objects": {
+      "target_green": 95
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "S1_both_slow",
+    "condition": "direct",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3912,
+    "delta": 1.32,
+    "objects": {
+      "target_green": 105
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "S1_both_slow",
+    "condition": "shared",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3865,
+    "delta": 1.3,
+    "objects": {
+      "target_green": 100
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "S2_one_fast",
+    "condition": "assisted",
+    "duration_s": 12.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3873,
+    "delta": 1.62,
+    "objects": {
+      "target_green": 176
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "S2_one_fast",
+    "condition": "direct",
+    "duration_s": 12.9,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3918,
+    "delta": 1.88,
+    "objects": {
+      "target_green": 192
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "S2_one_fast",
+    "condition": "shared",
+    "duration_s": 12.9,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3856,
+    "delta": 1.21,
+    "objects": {
+      "target_green": 191
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "S3_both_fast",
+    "condition": "assisted",
+    "duration_s": 12.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3879,
+    "delta": 1.33,
+    "objects": {
+      "target_green": 98
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "S3_both_fast",
+    "condition": "direct",
+    "duration_s": 12.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3955,
+    "delta": 1.58,
+    "objects": {
+      "target_green": 169
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "S3_both_fast",
+    "condition": "shared",
+    "duration_s": 12.8,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3886,
+    "delta": 1.14,
+    "objects": {
+      "target_green": 168
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "S4_asymmetric",
+    "condition": "assisted",
+    "duration_s": 12.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3914,
+    "delta": 0.73,
+    "objects": {
+      "target_green": 168
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "S4_asymmetric",
+    "condition": "direct",
+    "duration_s": 12.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3973,
+    "delta": 0.74,
+    "objects": {
+      "target_green": 230
+    }
+  },
+  {
+    "task": "t7",
+    "scenario": "S4_asymmetric",
+    "condition": "shared",
+    "duration_s": 12.8,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3954,
+    "delta": 1.07,
+    "objects": {
+      "target_green": 200
+    }
+  },
+  {
+    "task": "t8",
+    "scenario": "S1_left_lean_forward",
+    "condition": "assisted",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.9,
+    "variety": 4871,
+    "delta": 1.23,
+    "objects": {
+      "target_green": 334
+    }
+  },
+  {
+    "task": "t8",
+    "scenario": "S1_left_lean_forward",
+    "condition": "direct",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.9,
+    "variety": 4792,
+    "delta": 1.3,
+    "objects": {
+      "target_green": 330
+    }
+  },
+  {
+    "task": "t8",
+    "scenario": "S1_left_lean_forward",
+    "condition": "shared",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.9,
+    "variety": 4851,
+    "delta": 1.27,
+    "objects": {
+      "target_green": 330
+    }
+  },
+  {
+    "task": "t8",
+    "scenario": "S2_left_step_forward",
+    "condition": "assisted",
+    "duration_s": 10.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.9,
+    "variety": 4658,
+    "delta": 1.04,
+    "objects": {
+      "target_green": 318
+    }
+  },
+  {
+    "task": "t8",
+    "scenario": "S2_left_step_forward",
+    "condition": "direct",
+    "duration_s": 10.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.8,
+    "variety": 4660,
+    "delta": 1.22,
+    "objects": {
+      "target_green": 319
+    }
+  },
+  {
+    "task": "t8",
+    "scenario": "S2_left_step_forward",
+    "condition": "shared",
+    "duration_s": 10.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.9,
+    "variety": 4711,
+    "delta": 1.19,
+    "objects": {
+      "target_green": 317
+    }
+  },
+  {
+    "task": "t8",
+    "scenario": "S3_right_crouch",
+    "condition": "assisted",
+    "duration_s": 8.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.8,
+    "variety": 4979,
+    "delta": 1.09,
+    "objects": {
+      "target_green": 389
+    }
+  },
+  {
+    "task": "t8",
+    "scenario": "S3_right_crouch",
+    "condition": "direct",
+    "duration_s": 9.4,
+    "ok": true,
+    "why": "",
+    "bright": 69.7,
+    "variety": 5040,
+    "delta": 1.0,
+    "objects": {
+      "target_green": 384
+    }
+  },
+  {
+    "task": "t8",
+    "scenario": "S3_right_crouch",
+    "condition": "shared",
+    "duration_s": 8.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.8,
+    "variety": 4984,
+    "delta": 1.05,
+    "objects": {
+      "target_green": 390
+    }
+  },
+  {
+    "task": "t8",
+    "scenario": "S4_right_step_forward",
+    "condition": "assisted",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.9,
+    "variety": 4855,
+    "delta": 1.23,
+    "objects": {
+      "target_green": 324
+    }
+  },
+  {
+    "task": "t8",
+    "scenario": "S4_right_step_forward",
+    "condition": "direct",
+    "duration_s": 10.3,
+    "ok": true,
+    "why": "",
+    "bright": 69.8,
+    "variety": 4911,
+    "delta": 1.24,
+    "objects": {
+      "target_green": 334
+    }
+  },
+  {
+    "task": "t8",
+    "scenario": "S4_right_step_forward",
+    "condition": "shared",
+    "duration_s": 10.2,
+    "ok": true,
+    "why": "",
+    "bright": 69.9,
+    "variety": 4873,
+    "delta": 0.74,
+    "objects": {
+      "target_green": 324
+    }
+  },
+  {
+    "task": "t9",
+    "scenario": "S1_sway_000mm",
+    "condition": "assisted",
+    "duration_s": 5.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3864,
+    "delta": 2.44,
+    "objects": {
+      "target_green": 254
+    }
+  },
+  {
+    "task": "t9",
+    "scenario": "S1_sway_000mm",
+    "condition": "direct",
+    "duration_s": 5.5,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3909,
+    "delta": 2.4,
+    "objects": {
+      "target_green": 252
+    }
+  },
+  {
+    "task": "t9",
+    "scenario": "S1_sway_000mm",
+    "condition": "shared",
+    "duration_s": 5.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.4,
+    "variety": 3870,
+    "delta": 2.43,
+    "objects": {
+      "target_green": 254
+    }
+  },
+  {
+    "task": "t9",
+    "scenario": "S2_sway_020mm",
+    "condition": "assisted",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3842,
+    "delta": 0.45,
+    "objects": {
+      "target_green": 51
+    }
+  },
+  {
+    "task": "t9",
+    "scenario": "S2_sway_020mm",
+    "condition": "direct",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3849,
+    "delta": 0.39,
+    "objects": {
+      "target_green": 62
+    }
+  },
+  {
+    "task": "t9",
+    "scenario": "S2_sway_020mm",
+    "condition": "shared",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3832,
+    "delta": 0.58,
+    "objects": {
+      "target_green": 54
+    }
+  },
+  {
+    "task": "t9",
+    "scenario": "S3_sway_060mm",
+    "condition": "assisted",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3847,
+    "delta": 0.81,
+    "objects": {
+      "target_green": 78
+    }
+  },
+  {
+    "task": "t9",
+    "scenario": "S3_sway_060mm",
+    "condition": "direct",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3839,
+    "delta": 0.76,
+    "objects": {
+      "target_green": 70
+    }
+  },
+  {
+    "task": "t9",
+    "scenario": "S3_sway_060mm",
+    "condition": "shared",
+    "duration_s": 9.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3851,
+    "delta": 1.04,
+    "objects": {
+      "target_green": 53
+    }
+  },
+  {
+    "task": "t9",
+    "scenario": "S4_sway_100mm",
+    "condition": "assisted",
+    "duration_s": 12.6,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3835,
+    "delta": 1.33,
+    "objects": {
+      "target_green": 77
+    }
+  },
+  {
+    "task": "t9",
+    "scenario": "S4_sway_100mm",
+    "condition": "direct",
+    "duration_s": 12.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3827,
+    "delta": 1.15,
+    "objects": {
+      "target_green": 121
+    }
+  },
+  {
+    "task": "t9",
+    "scenario": "S4_sway_100mm",
+    "condition": "shared",
+    "duration_s": 12.1,
+    "ok": true,
+    "why": "",
+    "bright": 69.3,
+    "variety": 3850,
+    "delta": 1.37,
+    "objects": {
+      "target_green": 79
+    }
+  }
+]

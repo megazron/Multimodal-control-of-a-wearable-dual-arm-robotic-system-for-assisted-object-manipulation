@@ -1,0 +1,13 @@
+{
+  "frames": 47,
+  "duration_s": 8.080844591982896,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t5/S1_near/direct/rviz.mp4",
+  "blocks_placed": 0,
+  "ball_fallen": false,
+  "tool_delivered": true,
+  "task": "t5",
+  "scenario": "S1_near",
+  "condition": "direct",
+  "note": "right arm delivers to the wearer",
+  "bytes": 479476
+}

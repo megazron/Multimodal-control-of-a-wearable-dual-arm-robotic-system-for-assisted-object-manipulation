@@ -1,0 +1,13 @@
+{
+  "frames": 50,
+  "duration_s": 9.014943913003663,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t5/S2_far/shared/rviz.mp4",
+  "blocks_placed": 0,
+  "ball_fallen": false,
+  "tool_delivered": true,
+  "task": "t5",
+  "scenario": "S2_far",
+  "condition": "shared",
+  "note": "right arm delivers to the wearer",
+  "bytes": 461375
+}

@@ -1,0 +1,13 @@
+{
+  "frames": 56,
+  "duration_s": 11.019299652980408,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t7/S4_asymmetric/shared/rviz.mp4",
+  "blocks_placed": 0,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "task": "t7",
+  "scenario": "S4_asymmetric",
+  "condition": "shared",
+  "note": "pursuit L 0.30 / R 0.08 m/s",
+  "bytes": 882851
+}

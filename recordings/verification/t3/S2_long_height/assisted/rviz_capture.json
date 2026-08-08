@@ -1,0 +1,13 @@
+{
+  "frames": 47,
+  "duration_s": 8.29429849900771,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t3/S2_long_height/assisted/rviz.mp4",
+  "blocks_placed": 0,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "task": "t3",
+  "scenario": "S2_long_height",
+  "condition": "assisted",
+  "note": "rigid tray, 310 mm span",
+  "bytes": 739623
+}

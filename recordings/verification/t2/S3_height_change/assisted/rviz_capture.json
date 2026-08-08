@@ -1,0 +1,13 @@
+{
+  "frames": 56,
+  "duration_s": 10.934180203010328,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t2/S3_height_change/assisted/rviz.mp4",
+  "blocks_placed": 1,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "task": "t2",
+  "scenario": "S3_height_change",
+  "condition": "assisted",
+  "note": "right holds, left fills",
+  "bytes": 770419
+}

@@ -1,0 +1,13 @@
+{
+  "frames": 51,
+  "duration_s": 9.448599040013505,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t2/S1_short_reach/direct/rviz.mp4",
+  "blocks_placed": 1,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "task": "t2",
+  "scenario": "S1_short_reach",
+  "condition": "direct",
+  "note": "right holds, left fills",
+  "bytes": 664625
+}

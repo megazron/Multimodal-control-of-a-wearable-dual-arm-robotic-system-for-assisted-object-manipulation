@@ -1,0 +1,13 @@
+{
+  "frames": 43,
+  "duration_s": 7.057543008995708,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t3/S3_curved_obstacle/assisted/rviz.mp4",
+  "blocks_placed": 0,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "task": "t3",
+  "scenario": "S3_curved_obstacle",
+  "condition": "assisted",
+  "note": "rigid tray, 310 mm span",
+  "bytes": 680417
+}

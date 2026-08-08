@@ -1,0 +1,611 @@
+[
+  {
+    "task": "t2",
+    "scenario": "S1_short_reach",
+    "condition": "assisted",
+    "verdict": "CARRIED",
+    "detail": "orange 103->95 px (supply emptying), green 0->54 px (in container), blocks_placed=1"
+  },
+  {
+    "task": "t2",
+    "scenario": "S1_short_reach",
+    "condition": "direct",
+    "verdict": "CARRIED",
+    "detail": "orange 104->94 px (supply emptying), green 0->54 px (in container), blocks_placed=1"
+  },
+  {
+    "task": "t2",
+    "scenario": "S1_short_reach",
+    "condition": "shared",
+    "verdict": "CARRIED",
+    "detail": "orange 100->96 px (supply emptying), green 0->54 px (in container), blocks_placed=1"
+  },
+  {
+    "task": "t2",
+    "scenario": "S2_long_reach",
+    "condition": "assisted",
+    "verdict": "CARRIED",
+    "detail": "orange 93->100 px (supply emptying), green 0->54 px (in container), blocks_placed=1"
+  },
+  {
+    "task": "t2",
+    "scenario": "S2_long_reach",
+    "condition": "direct",
+    "verdict": "CARRIED",
+    "detail": "orange 99->100 px (supply emptying), green 0->53 px (in container), blocks_placed=1"
+  },
+  {
+    "task": "t2",
+    "scenario": "S2_long_reach",
+    "condition": "shared",
+    "verdict": "CARRIED",
+    "detail": "orange 96->100 px (supply emptying), green 0->54 px (in container), blocks_placed=1"
+  },
+  {
+    "task": "t2",
+    "scenario": "S3_height_change",
+    "condition": "assisted",
+    "verdict": "CARRIED",
+    "detail": "orange 107->97 px (supply emptying), green 0->61 px (in container), blocks_placed=1"
+  },
+  {
+    "task": "t2",
+    "scenario": "S3_height_change",
+    "condition": "direct",
+    "verdict": "CARRIED",
+    "detail": "orange 113->97 px (supply emptying), green 0->62 px (in container), blocks_placed=1"
+  },
+  {
+    "task": "t2",
+    "scenario": "S3_height_change",
+    "condition": "shared",
+    "verdict": "CARRIED",
+    "detail": "orange 108->97 px (supply emptying), green 0->61 px (in container), blocks_placed=1"
+  },
+  {
+    "task": "t2",
+    "scenario": "S4_tight_tolerance",
+    "condition": "assisted",
+    "verdict": "CARRIED",
+    "detail": "orange 36->37 px (supply emptying), green 0->16 px (in container), blocks_placed=1"
+  },
+  {
+    "task": "t2",
+    "scenario": "S4_tight_tolerance",
+    "condition": "direct",
+    "verdict": "CARRIED",
+    "detail": "orange 36->37 px (supply emptying), green 0->16 px (in container), blocks_placed=1"
+  },
+  {
+    "task": "t2",
+    "scenario": "S4_tight_tolerance",
+    "condition": "shared",
+    "verdict": "CARRIED",
+    "detail": "orange 36->37 px (supply emptying), green 0->16 px (in container), blocks_placed=1"
+  },
+  {
+    "task": "t3",
+    "scenario": "S1_short_straight",
+    "condition": "assisted",
+    "verdict": "CARRIED",
+    "detail": "tray centroid travelled 8 px"
+  },
+  {
+    "task": "t3",
+    "scenario": "S1_short_straight",
+    "condition": "direct",
+    "verdict": "CARRIED",
+    "detail": "tray centroid travelled 15 px"
+  },
+  {
+    "task": "t3",
+    "scenario": "S1_short_straight",
+    "condition": "shared",
+    "verdict": "CARRIED",
+    "detail": "tray centroid travelled 8 px"
+  },
+  {
+    "task": "t3",
+    "scenario": "S2_long_height",
+    "condition": "assisted",
+    "verdict": "CARRIED",
+    "detail": "tray centroid travelled 28 px"
+  },
+  {
+    "task": "t3",
+    "scenario": "S2_long_height",
+    "condition": "direct",
+    "verdict": "CARRIED",
+    "detail": "tray centroid travelled 31 px"
+  },
+  {
+    "task": "t3",
+    "scenario": "S2_long_height",
+    "condition": "shared",
+    "verdict": "CARRIED",
+    "detail": "tray centroid travelled 28 px"
+  },
+  {
+    "task": "t3",
+    "scenario": "S3_curved_obstacle",
+    "condition": "assisted",
+    "verdict": "CARRIED",
+    "detail": "tray centroid travelled 21 px"
+  },
+  {
+    "task": "t3",
+    "scenario": "S3_curved_obstacle",
+    "condition": "direct",
+    "verdict": "CARRIED",
+    "detail": "tray centroid travelled 22 px"
+  },
+  {
+    "task": "t3",
+    "scenario": "S3_curved_obstacle",
+    "condition": "shared",
+    "verdict": "CARRIED",
+    "detail": "tray centroid travelled 19 px"
+  },
+  {
+    "task": "t3",
+    "scenario": "S4_tight",
+    "condition": "assisted",
+    "verdict": "CARRIED",
+    "detail": "tray centroid travelled 15 px"
+  },
+  {
+    "task": "t3",
+    "scenario": "S4_tight",
+    "condition": "direct",
+    "verdict": "CARRIED",
+    "detail": "tray centroid travelled 16 px"
+  },
+  {
+    "task": "t3",
+    "scenario": "S4_tight",
+    "condition": "shared",
+    "verdict": "CARRIED",
+    "detail": "tray centroid travelled 15 px"
+  },
+  {
+    "task": "t5",
+    "scenario": "S1_near",
+    "condition": "assisted",
+    "verdict": "CARRIED",
+    "detail": "tool head travelled 27 px, delivered=True"
+  },
+  {
+    "task": "t5",
+    "scenario": "S1_near",
+    "condition": "direct",
+    "verdict": "CARRIED",
+    "detail": "tool head travelled 28 px, delivered=True"
+  },
+  {
+    "task": "t5",
+    "scenario": "S1_near",
+    "condition": "shared",
+    "verdict": "CARRIED",
+    "detail": "tool head travelled 27 px, delivered=True"
+  },
+  {
+    "task": "t5",
+    "scenario": "S2_far",
+    "condition": "assisted",
+    "verdict": "CARRIED",
+    "detail": "tool head travelled 32 px, delivered=True"
+  },
+  {
+    "task": "t5",
+    "scenario": "S2_far",
+    "condition": "direct",
+    "verdict": "CARRIED",
+    "detail": "tool head travelled 39 px, delivered=True"
+  },
+  {
+    "task": "t5",
+    "scenario": "S2_far",
+    "condition": "shared",
+    "verdict": "CARRIED",
+    "detail": "tool head travelled 32 px, delivered=True"
+  },
+  {
+    "task": "t5",
+    "scenario": "S3_busy",
+    "condition": "assisted",
+    "verdict": "CARRIED",
+    "detail": "tool head travelled 28 px, delivered=True"
+  },
+  {
+    "task": "t5",
+    "scenario": "S3_busy",
+    "condition": "direct",
+    "verdict": "CARRIED",
+    "detail": "tool head travelled 28 px, delivered=True"
+  },
+  {
+    "task": "t5",
+    "scenario": "S3_busy",
+    "condition": "shared",
+    "verdict": "CARRIED",
+    "detail": "tool head travelled 22 px, delivered=True"
+  },
+  {
+    "task": "t6",
+    "scenario": "S1_short_straight",
+    "condition": "assisted",
+    "verdict": "CARRIED",
+    "detail": "sling 7 px, ball 7 px"
+  },
+  {
+    "task": "t6",
+    "scenario": "S1_short_straight",
+    "condition": "direct",
+    "verdict": "CARRIED",
+    "detail": "sling 11 px, ball 7 px"
+  },
+  {
+    "task": "t6",
+    "scenario": "S1_short_straight",
+    "condition": "shared",
+    "verdict": "CARRIED",
+    "detail": "sling 6 px, ball 6 px"
+  },
+  {
+    "task": "t6",
+    "scenario": "S2_long_height",
+    "condition": "assisted",
+    "verdict": "CARRIED",
+    "detail": "sling 20 px, ball 32 px"
+  },
+  {
+    "task": "t6",
+    "scenario": "S2_long_height",
+    "condition": "direct",
+    "verdict": "CARRIED",
+    "detail": "sling 20 px, ball 36 px"
+  },
+  {
+    "task": "t6",
+    "scenario": "S2_long_height",
+    "condition": "shared",
+    "verdict": "CARRIED",
+    "detail": "sling 19 px, ball 33 px"
+  },
+  {
+    "task": "t6",
+    "scenario": "S3_curved_obstacle",
+    "condition": "assisted",
+    "verdict": "CARRIED",
+    "detail": "sling 18 px, ball 26 px"
+  },
+  {
+    "task": "t6",
+    "scenario": "S3_curved_obstacle",
+    "condition": "direct",
+    "verdict": "CARRIED",
+    "detail": "sling 17 px, ball 26 px"
+  },
+  {
+    "task": "t6",
+    "scenario": "S3_curved_obstacle",
+    "condition": "shared",
+    "verdict": "CARRIED",
+    "detail": "sling 14 px, ball 24 px"
+  },
+  {
+    "task": "t6",
+    "scenario": "S4_tight",
+    "condition": "assisted",
+    "verdict": "CARRIED",
+    "detail": "sling 12 px, ball 16 px"
+  },
+  {
+    "task": "t6",
+    "scenario": "S4_tight",
+    "condition": "direct",
+    "verdict": "CARRIED",
+    "detail": "sling 11 px, ball 19 px"
+  },
+  {
+    "task": "t6",
+    "scenario": "S4_tight",
+    "condition": "shared",
+    "verdict": "CARRIED",
+    "detail": "sling 12 px, ball 15 px"
+  },
+  {
+    "task": "t7",
+    "scenario": "B1_left_only",
+    "condition": "assisted",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 1.71 m, tracking 4.1 mm"
+  },
+  {
+    "task": "t7",
+    "scenario": "B1_left_only",
+    "condition": "direct",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 1.76 m, tracking 4.7 mm"
+  },
+  {
+    "task": "t7",
+    "scenario": "B1_left_only",
+    "condition": "shared",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 1.58 m, tracking 3.9 mm"
+  },
+  {
+    "task": "t7",
+    "scenario": "B2_right_only",
+    "condition": "assisted",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 1.76 m, tracking 4.3 mm"
+  },
+  {
+    "task": "t7",
+    "scenario": "B2_right_only",
+    "condition": "direct",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 1.80 m, tracking 4.5 mm"
+  },
+  {
+    "task": "t7",
+    "scenario": "B2_right_only",
+    "condition": "shared",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 1.63 m, tracking 4.0 mm"
+  },
+  {
+    "task": "t7",
+    "scenario": "S1_both_slow",
+    "condition": "assisted",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 1.41 m, tracking 2.0 mm"
+  },
+  {
+    "task": "t7",
+    "scenario": "S1_both_slow",
+    "condition": "direct",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 1.43 m, tracking 2.1 mm"
+  },
+  {
+    "task": "t7",
+    "scenario": "S1_both_slow",
+    "condition": "shared",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 1.37 m, tracking 1.9 mm"
+  },
+  {
+    "task": "t7",
+    "scenario": "S2_one_fast",
+    "condition": "assisted",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 2.45 m, tracking 2.6 mm"
+  },
+  {
+    "task": "t7",
+    "scenario": "S2_one_fast",
+    "condition": "direct",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 2.51 m, tracking 2.4 mm"
+  },
+  {
+    "task": "t7",
+    "scenario": "S2_one_fast",
+    "condition": "shared",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 2.30 m, tracking 2.5 mm"
+  },
+  {
+    "task": "t7",
+    "scenario": "S3_both_fast",
+    "condition": "assisted",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 3.47 m, tracking 4.0 mm"
+  },
+  {
+    "task": "t7",
+    "scenario": "S3_both_fast",
+    "condition": "direct",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 3.58 m, tracking 4.1 mm"
+  },
+  {
+    "task": "t7",
+    "scenario": "S3_both_fast",
+    "condition": "shared",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 3.21 m, tracking 3.7 mm"
+  },
+  {
+    "task": "t7",
+    "scenario": "S4_asymmetric",
+    "condition": "assisted",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 3.03 m, tracking 2.7 mm"
+  },
+  {
+    "task": "t7",
+    "scenario": "S4_asymmetric",
+    "condition": "direct",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 3.23 m, tracking 3.0 mm"
+  },
+  {
+    "task": "t7",
+    "scenario": "S4_asymmetric",
+    "condition": "shared",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 2.72 m, tracking 2.4 mm"
+  },
+  {
+    "task": "t8",
+    "scenario": "S1_left_lean_forward",
+    "condition": "assisted",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 0.70 m, tracking 1.7 mm"
+  },
+  {
+    "task": "t8",
+    "scenario": "S1_left_lean_forward",
+    "condition": "direct",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 0.70 m, tracking 1.8 mm"
+  },
+  {
+    "task": "t8",
+    "scenario": "S1_left_lean_forward",
+    "condition": "shared",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 0.69 m, tracking 1.7 mm"
+  },
+  {
+    "task": "t8",
+    "scenario": "S2_left_step_forward",
+    "condition": "assisted",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 0.76 m, tracking 1.8 mm"
+  },
+  {
+    "task": "t8",
+    "scenario": "S2_left_step_forward",
+    "condition": "direct",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 0.76 m, tracking 1.6 mm"
+  },
+  {
+    "task": "t8",
+    "scenario": "S2_left_step_forward",
+    "condition": "shared",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 0.75 m, tracking 1.8 mm"
+  },
+  {
+    "task": "t8",
+    "scenario": "S3_right_crouch",
+    "condition": "assisted",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 0.72 m, tracking 1.9 mm"
+  },
+  {
+    "task": "t8",
+    "scenario": "S3_right_crouch",
+    "condition": "direct",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 0.73 m, tracking 1.9 mm"
+  },
+  {
+    "task": "t8",
+    "scenario": "S3_right_crouch",
+    "condition": "shared",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 0.71 m, tracking 1.7 mm"
+  },
+  {
+    "task": "t8",
+    "scenario": "S4_right_step_forward",
+    "condition": "assisted",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 0.77 m, tracking 1.7 mm"
+  },
+  {
+    "task": "t8",
+    "scenario": "S4_right_step_forward",
+    "condition": "direct",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 0.79 m, tracking 1.9 mm"
+  },
+  {
+    "task": "t8",
+    "scenario": "S4_right_step_forward",
+    "condition": "shared",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 0.77 m, tracking 1.9 mm"
+  },
+  {
+    "task": "t9",
+    "scenario": "S1_sway_000mm",
+    "condition": "assisted",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 0.78 m, tracking 0.0 mm"
+  },
+  {
+    "task": "t9",
+    "scenario": "S1_sway_000mm",
+    "condition": "direct",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 0.78 m, tracking 0.0 mm"
+  },
+  {
+    "task": "t9",
+    "scenario": "S1_sway_000mm",
+    "condition": "shared",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 0.78 m, tracking 0.0 mm"
+  },
+  {
+    "task": "t9",
+    "scenario": "S2_sway_020mm",
+    "condition": "assisted",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 1.01 m, tracking 1.2 mm"
+  },
+  {
+    "task": "t9",
+    "scenario": "S2_sway_020mm",
+    "condition": "direct",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 1.02 m, tracking 1.2 mm"
+  },
+  {
+    "task": "t9",
+    "scenario": "S2_sway_020mm",
+    "condition": "shared",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 0.97 m, tracking 1.0 mm"
+  },
+  {
+    "task": "t9",
+    "scenario": "S3_sway_060mm",
+    "condition": "assisted",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 1.51 m, tracking 1.9 mm"
+  },
+  {
+    "task": "t9",
+    "scenario": "S3_sway_060mm",
+    "condition": "direct",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 1.52 m, tracking 2.0 mm"
+  },
+  {
+    "task": "t9",
+    "scenario": "S3_sway_060mm",
+    "condition": "shared",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 1.46 m, tracking 1.8 mm"
+  },
+  {
+    "task": "t9",
+    "scenario": "S4_sway_100mm",
+    "condition": "assisted",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 2.01 m, tracking 2.1 mm"
+  },
+  {
+    "task": "t9",
+    "scenario": "S4_sway_100mm",
+    "condition": "direct",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 2.03 m, tracking 2.3 mm"
+  },
+  {
+    "task": "t9",
+    "scenario": "S4_sway_100mm",
+    "condition": "shared",
+    "verdict": "N/A (no carried object)",
+    "detail": "arm travelled 1.97 m, tracking 2.3 mm"
+  }
+]

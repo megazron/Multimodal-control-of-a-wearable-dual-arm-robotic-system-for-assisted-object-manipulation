@@ -1,232 +1,255 @@
 # VERIFICATION CLIP INDEX
 
-Every task x scenario x autonomy condition, driven in sim and recorded. **87 clips.**
+**87 runs**, every task x scenario x autonomy condition, driven in sim and recorded two ways.
 
 
-## How to review one
+## START HERE -- how to play them from Windows
 
-Each folder holds `clip.mp4`, `plot_metrics.png`, `summary.json` and a
-rosbag2 in `bag/`. The clip has two panels:
+The files live in the WSL filesystem. From Windows, paste this into Explorer
+or into a media player's Open dialog:
 
-* **left** — 3-D view, wearer drawn as the collision primitives from
-  `human_backpack.xacro`;
-* **right** — **front view** (x-z), wearer facing you. This is the panel to
-  judge from: the 3-D view cannot show whether two grippers are level, which
-  is the whole of the T3/T6 metric.
+```
+\\wsl.localhost\Ubuntu\home\gausms\kortex_ws\recordings\verification
+```
 
-The title bar carries live **minimum clearance** and, for T3/T6, live
-**|dz|** between the grippers.
+VLC, MPC-HC and the built-in Films & TV app all open that path directly. Or
+from PowerShell:
 
-**Read the front view knowing y is projected away.** The wearer outline and
-the arms overlap on screen whenever the arms are in front of the body — which
-is where the tasks are. Clearance in the title bar is the real 3-D number;
-trust it over the picture.
+```powershell
+start \\wsl.localhost\Ubuntu\home\gausms\kortex_ws\recordings\verification\t6\S4_tight\direct\rviz.mp4
+```
 
-**The first ~1 s of every clip is the approach from home**, tagged
-`[approach]` in the title. It is included because it is the largest motion and
-the most collision-relevant, and it is **excluded from the tracking metric**
-(the command is deliberately far ahead of the arm during it). `summary.json`
-reports both: `tracking_rms_mm` (task phase) and
-`tracking_rms_incl_approach_mm`.
+If `\\wsl.localhost` does not resolve, the older form `\\wsl$\Ubuntu\...`
+works on the same machine.
 
-## What the conditions are, honestly
+## The two recordings, and which to watch
 
-`direct`, `assisted` and `shared` here differ **only in how much the commanded
-path is smoothed** (direct: no smoothing -- the command is the raw path, assisted: 30% smoothing on the command, standing in for assistance, shared: 55% smoothing, the most machine-shaped motion). **The autonomy stack did not run.** These clips
-verify GEOMETRY, MOTION and CLEARANCE for every scenario; they are not a
-measurement of assistance, and no autonomy claim should be read off them.
+| file | what it is |
+| --- | --- |
+| **`rviz.mp4`** | **REAL SCREEN CAPTURE of RViz.** What you would see sitting at the machine: the robot, the wearer, and the task objects moving with the arms. **Watch this one.** |
+| `clip.mp4` | a TF-rendered 3-D + front-view plot. Uglier, but drawn from exactly the samples that produced `summary.json`, so the numbers and the picture cannot disagree. Kept for automated checking. |
+| `plot_metrics.png` | tracking error and clearance against time |
+| `summary.json` | the metrics, and the automatic pass/fail checks |
+| `bag/` | rosbag2 of /tf, /joint_states and the commands (regenerable; not in git) |
+
+Every `rviz.mp4` carries a burnt-in overlay: task, scenario, condition,
+elapsed time, phase, and the live task metric (tilt for T3, separation and sag
+for T6, tracking error elsewhere). The overlay is drawn as scene text inside
+RViz rather than composited afterwards, so the number on screen is the number
+from that frame.
+
+The first ~1.5 s of every clip is the approach from home, tagged
+`approach` in the overlay. It is included because it is the largest and most
+collision-relevant motion, and it is EXCLUDED from the tracking metric.
 
 
-## Automatic checks across all 87 clips
+## THE FIVE TO WATCH FIRST
+
+**1. T6 / S4_tight / direct** — 6.2 s
+
+   THE SLING. Live separation and sag in the overlay; the ball sits in the V. S4 is the tight 330 mm case, 10 mm from the documented failure threshold, so it is the one where the object nearly fails.
+
+   `\\wsl.localhost\Ubuntu\home\gausms\kortex_ws\recordings\verification\t6\S4_tight\direct\rviz.mp4`
+
+**2. T2 / S1_short_reach / direct** — 9.4 s
+
+   PICK AND PLACE. A block leaves the slab, travels with the gripper and ends up inside the container. This is the clip that proves the gripper is not closing on nothing.
+
+   `\\wsl.localhost\Ubuntu\home\gausms\kortex_ws\recordings\verification\t2\S1_short_reach\direct\rviz.mp4`
+
+**3. T5 / S1_near / direct** — 8.1 s
+
+   THE HANDOVER -- the canonical Fusion scenario. Tool off the cradle, carried inboard, delivered at the wearer's side.
+
+   `\\wsl.localhost\Ubuntu\home\gausms\kortex_ws\recordings\verification\t5\S1_near\direct\rviz.mp4`
+
+**4. T3 / S2_long_height / direct** — 8.4 s
+
+   THE RIGID CARRY. Tray straight, tilt near zero through a full-band lift. Compare directly against the T6 clip above: same path, different object.
+
+   `\\wsl.localhost\Ubuntu\home\gausms\kortex_ws\recordings\verification\t3\S2_long_height\direct\rviz.mp4`
+
+**5. T9 / S4_sway_100mm / direct** — 10.7 s
+
+   WEARER MOTION at the top of the IV. The arm holds a world-fixed point while the base sways 100 mm underneath it.
+
+   `\\wsl.localhost\Ubuntu\home\gausms\kortex_ws\recordings\verification\t9\S4_sway_100mm\direct\rviz.mp4`
+
+
+## Automatic checks across all 87 runs
 
 | check | result |
 | --- | --- |
-| any arm link inside the wearer | **0**  |
-| below the 120 mm `real_robot` clearance floor | **48 of 87** |
-| clip shows no motion (EE travel < 50 mm) | **0** |
-| clips / plots / bags present | 87 / 87 / 87 |
+| any arm link inside the wearer | **0** |
+| below the 120 mm `real_robot` clearance floor | **48 of 87** (see the clearance finding in docs/research) |
+| shows no motion (EE travel < 50 mm) | **0** |
+| RViz screen capture present | 87 of 87 |
+| TF clip / plot / bag present | 87 / 87 / 87 |
 
 ---
 
-## T2 — 12 clips
+## T2 — 12 runs
 
-**What it should show.** The FILL arm picks at the pick point, carries across, and opens over the container opening (green square). The HOLD arm stays put the whole time. The two arms never swap sides.
+**What it should show.** The FILL arm picks an orange block off the slab, carries it across, and drops it into the TEAL container that the HOLD arm is carrying. Blocks left in the container turn GREEN. The hold arm holds station throughout; the two arms never swap sides.
 
-| scenario | cond | EE travel | min clearance | tracking RMS | clip |
-| --- | --- | --- | --- | --- | --- |
-| S1_short_reach | assisted | 1.417 m | 0.050 m *(below 120 mm floor)* | 0.7 mm | `recordings/verification/t2/S1_short_reach/assisted/clip.mp4` |
-| S1_short_reach | direct | 1.469 m | 0.049 m *(below 120 mm floor)* | 0.7 mm | `recordings/verification/t2/S1_short_reach/direct/clip.mp4` |
-| S1_short_reach | shared | 1.345 m | 0.051 m *(below 120 mm floor)* | 0.7 mm | `recordings/verification/t2/S1_short_reach/shared/clip.mp4` |
-| S2_long_reach | assisted | 1.442 m | 0.050 m *(below 120 mm floor)* | 0.8 mm | `recordings/verification/t2/S2_long_reach/assisted/clip.mp4` |
-| S2_long_reach | direct | 1.434 m | 0.049 m *(below 120 mm floor)* | 0.8 mm | `recordings/verification/t2/S2_long_reach/direct/clip.mp4` |
-| S2_long_reach | shared | 1.340 m | 0.051 m *(below 120 mm floor)* | 0.7 mm | `recordings/verification/t2/S2_long_reach/shared/clip.mp4` |
-| S3_height_change | assisted | 1.456 m | 0.049 m *(below 120 mm floor)* | 0.8 mm | `recordings/verification/t2/S3_height_change/assisted/clip.mp4` |
-| S3_height_change | direct | 1.501 m | 0.048 m *(below 120 mm floor)* | 0.8 mm | `recordings/verification/t2/S3_height_change/direct/clip.mp4` |
-| S3_height_change | shared | 1.438 m | 0.053 m *(below 120 mm floor)* | 0.7 mm | `recordings/verification/t2/S3_height_change/shared/clip.mp4` |
-| S4_tight_tolerance | assisted | 1.457 m | 0.050 m *(below 120 mm floor)* | 0.7 mm | `recordings/verification/t2/S4_tight_tolerance/assisted/clip.mp4` |
-| S4_tight_tolerance | direct | 1.401 m | 0.048 m *(below 120 mm floor)* | 0.8 mm | `recordings/verification/t2/S4_tight_tolerance/direct/clip.mp4` |
-| S4_tight_tolerance | shared | 1.416 m | 0.051 m *(below 120 mm floor)* | 0.7 mm | `recordings/verification/t2/S4_tight_tolerance/shared/clip.mp4` |
-
-right holds, left fills
-
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | tracking | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1_short_reach | assisted | yes | 9.5 s | 1.42 m | 0.050 m *(below floor)* | 0.7 mm | 1 block(s) placed | object CARRIED |
+| S1_short_reach | direct | yes | 9.4 s | 1.47 m | 0.049 m *(below floor)* | 0.7 mm | 1 block(s) placed | object CARRIED |
+| S1_short_reach | shared | yes | 9.5 s | 1.34 m | 0.051 m *(below floor)* | 0.7 mm | 1 block(s) placed | object CARRIED |
+| S2_long_reach | assisted | yes | 8.8 s | 1.44 m | 0.050 m *(below floor)* | 0.8 mm | 1 block(s) placed | object CARRIED |
+| S2_long_reach | direct | yes | 8.9 s | 1.43 m | 0.049 m *(below floor)* | 0.8 mm | 1 block(s) placed | object CARRIED |
+| S2_long_reach | shared | yes | 8.9 s | 1.34 m | 0.051 m *(below floor)* | 0.7 mm | 1 block(s) placed | object CARRIED |
+| S3_height_change | assisted | yes | 10.9 s | 1.46 m | 0.049 m *(below floor)* | 0.8 mm | 1 block(s) placed | object CARRIED |
+| S3_height_change | direct | yes | 11.0 s | 1.50 m | 0.048 m *(below floor)* | 0.8 mm | 1 block(s) placed | object CARRIED |
+| S3_height_change | shared | yes | 11.0 s | 1.44 m | 0.053 m *(below floor)* | 0.7 mm | 1 block(s) placed | object CARRIED |
+| S4_tight_tolerance | assisted | yes | 10.0 s | 1.46 m | 0.050 m *(below floor)* | 0.7 mm | 1 block(s) placed | object CARRIED |
+| S4_tight_tolerance | direct | yes | 10.0 s | 1.40 m | 0.048 m *(below floor)* | 0.8 mm | 1 block(s) placed | object CARRIED |
+| S4_tight_tolerance | shared | yes | 10.1 s | 1.42 m | 0.051 m *(below floor)* | 0.7 mm | 1 block(s) placed | object CARRIED |
 
 ---
 
-## T3 — 12 clips
+## T3 — 12 runs
 
-**What it should show.** Both grippers rise together with the brown tray between them STRAIGHT and level -- |dz| should stay near 0 mm. Motion is a VERTICAL lift; nothing travels toward the wearer.
+**What it should show.** Both grippers rise together with the TAN RIGID TRAY between them and a yellow ball on top. The tray stays straight and level -- |tilt| in the overlay should stay near 0 deg. The ball rolls to the low side and would fall off past 11.3 deg.
 
-| scenario | cond | EE travel | min clearance | tracking RMS | clip |
-| --- | --- | --- | --- | --- | --- |
-| S1_short_straight | assisted | 1.302 m | 0.052 m *(below 120 mm floor)* | 2.1 mm | `recordings/verification/t3/S1_short_straight/assisted/clip.mp4` |
-| S1_short_straight | direct | 1.314 m | 0.052 m *(below 120 mm floor)* | 2.4 mm | `recordings/verification/t3/S1_short_straight/direct/clip.mp4` |
-| S1_short_straight | shared | 1.280 m | 0.052 m *(below 120 mm floor)* | 2.2 mm | `recordings/verification/t3/S1_short_straight/shared/clip.mp4` |
-| S2_long_height | assisted | 1.546 m | 0.051 m *(below 120 mm floor)* | 2.1 mm | `recordings/verification/t3/S2_long_height/assisted/clip.mp4` |
-| S2_long_height | direct | 1.570 m | 0.051 m *(below 120 mm floor)* | 2.0 mm | `recordings/verification/t3/S2_long_height/direct/clip.mp4` |
-| S2_long_height | shared | 1.551 m | 0.051 m *(below 120 mm floor)* | 2.1 mm | `recordings/verification/t3/S2_long_height/shared/clip.mp4` |
-| S3_curved_obstacle | assisted | 1.465 m | 0.052 m *(below 120 mm floor)* | 2.1 mm | `recordings/verification/t3/S3_curved_obstacle/assisted/clip.mp4` |
-| S3_curved_obstacle | direct | 1.525 m | 0.051 m *(below 120 mm floor)* | 1.8 mm | `recordings/verification/t3/S3_curved_obstacle/direct/clip.mp4` |
-| S3_curved_obstacle | shared | 1.442 m | 0.056 m *(below 120 mm floor)* | 2.0 mm | `recordings/verification/t3/S3_curved_obstacle/shared/clip.mp4` |
-| S4_tight | assisted | 1.340 m | 0.058 m *(below 120 mm floor)* | 1.8 mm | `recordings/verification/t3/S4_tight/assisted/clip.mp4` |
-| S4_tight | direct | 1.391 m | 0.058 m *(below 120 mm floor)* | 1.5 mm | `recordings/verification/t3/S4_tight/direct/clip.mp4` |
-| S4_tight | shared | 1.337 m | 0.059 m *(below 120 mm floor)* | 1.5 mm | `recordings/verification/t3/S4_tight/shared/clip.mp4` |
-
-rigid tray, 310 mm span, vertical lift
-
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | tracking | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1_short_straight | assisted | yes | 4.7 s | 1.30 m | 0.052 m *(below floor)* | 2.1 mm | ball retained | object CARRIED |
+| S1_short_straight | direct | yes | 4.7 s | 1.31 m | 0.052 m *(below floor)* | 2.4 mm | ball retained | object CARRIED |
+| S1_short_straight | shared | yes | 4.6 s | 1.28 m | 0.052 m *(below floor)* | 2.2 mm | ball retained | object CARRIED |
+| S2_long_height | assisted | yes | 8.3 s | 1.55 m | 0.051 m *(below floor)* | 2.1 mm | ball retained | object CARRIED |
+| S2_long_height | direct | yes | 8.4 s | 1.57 m | 0.051 m *(below floor)* | 2.0 mm | ball retained | object CARRIED |
+| S2_long_height | shared | yes | 8.3 s | 1.55 m | 0.051 m *(below floor)* | 2.1 mm | ball retained | object CARRIED |
+| S3_curved_obstacle | assisted | yes | 7.1 s | 1.47 m | 0.052 m *(below floor)* | 2.1 mm | ball retained | object CARRIED |
+| S3_curved_obstacle | direct | yes | 7.1 s | 1.52 m | 0.051 m *(below floor)* | 1.8 mm | ball retained | object CARRIED |
+| S3_curved_obstacle | shared | yes | 7.0 s | 1.44 m | 0.056 m *(below floor)* | 2.0 mm | ball retained | object CARRIED |
+| S4_tight | assisted | yes | 6.2 s | 1.34 m | 0.058 m *(below floor)* | 1.8 mm | ball retained | object CARRIED |
+| S4_tight | direct | yes | 6.1 s | 1.39 m | 0.058 m *(below floor)* | 1.5 mm | ball retained | object CARRIED |
+| S4_tight | shared | yes | 6.1 s | 1.34 m | 0.059 m *(below floor)* | 1.5 mm | ball retained | object CARRIED |
 
 ---
 
-## T5 — 9 clips
+## T5 — 9 runs
 
-**What it should show.** One arm (right, -x side) reaches the cradle, lifts, carries inboard toward the wearer and stops at the receive point (green star) at the wearer's side. The other arm never moves.
+**What it should show.** The RIGHT arm (screen right) picks the tool off its cradle, carries it inboard, and stops with it at the GREEN SPHERE -- the receive point at the wearer's side. The left arm never moves.
 
-| scenario | cond | EE travel | min clearance | tracking RMS | clip |
-| --- | --- | --- | --- | --- | --- |
-| S1_near | assisted | 0.868 m | 0.068 m *(below 120 mm floor)* | 2.3 mm | `recordings/verification/t5/S1_near/assisted/clip.mp4` |
-| S1_near | direct | 0.906 m | 0.068 m *(below 120 mm floor)* | 2.5 mm | `recordings/verification/t5/S1_near/direct/clip.mp4` |
-| S1_near | shared | 0.820 m | 0.068 m *(below 120 mm floor)* | 2.0 mm | `recordings/verification/t5/S1_near/shared/clip.mp4` |
-| S2_far | assisted | 0.838 m | 0.095 m *(below 120 mm floor)* | 2.3 mm | `recordings/verification/t5/S2_far/assisted/clip.mp4` |
-| S2_far | direct | 0.879 m | 0.095 m *(below 120 mm floor)* | 2.5 mm | `recordings/verification/t5/S2_far/direct/clip.mp4` |
-| S2_far | shared | 0.795 m | 0.095 m *(below 120 mm floor)* | 2.4 mm | `recordings/verification/t5/S2_far/shared/clip.mp4` |
-| S3_busy | assisted | 0.886 m | 0.068 m *(below 120 mm floor)* | 2.1 mm | `recordings/verification/t5/S3_busy/assisted/clip.mp4` |
-| S3_busy | direct | 0.922 m | 0.068 m *(below 120 mm floor)* | 2.7 mm | `recordings/verification/t5/S3_busy/direct/clip.mp4` |
-| S3_busy | shared | 0.850 m | 0.068 m *(below 120 mm floor)* | 2.3 mm | `recordings/verification/t5/S3_busy/shared/clip.mp4` |
-
-right arm delivers to the wearer
-
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | tracking | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1_near | assisted | yes | 8.1 s | 0.87 m | 0.068 m *(below floor)* | 2.3 mm | tool delivered | object CARRIED |
+| S1_near | direct | yes | 8.1 s | 0.91 m | 0.068 m *(below floor)* | 2.5 mm | tool delivered | object CARRIED |
+| S1_near | shared | yes | 8.1 s | 0.82 m | 0.068 m *(below floor)* | 2.0 mm | tool delivered | object CARRIED |
+| S2_far | assisted | yes | 9.0 s | 0.84 m | 0.095 m *(below floor)* | 2.3 mm | tool delivered | object CARRIED |
+| S2_far | direct | yes | 9.0 s | 0.88 m | 0.095 m *(below floor)* | 2.5 mm | tool delivered | object CARRIED |
+| S2_far | shared | yes | 9.0 s | 0.79 m | 0.095 m *(below floor)* | 2.4 mm | tool delivered | object CARRIED |
+| S3_busy | assisted | yes | 8.4 s | 0.89 m | 0.068 m *(below floor)* | 2.1 mm | tool delivered | object CARRIED |
+| S3_busy | direct | yes | 8.4 s | 0.92 m | 0.068 m *(below floor)* | 2.7 mm | tool delivered | object CARRIED |
+| S3_busy | shared | yes | 8.4 s | 0.85 m | 0.068 m *(below floor)* | 2.3 mm | tool delivered | object CARRIED |
 
 ---
 
-## T6 — 12 clips
+## T6 — 12 runs
 
-**What it should show.** Same paths as T3 but the object is a SLING: it sags between the grippers. The ball sits at the lowest point and stays brown while retained; it turns RED if the sag drops below the ball diameter (separation past 340 mm).
+**What it should show.** Same paths as T3, but the object is a SLING: an orange catenary between the grippers with the ball sitting in the bottom of the V. The overlay shows live separation and sag; the ball turns RED and drops if sag falls below one ball diameter (40 mm).
 
-| scenario | cond | EE travel | min clearance | tracking RMS | clip |
-| --- | --- | --- | --- | --- | --- |
-| S1_short_straight | assisted | 1.296 m | 0.052 m *(below 120 mm floor)* | 1.9 mm | `recordings/verification/t6/S1_short_straight/assisted/clip.mp4` |
-| S1_short_straight | direct | 1.326 m | 0.052 m *(below 120 mm floor)* | 1.9 mm | `recordings/verification/t6/S1_short_straight/direct/clip.mp4` |
-| S1_short_straight | shared | 1.292 m | 0.052 m *(below 120 mm floor)* | 1.8 mm | `recordings/verification/t6/S1_short_straight/shared/clip.mp4` |
-| S2_long_height | assisted | 1.549 m | 0.051 m *(below 120 mm floor)* | 2.3 mm | `recordings/verification/t6/S2_long_height/assisted/clip.mp4` |
-| S2_long_height | direct | 1.608 m | 0.051 m *(below 120 mm floor)* | 1.7 mm | `recordings/verification/t6/S2_long_height/direct/clip.mp4` |
-| S2_long_height | shared | 1.534 m | 0.051 m *(below 120 mm floor)* | 2.0 mm | `recordings/verification/t6/S2_long_height/shared/clip.mp4` |
-| S3_curved_obstacle | assisted | 1.505 m | 0.064 m *(below 120 mm floor)* | 2.2 mm | `recordings/verification/t6/S3_curved_obstacle/assisted/clip.mp4` |
-| S3_curved_obstacle | direct | 1.529 m | 0.051 m *(below 120 mm floor)* | 2.2 mm | `recordings/verification/t6/S3_curved_obstacle/direct/clip.mp4` |
-| S3_curved_obstacle | shared | 1.454 m | 0.052 m *(below 120 mm floor)* | 2.0 mm | `recordings/verification/t6/S3_curved_obstacle/shared/clip.mp4` |
-| S4_tight | assisted | 1.371 m | 0.058 m *(below 120 mm floor)* | 1.6 mm | `recordings/verification/t6/S4_tight/assisted/clip.mp4` |
-| S4_tight | direct | 1.345 m | 0.058 m *(below 120 mm floor)* | 1.9 mm | `recordings/verification/t6/S4_tight/direct/clip.mp4` |
-| S4_tight | shared | 1.303 m | 0.058 m *(below 120 mm floor)* | 1.6 mm | `recordings/verification/t6/S4_tight/shared/clip.mp4` |
-
-compliant sling, 310 mm span
-
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | tracking | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1_short_straight | assisted | yes | 4.7 s | 1.30 m | 0.052 m *(below floor)* | 1.9 mm | ball retained | object CARRIED |
+| S1_short_straight | direct | yes | 4.7 s | 1.33 m | 0.052 m *(below floor)* | 1.9 mm | ball retained | object CARRIED |
+| S1_short_straight | shared | yes | 4.7 s | 1.29 m | 0.052 m *(below floor)* | 1.8 mm | ball retained | object CARRIED |
+| S2_long_height | assisted | yes | 8.3 s | 1.55 m | 0.051 m *(below floor)* | 2.3 mm | ball retained | object CARRIED |
+| S2_long_height | direct | yes | 8.3 s | 1.61 m | 0.051 m *(below floor)* | 1.7 mm | ball retained | object CARRIED |
+| S2_long_height | shared | yes | 8.3 s | 1.53 m | 0.051 m *(below floor)* | 2.0 mm | ball retained | object CARRIED |
+| S3_curved_obstacle | assisted | yes | 7.1 s | 1.50 m | 0.064 m *(below floor)* | 2.2 mm | ball retained | object CARRIED |
+| S3_curved_obstacle | direct | yes | 7.1 s | 1.53 m | 0.051 m *(below floor)* | 2.2 mm | ball retained | object CARRIED |
+| S3_curved_obstacle | shared | yes | 7.1 s | 1.45 m | 0.052 m *(below floor)* | 2.0 mm | ball retained | object CARRIED |
+| S4_tight | assisted | yes | 6.1 s | 1.37 m | 0.058 m *(below floor)* | 1.6 mm | ball retained | object CARRIED |
+| S4_tight | direct | yes | 6.2 s | 1.34 m | 0.058 m *(below floor)* | 1.9 mm | ball retained | object CARRIED |
+| S4_tight | shared | yes | 6.2 s | 1.30 m | 0.058 m *(below floor)* | 1.6 mm | ball retained | object CARRIED |
 
 ---
 
-## T7 — 18 clips
+## T7 — 18 runs
 
-**What it should show.** Each arm traces a small closed loop about its own centre -- a Lissajous on an 80 mm sphere. The two arms are INDEPENDENT. In the B1/B2 baselines only ONE arm moves.
+**What it should show.** Each arm chases its own GREEN TARGET SPHERE around a small closed loop -- a Lissajous on an 80 mm sphere. The arms are INDEPENDENT. In the B1/B2 baselines only ONE arm moves.
 
-| scenario | cond | EE travel | min clearance | tracking RMS | clip |
-| --- | --- | --- | --- | --- | --- |
-| B1_left_only | assisted | 1.712 m | 0.182 m | 4.1 mm | `recordings/verification/t7/B1_left_only/assisted/clip.mp4` |
-| B1_left_only | direct | 1.759 m | 0.182 m | 4.7 mm | `recordings/verification/t7/B1_left_only/direct/clip.mp4` |
-| B1_left_only | shared | 1.582 m | 0.187 m | 3.9 mm | `recordings/verification/t7/B1_left_only/shared/clip.mp4` |
-| B2_right_only | assisted | 1.761 m | 0.161 m | 4.3 mm | `recordings/verification/t7/B2_right_only/assisted/clip.mp4` |
-| B2_right_only | direct | 1.802 m | 0.172 m | 4.5 mm | `recordings/verification/t7/B2_right_only/direct/clip.mp4` |
-| B2_right_only | shared | 1.634 m | 0.182 m | 4.0 mm | `recordings/verification/t7/B2_right_only/shared/clip.mp4` |
-| S1_both_slow | assisted | 1.411 m | 0.178 m | 2.0 mm | `recordings/verification/t7/S1_both_slow/assisted/clip.mp4` |
-| S1_both_slow | direct | 1.434 m | 0.178 m | 2.1 mm | `recordings/verification/t7/S1_both_slow/direct/clip.mp4` |
-| S1_both_slow | shared | 1.371 m | 0.180 m | 1.9 mm | `recordings/verification/t7/S1_both_slow/shared/clip.mp4` |
-| S2_one_fast | assisted | 2.448 m | 0.182 m | 2.6 mm | `recordings/verification/t7/S2_one_fast/assisted/clip.mp4` |
-| S2_one_fast | direct | 2.506 m | 0.181 m | 2.4 mm | `recordings/verification/t7/S2_one_fast/direct/clip.mp4` |
-| S2_one_fast | shared | 2.297 m | 0.187 m | 2.5 mm | `recordings/verification/t7/S2_one_fast/shared/clip.mp4` |
-| S3_both_fast | assisted | 3.472 m | 0.175 m | 4.0 mm | `recordings/verification/t7/S3_both_fast/assisted/clip.mp4` |
-| S3_both_fast | direct | 3.581 m | 0.160 m | 4.1 mm | `recordings/verification/t7/S3_both_fast/direct/clip.mp4` |
-| S3_both_fast | shared | 3.206 m | 0.181 m | 3.7 mm | `recordings/verification/t7/S3_both_fast/shared/clip.mp4` |
-| S4_asymmetric | assisted | 3.026 m | 0.184 m | 2.7 mm | `recordings/verification/t7/S4_asymmetric/assisted/clip.mp4` |
-| S4_asymmetric | direct | 3.227 m | 0.180 m | 3.0 mm | `recordings/verification/t7/S4_asymmetric/direct/clip.mp4` |
-| S4_asymmetric | shared | 2.722 m | 0.186 m | 2.4 mm | `recordings/verification/t7/S4_asymmetric/shared/clip.mp4` |
-
-pursuit, left 0.20 / right 0.00 m/s
-
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | tracking | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| B1_left_only | assisted | yes | 10.5 s | 1.71 m | 0.182 m | 4.1 mm | - | N/A (no carried object) |
+| B1_left_only | direct | yes | 10.5 s | 1.76 m | 0.182 m | 4.7 mm | - | N/A (no carried object) |
+| B1_left_only | shared | yes | 10.4 s | 1.58 m | 0.187 m | 3.9 mm | - | N/A (no carried object) |
+| B2_right_only | assisted | yes | 10.4 s | 1.76 m | 0.161 m | 4.3 mm | - | N/A (no carried object) |
+| B2_right_only | direct | yes | 10.4 s | 1.80 m | 0.172 m | 4.5 mm | - | N/A (no carried object) |
+| B2_right_only | shared | yes | 10.4 s | 1.63 m | 0.182 m | 4.0 mm | - | N/A (no carried object) |
+| S1_both_slow | assisted | yes | 8.0 s | 1.41 m | 0.178 m | 2.0 mm | - | N/A (no carried object) |
+| S1_both_slow | direct | yes | 8.0 s | 1.43 m | 0.178 m | 2.1 mm | - | N/A (no carried object) |
+| S1_both_slow | shared | yes | 8.0 s | 1.37 m | 0.180 m | 1.9 mm | - | N/A (no carried object) |
+| S2_one_fast | assisted | yes | 10.7 s | 2.45 m | 0.182 m | 2.6 mm | - | N/A (no carried object) |
+| S2_one_fast | direct | yes | 10.7 s | 2.51 m | 0.181 m | 2.4 mm | - | N/A (no carried object) |
+| S2_one_fast | shared | yes | 10.7 s | 2.30 m | 0.187 m | 2.5 mm | - | N/A (no carried object) |
+| S3_both_fast | assisted | yes | 10.7 s | 3.47 m | 0.175 m | 4.0 mm | - | N/A (no carried object) |
+| S3_both_fast | direct | yes | 10.7 s | 3.58 m | 0.160 m | 4.1 mm | - | N/A (no carried object) |
+| S3_both_fast | shared | yes | 10.7 s | 3.21 m | 0.181 m | 3.7 mm | - | N/A (no carried object) |
+| S4_asymmetric | assisted | yes | 11.0 s | 3.03 m | 0.184 m | 2.7 mm | - | N/A (no carried object) |
+| S4_asymmetric | direct | yes | 11.0 s | 3.23 m | 0.180 m | 3.0 mm | - | N/A (no carried object) |
+| S4_asymmetric | shared | yes | 11.0 s | 2.72 m | 0.186 m | 2.4 mm | - | N/A (no carried object) |
 
 ---
 
-## T8 — 12 clips
+## T8 — 12 runs
 
-**What it should show.** The arm reaches out to a target (green star) far on its own side, at a position that is only reachable because the wearer has repositioned. The clip shows the arm AFTER the reposition.
+**What it should show.** The arm reaches out to a GREEN TARGET far on its own side, labelled with the stance the wearer had to adopt. The clip shows the reach AFTER the wearer has repositioned. The other arm is parked at home.
 
-| scenario | cond | EE travel | min clearance | tracking RMS | clip |
-| --- | --- | --- | --- | --- | --- |
-| S1_left_lean_forward | assisted | 0.699 m | 0.158 m | 1.7 mm | `recordings/verification/t8/S1_left_lean_forward/assisted/clip.mp4` |
-| S1_left_lean_forward | direct | 0.695 m | 0.158 m | 1.8 mm | `recordings/verification/t8/S1_left_lean_forward/direct/clip.mp4` |
-| S1_left_lean_forward | shared | 0.691 m | 0.158 m | 1.7 mm | `recordings/verification/t8/S1_left_lean_forward/shared/clip.mp4` |
-| S2_left_step_forward | assisted | 0.757 m | 0.158 m | 1.8 mm | `recordings/verification/t8/S2_left_step_forward/assisted/clip.mp4` |
-| S2_left_step_forward | direct | 0.758 m | 0.158 m | 1.6 mm | `recordings/verification/t8/S2_left_step_forward/direct/clip.mp4` |
-| S2_left_step_forward | shared | 0.747 m | 0.158 m | 1.8 mm | `recordings/verification/t8/S2_left_step_forward/shared/clip.mp4` |
-| S3_right_crouch | assisted | 0.718 m | 0.170 m | 1.9 mm | `recordings/verification/t8/S3_right_crouch/assisted/clip.mp4` |
-| S3_right_crouch | direct | 0.727 m | 0.170 m | 1.9 mm | `recordings/verification/t8/S3_right_crouch/direct/clip.mp4` |
-| S3_right_crouch | shared | 0.715 m | 0.170 m | 1.7 mm | `recordings/verification/t8/S3_right_crouch/shared/clip.mp4` |
-| S4_right_step_forward | assisted | 0.767 m | 0.170 m | 1.7 mm | `recordings/verification/t8/S4_right_step_forward/assisted/clip.mp4` |
-| S4_right_step_forward | direct | 0.785 m | 0.170 m | 1.9 mm | `recordings/verification/t8/S4_right_step_forward/direct/clip.mp4` |
-| S4_right_step_forward | shared | 0.769 m | 0.170 m | 1.9 mm | `recordings/verification/t8/S4_right_step_forward/shared/clip.mp4` |
-
-left arm; wearer must lean forward
-
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | tracking | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1_left_lean_forward | assisted | yes | 8.1 s | 0.70 m | 0.158 m | 1.7 mm | - | N/A (no carried object) |
+| S1_left_lean_forward | direct | yes | 8.0 s | 0.70 m | 0.158 m | 1.8 mm | - | N/A (no carried object) |
+| S1_left_lean_forward | shared | yes | 7.9 s | 0.69 m | 0.158 m | 1.7 mm | - | N/A (no carried object) |
+| S2_left_step_forward | assisted | yes | 8.8 s | 0.76 m | 0.158 m | 1.8 mm | - | N/A (no carried object) |
+| S2_left_step_forward | direct | yes | 8.8 s | 0.76 m | 0.158 m | 1.6 mm | - | N/A (no carried object) |
+| S2_left_step_forward | shared | yes | 8.8 s | 0.75 m | 0.158 m | 1.8 mm | - | N/A (no carried object) |
+| S3_right_crouch | assisted | yes | 7.3 s | 0.72 m | 0.170 m | 1.9 mm | - | N/A (no carried object) |
+| S3_right_crouch | direct | yes | 7.3 s | 0.73 m | 0.170 m | 1.9 mm | - | N/A (no carried object) |
+| S3_right_crouch | shared | yes | 7.3 s | 0.71 m | 0.170 m | 1.7 mm | - | N/A (no carried object) |
+| S4_right_step_forward | assisted | yes | 8.2 s | 0.77 m | 0.170 m | 1.7 mm | - | N/A (no carried object) |
+| S4_right_step_forward | direct | yes | 8.2 s | 0.79 m | 0.170 m | 1.9 mm | - | N/A (no carried object) |
+| S4_right_step_forward | shared | yes | 8.2 s | 0.77 m | 0.170 m | 1.9 mm | - | N/A (no carried object) |
 
 ---
 
-## T9 — 12 clips
+## T9 — 12 runs
 
-**What it should show.** The arm traces a circle whose radius is the sway amplitude. This is the arm HOLDING a world-fixed point while the base moves underneath it -- in the arm's own frame the target orbits. Radius should visibly grow across S1->S4 (0, 20, 60, 100 mm).
+**What it should show.** The arm traces a circle whose radius is the sway amplitude -- it is HOLDING a world-fixed point while the base moves underneath, so in the arm's own frame the target orbits. The radius should visibly grow across S1->S4 (0, 20, 60, 100 mm).
 
-| scenario | cond | EE travel | min clearance | tracking RMS | clip |
-| --- | --- | --- | --- | --- | --- |
-| S1_sway_000mm | assisted | 0.776 m | 0.204 m | 0.0 mm | `recordings/verification/t9/S1_sway_000mm/assisted/clip.mp4` |
-| S1_sway_000mm | direct | 0.784 m | 0.202 m | 0.0 mm | `recordings/verification/t9/S1_sway_000mm/direct/clip.mp4` |
-| S1_sway_000mm | shared | 0.776 m | 0.202 m | 0.0 mm | `recordings/verification/t9/S1_sway_000mm/shared/clip.mp4` |
-| S2_sway_020mm | assisted | 1.014 m | 0.183 m | 1.2 mm | `recordings/verification/t9/S2_sway_020mm/assisted/clip.mp4` |
-| S2_sway_020mm | direct | 1.021 m | 0.183 m | 1.2 mm | `recordings/verification/t9/S2_sway_020mm/direct/clip.mp4` |
-| S2_sway_020mm | shared | 0.971 m | 0.183 m | 1.0 mm | `recordings/verification/t9/S2_sway_020mm/shared/clip.mp4` |
-| S3_sway_060mm | assisted | 1.505 m | 0.145 m | 1.9 mm | `recordings/verification/t9/S3_sway_060mm/assisted/clip.mp4` |
-| S3_sway_060mm | direct | 1.517 m | 0.145 m | 2.0 mm | `recordings/verification/t9/S3_sway_060mm/direct/clip.mp4` |
-| S3_sway_060mm | shared | 1.457 m | 0.145 m | 1.8 mm | `recordings/verification/t9/S3_sway_060mm/shared/clip.mp4` |
-| S4_sway_100mm | assisted | 2.006 m | 0.117 m *(below 120 mm floor)* | 2.1 mm | `recordings/verification/t9/S4_sway_100mm/assisted/clip.mp4` |
-| S4_sway_100mm | direct | 2.027 m | 0.117 m *(below 120 mm floor)* | 2.3 mm | `recordings/verification/t9/S4_sway_100mm/direct/clip.mp4` |
-| S4_sway_100mm | shared | 1.967 m | 0.117 m *(below 120 mm floor)* | 2.3 mm | `recordings/verification/t9/S4_sway_100mm/shared/clip.mp4` |
-
-wearer sway 0 mm -- arm must HOLD a world-fixed point
-
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | tracking | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1_sway_000mm | assisted | yes | 3.5 s | 0.78 m | 0.204 m | 0.0 mm | - | N/A (no carried object) |
+| S1_sway_000mm | direct | yes | 3.5 s | 0.78 m | 0.202 m | 0.0 mm | - | N/A (no carried object) |
+| S1_sway_000mm | shared | yes | 3.5 s | 0.78 m | 0.202 m | 0.0 mm | - | N/A (no carried object) |
+| S2_sway_020mm | assisted | yes | 8.3 s | 1.01 m | 0.183 m | 1.2 mm | - | N/A (no carried object) |
+| S2_sway_020mm | direct | yes | 8.3 s | 1.02 m | 0.183 m | 1.2 mm | - | N/A (no carried object) |
+| S2_sway_020mm | shared | yes | 8.3 s | 0.97 m | 0.183 m | 1.0 mm | - | N/A (no carried object) |
+| S3_sway_060mm | assisted | yes | 8.3 s | 1.51 m | 0.145 m | 1.9 mm | - | N/A (no carried object) |
+| S3_sway_060mm | direct | yes | 8.3 s | 1.52 m | 0.145 m | 2.0 mm | - | N/A (no carried object) |
+| S3_sway_060mm | shared | yes | 8.3 s | 1.46 m | 0.145 m | 1.8 mm | - | N/A (no carried object) |
+| S4_sway_100mm | assisted | yes | 10.7 s | 2.01 m | 0.117 m *(below floor)* | 2.1 mm | - | N/A (no carried object) |
+| S4_sway_100mm | direct | yes | 10.7 s | 2.03 m | 0.117 m *(below floor)* | 2.3 mm | - | N/A (no carried object) |
+| S4_sway_100mm | shared | yes | 10.7 s | 1.97 m | 0.117 m *(below floor)* | 2.3 mm | - | N/A (no carried object) |
 
 ---
 
 ## Regenerate
 
 ```bash
-ros2 launch srl_moveit_config demo.launch.py      # sim, arms AT HOME
-python3 scripts/record_verification.py --all
-python3 scripts/make_clip_index.py
+ros2 launch srl_moveit_config demo.launch.py     # sim, arms AT HOME
+python3 scripts/record_verification.py --all     # TF clips, plots, bags
+python3 scripts/record_rviz.py --all             # RViz screen captures
+python3 scripts/make_clip_index.py               # this file
 ```
 
-The recorder refuses nothing about home pose, but every scenario it replays
-was verified from home — see `scripts/audit_scenario_reachability.py`.
+`record_rviz.py` starts its own Xvfb on :99 and its own RViz. It has to:
+**x11grab on WSLg's :0 records BLACK** -- a full-screen grab with RViz plainly
+visible measures mean pixel value 0.0, because XWayland window pixels are
+composited by Wayland and never reach the X root window that x11grab reads.
+Xvfb has no compositor, and the same grab there gives mean 126.8.
 

@@ -1,0 +1,92 @@
+# RViz config for VERIFICATION SCREEN CAPTURE.
+#
+# Purpose-built, not the MoveIt config: panels removed so the 3-D view fills
+# the window, a FIXED camera so every clip is comparable, and a MarkerArray
+# display for the task objects (tray, sling, ball, blocks, container, tool)
+# which the recorder publishes on /task_objects.
+#
+# The camera looks at the wearer's chest from in front and slightly above,
+# which is where every task happens. Yaw = pi/2 puts the camera on +y, the
+# direction the wearer faces, so left/right on screen matches the front view
+# in the TF-rendered clips.
+Panels: []
+Visualization Manager:
+  Class: ""
+  Name: root
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 0.5
+      Plane Cell Count: 14
+      Color: 90; 90; 90
+      Alpha: 0.4
+      Plane: XY
+      Reference Frame: world
+      Value: true
+    - Class: rviz_default_plugins/RobotModel
+      Name: RobotModel
+      Enabled: true
+      Description Source: Topic
+      Description Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /robot_description
+      Visual Enabled: true
+      Collision Enabled: false
+      Alpha: 1
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Name: TaskObjects
+      Enabled: true
+      Namespaces: {}
+      Topic:
+        Depth: 20
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /task_objects
+      Value: true
+  Global Options:
+    Background Color: 45; 45; 48
+    Fixed Frame: world
+    Frame Rate: 30
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Name: FixedFront
+      Distance: 2.25
+      Focal Point:
+        X: 0
+        Y: 0.26
+        Z: 1.16
+      Pitch: 0.32
+      Yaw: 1.5708
+      Target Frame: world
+      Near Clip Distance: 0.01
+      Invert Z Axis: false
+      Value: Orbit (rviz_default_plugins)
+    Saved:
+      - Class: rviz_default_plugins/Orbit
+        Name: WearerPOV
+        Distance: 1.05
+        Focal Point:
+          X: 0
+          Y: 0.45
+          Z: 1.05
+        Pitch: 0.28
+        Yaw: 1.5708
+        Target Frame: world
+        Near Clip Distance: 0.01
+        Value: Orbit (rviz_default_plugins)
+Window Geometry:
+  Height: 1000
+  Width: 1600
+  Hide Left Dock: true
+  Hide Right Dock: true

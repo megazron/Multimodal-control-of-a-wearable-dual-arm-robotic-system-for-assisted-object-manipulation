@@ -1,0 +1,13 @@
+{
+  "frames": 53,
+  "duration_s": 10.037593397981254,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t2/S4_tight_tolerance/assisted/rviz.mp4",
+  "blocks_placed": 1,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "task": "t2",
+  "scenario": "S4_tight_tolerance",
+  "condition": "assisted",
+  "note": "right holds, left fills",
+  "bytes": 671163
+}

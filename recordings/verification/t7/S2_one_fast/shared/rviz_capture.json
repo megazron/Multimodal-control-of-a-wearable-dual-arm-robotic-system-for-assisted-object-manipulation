@@ -1,0 +1,13 @@
+{
+  "frames": 55,
+  "duration_s": 10.671586302982178,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t7/S2_one_fast/shared/rviz.mp4",
+  "blocks_placed": 0,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "task": "t7",
+  "scenario": "S2_one_fast",
+  "condition": "shared",
+  "note": "pursuit L 0.20 / R 0.05 m/s",
+  "bytes": 879725
+}

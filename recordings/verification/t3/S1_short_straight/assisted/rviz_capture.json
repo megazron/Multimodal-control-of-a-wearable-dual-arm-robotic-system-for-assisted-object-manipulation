@@ -1,0 +1,13 @@
+{
+  "frames": 35,
+  "duration_s": 4.655426074983552,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t3/S1_short_straight/assisted/rviz.mp4",
+  "blocks_placed": 0,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "task": "t3",
+  "scenario": "S1_short_straight",
+  "condition": "assisted",
+  "note": "rigid tray, 310 mm span",
+  "bytes": 430998
+}

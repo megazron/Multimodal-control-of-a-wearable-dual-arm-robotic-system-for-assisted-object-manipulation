@@ -1,0 +1,13 @@
+{
+  "frames": 43,
+  "duration_s": 7.120180997997522,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t6/S3_curved_obstacle/direct/rviz.mp4",
+  "blocks_placed": 0,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "task": "t6",
+  "scenario": "S3_curved_obstacle",
+  "condition": "direct",
+  "note": "compliant sling, 310 mm span",
+  "bytes": 659363
+}

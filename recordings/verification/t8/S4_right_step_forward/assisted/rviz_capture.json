@@ -1,0 +1,13 @@
+{
+  "frames": 47,
+  "duration_s": 8.213975588005269,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t8/S4_right_step_forward/assisted/rviz.mp4",
+  "blocks_placed": 0,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "task": "t8",
+  "scenario": "S4_right_step_forward",
+  "condition": "assisted",
+  "note": "right arm; wearer must step forward",
+  "bytes": 492240
+}

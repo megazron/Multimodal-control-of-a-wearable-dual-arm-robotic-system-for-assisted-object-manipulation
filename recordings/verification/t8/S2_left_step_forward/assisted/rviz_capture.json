@@ -1,0 +1,13 @@
+{
+  "frames": 49,
+  "duration_s": 8.751774797012331,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t8/S2_left_step_forward/assisted/rviz.mp4",
+  "blocks_placed": 0,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "task": "t8",
+  "scenario": "S2_left_step_forward",
+  "condition": "assisted",
+  "note": "left arm; wearer must step forward",
+  "bytes": 542151
+}

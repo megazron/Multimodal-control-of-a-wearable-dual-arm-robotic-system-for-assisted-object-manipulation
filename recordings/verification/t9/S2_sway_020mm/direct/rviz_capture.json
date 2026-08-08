@@ -1,0 +1,13 @@
+{
+  "frames": 47,
+  "duration_s": 8.292881889006821,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t9/S2_sway_020mm/direct/rviz.mp4",
+  "blocks_placed": 0,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "task": "t9",
+  "scenario": "S2_sway_020mm",
+  "condition": "direct",
+  "note": "wearer sway 20 mm",
+  "bytes": 672034
+}

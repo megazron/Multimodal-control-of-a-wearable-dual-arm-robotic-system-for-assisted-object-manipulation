@@ -1,0 +1,13 @@
+{
+  "frames": 48,
+  "duration_s": 8.378633008018369,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t5/S3_busy/assisted/rviz.mp4",
+  "blocks_placed": 0,
+  "ball_fallen": false,
+  "tool_delivered": true,
+  "task": "t5",
+  "scenario": "S3_busy",
+  "condition": "assisted",
+  "note": "right arm delivers to the wearer",
+  "bytes": 475199
+}

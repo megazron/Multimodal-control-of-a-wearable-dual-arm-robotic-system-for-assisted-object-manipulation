@@ -1,0 +1,13 @@
+{
+  "frames": 47,
+  "duration_s": 8.323148987983586,
+  "mp4": "/home/gausms/kortex_ws/recordings/verification/t9/S3_sway_060mm/direct/rviz.mp4",
+  "blocks_placed": 0,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "task": "t9",
+  "scenario": "S3_sway_060mm",
+  "condition": "direct",
+  "note": "wearer sway 60 mm",
+  "bytes": 727054
+}

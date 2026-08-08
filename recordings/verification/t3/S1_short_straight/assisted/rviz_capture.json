@@ -1,13 +1,17 @@
 {
-  "frames": 35,
-  "duration_s": 4.655426074983552,
-  "mp4": "/home/gausms/kortex_ws/recordings/verification/t3/S1_short_straight/assisted/rviz.mp4",
+  "frames": 39,
+  "duration_s": 5.127852411009371,
+  "quad": true,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.611764705882353,
+  "grip_opened": true,
+  "grip_closed_on_object": true,
   "task": "t3",
   "scenario": "S1_short_straight",
   "condition": "assisted",
   "note": "rigid tray, 310 mm span",
-  "bytes": 430998
+  "bytes": 1081338
 }

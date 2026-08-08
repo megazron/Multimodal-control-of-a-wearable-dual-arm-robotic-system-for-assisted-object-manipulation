@@ -1,13 +1,17 @@
 {
-  "frames": 51,
-  "duration_s": 9.48135149400332,
-  "mp4": "/home/gausms/kortex_ws/recordings/verification/t2/S1_short_reach/shared/rviz.mp4",
+  "frames": 55,
+  "duration_s": 10.026376481022453,
+  "quad": true,
   "blocks_placed": 1,
   "ball_fallen": false,
   "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.42352941176470593,
+  "grip_opened": true,
+  "grip_closed_on_object": true,
   "task": "t2",
   "scenario": "S1_short_reach",
   "condition": "shared",
   "note": "right holds, left fills",
-  "bytes": 640136
+  "bytes": 1989420
 }

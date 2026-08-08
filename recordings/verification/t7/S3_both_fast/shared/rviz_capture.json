@@ -1,13 +1,17 @@
 {
   "frames": 55,
-  "duration_s": 10.731165494013112,
-  "mp4": "/home/gausms/kortex_ws/recordings/verification/t7/S3_both_fast/shared/rviz.mp4",
+  "duration_s": 10.036226267984603,
+  "quad": true,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.05,
+  "grip_opened": true,
+  "grip_closed_on_object": false,
   "task": "t7",
   "scenario": "S3_both_fast",
   "condition": "shared",
   "note": "pursuit L 0.20 / R 0.20 m/s",
-  "bytes": 986749
+  "bytes": 2107696
 }

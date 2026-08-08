@@ -1,13 +1,17 @@
 {
   "frames": 56,
-  "duration_s": 11.015488038974581,
-  "mp4": "/home/gausms/kortex_ws/recordings/verification/t7/S4_asymmetric/assisted/rviz.mp4",
+  "duration_s": 10.362941358005628,
+  "quad": true,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.05,
+  "grip_opened": true,
+  "grip_closed_on_object": false,
   "task": "t7",
   "scenario": "S4_asymmetric",
   "condition": "assisted",
   "note": "pursuit L 0.30 / R 0.08 m/s",
-  "bytes": 901413
+  "bytes": 2151530
 }

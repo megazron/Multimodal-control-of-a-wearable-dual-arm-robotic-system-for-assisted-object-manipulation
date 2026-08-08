@@ -1,13 +1,17 @@
 {
-  "frames": 55,
-  "duration_s": 10.73037398600718,
-  "mp4": "/home/gausms/kortex_ws/recordings/verification/t9/S4_sway_100mm/assisted/rviz.mp4",
+  "frames": 51,
+  "duration_s": 8.726153878989862,
+  "quad": true,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.05,
+  "grip_opened": true,
+  "grip_closed_on_object": false,
   "task": "t9",
   "scenario": "S4_sway_100mm",
   "condition": "assisted",
   "note": "wearer sway 100 mm",
-  "bytes": 963947
+  "bytes": 1950993
 }

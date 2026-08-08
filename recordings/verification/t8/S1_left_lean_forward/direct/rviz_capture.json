@@ -1,13 +1,17 @@
 {
-  "frames": 46,
-  "duration_s": 8.047635504975915,
-  "mp4": "/home/gausms/kortex_ws/recordings/verification/t8/S1_left_lean_forward/direct/rviz.mp4",
+  "frames": 50,
+  "duration_s": 8.3168303569837,
+  "quad": true,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.05,
+  "grip_opened": true,
+  "grip_closed_on_object": false,
   "task": "t8",
   "scenario": "S1_left_lean_forward",
   "condition": "direct",
   "note": "left arm; wearer must lean forward",
-  "bytes": 494987
+  "bytes": 1767197
 }

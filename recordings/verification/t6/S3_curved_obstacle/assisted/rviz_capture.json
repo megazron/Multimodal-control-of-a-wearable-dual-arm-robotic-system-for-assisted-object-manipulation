@@ -1,13 +1,17 @@
 {
-  "frames": 43,
-  "duration_s": 7.107524487975752,
-  "mp4": "/home/gausms/kortex_ws/recordings/verification/t6/S3_curved_obstacle/assisted/rviz.mp4",
+  "frames": 47,
+  "duration_s": 7.764884191012243,
+  "quad": true,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.611764705882353,
+  "grip_opened": true,
+  "grip_closed_on_object": true,
   "task": "t6",
   "scenario": "S3_curved_obstacle",
   "condition": "assisted",
   "note": "compliant sling, 310 mm span",
-  "bytes": 682282
+  "bytes": 1561166
 }

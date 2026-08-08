@@ -93,7 +93,10 @@ def main():
         s["has_plot"] = os.path.exists(os.path.join(d, "plot_metrics.png"))
         s["has_bag"] = os.path.isdir(os.path.join(d, "bag"))
         rv = os.path.join(d, "rviz_capture.json")
-        s["has_rviz"] = os.path.exists(os.path.join(d, "rviz.mp4"))
+        s["views"] = [v for v in ("front", "side", "top", "gripper")
+                      if os.path.exists(os.path.join(d, "rviz_%s.mp4" % v))]
+        s["has_quad"] = os.path.exists(os.path.join(d, "rviz_quad.mp4"))
+        s["has_rviz"] = s["has_quad"]
         s["rviz"] = json.load(open(rv)) if os.path.exists(rv) else {}
         rows.append(s)
     # attach the two verifiers' verdicts so the index states what was CHECKED,
@@ -106,10 +109,12 @@ def main():
                 for r in json.load(open(p))}
     att = _load("attachment_check.json")
     con = _load("rviz_verification.json")
+    grip = _load("gripper_check.json")
     for r in rows:
         k = (r["task"], r["scenario"], r["condition"])
         r["attach"] = att.get(k, {})
         r["content"] = con.get(k, {})
+        r["grip"] = grip.get(k, {})
     tasks = sorted({r["task"] for r in rows})
 
     def find(t, sc, cd):
@@ -147,7 +152,11 @@ works on the same machine.
 
 | file | what it is |
 | --- | --- |
-| **`rviz.mp4`** | **REAL SCREEN CAPTURE of RViz.** What you would see sitting at the machine: the robot, the wearer, and the task objects moving with the arms. **Watch this one.** |
+| **`rviz_quad.mp4`** | **THE ONE TO WATCH.** All four angles tiled 2x2: front (top-left), side (top-right), top (bottom-left), gripper close-up (bottom-right). |
+| `rviz_front.mp4` | facing the wearer, both arms. Carries the overlay -- the other three do not, deliberately |
+| `rviz_side.mp4` | reach depth and height, which the front view flattens |
+| `rviz_top.mp4` | lateral separation and the arms' relationship -- where a coordination error is obvious |
+| `rviz_gripper.mp4` | tracks the ACTIVE gripper link close up. This is the view that answers "did it actually grab it" |
 | `clip.mp4` | a TF-rendered 3-D + front-view plot. Uglier, but drawn from exactly the samples that produced `summary.json`, so the numbers and the picture cannot disagree. Kept for automated checking. |
 | `plot_metrics.png` | tracking error and clearance against time |
 | `summary.json` | the metrics, and the automatic pass/fail checks |
@@ -173,7 +182,7 @@ collision-relevant motion, and it is EXCLUDED from the tracking metric.
         L.append("**%d. %s / %s / %s** — %.1f s\n"
                  % (i, t.upper(), sc, cd, rv.get("duration_s", 0.0)))
         L.append("   %s\n" % why)
-        L.append("   `%s\\%s\\%s\\%s\\rviz.mp4`\n"
+        L.append("   `%s\\%s\\%s\\%s\\rviz_quad.mp4`\n"
                  % (WINPATH, t, sc, cd))
 
     through = [r for r in rows if r["passes_through_wearer"]]
@@ -200,7 +209,7 @@ collision-relevant motion, and it is EXCLUDED from the tracking metric.
         L.append("\n---\n\n## %s — %d runs\n" % (t.upper(), len(rs)))
         L.append("**What it should show.** %s\n" % EXPECT.get(t, "—"))
         L.append("| scenario | cond | rviz.mp4 | duration | EE travel | "
-                 "min clearance | tracking | object outcome | attachment |")
+                 "min clearance | gripper | object outcome | attachment |")
         L.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for r in sorted(rs, key=lambda r: (r["scenario"], r["condition"])):
             rv = r.get("rviz", {})
@@ -218,12 +227,19 @@ collision-relevant motion, and it is EXCLUDED from the tracking metric.
                 flag = " *(below floor)*"
             a = r.get("attach", {}).get("verdict", "-")
             a = {"CARRIED": "object CARRIED"}.get(a, a)
-            L.append("| %s | %s | %s | %.1f s | %.2f m | %.3f m%s | %.1f mm | "
+            gk = r.get("grip", {})
+            gtxt = "-"
+            if gk.get("grasp_task"):
+                gtxt = ("%.2f..%.2f %s" % (gk.get("grip_min") or 0,
+                                           gk.get("grip_max") or 0,
+                                           "OK" if gk.get("joint_ok") else "NO"))
+            L.append("| %s | %s | %s | %.1f s | %.2f m | %.3f m%s | %s | "
                      "%s | %s |"
                      % (r["scenario"], r["condition"],
-                        "yes" if r["has_rviz"] else "**MISSING**",
+                        "%d/4+quad" % len(r["views"]) if r["has_quad"]
+                        else "**MISSING**",
                         rv.get("duration_s", 0.0), r["ee_travel_m"],
-                        r["min_clearance_m"], flag, r["tracking_rms_mm"],
+                        r["min_clearance_m"], flag, gtxt,
                         out or "-", a))
 
     L.append("""

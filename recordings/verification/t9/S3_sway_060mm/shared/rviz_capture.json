@@ -1,13 +1,17 @@
 {
-  "frames": 47,
-  "duration_s": 8.27958671801025,
-  "mp4": "/home/gausms/kortex_ws/recordings/verification/t9/S3_sway_060mm/shared/rviz.mp4",
+  "frames": 51,
+  "duration_s": 8.989833261002786,
+  "quad": true,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.05,
+  "grip_opened": true,
+  "grip_closed_on_object": false,
   "task": "t9",
   "scenario": "S3_sway_060mm",
   "condition": "shared",
   "note": "wearer sway 60 mm",
-  "bytes": 721271
+  "bytes": 1803083
 }

@@ -1,13 +1,17 @@
 {
   "frames": 55,
-  "duration_s": 10.675187087006634,
-  "mp4": "/home/gausms/kortex_ws/recordings/verification/t7/S2_one_fast/direct/rviz.mp4",
+  "duration_s": 9.967376082990086,
+  "quad": true,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.05,
+  "grip_opened": true,
+  "grip_closed_on_object": false,
   "task": "t7",
   "scenario": "S2_one_fast",
   "condition": "direct",
   "note": "pursuit L 0.20 / R 0.05 m/s",
-  "bytes": 858491
+  "bytes": 2041120
 }

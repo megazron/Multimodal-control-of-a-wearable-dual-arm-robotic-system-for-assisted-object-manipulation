@@ -1,13 +1,17 @@
 {
-  "frames": 49,
-  "duration_s": 8.859738865983672,
-  "mp4": "/home/gausms/kortex_ws/recordings/verification/t2/S2_long_reach/direct/rviz.mp4",
+  "frames": 53,
+  "duration_s": 9.365844361978816,
+  "quad": true,
   "blocks_placed": 1,
   "ball_fallen": false,
   "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.42352941176470593,
+  "grip_opened": true,
+  "grip_closed_on_object": true,
   "task": "t2",
   "scenario": "S2_long_reach",
   "condition": "direct",
   "note": "right holds, left fills",
-  "bytes": 643991
+  "bytes": 1877696
 }

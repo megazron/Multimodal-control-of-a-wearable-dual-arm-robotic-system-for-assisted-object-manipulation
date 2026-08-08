@@ -122,7 +122,7 @@ def travel(imgs, name, split=False):
 
 def main():
     rows = []
-    mp4s = sorted(glob.glob(os.path.join(OUT, "*/*/*/rviz.mp4")))
+    mp4s = sorted(glob.glob(os.path.join(OUT, "*/*/*/rviz_front.mp4")))
     print("checking object attachment in %d clips\n" % len(mp4s))
     for mp4 in mp4s:
         d = os.path.dirname(mp4)

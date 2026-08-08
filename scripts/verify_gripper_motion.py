@@ -123,11 +123,16 @@ def main():
             dur = duration(gv)
             ts = [x["t"] for x in tr if x.get(arm) is not None]
             tmax = max(ts) if ts else 1.0
-            t_open = next((x["t"] for x in tr
-                           if x.get(arm) is not None and x[arm] < OPEN_MAX), None)
-            t_shut = next((x["t"] for x in tr
-                           if x.get(arm) is not None
-                           and HOLD_MIN <= x[arm] < FREE_AIR), None)
+            # THE EXTREMES, not the first frame of each state. Taking the
+            # first sample to enter the holding band catches the fingers
+            # mid-closure, so the "closed" frame still looks open: four clips
+            # scored 1-15% silhouette change on a gripper that had plainly
+            # cycled according to its own joint trace. The widest-open and
+            # most-closed frames are the fair comparison.
+            cand = [x for x in tr if x.get(arm) is not None]
+            t_open = min(cand, key=lambda x: x[arm])["t"] if cand else None
+            shut = [x for x in cand if HOLD_MIN <= x[arm] < FREE_AIR]
+            t_shut = max(shut, key=lambda x: x[arm])["t"] if shut else None
             if t_open is not None and t_shut is not None and dur > 0:
                 sc = dur / max(tmax, 1e-6)
                 spread_open = gripper_silhouette(

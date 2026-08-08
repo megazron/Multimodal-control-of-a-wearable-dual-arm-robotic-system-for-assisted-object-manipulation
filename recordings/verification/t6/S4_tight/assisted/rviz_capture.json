@@ -1,13 +1,17 @@
 {
-  "frames": 40,
-  "duration_s": 6.129370946990093,
-  "mp4": "/home/gausms/kortex_ws/recordings/verification/t6/S4_tight/assisted/rviz.mp4",
+  "frames": 44,
+  "duration_s": 6.691459808003856,
+  "quad": true,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.611764705882353,
+  "grip_opened": true,
+  "grip_closed_on_object": true,
   "task": "t6",
   "scenario": "S4_tight",
   "condition": "assisted",
   "note": "compliant sling, 330 mm span",
-  "bytes": 572459
+  "bytes": 1355960
 }

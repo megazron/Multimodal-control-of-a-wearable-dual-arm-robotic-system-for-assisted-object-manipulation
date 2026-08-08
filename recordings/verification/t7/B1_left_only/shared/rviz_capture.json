@@ -1,13 +1,17 @@
 {
   "frames": 55,
-  "duration_s": 10.439819613995496,
-  "mp4": "/home/gausms/kortex_ws/recordings/verification/t7/B1_left_only/shared/rviz.mp4",
+  "duration_s": 9.747560224001063,
+  "quad": true,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.05,
+  "grip_opened": true,
+  "grip_closed_on_object": false,
   "task": "t7",
   "scenario": "B1_left_only",
   "condition": "shared",
   "note": "pursuit L 0.20 / R 0.00 m/s",
-  "bytes": 645144
+  "bytes": 1753155
 }

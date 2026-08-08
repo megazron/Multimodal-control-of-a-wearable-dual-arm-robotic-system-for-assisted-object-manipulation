@@ -1,13 +1,17 @@
 {
-  "frames": 47,
-  "duration_s": 8.302759929007152,
-  "mp4": "/home/gausms/kortex_ws/recordings/verification/t9/S2_sway_020mm/shared/rviz.mp4",
+  "frames": 51,
+  "duration_s": 8.733070590998977,
+  "quad": true,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.05,
+  "grip_opened": true,
+  "grip_closed_on_object": false,
   "task": "t9",
   "scenario": "S2_sway_020mm",
   "condition": "shared",
   "note": "wearer sway 20 mm",
-  "bytes": 672611
+  "bytes": 1713848
 }

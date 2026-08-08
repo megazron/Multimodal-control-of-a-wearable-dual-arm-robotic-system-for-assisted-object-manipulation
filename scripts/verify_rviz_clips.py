@@ -80,7 +80,13 @@ PALETTE = {
     "container_teal": _teal, "block_orange": _orange,
     "block_green": _green, "target_green": _green,
 }
-MIN_PIXELS = 25          # smallest confirmed object was 39 px at this scale
+# RECALIBRATED for the four-view layout. The threshold of 25 was set when the
+# capture was one 1600x1000 window; each view is now 800x500, so an object
+# covers about a quarter of the pixels it used to. T6's ball measures 67 px at
+# native size and 18-20 px in the 600 px sample -- plainly present, and 0 on a
+# black frame -- but 12 clips failed against the old number. 12 sits above the
+# noise floor (which is exactly 0) and below every confirmed detection.
+MIN_PIXELS = 12
 # what each task MUST show at least one of
 REQUIRED = {
     "t2": ["container_teal", "block_orange"],
@@ -152,7 +158,7 @@ def colour_hits(img, name):
 
 def main():
     rows = []
-    mp4s = sorted(glob.glob(os.path.join(OUT, "*/*/*/rviz.mp4")))
+    mp4s = sorted(glob.glob(os.path.join(OUT, "*/*/*/rviz_front.mp4")))
     print("verifying %d rviz clips\n" % len(mp4s))
     for mp4 in mp4s:
         d = os.path.dirname(mp4)

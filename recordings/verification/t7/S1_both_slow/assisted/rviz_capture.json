@@ -1,13 +1,17 @@
 {
-  "frames": 46,
-  "duration_s": 7.961006850993726,
-  "mp4": "/home/gausms/kortex_ws/recordings/verification/t7/S1_both_slow/assisted/rviz.mp4",
+  "frames": 50,
+  "duration_s": 8.579027191008208,
+  "quad": true,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.05,
+  "grip_opened": true,
+  "grip_closed_on_object": false,
   "task": "t7",
   "scenario": "S1_both_slow",
   "condition": "assisted",
   "note": "pursuit L 0.05 / R 0.05 m/s",
-  "bytes": 729105
+  "bytes": 1749262
 }

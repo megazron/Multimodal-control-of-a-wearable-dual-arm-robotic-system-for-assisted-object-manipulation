@@ -1,13 +1,17 @@
 {
-  "frames": 47,
-  "duration_s": 8.134323083999334,
-  "mp4": "/home/gausms/kortex_ws/recordings/verification/t5/S1_near/shared/rviz.mp4",
+  "frames": 51,
+  "duration_s": 8.597169177985052,
+  "quad": true,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": true,
+  "grip_min": 0.05,
+  "grip_max": 0.4988235294117647,
+  "grip_opened": true,
+  "grip_closed_on_object": true,
   "task": "t5",
   "scenario": "S1_near",
   "condition": "shared",
   "note": "right arm delivers to the wearer",
-  "bytes": 451676
+  "bytes": 1212957
 }

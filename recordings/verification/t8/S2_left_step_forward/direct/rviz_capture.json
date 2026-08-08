@@ -1,13 +1,17 @@
 {
-  "frames": 49,
-  "duration_s": 8.813137541001197,
-  "mp4": "/home/gausms/kortex_ws/recordings/verification/t8/S2_left_step_forward/direct/rviz.mp4",
+  "frames": 53,
+  "duration_s": 9.235790748993168,
+  "quad": true,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.05,
+  "grip_opened": true,
+  "grip_closed_on_object": false,
   "task": "t8",
   "scenario": "S2_left_step_forward",
   "condition": "direct",
   "note": "left arm; wearer must step forward",
-  "bytes": 548622
+  "bytes": 1926877
 }

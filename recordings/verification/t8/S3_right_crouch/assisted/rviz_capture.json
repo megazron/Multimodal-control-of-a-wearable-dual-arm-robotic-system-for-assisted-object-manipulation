@@ -1,13 +1,17 @@
 {
-  "frames": 44,
-  "duration_s": 7.309900897991611,
-  "mp4": "/home/gausms/kortex_ws/recordings/verification/t8/S3_right_crouch/assisted/rviz.mp4",
+  "frames": 48,
+  "duration_s": 7.680274386977544,
+  "quad": true,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.05,
+  "grip_opened": true,
+  "grip_closed_on_object": false,
   "task": "t8",
   "scenario": "S3_right_crouch",
   "condition": "assisted",
   "note": "right arm; wearer must crouch",
-  "bytes": 452103
+  "bytes": 1258362
 }

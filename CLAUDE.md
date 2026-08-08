@@ -3964,6 +3964,56 @@ Concretely:
    IK result is not a measurement. Three repeats minimum, and report the
    spread.
 
+## COROLLARY: A POSE THAT PASSES ONE IK CALL IS NOT A REACHABLE POSE
+
+**Verification is N repeats over the WHOLE PATH.** Both halves are load-bearing
+and both were learned the hard way.
+
+**N repeats, because TRAC-IK restarts randomly.** A pose at the edge of the
+feasible set is a coin flip and one call is one flip. Measured on this rig:
+
+| pose | true per-call feasibility | passes a 5/5 check |
+| --- | --- | --- |
+| T2 at x = +/-0.10 | 0-80%, varying with height | sometimes |
+| (0.15, 0.35, 1.36) | **72-82%** | **19-38% of the time** |
+| (0.15, 0.35, 1.34) | 100% (40/40) | always |
+
+Every scenario in this project was verified at **k=2**, which lets a 60% pose
+through 36% of the time -- often enough to be written into a protocol, rare
+enough to look like bad luck when it fails on the day. N is now **10**, with
+the check SHORT-CIRCUITING on the first failure so raising it costs almost
+nothing on poses that already pass.
+
+**The whole path, because the arm flies the gaps.** Endpoints being reachable
+says nothing about the straight segment between them. T3's S3 declared four
+waypoints spanning 200 mm and left 150 mm unexamined between each pair; T5 was
+verified at two points and never had a transit; T7's marker traces a Lissajous
+on a SPHERE and only the centre and two points on a vertical line through it
+had ever been checked. Every path is now densified to **20 mm** and T7 is
+checked against all 26 directions of its amplitude shell.
+
+**N IS NOT A SUBSTITUTE FOR MARGIN.** No finite N proves a pose reachable; it
+only bounds how often the check lies. What saves this rig is that feasibility
+falls off a CLIFF rather than degrading -- 100% at z=1.34, 82% at 1.36 -- so
+the real defence is to keep every declared figure **at least 20 mm inside the
+last pose that passed N/N**, and to use N to find that boundary.
+
+    python3 scripts/audit_scenario_reachability.py --repeats 10
+
+grades every pose SOLID (N/N) / MARGINAL (1..N-1) / FAIL (0), and **MARGINAL
+is not usable** -- that is the T2 failure by name.
+
+### And validate the audit before believing it
+
+The first run of this audit reported every T3 waypoint unreachable. The
+geometry was fine: the audit assigned the "left" arm to the -x end, and
+`left_*` links sit at POSITIVE x in this model. Two more instrument bugs
+followed -- re-rolling a static hold pose once per waypoint, which turns a
+60/60 pose into a random failure somewhere along the path, and a bare
+`safe_dump` in `verify_scenarios.py` that silently deleted the T2 scenarios
+merged in by a different script. Fifth, sixth and seventh instances of the
+standing rule above.
+
 ## Applied
 
 `src/srl_experiments/test/test_coupled_metrics_known_answers.py` (21 tests)

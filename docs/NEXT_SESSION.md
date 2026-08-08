@@ -1,4 +1,4 @@
-# CHECKPOINT — 2026-08-08
+# CHECKPOINT — 2026-08-08 (updated after the reachability audit)
 
 Repo: https://github.com/megazron/dococthefinal (`main`). Verified: a clean
 clone plus the README's vendor steps builds **21 packages, 0 failures**.
@@ -31,6 +31,8 @@ through this master arm today.
 | **Autonomy pipeline** | modes 1–6, **10/10** mode-6 checks: refusals, ambiguity, wearer keep-out, spoken confirmation, voice stop in **2 ms** |
 | **Console** | Dear PyGui, frame time **median 0.80 ms / p95 6.76 ms** against a 33 ms budget |
 | **Experiment runner** | `run_bimanual.py` — T2/T3/T5/T6/T7 with real `--participant/--condition/--scenario` |
+| **Every protocol coordinate** | re-verified at **N=10 repeats over the whole densified path**: **17/17 scenarios and 17/17 protocol-table figures SOLID**, 0 MARGINAL. `scripts/audit_scenario_reachability.py` |
+| **T2 discrete outcome** | blocks placed / missed / dropped, from gripper TRANSITIONS with the opening tracked off the holding arm's live pose. 15 known-answer tests |
 
 ## WHAT IS BLOCKED, AND ON WHAT
 
@@ -39,14 +41,20 @@ through this master arm today.
 | **Lateral tracking** | azimuth comes from j1 alone and couples with arm bend. Gyro azimuth halves the residual (25.6° → 13.5°) but was NOT shipped — three directions from one segment each is not a triad |
 | **Left-arm radial motion** | `l_j2` + `l_j4` incoherent. Measured: **no reach observable survives** (R² = 0.133, residual = 93% of the true spread). The j7 rate fallback is a workaround, not a fix |
 | **T4 inter-arm handover** | **geometry**, not orientation: 0 of 16 transfer points reachable by both arms |
-| **T2** | feasible with the side-handle container, but **no verified scenarios exist** — `verify_scenarios.py` does not generate them |
+| ~~**T2 scenarios**~~ | **DONE** — 4 graded scenarios, verified whole-path at N=10, and the discrete outcome is instrumented |
 | **Mode 3 orientation assist** | this `/compute_ik` plugin ignores `OrientationConstraint` (measured: identical IK success with and without). Needs a constraint-aware plugin or explicit yaw sampling |
 | **Mode 6 participant-readiness** | **detection rate unmeasured.** Models fit (2012/4096 MiB) but the synthetic renderer is out of distribution and measures itself |
 | **Voice input** | `/dev/snd` holds only `timer`. The Windows-side UDP sender is written, never exercised |
 | **VR on hardware** | `adb` is installed on neither WSL nor Windows |
-| **Grasp / handover success rates** | unmeasured — execution stops at PLAN, and the objects are not reachable by the arms that would cooperate |
+| **T5 handover success rate** | needs the WEARER'S BUTTON (a foot pedal). Correctly not inferred from joint states — only the wearer knows whether they have the tool |
+| **Grasp success in modes 5/6** | unmeasured — execution stops at PLAN |
 
 ## THE LAB ORDER
+
+**0. Nothing here needs re-verifying first.** Every protocol coordinate was
+re-audited on 2026-08-08 at N=10 over the whole path and all 17 are SOLID.
+Re-run `python3 scripts/audit_scenario_reachability.py` only if the mount,
+the home pose or a layout changes — all three invalidate it.
 
 **1. Repair `l_j2` and `l_j4`.** These two buy the most: with both frozen the
 left arm's commanded set collapses from a 135 mm-thick shell to a *surface*.

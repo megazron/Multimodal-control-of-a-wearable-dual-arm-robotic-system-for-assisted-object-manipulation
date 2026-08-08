@@ -57,9 +57,23 @@ hide the wrist-torque problem that a real tool creates.
 
 | item | x | y | z | note |
 | --- | --- | --- | --- | --- |
-| tool cradle grasp | +0.30 | 0.32 | 0.884 | handle centre, 24 mm above table |
-| receive point | +0.16 | 0.18 | 1.020 | at the waist, arm's length from the shoulder |
-| retreat pose | +0.30 | 0.30 | 1.050 | clear of the wearer |
+| tool cradle grasp | −0.30 | 0.35 | 1.05 | handle centre (S1; S2 is −0.40/1.15) |
+| receive point | −0.16 | 0.35 | 1.05 | marked on the harness (S2 is −0.20/1.10) |
+| retreat | −0.16 | 0.35 | 1.13 | 80 mm clear, above the receive point |
+
+**CORRECTED 2026-08-08.** The previous figures were on the +x side at table
+height and at y 0.18; audited at N=10, **two of the three were reachable by
+no arm**. The delivering arm is the RIGHT one, which works the −x side, and
+the whole delivery — approach, grasp, lift, transit, present, retreat — is
+verified densified to 20 mm, not just its endpoints.
+
+> **These coordinates are generated and verified, not typed.** They come
+> from `scenarios_verified.yaml`, which is written by
+> `scripts/verify_scenarios.py` / `verify_t2_scenarios.py` and re-checked
+> by `scripts/audit_scenario_reachability.py` at **N=10 repeats over the
+> whole densified path**. If you change a number here, change it there
+> and re-run; a figure that only lives in this document has not been
+> verified by anything.
 
 **The receive point is fixed and marked** — a tape cross on the wearer's
 harness. It is NOT chosen per trial, so the handover latency measures the

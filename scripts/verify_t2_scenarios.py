@@ -7,20 +7,21 @@ the other arm PICKS a block and RELEASES it into the opening.
 
 THE OBJECT IS WHY THIS IS POSSIBLE AT ALL. The earlier BLOCKED verdict assumed
 the release point sits directly above the hold point. Sweeping the real design
-space found feasible pairs ~200 mm apart horizontally:
+space found feasible pairs, and MEASUREMENT (not the sweep) fixed which:
 
-    left holds  (+0.10, 0.35, 1.15)     right releases (-0.10, 0.35, 1.20)
+    right holds (-0.15, 0.35, 1.10)     left releases (+0.15, 0.35, 1.20)
 
 so the container is a box on a SIDE HANDLE -- like a dustpan or a saucepan --
-whose opening centre is ~200 mm from the grasp and ~50 mm above it. The
+whose opening centre is 300 mm from the grasp and 100 mm above it. The
 holding gripper is therefore well clear of the opening, and that clearance is
 exactly what accommodates the two arms' separation.
 
 WHAT IS VERIFIED. Not just the endpoints. Every scenario carries:
-  * the HOLD pose, checked as a static hold for the holding arm;
+  * the HOLD pose, checked once at N repeats as the static hold it is;
   * the full FILL PATH for the working arm -- pick, lift, transit, release,
-    retreat -- with the holding arm required to be simultaneously solvable at
-    the hold pose at EVERY waypoint.
+    retreat -- DENSIFIED to 20 mm, because the arm flies the straight
+    segments between declared waypoints and those are not reachable by
+    virtue of their endpoints being reachable.
 A scenario whose endpoints solve but whose transit does not is exactly the
 kind that fails on the day and wastes a participant.
 """
@@ -29,6 +30,10 @@ import numpy as np, rclpy, yaml
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from verify_task_scenes import Solver
+from audit_scenario_reachability import densify
+
+REPEATS = 10     # see audit_scenario_reachability.py: 5 is not enough
+STEP = 0.02      # densify the fill path; the arm flies the gaps
 
 BIM = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                    "src/srl_experiments/experiments/bimanual")
@@ -52,14 +57,24 @@ OPEN = [0.15, Y, 1.20]          # opening centre: 300 mm across, 100 mm up
 
 
 def fill_path(pick, release, lift=0.06, retreat=0.06):
-    """pick -> lift -> transit -> above release -> release -> retreat."""
+    """pick -> lift -> transit -> above release -> release -> retreat.
+
+    THE RETREAT WITHDRAWS SIDEWAYS, NOT UPWARD. Lifting straight up out of
+    the opening reads naturally and fails: S3 holds the container 100 mm
+    higher, so a 60 mm upward retreat asks for z = 1.36, which is above the
+    reachable band and was the single pose that failed the whole scenario.
+    Withdrawing along +x -- back toward the filling arm's own side, which is
+    also the direction that clears the container -- works at every height in
+    the band and is what a hand actually does after dropping something in.
+    """
     p, r = list(pick), list(release)
+    away = 1.0 if p[0] >= r[0] else -1.0     # back toward the picking side
     return [p,
             [p[0], p[1], p[2] + lift],
             [(p[0] + r[0]) / 2.0, p[1], max(p[2], r[2]) + lift],
             [r[0], r[1], r[2] + lift],
             r,
-            [r[0], r[1], r[2] + retreat]]
+            [r[0] + away * retreat, r[1], r[2] + lift]]
 
 
 def build():
@@ -75,10 +90,14 @@ def build():
         pick=[0.45, Y, 1.15], release=OPEN, block_mm=40, tol_mm=35,
         why="pick further out and lower, so the transit is longer"),
       "S3_height_change": dict(
-        hold=[-0.15, Y, 1.20], hold_arm="right", fill_arm="left",
-        pick=[0.35, Y, 1.15], release=[0.15, Y, 1.30], block_mm=40,
+        # Lowered 20 mm 2026-08-08. At release z=1.30 the approach waypoint
+        # above the opening lands at 1.36, which is 82% feasible -- inside
+        # the cliff, not on the plateau. 1.28 puts it at 1.34, measured
+        # 40/40. The 100 mm rise over the hold is preserved.
+        hold=[-0.15, Y, 1.18], hold_arm="right", fill_arm="left",
+        pick=[0.35, Y, 1.15], release=[0.15, Y, 1.28], block_mm=40,
         tol_mm=35,
-        why="container held 100 mm higher; the fill path must climb"),
+        why="container held 80 mm higher; the fill path must climb"),
       "S4_tight_tolerance": dict(
         hold=HOLD, hold_arm="right", fill_arm="left",
         pick=[0.35, Y, 1.25], release=OPEN, block_mm=26, tol_mm=18,
@@ -93,7 +112,7 @@ def main():
         print("no /compute_ik -- start the sim"); return 2
     q = {a: n.ee_quat(a) for a in ("left", "right")}
 
-    def ok(arm, p, k=2):
+    def ok(arm, p, k=REPEATS):
         return all(n.solve(arm, p, q[arm], tries=6) for _ in range(k))
 
     print("T2 SCENARIO VERIFICATION")
@@ -102,13 +121,19 @@ def main():
     out = {}
     for name, s in build().items():
         ha, fa = s["hold_arm"], s["fill_arm"]
-        path = fill_path(s["pick"], s["release"])
+        path = densify(fill_path(s["pick"], s["release"]), STEP)
         hold_ok = ok(ha, s["hold"])
         bad = []
         for w in path:
-            # the working arm must reach it AND the holding arm must still be
-            # able to hold, simultaneously
-            if not ok(fa, w) or not ok(ha, s["hold"], k=1):
+            # The holding arm is checked ONCE, above, at N repeats -- it holds
+            # ONE configuration for the whole trial and does not re-solve.
+            # Re-rolling it per waypoint added fresh coin flips x 29
+            # waypoints, so a hold pose that is individually 60/60 still
+            # produced a random "unreachable waypoint" and the blame landed on
+            # whichever waypoint happened to be current. /compute_ik is
+            # per-group and seeds from the live joint state, so the re-roll
+            # was not modelling the two arms interacting either.
+            if not ok(fa, w):
                 bad.append([round(v, 3) for v in w])
         good = hold_ok and not bad
         out[name] = dict(

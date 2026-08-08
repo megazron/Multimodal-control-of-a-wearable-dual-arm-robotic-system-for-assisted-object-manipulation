@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
-"""T2 analysis — box disturbance is the outcome, not blocks placed.
+"""T2 analysis — box disturbance first, then the discrete placement outcome.
 
     python3 analyse_t2.py <summary.csv> [<summary.csv> ...]
 
-A block that lands in a box that was dragged 40 mm is not a success. The
-holding arm's drift is therefore reported first and the placement count
-second.
+A block that lands in a box that was dragged 40 mm is not a success, so the
+holding arm's drift is reported first and the placement count second.
+
+COLUMN NAMES WERE WRONG UNTIL 2026-08-08. This read `box_drift_max_mm`,
+`drops` and `time_per_block_s`; the runner writes `hold_disturbance_max_mm`,
+`blocks_dropped` and `mean_cycle_time_s`. Every one resolved to NaN, so the
+analysis printed `n=0` across the board -- which is indistinguishable from a
+session in which nothing happened. Names now match the runner, and
+`assert_analysable` still fails loudly when nothing survives.
 """
 import argparse
 import csv
@@ -81,31 +87,30 @@ def main():
         if not rs:
             continue
         print("  %-10s %-46s %s"
-              % (c, describe([num(r, "box_drift_max_mm") for r in rs]),
-                 describe([num(r, "box_drift_rms_mm") for r in rs])))
+              % (c, describe([num(r, "hold_disturbance_max_mm") for r in rs]),
+                 describe([num(r, "hold_disturbance_rms_mm") for r in rs])))
 
-    print("\nHOLDING-ARM JOINT EXCURSION (deg)")
-    for c in CONDITIONS:
-        rs = by.get(c, [])
-        if rs:
-            print("  %-10s %s"
-                  % (c, describe([num(r, "hold_joint_excursion_deg")
-                                  for r in rs])))
-
-    print("\nPLACEMENT")
-    print("  %-10s %8s %10s %s" % ("condition", "placed/9", "drops", "s/block"))
+    print("\nPLACEMENT — the discrete outcome T2 exists for")
+    print("  %-10s %8s %8s %8s %9s  %s"
+          % ("condition", "placed", "missed", "dropped", "success", "s/block"))
     for c in CONDITIONS:
         rs = by.get(c, [])
         if not rs:
             continue
         pl = np.nanmean([num(r, "blocks_placed") for r in rs])
-        dr = np.nansum([num(r, "drops") for r in rs])
-        tb = describe([num(r, "time_per_block_s") for r in rs])
-        print("  %-10s %8.1f %10.0f %s" % (c, pl, dr, tb))
+        ms = np.nansum([num(r, "blocks_missed") for r in rs])
+        dr = np.nansum([num(r, "blocks_dropped") for r in rs])
+        sr = np.nanmean([num(r, "success_rate") for r in rs])
+        tb = describe([num(r, "mean_cycle_time_s") for r in rs])
+        print("  %-10s %8.1f %8.0f %8.0f %8.0f%%  %s"
+              % (c, pl, ms, dr, 100 * sr, tb))
+    # MISSED and DROPPED are kept apart deliberately: one is an aim that was
+    # off, the other is a grip that let go, and merging them would hide which
+    # of the two assistance actually helps.
 
     # The comparison the task exists for.
-    d = [num(r, "box_drift_rms_mm") for r in by.get("direct", [])]
-    s = [num(r, "box_drift_rms_mm") for r in by.get("assisted", [])]
+    d = [num(r, "hold_disturbance_rms_mm") for r in by.get("direct", [])]
+    s = [num(r, "hold_disturbance_rms_mm") for r in by.get("assisted", [])]
     d = np.array([x for x in d if x == x])
     s = np.array([x for x in s if x == x])
     if d.size and s.size:

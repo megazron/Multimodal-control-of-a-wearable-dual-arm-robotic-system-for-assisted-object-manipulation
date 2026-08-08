@@ -1,0 +1,279 @@
+repeats: 10
+path_step_m: 0.02
+tries: 6
+note: Graded SOLID only at N/N. MARGINAL means the pose passes sometimes, which is
+  how a single-call figure gets written into a protocol and then fails on the day.
+scenarios:
+- task: T3/T6
+  scenario: S1_short_straight
+  verified: true
+  poses: 5
+  note: sep 310 mm, 3 waypoints densified to 5
+  bad: []
+- task: T3/T6
+  scenario: S2_long_height
+  verified: true
+  poses: 13
+  note: sep 310 mm, 5 waypoints densified to 13
+  bad: []
+- task: T3/T6
+  scenario: S3_curved_obstacle
+  verified: true
+  poses: 10
+  note: sep 310 mm, 4 waypoints densified to 10
+  bad: []
+- task: T3/T6
+  scenario: S4_tight
+  verified: true
+  poses: 7
+  note: sep 330 mm, 4 waypoints densified to 7
+  bad: []
+- task: T7
+  scenario: S1_both_slow
+  verified: true
+  poses: 134
+  note: 30 s of locus, amplitude 80 mm
+  bad: []
+- task: T7
+  scenario: S2_one_fast
+  verified: true
+  poses: 267
+  note: 30 s of locus, amplitude 80 mm
+  bad: []
+- task: T7
+  scenario: S3_both_fast
+  verified: true
+  poses: 400
+  note: 30 s of locus, amplitude 80 mm
+  bad: []
+- task: T7
+  scenario: S4_asymmetric
+  verified: true
+  poses: 385
+  note: 30 s of locus, amplitude 80 mm
+  bad: []
+- task: T7
+  scenario: B1_left_only
+  verified: true
+  poses: 200
+  note: 30 s of locus, amplitude 80 mm
+  bad: []
+- task: T7
+  scenario: B2_right_only
+  verified: true
+  poses: 200
+  note: 30 s of locus, amplitude 80 mm
+  bad: []
+- task: T5
+  scenario: S1_near
+  verified: true
+  poses: 28
+  note: right arm, 7 waypoints densified to 28
+  bad: []
+- task: T5
+  scenario: S2_far
+  verified: true
+  poses: 32
+  note: right arm, 7 waypoints densified to 32
+  bad: []
+- task: T5
+  scenario: S3_busy
+  verified: true
+  poses: 29
+  note: right arm, 7 waypoints densified to 29
+  bad: []
+- task: T2
+  scenario: S1_short_reach
+  verified: true
+  poses: 24
+  note: hold right (-0.150,+0.350,+1.100), fill left, 23 poses
+  bad: []
+- task: T2
+  scenario: S2_long_reach
+  verified: true
+  poses: 31
+  note: hold right (-0.150,+0.350,+1.100), fill left, 30 poses
+  bad: []
+- task: T2
+  scenario: S3_height_change
+  verified: true
+  poses: 31
+  note: hold right (-0.150,+0.350,+1.180), fill left, 30 poses
+  bad: []
+- task: T2
+  scenario: S4_tight_tolerance
+  verified: true
+  poses: 29
+  note: hold right (-0.150,+0.350,+1.100), fill left, 28 poses
+  bad: []
+protocol_table:
+- task: t2
+  item: container handle (hold)
+  arm: right
+  xyz:
+  - -0.15
+  - 0.35
+  - 1.1
+  grade: SOLID
+  passes: 10
+  n: 10
+- task: t2
+  item: opening centre
+  arm: left
+  xyz:
+  - 0.15
+  - 0.35
+  - 1.2
+  grade: SOLID
+  passes: 10
+  n: 10
+- task: t2
+  item: block A pick
+  arm: left
+  xyz:
+  - 0.3
+  - 0.35
+  - 1.15
+  grade: SOLID
+  passes: 10
+  n: 10
+- task: t2
+  item: block B pick
+  arm: left
+  xyz:
+  - 0.35
+  - 0.35
+  - 1.15
+  grade: SOLID
+  passes: 10
+  n: 10
+- task: t2
+  item: block C pick
+  arm: left
+  xyz:
+  - 0.45
+  - 0.35
+  - 1.15
+  grade: SOLID
+  passes: 10
+  n: 10
+- task: t2
+  item: block D pick
+  arm: left
+  xyz:
+  - 0.35
+  - 0.35
+  - 1.25
+  grade: SOLID
+  passes: 10
+  n: 10
+- task: t3
+  item: tray grip -x end
+  arm: right
+  xyz:
+  - -0.155
+  - 0.35
+  - 1.1
+  grade: SOLID
+  passes: 10
+  n: 10
+- task: t3
+  item: tray grip +x end
+  arm: left
+  xyz:
+  - 0.155
+  - 0.35
+  - 1.1
+  grade: SOLID
+  passes: 10
+  n: 10
+- task: t3
+  item: lift top -x
+  arm: right
+  xyz:
+  - -0.155
+  - 0.35
+  - 1.3
+  grade: SOLID
+  passes: 10
+  n: 10
+- task: t3
+  item: lift top +x
+  arm: left
+  xyz:
+  - 0.155
+  - 0.35
+  - 1.3
+  grade: SOLID
+  passes: 10
+  n: 10
+- task: t3
+  item: detour -x (S3)
+  arm: right
+  xyz:
+  - -0.155
+  - 0.38
+  - 1.25
+  grade: SOLID
+  passes: 10
+  n: 10
+- task: t3
+  item: detour +x (S3)
+  arm: left
+  xyz:
+  - 0.155
+  - 0.38
+  - 1.25
+  grade: SOLID
+  passes: 10
+  n: 10
+- task: t5
+  item: tool cradle grasp
+  arm: right
+  xyz:
+  - -0.3
+  - 0.35
+  - 1.05
+  grade: SOLID
+  passes: 10
+  n: 10
+- task: t5
+  item: receive point
+  arm: right
+  xyz:
+  - -0.16
+  - 0.35
+  - 1.05
+  grade: SOLID
+  passes: 10
+  n: 10
+- task: t5
+  item: retreat
+  arm: right
+  xyz:
+  - -0.16
+  - 0.35
+  - 1.13
+  grade: SOLID
+  passes: 10
+  n: 10
+- task: t7
+  item: target centre left
+  arm: left
+  xyz:
+  - 0.4
+  - 0.35
+  - 1.1
+  grade: SOLID
+  passes: 10
+  n: 10
+- task: t7
+  item: target centre right
+  arm: right
+  xyz:
+  - -0.4
+  - 0.35
+  - 1.1
+  grade: SOLID
+  passes: 10
+  n: 10

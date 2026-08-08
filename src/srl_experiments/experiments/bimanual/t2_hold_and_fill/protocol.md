@@ -74,14 +74,32 @@ table or the wearer's chair moves.
                       WEARER
 ```
 
-| item | x | y | z | note |
-| --- | --- | --- | --- | --- |
-| box lip grasp point | −0.28 | 0.34 | 0.905 | left gripper closes here |
-| box opening centre | −0.28 | 0.34 | 0.945 | release target is 60 mm above this |
-| block A pick | +0.18 | 0.30 | 0.873 | |
-| block B pick | +0.26 | 0.30 | 0.880 | |
-| block C pick | +0.34 | 0.30 | 0.888 | |
-| table surface | | | 0.860 | z of the table top |
+**CORRECTED 2026-08-08.** The table below used to place everything at table
+height (z 0.87–0.95) on the wearer's left. Audited at N=10, **four of those
+five coordinates were reachable by no arm at all** — they predate the move of
+this whole task to the chest-height band. The verified layout:
+
+| item | x | y | z | arm | note |
+| --- | --- | --- | --- | --- | --- |
+| container handle (hold) | −0.15 | 0.35 | 1.10 | RIGHT | held for the whole trial |
+| container opening centre | +0.15 | 0.35 | 1.20 | — | 300 mm across, 100 mm above the handle |
+| block A pick | +0.30 | 0.35 | 1.15 | LEFT | S1, short transit |
+| block B pick | +0.35 | 0.35 | 1.15 | LEFT | S3 |
+| block C pick | +0.45 | 0.35 | 1.15 | LEFT | S2, long transit |
+| block D pick | +0.35 | 0.35 | 1.25 | LEFT | S4, tight tolerance |
+| stand top | | | 1.05 | — | the task is on a STAND, not a table |
+
+The arm assignment is **right holds, left fills** — the opposite of what an
+earlier draft said. `left_*` links sit at POSITIVE x in this model, so the
+"left" arm works the +x side.
+
+> **These coordinates are generated and verified, not typed.** They come
+> from `scenarios_verified.yaml`, which is written by
+> `scripts/verify_scenarios.py` / `verify_t2_scenarios.py` and re-checked
+> by `scripts/audit_scenario_reachability.py` at **N=10 repeats over the
+> whole densified path**. If you change a number here, change it there
+> and re-run; a figure that only lives in this document has not been
+> verified by anything.
 
 Marked on the table with tape crosses at each pick point and a box footprint
 outline. The outline is also the success criterion — see below.

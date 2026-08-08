@@ -51,11 +51,28 @@ grip correctly at both ends.
 
 | item | x | y | z |
 | --- | --- | --- | --- |
-| tray left grip (pick) | −0.15 | 0.34 | 0.885 |
-| tray right grip (pick) | +0.15 | 0.34 | 0.885 |
-| lift waypoint | ±0.15 | 0.34 | 1.010 |
-| place left grip | −0.15 | 0.16 | 0.885 |
-| place right grip | +0.15 | 0.16 | 0.885 |
+| tray grip, −x end (RIGHT arm) | −0.155 | 0.35 | 1.10 |
+| tray grip, +x end (LEFT arm) | +0.155 | 0.35 | 1.10 |
+| lift waypoints | ±0.155 | 0.35 | 1.15 … 1.30 |
+| detour waypoints (S3) | ±0.155 | **0.38** | 1.20, 1.25 |
+
+**CORRECTED 2026-08-08.** The previous figures were at table height
+(z 0.885) and placed the tray at y 0.16–0.34; audited at N=10, **five of the
+six were reachable by no arm**. The transport is a VERTICAL lift in the
+z 1.10–1.30 band — carrying toward the wearer (y 0.35 → 0.25) measured 0/20.
+
+The S3 detour is at **y = 0.38, not 0.40**. y = 0.40 measured 0/5 at z 1.15,
+1.25 and 1.30 and only 2/5 at 1.20 — it is not a usable detour at a 310 mm
+separation, and the earlier re-route moved the top of the detour while
+keeping the y that was the actual problem.
+
+> **These coordinates are generated and verified, not typed.** They come
+> from `scenarios_verified.yaml`, which is written by
+> `scripts/verify_scenarios.py` / `verify_t2_scenarios.py` and re-checked
+> by `scripts/audit_scenario_reachability.py` at **N=10 repeats over the
+> whole densified path**. If you change a number here, change it there
+> and re-run; a figure that only lives in this document has not been
+> verified by anything.
 
 Grip points are 300 mm apart in x and share y and z. The **place** station is
 180 mm toward the wearer in **y** — see the lateral note.

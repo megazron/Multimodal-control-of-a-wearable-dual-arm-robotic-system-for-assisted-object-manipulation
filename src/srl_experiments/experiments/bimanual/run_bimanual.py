@@ -123,23 +123,61 @@ class Session:
     --scripted is given, so the whole pipeline is exercisable without a
     participant and without hardware."""
 
+    # Robotiq 2F-85 driven knuckle, one per arm. This is the ONLY signal that
+    # says whether the gripper has something in it.
+    KNUCKLE = "%s_robotiq_85_left_knuckle_joint"
+
     def __init__(self, scripted=False):
         self.scripted = scripted
         self.node = None
         self.buf = None
+        self.js = {}
         if scripted:
             return
         import rclpy
         from rclpy.node import Node
+        from sensor_msgs.msg import JointState
         import tf2_ros
         rclpy.init(args=None)
         self.rclpy = rclpy
         self.node = Node("run_bimanual")
         self.buf = tf2_ros.Buffer()
         tf2_ros.TransformListener(self.buf, self.node)
+        self.node.create_subscription(
+            JointState, "/joint_states",
+            lambda m: self.js.update(zip(m.name, m.position)), 20)
         t0 = time.monotonic()
         while time.monotonic() - t0 < 3.0:
             rclpy.spin_once(self.node, timeout_sec=0.05)
+
+    def knuckle(self, arm, t=0.0, scenario=None):
+        """Driven-knuckle angle, radians. None when unknown.
+
+        None, not 0.0. A missing joint is not an open gripper, and defaulting
+        it to open would manufacture a release transition out of a dead
+        topic — the same no-data/bad-data conflation that has bitten this
+        project repeatedly.
+        """
+        if self.scripted:
+            return self._scripted_knuckle(arm, t, scenario)
+        return self.js.get(self.KNUCKLE % arm)
+
+    def _scripted_knuckle(self, arm, t, scenario):
+        """A stand-in fill cycle: open, close on a block, carry, release.
+
+        The HOLDING arm stays shut on the container for the whole trial; the
+        FILLING arm runs a 5 s pick-carry-release loop. Exists so the whole
+        detection and logging path is exercised without a participant.
+        """
+        sc = scenario or {}
+        if arm == sc.get("hold_arm"):
+            return 0.45                      # holding the container
+        phase = (t % 5.0) / 5.0
+        if phase < 0.20:
+            return 0.05                      # open, approaching the block
+        if phase < 0.85:
+            return 0.45                      # closed on a 40 mm block
+        return 0.05                          # released over the opening
 
     def ee(self, arm, t=0.0, scenario=None):
         if self.scripted:
@@ -157,7 +195,27 @@ class Session:
         """A deterministic stand-in operator. Not a model of a human — it
         exists so the logging, metric and validity path can be exercised end
         to end without a participant."""
-        sep = float((scenario or {}).get("sep", cm.SLING_NOMINAL_SEP))
+        sc = scenario or {}
+        if "hold_arm" in sc:                             # T2 hold and fill
+            if arm == sc["hold_arm"]:
+                # Holds station, with a slow 3 mm sway — enough that the
+                # opening-tracking path is genuinely exercised rather than
+                # trivially satisfied by a stationary container.
+                h = np.asarray(sc["hold"], float)
+                return h + np.array([0.003 * math.sin(0.5 * t), 0.0, 0.0])
+            # The filling arm flies pick -> above opening -> release, timed
+            # to the same 5 s cycle as _scripted_knuckle so the release
+            # transition happens over the opening and not in transit.
+            p = np.asarray(sc["pick"], float)
+            r = np.asarray(sc["release"], float)
+            phase = (t % 5.0) / 5.0
+            if phase < 0.20:
+                return p
+            if phase < 0.85:
+                u = (phase - 0.20) / 0.65
+                return p + (r - p) * min(1.0, u * 1.3)
+            return r
+        sep = float(sc.get("sep", cm.SLING_NOMINAL_SEP))
         side = -0.5 if arm == "left" else 0.5
         z = 1.15 + 0.05 * math.sin(0.6 * t)
         wob = 0.004 * math.sin(1.7 * t + (0.0 if arm == "left" else 1.1))
@@ -236,9 +294,12 @@ def run_pursuit(sess, sc, dur, dt, log):
 
 
 def run_single_arm(sess, sc, dur, dt, log, kind):
-    """T5 handover, T2 hold-and-fill. Both are reach-and-place at heart; the
-    metric that distinguishes them is discrete, and neither is instrumented
-    for grasp detection yet — see the caveat printed at the end."""
+    """T5 handover. Reach-and-place; its discrete outcome is the WEARER'S
+    BUTTON PRESS, which is a human judgement and correctly not inferred from
+    joint states — only the wearer knows whether they actually have the tool.
+    The presence checks around it (`tool_absent`, `dropped_in_transit`) are
+    gripper-state based and belong with the T5 runner when the button is
+    wired up."""
     t0 = time.monotonic()
     n = 0
     while time.monotonic() - t0 < dur:
@@ -247,6 +308,43 @@ def run_single_arm(sess, sc, dur, dt, log, kind):
         n += 1
     return {"samples": n, "duration_s": time.monotonic() - t0,
             "kind": kind}, None
+
+
+def run_hold_and_fill(sess, sc, dur, dt, log):
+    """T2. THE DISCRETE OUTCOME, instrumented from joint states and TF.
+
+    One arm holds the container at a known pose; the other picks blocks and
+    releases them into the opening. Blocks placed / missed / dropped are
+    detected from gripper TRANSITIONS cross-referenced against where the
+    gripper was when they happened, and the opening is tracked as an offset
+    from the HOLDING arm's live pose rather than assumed fixed in the world.
+    """
+    import t2_metrics as t2m
+    ha, fa = sc["hold_arm"], sc["fill_arm"]
+    det = t2m.T2Outcome(sc["hold"], sc["release"], sc.get("tol_mm", 40))
+    t0 = time.monotonic()
+    n = 0
+    while time.monotonic() - t0 < dur:
+        now = time.monotonic() - t0
+        ev = det.update(now,
+                        sess.knuckle(fa, now, sc), sess.knuckle(ha, now, sc),
+                        sess.ee(fa, now, sc), sess.ee(ha, now, sc))
+        if ev:
+            print("      t=%5.2f s  %s" % (now, ev))
+        log.sample()
+        sess.spin(dt)
+        n += 1
+    bad = t2m.scene_fault_reason(det)
+    if bad:
+        # A scene fault is NOT a 0% success rate. Invalidating it with the
+        # cause keeps an empty table out of the participant's results.
+        return None, "aborted mid-trial: %s" % bad
+    out = det.summary(duration_s=time.monotonic() - t0)
+    out["samples"] = n
+    if out["blocks_attempted"] == 0:
+        return None, ("no pick/release transition observed — the fill "
+                      "gripper never opened and closed inside the trial")
+    return out, None
 
 
 def main(argv=None):
@@ -296,6 +394,12 @@ def main(argv=None):
                   % (1000 * cm.SLING_L, 2000 * cm.BALL_R,
                      1000 * cm.max_secure_separation()))
         print("  waypoints     %s" % sc.get("path"))
+    elif kind == "discrete":
+        print("  hold          %s arm at %s" % (sc["hold_arm"], sc["hold"]))
+        print("  fill          %s arm, pick %s -> release %s"
+              % (sc["fill_arm"], sc["pick"], sc["release"]))
+        print("  block %d mm into a %d mm opening tolerance"
+              % (sc.get("block_mm", 0), sc.get("tol_mm", 0)))
     elif kind == "pursuit":
         print("  target speed  left %.2f  right %.2f m/s"
               % (sc.get("speed_left", 0), sc.get("speed_right", 0)))
@@ -327,6 +431,8 @@ def main(argv=None):
                                            else "rigid")
                 elif kind == "pursuit":
                     m, err = run_pursuit(sess, sc, a.duration, dt, log)
+                elif kind == "discrete":
+                    m, err = run_hold_and_fill(sess, sc, a.duration, dt, log)
                 else:
                     m, err = run_single_arm(sess, sc, a.duration, dt, log,
                                             kind)
@@ -337,15 +443,27 @@ def main(argv=None):
                     for k, v in (m or {}).items():
                         print("    %-24s %s" % (k, v))
                     rows.append(dict(m, condition=cond, scenario=sname))
+                    # Hand the metrics to the logger. finish() RAISES on a
+                    # column it does not know, which is the point: a new
+                    # metric must be added to TRIAL_COLUMNS, never dropped.
+                    # This call used to pass nothing, so every bimanual
+                    # metric reached the terminal and no further.
+                    log.finish(**m)
+                    continue
                 log.finish()
     finally:
         sess.close()
 
     print("\n  %d valid trial(s) written under %s" % (len(rows), results))
-    if kind in ("handover", "discrete"):
-        print("  NOTE: %s's discrete outcome (grasp success, blocks placed) "
-              "is NOT yet instrumented — this logs trajectories and timing "
-              "only. Do not report a success rate from it." % a.task.upper())
+    if kind == "handover":
+        print("  NOTE: T5's outcome is the WEARER'S BUTTON PRESS — a human "
+              "judgement, correctly not inferred from joint states. Wire the "
+              "pedal before reporting a handover success rate.")
+    if kind == "discrete":
+        print("  Blocks placed/missed/dropped are detected from gripper "
+              "TRANSITIONS and the opening is tracked from the holding arm's "
+              "live pose. A scene fault (empty table, container lost) "
+              "INVALIDATES the trial rather than scoring 0%.")
     return 0
 
 

@@ -70,6 +70,28 @@ TRIAL_COLUMNS = [
     # --- autonomy behaviour ---
     "assist_entered", "assist_cancelled", "assist_duration_s",
     "intent_correct_at_handover", "intent_switches",
+    # --- bimanual set: T3/T6 coupled transport ---
+    # Added 2026-08-08. finish() RAISES on an unknown column precisely so a
+    # metric cannot be silently dropped -- but run_bimanual.py called
+    # finish() with no arguments at all, so every bimanual metric was
+    # computed, printed to the terminal and then thrown away. The guard was
+    # doing its job and nothing was reaching it.
+    "coupling",
+    "sep_err_rms_mm", "sep_err_max_mm",
+    "height_diff_rms_mm", "height_diff_max_mm",
+    "tilt_rms_deg", "tilt_max_deg",
+    "path_efficiency", "time_above_threshold_s", "min_sag_mm",
+    # --- T7 pursuit ---
+    "rms_error_mm_left", "max_error_mm_left", "phase_lag_s_left",
+    "frac_on_target_left", "rms_error_mm_right",
+    "speed_left", "speed_right", "unimanual",
+    # --- T2 discrete outcome ---
+    "blocks_placed", "blocks_missed", "blocks_dropped", "blocks_attempted",
+    "picks", "success_rate", "carrying_at_end",
+    "hold_disturbance_max_mm", "hold_disturbance_rms_mm", "hold_disturbed",
+    "time_to_first_place_s", "mean_cycle_time_s", "scene_faults",
+    # --- shared ---
+    "duration_s", "samples", "kind",
     # --- validity ---
     "valid", "invalid_reason",
     "dropout_fraction",

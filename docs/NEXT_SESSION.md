@@ -1,3 +1,80 @@
+# CHECKPOINT — 2026-08-08
+
+Repo: https://github.com/megazron/dococthefinal (`main`). Verified: a clean
+clone plus the README's vendor steps builds **21 packages, 0 failures**.
+
+## THE STANDING CAVEAT — read before trusting any number below
+
+**Every figure in the protocols is IK feasibility in SIMULATION.** Nothing in
+the bimanual programme has been driven by a human through the master arm. The
+DIRECT condition of every task — the baseline the whole design rests on —
+depends on channels that are currently **INCOHERENT**: 7 of 14 fail the
+coherence test, and degraded mode freezes `l_j2` and `l_j4`, which costs the
+left arm its entire radial dimension.
+
+The reachability figures, the verified scenarios, the sling geometry and the
+pilot all say what the ROBOT can do. None of them say what an OPERATOR can do
+through this master arm today.
+
+## WHAT WORKS — measured, not assumed
+
+| | evidence |
+| --- | --- |
+| **Real dual-arm control** | two simultaneous Kortex sessions, **21.4 Hz per arm**, no halving |
+| **Homing** | all 7 joints inside tolerance; residuals scatter 0.037–0.126 deg after the integral + settle fix (was 7 joints parked at the 0.99 deg deadband edge) |
+| **Grippers** | on the Kinova **internal bus**, driven over the existing session — no second session opened |
+| **Clutch indexing** | **unbounded**: 338.8 mm over 6 cycles, re-engage jump **mean 0.29 mm / max 0.35 mm**, drift while frozen 0.000 mm |
+| **Boot reference** | latches at the master's ACTUAL pose — no calibrated neutral needed |
+| **Collision avoidance** | graduated; held at 0.072–0.079 m with **zero** hard-floor blocks, and resumed on retreat |
+| **E-stop** | trips on a frozen-but-publishing master in 0.94 s and a silent one in 0.97 s; halt is immediate |
+| **Tracking** | up/down and fore/aft correct on both arms |
+| **Autonomy pipeline** | modes 1–6, **10/10** mode-6 checks: refusals, ambiguity, wearer keep-out, spoken confirmation, voice stop in **2 ms** |
+| **Console** | Dear PyGui, frame time **median 0.80 ms / p95 6.76 ms** against a 33 ms budget |
+| **Experiment runner** | `run_bimanual.py` — T2/T3/T5/T6/T7 with real `--participant/--condition/--scenario` |
+
+## WHAT IS BLOCKED, AND ON WHAT
+
+| blocked | on |
+| --- | --- |
+| **Lateral tracking** | azimuth comes from j1 alone and couples with arm bend. Gyro azimuth halves the residual (25.6° → 13.5°) but was NOT shipped — three directions from one segment each is not a triad |
+| **Left-arm radial motion** | `l_j2` + `l_j4` incoherent. Measured: **no reach observable survives** (R² = 0.133, residual = 93% of the true spread). The j7 rate fallback is a workaround, not a fix |
+| **T4 inter-arm handover** | **geometry**, not orientation: 0 of 16 transfer points reachable by both arms |
+| **T2** | feasible with the side-handle container, but **no verified scenarios exist** — `verify_scenarios.py` does not generate them |
+| **Mode 3 orientation assist** | this `/compute_ik` plugin ignores `OrientationConstraint` (measured: identical IK success with and without). Needs a constraint-aware plugin or explicit yaw sampling |
+| **Mode 6 participant-readiness** | **detection rate unmeasured.** Models fit (2012/4096 MiB) but the synthetic renderer is out of distribution and measures itself |
+| **Voice input** | `/dev/snd` holds only `timer`. The Windows-side UDP sender is written, never exercised |
+| **VR on hardware** | `adb` is installed on neither WSL nor Windows |
+| **Grasp / handover success rates** | unmeasured — execution stops at PLAN, and the objects are not reachable by the arms that would cooperate |
+
+## THE LAB ORDER
+
+**1. Repair `l_j2` and `l_j4`.** These two buy the most: with both frozen the
+left arm's commanded set collapses from a 135 mm-thick shell to a *surface*.
+Right arm needs no help (R² = 0.986).
+
+**2. `bash scripts/check_channels.sh` after EACH attempt.** Diffs
+automatically against `recordings/baselines/channels_20260806.json`.
+**Target 12+ of 14 coherent**, where `degraded_mode:=auto` stops engaging.
+Run it after each attempt, not once at the end — a repair that breaks a
+working channel should be caught immediately.
+
+**3. One 35-minute recapture, gate fix live, EXACTLY ONE STACK.** The
+2026-08-06 capture lost 41 of 42 directional segments to a clutch-gating bug
+and latched the e-stop through block F. Both are fixed. Two `master_pose_node`
+instances are now impossible at the fd level, but confirm the refusal never
+appears.
+
+**4. Verify the cascade rate limit end to end.** `clamp_towards` now cascades
+`max_step` as well as `max_vel`; unit-tested, **never measured with a stack
+up**. **Expected: divergence stays roughly CONSTANT as `lag_trip_rad`
+changes rather than scaling with it.** If it still scales, the fix is wrong.
+
+**5. Photograph the task objects** for the detection measure — 25 images per
+object at 0.25 / 0.35 / 0.50 m. Pass = **≥95% at working distance**. Until
+then mode 6 is not participant-ready.
+
+---
+
 # NEXT SESSION — LAB ORDER
 
 ## READ THIS FIRST

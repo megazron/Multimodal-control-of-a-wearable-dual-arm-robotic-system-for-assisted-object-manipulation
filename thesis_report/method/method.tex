@@ -1,243 +1,466 @@
-\chapter{System Design and Implementation}
+\chapter{System as built}
 \label{ch:method}
+
+This chapter describes the delivered system: how it is decomposed into
+packages, how a master pose becomes an arm command, what happens when sensing
+degrades, and what can stop the arm. \Cref{ch:master} covered the master
+hardware and firmware; this chapter starts where the serial frame arrives.
 
 \section{Architecture}
 
-The system is organised as eight project packages under ROS~2 Jazzy, running
-on Ubuntu 24.04 under WSL2. The dependency direction is one-way and
-deliberate: \repo{srl\_teleop} contains teleoperation only and depends on
-nothing else in the workspace, \repo{srl\_perception} adds detection,
-\repo{srl\_autonomy} depends on both, and \repo{srl\_experiments} depends on
-all of them.
+The workspace is six packages with a one-way dependency
+graph (\cref{fig:arch}). The direction is a design constraint rather than a
+convention. Direct teleoperation is the baseline condition of every planned
+experiment, so if the teleoperation package imported anything from the
+autonomy package the comparison would be circular. This was verified two ways:
+no such import exists anywhere in the source, and the inverse-kinematics
+follower still reaches its running state with the autonomy and perception
+packages physically deleted from the install tree.
 
-That direction is load-bearing rather than tidy. Direct teleoperation is the
-baseline against which every autonomy condition is compared, so if the
-teleoperation package imported from the autonomy package the comparison would
-be circular. The property was verified two ways: by search, and by physically
-removing the autonomy and perception packages from the install tree and
-confirming that the follower still reached its running state.
+\begin{figure}[htbp]
+  \centering
+  \input{figures/diagrams/architecture.tex}
+  \caption[Package architecture]{Package decomposition and the one-way
+  dependency graph.}
+  \label{fig:arch}
+\end{figure}
 
-\section{The master arm}
+\section{From master pose to arm command}
 
-The operator commands the system through a miniature mannequin: a scaled
-replica of the Gen3 kinematic chain instrumented with single-turn
-potentiometers and an inertial measurement unit, sampled by a Teensy~4.1 and
-streamed over USB serial. Link lengths are
-$\ell = [43, 37, 43, 37, 43, 36, 33]\,\si{\milli\metre}$
-(\repo{master\_calibration.py}), summing to a full extension of
-$L_{m} = \SI{0.272}{\metre}$ against the Gen3's \SI{0.902}{\metre} reach, a
-size ratio of \num{3.32}. Joints alternate roll and bend, matching the Gen3
-morphology.
-
-\todo{FIGURE: the master kinematic chain with link lengths and joint axes
-labelled, rendered from \repo{\_source/artefacts/CAD/PotArm.step}}
-\todo{FIGURE: photographs or CAD renders of the printed links J1--J7 from
-\repo{\_source/artefacts/3dprint/}}
-\todo{CONFIRM: the potentiometer part is a WH148 PH1 single-turn unit, from
-the CAD in Downloads --- confirm the ADC resolution and pin map from
-\repo{teensy\_final.ino}, which was located but not yet ingested}
-
-\subsection{Serial protocol}
-
-Frames are newline-terminated ASCII at \num{115200}~baud:
-
-\begin{lstlisting}[caption={Master frame format, one line per sample.},
-                   label={lst:frame}]
-k1j1:<deg> ... k1j7:<deg> K1IMU:ax,ay,az,gx,gy,gz
-k2j1:<deg> ... k2j7:<deg> K2IMU:ax,ay,az,gx,gy,gz
-fsr1:<n>,fsr2:<n>,btn1:<0|1>,btn2:<0|1>
-\end{lstlisting}
-
-Frames arrive at approximately \SI{50}{\hertz} but the potentiometers update
-at only \SIrange{14.7}{17}{\hertz}, so \SIrange{82}{88}{\percent} of adjacent
-frames are bit-identical. That aliasing is not a curiosity: any statistic
-computed over consecutive rows is dominated by duplicates, and it invalidated
-an earlier noise-floor measurement (\cref{ch:results}).
-
-The port is discovered rather than configured, because the board enumerates as
-either \texttt{/dev/ttyACM0} or \texttt{/dev/ttyACM1} depending on attachment
-order. Access is made exclusive with an advisory lock on the open descriptor.
-This is not merely defensive: the port \emph{search} itself reads bytes, so
-probing a port another node owns removes frames from that node's stream.
-
-\subsection{Pose decomposition}
+\subsection{Spherical decomposition}
 
 The commanded position is built in spherical form about the master's shoulder
-rather than by forward kinematics of the full chain, because the full solution
-collapsed directionally when evaluated against recorded gestures. Writing
-$e$ for elevation, $a$ for azimuth and $r$ for reach,
-
-\begin{equation}
-  \mathbf{p}_{m} = r\big(\cos e \cos a,\; \cos e \sin a,\; \sin e\big),
-  \label{eq:spherical}
-\end{equation}
-
-with elevation taken from gravity alone,
-
-\begin{equation}
-  e = \arcsin\!\big(\hat{\mathbf{a}} \cdot \hat{\mathbf{u}}\big),
-  \qquad \hat{\mathbf{u}} = \frac{\mathbf{a}_{\text{meas}}}{\lVert\mathbf{a}_{\text{meas}}\rVert},
-  \label{eq:elevation}
-\end{equation}
-
-where $\hat{\mathbf{a}}$ is the arm's long axis in the sensor frame, captured
-once with the arm hanging, and $\mathbf{a}_{\text{meas}}$ is the measured
-specific force. Because an accelerometer at rest reports specific force
-pointing upward, $\hat{\mathbf{u}}$ is world-up expressed in the sensor frame,
-and \cref{eq:elevation} needs no mount rotation and cannot drift. Azimuth $a$
-comes from the shoulder roll potentiometer alone, zero-referenced; reach $r$
-is the magnitude of the forward kinematics of the proximal joints.
-
-\subsection{A convention error worth recording}
-
-The specification called for both $\hat{\mathbf{a}} = -\hat{\mathbf{a}}_{\text{rest}}$
-\emph{and} a leading negation in \cref{eq:elevation}. The two compound: together
-they place the hanging rest pose at $+90\si{\degree}$, i.e.\ straight up. Since
-$\cos$ is even and only $\sin$ carries the sign, the effect is to mirror the
-$z$ axis alone --- the symptom being that ``down'' commanded a higher pose than
-``up''. Only one negation is correct, and the rest pose is asserted at capture
-time as a self-check.
-
-\section{Master-to-slave mapping}
-
-The commanded end-effector position is a scaled displacement about a latched
-reference:
-
-\begin{equation}
-  \mathbf{p}_{\text{cmd}} = \mathbf{p}_{\text{anchor}}
-    + s\big(\mathbf{p}_{m} - \mathbf{p}_{\text{ref}}\big),
-  \label{eq:mapping}
-\end{equation}
-
-where $s$ is the per-arm scale and $\mathbf{p}_{\text{ref}}$ is latched on the
-first valid frame and re-latched on every clutch engagement. The scale is
-\num{1.0}, chosen from measured reachability rather than from geometry: at
-unity the commanded span is \SI{0.44}{\metre} with \SI{92}{\percent} and
-\SI{95}{\percent} of recorded poses solvable for the left and right arms, and a
-one-to-one mapping is the most predictable for an operator.
-
-Latching the reference matters more than it appears to. An earlier version
-referenced the master's own frame origin, so the first command after start-up
-was a step of the master's entire tip vector, and the operator had to hold a
-calibrated neutral pose for the system to be safe to start.
-
-\section{Coordinate conventions}
-
-The manufacturer's controller reports joint positions in degrees over
-$[0,360)$; the middleware uses radians over $(-\pi,\pi]$. Writing $g$ for the
-conversion,
+rather than by forward kinematics from seven joint angles.
+\Cref{ch:development} gives the measurements that forced the change. Each
+component comes from whichever sensor observes it most directly:
 
 \begin{align}
-  \mathrm{wrap}_{180}(d) &= 180 - \big((180 - d) \bmod 360\big), \\
-  \mathrm{wrap}_{\pi}(\theta) &= \pi - \big((\pi - \theta) \bmod 2\pi\big),
-  \label{eq:wrap}
+  \phi &= \arcsin\!\left(\hat{a} \cdot \frac{\mathbf{g}}{\lVert\mathbf{g}\rVert}\right)
+    &&\text{elevation, from the gravity vector} \label{eq:elev}\\
+  \psi &= \theta_1 - \theta_1^{0}
+    &&\text{azimuth, from the shoulder roll} \label{eq:azim}\\
+  r &= \bigl\lVert \mathrm{FK}(\theta_1, \theta_2, \theta_3, \theta_4, 0, 0, 0) \bigr\rVert
+    &&\text{radius, magnitude only} \label{eq:reach}
 \end{align}
 
-and the ordering is the substance: the controller value is wrapped into
-$(-180,180]$ \emph{and then} converted, never the reverse. Motion between two
-poses uses a signed shortest difference,
-$\Delta\theta = \mathrm{wrap}_{\pi}(\theta_{t} - \theta_{c})$, applied only to
-the continuous joints $\{1,3,5,7\}$; the limited joints use plain subtraction,
-because for them wrapping would mean driving through a hard stop.
+Here $\hat{a}$ is the arm's long axis expressed in the sensor's own frame,
+captured once with the master hanging at rest, and $\mathbf{g}$ is the
+measured acceleration.
 
-The failure mode justifies the isolation: an angle of \SI{350}{\degree} read as
-$+350$ rather than $-10$ commands very nearly a full revolution of a joint
-standing beside a person. The conversion is therefore confined to one module,
-\repo{kortex\_convention.py}, and unit-tested at the seams.
+Three properties follow, and each addresses a specific failure of the previous
+formulation. \Cref{eq:elev} is mount-independent, because $\hat{a}$ is
+captured through the same mounting it is later used with, and drift-free,
+because it integrates nothing. \Cref{eq:azim} depends on one directly measured
+zero-referenced quantity rather than on four compounded ones.
+\Cref{eq:reach} takes a magnitude, which is dominated by the bend joints and
+insensitive to errors in the rolls, so a dead roll channel can be passed
+through as zero without corrupting it.
 
-\section{Calibration}
+The sign convention in \cref{eq:elev} is asserted at capture time: hanging is
+\SI{-90}{\degree}, horizontal is \SI{0}{\degree}, vertical is
+\SI{+90}{\degree}. The specification originally called for a negation in both
+$\hat{a}$ and the elevation expression, which compound and place the resting
+pose at \SI{+90}{\degree}, inverting the vertical axis alone. Only one
+negation is correct.
 
-Three quantities are captured and stored per arm. The \emph{potentiometer
-zero} is a per-channel offset and sign, applied as a relative reference so the
-reading has meaning independent of assembly. The \emph{IMU reference}
-$\hat{\mathbf{a}}$ is captured once with the arm hanging. The \emph{gyroscope
-bias} is the mean of a settled rest sample, flagged stale if the residual rate
-exceeds \SI{1}{\degree\per\second}.
+\subsection{Anchoring, scaling and indexing}
 
-A trap worth recording: the bias must be captured from a settled stream.
-Reopening the serial port resets the microcontroller, and the IMU emits
-nonsense while settling; a bias captured that way read
-\SI{27.9}{\degree\per\second} of noise where the settled figure was
-\SI{0.11}{\degree\per\second}.
-
-The \emph{workspace anchor} is the arm's end-effector pose at its home
-configuration, read from the transform tree rather than assumed. Because the
-anchor is derived from the home pose, any change to the mount or to the home
-angles invalidates it.
-
-\section{Motion generation and safety}
-
-Commanded poses are solved with TRAC-IK through MoveIt's inverse-kinematics
-service with collision checking enabled against a model that includes the
-wearer. Two mechanisms handle failure. On an unsolved pose the redundant
-degree of freedom is re-seeded and the solve retried, fanning the elbow either
-side of its natural posture. On a solution far from the current state the
-follower commits a bounded step towards it rather than discarding it:
+The commanded end-effector position is
 
 \begin{equation}
-  \mathbf{q}_{k+1} = \mathbf{q}_{k}
-    + \mathrm{clip}\big(\mathbf{q}^{*} - \mathbf{q}_{k},\;
-                        -\Delta_{\max},\; +\Delta_{\max}\big),
-  \label{eq:slew}
+  \mathbf{p} = \mathbf{p}_{\text{anchor}} + s\,\bigl(\mathbf{d} - \mathbf{d}_{\text{ref}}\bigr),
+  \label{eq:anchor}
 \end{equation}
 
-which converges in $\lceil d / \Delta_{\max}\rceil$ cycles. The distinction is
-not cosmetic: an earlier implementation \emph{discarded} any solution further
-than the threshold, which can never converge, because a discarded solution
-leaves the arm where it was and the next solution is equally far away.
+with $\mathbf{d}$ the master tip in the robot frame, $\mathbf{d}_{\text{ref}}$
+the reference latched at clutch engagement, and $s$ a per-arm scale.
 
-\subsection{Clearance}
+The reference is latched from the first \emph{valid} frame after boot, at the
+master's actual pose. An earlier version initialised it to the origin of the
+master's frame, which made the first command $\mathbf{p}_{\text{anchor}} +
+s\,\mathbf{d}$: a step of the master's entire tip vector, roughly
+\SI{0.22}{\metre}, in whatever direction the master happened to be lying. The
+only master pose that did not produce a jump was $\mathbf{d} = 0$, which is
+why the procedure previously required the operator to hold a calibrated
+neutral before start-up. Requiring validity is not incidental. Latching from a
+frame that failed validation offsets every subsequent command.
 
-Separately from the binary collision check, a geometric clearance is computed
-from the transform tree between the arm's distal links and primitive
-approximations of the wearer's body, giving a margin rather than a contact
-flag. The follower refuses to publish below a configurable floor:
-\SI{0.05}{\metre} in simulation and \SI{0.12}{\metre} in the real-robot
-configuration. \Cref{ch:workspace} shows that this distinction --- contact
-versus margin --- has substantial consequences.
+Scale is re-read every cycle so it can be retuned live, and a change re-bases
+the anchor so the commanded pose stays continuous:
 
-\subsection{Emergency stop and dead-man}
+\begin{equation}
+  \mathbf{p}_{\text{anchor}} \mathrel{+}= (s_{\text{old}} - s_{\text{new}})\,
+  \bigl(\mathbf{d} - \mathbf{d}_{\text{ref}}\bigr).
+  \label{eq:rebase}
+\end{equation}
 
-Three independent triggers latch until an explicit reset: a service call, both
-master buttons held simultaneously, and a dead-man on the master stream. On
-trip, each arm's measured joint positions are republished as a short
-trajectory, so a follower that continues commanding is continuously
-overridden.
+Without \cref{eq:rebase} a scale change displaces the arm by
+$(s_{\text{new}} - s_{\text{old}})$ times the current displacement, which is
+largest exactly when the operator is furthest from the engagement point.
 
-The dead-man keys on the \emph{source timestamp} of the master pose, not on
-message arrival, and this is the single most important detail in the safety
-layer. The master node does not fall silent when it degrades: it substitutes
-its last good value and continues publishing at full rate. An arrival-keyed
-dead-man therefore cannot fire on the failure that actually occurs, and only a
-clean cable removal produces silence --- which is why every cable-pull test had
-passed.
+Releasing the clutch freezes the command; re-engaging re-latches
+$\mathbf{d}_{\text{ref}}$ at the master's new pose. Successive cycles
+therefore accumulate, and the reachable set is bounded by the robot rather
+than by the master's range. Engagement is gated on the master being
+quasi-static, because latching a reference while the master is moving captures
+a reference that is already stale.
+
+\section{Graceful degradation}
+
+\subsection{Channel health}
+
+Each channel carries a verdict computed from its own recent history, over
+\emph{distinct} sensor updates rather than over transmitted rows. The
+distinction is not pedantic: at the frame rate roughly
+\SIrange{82}{88}{\percent} of consecutive rows repeat, so any statistic
+computed across rows is dominated by duplicates. Every channel statistic
+computed that way returned a median absolute difference of exactly zero, which
+was read for a long time as evidence of dead channels.
+
+Four verdicts are assigned, in order:
+
+\begin{description}
+  \item[Dead.] Circular range below \SI{5}{\degree}, or dropouts above
+    \SI{90}{\percent}.
+  \item[Incoherent.] More than \SI{5}{\percent} of updates jump by more than
+    \SI{60}{\degree}, which at the observed update rate is roughly
+    \SI{2500}{\degree\per\second}.
+  \item[Intermittent.] Dropouts above \SI{2}{\percent}.
+  \item[Alive.] Coherent, range at least \SI{20}{\degree}, dropouts at most
+    \SI{2}{\percent}.
+\end{description}
+
+The incoherent verdict is the one that did not exist in earlier versions and
+is the one that matters. A failing potentiometer does not go quiet. It returns
+values spanning a wide interval which are not a trajectory, with consecutive
+updates unrelated to one another. Range alone calls that healthy, which is how
+a broken channel keeps being trusted.
+
+Range must be computed as the smallest arc containing every sample. Unwrapping
+and subtracting is invalid for a rotary sensor, because across a dropout the
+unwrap cannot know how far the joint moved and the accumulated offset runs
+away; that method reported \SI{314363}{\degree} on a \SI{360}{\degree} sensor.
+Samples outside $[0, 360]$ are rejected first, since a small fraction are
+serial parse glitches arriving in bursts.
+
+\subsection{Mode-scoped validation}
+
+Validation rejects a frame only on the channels the active position mode
+consumes. In spherical mode those are joints one, two and four. A dead joint
+three, five, six or seven cannot reject a frame, which is the entire purpose:
+the arm keeps working with four of its seven channels gone.
+
+A rejected frame holds the last good value rather than substituting a
+fabricated one. The cost is staleness rather than error, and it is charged
+honestly: a burst of dropouts freezes the command for the duration of the
+burst, which flattens measured displacement and adds apparent lag.
+
+\subsection{The degradation ladder}
+
+\Cref{fig:degradation} gives the measured cost of each reduction, against
+\num{20430} recorded frames. Two orderings in it are not intuitive and both
+are mechanical rather than statistical.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/diagrams/degradation.tex}
+  \caption[Degradation ladder]{Capability against retained channels, with the
+  cost of each rung measured on recorded hardware data.}
+  \label{fig:degradation}
+\end{figure}
+
+The last rung is the design decision. With no well-conditioned channels the
+node reports position unavailable and publishes that state, rather than
+extrapolating a position from what remains. A fabricated position on a
+manipulator bolted to a person is the worst available outcome, and it is
+indistinguishable downstream from a real one unless the distinction is made
+explicit at the source.
+
+\subsection{Reduced-degree-of-freedom fallback}
+
+When both bend joints of an arm are unavailable, the forward-kinematic
+magnitude in \cref{eq:reach} becomes constant and the arm's commanded set
+collapses from a shell of finite thickness to a surface. Elevation and azimuth
+are unaffected, because they are angular and come from elsewhere.
+
+The fallback restores the missing dimension on a channel that is alive,
+coherent, and not otherwise consumed. Deflection of the wrist roll past a
+deadband commands a \emph{rate} of change of radius rather than an absolute
+radius. Rate rather than position is necessary because that joint's usable
+range is small, so an absolute mapping would give coarse resolution over the
+whole radial extent and would require the operator to hold a wrist angle to
+hold a radius.
+
+The channel choice is constrained. The gripper is on the force sensors and the
+clutch is on the buttons, so both are unavailable without conflict. The wrist
+roll conflicts with nothing, which means the operator can extend while
+gripping and while indexing.
 
 \section{Control modes}
 
-\todo{FIGURE: one control-flow diagram per mode (direct teleoperation, VR,
-shared autonomy, full autonomy), drawn in TikZ, showing where the operator's
-authority ends and the machine's begins in each}
+Six operating modes are defined in a single registry, in the package that
+depends on nothing else, so every other package can read it without inverting
+the dependency graph. \Cref{tab:modes} summarises them; the four that are
+implemented and distinct are given their own data-path diagrams below.
 
-\todo{WRITE: the per-mode description, once the figures exist. The shared
-autonomy arbiter servos wrist ORIENTATION only and never position, which is
-the safety argument of that design and should be stated here explicitly.}
+\begin{table}[htbp]
+  \centering
+  \caption{Operating modes. Autonomy runs slower than teleoperation by design:
+  nobody is holding a master, so the only bound on a wrong motion is how long
+  it takes to happen.}
+  \label{tab:modes}
+  \begin{tabular}{@{}llll@{}}
+    \toprule
+    Mode & Input & Robot decides & $v_{\max}$ (\si{\radian\per\second}) \\
+    \midrule
+    Direct, mannequin      & master arm      & nothing & 0.60 \\
+    Direct, VR             & Quest           & nothing & 0.60 \\
+    Orientation assist     & master, vision  & wrist   & 0.60 \\
+    Shared autonomy        & master, vision  & wrist, target, approach & 0.60 \\
+    Supervised autonomy    & point or voice  & and grasp, transport, place & 0.25 \\
+    Full autonomy          & voice           & and target & 0.15 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Orientation assist is a stub and is marked as one. It would supply wrist
+orientation under an orientation constraint, and the inverse-kinematics plugin
+in use ignores the constraint field entirely: measured over 270 solver calls,
+success was identical to the digit with and without the constraint. It needs a
+constraint-aware plugin or explicit yaw sampling.
+
+One safety stack serves all six. Every mode transition asserts the invariant,
+and dropping any one of the six shared mechanisms is refused in every mode
+rather than being available as a per-mode option.
+
+\begin{sidewaysfigure}
+  \centering
+  \resizebox{\textheight}{!}{\input{figures/diagrams/mode1_mannequin.tex}}
+  \caption[Data path: direct teleoperation from the mannequin]{Direct
+  teleoperation from the mannequin master. Red stages can stop the arm; dashed
+  red arrows are failure exits.}
+  \label{fig:mode1}
+\end{sidewaysfigure}
+
+\begin{sidewaysfigure}
+  \centering
+  \resizebox{\textheight}{!}{\input{figures/diagrams/mode2_vr.tex}}
+  \caption[Data path: direct teleoperation from VR]{Direct teleoperation from
+  a Quest headset. The headset supplies six degrees of freedom directly, so
+  neither the spherical decomposition nor the channel-health layer is
+  required.}
+  \label{fig:mode2}
+\end{sidewaysfigure}
+
+\begin{sidewaysfigure}
+  \centering
+  \resizebox{\textheight}{!}{\input{figures/diagrams/mode3_shared.tex}}
+  \caption[Data path: shared autonomy]{Shared autonomy. Position never leaves
+  the operator, in any state.}
+  \label{fig:mode3}
+\end{sidewaysfigure}
+
+\begin{sidewaysfigure}
+  \centering
+  \resizebox{\textheight}{!}{\input{figures/diagrams/mode4_voice.tex}}
+  \caption[Data path: full autonomy from voice]{Full autonomy from voice.
+  Refusals are drawn as first-class outcomes because this mode declines more
+  utterances than it accepts.}
+  \label{fig:mode4}
+\end{sidewaysfigure}
+
+\subsection{Why the transport for VR is USB rather than the network}
+
+The headset connects over \texttt{adb reverse} on USB, so the client addresses
+\texttt{ws://127.0.0.1}. Browser-based immersive sessions require a secure
+context, which over a local network means a self-signed certificate carrying
+the address, a firewall exception, and an operator accepting a warning inside
+a headset they are wearing. A loopback address is a secure origin by
+definition, so all of that disappears. The link is also not the wireless
+network the arms are on.
+
+\subsection{Why the voice mode uses a grammar and not a language model}
+
+The command set is closed and small: grab, handover, place, stop. A quantised
+seven-billion-parameter model would occupy three to four of the four gigabytes
+of video memory available on this machine and add several hundred milliseconds,
+and it would place a non-deterministic component in the path that decides
+whether a robot beside a person's head begins moving.
+
+The failure modes differ in kind, which is the substantive argument. A grammar
+that does not recognise an utterance returns unparsed, and the robot asks
+again. A language model asked for structured output can return a different,
+plausible verb, and nothing downstream can distinguish that from a correct
+parse. For five verbs that is a poor exchange.
+
+\subsection{Why not an end-to-end vision-language-action policy}
+
+Three reasons, recorded so the decision is not silently reversed. Such models
+are trained on embodiment collections that contain no backpack-mounted dual
+Gen3, and zero-shot transfer to a novel embodiment is poor while fine-tuning
+needs demonstration data this project does not have. They emit actions
+directly, which bypasses every gate in this system, since collision-aware
+inverse kinematics, the clearance floor and the step guard all sit between a
+\emph{pose} and the arm. And their failures are unattributable, where the
+modular pipeline fails at a named stage with its inputs logged.
+
+\section{Safety architecture}
+
+\subsection{Collision avoidance in three stages}
+
+The wearer is in the collision model. Adding this was not a matter of setting
+a flag: the flag was already set, but the wearer's model carried
+twenty-seven visual elements and one collision element, and no wearer link
+appeared in the semantic description. A planner cannot avoid what it cannot
+see.
+
+Thirteen collision elements were added, paired with thirty-six exclusions for
+the mount-adjacent proximal links. The arm bases are bolted to the harness and
+are permanently adjacent, so without those exclusions every pose is trivially
+in collision. Everything distal of the first arm link stays enabled, which is
+what actually protects the wearer.
+
+Avoidance is graduated. Collision-aware inverse kinematics rejects a
+configuration; on rejection the redundant degree of freedom is re-seeded and
+the solve retried, which recovers poses that would otherwise be dropped; and a
+geometric clearance floor measured from the transform tree provides a final
+margin. Driving the commanded pose directly at the wearer's head and torso and
+holding it there stopped the arm at \SIrange{0.072}{0.079}{\metre} with zero
+clearance-floor blocks, so the earlier stages did the work and the floor
+remained a backstop. Every zone resumed on retreat.
+
+\subsection{Blocking must be observable}
+
+Four mechanisms in this system have historically stopped all motion silently.
+The common failure was never the blocking, which is usually correct. It was
+that blocking looked identical to working.
+
+Every mechanism that can stop motion now registers with a monitor that
+enforces three properties: it announces itself by name on the first block and
+repeats; sustained blocking escalates in severity, because a block held for
+seconds is never normal; and a recovery string is mandatory at registration,
+so a blocker that cannot say how it clears is a latch and registration is
+refused.
+
+\subsection{Expiry is not permission}
+
+Every blocker in the system is written as a guard that blocks and returns, and
+clears on the fall-through path. That is correct while the guard is mutated
+elsewhere, and it latches the moment the guard also stops the callback
+running. This happened five times, the fifth inside the code written to catch
+the first four.
+
+The structural fix is auto-expiry: a blocker not re-asserted for two seconds
+is treated as abandoned rather than held, since a genuinely held condition is
+re-asserted every cycle by design. Expiry is a third state, not a clear one.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Blocker states. Expiry means the asserting loop stopped running, so
+  the guarded condition is unknown rather than absent.}
+  \label{tab:blockstates}
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    State & Meaning & Treated as blocking \\
+    \midrule
+    active  & the condition is held & yes \\
+    expired & the asserting loop stopped; condition \textbf{unknown} & \textbf{yes} \\
+    clear   & live code says the condition is gone & no \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Reading an expiry as clear would turn a crashed guard into a green light,
+which is worse than the latch it replaces. Two placement rules follow and both
+are load-bearing. The follower's refusal to publish sits at the publish and
+not at callback entry, because the clears that resolve an expiry are upstream
+of it and refusing at entry would prevent the re-assertion that clears the
+unknown. And the unknown-state blocker is excluded from its own trigger, or it
+re-arms itself indefinitely.
+
+\subsection{Emergency stop}
+
+Three independent triggers latch until an explicit reset: a service or topic
+call, both master buttons held simultaneously, and a dead-man on the master
+data going stale.
+
+The dead-man keys on the \emph{source} timestamp of the data, not on message
+arrival. This is the correction that made it work at all. The master node does
+not go silent when the master degrades: on a validation failure it substitutes
+the last good value and keeps publishing at full rate. It used to stamp that
+substituted frame with the publication time, so on the failure mode that
+actually occurs, a board emitting corrupted values rather than vanishing, the
+topic never went quiet and the timestamp never went stale. A dead-man keyed on
+arrival could not fire. Only a clean unplug produced silence, which is why
+every cable-pull test passed.
+
+The first task of the set is a positioning task with three target widths at
+each amplitude, which characterises the interface against the
+speed-accuracy relation~\cite{fitts1954information} and provides the
+single-arm against both-arms contrast that measures the attention bottleneck
+directly. \Cref{fig:expdesign} gives the design and \cref{fig:timeline} the
+session structure.
+
+\begin{sidewaysfigure}
+  \centering
+  \resizebox{\textheight}{!}{\input{figures/diagrams/experiment_design.tex}}
+  \caption[Experimental design]{Two modes crossed with five tasks, with the
+  options that were costed and rejected.}
+  \label{fig:expdesign}
+\end{sidewaysfigure}
+
+\begin{sidewaysfigure}
+  \centering
+  \resizebox{\textheight}{!}{\input{figures/diagrams/session_timeline.tex}}
+  \caption[Session timeline]{Session structure for two people. The wearer's
+  exposure is the binding constraint and is drawn as its own track.}
+  \label{fig:timeline}
+\end{sidewaysfigure}
 
 \section{Verification methodology}
 
-Because much of this work consists of measurements, the method by which a
-measurement is trusted is itself part of the method. Two rules were adopted
-after repeated failures.
+Four times in this project a result that looked like a system failure was a
+defect in the measuring tool. A noise floor of exactly zero on all fourteen
+channels was the recorder sampling faster than the sensor updates. An
+isotropy figure swinging by a factor of two between runs was a statistic
+chosen to be maximally sensitive to a rare tail failure. A detection rate of
+\SIrange{0}{4}{\percent} was a renderer producing images unlike anything the
+detector was trained on. A path-verification failure was the verifier carrying
+its test path in the one direction that leaves the feasible region.
 
-First, \emph{a pose that passes a single inverse-kinematics call is not a
-reachable pose}. TRAC-IK restarts randomly, so a pose at the edge of the
-feasible set is a coin flip. One pose measured \SIrange{72}{82}{\percent}
-feasible per call, which passes a five-repeat check roughly one time in five.
-Verification is therefore $N=10$ repeats over a path densified to
-\SI{20}{\milli\metre}, because the arm flies the segments between declared
-waypoints and those are not reachable by virtue of their endpoints being
-reachable.
+The rule adopted is that a surprising failure is evidence about the instrument
+until the instrument has been cleared against a known answer. In practice this
+means every analysis script has a known-answer test, real recorded data is
+preferred to generated data, synthetic data is used only where the ground
+truth is constructed rather than rendered, and a result contradicting an
+earlier measurement is treated as an instrument check until the two are
+reconciled.
 
-Second, \emph{an instrument must recover a known answer before a surprising
-measurement taken with it is reported}. Every analysis routine that will touch
-experimental data has a test that feeds it an input whose answer is known by
-construction.
+A corollary governs every coordinate in this thesis. The inverse-kinematics
+solver restarts randomly, so a pose at the edge of the feasible set is a coin
+flip and one call is one flip. Verification is therefore ten repeats over the
+whole path, densified to \SI{20}{\milli\metre}, not two calls at the
+endpoints. Poses are graded solid, marginal or failed, and marginal is not
+usable.
+
+\section{Calibration}
+
+\begin{sidewaysfigure}
+  \centering
+  \resizebox{\textheight}{!}{\input{figures/diagrams/calibration.tex}}
+  \caption[Calibration procedure]{Calibration order. Two of the orderings are
+  load-bearing and the call-outs say why.}
+  \label{fig:calibration}
+\end{sidewaysfigure}
+
+\begin{figure}[htbp]
+  \centering
+  \imgplaceholder{50mm}{Annotated RViz screenshot at the home pose: both arms,
+  the backpack mount, the wearer model with collision geometry shown, and the
+  world frame triad. Must be labelled with the mount origin, the two
+  end-effector frames, and the measured clearance from the nearest arm link to
+  the torso.}
+  \caption[The model at home]{Simulated platform at the home pose. Annotated
+  screenshot required before submission.}
+  \label{fig:rviz-home}
+\end{figure}

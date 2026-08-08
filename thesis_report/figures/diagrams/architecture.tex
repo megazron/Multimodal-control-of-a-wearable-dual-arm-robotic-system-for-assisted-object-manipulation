@@ -1,0 +1,42 @@
+% SYSTEM ARCHITECTURE. Packages, and the one-way dependency arrow that makes
+% the experimental comparison non-circular.
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize]
+
+\node[draw, fill=blue!8, minimum width=34mm, minimum height=13mm,
+      align=center] (teleop) at (0, 0)
+  {\textbf{srl\_teleop}\\ master sensing, IK follower,\\ clutch, e-stop, bridge};
+\node[draw, fill=blue!8, minimum width=30mm, minimum height=13mm,
+      align=center] (percep) at (46, 0)
+  {\textbf{srl\_perception}\\ AprilTag, object pose};
+\node[draw, fill=gray!10, minimum width=34mm, minimum height=13mm,
+      align=center] (auto) at (23, -22)
+  {\textbf{srl\_autonomy}\\ grasps, intent, arbiter};
+\node[draw, fill=gray!10, minimum width=34mm, minimum height=13mm,
+      align=center] (exp) at (23, -42)
+  {\textbf{srl\_experiments}\\ protocols, logging, analysis};
+\node[draw, fill=gray!10, minimum width=32mm, minimum height=11mm,
+      align=center] (vr) at (-46, -22)
+  {\textbf{srl\_vr\_teleop}\\ vendor bridge};
+\node[draw, fill=gray!6, minimum width=32mm, minimum height=11mm,
+      align=center] (desc) at (-46, 0)
+  {\textbf{srl\_description}\\ URDF: arms, mount, wearer};
+\node[draw, fill=gray!6, minimum width=32mm, minimum height=11mm,
+      align=center] (moveit) at (-46, 16)
+  {\textbf{srl\_moveit\_config}\\ TRAC-IK, SRDF, controllers};
+
+\draw[flow] (auto) -- (teleop);
+\draw[flow] (auto) -- (percep);
+\draw[flow] (exp) -- (auto);
+\draw[flow] (exp.west) to[out=180,in=270] (teleop.south west);
+\draw[flow] (desc) -- (moveit);
+\draw[flow] (moveit.east) to[out=0,in=150] (teleop.north west);
+
+\node[draw, dashed, thick, red!60!black, fill=red!4, text width=62mm,
+      align=left] at (0, -62)
+  {\textbf{\color{red!60!black}The dependency arrow runs one way, and it is
+   load-bearing.} \texttt{srl\_teleop} is the baseline condition of every
+   experiment. If it imported anything from \texttt{srl\_autonomy} the
+   comparison would be circular. Verified two ways: no such import exists, and
+   the IK follower still reaches \emph{Tracking enabled} with the autonomy and
+   perception packages physically removed from \texttt{install/}.};
+\end{tikzpicture}

@@ -1,63 +1,103 @@
 \chapter{Conclusion}
 \label{ch:conclusion}
 
-This project produced a complete, safety-instrumented teleoperation stack for
-a backpack-mounted pair of seven-degree-of-freedom arms commanded through a
-miniature mannequin master, together with a characterisation of what that
-configuration can and cannot do.
+This project built a teleoperation system for two seven-degree-of-freedom arms
+mounted on a worn backpack frame, commanded from an instrumented mannequin
+master, with a safety architecture appropriate to a manipulator standing
+beside a person and a shared-autonomy layer above it.
 
-Against the objectives of \cref{ch:intro}: the master was designed and
-fabricated and its sensing characterised, including a dated record of
-progressive channel degradation; the mapping was derived and implemented,
-including the coordinate-convention layer that isolates a class of error whose
-failure mode is a near-full joint revolution; the safety architecture was
-implemented and validated by fault injection rather than inspection; the
-workspace was characterised, yielding the finding that determines the task
-set; a verification methodology was established and applied across the
-recorded runs; and the constraints blocking hardware validation were
-identified by measurement rather than assumed.
+\section{Against the objectives}
 
-The principal measured contributions are the workspace characterisation, with
-its negative result and its quantified mechanical remedy; the account of what
-degraded sensing costs and which two channels matter most; the finding that
-the deployed clearance margin and the planner's collision test disagree across
-the entire working band, resolvable laterally but not fore-and-aft; and the
-observation that two independent constraints --- clearance and wrist
-feasibility --- place the usable boundary in the same place.
+\emph{A master, built and characterised.} Fourteen potentiometer channels, two
+inertial sensors, two force sensors and two buttons on a single
+microcontroller, emitting a text frame at \SI{100}{\hertz}. Characterisation
+found six of fourteen channels usable and reversed two long-standing verdicts,
+both of which had come from computing statistics across transmitted rows
+rather than distinct sensor updates.
 
-The methodological contribution is the discipline of validating an instrument
-against a known answer before reporting a surprising measurement taken with
-it. This arose from necessity: across the project, unexpected results were
-more often defects in measurement than in the system, and requiring every
-analysis routine to recover a constructed answer caught a substantial number
-of errors that would otherwise have entered the record.
+\emph{A mapping that degrades predictably.} Position in spherical form with
+each component taken from the sensor that observes it best. Vertical and
+fore-and-aft motion track correctly on both arms. Lateral does not, and the
+measurements show why no axis map or recalibration can fix it. The cost of
+each channel reduction is quantified on \num{20430} recorded frames, and the
+endpoint of the ladder reports position unavailable rather than inventing one.
 
-\section{Future work}
+\emph{A safety architecture validated by injection.} Fourteen of fourteen
+injected faults handled. The two that took several attempts both failed for
+the same underlying reason, which is that a mechanism was keyed on the wrong
+observable: a dead-man on message arrival cannot detect a source that keeps
+publishing stale data.
 
-The immediate steps are set by the limitations rather than by ambition, and
-are ordered by how much each would improve the system.
+\emph{A workspace characterisation.} The two arms share no reachable
+workspace under the as-built mount, which blocks inter-arm handover for
+geometric reasons no software change can address. A buildable mount
+modification that would raise the shared cell count from three to twenty-two
+of sixty-three is quantified and deliberately not applied, because applying it
+invalidates the home pose, the workspace anchor and every clearance figure
+derived from them.
 
-\textbf{Repair the two identified master channels.} Regression shows the left
-arm retains no reach observable without them, and every direct-teleoperation
-baseline depends on them. This is the single highest-value action.
+\emph{A verification methodology.} Ten repeats over densified paths rather
+than single calls at endpoints, and an instrument validated against a known
+answer before a surprising measurement taken with it is reported. The
+five-task verification reproduced exactly across runs, which is the first
+reachability figure in this project to do so.
 
-\textbf{Measure control-path latency.} The instrumentation is small --- seven
-timestamps and a sequence number already partly present --- and it is the only
-one of the planning report's targets that is both untouched and immediately
-measurable. The result must be reported as a lower bound.
+\emph{Identification of what blocks progress.} Five items, listed in
+\cref{ch:discussion}. The first is two soldered joints.
 
-\textbf{Apply the mount change and re-derive.} The sweep quantifies the gain;
-applying it invalidates the home pose, the workspace anchor and every
-clearance figure, so it should be one deliberate pass with full
-re-verification.
+\section{What was not achieved}
 
-\textbf{Ingest and document the master hardware record.} The firmware, CAD and
-bill of materials exist outside the repository; committing them would supply
-the pin map, ADC resolution and fabrication parameters that
-\cref{ch:method} currently cannot state.
+No result in this thesis was validated on a physical Kinova arm. The task set
+is verified geometrically and has never been performed. The two-person study
+the architecture was designed around was not run, and could not have been:
+the direct teleoperation baseline depends on channels that are currently
+incoherent.
 
-\textbf{Then run the study.} The design is complete and costed at sixteen
-dyads over a \SI{167}{\minute} session, comparing direct teleoperation against
-shared autonomy across all five tasks.
-\todo{MEASURE: the experimental programme in full --- no participant data
-exists}
+The planning report's haptic objective was not delivered and, as
+\cref{ch:discussion} argues, is not deliverable on this platform through the
+available control interface.
+
+\section{Future work, in the order it should be done}
+
+\begin{enumerate}
+  \item \textbf{Repair left j2 and j4, and re-run the channel baseline after
+    each attempt.} These two are named by the observability regression rather
+    than chosen: with both frozen the left arm retains no reach observable at
+    all, and repairing any other channel will not restore one. Re-running
+    after each attempt rather than once at the end catches a repair that
+    breaks a working channel.
+  \item \textbf{Correct the filter seed in the firmware} so the potentiometers
+    do not spend \SI{440}{\milli\second} settling from a railed value after
+    every board reset. The change is one line and does not alter the filter's
+    steady state.
+  \item \textbf{Read the right arm's home joint angles from hardware.} They
+    have never been read, and the workspace geometry depends on them.
+  \item \textbf{Bring up a second inertial sensor per arm on the secondary
+    bus.} The elbow angle then comes from the relative orientation of two
+    segments with no potentiometer, and the shared yaw ambiguity cancels in a
+    relative measurement, which is why two sensors can replace the elbow and
+    one cannot. It costs two potentiometer channels and reaches
+    \SI{63.8}{\milli\metre} on a single remaining pot.
+  \item \textbf{Re-park the right arm and re-derive the mount.} This is the
+    only route to a shared workspace, and therefore the only route to
+    inter-arm handover and to a wider bimanual task set. It should be one
+    deliberate pass, because the home pose, the anchor and every clearance
+    figure move together.
+  \item \textbf{Validate the safety layer on hardware}, starting with the
+    session recovery path, which is the riskiest because the arm permits
+    exactly one session.
+  \item \textbf{Run the two-person study.} The exchange rate between operator
+    performance and wearer trust is the open question this architecture was
+    built to ask, and it remains open.
+\end{enumerate}
+
+\section{Closing}
+
+The most transferable outcome of this work is not the mapping or the safety
+architecture. It is the discipline that produced them. Four times a result
+that looked like a system failure turned out to be a defect in the measuring
+tool, and each was caught only by checking the instrument against something
+whose answer was already known. On a robot that stands beside a person, the
+difference between a measurement and an artefact is not an academic
+distinction, and the habit of establishing which one is in hand before acting
+on it is the part of this project most worth carrying forward.

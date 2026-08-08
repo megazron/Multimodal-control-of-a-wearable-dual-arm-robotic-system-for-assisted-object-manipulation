@@ -1,4 +1,4 @@
-\chapter{Workspace Characterisation and its Consequences}
+\chapter{Workspace characterisation and its consequences}
 \label{ch:workspace}
 
 This chapter is separated from \cref{ch:results} because it is not a single
@@ -39,23 +39,23 @@ robot. A sweep is a chain of up to ninety solver calls and any single failure
 ends that direction; the follower does not suffer this because it re-seeds the
 redundant joint and retries. Giving the sweep the same retry reduced early
 terminations from nine to zero on the left arm and three to zero on the right,
-while the medians barely moved --- which is what establishes that the outliers
-were chain compounding rather than geometry.
+while the medians barely moved. That the medians were already right is what
+establishes the outliers as chain compounding rather than geometry.
 
 \section{The two arms share no reachable workspace}
 
 Over a grid of sixty-three cells spanning the frontal working volume, with the
 arms verified at the home pose, \textbf{no cell was reachable by both arms}.
 The result survives the two obvious objections, as \cref{tab:overlap} shows:
-freeing the wrist yaw raises each arm's individual reach from sixteen--eighteen
+freeing the wrist yaw raises each arm's individual reach from sixteen and eighteen
 cells to twenty-one and still yields no shared cell, and repeating the test
 with more redundancy retries changes nothing.
 
 \begin{table}[htbp]
   \centering
   \caption[Both-arm overlap under three test conditions]{Both-arm overlap over
-  the 63-cell frontal grid, arms verified at home. The result is robust to
-  wrist freedom and to additional inverse-kinematics retries.}
+  the 63-cell frontal grid, arms verified at home. The null result survives
+  both wrist freedom and additional inverse-kinematics retries.}
   \label{tab:overlap}
   \begin{tabular}{lccc}
     \toprule
@@ -106,9 +106,9 @@ forward tilt, raises the number of shared cells from three to
   \includegraphics[width=0.85\textwidth]{figures/mount_sweep.pdf}
   \caption[Mount parameter sweep]{Single-parameter sweeps from the as-built
   mount. Forward tilt and inboard translation both help substantially; splaying
-  the mounts outward \emph{hurts}. The sweep is purely kinematic --- it moves
-  the arms' bases without moving the wearer --- so these are upper bounds and
-  any candidate requires a clearance check before adoption.}
+  the mounts outward \emph{hurts}. The sweep is purely kinematic, moving the
+  arms' bases without moving the wearer, so these are upper bounds and any
+  candidate requires a clearance check before adoption.}
   \label{fig:mount}
 \end{figure}
 
@@ -123,8 +123,8 @@ lateral boundary and together make the case that the inboard band is
 unusable.
 
 The first is wearer clearance. Every scenario in the chest-height band passes
-inverse kinematics with collision checking enabled --- the planner reports the
-poses valid --- and yet the arms pass within \SIrange{48}{67}{\milli\metre} of
+inverse kinematics with collision checking enabled, and the planner reports
+the poses valid, yet the arms pass within \SIrange{48}{67}{\milli\metre} of
 the wearer's torso, inside the \SI{120}{\milli\metre} margin the real-robot
 configuration enforces. The reconciliation is that the two tests ask different
 questions: the planner's check is binary contact, whereas the floor is a

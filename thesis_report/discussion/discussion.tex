@@ -1,165 +1,172 @@
 \chapter{Discussion}
 \label{ch:discussion}
 
-\section{What the geometry decides}
+\section{What the degradation architecture bought, and what it did not}
 
-The most consequential outcome of this project is not a control result but a
-geometric one: as mounted and as parked, the two arms share no reachable
-workspace. That removes an entire class of task, and it does so in a way no
-planning, control or autonomy change can address, because the constraint is on
-where the arms can be at all rather than on how they get there.
+The premise in \cref{ch:intro} was that a body-worn master will lose channels,
+so losing them must be survivable. The two dated captures support the premise
+empirically: the failed population grew between them
+(\cref{sec:channelhealth}). The architecture's value can be stated precisely
+from the measurements.
 
-It is worth stating precisely what follows and what does not. Tasks requiring
-the two arms to meet at a point are impossible. Tasks requiring two distinct
-points a fixed distance apart are not, and were shown feasible once the
-coupled objects were widened to a \SI{500}{\milli\metre} span. The distinction
-was initially missed, and a bimanual programme was briefly declared blocked on
-the strength of a test that answered the stronger question. The correction
-matters more than the original error: the requirement a task actually imposes
-should be tested, rather than a convenient proxy for it.
+It kept the system running. With eight of fourteen channels failing the health
+criterion, the right arm retains full position sensing at $R^2 = \num{0.986}$
+and the left arm retains direction. A joint-space mapping would have been
+inoperable on either arm from the first failed channel, because it has no
+reconstruction path.
 
-That the fix is mechanical and quantified --- three to twenty-two shared cells
-for a buildable mount change --- is what turns the null result into a
-contribution rather than a complaint.
+It kept the failures visible. The incoherent verdict exists because a failing
+potentiometer does not go quiet, and range alone calls a wide-spanning
+nonsense signal healthy. Without that verdict the system would have kept
+following \SI{54.5}{\milli\metre} of commanded motion the operator never
+asked for, on a master whose whole reach is \SI{272}{\milli\metre}.
 
-\section{Two constraints, one boundary}
+What it did not buy is capability. Freezing the left arm's bend joints removes
+its radial dimension entirely, collapsing its commanded set from a shell to a
+surface, and the wrist-roll fallback restores an axis rather than restoring
+the measurement. The architecture converts a fault into a known, bounded,
+announced reduction. It does not convert it into working hardware, and
+\cref{sec:channelhealth} names the two channels whose repair would.
 
-Wearer clearance and top-down grasp feasibility were measured independently,
-for different reasons, and both place the usable boundary at
-$|x| \approx \SIrange{0.25}{0.30}{\metre}$. Neither measurement was designed to
-corroborate the other, which is what makes the agreement informative: the
-inboard band is unusable for two unrelated reasons at once.
+\section{The reduced-degree-of-freedom premise, assessed}
 
-The clearance half of that pair deserves emphasis because it is easy to
-mistake for a tuning problem. The planner's collision check and the deployed
-clearance floor ask different questions --- contact against margin --- and a
-pose can satisfy the first while being refused by the second. Attempting to
-resolve it by moving the working volume forward fails instructively: clearance
-improves and reachability collapses, because the volume moves towards the edge
-of the arm's reach as it moves away from the body. The axis along which the
-conflict resolves is lateral, and that was not obvious in advance. It was
-found only because the probe recorded \emph{which link} was closest rather
-than only how close it was.
+The second premise was that commanding fourteen joints through a body-worn
+master is a usability problem, and that the answer is to take each component
+from the sensor that observes it best. The evidence is mixed, and it divides
+cleanly by component.
 
-The ethical position is one-directional. The floor exists to protect a person
-who did not choose the motion, so the task moves and the floor does not.
+Elevation from gravity works. It is mount-independent, drift-free, integrates
+nothing, and survived every reformulation. Reach from the forward-kinematic
+magnitude works, because a magnitude depends on the bend joints and tolerates
+a dead roll passed through as zero. Both vertical and fore-and-aft motion
+track correctly on both arms.
 
-\section{Instrumentation as a first-class concern}
+Azimuth from a single joint does not work, and the reason is instructive
+rather than incidental. The spherical model assumes azimuth and elevation are
+independent. They are not, because joint one is a roll about the arm's own
+axis, so its effect on the tip scales with how bent the arm is. The
+\SI{137.7}{\degree} measured between two directions intended to be
+\SI{90}{\degree} apart is not a calibration error that a better axis map or a
+better zero could remove; it is the model being wrong about the geometry.
 
-The pattern reported in \cref{sec:instrument} --- that surprising measurements
-were more often instrument defects than system defects --- became the
-methodological centre of the work. The response, requiring every analysis
-routine to recover a constructed answer before being trusted with real data,
-is in the author's assessment the most transferable outcome.
+The honest reading is that the decomposition succeeded for the two components
+where a single sensor observes the quantity directly, and failed for the one
+where it does not. That is a usable design rule for a successor: decompose
+along the axes your sensors actually observe, not along the axes that make the
+mathematics tidy.
 
-It is also incomplete, and honesty requires saying so. The rule was adopted
-part-way through, and the earlier measurements have not all been re-derived
-under it. Where a figure in this thesis originates in the engineering log
-rather than in a retained artefact, it is marked as such.
+\section{The workspace result and what it costs the study}
 
-\section{Silent failure as the dominant mode}
+\Cref{ch:workspace} reports that the two arms share no reachable workspace
+under the as-built mount. The consequence for the experimental programme is
+severe and worth stating plainly rather than absorbing into a limitations
+list.
 
-The safety work consistently found that the problem was not mechanisms failing
-to act, but that acting and not acting looked identical from outside. The
-dead-man defect is the clearest case: the mechanism was correct, its trigger
-condition was correct, and it could not fire on the failure that actually
-occurs, because the upstream node degraded by republishing stale data rather
-than by falling silent. Every test of it had passed, because every test
-removed the cable.
+Inter-arm handover is impossible. Not difficult, not unreliable: there is no
+point in space both arms can reach, so no control strategy, no planner and no
+orientation mode can produce one. The task that would have demonstrated
+autonomy achieving something teleoperation cannot was blocked by geometry
+before it was blocked by anything else, and the finding is the reason it is
+not in the task set.
 
-The general lesson is that a test exercising a failure mode different from the
-one that occurs provides confidence without providing safety.
+The cause is not the mount rotation, which was proved to leave the mirror
+residual invariant. It is that the two arms are parked asymmetrically at their
+home joint angles, and those angles are ground truth because the simulation to
+hardware bridge replays them onto the real arm. Changing them in software
+would command the difference as a jump. Fixing this requires re-parking the
+right arm in hardware.
 
-\section{The plan and the delivery}
+Two of the five delivered tasks are the same bimanual mechanism with different
+objects, and only one task uses the second mechanism. There are two genuinely
+bimanual mechanisms available on this platform, not three. That is a real
+narrowing of what the platform can be used to ask.
 
-The delivered system diverges substantially from the planning report, and the
-divergences are engineering decisions rather than omissions.
+\section{Comparison against the planning report's targets}
 
-\textbf{The simulator changed} from Isaac Lab to MuJoCo and then to ROS~2 with
-MoveIt. Isaac Lab requires a heavyweight GPU stack; the development machine
-carries \SI{4}{\gibi\byte} of video memory already committed to the perception
-models. More importantly, the question that actually needed answering was
-collision-aware kinematics against a wearer model, which MoveIt provides
-natively.
+The delivered system diverges substantially from the plan, and the divergences
+fall into three groups.
 
-\textbf{The compliance layer was not built.} The manufacturer's impedance mode
-requires the cyclic control interface, and that interface is unusable on this
-machine: measured write times of \SIrange{3}{6}{\second} against a
-\SI{10}{\milli\second} budget, because the realtime channel is UDP and the
-network translation layer breaks it. The delivered path uses the high-level
-velocity API instead, which cannot express joint impedance. This is an
-infrastructure constraint, not a design preference, and it is the reason the
-haptic objectives could not be attempted.
+\emph{Superseded by measurement.} The planning report specified physical
+springs at the master for force feedback and virtual spring impedance at the
+slave. The impedance target is unreachable on this platform for a reason
+discovered during the work: the arms' cyclic control interface is unusable
+over the available network path, so the system commands through a high-level
+velocity interface at \SIrange{18.4}{18.7}{\hertz}. An impedance law at
+\SI{18}{\hertz} is not an impedance law. The compliance the plan sought would
+have to come from the mechanism instead, through series elastic actuation at
+the joint~\cite{toubar2022sea,lee2019sea}, or from a current-based
+formulation that does not require a high-rate torque
+loop~\cite{dewolde2024impedance}. Both are hardware changes.
 
-\textbf{The master arms are passive.} This follows from the above: with no
-force channel there is nothing for master actuators to render.
+\emph{Deferred and still open.} Coordinated pick-and-place on the real
+platform was not demonstrated. The task set is specified and verified
+geometrically, and the runner exists, but the arms were not available for the
+period in which it would have been run.
 
-\section{Evaluation against the planning report's targets}
+\emph{Added.} The safety architecture, the degradation architecture and the
+workspace characterisation were not in the plan. The first two are the direct
+consequence of discovering that sensor faults dominate; the third is the
+consequence of asking whether the task set was reachable before running it.
 
-Of the nine targets in the planning report, none was met and none refuted.
-Four are measurable with what exists; three require building a subsystem
-first; one requires participants.
+\section{Threats to validity}
 
-The three that require building are worth distinguishing carefully, because
-calling them merely ``unmeasured'' would understate the position. Force
-reflection and closed-loop overshoot are \textbf{structurally undefined on this
-platform}: the mock hardware interface returns identically zero for every
-force and effort field, so a number derived from it exists but carries no
-information. Angular tracking is undefined for a different reason: the
-commanded orientation is pinned to the anchor and never follows the master's
-wrist, because the wrist channels are dead or incoherent.
+\subsection{Simulation is not the arm}
 
-\section{Limitations}
+Every quantitative result in this thesis except the channel measurements comes
+from simulation with mock hardware. The mock echoes commanded positions with
+no dynamics, which has one consequence that must not be glossed: every force
+reading is identically zero, so any quantity derived from a force is
+structurally undefined rather than approximated. The measurement that payload
+configuration made exactly \SI{0}{\metre} of difference to tracking is a
+statement about the mock.
 
-\subsection{Nothing was validated on the robot}
+\subsection{Latency figures are lower bounds}
 
-No result here was obtained from a physical Kinova arm or a participant. The
-simulation uses a mock interface that echoes commands with no dynamics, so it
-cannot answer questions about payload, compliance, latency under load, or any
-consequence of real actuator behaviour. Where it has been asked such a
-question it returned a null result that is a property of the mock rather than
-evidence about the robot.
+Every latency reported is control-path latency, measured between software
+stages. It excludes the operator's reaction, the display, and the physical
+arm's response. Any end-to-end figure will be larger, and the reported values
+should be read as a floor.
 
-\subsection{The input is degraded and the baseline depends on it}
+\subsection{The instrument failure rate}
 
-Seven of fourteen master channels are unreliable, and the degradation is
-progressive: channels healthy in July were incoherent ten days later. Every
-direct-teleoperation condition depends on those channels, so the baseline
-against which autonomy would be compared is currently compromised. Repairing
-two specific channels was identified by regression as the highest-value
-intervention.
+Four times, a result that looked like a system failure was a defect in the
+measuring tool, and three of the four were caught only by checking the
+instrument against a known answer. The base rate is high enough that any
+unreproduced single measurement in this thesis should be treated as
+provisional. This is the reason the verification methodology exists and the
+reason the task-set figures are reported with their repeat count.
 
-\subsection{The lateral axis is wrong and cannot be fixed by remapping}
+\subsection{The one-stack constraint}
 
-Azimuth is derived from the shoulder roll joint alone. That joint's axis is
-fixed in the mount, so rolling it moves the tip only once a downstream joint
-has offset the tip from the roll axis; azimuth per degree of roll therefore
-depends on how bent the arm is. Azimuth and elevation are consequently not
-independent, which is precisely what the spherical model assumes. No axis
-permutation can repair this --- it is a modelling error, not a sign error --- and
-a hybrid using the full forward kinematics was tested and made the reversal
-metric worse, because it inherits errors from four suspect joint angles rather
-than one.
+Two instances of the master node split the serial stream between them and
+invalidated a full day of measurements before the cause was found. This is now
+prevented at the file-descriptor level, but it means that any measurement
+taken before that prevention was added carries a risk that cannot be
+retrospectively excluded.
 
-\subsection{The latency figure, when it exists, is a lower bound}
+\section{What stands between this system and a two-person study}
 
-The end-to-end latency measurement designed for this system instruments the
-control path from serial read to commanded joint state. Under the mock
-interface the final stage measures command echo rather than physical motion,
-so the resulting figure is \textbf{control-path latency and a lower bound} on
-true end-to-end latency. That caveat travels with the number wherever it
-appears.
+The study designed in \cref{ch:method} cannot be run today, and the blockers
+are specific.
 
-\subsection{The experimental programme is designed but unexecuted}
+\begin{enumerate}
+  \item \textbf{Two master channels.} Left j2 and left j4. With both frozen
+    the left arm has no radial dimension, so the direct teleoperation
+    condition, which is the baseline the whole comparison rests on, is not
+    representative of a working master.
+  \item \textbf{The right arm's home pose.} It has never been read from
+    hardware, and the workspace geometry depends on it.
+  \item \textbf{Hardware validation of the safety layer.} Nothing in the
+    safety architecture has run against a real arm. The Kortex session
+    recovery path is the riskiest part, because the arm permits exactly one
+    session and a leaked one refuses the next connection.
+  \item \textbf{Ethics approval for a two-person protocol}, which differs from
+    a single-participant protocol in that one participant bears a physical
+    risk arising from another participant's actions.
+    \todo{CONFIRM: current status of the ethics application with Dr.\ Zhang.}
+  \item \textbf{A detection rate measured on real images.} The synthetic
+    figure characterises the renderer.
+\end{enumerate}
 
-Protocols, measures, counterbalancing and analysis routines exist and have
-been exercised with scripted input. No participant has taken part, so every
-hypothesis remains pre-registered intent.
-\todo{CONFIRM: whether ethics approval was sought and its status}
-
-\subsection{The version history cannot date the work}
-
-The repository's commit history consists of one large import and a single day
-of subsequent commits, so it cannot support claims about the order or timing
-of development. The dated engineering log is the usable chronology and is a
-laboratory notebook rather than an independent record.
+None of these is a research question. All are execution, and the first is two
+soldered joints.

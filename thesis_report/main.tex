@@ -23,11 +23,16 @@
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
 \usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc}
+\usepackage{rotating}   %% wide data-path diagrams go on landscape pages
 \usepackage{setspace}
 \usepackage{fontspec}
 \usepackage{titlesec}
 \usepackage{booktabs}
 \usepackage[colorinlistoftodos]{todonotes}
+%% Notes go inline, not in the margin. The template's marginparwidth is
+%% 1.75cm, which is narrower than the note text, so margin notes ran off the
+%% page edge and were unreadable in the compiled document.
+\presetkeys{todonotes}{inline}{}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
 \usepackage[capitalise,nameinlink]{cleveref}
 
@@ -42,6 +47,67 @@
 %% Implementation provenance. Every claim about the implementation cites the
 %% file it is implemented in, so the reader can check it.
 \newcommand{\repo}[1]{\texttt{\small #1}}
+
+%% ---------------------------------------------------------------------------
+%% PLACEHOLDER BOXES. An image that does not exist yet is drawn as a marked
+%% box rather than omitted, so a missing figure is visible in the compiled
+%% document instead of silently absent. #1 is the height, #2 the description
+%% of what the image must show.
+%% ---------------------------------------------------------------------------
+\newcommand{\imgplaceholder}[2]{%
+  \begin{tikzpicture}
+    \node[draw, dashed, thick, red!60!black, fill=red!3,
+          minimum height=#1, text width=0.86\linewidth, align=center,
+          inner sep=10pt] (ph) {%
+      {\bfseries\color{red!60!black} PLACEHOLDER: IMAGE REQUIRED}\\[4pt]
+      \small\color{black}#2};
+  \end{tikzpicture}}
+
+%% A figure reproduced from another paper. Permission is required before
+%% submission, so the requirement travels with the box.
+\newcommand{\reprodplaceholder}[2]{%
+  \begin{tikzpicture}
+    \node[draw, dashed, thick, orange!70!black, fill=orange!4,
+          minimum height=#1, text width=0.86\linewidth, align=center,
+          inner sep=10pt] {%
+      {\bfseries\color{orange!70!black} PLACEHOLDER: REPRODUCED FIGURE}\\[4pt]
+      \small\color{black}#2\\[4pt]
+      {\footnotesize\itshape Reproduction requires written permission from the
+      copyright holder. Not yet obtained.}};
+  \end{tikzpicture}}
+
+%% ---------------------------------------------------------------------------
+%% FLOWCHART STYLES. One vocabulary for every control-mode diagram so the
+%% four can be compared by eye: the shape carries the kind of stage and the
+%% colour carries whether it can stop the arm.
+%% ---------------------------------------------------------------------------
+\usetikzlibrary{shapes.geometric,decorations.pathmorphing}
+\tikzset{
+  sensor/.style   = {draw, rounded corners=2pt, fill=blue!8,
+                     minimum height=7mm, text width=27mm, align=center,
+                     font=\scriptsize},
+  proc/.style     = {draw, fill=gray!8, minimum height=7mm,
+                     text width=27mm, align=center, font=\scriptsize},
+  safety/.style   = {draw, thick, fill=red!10, draw=red!60!black,
+                     minimum height=7mm, text width=27mm, align=center,
+                     font=\scriptsize},
+  decision/.style = {draw, diamond, aspect=2.2, fill=yellow!12,
+                     inner sep=1pt, text width=22mm, align=center,
+                     font=\scriptsize},
+  actuator/.style = {draw, thick, fill=green!10, draw=green!45!black,
+                     minimum height=7mm, text width=27mm, align=center,
+                     font=\scriptsize},
+  stub/.style     = {draw, dashed, fill=orange!10, draw=orange!70!black,
+                     minimum height=7mm, text width=27mm, align=center,
+                     font=\scriptsize},
+  flow/.style     = {-{Latex[length=2mm]}, thick},
+  fail/.style     = {-{Latex[length=2mm]}, thick, red!65!black, dashed},
+  %% align= is required on these two: without it the node is in LR mode and a
+  %% line break inside the label is an error rather than a break.
+  lbl/.style      = {font=\tiny\itshape, inner sep=1pt, align=center},
+  faillbl/.style  = {font=\tiny\itshape, red!65!black, inner sep=1pt,
+                     align=center},
+}
 
 %% Short listings only -- full source belongs in the appendix.
 \lstset{
@@ -102,12 +168,48 @@ pending supervisor confirmation; the alternatives and their trade-offs are in
 \todo[inline]{CONFIRM: word limit and submission format with Dr.\ Zhang /
 Prof.\ Burdet. The 12{,}000--15{,}000 word target used here is not
 authoritative.}
-\todo[inline]{FIGURE: Imperial College logo --- run \texttt{epstopdf
+\todo[inline]{FIGURE: Imperial College logo: run \texttt{epstopdf
 title/logo.eps} once ghostscript is available, then restore the
 \texttt{includegraphics} in \repo{title/title.tex}.}
 
 \begin{abstract}
-\todo[inline]{WRITE: abstract, last, once the Results chapter is final.}
+A supernumerary robotic limb is mounted on a person, so its base moves, is
+soft, and cannot be commanded to hold still. This thesis reports a
+teleoperation system for two seven-degree-of-freedom arms carried on a worn
+backpack frame and commanded from an instrumented mannequin master, built on
+two premises: that commanding fourteen joints through a body-worn master is a
+usability problem rather than a plumbing one, and that a master routing
+fourteen analog channels through rotating joints will lose channels, so losing
+them must be survivable.
+
+The command mapping takes each component of position from whichever sensor
+observes it most directly, with elevation from the gravity vector, azimuth
+from a single shoulder joint, and radius from a forward-kinematic magnitude
+insensitive to roll errors. Channel health is classified per channel over
+distinct sensor updates, validation is scoped to the channels the active mode
+consumes, and the cost of each reduction is measured on \num{20430} recorded
+frames. With no well-conditioned channels the system reports position
+unavailable rather than extrapolating one.
+
+Measurements on the physical master found six of fourteen channels usable and
+reversed two long-standing verdicts, both of which had come from computing
+statistics across transmitted rows rather than distinct updates. Vertical and
+fore-and-aft command track correctly on both arms; lateral does not, and a
+rotation-invariant test shows the measured directions are not an orthogonal
+triad, so no axis map can correct them. Fourteen of fourteen injected faults
+were handled, including two whose diagnosis required correcting the observable
+a safety mechanism was keyed on.
+
+The workspace characterisation returned a negative result with a quantified
+mechanical remedy: under the as-built mount the two arms share no reachable
+cell of a sixty-three-cell frontal grid, with a \SI{0.25}{\metre} dead band
+between the reachable sets, which blocks inter-arm handover for geometric
+reasons no control or planning change can address. A buildable mount
+modification raising the shared count to twenty-two is quantified and
+deliberately not applied.
+
+No result was validated on a physical arm. The blockers to a two-person study
+are enumerated, and the first is two soldered joints.
 \end{abstract}
 
 \renewcommand{\abstractname}{Acknowledgements}
@@ -121,6 +223,8 @@ title/logo.eps} once ghostscript is available, then restore the
 
 \input{introduction/introduction.tex}
 \input{background/background.tex}
+\input{master/master.tex}
+\input{development/development.tex}
 \input{method/method.tex}
 \input{result/result.tex}
 \input{workspace/workspace.tex}
@@ -128,7 +232,7 @@ title/logo.eps} once ghostscript is available, then restore the
 \input{conclusion/conclusion.tex}
 \input{appendix/appendix.tex}
 
-\bibliographystyle{alpha}
+\bibliographystyle{plain}
 \bibliography{bibs/sample}
 
 \end{document}

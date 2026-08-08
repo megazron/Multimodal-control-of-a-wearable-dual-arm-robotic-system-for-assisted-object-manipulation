@@ -1,0 +1,209 @@
+\chapter{How the control approach reached its present form}
+\label{ch:development}
+
+The system described in \cref{ch:method} is not the one the planning report
+proposed, and the route between them is part of the result. This chapter
+records the sequence, the alternatives that were considered at each branch,
+and what each abandoned approach contributed to the one that shipped. The
+divergence from the planning report is analysed separately in
+\repo{thesis\_report/DIVERGENCE.md}.
+
+\todo{CONFIRM: dates and durations of the simulation phase with Dr.\ Zhang.
+The sequence below is accurate; the calendar is reconstructed from repository
+history and supervision notes rather than from a contemporaneous log.}
+
+\section{Phase 1: joint-space control in simulation}
+
+The planning report proposed validating the master and slave mapping in Isaac
+Lab or MuJoCo before touching hardware. MuJoCo~\cite{todorov2012mujoco} was chosen over Isaac
+Lab~\cite{isaaclab}. It starts in under a second, its model format
+is a single readable file, and for a kinematic mapping question its contact
+solver is irrelevant, so the heavier alternative bought nothing.
+
+The first mapping was the obvious one. The master reproduces the Gen3's joint
+sequence, so each master potentiometer angle was sent to the corresponding
+slave joint after zero-referencing. Joint one to joint one, and so on through
+seven.
+
+Three things were learned, and all three survived into the delivered system.
+
+\paragraph{The mapping is dominated by convention handling, not by control.}
+Almost all of the difficulty was in what a joint angle \emph{means}: which
+direction is positive, where zero sits, whether the value wraps, and over what
+interval. This is where the degree and radian conversion described in
+\cref{ch:intro} was first written, and it is the reason it later became an
+isolated, unit-tested module rather than an inline expression. The lesson
+transferred directly: the arithmetic that converts between conventions
+deserves more test coverage than the control law it feeds.
+
+\paragraph{An unconstrained joint mapping will drive the arm into things.}
+In simulation this is a visual annoyance. On the delivered platform, where the
+arm is mounted beside a person's head, it is the entire safety problem. A
+joint-space mapping has no representation of the wearer, so nothing in the
+formulation can express the constraint that matters most. That observation is
+what motivated the move to a framework with a collision model in it.
+
+\paragraph{Sensor faults are the dominant failure mode, not control faults.}
+Injecting a stuck or noisy channel showed the arm following it faithfully,
+because a direct joint mapping has no notion of a reading being implausible.
+The channel-health architecture in \cref{ch:method} is a direct response.
+
+\subsection{Why joint-space control was abandoned}
+
+Joint-space correspondence has a genuine advantage that should be recorded
+before the case against it: it fixes the redundant degree of freedom for free.
+The Gen3 has seven joints for a six-dimensional task, so a task-space command
+leaves one dimension unspecified and something has to choose it. Under a joint
+mapping the operator chooses it implicitly, by the posture they put the master
+in.
+
+It was abandoned for two reasons that are both about the master rather than
+the method.
+
+The first is scale. The master's links sum to \SI{0.272}{\metre} against the
+Gen3's \SI{0.902}{\metre} reach. Equal joint angles therefore produce tip
+displacements differing by a factor of about three, so the operator's motion
+and the robot's motion are related by a gain that varies with posture. Working
+in task space makes that gain an explicit, tunable scalar instead.
+
+The second is decisive. A joint mapping requires \emph{every} joint to be
+measured, because each one contributes directly to the commanded
+configuration. It has no graceful degradation at all: a single failed channel
+sends a wrong angle to the corresponding slave joint, and there is no
+reconstruction available because nothing else in the mapping observes that
+joint. Given the argument in \cref{ch:intro} that a body-worn master will lose
+channels, a formulation that cannot survive losing one was not viable.
+
+\section{Phase 2: the move to ROS 2}
+
+MuJoCo answers questions about dynamics. It does not supply a collision-aware
+inverse kinematics service, a controller stack, or drivers for the actual
+arms, and by the end of phase 1 all three were needed. The system moved to ROS
+2 Jazzy~\cite{macenski2022ros2}.
+
+Four capabilities came with the move, and each closed a problem left open by
+phase 1.
+
+\begin{itemize}
+  \item \textbf{A collision model containing the wearer.} MoveIt checks
+    candidate configurations against a scene, so the wearer's body can be part
+    of the model. This is the capability a joint mapping could not express at
+    all.
+  \item \textbf{Inverse kinematics with redundancy resolution.} TRAC-IK solves
+    the seven-joint problem with random restarts and a distance
+    objective~\cite{beeson2015tracik}, which makes task-space commanding
+    practical and lets the redundant degree of freedom be re-seeded on
+    failure.
+  \item \textbf{A controller stack with a hardware abstraction.} The same
+    trajectory interface addresses a mock system and the real driver, so
+    everything upstream is developed and tested unchanged and the substitution
+    is one launch argument.
+  \item \textbf{Vendor drivers.} The manufacturer supplies a ROS 2 driver, so
+    the alternative was writing one.
+\end{itemize}
+
+The cost was real. ROS 2 introduced a discovery layer, a middleware
+configuration, and a process lifecycle, and a substantial fraction of the
+faults recorded in this project are in that layer rather than in the robot.
+\Cref{ch:results} reports them, because they are the ones a successor will
+meet first.
+
+\subsection{What was kept from simulation}
+
+Simulation did not stop being useful when hardware became available. It became
+the place where anything that could not be attempted on a person is
+attempted. Every workspace measurement in \cref{ch:workspace}, every fault
+injection, and every clearance figure is simulated, and that is a deliberate
+allocation rather than a fallback. The mock hardware interface is what makes
+it possible to exercise the entire stack, including the trajectory controllers
+and the emergency stop, without an arm attached.
+
+The limit of that substitution is stated where it binds. The mock returns
+identically zero for every force, so anything derived from a force reading is
+structurally undefined rather than merely unmeasured.
+
+\section{Phase 3: from Cartesian control to a reduced-degree-of-freedom
+command}
+
+Task-space control was not the end of the sequence. The first Cartesian
+implementation computed the master's tip pose by forward kinematics from all
+seven potentiometer angles and commanded the end effector to the scaled
+displacement. That is the textbook formulation and it failed on this hardware.
+
+The failure was directional rather than noisy. Decomposing the commanded
+positions from five distinct gestures put \SI{93.4}{\percent} of the variance
+on a single axis, and placed the pose commanded by raising the master
+\emph{below} the pose commanded by lowering it. A mapping that inverts up and
+down is not a mapping with a gain error.
+
+The cause is that forward kinematics compounds every joint angle in the chain.
+An error in joint three propagates through joints four to seven, so the tip
+direction inherits the sum of seven absolute-angle calibration errors, and the
+inertial mount calibration had already shown those errors to be large enough
+to be physically impossible in places.
+
+The response was to stop computing direction from the chain. Position is now
+built in spherical form about the master's shoulder, taking each component
+from whichever sensor observes it most directly: elevation from the gravity
+vector, azimuth from the single shoulder-roll potentiometer, and radius from
+the forward-kinematic magnitude, which depends only on the bend joints and is
+insensitive to roll errors. \Cref{ch:method} gives the formulation and
+\cref{ch:results} the measured consequences, including the one axis that this
+does not fix.
+
+\subsection{Alternatives considered at this branch}
+
+\begin{description}
+  \item[Recalibrate the potentiometers and keep full forward kinematics.]
+    Rejected on cost and on durability. It requires an external angular
+    reference per joint, and it has to be redone whenever a joint is
+    reassembled. It also fixes nothing about channel loss, since forward
+    kinematics still needs every joint.
+  \item[Take azimuth from forward kinematics instead of from joint one.] Built
+    and measured, then rejected. It made direction worse on both arms, moving
+    the mean reversal error from \SI{12.6}{\degree} to \SI{33.3}{\degree} on
+    the left arm and from \SI{26.2}{\degree} to \SI{39.5}{\degree} on the
+    right. It fails for the same reason the full chain fails: it compounds
+    four suspect angles where the single-joint estimate compounds one.
+  \item[Integrate the gyroscope for azimuth.] Implemented, measured, and left
+    disabled by default. It observes rotation about vertical directly and so
+    avoids both error sources, and it halves the residual on the left arm. It
+    is not enabled because one of the two sensors drifts at
+    \SI{44}{\degree\per\minute} while stationary, and because the capture that
+    would validate it needs a moving master and does not yet exist.
+  \item[Add a second inertial sensor on the upper arm.] Not attempted, for the
+    hardware reason in \cref{ch:master}: both available addresses are
+    occupied. It remains the most promising route, and
+    \cref{ch:results} quantifies what it would buy.
+\end{description}
+
+\section{Summary of the sequence}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Development sequence, with the reason each stage ended.}
+  \label{tab:devpath}
+  \begin{tabular}{@{}p{31mm}p{34mm}p{62mm}@{}}
+    \toprule
+    Stage & Mapping & Why it ended \\
+    \midrule
+    MuJoCo, phase 1 & joint to joint &
+      No collision model, so the wearer could not be represented. No
+      degradation path: one failed channel corrupts one slave joint
+      irrecoverably. \\
+    ROS 2, first Cartesian & tip pose by full forward kinematics &
+      Direction collapsed. \SI{93.4}{\percent} of variance on one axis, and
+      raising the master lowered the arm. Seven compounded calibration errors. \\
+    ROS 2, delivered & spherical, per-component sensing &
+      Current. Elevation and reach are correct; azimuth remains limited by the
+      lever-arm coupling described in \cref{ch:results}. \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The through-line is that each stage failed because of what it assumed about
+the \emph{sensors}, not because of what it assumed about the control. Joint
+mapping assumed every channel works. Full forward kinematics assumed every
+angle is accurate. The delivered mapping assumes only that gravity points down
+and that the best-conditioned joints are identifiable at run time, which are
+assumptions the hardware can actually support.

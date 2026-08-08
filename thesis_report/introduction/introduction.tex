@@ -1,174 +1,194 @@
 \chapter{Introduction}
 \label{ch:intro}
 
-Supernumerary robotic limbs (SRLs) are additional arms worn on the body which
-act alongside the wearer's own limbs rather than replacing or rehabilitating
-them. They are distinguished from prostheses in that the wearer retains full
-natural function, and from fixed industrial manipulators in the single respect
-that matters most for their control: the base of the robot is a person. It
-accelerates, sways and steps; it is soft, valuable and irreplaceable; and it
-cannot be commanded to hold still. \todo{CITE: an SRL review establishing the
-taxonomy and the augmentation-versus-restoration distinction --- Tong et
-al.~2021 [1] and Prattichizzo et al.~2021 [4] are both in the planning
-report's bibliography}
+A supernumerary robotic limb is an extra arm worn on the body, working
+alongside the wearer's own limbs rather than replacing or rehabilitating
+them~\cite{yang2021srlreview,prattichizzo2021augmentation}. The wearer keeps
+full natural function, which separates these devices from prostheses. What
+separates them from fixed manipulators is more consequential for control: the
+base of the robot is a person. It accelerates, sways and steps. It is soft and
+irreplaceable. It cannot be told to hold still.
 
-The work reported in this thesis concerned the MUlti-limb Virtual Environment
-(MUVE), known within Imperial College London as the Dr.\ Octopus platform,
-which mounts two Kinova Gen3 seven-degree-of-freedom ultralight arms on a
-backpack frame worn by an operator. \todo{CITE: the MUVE / Dr.~Octopus
-platform page [2]} The specific problem addressed was the command interface:
-how a person may direct two redundant seven-degree-of-freedom arms in a manner
-that is intuitive enough to be usable without training, and safe enough to be
-acceptable on a robot mounted beside a human head.
+This thesis reports work on the MUlti-limb Virtual Environment, known within
+Imperial College London as the Dr.\ Octopus platform~\cite{muve}, which mounts
+two Kinova Gen3 seven-degree-of-freedom arms~\cite{kinova2022gen3} on a
+backpack frame. The problem addressed is the command interface. Two redundant
+seven-degree-of-freedom arms present fourteen commandable joints, and a person
+has two hands and a limited attention budget. Something has to close that gap.
 
-The approach taken, following the project's planning report, was a
-\emph{miniature mannequin master}: a scaled physical replica of the Gen3
-kinematic chain, instrumented with potentiometers and an inertial measurement
-unit, which the operator manipulates with the fingers of one or both hands
-while the full-scale arms follow. The appeal of this arrangement is that it
-requires no abstraction on the operator's part. The master has the morphology
-of the thing it commands, so the mapping from intention to motion is direct
-rather than learned. \todo{CITE: Guggenheim and Asada~2021 [12] on miniature
-physical masters and inherent haptic feedback}
+\section{Two design premises}
 
-A second architectural property emerged during the work and came to shape the
-thesis. Because the arms are worn on a backpack, the natural deployment is one
-in which the arms are borne by one person and commanded by another. That
-configuration has a direct predecessor in the Fusion system, which mounted a
-robotic head and two arms on a worn frame and drove them from a remote
-operator. \todo{CITE: Saraiji et al., Fusion, SIGGRAPH 2018 Emerging
-Technologies} It is also the configuration that makes the control problem
-genuinely difficult, because the person issuing commands has neither
-proprioception of the wearer nor any vestibular sense of the base motion
-against which the arms must work.
+The work rests on two premises that were adopted early and shaped everything
+downstream. Both are stated here because the rest of the thesis only makes
+sense if they are visible from the start.
+
+\subsection{Commanding fourteen joints is a usability problem, not a
+plumbing problem}
+
+The naive interface exposes every joint. It is also unusable. A body-worn
+master that reproduces the slave's full kinematic chain requires the operator
+to coordinate seven degrees of freedom per arm through finger motion, with no
+force feedback and no view of the joint the arm is actually in. Earlier work
+on miniature physical masters makes the case for morphological similarity
+between master and slave~\cite{guggenheim2021haptic}, and that case is
+accepted here. What does not follow is that every degree of freedom of the
+slave must be commanded independently by the operator.
+
+The architecture adopted instead splits the command by what each source
+measures well. Position comes from three or four well-conditioned
+potentiometer channels resolved into a spherical form about the master's
+shoulder. Orientation comes from the inertial measurement unit at the wrist,
+which observes gravity directly and therefore needs no integration and no
+calibration against an absolute reference. What is left over, principally the
+wrist orientation required to grasp a particular object, is supplied by
+autonomy or is not commanded at all.
+
+This is a reduced-degree-of-freedom design by intent. It is the reason the
+system uses a spherical decomposition rather than forward kinematics from
+seven joint angles, and the reason its default orientation mode pins the wrist
+rather than tracking it. Both choices cost capability, and both are quantified
+in \cref{ch:results}.
+
+\subsection{A body-worn master will lose channels, so losing them must be
+survivable}
+
+The master carries fourteen analog channels routed through seven rotating
+joints per arm. Connectors fatigue. Wires flex through joints that turn. Over
+the life of any such device some fraction of its channels will stop reporting
+usable values, and the fraction will grow. A design whose behaviour is
+undefined when one channel fails is not a design that has been finished.
+
+The system therefore treats channel loss as an operating condition rather than
+a fault. Each channel carries a health verdict computed from its own recent
+history. Validation is scoped to the channels the active position mode
+consumes, so a dead channel that the mode does not read cannot reject a frame.
+Individual channels can be disabled at run time, and the resulting loss of
+capability is published rather than inferred. When enough channels are lost
+that position can no longer be estimated, the system reports position
+unavailable instead of extrapolating one.
+
+That last behaviour is the design's centre of gravity. On a manipulator bolted
+beside a person's head, a fabricated position is worse than no position, and
+the difference between them has to be visible from outside the process.
 
 \section{Objectives}
 
-The objectives stated in the project's planning report were framed around a
-haptic master--slave system with physical springs at the master and virtual
-spring impedance at the slave. The delivered system diverged from that plan in
-several respects, for reasons set out in \cref{ch:discussion} and analysed in
-full in the accompanying divergence record. \todo{CONFIRM: whether the
-divergence analysis should appear as an appendix in the submitted document or
-remain a supporting file} The objectives below are the revised set, aligned to
-what was built and measured.
+The planning report framed this project around a haptic master and slave pair
+with physical springs at the master and virtual impedance at the slave. The
+delivered system diverged from that plan, for reasons set out in
+\cref{ch:discussion} and recorded in full in the accompanying divergence
+analysis. \todo{CONFIRM: whether the divergence analysis is submitted as an
+appendix or remains a supporting file.} The objectives below are the revised
+set, aligned to what was built and measured.
 
 \begin{enumerate}
-  \item To design and fabricate a miniature instrumented mannequin master
-    replicating the Gen3 morphology at reduced scale, and to characterise its
-    sensing.
-  \item To derive and implement the mapping from master pose to slave
-    end-effector command, including the coordinate-convention conversion
-    required between the manufacturer's controller and the robot middleware.
+  \item To design and build an instrumented mannequin master reproducing the
+    Gen3 morphology at reduced scale, and to characterise its sensing against
+    recorded data rather than against specification.
+  \item To derive a mapping from master pose to slave end-effector command
+    that degrades predictably as sensing channels are lost, and to quantify
+    what each loss costs.
   \item To implement a safety architecture appropriate to a manipulator
-    mounted beside a person, and to validate it by systematic fault injection
-    rather than by inspection.
+    mounted beside a person, and to validate it by injecting faults rather
+    than by inspecting code.
   \item To characterise the reachable workspace of the mounted configuration
-    and to determine which manipulation tasks it can support.
-  \item To establish a verification methodology yielding traceable evidence
+    and determine which manipulation tasks it can support.
+  \item To establish a verification methodology producing traceable evidence
     for every claim, and to apply it across the task set.
-  \item To identify, by measurement, the constraints that must be resolved
-    before hardware validation and a user study become possible.
+  \item To identify, by measurement, what must be resolved before hardware
+    validation and a user study become possible.
 \end{enumerate}
 
 \section{Challenges}
 
-Four difficulties consumed the majority of the effort, and each is treated at
-length in the chapters that follow.
+Four difficulties consumed most of the effort.
 
-The first was \emph{kinematic dissimilarity between master and slave}. The
-master replicates the Gen3's joint sequence but not its proportions: its links
-sum to \SI{0.272}{\metre} against the full-scale arm's \SI{0.902}{\metre}
-reach. A joint-to-joint mapping is therefore unavailable, and a mapping in
-task space must contend with the fact that the two chains reach different sets
-of poses. The resolution adopted was to abandon joint correspondence entirely
-and map displacement of the master's tip onto displacement of the slave's end
-effector about a re-latched anchor, which is described in \cref{ch:method}.
+\emph{The master and the slave are not the same shape.} The master reproduces
+the Gen3's joint sequence but not its proportions. Its links sum to
+\SI{0.272}{\metre} against the arm's \SI{0.902}{\metre} reach, a ratio of
+roughly three to one, so joint-to-joint correspondence is unavailable. Working
+in task space instead raises a second problem, which is that the two chains
+reach different sets of poses. The resolution was to map displacement of the
+master's tip onto displacement of the slave's end effector about an anchor
+that can be re-latched, described in \cref{ch:method}.
 
-The second was \emph{a coordinate-convention mismatch}. The manufacturer's
-controller reports joint positions in degrees over $[0, 360)$ while the
-middleware uses radians over $(-\pi, \pi]$, and the two conventions must be
-reconciled on every command. The failure mode is not a small error: an angle
-of \SI{350}{\degree} interpreted as $+350$ rather than $-10$ commands very
-nearly a full revolution of a joint standing next to a person. The conversion
-was therefore isolated in a single module and tested at the seams where such
-mistakes occur.
+\emph{Two coordinate conventions meet at the driver.} The manufacturer's
+controller reports joint positions in degrees over $[0, 360)$; the middleware
+uses radians over $(-\pi, \pi]$. The failure this invites is not a small
+error. An angle of \SI{350}{\degree} read as $+350$ rather than $-10$ commands
+very nearly a full revolution of a joint standing next to a person. The
+conversion was isolated in one module and tested at the seams.
 
-The third was \emph{calibration without power-on discontinuities}. The
-potentiometers report absolute values whose meaning depends on how the master
-was assembled, so a zero reference must be captured and stored. If that
-reference is taken from a frame that has failed validation, or if the
+\emph{Calibration references must survive a power cycle without producing a
+step.} The potentiometers report absolute values whose meaning depends on how
+the master was assembled, so a zero reference has to be captured and stored.
+If that reference is taken from a frame that failed validation, or if the
 commanded pose is referenced to the origin of the master's own frame rather
-than to the operator's actual hand position, the first command issued after
-start-up is a step of the master's entire tip vector.
+than to where the operator's hand actually is, then the first command issued
+after start-up is a step of the master's entire tip vector.
 
-The fourth, and the one that proved most pervasive, was that \emph{almost
-every failure in this system is silent}. An arm that has stopped moving looks
-identical whether it is blocked for a good reason, blocked for a bad one, or
-receiving no data at all. A substantial part of the engineering effort went
-into making internal state legible from outside, and a recurring finding of
-the results is that the measuring instruments failed more often, and more
-quietly, than the system being measured.
+\emph{Almost every failure in this system is silent.} An arm that has stopped
+moving looks the same whether it is blocked for a good reason, blocked for a
+bad one, or receiving no data at all. A large part of the engineering effort
+went into making internal state legible from outside. One of the more
+uncomfortable findings of this work is that the measuring instruments failed
+more often, and more quietly, than the system being measured.
 
 \section{Contributions}
 
-The contributions claimed are limited to those the implementation and its
-recorded artefacts can support. Each is stated with its maturity: whether it
-was implemented, verified in simulation, or validated on physical hardware.
-\textbf{No contribution in this thesis was validated on physical hardware},
-for reasons given in \cref{ch:discussion}.
+Each contribution is stated with its maturity, because the distinction between
+implemented, verified in simulation, and validated on hardware is load-bearing
+throughout. \textbf{No contribution in this thesis was validated on physical
+hardware.} \Cref{ch:discussion} explains why.
 
 \begin{enumerate}
-  \item \textbf{A complete, safety-instrumented teleoperation stack} for a
-    backpack-mounted pair of Gen3 arms, comprising master sensing, a spherical
-    pose decomposition, collision-aware inverse kinematics with redundancy
-    resolution, a geometric clearance margin referenced to the wearer's body,
-    and a multi-path emergency stop whose blocking behaviour is externally
-    observable. \emph{Implemented; verified in simulation.}
+  \item \textbf{A graceful-degradation architecture for a body-worn master.}
+    Per-channel health classification computed over distinct sensor updates,
+    validation scoped to the channels the active mode consumes, run-time
+    channel disabling with published capability loss, and a reduced-degree-of-freedom
+    fallback that keeps position available on a single potentiometer.
+    The cost of each rung is measured on recorded hardware data.
+    \emph{Implemented; measured against \num{20430} recorded frames.}
 
-  \item \textbf{A coordinate-convention conversion layer} that isolates the
-    degree-to-radian and wrapping problem in one auditable place, with a
-    shortest-path joint difference that distinguishes continuous joints from
-    limited ones. \emph{Implemented; unit-tested.}
+  \item \textbf{A reduced-degree-of-freedom command mapping} that takes
+    direction from gravity and magnitude from the best-conditioned joints,
+    with an anchor that re-latches on clutch engagement so indexing is
+    unbounded and jump-free. \emph{Implemented; verified in simulation.}
+
+  \item \textbf{A safety architecture whose blocking is observable.} Every
+    mechanism able to stop the arm registers by name, must state how it
+    clears, and expires into an explicit unknown state if the loop asserting
+    it stops running. \emph{Implemented; fourteen of fourteen injected faults
+    handled.}
 
   \item \textbf{A workspace characterisation of the mounted configuration},
-    including the finding that the two arms share no reachable workspace under
-    the as-built mount, which blocks inter-arm handover for geometric reasons
-    that no control or planning change can address, together with a
-    quantified and buildable mount modification that would resolve it.
+    including the result that the two arms share no reachable workspace under
+    the as-built mount. This blocks inter-arm handover for geometric reasons
+    that no control or planning change can address. A buildable mount
+    modification that would resolve it is quantified.
     \emph{Verified in simulation;} \cref{ch:workspace}.
 
-  \item \textbf{A quantified account of degraded-input teleoperation} ---
-    which capabilities survive the loss of individual sensing channels, what
-    each loss costs, and evidence of progressive hardware degradation between
-    two dated recordings. \emph{Measured from recorded hardware data.}
-
-  \item \textbf{A verification methodology} requiring that an instrument
-    recover a known answer before a surprising measurement taken with it is
-    reported, applied across a set of recorded runs covering every task,
-    scenario and autonomy condition with automated checking of object
-    handling, gripper actuation and wearer clearance. \emph{Applied
-    throughout.}
+  \item \textbf{A verification methodology} requiring an instrument to recover
+    a known answer before a surprising measurement taken with it is reported.
+    \emph{Applied throughout.}
 \end{enumerate}
 
-The fifth of these arose from necessity rather than principle. Across the
-project, unexpected results proved more often to be defects in measurement
-than in the system, and the discipline of validating an instrument before
-believing its output caught a substantial number of errors that would
-otherwise have entered the record. It is, in the author's assessment, the most
-transferable outcome of the work.
+The fifth arose from necessity. Across this project, results that looked like
+system failures turned out four separate times to be defects in the measuring
+tool, and validating the instrument first caught errors that would otherwise
+have entered the record as findings. It is the most transferable outcome of
+the work.
 
 \section{Thesis structure}
 
-\Cref{ch:background} reviews supernumerary limb design, master--slave
-teleoperation and the mapping problem between dissimilar morphologies.
-\Cref{ch:method} describes the system as built, from the master hardware
-through to the safety architecture. \Cref{ch:results} reports the measured
-outcomes, organised by validation level and labelled throughout with the
-strength of evidence behind each. \Cref{ch:workspace} presents the workspace
-characterisation separately, because it is a chain of measurements whose
+\Cref{ch:background} reviews the field by theme and ends with the gap this
+work addresses. \Cref{ch:master} documents the master arm: its electronics,
+its firmware and its mechanical build. \Cref{ch:development} records how the
+control approach reached its present form, including the routes that were
+tried and abandoned. \Cref{ch:method} describes the system as built.
+\Cref{ch:results} reports what was measured, labelled throughout with the
+strength of evidence behind it. \Cref{ch:workspace} presents the workspace
+characterisation on its own, because it is a chain of measurements whose
 consequences determine the shape of the task set. \Cref{ch:discussion}
-interprets these results, compares the delivered system against the planning
-report's targets, and states the limitations honestly. \Cref{ch:conclusion}
-restates what was achieved against the objectives and sets out the work that
-would most improve the system.
+interprets the results and states the limitations. \Cref{ch:conclusion}
+sets out what would most improve the system.

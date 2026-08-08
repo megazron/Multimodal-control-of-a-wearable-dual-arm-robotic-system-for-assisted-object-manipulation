@@ -1,0 +1,55 @@
+% MASTER ARM ELECTRONICS. The pin assignment is the figure's real content,
+% because the A4/A5 exclusion is what makes 16 analog channels sufficient.
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize]
+
+\node[draw, thick, fill=gray!12, minimum width=44mm, minimum height=62mm,
+      align=center] (mcu) at (0,0)
+  {\textbf{Teensy 4.1}\\[2pt] i.MX RT1062\\ \SI{600}{\mega\hertz}\\[4pt]
+   ADC \SI{12}{bit}\\ \texttt{analogReadAveraging(1)}\\[4pt]
+   loop \SI{10}{\milli\second}\\ USB serial\\ \SI{115200}{baud}};
+
+% ---- left: K1 pots
+\node[draw, fill=blue!8, minimum width=30mm, align=center] (k1) at (-52, 20)
+  {\textbf{K1 (left) pots}\\ 7 channels\\ \texttt{A0 A1 A2 A3}\\ \texttt{A6 A7 A8}};
+\node[draw, fill=blue!8, minimum width=30mm, align=center] (k2) at (-52, 0)
+  {\textbf{K2 (right) pots}\\ 7 channels\\ \texttt{A9 A10 A11}\\ \texttt{A12 A13 A16 A17}};
+\node[draw, fill=blue!8, minimum width=30mm, align=center] (fsr) at (-52, -18)
+  {\textbf{FSRs}\\ \texttt{A14} (left)\\ \texttt{A15} (right)};
+\node[draw, fill=blue!8, minimum width=30mm, align=center] (btnn) at (-52, -34)
+  {\textbf{buttons}\\ digital \texttt{2}, \texttt{3}\\ \texttt{INPUT\_PULLUP}};
+
+% ---- right: I2C
+\node[draw, fill=red!8, draw=red!60!black, thick, minimum width=32mm,
+      align=center] (wire) at (52, 14)
+  {\textbf{Wire (I\textsuperscript{2}C0)}\\ SDA pin 18 $=$ \texttt{A4}\\
+   SCL pin 19 $=$ \texttt{A5}\\ \SI{400}{\kilo\hertz}};
+\node[draw, fill=blue!8, minimum width=32mm, align=center] (imu1) at (52, -4)
+  {\textbf{MPU-6050 \#1}\\ \texttt{0x68} (AD0 low)\\ left wrist};
+\node[draw, fill=blue!8, minimum width=32mm, align=center] (imu2) at (52, -20)
+  {\textbf{MPU-6050 \#2}\\ \texttt{0x69} (AD0 high)\\ right wrist};
+\node[draw, fill=green!8, draw=green!45!black, minimum width=32mm,
+      align=center] (host) at (52, -38)
+  {\textbf{host}\\ \texttt{/dev/ttyACM*}\\ auto-detected};
+
+\draw[flow] (k1.east)   -- (mcu.west |- k1.east);
+\draw[flow] (k2.east)   -- (mcu.west |- k2.east);
+\draw[flow] (fsr.east)  -- (mcu.west |- fsr.east);
+\draw[flow] (btnn.east) -- (mcu.west |- btnn.east);
+\draw[flow] (mcu.east |- wire.west) -- (wire.west);
+\draw[thick] (wire.south) -- (imu1.north);
+\draw[thick] (imu1.south) -- (imu2.north);
+\draw[flow] (mcu.east |- host.west) -- (host.west);
+
+% ---- the exclusion, called out
+\node[draw, dashed, thick, red!60!black, fill=red!4, text width=74mm,
+      align=left, font=\scriptsize] at (0, -50)
+  {\textbf{\color{red!60!black}Why \texttt{A4} and \texttt{A5} carry no
+   potentiometer.} The default \texttt{Wire} bus is pins 18/19, which
+   \emph{are} \texttt{A4}/\texttt{A5}. An earlier revision listed both inside
+   \texttt{potPinsK1}, so two pot channels shared conductors with the IMU data
+   bus. Teensy~4.1 exposes 18 analog-capable pins; removing two leaves exactly
+   16, which is what $14 + 2$ requires. \texttt{Wire1} (16/17) and
+   \texttt{Wire2} (24/25) are never initialised, so \texttt{A2}, \texttt{A3},
+   \texttt{A10} and \texttt{A11} are free as plain analog inputs.};
+
+\end{tikzpicture}

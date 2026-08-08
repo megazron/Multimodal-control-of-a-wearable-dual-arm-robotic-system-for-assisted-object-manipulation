@@ -10,13 +10,50 @@
 
 %% Useful packages
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{siunitx}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc}
 \usepackage{setspace}
 \usepackage{fontspec}
 \usepackage{titlesec}
 \usepackage{booktabs}
 \usepackage[colorinlistoftodos]{todonotes}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage[capitalise,nameinlink]{cleveref}
+
+%% siunitx: every physical quantity goes through \SI/\num, never a bare number
+\sisetup{
+  detect-all,
+  range-units = single,
+  separate-uncertainty = true,
+  per-mode = symbol,
+}
+
+%% Implementation provenance. Every claim about the implementation cites the
+%% file it is implemented in, so the reader can check it.
+\newcommand{\repo}[1]{\texttt{\small #1}}
+
+%% Short listings only -- full source belongs in the appendix.
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue!60!black},
+  commentstyle=\color{green!40!black},
+  showstringspaces=false,
+}
 
 \titleformat{\chapter}[display]
   {\centering\huge\bfseries}
@@ -47,8 +84,10 @@
   }
 }
 
-\title{[CONFIRM: title] Teleoperation of a Backpack-Mounted Dual-Arm Supernumerary Robotic Limb System}
-\author{[CONFIRM: author name]}
+\title{Multimodal Teleoperation of a Wearable Dual-Arm Supernumerary Robotic
+System: Master Interface Design, Safety Architecture, and a Workspace
+Characterisation}
+\author{Gaus Sayyad}
 % Supervisor and co-supervisor are set in title/title.tex
 
 \begin{document}
@@ -57,9 +96,15 @@
 % The title page carries [CONFIRM: ...] placeholders rather than \todo{}
 % markers because todonotes places a float, and floats are lost inside a
 % titlepage. They are listed here instead so they still reach TODO_AUDIT.md.
-\todo[inline]{CONFIRM: project title, author name, supervisor and
-co-supervisor on the title page, and the Imperial logo (run
-\texttt{epstopdf title/logo.eps} once ghostscript is installed).}
+\todo[inline]{CONFIRM: title with Dr.\ Zhang. Option~2 of three was accepted
+pending supervisor confirmation; the alternatives and their trade-offs are in
+\repo{thesis\_report/DIVERGENCE.md} Part~D.}
+\todo[inline]{CONFIRM: word limit and submission format with Dr.\ Zhang /
+Prof.\ Burdet. The 12{,}000--15{,}000 word target used here is not
+authoritative.}
+\todo[inline]{FIGURE: Imperial College logo --- run \texttt{epstopdf
+title/logo.eps} once ghostscript is available, then restore the
+\texttt{includegraphics} in \repo{title/title.tex}.}
 
 \begin{abstract}
 \todo[inline]{WRITE: abstract, last, once the Results chapter is final.}
@@ -71,13 +116,14 @@ co-supervisor on the title page, and the Imperial logo (run
 \end{abstract}
 
 \tableofcontents
-% \listoffigures
-% \listoftables
+\listoffigures
+\listoftables
 
 \input{introduction/introduction.tex}
 \input{background/background.tex}
 \input{method/method.tex}
 \input{result/result.tex}
+\input{workspace/workspace.tex}
 \input{discussion/discussion.tex}
 \input{conclusion/conclusion.tex}
 \input{appendix/appendix.tex}

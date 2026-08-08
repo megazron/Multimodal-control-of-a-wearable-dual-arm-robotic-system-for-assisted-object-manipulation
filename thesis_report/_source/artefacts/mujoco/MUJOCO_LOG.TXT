@@ -1,0 +1,9 @@
+Sun Jun  7 10:56:06 2026
+ERROR: mj_setKeyframe: keyframe index cannot be negative
+
+Mon Jun  8 03:21:08 2026
+ERROR: mj_copyDataVisual: attempting to copy mjData while stack is in use
+
+Mon Jun  8 03:24:13 2026
+ERROR: mj_copyDataVisual: attempting to copy mjData while stack is in use
+

@@ -1,0 +1,560 @@
+Planning Report for MSc Project 
+Multimodal control of a wearable dual-arm robotic system for 
+assisted object manipulation 
+Author name:  
+Gaus Sayyad (06053822) 
+ 
+Supervisor:  
+Dr. Dandan Zhang, Dr. Etienne Burdet 
+ 
+ 
+ 
+ 
+Thursday, 23 April 2026      Word count: 3838 
+
+Page 2 of 12 
+1. Project Specification 
+Wearable supernumerary robotic limbs (SRLs) augment human capabilities and assist individuals 
+with limited mobility by providing extra manipulation arms that move synchronously with the user [1, 
+4]. The MUlti -limb Virtual Environment (MUVE), known as the Dr. Octopus platform at Imperial 
+College London, mounts up to dual lightweight Kinova 7-DoF robotic arms on a backpack. This enables 
+coordinated object manipulation in daily environments while supporting multisensory integration [2]. 
+The overall goal of the project is to enable safe and efficient control of up to dual supernumerary 
+robotic arms using the fingers of one or two hands moving on a small physical mannequin. The 
+mannequin acts as the master device, directly commanding the dual full-scale Kinova arms (the slaves) 
+mounted on the Dr. Octopus backpack. The project is structured in three sequential stages: Stage 1 
+consists of physical prototyping with a figurine and real springs to determine optimal spring placement 
+for intuitive force feedback together with simulation setup of the Kinova arm dynamics in Isaac Lab to 
+validate virtual spring behaviour; Stage 2 comprises the complete simulation in Issac Lab along with 
+design of the physical mannequin master hardware with real miniature arms and the design of the master-
+to-slave control system for the dual Kinova arms; Stage 3 involves implementation of representative 
+tasks like pick and place and their demonstration. This project specifically focuses on  the master 
+mannequin design and control mapping for the master-slave manipulator. Using the physical mannequin 
+as the master device makes the overall teleoperation system intrinsically safe through direct finger 
+interaction; and finally, the multimodal vision-based object detection and gesture-based intent interfaces 
+completed previously by the team will be integrated where relevant. 
+The Kinova Gen3 arms support admittance and impedance control modes via the Kortex API, 
+enabling virtual spring -damper dynamics that emulate the compliance of physical Series Elastic 
+Actuators (SEAs) [3, 10]. A Series Elastic Actuator (SEA) places an elastic element, such as a spring, 
+in series between a motor/gearbox and the output load. This design enables precise force control, 
+increased shock tolerance, and safe, compliant interaction with humans, making  them ideal for 
+exoskeletons, prosthetics, and walking robots [9, 13]. 
+The project delivers a closed-loop haptic control demonstration for coordinated object manipulation 
+using the dual Kinova arms, with virtual springs providing intuitive force feedback. 
+Aims: To design, prototype, and implement a master -slave teleoperation system using a physical 
+figurine mannequin with miniature arms that is controlled by the fingers of one or two hands, thereby 
+enabling safe and efficient intuitive control of up to dual Kinova supernumerary robotic limbs on the Dr. 
+Octopus platform. 
+Objectives: The objectives of this project are to conduct physical prototyping with a figurine and 
+real springs to determine optimal spring placement for intuitive force feedback and to perform simulation 
+of the Kinova arm dynamics in Isaac Lab or MuJoCo to validate virtual spring behaviour, to design the 
+physical mannequin master hardware with real miniature motorised arms and to design the control 
+mapping that commands the dual Kinova 7 -DoF slave arms while ensuring stable master -slave 
+synchronisation and haptic transparency, and to implement representative tasks such as coordinated 
+pick-and-place operations and synchronised multi -arm motions and demonstrate them on the real Dr. 
+Octopus platform after completion of the master hardware and control design. B oth the master 
+mannequin design and the slave control mapping will be developed in parallel to accelerate integration. 
+This work advances SRL teleoperation by bridging physical miniature prototyping with haptic springs 
+to full-scale wearable hardware on the Dr. Octopus platform [1, 6]. 
+ 
+Page 3 of 12 
+2. Ethical Analysis 
+This project is laboratory-based and involves only robotic hardware development and testing. No 
+human subjects beyond voluntary, supervised researcher demonstrations (with informed consent) are 
+required. No biological specimens or personal data are collected. The only human involvement consists 
+of voluntary, supervised researcher demonstrations and a small user study of 8–10 laboratory volunteers, 
+all of whom will provide written informed consent prior to participation and retain the right to withdraw 
+at any time without consequence. Testing complies with Imperial College robotic safety protocols. 
+Risks are confined to minor mechanical hazards during arm motion, mitigated by Kinova safety 
+features (joint limits, emergency stops, impedance-based compliance) and supervised operation. Long-
+term benefits include safer, more intuitive assistive robotics for mobility-impaired users and industrial 
+augmentation, with negligible environmental impact through reuse of existing Kinova hardware.  The 
+work follows responsible robotics principles emphasising safety and human-centred design.  
+At the hardware level, the physical mannequin serves a dual purpose beyond control by interacting 
+with the miniature figurine during development, the operator naturally becomes aware of geometrically 
+possible contacts between the four full -scale Kinova arms and the human body. This embodied 
+awareness informs safer arm trajectory design b efore any live testing occurs, effectively making the 
+prototyping process itself a safety validation tool. All mechanical components, including 3D -printed 
+parts, coil springs, and servo motors, are selected and assembled to eliminate sharp edges, pinch points, 
+and failure modes that could cause injury during handling. 
+At the electronics level, all wiring, connectors, and power supplies operate within low -voltage 
+safety thresholds. Current -limiting protections are implemented in hardware to prevent motor 
+overcurrent during unexpected joint collisions, and all electronic enclosures are secured to prevent 
+accidental contact during operation. 
+At the software level, the Kinova Kortex API is operated exclusively within manufacturer-specified 
+joint torque and velocity limits. Impedance control parameters are first validated in simulation before 
+deployment on physical hardware, ensuring no unsafe g ain combinations reach the real system. 
+Redundant emergency stop functionality is implemented in software alongside the physical E -stop 
+buttons, with automatic velocity zeroing triggered upon communication loss between master and slave. 
+From a human -centred design perspective, the mannequin interaction paradigm inherently keeps 
+the operator physically engaged with the system's geometry throughout development, maintaining 
+continuous awareness of reachable body regions and promoting intuiti ve safe operation. The work 
+therefore follows responsible robotics principles at every stage, embedding safety not as an afterthought 
+but as a structural property of the design process itself. 
+The environmental footprint of this project is deliberately minimised. All Kinova Gen3 hardware 
+is reused from existing laboratory inventory, avoiding the carbon and material cost of new 
+manufacturing. Miniature arm components are fabricated using desktop 3D printing, with recyclable 
+filament materials used wherever available. Most of the Electronic components will be sourced from 
+existing laboratory stocks. 
+ 
+ 
+  
+Page 4 of 12 
+3. Literature Review 
+Supernumerary robotic limbs (SRLs) have emerged as a key technology for human augmentation, 
+drawing interest from both assistive technology and industrial domains. Comprehensive reviews 
+quantify their design parameters, actuation mechanisms, intent recogni tion strategies, and multimodal 
+feedback approaches across a range of applications [1, 4]. The Dr. Octopus platform at Imperial College 
+London exemplifies a wearable multi -arm system capable of supporting physical interaction in both 
+virtual and real environments, mounting up to dual Kinova 7-DoF arms on a backpack frame [2]. Early 
+SRL prototypes focused primarily on passive augmentation for specific tasks such as overhead assembly; 
+subsequent systems incorporated active impedance control to improve safety and naturalness of 
+interaction [4, 8]. 
+Master-slave teleoperation has been widely adopted in redundant manipulators and SRLs to provide 
+intuitive, low -latency control [7]. Bilateral teleoperation schemes, in which force and position 
+information flow in both directions between master and slave, are considered essential for safe physical 
+interaction and transparent haptic feedback [10]. Recent work on Kinova Gen3 teleoperation 
+demonstrates effective mapping from human gestures or physical master devices to 7 -DoF slave arms, 
+highlighting the importance of current-based impedance control for interacting with mobile manipulators 
+[10]. Physical prototyping with miniature models is a well -established approach to validate haptic 
+feedback and control mapping before scaling to full hardware [12]. Guggenhei m and Asada 
+demonstrated that inherent haptic feedback from SRL limbs can meaningfully reduce cognitive load 
+during teleoperation, motivating the use of spring -based compliance at the master stage [12]. 
+Embodiment studies in virtual reality further show that physical congruence between the master device 
+and the robot morphology enhances the user’s sense of agency over supernumerary limbs [8]. 
+Haptic feedback is essential for closed-loop teleoperation and embodiment in SRLs. Series Elastic 
+Actuators (SEAs) place a compliant element in series between the actuator and the load, enabling precise 
+force control, shock tolerance, and safe human intera ction; their principles directly inform the virtual 
+spring design used in this project [9, 13]. Physical springs on the master device, as in the figurine 
+prototyping stage, provide direct mechanical force reflection, while virtual springs implemented through 
+impedance control in the Kinova slave arms replicate this compliance at scale [3, 9]. Pinardi et al. 
+demonstrated that supplementary sensory feedback significantly improves the control quality and 
+embodiment of SRLs during manipulation tasks, underscori ng the value of the haptic channel in this 
+system [14]. Simulation tools such as Isaac Lab enable safe offline tuning of impedance parameters and 
+master-slave mapping before deployment on real hardware, reducing the risk of hardware damage during 
+early int egration [11]. Spatial considerations for near -body SRL interaction including collision 
+avoidance and ergonomic placement have also been studied to ensure the dual-arm configuration 
+remains practical during daily tasks [15]. 
+ 
+Approach Control Mechanism Strengths Limitations Reference 
+Direct master-
+slave mapping 
+Scaled miniature 
+master device 
+physically commands 
+full-scale slave joints 
+via position mapping 
+Highly intuitive; 
+preserves natural 
+hand motion; low 
+end-to-end latency 
+(~120 ms); no 
+cognitive 
+abstraction layer 
+required 
+Geometric scaling 
+must be precisely 
+calibrated; 
+kinematic 
+dissimilarity 
+between master 
+and slave 
+introduces 
+mapping errors 
+[12] 
+Page 5 of 12 
+Gesture and 
+VR-based 
+teleoperation 
+Vision or inertial 
+sensors capture 
+hand/body gestures 
+and map to slave joint 
+commands 
+Completely hands-
+free; no physical 
+master device 
+required; adaptable 
+to different robot 
+morphologies 
+Higher cognitive 
+load due to 
+absence of haptic 
+feedback; prone to 
+drift and 
+occlusion; poor 
+transparency 
+during contact 
+tasks 
+[5] 
+Virtual springs 
+via impedance 
+control 
+Kinova Kortex API 
+impedance mode 
+emulates spring-
+damper dynamics at 
+slave joint level 
+Hardware-native; no 
+additional actuators 
+needed; stiffness 
+and damping 
+tunable in software; 
+compatible with 
+existing Kinova SDK 
+Requires careful 
+gain tuning to 
+avoid instability; 
+virtual compliance 
+cannot fully 
+replicate physical 
+spring feel; 
+latency-sensitive 
+[3] 
+Physical 
+springs on 
+miniature 
+master 
+Coil springs at master 
+joint locations provide 
+direct mechanical 
+force reflection to 
+operator fingertips 
+Passive, inherently 
+safe, and zero-
+latency haptic 
+feedback; no 
+electronics required 
+at master stage; 
+directly encodes 
+postural strain 
+Miniature spring 
+fabrication and 
+calibration is 
+labour-intensive; 
+spring stiffness 
+fixed at 
+manufacture; 
+limited to 
+reflecting gross 
+postural state 
+rather than fine 
+contact forces 
+[9] 
+Simulation-in-
+the-loop tuning 
+Master-slave mapping 
+and impedance 
+parameters validated 
+in Isaac Lab before 
+hardware deployment 
+Safe offline 
+parameter 
+optimisation; 
+reduces hardware 
+damage risk; 
+enables rapid 
+iteration of control 
+gains 
+Sim-to-real gap 
+means tuned 
+parameters 
+require further 
+adjustment on 
+physical hardware; 
+does not capture 
+all real-world 
+dynamics 
+[11] 
+EMG-based 
+intent 
+recognition 
+Surface 
+electromyography 
+signals from the 
+operator’s muscles 
+decoded to infer 
+intended arm motion 
+Intuitive biological 
+control signal; hands 
+remain free for 
+primary tasks; low 
+learning curve for 
+trained users 
+Susceptible to 
+electrode 
+placement 
+variability, muscle 
+fatigue, and skin 
+impedance 
+changes; requires 
+[4] 
+Page 6 of 12 
+user-specific 
+calibration 
+Shared 
+autonomy with 
+vision 
+integration 
+Robot autonomously 
+assists with low-level 
+positioning while 
+operator retains high-
+level directional intent 
+Reduces operator 
+workload during 
+repetitive or precise 
+sub-tasks; improves 
+task success rate 
+Requires reliable 
+object detection 
+pipeline; 
+autonomous layer 
+may conflict with 
+operator intent 
+during unexpected 
+scenarios 
+[5] 
+Spring-based 
+SEA 
+compliance at 
+slave 
+Series elastic actuator 
+principles applied at 
+Kinova joint level via 
+software-defined 
+virtual stiffness 
+Provides shock 
+tolerance and 
+passive safety; 
+enables precise 
+torque control; well-
+studied theoretical 
+framework 
+Added compliance 
+reduces 
+positioning 
+bandwidth; tuning 
+stiffness-
+bandwidth trade-
+off is non-trivial for 
+multi-arm 
+coordination 
+[9] 
+Table 1: Control strategies in supernumerary and teleoperated robotic systems. Master -slave with 
+miniature models and hybrid physical/virtual springs aligns with SEA principles for the Dr. Octopus 
+platform [9, 13] 
+Literature reveals a gap: few studies combine a custom miniature dual-arm master mannequin (with 
+physical springs) and direct teleoperation of a wearable dual-arm SRL platform for coordinated 
+manipulation tasks [1, 6]. Existing multi-arm SRL studies either rely on gestural or VR-based interfaces 
+with higher cognitive load, or use single-arm master-slave configurations that do not scale to dual-limb 
+coordination [4, 7]. Moreover, prior work rarely integrates SEA -style physical compliance at the 
+miniature master stage with virtual spring impedance at the full -scale slave stage simultaneously; this 
+dual-layer compliance strategy is a distinguishing feature of the present project [9, 12]. This project 
+addresses the identified gap through a three-stage process of physical prototyping, parallel master-and-
+control design, and full-system task demonstration on the Dr. Octopus platform. 
+ 
+  
+Page 7 of 12 
+4. Implementation Plan 
+Work completed to date has focused on Stage 1 of the project. Physical prototyping has been carried 
+out by placing real springs on a figurine model to determine optimal attachment points for intuitive force 
+feedback, and simulation and design setup of the Kinova 7-DoF arm dynamics has begun in Isaac Lab 
+to validate virtual spring behaviour. 
+The remaining work will proceed with Stage 2 and Stage 3. In Stage 2, which will run in parallel, 
+Simulation of the dual arms in Isaac Lab the physical mannequin master hardware with real miniature 
+motorised arms will be designed and constructed while the master-to-slave control mapping for the dual 
+Kinova slave arms is simultaneously developed and simulated. In Stage 3, following completion of the 
+master hardware and control design, representative tasks will be implemented on the real Dr. Octopus 
+platform and demonstrated; these tasks include coordinated pick-and-place operations and synchronised 
+multi-arm motions such as dancing sequences. Full system integration, safety validation, laboratory 
+testing, performance tuning, documentation, and preparation of the final demonstration video will 
+conclude the project. Key milestones include validation of virtual spring parameters and completion of 
+the basic master mannequin and control mapping by the end of May 2026, operational master -slave 
+synchronisation on two arms by the end of June, full dual-arm teleoperation and task demonstrations by 
+the end of July, and complete evaluation by the end of August. Fallback positions have been identified: 
+if miniature arm fabrication delays occur, a simplified 2-DoF prototype per arm will be used for initial 
+mapping tests; if real-time slave synchronisation proves unstable, conservative scaling factors validated 
+on the physical figurine will be applied before full deployment. 
+5. Risk register 
+Risk ID Risk Description Likelihood Impact Mitigation Strategy 
+R1 
+Mismatch between 
+miniature master 
+kinematics and full-scale 
+slave 
+Medium High 
+Direct geometric scaling from 
+figurine tests; use simulation for 
+validation 
+R2 Latency or instability in 
+master-slave mapping Low High 
+Conservative gains and Isaac 
+Lab/MuJoCo tuning; Kinova safety 
+limits 
+R3 Hardware access delays 
+for Dr. Octopus Medium Medium Parallel simulation work; fallback to 
+single-arm testing 
+R4 Integration with team’s 
+vision/gesture modules Low High Modular API; weekly team sync 
+R5 Safety during dual-arm 
+teleoperation demo Low High Redundant E-stops; supervised 
+testing only 
+R6 Miniature arm motor or 
+spring fabrication delays Medium Medium Use off-the-shelf servo motors and 
+3D-printed parts; early prototyping 
+R7 
+Poor haptic transparency 
+(force reflection 
+mismatch) 
+Medium High 
+Calibrate physical springs on figurine 
+and transfer parameters to virtual 
+springs 
+R8 
+Real-time communication 
+lag between master and 
+slave 
+Low High Use high-speed Ethernet/ROS2; 
+fallback to wired direct connection 
+Page 8 of 12 
+R9 
+Overloading Kinova arms 
+during multi-arm 
+coordination 
+Low High Limit payload and velocity in control 
+software; monitor torque feedback 
+R10 
+User finger fatigue or 
+discomfort during long 
+demos 
+Medium Medium 
+Ergonomic mannequin handle 
+design; short test sessions with 
+breaks 
+Table 2. Identified main risks associated with achieving the objectives and deliverables, labelled 
+them in terms of likelihood and impact, and detail your mitigation strategy. 
+6. Evaluation 
+Success of the project will be measured through a combination of quantitative performance metrics 
+and qualitative user feedback. Master-slave tracking accuracy will be assessed by comparing miniature 
+master joint angles to slave end-effector positions, targeting positional errors below 10 cm and angular 
+errors below 15 degrees. Haptic transparency will be verified by ensuring force reflection errors remain 
+below 0.8 N via the physical springs on the mannequin and Kinova torque feedback. Task-level metrics 
+will include coordinated pick -and-place success rate above 80 percent and average completion time 
+under 45 seconds per object, as well as synchronised motion accuracy for dancing demonstrations 
+(measured by phase lag below 200 ms across arms). Closed -loop s tability will be confirmed by 
+oscillations below 8 percent overshoot and end -to-end latency under 200 ms. In addition, a small user 
+study involving 8-10 laboratory volunteers will gather qualitative impressions of haptic intuitiveness and 
+embodiment when controlling the dual arms via finger movements on the mannequin. Experiments will 
+use standardised household objects in a controlled lab arena, comparing baseline position control against 
+the full master -slave system with haptic feedback. Simple statistical comparisons (e.g.,  average and 
+standard deviation) will be used to evaluate differences between conditions. 
+7. Preliminary Results 
+Stage 1 (physical figurine with real springs and Kinova arm primary simulation) is complete: 
+optimal spring placement points were identified for balanced compliance, and initial virtual spring 
+models in Isaac Lab are setup to show stable impedance behaviour for light payloads. Basic Design of 
+CAD Model for Figurine with Frame is setup for slave position control.  Simulation and Design of the 
+physical mannequin master and control mapping (Stage 2) is now underway. Early tests with physica; 
+dummy model indicate promising force reflection for intuitive finger-based multi-arm coordination. 
+Page 9 of 12 
+ 
+Figure 1: Spring attachment configurations on the Kinova Gen3 7-DoF arm figurine (J1–J7). (A) Full 
+connectivity: all geometrically feasible inter -joint spring connections, providing maximum force 
+information at the cost of coupled, ambiguous signals. (B) Informative subset: connections retained 
+based on single-joint deflection dominance, eliminating cross-coupled springs that respond to multiple 
+degrees of freedom simultaneously. (C) Optimal configuration: the minimal spring set that satisfies 
+both postural observability and signal separability, enabling the operator to infer arm configuration 
+comfort and joint proximity through clean, independently interpretable haptic feedback at the master 
+fingertips. 
+ 
+To determine optimal spring placement on the miniature figurine master, three configurations of inter -
+joint spring connections were systematically evaluated across the seven joints (J1 –J7) of the Kinova 
+Gen3 arm morphology, as shown in Figure 1. For seven joints, the maximum number of 21 unique 
+pairwise connections. 
+Configuration A retains a representative subset of these, connecting non-adjacent joints across the 
+kinematic chain. While this maximises force information richness, it introduces mechanical coupling 
+ambiguity the contribution of individual joint displacements to spring deformation cannot be cleanly 
+isolated, making signal attribution unreliable. 
+
+Page 10 of 12 
+ 
+Figure 1: Physical Figurine Model with Springs Configuration B 
+ 
+Configuration B retains only connections that produce mechanically meaningful and attributable 
+spring deflection signals. Specifically, a connection is kept only if its deformation is dominated by the 
+motion of a single joint, rather than being spread across multiple joints simultaneously. This eliminates 
+cross-coupled connections whose force signals would be ambiguous at the operator's fingertips, leaving 
+a reduced set of springs each acting as a clean proprioceptive channel for one dominant degree of 
+freedom. In the Fig ure 2. The figurine also has a support spring which separates the upper arms with 
+lower arms. 
+ 
+Figure 3: Physical Figurine Model with Springs Configuration C 
+
+Page 11 of 12 
+ 
+Configuration C represents the optimal minimal set identified through this process. It provides 
+sufficient coverage to infer the global postural state of the arm including whether a given configuration 
+is ergonomically comfortable or approaching a joint limit while keeping the haptic signals at the master 
+fingertips clean and separable. Each spring in Configuration C responds predominantly to one degree of 
+freedom: the J5–J6 connection encodes elbow flexion state, J3–J2 encodes wrist proximity to the base, 
+and J4–J1 encodes overall arm extension relative to the base. Together, these three connections form a 
+minimal observability basis for the seven -DoF arm posture, providing the operator with intuitive 
+directional feedback about which part of the arm is under strain withou t requiring them to interpret 
+overlapping or competing force signals. Configuration C also represents the virtual springs present in 
+Kinova Gen3 Arm, Hence C would be the best approach to add on physical figurine. 
+ 
+ 
+Figure 4: CAD model of the miniature master mannequin arm assembly shown from three 
+perspectives: (A) back view, (B) front view, and (C) isometric view. The model comprises a scaled -
+down kinematic replica of the Kinova Gen3 7 -DoF arm mounted on a symmetric cross -frame base, 
+with coiled spring elements positioned along the arm links to provide haptic force feedback to the 
+operator's fingertips. 
+The arm structure follows the seven-degree-of-freedom kinematic chain of the Kinova Gen3 arm, 
+scaled down to a size operable by human fingers. Coiled spring elements are integrated along the arm 
+links at the joint locations identified as optimal in the Con figuration C Spring placement study. These 
+springs provide the physical compliance that reflects the postural state of the arm back to the operator 
+as a tangible haptic force, without requiring any electronics or sensing at the master stage. The isometric 
+view (C) most clearly illustrates the three-dimensional spatial arrangement of the joints and the relative 
+positioning of the spring elements along the kinematic chain, confirming that the design captures the full 
+workspace geometry of the Kinova arm in miniature form. 
+ 
+8. References 
+1. Tong Y, Liu J, et al. (2021) Review of Research and Development of Supernumerary Robotic 
+Limbs. IEEE/CAA Journal of Automatica Sinica. 
+2. Imperial College London. MUlti-limb Virtual Environment (aka Dr. Octopus). 
+https://www.imperial.ac.uk/a-z-research/human-robotics/dr-octopus-/ (accessed April 2026). 
+3. Kinova Robotics. (2022) Gen3 Ultra Lightweight Robot User Guide. 
+
+Page 12 of 12 
+4. Prattichizzo D, et al. (2021) Human augmentation by wearable supernumerary robotic limbs: 
+review and perspectives. Prog Biomed Eng. 
+5. Yang B, Huang J, Chen X, Xiong C, Hasegawa Y. (2021) Supernumerary Robotic Limbs: A 
+Review and Future Outlook. IEEE Transactions on Medical Robotics and Bionics, 3(3):623–
+639. 
+6. Zheng Y, et al. (2026) Supernumerary Robotic Limbs: A Quantitative Analysis and Review of 
+Design, Embodiment, and Future Challenges. Journal of Field Robotics. 
+7. Parietti F, Asada HH. (2016) Supernumerary Robotic Limbs for Human Body Support. IEEE 
+Transactions on Robotics, 32(2):301–311. 
+8. Zhang K, et al. (2023) Review of Supernumerary Robotic Limbs. Journal of Physics: Conference 
+Series. 
+9. Toubar H, Goldsmith G, Tafrishi SA, Innala M, Bergstromer V. (2022) Design, Modeling, and 
+Control of a Series Elastic Actuator with Discretely Adjustable Stiffness. Mechanism and 
+Machine Theory, 170:104720. 
+10. de Wolde S, Kober J, Babuska R. (2024) Current-Based Impedance Control for Interacting with 
+Mobile Manipulators. arXiv:2403.13079. 
+11. NVIDIA. (2026) Isaac Lab Documentation: Impedance Control and Motion Generators. 
+https://isaac-sim.github.io/IsaacLab (accessed April 2026). 
+12. Guggenheim JW, Asada HH. (2021) Inherent Haptic Feedback From Supernumerary Robotic 
+Limbs. IEEE Transactions on Haptics, 14(1):123–131. 
+13. Lee C, Kwak S, Kwak J. (2019) Development, Analysis, and Control of Series Elastic Actuator 
+for a Wearable Robotic Leg. Frontiers in Neurorobotics, 13:17. 
+14. Pinardi M, Longo MR, Formica D, Strbac M, Mehring C, Burdet E, Di Pino G. (2023) Impact of 
+supplementary sensory feedback on the control and embodiment in human movement 
+augmentation. Communications Engineering, 2:64. 
+15. Zhou H, Gao A, Ducos P, Eden J, Burdet E. (2026) Spatial Guidelines for Supernumerary 
+Robotic Limbs in Near-Body Interactions. Proceedings of the CHI Conference on Human 
+Factors in Computing Systems. ACM. 
+16. Moon C, Kim J. (2024) Assessing the Physical Impact of Supernumerary Limbs on a Human 
+Subject: A Simulation Study. In: Proc. 46th Annual International Conference of the IEEE 
+Engineering in Medicine and Biology Society (EMBC), pp. 1–4. IEEE. 
+ 

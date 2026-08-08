@@ -1,104 +1,174 @@
 \chapter{Introduction}
+\label{ch:intro}
 
-Supernumerary robotic limbs (SRLs) are additional arms worn on the body, which
+Supernumerary robotic limbs (SRLs) are additional arms worn on the body which
 act alongside the wearer's own limbs rather than replacing or rehabilitating
-them. They differ from prostheses in that the wearer retains full natural
-function, and from industrial manipulators in that the base of the robot is a
-person: it accelerates, sways and steps, and it is soft, valuable and
-irreplaceable. The work reported in this thesis concerns a wearable system of
-two seven-degree-of-freedom Kinova Gen3 arms carried on a backpack frame and
-teleoperated from an instrumented mannequin master arm.
+them. They are distinguished from prostheses in that the wearer retains full
+natural function, and from fixed industrial manipulators in the single respect
+that matters most for their control: the base of the robot is a person. It
+accelerates, sways and steps; it is soft, valuable and irreplaceable; and it
+cannot be commanded to hold still. \todo{CITE: an SRL review establishing the
+taxonomy and the augmentation-versus-restoration distinction --- Tong et
+al.~2021 [1] and Prattichizzo et al.~2021 [4] are both in the planning
+report's bibliography}
 
-The configuration that this system implements is deliberately a
-\emph{two-person} one: the arms are worn by one individual and commanded by
-another. \todo{CITE: Fusion, Saraiji et al., SIGGRAPH 2018 Emerging
-Technologies -- the direct predecessor for the operator/wearer architecture}
-That separation is the source of most of the interesting engineering
-difficulty in the project, because the person who bears the risk has no
-control input, and the person issuing the commands has neither proprioception
-of the wearer nor any vestibular sense of the base motion they are working
-against.
+The work reported in this thesis concerned the MUlti-limb Virtual Environment
+(MUVE), known within Imperial College London as the Dr.\ Octopus platform,
+which mounts two Kinova Gen3 seven-degree-of-freedom ultralight arms on a
+backpack frame worn by an operator. \todo{CITE: the MUVE / Dr.~Octopus
+platform page [2]} The specific problem addressed was the command interface:
+how a person may direct two redundant seven-degree-of-freedom arms in a manner
+that is intuitive enough to be usable without training, and safe enough to be
+acceptable on a robot mounted beside a human head.
+
+The approach taken, following the project's planning report, was a
+\emph{miniature mannequin master}: a scaled physical replica of the Gen3
+kinematic chain, instrumented with potentiometers and an inertial measurement
+unit, which the operator manipulates with the fingers of one or both hands
+while the full-scale arms follow. The appeal of this arrangement is that it
+requires no abstraction on the operator's part. The master has the morphology
+of the thing it commands, so the mapping from intention to motion is direct
+rather than learned. \todo{CITE: Guggenheim and Asada~2021 [12] on miniature
+physical masters and inherent haptic feedback}
+
+A second architectural property emerged during the work and came to shape the
+thesis. Because the arms are worn on a backpack, the natural deployment is one
+in which the arms are borne by one person and commanded by another. That
+configuration has a direct predecessor in the Fusion system, which mounted a
+robotic head and two arms on a worn frame and drove them from a remote
+operator. \todo{CITE: Saraiji et al., Fusion, SIGGRAPH 2018 Emerging
+Technologies} It is also the configuration that makes the control problem
+genuinely difficult, because the person issuing commands has neither
+proprioception of the wearer nor any vestibular sense of the base motion
+against which the arms must work.
 
 \section{Objectives}
 
-The project set out to build and characterise a complete teleoperation stack
-for this configuration, and specifically to establish, by measurement rather
-than by demonstration, what such a system can and cannot do. The objectives
-were:
+The objectives stated in the project's planning report were framed around a
+haptic master--slave system with physical springs at the master and virtual
+spring impedance at the slave. The delivered system diverged from that plan in
+several respects, for reasons set out in \cref{ch:discussion} and analysed in
+full in the accompanying divergence record. \todo{CONFIRM: whether the
+divergence analysis should appear as an appendix in the submitted document or
+remain a supporting file} The objectives below are the revised set, aligned to
+what was built and measured.
 
 \begin{enumerate}
-  \item to implement an end-to-end pipeline from the master arm's sensors to
-    joint trajectories on two arms, including the mapping from the operator's
-    limb pose to a commanded end-effector pose;
-  \item to design a safety layer appropriate to a robot mounted beside a
-    person's head, and to demonstrate its behaviour under injected faults
-    rather than only under nominal conditions;
-  \item to characterise the reachable workspace of the mounted configuration,
-    and to determine which manipulation tasks it can actually support;
-  \item to establish what performance survives when the master arm's sensing
-    degrades, since a substantial fraction of its channels are unreliable;
-  \item to design an experimental protocol capable of separating the
-    contribution of machine autonomy from that of the human operator.
+  \item To design and fabricate a miniature instrumented mannequin master
+    replicating the Gen3 morphology at reduced scale, and to characterise its
+    sensing.
+  \item To derive and implement the mapping from master pose to slave
+    end-effector command, including the coordinate-convention conversion
+    required between the manufacturer's controller and the robot middleware.
+  \item To implement a safety architecture appropriate to a manipulator
+    mounted beside a person, and to validate it by systematic fault injection
+    rather than by inspection.
+  \item To characterise the reachable workspace of the mounted configuration
+    and to determine which manipulation tasks it can support.
+  \item To establish a verification methodology yielding traceable evidence
+    for every claim, and to apply it across the task set.
+  \item To identify, by measurement, the constraints that must be resolved
+    before hardware validation and a user study become possible.
 \end{enumerate}
 
 \section{Challenges}
 
-Three difficulties shaped the work more than any others.
+Four difficulties consumed the majority of the effort, and each is treated at
+length in the chapters that follow.
 
-The first is that \emph{the base moves}. Conventional manipulator control
-assumes an inertial base; here the base is a standing person. This is a
-recognised problem in the supernumerary-limb literature
-\todo{CITE: Zhang et al., Motion-Compensation Control of Supernumerary Robotic
-Arms Subject to Human-Induced Disturbances, Advanced Intelligent Systems 2024}
-but it is normally treated in the single-person case, where the wearer is also
-the operator and their own motor commands are available as feed-forward. In
-the two-person case that information does not exist.
+The first was \emph{kinematic dissimilarity between master and slave}. The
+master replicates the Gen3's joint sequence but not its proportions: its links
+sum to \SI{0.272}{\metre} against the full-scale arm's \SI{0.902}{\metre}
+reach. A joint-to-joint mapping is therefore unavailable, and a mapping in
+task space must contend with the fact that the two chains reach different sets
+of poses. The resolution adopted was to abandon joint correspondence entirely
+and map displacement of the master's tip onto displacement of the slave's end
+effector about a re-latched anchor, which is described in \cref{ch:method}.
 
-The second is that \emph{the input is degraded}. The master arm's
-potentiometer channels are, in their present physical state, substantially
-unreliable, and the system therefore has to remain usable on a subset of its
-intended sensing rather than assuming all of it.
+The second was \emph{a coordinate-convention mismatch}. The manufacturer's
+controller reports joint positions in degrees over $[0, 360)$ while the
+middleware uses radians over $(-\pi, \pi]$, and the two conventions must be
+reconciled on every command. The failure mode is not a small error: an angle
+of \SI{350}{\degree} interpreted as $+350$ rather than $-10$ commands very
+nearly a full revolution of a joint standing next to a person. The conversion
+was therefore isolated in a single module and tested at the seams where such
+mistakes occur.
 
-The third is that \emph{almost every failure in this system is silent}. An arm
-that has stopped moving looks the same whether it is blocked for a good
-reason, blocked for a bad one, or not receiving data at all. A great deal of
-the engineering effort described in this thesis went into making the system's
-internal state legible, and a recurring theme of the results is that
-measurement instruments failed more often, and more quietly, than the system
-being measured.
+The third was \emph{calibration without power-on discontinuities}. The
+potentiometers report absolute values whose meaning depends on how the master
+was assembled, so a zero reference must be captured and stored. If that
+reference is taken from a frame that has failed validation, or if the
+commanded pose is referenced to the origin of the master's own frame rather
+than to the operator's actual hand position, the first command issued after
+start-up is a step of the master's entire tip vector.
+
+The fourth, and the one that proved most pervasive, was that \emph{almost
+every failure in this system is silent}. An arm that has stopped moving looks
+identical whether it is blocked for a good reason, blocked for a bad one, or
+receiving no data at all. A substantial part of the engineering effort went
+into making internal state legible from outside, and a recurring finding of
+the results is that the measuring instruments failed more often, and more
+quietly, than the system being measured.
 
 \section{Contributions}
 
-The contributions claimed here are limited to those the implementation and its
-recorded artefacts can support.
+The contributions claimed are limited to those the implementation and its
+recorded artefacts can support. Each is stated with its maturity: whether it
+was implemented, verified in simulation, or validated on physical hardware.
+\textbf{No contribution in this thesis was validated on physical hardware},
+for reasons given in \cref{ch:discussion}.
 
 \begin{enumerate}
-  \item \textbf{A complete, safety-instrumented dual-arm teleoperation stack}
-    for a backpack-mounted pair of Kinova Gen3 arms, comprising master-arm
-    sensing, a spherical pose mapping, collision-aware inverse kinematics with
-    redundancy resolution, a clearance floor referenced to the wearer's body,
-    and a multi-path emergency stop. The behaviour of the safety layer was
-    exercised by systematic fault injection rather than by inspection.
+  \item \textbf{A complete, safety-instrumented teleoperation stack} for a
+    backpack-mounted pair of Gen3 arms, comprising master sensing, a spherical
+    pose decomposition, collision-aware inverse kinematics with redundancy
+    resolution, a geometric clearance margin referenced to the wearer's body,
+    and a multi-path emergency stop whose blocking behaviour is externally
+    observable. \emph{Implemented; verified in simulation.}
+
+  \item \textbf{A coordinate-convention conversion layer} that isolates the
+    degree-to-radian and wrapping problem in one auditable place, with a
+    shortest-path joint difference that distinguishes continuous joints from
+    limited ones. \emph{Implemented; unit-tested.}
 
   \item \textbf{A workspace characterisation of the mounted configuration},
-    including the negative result that the two arms share no reachable
-    workspace, which blocks inter-arm handover for geometric reasons that no
-    control or planning change can address.
+    including the finding that the two arms share no reachable workspace under
+    the as-built mount, which blocks inter-arm handover for geometric reasons
+    that no control or planning change can address, together with a
+    quantified and buildable mount modification that would resolve it.
+    \emph{Verified in simulation;} \cref{ch:workspace}.
 
-  \item \textbf{A quantified account of degraded-input teleoperation}: which
-    capabilities survive the loss of individual sensing channels, and what
-    each loss costs.
+  \item \textbf{A quantified account of degraded-input teleoperation} ---
+    which capabilities survive the loss of individual sensing channels, what
+    each loss costs, and evidence of progressive hardware degradation between
+    two dated recordings. \emph{Measured from recorded hardware data.}
 
-  \item \textbf{A verification methodology}, with a set of recorded runs
-    covering every task, scenario and autonomy condition, checked
-    automatically for object handling, gripper actuation and wearer clearance.
-
-  \item \textbf{An experimental design for the two-person configuration},
-    including measures for the wearer as a participant rather than as
-    apparatus.
+  \item \textbf{A verification methodology} requiring that an instrument
+    recover a known answer before a surprising measurement taken with it is
+    reported, applied across a set of recorded runs covering every task,
+    scenario and autonomy condition with automated checking of object
+    handling, gripper actuation and wearer clearance. \emph{Applied
+    throughout.}
 \end{enumerate}
 
-Chapter~\ref{ch:results} states explicitly, for each result, whether it was
-verified in simulation, exercised only against mock hardware, or validated on
-physical arms. \todo{CONFIRM: that the contribution list matches what the
-final Results chapter supports, once the outstanding measurements are taken}
+The fifth of these arose from necessity rather than principle. Across the
+project, unexpected results proved more often to be defects in measurement
+than in the system, and the discipline of validating an instrument before
+believing its output caught a substantial number of errors that would
+otherwise have entered the record. It is, in the author's assessment, the most
+transferable outcome of the work.
+
+\section{Thesis structure}
+
+\Cref{ch:background} reviews supernumerary limb design, master--slave
+teleoperation and the mapping problem between dissimilar morphologies.
+\Cref{ch:method} describes the system as built, from the master hardware
+through to the safety architecture. \Cref{ch:results} reports the measured
+outcomes, organised by validation level and labelled throughout with the
+strength of evidence behind each. \Cref{ch:workspace} presents the workspace
+characterisation separately, because it is a chain of measurements whose
+consequences determine the shape of the task set. \Cref{ch:discussion}
+interprets these results, compares the delivered system against the planning
+report's targets, and states the limitations honestly. \Cref{ch:conclusion}
+restates what was achieved against the objectives and sets out the work that
+would most improve the system.

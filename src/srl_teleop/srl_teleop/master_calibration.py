@@ -16,7 +16,24 @@ CONFIG_DIR   = Path(os.path.expanduser("~/kortex_ws/config"))
 # Identity fixes both. The lateral axis is NOT fixed by this and cannot be --
 # see the AZIMUTH LIMITATION note in CLAUDE.md.
 AXIS_MAP        = ("+x","+y","+z")
-WORKSPACE_SCALE = 1.0
+
+# ---------------------------------------------------------------------------
+# QUARANTINED 2026-08-08 -- NOT ON THE LIVE PATH. DO NOT USE.
+#
+# WORKSPACE_SCALE and map_to_workspace() below are dead code: their only
+# callers are the two self-test helpers at the bottom of THIS module. The
+# running system scales in master_pose_node.py:1345 as
+#
+#     pos = pos_anchor + anchor_delta + scale * (p - d_ref)
+#
+# where `scale` is the per-arm ROS parameter {arm}_scale (SCALE_DEFAULT 1.0,
+# master_pose_node.py:85), re-read every frame so it retunes live.
+#
+# They are retained only because the self-tests document the original
+# derivation. A second, unused mapping implementation is a trap for the next
+# reader -- anyone changing scaling must change master_pose_node.py, not this.
+# ---------------------------------------------------------------------------
+WORKSPACE_SCALE = 1.0   # DEAD -- see quarantine note above
 # MEASURED workspace anchors: world -> {arm}_end_effector_link with the sim
 # at its home pose (tf2_echo, both arms verified at home to 4 dp). These
 # replace the old unverified guess of (0.3,0,1.2)/(-0.3,0,1.2) -- that guess
@@ -113,6 +130,11 @@ def to_robot_frame(p, am=AXIS_MAP):
     return _axis_matrix(am) @ np.asarray(p,dtype=float)
 
 def map_to_workspace(p, arm, scale=WORKSPACE_SCALE, am=AXIS_MAP):
+    """DEAD CODE -- see the quarantine note at WORKSPACE_SCALE.
+
+    Not called by any running node. The live scaling is in
+    master_pose_node.py:1345.
+    """
     neutral = to_robot_frame((0.0,0.0,FULL_EXT), am)
     d = to_robot_frame(p, am) - neutral
     return np.asarray(WORKSPACE_CENTRE[arm],dtype=float) + scale*d

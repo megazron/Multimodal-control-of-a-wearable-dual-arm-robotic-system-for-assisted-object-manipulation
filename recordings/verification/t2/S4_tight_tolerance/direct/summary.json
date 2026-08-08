@@ -1,0 +1,16 @@
+{
+  "task": "t2",
+  "scenario": "S4_tight_tolerance",
+  "condition": "direct",
+  "note": "right holds, left fills",
+  "frames": 71,
+  "duration_s": 14.974184596008854,
+  "tracking_rms_mm": 0.7851952787832572,
+  "tracking_max_mm": 1.8127902395043727,
+  "tracking_rms_incl_approach_mm": 151.69414323865865,
+  "min_clearance_m": 0.04811524885910947,
+  "clearance_to": "torso",
+  "ee_travel_m": 1.4011661574350547,
+  "passes_through_wearer": false,
+  "below_real_floor": true
+}

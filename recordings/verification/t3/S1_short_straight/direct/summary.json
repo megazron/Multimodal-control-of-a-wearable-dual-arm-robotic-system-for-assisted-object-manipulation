@@ -1,0 +1,16 @@
+{
+  "task": "t3",
+  "scenario": "S1_short_straight",
+  "condition": "direct",
+  "note": "rigid tray, 310 mm span, vertical lift",
+  "frames": 31,
+  "duration_s": 4.113764405978145,
+  "tracking_rms_mm": 2.4233762229382574,
+  "tracking_max_mm": 3.263365807837559,
+  "tracking_rms_incl_approach_mm": 268.15101574270165,
+  "min_clearance_m": 0.05201640124873871,
+  "clearance_to": "torso",
+  "ee_travel_m": 1.313992550959188,
+  "passes_through_wearer": false,
+  "below_real_floor": true
+}

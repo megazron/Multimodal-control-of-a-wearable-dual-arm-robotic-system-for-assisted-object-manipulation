@@ -19,21 +19,57 @@ was confirmed against a live `/compute_ik` with the arms at home — see
 | T1 bimanual reach | subsumed by T7 | |
 | T4 inter-arm handover | **BLOCKED** | 0 of 16 transfer points reachable by both arms. Geometry, not orientation |
 
-### T2 — feasible, but only with a redesigned container
+### T2 — feasible, and the container spec is now MEASURED
 
-My earlier BLOCKED verdict assumed the release point sits 100 mm **directly
-above** the hold point. That is a design choice, not a requirement. Sweeping
-the actual design space (both arm assignments, hold at lip/side/base, release
-offset in all directions, box height 60–200 mm) finds feasible pairs:
+**CORRECTED 2026-08-08.** An earlier version of this section gave the pair as
+*"left holds (+0.10, 0.35, 1.15), right releases (-0.10, 0.35, 1.20)"* with a
+200 mm / 50 mm container. **All four figures were wrong.** Re-measured with
+both arms verified at home (0.0000 rad offset):
 
-    left holds  (+0.10, 0.35, 1.15)   right releases (-0.10, 0.35, 1.20)
-    right holds (-0.10, 0.35, 1.10)   left  releases (+0.10, 0.35, 1.15)
+* **nobody** reaches (+0.10, 0.35, 1.15) — 0 of 5 attempts, either arm;
+* the arm assignment is **swapped**: the RIGHT arm holds;
+* `x = ±0.10` is the margin of each arm's span, passing a single IK call and
+  failing a repeated one (0/5 to 4/5 by height). `x = ±0.15` is 5/5 at every
+  height tested.
 
-**Object spec that follows:** an open-top container whose **opening centre is
-~200 mm horizontally from its grasp handle and ~50 mm above it** — a box on a
-side handle, like a dustpan or a saucepan, *not* a box gripped at the lip.
-The holding gripper must be well clear of the opening; that clearance is
-exactly what accommodates the two arms' separation.
+The old figures came from a sweep taken with the arms displaced from home —
+the same measured-from-the-wrong-pose error that once invalidated a whole
+reachability run.
+
+Measured spans at y = 0.35:  **left x 0.10 … 0.55, right x −0.55 … −0.10.**
+
+**Verified geometry:**
+
+```
+   RIGHT holds the handle          LEFT drops the block in
+        (-0.15, 0.35, 1.10)             (+0.15, 0.35, 1.20)
+              |                                |
+              |<---------- 300 mm ------------>|
+                        100 mm rise
+```
+
+**Object spec:** an open-top container whose **opening centre is 300 mm
+horizontally from its grasp handle and 100 mm above it** — a box on a long
+side handle, like a dustpan. The holding gripper sits well clear of the
+opening, and that clearance is what accommodates the arms' separation.
+
+**Four scenarios, 4 of 4 verified**, each with the complete fill path
+(pick → lift → transit → above-opening → release → retreat) checked at every
+waypoint *while the holding arm is simultaneously solvable at the hold pose*:
+
+| scenario | pick | release | block | tolerance | difficulty |
+| --- | --- | --- | --- | --- | --- |
+| S1 short reach | (+0.30, 0.35, 1.15) | (+0.15, 0.35, 1.20) | 40 mm | 40 mm | pick close to the opening |
+| S2 long reach | (+0.45, 0.35, 1.15) | (+0.15, 0.35, 1.20) | 40 mm | 35 mm | longer transit |
+| S3 height change | (+0.35, 0.35, 1.15) | (+0.15, 0.35, 1.30) | 40 mm | 35 mm | container held 100 mm higher |
+| S4 tight tolerance | (+0.35, 0.35, 1.25) | (+0.15, 0.35, 1.20) | 26 mm | 18 mm | half the placement margin |
+
+Regenerate with `python3 scripts/verify_t2_scenarios.py` (needs the sim up and
+the arms at home).
+
+**Still not instrumented:** the discrete outcome T2 exists for — blocks
+placed, blocks dropped. The runner logs trajectories and timing and says so;
+do not report a success rate from it yet.
 
 ### The T2-vs-T5 trade for the P6 slot — DECISION RECORDED
 

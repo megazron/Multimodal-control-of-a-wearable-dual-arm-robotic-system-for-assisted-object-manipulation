@@ -1,5 +1,111 @@
 # kortex_ws — shared autonomy for a wearable supernumerary robotic limb
 
+## HOW TO RUN THINGS
+
+```bash
+source /opt/ros/jazzy/setup.bash && source ~/kortex_ws/install/setup.bash
+
+ros2 run srl_teleop console       # Dear PyGui dashboard  -- PRIMARY
+ros2 run srl_teleop launcher      # tkinter launcher      -- simpler
+ros2 run srl_teleop teleop_gui    # terminal console      -- SSH / no display
+```
+
+Everything else — every mode, experiment, calibration and diagnostic — is a
+button inside them. The console refuses to start a second stack and says why:
+two `master_pose_node` instances split the serial stream and invalidated a
+full day of measurements.
+
+Experiments from the command line:
+
+```bash
+scripts/run_experiment.sh t3 --participant P01 --condition direct --scenario S1
+scripts/run_experiment.sh t7 --participant P01 --dry-run
+```
+
+## The six operating modes
+
+Two axes: what drives the arm, and how much the robot decides.
+
+| # | mode | input | robot decides | max vel | state |
+| --- | --- | --- | --- | --- | --- |
+| 1 | DIRECT_MANNEQUIN | master arm | nothing | 0.60 | works |
+| 2 | DIRECT_VR | Quest | nothing | 0.60 | works against the mock |
+| 3 | ORIENTATION_ASSIST | master + vision | wrist | 0.60 | **stub** — this `/compute_ik` plugin ignores `OrientationConstraint` |
+| 4 | SHARED_AUTONOMY | master + vision | wrist, target, approach | 0.60 | works |
+| 5 | SUPERVISED_AUTO | point / voice | + grasp, transport, place | **0.25** | works |
+| 6 | FULL_AUTONOMY | voice | + target | **0.15** | works; **perception models unmeasured** |
+
+Autonomy runs **slower** than teleop by design: nobody is watching, so the
+only bound on a wrong motion is how long it takes to happen. All six share one
+safety stack — collision-aware IK, clearance floor, graduated avoidance, joint
+wrapping, e-stop, dead-man — and `assert_safety_invariant()` raises on any
+transition that cannot prove it.
+
+## What works
+
+Real dual-arm control at **21.4 Hz per arm** (two simultaneous Kortex
+sessions, no halving). Homing to within tolerance with residuals scattering
+0.037–0.126°. Grippers on the Kinova **internal bus**, over the existing
+session. Clutch indexing **unbounded** — 338.8 mm over 6 cycles, re-engage
+jump 0.29 mm mean. Graduated collision avoidance, held at 0.072–0.079 m with
+zero hard-floor blocks. E-stop trips on a frozen-but-publishing master in
+0.94 s. Up/down and fore/aft tracking. The full autonomy pipeline, 10/10
+mode-6 checks. The Dear PyGui console at 0.80 ms median frame time.
+
+## What does not
+
+**Lateral tracking** — azimuth comes from j1 alone and couples with arm bend.
+**Left-arm radial motion** — `l_j2` and `l_j4` are incoherent, and no reach
+observable survives them (R² = 0.133). **T4 inter-arm handover** — blocked by
+geometry, 0 of 16 transfer points reachable by both arms. **Mode 3.**
+**Detection rate** — unmeasured, so mode 6 is not participant-ready.
+**Voice input** — `/dev/snd` holds only `timer`. **VR on hardware** — `adb`
+is installed nowhere yet.
+
+## Hardware state
+
+7 of 14 master channels are **INCOHERENT** (over 5% of updates jumping >60°,
+faster than any hand). Degraded mode freezes them and runs on what is left.
+Baseline: `recordings/baselines/channels_20260806.json`. **Repairing `l_j2`
+and `l_j4` buys the most** — see `docs/NEXT_SESSION.md`.
+
+> **Every number in the protocols is IK feasibility in simulation.** Nothing
+> in the bimanual programme has been driven by a human through the master arm,
+> and the DIRECT condition of every task depends on those incoherent channels.
+
+## WSL specifics that cost days
+
+**Mirrored networking is MANDATORY.** In `%UserProfile%\.wslconfig`:
+
+```ini
+[wsl2]
+networkingMode=mirrored
+```
+
+then `wsl --shutdown`. The Kortex driver opens TCP 10000 for config **and UDP
+10001 for the realtime cyclic channel**. Under WSL2's default NAT the UDP
+channel times out: writes take **3–6 seconds**, the controller manager
+overruns permanently, and feedback freezes at one distinct value per joint
+while `ros2 control list_controllers` still reports every controller
+"active". The arm looks faulted and is not.
+
+**The cyclic path is unusable here regardless — use the high-level API.**
+Cyclic control is built for a 1 kHz loop on a dedicated link; over WSL every
+write is a network round trip costing ~10 ms, so at 100 Hz the write alone
+consumes the entire cycle budget. `SendJointSpeedsCommand` over the TCP
+session is a *velocity* command — it holds a motion between sends, so it does
+not need 1 kHz. Measured end to end: **18.4–18.7 Hz**, send latency ~26 ms,
+tracking error 0.01–0.15°. That is far more than the motion needs.
+
+Two traps already paid for: never apply the velocity law twice (the bridge
+uses feedforward + feedback, and the deadband suppresses the *correction*
+only), and never use `time.time()` for intervals — the WSL wall clock steps
+backwards on host resync and once produced a **−2321 ms** latency.
+
+**One Kortex session only.** The arm permits exactly one; a leaked one blocks
+the next run. SIGINT the bridge, never SIGKILL.
+
+
 Two Kinova Gen3 7-DOF arms on a backpack frame, teleoperated from an
 instrumented mannequin arm, with a shared-autonomy layer that supplies the
 degrees of freedom the wearable master physically cannot measure. ROS 2 Jazzy.

@@ -180,3 +180,148 @@ tasks:
       arm: right
       verified: true
       reason: ''
+  T2_hold_fill:
+    S1_short_reach:
+      hold: &id004
+      - -0.15
+      - 0.35
+      - 1.1
+      hold_arm: right
+      fill_arm: left
+      pick:
+      - 0.3
+      - 0.35
+      - 1.15
+      release: &id005
+      - 0.15
+      - 0.35
+      - 1.2
+      block_mm: 40
+      tol_mm: 40
+      why: pick close to the opening, generous release tolerance
+      fill_path:
+      - - 0.3
+        - 0.35
+        - 1.15
+      - - 0.3
+        - 0.35
+        - 1.21
+      - - 0.225
+        - 0.35
+        - 1.26
+      - - 0.15
+        - 0.35
+        - 1.26
+      - - 0.15
+        - 0.35
+        - 1.2
+      - - 0.15
+        - 0.35
+        - 1.26
+      verified: true
+      reason: ''
+    S2_long_reach:
+      hold: *id004
+      hold_arm: right
+      fill_arm: left
+      pick:
+      - 0.45
+      - 0.35
+      - 1.15
+      release: *id005
+      block_mm: 40
+      tol_mm: 35
+      why: pick further out and lower, so the transit is longer
+      fill_path:
+      - - 0.45
+        - 0.35
+        - 1.15
+      - - 0.45
+        - 0.35
+        - 1.21
+      - - 0.3
+        - 0.35
+        - 1.26
+      - - 0.15
+        - 0.35
+        - 1.26
+      - - 0.15
+        - 0.35
+        - 1.2
+      - - 0.15
+        - 0.35
+        - 1.26
+      verified: true
+      reason: ''
+    S3_height_change:
+      hold:
+      - -0.15
+      - 0.35
+      - 1.2
+      hold_arm: right
+      fill_arm: left
+      pick:
+      - 0.35
+      - 0.35
+      - 1.15
+      release:
+      - 0.15
+      - 0.35
+      - 1.3
+      block_mm: 40
+      tol_mm: 35
+      why: container held 100 mm higher; the fill path must climb
+      fill_path:
+      - - 0.35
+        - 0.35
+        - 1.15
+      - - 0.35
+        - 0.35
+        - 1.21
+      - - 0.25
+        - 0.35
+        - 1.36
+      - - 0.15
+        - 0.35
+        - 1.36
+      - - 0.15
+        - 0.35
+        - 1.3
+      - - 0.15
+        - 0.35
+        - 1.36
+      verified: true
+      reason: ''
+    S4_tight_tolerance:
+      hold: *id004
+      hold_arm: right
+      fill_arm: left
+      pick:
+      - 0.35
+      - 0.35
+      - 1.25
+      release: *id005
+      block_mm: 26
+      tol_mm: 18
+      why: '26 mm block into the same opening: half the placement margin'
+      fill_path:
+      - - 0.35
+        - 0.35
+        - 1.25
+      - - 0.35
+        - 0.35
+        - 1.31
+      - - 0.25
+        - 0.35
+        - 1.31
+      - - 0.15
+        - 0.35
+        - 1.26
+      - - 0.15
+        - 0.35
+        - 1.2
+      - - 0.15
+        - 0.35
+        - 1.26
+      verified: true
+      reason: ''

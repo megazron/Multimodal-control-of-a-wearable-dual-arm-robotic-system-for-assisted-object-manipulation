@@ -24,7 +24,7 @@ usage: $0 <task> [args]
     t6    compliant coupled carry    the contrast with T3
     t7    bimanual pursuit           cross-arm interference
     t5    handover to the wearer
-    t2    hold and fill              feasible, but NO verified scenarios yet
+    t2    hold and fill              4 verified scenarios; outcome not instrumented
 
     common args:  --participant P01 [--condition direct|assisted|shared]
                   [--scenario S1..S4] [--scripted] [--dry-run]

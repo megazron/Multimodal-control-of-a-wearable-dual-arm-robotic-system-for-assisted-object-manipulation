@@ -118,3 +118,25 @@ every sim run.
 **No patch here has run against real hardware.** They remove a class of
 collision that is provable statically; whether two real Kortex sessions and
 two real grippers then come up is `docs/NEXT_SESSION.md` item 2 and item 4.
+
+## The duplicate that came FIRST: `robotiq_2f_85_macro`
+
+Before the GPIO fix there was a plainer collision. Both grippers instantiate
+`robotiq_2f_85_macro`, which declared its `<hardware>` component with a fixed
+name. Two instantiations therefore registered **the same hardware component
+name**, and the second to load lost.
+
+That one was fixed upstream-style by prefixing the hardware *name* — and that
+fix is exactly what made the next bug so hard to see. It prefixed the
+component but **not** the `<gpio>` inside it, so the URDF then declared
+`left_reactivate_gripper` while the driver still exported a bare
+`reactivate_gripper` C++ literal. The two disagreed silently, and because
+`robotiq_driver` is `COLCON_IGNORE`d and every gripper test to date ran
+against `mock_components/GenericSystem` — which reads the URDF and never runs
+that C++ — nothing caught it.
+
+**The lesson worth keeping:** a partial fix to a duplicate-resource bug is
+worse than none, because it removes the loud symptom and leaves the quiet
+one. `scripts/audit_dual_arm_collisions.py` now checks all five shapes,
+including C++ string literals, which no URDF-level check can see.
+

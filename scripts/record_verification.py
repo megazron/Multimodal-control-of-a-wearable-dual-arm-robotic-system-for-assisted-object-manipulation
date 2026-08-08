@@ -146,7 +146,19 @@ class Driver(Solver):
             ps.header.frame_id = "world"
             pz = Pose()
             pz.position.x, pz.position.y, pz.position.z = (float(v) for v in xyz)
-            pz.orientation = quat
+            # ASSIGN COMPONENTWISE, never `pz.orientation = quat`. A Quaternion
+            # built from a differently-imported geometry_msgs is a different
+            # Python class to the C extension, which aborts the process with
+            # `quaternion__convert_from_py` rather than raising. Accepting a
+            # plain 4-tuple as well removes the class-identity problem.
+            if hasattr(quat, "x"):
+                qx, qy, qz_, qw = quat.x, quat.y, quat.z, quat.w
+            else:
+                qx, qy, qz_, qw = quat
+            pz.orientation.x = float(qx)
+            pz.orientation.y = float(qy)
+            pz.orientation.z = float(qz_)
+            pz.orientation.w = float(qw)
             ps.pose = pz
             r.pose_stamped = ps
             r.timeout.nanosec = 100_000_000

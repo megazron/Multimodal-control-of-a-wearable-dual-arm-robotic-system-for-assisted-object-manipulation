@@ -77,12 +77,17 @@ RVIZ_CFG = os.path.join(ROOT, "src/srl_experiments/config/verification_capture.r
 # flattens reach depth, the top view is where a coordination error is obvious,
 # and only a tight gripper view answers "did it actually grab it".
 VIEWS = {
-    #  name      display  yaw     pitch  dist  focal(x,y,z)          hud
-    "front":  (":91", 1.5708, 0.32, 2.25, (0.0, 0.26, 1.16), True),
-    "side":   (":92", 0.0000, 0.20, 2.10, (0.0, 0.30, 1.15), False),
-    "top":    (":93", 1.5708, 1.40, 2.30, (0.0, 0.30, 1.15), False),
-    "gripper": (":94", 1.5708, 0.25, 0.45, (0.0, 0.0, 0.0), False),
+    #  name       display  yaw      pitch  dist  focal(x,y,z)         hud
+    "front":   (":91", 1.5708, 0.32, 2.25, (0.0, 0.26, 1.16), True),
+    "back":    (":95", -1.5708, 0.30, 2.25, (0.0, 0.10, 1.20), False),
+    "left":    (":92", 0.0000, 0.20, 2.10, (0.0, 0.30, 1.15), False),
+    "right":   (":96", 3.1416, 0.20, 2.10, (0.0, 0.30, 1.15), False),
+    "iso":     (":97", 0.9000, 0.45, 2.40, (0.0, 0.26, 1.16), False),
+    "top":     (":93", 1.5708, 1.40, 2.30, (0.0, 0.30, 1.15), False),
+    "gripper": (":94", 1.5708, 0.25, 0.40, (0.0, 0.0, 0.0), False),
 }
+# The quad is a quick-review tile, not all seven: front | left / top | gripper
+QUAD = ("front", "left", "top", "gripper")
 VW, VH = 800, 500          # per view; the 2x2 tile is 1600x1000
 W, H = VW, VH
 CONDITIONS = ("direct", "assisted", "shared")
@@ -115,6 +120,59 @@ def holding(knuckle):
 
 
 KNUCKLE = "%s_robotiq_85_left_knuckle_joint"
+
+# ---------------------------------------------------------------- grasping
+sys.path.insert(0, os.path.join(ROOT, "src/srl_autonomy"))
+from srl_autonomy import grasp_library as gl                    # noqa: E402
+
+# Which library object each task's grasped item is. Sizes drive both the
+# finger width and the minor-axis alignment.
+TASK_OBJECT = {"t2": "tag_0",      # 40 mm cube
+               "t5": "tag_5",      # narrow rod, the tool handle
+               "t3": "tag_2", "t6": "tag_2"}
+
+
+def _q(t):
+    """Pass orientations as plain 4-tuples -- see the note in solve_joints."""
+    return tuple(float(v) for v in t)
+
+
+def plan_grasp(dr, arm, position, object_id, yaw=0.0, step=0.02):
+    """A REAL grasp: wrist aligned to the object, standoff, validated approach.
+
+    Uses the existing generator (srl_autonomy/grasp_library) rather than a
+    second implementation. For each candidate yaw it requires the pre-grasp
+    standoff, the grasp itself AND every point on the straight-line approach
+    between them to solve -- a grasp that passes IK at the endpoint but strikes
+    something on the way in is the documented failure mode.
+
+    Returns a plan, or a dict with `refused` naming why. A refusal is
+    information and is reported rather than silently worked around.
+    """
+    cands = gl.candidates(object_id, position, yaw, 8)
+    first_why = None
+    for c in cands:
+        pre = gl.pregrasp(c)
+        q = _q(c["quat"])
+        if dr.solve_joints(arm, list(pre["position"]), q) is None:
+            first_why = first_why or "pre-grasp standoff not solvable"
+            continue
+        if dr.solve_joints(arm, list(c["position"]), q) is None:
+            first_why = first_why or "grasp pose not solvable"
+            continue
+        path = densify([list(pre["position"]), list(c["position"])], step)
+        if any(dr.solve_joints(arm, w, q) is None for w in path):
+            first_why = first_why or "approach path blocked"
+            continue
+        return dict(ok=True, arm=arm, quat=c["quat"],
+                        grasp=list(c["position"]),
+                    pregrasp=list(pre["position"]), path=path,
+                    width_mm=1000.0 * gl.graspable_width(object_id),
+                    yaw_deg=math.degrees(c["yaw_offset"]),
+                    approach_m=c["approach"])
+    return dict(ok=False,
+                refused=first_why or "no candidate solvable",
+                width_mm=1000.0 * gl.graspable_width(object_id))
 
 
 # ------------------------------------------------------------------ markers
@@ -282,7 +340,9 @@ class Scene:
                                      self.run["condition"])
         add(rgba(scale(at(hdr, (0.0, 0.0, 1.95)), .001, .001, .085), 1, 1, 1))
         sub = mk("hud", 1, Marker.TEXT_VIEW_FACING)
-        sub.text = "t=%.1f s | %s | %s" % (t, metric_text, phase)
+        note = self.run.get("grasp_note", "")
+        sub.text = "t=%.1f s | %s | %s%s" % (
+            t, metric_text, phase, (" | " + note) if note else "")
         add(rgba(scale(at(sub, (0.0, 0.0, 1.85)), .001, .001, .062),
                  1.0, .85, .3))
         return A
@@ -604,8 +664,7 @@ def stop_grabs(procs):
 
 def make_quad(out_dir):
     """2x2 tile: the one file worth watching. front | side / top | gripper."""
-    src = [os.path.join(out_dir, "rviz_%s.mp4" % n)
-           for n in ("front", "side", "top", "gripper")]
+    src = [os.path.join(out_dir, "rviz_%s.mp4" % n) for n in QUAD]
     if not all(os.path.exists(p) and os.path.getsize(p) > 20000 for p in src):
         return False
     dst = os.path.join(out_dir, "rviz_quad.mp4")
@@ -778,6 +837,32 @@ def run_one(dr, pub, hud_pub, run, cond, out_dir, fps=10.0):
         for a in ("left", "right"):
             dr.send_gripper(a, grip_schedule(task, sc, a, frac, phase))
 
+    # ---- plan a REAL grasp where the generator allows one
+    plan = None
+    grasp_note = ""
+    if task in TASK_OBJECT:
+        # Attempt a real grasp for EVERY grasping task, not just the one known
+        # to work. Where the generator refuses, the refusal is recorded and
+        # shown in the overlay, and the clip shows the arm doing what it can.
+        if task == "t2":
+            arm_g, pick = sc["fill_arm"], list(sc["pick"])
+        elif task == "t5":
+            arm_g, pick = sc.get("arm", "right"), list(sc["object"])
+        else:                                    # t3 / t6: the tray edge
+            sep = float(sc.get("sep", 0.310))
+            w0 = sc["path"][0]
+            arm_g = "left"
+            pick = [w0[0] + sep / 2, w0[1], w0[2]]
+        plan = plan_grasp(dr, arm_g, pick, TASK_OBJECT[task])
+        if plan.get("ok"):
+            grasp_note = ("top-down grasp, wrist yaw %+.0f deg, standoff %.0f mm"
+                          % (plan["yaw_deg"], 1000 * plan["approach_m"]))
+        else:
+            grasp_note = "GRASP REFUSED: %s" % plan["refused"]
+        print("      grasp plan: %s" % grasp_note)
+    run["grasp_note"] = grasp_note
+    run["plan"] = plan
+
     go_home(dr)
     set_grips(0.0, "approach")          # OPEN before the approach
     dr.spin(1.0)
@@ -819,14 +904,54 @@ def run_one(dr, pub, hud_pub, run, cond, out_dir, fps=10.0):
         frames += 1
 
     first = {a: np.asarray(p[0], float) for a, p in dense.items()}
-    for arm, tgt in first.items():
-        sol = dr.solve_joints(arm, list(tgt), q[arm])
-        if sol is not None:
-            dr.send(arm, sol, 1.6)
-    for _ in range(int(1.6 * fps)):
-        dr.spin(1.0 / fps)
-        tick("approach", 0.0, first)
-    prev.update(first)
+
+    if plan is not None and plan.get("ok"):
+        # ---------------- REAL GRASP: pregrasp -> approach -> close -> lift
+        ga = plan["arm"]
+        gq = _q(plan["quat"])
+        hold_arm = sc.get("hold_arm")
+        hp_ = np.asarray(sc["hold"], float) if hold_arm else None
+        if hold_arm:
+            sol = dr.solve_joints(hold_arm, list(hp_), q[hold_arm])
+            if sol is not None:
+                dr.send(hold_arm, sol, 1.6)
+
+        def go(pose, quat, secs, phase, frac, grip):
+            sol = dr.solve_joints(ga, list(pose), quat)
+            if sol is not None:
+                dr.send(ga, sol, secs)
+            dr.send_gripper(ga, grip)
+            for _ in range(max(2, int(secs * fps))):
+                dr.spin(1.0 / fps)
+                tick(phase, frac, {ga: np.asarray(pose, float)})
+
+        # 1 PRE-GRASP: standoff, gripper OPEN, wrist already aligned
+        go(plan["pregrasp"], gq, 2.0, "pregrasp", 0.0, GRIP_OPEN)
+        # 2 APPROACH: straight line down the approach vector, still open
+        for k, w in enumerate(plan["path"][1:], 1):
+            go(w, gq, 0.30, "approach_vec",
+               0.05 * k / max(1, len(plan["path"])), GRIP_OPEN)
+        # 3 CLOSE to the object's width -- not fully shut
+        gw = grip_for(plan["width_mm"])
+        for _ in range(int(1.4 * fps)):
+            dr.send_gripper(ga, gw)
+            dr.spin(1.0 / fps)
+            tick("close", 0.12, {ga: np.asarray(plan["grasp"], float)})
+        # 4 LIFT back along the approach vector before transiting
+        for w in reversed(plan["path"][:-1]):
+            go(w, gq, 0.30, "lift", 0.16, gw)
+        prev[ga] = np.asarray(plan["pregrasp"], float)
+        if hold_arm:
+            prev[hold_arm] = hp_
+    else:
+        for arm, tgt in first.items():
+            sol = dr.solve_joints(arm, list(tgt), q[arm])
+            if sol is not None:
+                dr.send(arm, sol, 1.6)
+        for _ in range(int(1.6 * fps)):
+            dr.spin(1.0 / fps)
+            tick("approach", 0.0, first)
+        prev.update(first)
 
     for i in range(0, nmax, stride):
         cmd = {}
@@ -853,7 +978,13 @@ def run_one(dr, pub, hud_pub, run, cond, out_dir, fps=10.0):
     json.dump(grip_trace, open(os.path.join(out_dir, "grip_trace.json"), "w"))
     ks = [g for g in grip_trace if g.get(active_arm(task, sc)) is not None]
     vals = [g[active_arm(task, sc)] for g in ks]
+    pl = run.get("plan") or {}
     return dict(frames=frames, duration_s=dur, quad=quad,
+                grasp_planned=bool(pl.get("ok")),
+                grasp_refused=pl.get("refused", ""),
+                grasp_yaw_deg=pl.get("yaw_deg"),
+                grasp_width_mm=pl.get("width_mm"),
+                grasp_standoff_m=pl.get("approach_m"),
                 blocks_placed=len(scene.placed),
                 ball_fallen=bool(scene.ball_fallen),
                 tool_delivered=scene.tool_released_at is not None,

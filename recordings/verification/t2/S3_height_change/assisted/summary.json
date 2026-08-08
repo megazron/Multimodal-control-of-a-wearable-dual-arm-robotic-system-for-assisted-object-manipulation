@@ -1,0 +1,16 @@
+{
+  "task": "t2",
+  "scenario": "S3_height_change",
+  "condition": "assisted",
+  "note": "right holds, left fills",
+  "frames": 77,
+  "duration_s": 16.519262346002506,
+  "tracking_rms_mm": 0.7566637580225404,
+  "tracking_max_mm": 1.8134229851630441,
+  "tracking_rms_incl_approach_mm": 144.3840764327374,
+  "min_clearance_m": 0.049329596518128654,
+  "clearance_to": "torso",
+  "ee_travel_m": 1.4563236996324482,
+  "passes_through_wearer": false,
+  "below_real_floor": true
+}

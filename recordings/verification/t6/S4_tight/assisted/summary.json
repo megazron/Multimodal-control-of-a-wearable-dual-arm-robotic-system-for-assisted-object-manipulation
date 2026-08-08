@@ -1,0 +1,16 @@
+{
+  "task": "t6",
+  "scenario": "S4_tight",
+  "condition": "assisted",
+  "note": "compliant sling, 330 mm span",
+  "frames": 36,
+  "duration_s": 5.464609340007883,
+  "tracking_rms_mm": 1.5852490309357126,
+  "tracking_max_mm": 2.881191017410635,
+  "tracking_rms_incl_approach_mm": 249.39786247735168,
+  "min_clearance_m": 0.05824377441919084,
+  "clearance_to": "torso",
+  "ee_travel_m": 1.370614501054591,
+  "passes_through_wearer": false,
+  "below_real_floor": true
+}

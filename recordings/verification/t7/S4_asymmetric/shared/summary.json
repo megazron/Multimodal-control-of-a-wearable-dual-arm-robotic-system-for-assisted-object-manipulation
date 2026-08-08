@@ -1,0 +1,16 @@
+{
+  "task": "t7",
+  "scenario": "S4_asymmetric",
+  "condition": "shared",
+  "note": "pursuit, left 0.30 / right 0.08 m/s",
+  "frames": 102,
+  "duration_s": 23.294197125011124,
+  "tracking_rms_mm": 2.3600370043579217,
+  "tracking_max_mm": 5.248040973038735,
+  "tracking_rms_incl_approach_mm": 89.06950769581142,
+  "min_clearance_m": 0.18595659462975206,
+  "clearance_to": "torso",
+  "ee_travel_m": 2.7223025659397857,
+  "passes_through_wearer": false,
+  "below_real_floor": false
+}

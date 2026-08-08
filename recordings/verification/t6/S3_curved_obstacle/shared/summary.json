@@ -1,0 +1,16 @@
+{
+  "task": "t6",
+  "scenario": "S3_curved_obstacle",
+  "condition": "shared",
+  "note": "compliant sling, 310 mm span",
+  "frames": 39,
+  "duration_s": 6.306822574988473,
+  "tracking_rms_mm": 1.9574146432574038,
+  "tracking_max_mm": 3.817886784639217,
+  "tracking_rms_incl_approach_mm": 246.37548295327298,
+  "min_clearance_m": 0.05201130621311833,
+  "clearance_to": "torso",
+  "ee_travel_m": 1.4543851619469754,
+  "passes_through_wearer": false,
+  "below_real_floor": true
+}

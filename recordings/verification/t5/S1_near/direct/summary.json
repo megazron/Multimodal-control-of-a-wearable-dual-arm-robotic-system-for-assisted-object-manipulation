@@ -1,0 +1,16 @@
+{
+  "task": "t5",
+  "scenario": "S1_near",
+  "condition": "direct",
+  "note": "right arm delivers to the wearer",
+  "frames": 60,
+  "duration_s": 11.658858816022985,
+  "tracking_rms_mm": 2.527388394219871,
+  "tracking_max_mm": 4.5266410769237035,
+  "tracking_rms_incl_approach_mm": 153.47609280433298,
+  "min_clearance_m": 0.0677033387356577,
+  "clearance_to": "torso",
+  "ee_travel_m": 0.9055867769089484,
+  "passes_through_wearer": false,
+  "below_real_floor": true
+}

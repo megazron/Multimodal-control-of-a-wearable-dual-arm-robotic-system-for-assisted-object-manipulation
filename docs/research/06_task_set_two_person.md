@@ -175,34 +175,82 @@ nothing.
 
 ---
 
-## THE CLEARANCE FINDING — from the recordings, not from IK
+## THE CLEARANCE FINDING — RESOLVED, with a measured fix
 
-Every T3/T6 scenario passes IK with `avoid_collisions=True`, so MoveIt reports
-the poses valid. Driving them and measuring with the project's **own**
-`clearance.py` gives a different answer:
+Recording all 87 clips showed every chest-band scenario at **48-67 mm** of
+clearance to the wearer's torso: IK-valid, contact-free, and **below the
+120 mm floor `real_robot` enforces**. MoveIt's `avoid_collisions` is binary
+contact; the floor is a margin, and a scenario can pass one and be refused by
+the other.
 
-> **T3/T6 carry paths bring the arms to within 51–62 mm of the wearer's
-> torso** — comfortably clear of contact, and **below the 120 mm floor
-> `real_robot` mode enforces.**
+`scripts/probe_task_band_clearance.py` then answered the three questions the
+clips cannot.
 
-This is consistent with CLAUDE.md's own "through-range clearance +0.0495 /
-+0.0544 m", so it is not new physics — but it had never been connected to the
-task scenarios. **MoveIt's collision check is binary contact; the real-robot
-floor is a margin.** A scenario can pass one and be refused by the other.
+**1. WHICH LINK?** `spherical_wrist_1_link` on 9 of 12 probes,
+`spherical_wrist_2_link` on the other 3. **Not the forearm** — so this is not
+a path routing problem. The wrist is two links from the gripper, which says
+the TARGETS are too close to the torso, not that the arm takes a bad route to
+them.
 
-**Consequence:** as specified, T3 and T6 would be **blocked by the clearance
-floor on real hardware** even though every waypoint is IK-valid. Options, in
-order of preference:
+**2. MOVING THE BAND FORWARD DOES NOT WORK.** Clearance and reach are in
+direct conflict in y:
 
-1. **Move the carry band forward in y** (0.35 → 0.45) to buy torso clearance,
-   then re-verify — the band was chosen for reachability alone.
-2. Run T3/T6 **bench-mounted**, which the protocol already permits and records
-   as `mounting: bench`.
-3. Lower the floor for these tasks, which I do **not** recommend: the floor is
-   the last thing between the arms and a person's chest.
+| y | worst clearance | reachable | verdict |
+| --- | --- | --- | --- |
+| 0.35 (current) | 0.051 m | 6/6 | below floor |
+| 0.40 | 0.084 m | 5/6 | below floor |
+| 0.45 | **0.131 m** | **1/6** | clears, but unreachable |
+| 0.50, 0.55 | — | 0/6 | unreachable |
 
-Not applied here — it changes verified geometry and must be re-verified as one
-deliberate pass.
+The band that clears the floor cannot be reached; the band that can be reached
+does not clear the floor. This is the same trade-off recorded for the mount in
+CLAUDE.md, reappearing at the task level.
+
+**3. MOVING THE BAND OUTBOARD DOES WORK, and this is the fix.** Sweeping the
+half-span at y = 0.35:
+
+| half-span x | worst clearance | reachable | verdict |
+| --- | --- | --- | --- |
+| **0.155 (current)** | 0.054 m | 6/6 | **below floor** |
+| 0.200 | 0.090 m | 6/6 | below floor |
+| **0.250** | **0.134 m** | **6/6** | **CLEARS — the minimum that works** |
+| 0.300 | 0.176 m | 6/6 | clears |
+| 0.350 | 0.219 m | 6/6 | clears |
+| 0.400 | 0.265 m | 6/6 | clears |
+
+**Every lateral position from 0.25 m outward clears the floor and stays fully
+reachable.** The recordings independently corroborate it: T7 and T8 work at
+|x| >= 0.40 and measured **0.158-0.187 m** across 30 clips, with zero below
+the floor.
+
+### What the fix costs, and why it is NOT applied here
+
+A half-span of 0.25 m means a **500 mm tray**, not 310 mm. That is not a free
+parameter — it propagates:
+
+* **T6's sling fails.** `SLING_L = 350 mm` retains the ball only to
+  `s_max = 340.7 mm`. At 500 mm separation the sling is taut and the ball is
+  gone before the trial starts. A 500 mm working separation needs
+  **L >= 507 mm** for the same 40 mm ball, so the sling becomes ~520 mm — and
+  the whole point of L=350 was that the failure threshold sat INSIDE the
+  reachable band. That property must be re-established, not assumed.
+* **T3's tilt metric rescales.** `tilt = atan2(dz, span)`, so at 500 mm the
+  same 60 mm height difference is 6.8 deg rather than 11.3 deg. The
+  ball-rolls-off threshold is a property of the tray, and it moves.
+* **T2's container changes.** The opening sits 300 mm from the handle now; at
+  a 500 mm separation it would be 500 mm, which is no longer a saucepan.
+
+So the fix is **recorded and not applied**. It changes verified geometry, the
+object specifications and two thresholds, and it must be one deliberate pass
+with full re-verification — the same discipline applied to the mount sweep.
+
+### T5 is different and must not be "fixed"
+
+T5 measured 0.068-0.095 m, also below the floor — but T5 is a **handover to
+the wearer**. The arm is supposed to come to their waist; low clearance is the
+task, not a defect. T5 needs a task-scoped exemption with the wearer's
+knowledge and consent, not a relocated target. Conflating the two would either
+break T5 or quietly lower the floor for everything.
 
 ---
 

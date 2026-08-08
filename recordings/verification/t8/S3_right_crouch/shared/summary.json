@@ -1,0 +1,16 @@
+{
+  "task": "t8",
+  "scenario": "S3_right_crouch",
+  "condition": "shared",
+  "note": "right arm; wearer must crouch",
+  "frames": 53,
+  "duration_s": 9.838275939022424,
+  "tracking_rms_mm": 1.6575552218960397,
+  "tracking_max_mm": 2.773674460371905,
+  "tracking_rms_incl_approach_mm": 165.22854412958716,
+  "min_clearance_m": 0.16951000908257374,
+  "clearance_to": "torso",
+  "ee_travel_m": 0.7147991115695135,
+  "passes_through_wearer": false,
+  "below_real_floor": false
+}

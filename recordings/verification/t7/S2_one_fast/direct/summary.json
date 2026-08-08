@@ -1,0 +1,16 @@
+{
+  "task": "t7",
+  "scenario": "S2_one_fast",
+  "condition": "direct",
+  "note": "pursuit, left 0.20 / right 0.05 m/s",
+  "frames": 89,
+  "duration_s": 19.838601572992047,
+  "tracking_rms_mm": 2.364115123791356,
+  "tracking_max_mm": 6.232689338831944,
+  "tracking_rms_incl_approach_mm": 95.12243769003692,
+  "min_clearance_m": 0.18094785207973324,
+  "clearance_to": "torso",
+  "ee_travel_m": 2.5060762401682357,
+  "passes_through_wearer": false,
+  "below_real_floor": false
+}

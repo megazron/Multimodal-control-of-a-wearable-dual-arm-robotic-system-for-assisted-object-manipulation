@@ -1,0 +1,16 @@
+{
+  "task": "t8",
+  "scenario": "S4_right_step_forward",
+  "condition": "shared",
+  "note": "right arm; wearer must step forward",
+  "frames": 59,
+  "duration_s": 11.395505864988081,
+  "tracking_rms_mm": 1.9290304356272225,
+  "tracking_max_mm": 3.807793564640226,
+  "tracking_rms_incl_approach_mm": 157.6631752310401,
+  "min_clearance_m": 0.16951000908257374,
+  "clearance_to": "torso",
+  "ee_travel_m": 0.7688624901337338,
+  "passes_through_wearer": false,
+  "below_real_floor": false
+}

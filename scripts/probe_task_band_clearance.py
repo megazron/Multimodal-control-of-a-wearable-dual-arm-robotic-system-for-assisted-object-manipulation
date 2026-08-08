@@ -40,6 +40,12 @@ FLOOR_SIM = 0.05
 Y_CANDIDATES = (0.35, 0.40, 0.45, 0.50, 0.55)
 X_PROBE = 0.155        # T3/T6 tray half-span; also close to T2's hold/opening
 Z_PROBE = (1.10, 1.20, 1.30)
+# Moving the band FORWARD does not work -- y=0.45 clears the floor but only
+# 1 of 6 poses is reachable, and 0.50+ is unreachable. The closest link is the
+# WRIST, not the forearm, which says the targets are too close to the torso
+# LATERALLY rather than the path being wrong. T7 and T8 work at |x| >= 0.40
+# and clear 0.16-0.19 m, so x is the axis with headroom. This sweep tests it.
+X_CANDIDATES = (0.155, 0.20, 0.25, 0.30, 0.35, 0.40)
 
 
 class P(Solver):
@@ -154,6 +160,37 @@ def main():
                      "CLEARS" if min(vals) >= FLOOR_REAL else "below floor"))
         else:
             print("  y = %.2f   nothing reachable" % y)
+
+    # ------------------------------------------------------------ x sweep
+    print("\nLATERAL SWEEP -- half-span x at y=0.35, the reachable band")
+    print("  %-7s %-5s %-6s %10s  %s" % ("x", "z", "arm", "clearance", "verdict"))
+    xres = []
+    for xx in X_CANDIDATES:
+        for z in (1.10, 1.20, 1.30):
+            for arm, sx in (("left", +1), ("right", -1)):
+                if not drive(arm, [sx * xx, 0.35, z]):
+                    xres.append((xx, z, arm, float("nan"), False))
+                    print("  %-7.3f %-5.2f %-6s %10s  UNREACHABLE"
+                          % (xx, z, arm, "-"))
+                    continue
+                d, who, link = n.worst_link(arm)
+                ok = d >= FLOOR_REAL
+                xres.append((xx, z, arm, d, ok))
+                print("  %-7.3f %-5.2f %-6s %9.3f m  %s"
+                      % (xx, z, arm, d,
+                         "clears 120 mm" if ok else "below floor"))
+    print("\n  half-span   worst clearance   reachable   verdict")
+    for xx in X_CANDIDATES:
+        v = [r[3] for r in xres if r[0] == xx and r[3] == r[3]]
+        tot = sum(1 for r in xres if r[0] == xx)
+        if v:
+            print("   %.3f m     %.3f m           %d/%d         %s"
+                  % (xx, min(v), len(v), tot,
+                     "CLEARS" if min(v) >= FLOOR_REAL else "below floor"))
+        else:
+            print("   %.3f m     -                 0/%d         unreachable"
+                  % (xx, tot))
+    print("\n  A tray span is 2x the half-span: x=0.30 means a 600 mm tray.")
 
     links = {}
     for r in results:

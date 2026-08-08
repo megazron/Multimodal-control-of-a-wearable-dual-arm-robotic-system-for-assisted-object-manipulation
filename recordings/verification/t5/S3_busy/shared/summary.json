@@ -1,0 +1,16 @@
+{
+  "task": "t5",
+  "scenario": "S3_busy",
+  "condition": "shared",
+  "note": "right arm delivers to the wearer",
+  "frames": 62,
+  "duration_s": 12.157084925012896,
+  "tracking_rms_mm": 2.2602358522547235,
+  "tracking_max_mm": 4.2137122952183725,
+  "tracking_rms_incl_approach_mm": 150.8401932123968,
+  "min_clearance_m": 0.06774762028099121,
+  "clearance_to": "torso",
+  "ee_travel_m": 0.8501298762381164,
+  "passes_through_wearer": false,
+  "below_real_floor": true
+}

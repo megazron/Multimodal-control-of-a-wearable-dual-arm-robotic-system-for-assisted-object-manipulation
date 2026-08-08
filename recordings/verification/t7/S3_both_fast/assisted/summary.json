@@ -1,0 +1,16 @@
+{
+  "task": "t7",
+  "scenario": "S3_both_fast",
+  "condition": "assisted",
+  "note": "pursuit, left 0.20 / right 0.20 m/s",
+  "frames": 89,
+  "duration_s": 19.783025154989446,
+  "tracking_rms_mm": 3.972620985544437,
+  "tracking_max_mm": 9.000951909622675,
+  "tracking_rms_incl_approach_mm": 94.89905391174047,
+  "min_clearance_m": 0.17453279346407424,
+  "clearance_to": "torso",
+  "ee_travel_m": 3.4716564797145573,
+  "passes_through_wearer": false,
+  "below_real_floor": false
+}

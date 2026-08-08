@@ -4487,10 +4487,31 @@ does. Consistent with CLAUDE.md's own "through-range clearance +0.0495 /
 +0.0544 m" — the number was known, but had never been connected to the task
 scenarios.
 
-**Resolve by moving the task, not the floor.** Either push the carry band
-forward in y, or run bench-mounted. Lowering the floor is not available: it is
-the last thing between the arms and the chest of someone who did not choose
-the motion.
+**RESOLVED by measurement** (`scripts/probe_task_band_clearance.py`):
+
+- the closest link is **`spherical_wrist_1_link`** (9/12 probes), not the
+  forearm -- so the TARGETS are too close to the torso, not the path;
+- **forward in y does NOT work**: y=0.45 clears 0.131 m but only 1 of 6 poses
+  is reachable, and 0.50+ is unreachable. Clearance and reach conflict in y,
+  exactly as they do for the mount;
+- **outboard in x DOES work**: half-span 0.155 -> **0.25 m** gives 0.134 m
+  clearance at **6/6 reachable**, and every value from 0.25 to 0.40 clears.
+  Corroborated by the recordings: T7/T8 work at |x| >= 0.40 and measured
+  0.158-0.187 m over 30 clips, none below the floor.
+
+**NOT APPLIED.** A 0.25 m half-span is a **500 mm tray**, and that propagates:
+T6's 350 mm sling retains only to 340.7 mm separation so the ball would be
+gone before the trial starts (needs L >= 507 mm); T3's tilt threshold
+rescales, since 60 mm over 500 mm is 6.8 deg not 11.3; and T2's container
+opening moves from 300 mm to 500 mm from the handle. One deliberate pass with
+full re-verification, as with the mount.
+
+**T5 is exempt and must stay so.** It measured 0.068-0.095 m, but T5 is a
+handover TO the wearer -- the arm is meant to reach their waist. Low clearance
+there is the task, not a defect, and it needs a scoped exemption rather than a
+moved target. Lowering the floor globally is not available: it is the last
+thing between the arms and the chest of someone who did not choose the
+motion.
 
 ## Verification recordings
 

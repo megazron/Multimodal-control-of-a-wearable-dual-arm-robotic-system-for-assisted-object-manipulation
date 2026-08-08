@@ -1,0 +1,16 @@
+{
+  "task": "t8",
+  "scenario": "S1_left_lean_forward",
+  "condition": "direct",
+  "note": "left arm; wearer must lean forward",
+  "frames": 57,
+  "duration_s": 10.84282667399384,
+  "tracking_rms_mm": 1.8471899972343484,
+  "tracking_max_mm": 3.2066198988375425,
+  "tracking_rms_incl_approach_mm": 146.75050717079353,
+  "min_clearance_m": 0.1578497361130598,
+  "clearance_to": "torso",
+  "ee_travel_m": 0.6952882078477314,
+  "passes_through_wearer": false,
+  "below_real_floor": false
+}

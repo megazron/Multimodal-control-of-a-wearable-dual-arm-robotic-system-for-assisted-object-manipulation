@@ -1,0 +1,16 @@
+{
+  "task": "t9",
+  "scenario": "S4_sway_100mm",
+  "condition": "shared",
+  "note": "wearer sway 100 mm -- arm must HOLD a world-fixed point",
+  "frames": 75,
+  "duration_s": 15.968875649996335,
+  "tracking_rms_mm": 2.3234209507044548,
+  "tracking_max_mm": 4.185486232254851,
+  "tracking_rms_incl_approach_mm": 117.46390755906411,
+  "min_clearance_m": 0.11689832172408104,
+  "clearance_to": "torso",
+  "ee_travel_m": 1.9671582665268519,
+  "passes_through_wearer": false,
+  "below_real_floor": true
+}

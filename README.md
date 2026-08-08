@@ -23,7 +23,25 @@ git clone -b main   https://github.com/Kinovarobotics/ros2_kortex.git
 git clone -b main   https://github.com/Kinovarobotics/ros2_kortex_vision.git
 git clone -b main   https://github.com/PickNikRobotics/ros2_robotiq_gripper.git
 cd ..
-for p in patches/000*.patch; do git apply --directory=src "$p"; done
+# From the REPO ROOT. The patch paths already begin with src/, so
+# `git apply --directory=src` doubles it into src/src/ and every hunk fails.
+# --fuzz absorbs upstream line drift: these are cut against a moving `main`.
+for p in patches/000*.patch; do patch -p1 --forward --fuzz=3 -i "$p"; done
+```
+
+**Verified from a clean clone on 2026-08-08.** 0001 and 0002 applied exactly;
+0003 needed `fuzz 3 (offset -10 lines)` because `ros2_robotiq_gripper` `main`
+has moved since it was cut. If a hunk ever fails outright, the change each
+patch makes is one line of prose in `patches/README.md` and can be redone by
+hand — they are small.
+
+Confirm they landed:
+
+```bash
+grep -n 'prefix}reactivate_gripper' \
+  src/ros2_robotiq_gripper/robotiq_description/urdf/2f_85.ros2_control.xacro
+grep -n 'prefix + "reactivate_gripper"' \
+  src/ros2_robotiq_gripper/robotiq_driver/src/hardware_interface.cpp
 ```
 
 The patches are **required** for dual-arm operation — without them both arms
@@ -40,6 +58,21 @@ its `.git` removed. Reasoning and the command to refresh it are in
 It is a build dependency of `robotiq_driver`, which is currently
 `COLCON_IGNORE`d for unrelated reasons, so nothing in the default build
 needs it today.
+
+### 2b. Build it
+
+```bash
+colcon build --symlink-install
+```
+
+**Verified from a clean clone on 2026-08-08: 21 packages, 0 failures.**
+
+Note that a fresh clone builds *more* than the original working tree did.
+`robotiq_driver` and `robotiq_hardware_tests` were `COLCON_IGNORE`d there
+because the `serial` CMake package was missing; vendoring `src/serial` into
+this repo removed that obstacle, so both now build. Those `COLCON_IGNORE`
+files were never tracked (they live inside a gitignored vendor package), so
+they do not come across.
 
 ### 3. Python environments and model weights — rebuild, do not clone
 

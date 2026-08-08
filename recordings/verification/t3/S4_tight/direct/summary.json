@@ -1,0 +1,16 @@
+{
+  "task": "t3",
+  "scenario": "S4_tight",
+  "condition": "direct",
+  "note": "rigid tray, 330 mm span, vertical lift",
+  "frames": 36,
+  "duration_s": 5.473801258020103,
+  "tracking_rms_mm": 1.4610747705508889,
+  "tracking_max_mm": 2.893787964503549,
+  "tracking_rms_incl_approach_mm": 249.81938895038536,
+  "min_clearance_m": 0.058196235386306465,
+  "clearance_to": "torso",
+  "ee_travel_m": 1.3909750517542827,
+  "passes_through_wearer": false,
+  "below_real_floor": true
+}

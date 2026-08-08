@@ -8,7 +8,14 @@ package_name = 'srl_experiments'
 # protocol documents describe it. run_*.py / analyse_*.py are installed as
 # executables (`ros2 run srl_experiments run_fitts.py`) rather than as module
 # entry points, so the folder on disk and the thing you run are the same file.
-EXP_SCRIPTS = sorted(glob('experiments/*/run_*.py') + glob('experiments/*/analyse_*.py'))
+# TWO levels, not one. The bimanual set nests one folder deeper
+# (experiments/bimanual/t3_coordinated_carry/analyse_t3.py), so a single-level
+# glob installed run_bimanual.py and NONE of the seven analysers -- they have
+# never been packaged, and `ros2 run srl_experiments analyse_t3.py` has always
+# failed while looking like an installation problem.
+EXP_SCRIPTS = sorted(
+    glob('experiments/*/run_*.py') + glob('experiments/*/analyse_*.py')
+    + glob('experiments/*/*/run_*.py') + glob('experiments/*/*/analyse_*.py'))
 
 data_files = [
     ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
@@ -18,14 +25,14 @@ data_files = [
 ]
 # protocol.md, config.yaml and scenarios/ travel with the package so a run is
 # reproducible from the install tree alone.
-for d in sorted(glob('experiments/*/')):
-    exp = d.rstrip('/').split('/')[-1]
+for d in sorted(glob('experiments/*/') + glob('experiments/*/*/')):
+    rel = d.rstrip('/')[len('experiments/'):]
     files = [f for f in glob(d + '*') if f.endswith(('.md', '.yaml'))]
     if files:
-        data_files.append(('share/%s/experiments/%s' % (package_name, exp), files))
+        data_files.append(('share/%s/experiments/%s' % (package_name, rel), files))
     scen = glob(d + 'scenarios/*.yaml')
     if scen:
-        data_files.append(('share/%s/experiments/%s/scenarios' % (package_name, exp), scen))
+        data_files.append(('share/%s/experiments/%s/scenarios' % (package_name, rel), scen))
 
 setup(
     name=package_name,

@@ -1,0 +1,129 @@
+\chapter{Discussion}
+\label{ch:discussion}
+
+\section{What the geometry decides}
+
+The most consequential finding of this project is not a control result but a
+geometric one: the two arms, as mounted and as parked, share no reachable
+workspace. That single fact removes an entire class of task from the
+programme, and it does so in a way no amount of planning, control or autonomy
+can address, because the constraint is on where the arms can be at all rather
+than on how they get there.
+
+It is worth being precise about what follows from it and what does not. Tasks
+requiring the two arms to meet at a point are blocked. Tasks requiring two
+distinct points a fixed distance apart are not, and were shown to be feasible
+in a band at chest height. The distinction was initially missed, and a
+bimanual programme was briefly declared blocked on the strength of a test that
+answered the stronger question. The correction matters more than the original
+error: the requirement a task actually imposes should be tested, rather than a
+convenient proxy for it.
+
+\section{Clearance and reach are in conflict, and the conflict is structural}
+
+The clearance result in Chapter~\ref{ch:results} deserves emphasis because it
+is easy to read as a tuning problem. It is not. The planner's collision check
+and the deployed clearance floor ask different questions --- contact versus
+margin --- and a scenario can satisfy the first while being refused by the
+second. Every chest-band scenario in this project is in exactly that position.
+
+Attempting to resolve it by moving the working volume forward fails, and the
+failure is instructive: clearance improves and reachability collapses, because
+the volume moves towards the edge of the arm's reach as it moves away from the
+wearer's body. The axis along which the conflict can be resolved is lateral,
+not fore-and-aft. That was not obvious in advance and was found only because
+the probe measured which link was closest, rather than only how close it was.
+
+The ethical position is one-directional. The floor exists to protect a person
+who did not choose the motion, so the task moves and the floor does not. That
+constraint is recorded rather than negotiated.
+
+\section{Instrumentation failed more often than the system}
+
+A recurring pattern across this project, and one which shaped its methodology
+more than any design decision, is that surprising measurements were more often
+faults in the measuring instrument than in the system being measured.
+
+The instances are numerous enough to be a finding rather than an anecdote. A
+noise floor of zero on every sensor channel was the recorder oversampling a
+slower sensor. A detection rate near zero was a renderer producing images
+outside the detector's training distribution. A workspace statistic that
+varied by a factor of two between identical runs was a summary statistic
+sensitive to a rare tail event. A set of verification clips reported as
+failing were failing a colour test calibrated against the requested marker
+colour rather than the rendered one. A carried object reported as stationary
+was a centroid dragged towards fixed overlay text. In each case the system was
+behaving correctly and the instrument was not.
+
+The methodological response --- requiring every analysis routine to recover a
+known answer before it is trusted with real data --- is, in the author's view,
+the most transferable contribution of the work. It is also incomplete: the
+rule was adopted partway through and the earlier measurements have not all
+been re-derived under it.
+
+\section{Silent failure as the dominant failure mode}
+
+The safety work in this project consistently found that the problem was not
+that mechanisms failed to act, but that acting and not acting looked identical
+from outside. The dead-man defect is the clearest example: the mechanism was
+correct, its trigger condition was correct, and it could not fire on the
+failure that actually occurs, because the upstream node degraded by
+republishing stale data rather than by falling silent. Every test of it had
+passed, because every test removed the cable.
+
+The general lesson is that a test which exercises a failure mode different
+from the one that occurs provides confidence without providing safety. The
+system now distinguishes data that is absent from data that is stale, and
+treats a guard that has stopped reporting as being in an unknown state rather
+than a clear one.
+
+\section{Why no end-to-end learned policy}
+
+A vision--language--action model was considered and deliberately not used, for
+three reasons that are worth recording because the decision would otherwise
+look like conservatism.
+
+First, embodiment: available models are trained on datasets that contain no
+backpack-mounted supernumerary configuration, and there is no demonstration
+data for this platform with which to fine-tune. Second, and decisively, such a
+model emits actions directly, whereas every safety mechanism in this system
+sits between a commanded \emph{pose} and the arm. A policy emitting joint
+targets bypasses collision-aware inverse kinematics, the clearance floor and
+the step guard. On a robot mounted beside a person's head that is the wrong
+trade. Third, a failure in the modular pipeline is attributable to a named
+stage with its inputs logged, whereas a failure of a learned policy is a
+number that was wrong.
+
+\section{Limitations}
+
+\subsection{Nothing has been validated on hardware}
+
+The most serious limitation is stated plainly: no result in this thesis was
+obtained from a physical arm, a physical master or a human participant. The
+simulation uses a mock hardware interface that echoes commands with no
+dynamics, which means it cannot answer questions about payload, compliance,
+latency under load, or any effect of real actuator behaviour. Where the
+simulation has been asked such a question it has returned a null result that
+is a property of the mock rather than evidence about the robot.
+
+\subsection{The input is degraded and the baseline depends on it}
+
+Seven of fourteen master-arm channels are unreliable. Every direct
+teleoperation condition in the experimental design depends on those channels,
+so the baseline against which autonomy would be compared is currently
+compromised. Repairing two specific channels was identified as the
+highest-value intervention.
+
+\subsection{The experimental programme is designed but unexecuted}
+
+The protocols, measures, counterbalancing and analysis routines exist and have
+been exercised with scripted input, but no participant has taken part. The
+hypotheses are pre-registered intent. \todo{CONFIRM: whether ethics approval
+was sought, and its status, since this determines how the design is described}
+
+\subsection{The commit history is not a development record}
+
+The project's version control history consists of one large initial import and
+a single day of subsequent commits, so it cannot support claims about the
+order or timing of development. The dated engineering log is the usable
+chronology, and it is a laboratory notebook rather than an independent record.

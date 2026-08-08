@@ -1,0 +1,88 @@
+\documentclass[a4paper, twoside, 11pt]{report}
+
+%% Language. NOTE: \usepackage[utf8x]{inputenc} has been REMOVED from the
+%% stock template. utf8x is deprecated and conflicts with fontspec under
+%% XeLaTeX, which reads UTF-8 natively, so no inputenc line is needed at all.
+\usepackage[english]{babel}
+
+%% Sets page size and margins
+\usepackage[a4paper, top=2.54cm, bottom=2.54cm, left=1.91cm, right=1.91cm, marginparwidth=1.75cm]{geometry}
+
+%% Useful packages
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{fontspec}
+\usepackage{titlesec}
+\usepackage{booktabs}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+\titleformat{\chapter}[display]
+  {\centering\huge\bfseries}
+  {Chapter \thechapter}
+  {1ex}
+  {}
+
+\setstretch{1.15}
+\setlength{\parskip}{3pt}
+\setlength{\parindent}{12pt}
+
+%% FONT GUARD. The stock template hard-codes Times New Roman, which is a
+%% Microsoft font and absent on most Linux machines, so the document failed to
+%% build anywhere else. TeX Gyre Termes is a metric-compatible clone shipped
+%% with TeX Live, so the fallback is visually equivalent.
+\IfFontExistsTF{Times New Roman}{
+  \setmainfont{Times New Roman}
+}{
+  \IfFontExistsTF{TeX Gyre Termes}{
+    \setmainfont{TeX Gyre Termes}
+  }{
+    \setmainfont{texgyretermes}[
+      Extension = .otf,
+      UprightFont = *-regular,
+      BoldFont = *-bold,
+      ItalicFont = *-italic,
+      BoldItalicFont = *-bolditalic]
+  }
+}
+
+\title{[CONFIRM: title] Teleoperation of a Backpack-Mounted Dual-Arm Supernumerary Robotic Limb System}
+\author{[CONFIRM: author name]}
+% Supervisor and co-supervisor are set in title/title.tex
+
+\begin{document}
+\input{title/title.tex}
+
+% The title page carries [CONFIRM: ...] placeholders rather than \todo{}
+% markers because todonotes places a float, and floats are lost inside a
+% titlepage. They are listed here instead so they still reach TODO_AUDIT.md.
+\todo[inline]{CONFIRM: project title, author name, supervisor and
+co-supervisor on the title page, and the Imperial logo (run
+\texttt{epstopdf title/logo.eps} once ghostscript is installed).}
+
+\begin{abstract}
+\todo[inline]{WRITE: abstract, last, once the Results chapter is final.}
+\end{abstract}
+
+\renewcommand{\abstractname}{Acknowledgements}
+\begin{abstract}
+\todo[inline]{WRITE: acknowledgements.}
+\end{abstract}
+
+\tableofcontents
+% \listoffigures
+% \listoftables
+
+\input{introduction/introduction.tex}
+\input{background/background.tex}
+\input{method/method.tex}
+\input{result/result.tex}
+\input{discussion/discussion.tex}
+\input{conclusion/conclusion.tex}
+\input{appendix/appendix.tex}
+
+\bibliographystyle{alpha}
+\bibliography{bibs/sample}
+
+\end{document}

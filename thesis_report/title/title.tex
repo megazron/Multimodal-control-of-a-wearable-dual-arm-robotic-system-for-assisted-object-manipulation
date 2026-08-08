@@ -1,0 +1,70 @@
+\begin{titlepage}
+
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}} % Defines a new command for the horizontal lines, change thickness here
+
+%----------------------------------------------------------------------------------------
+%	LOGO SECTION
+%----------------------------------------------------------------------------------------
+
+% LOGO. The template ships title/logo.eps. XeLaTeX cannot embed EPS, and
+% converting it needs ghostscript, which is absent here and not available
+% through tlmgr. The EPS is kept in the repository; once ghostscript exists:
+%     epstopdf title/logo.eps
+% then replace the vspace below with:
+%     \includegraphics[width=8cm]{title/logo.pdf}
+\vspace*{2cm} % Include a department/university logo - this will require the graphicx package
+ 
+%----------------------------------------------------------------------------------------
+
+\center % Center everything on the page
+
+%----------------------------------------------------------------------------------------
+%	HEADING SECTIONS
+%----------------------------------------------------------------------------------------
+
+\textsc{\huge MSc Individual Project}\\[1.5cm] % Name of your university/college
+\textsc{\huge Imperial College London}\\[0.5cm] % Major heading such as course name
+\textsc{\Large Department of Bioengineering}\\[0.5cm] % Minor heading such as course title
+
+%----------------------------------------------------------------------------------------
+%	TITLE SECTION
+%----------------------------------------------------------------------------------------
+\makeatletter
+\HRule \\[0.4cm]
+{ \huge \bfseries \@title}\\[0.4cm] % Title of your document
+\HRule \\[1.5cm]
+ 
+%----------------------------------------------------------------------------------------
+%	AUTHOR SECTION
+%----------------------------------------------------------------------------------------
+
+\begin{minipage}{0.4\textwidth}
+\begin{flushleft} \large
+\emph{Author:}\\
+\@author
+\end{flushleft}
+\end{minipage}
+~
+\begin{minipage}{0.4\textwidth}
+\begin{flushright} \large
+\emph{Supervisor:} \\
+\textbf{[CONFIRM: supervisor]} \\[1.2em]
+\emph{Co-Supervisor:} \\
+\textbf{[CONFIRM: co-supervisor]} % Comment out these two lines if there is no co-supervisor
+\end{flushright}
+\end{minipage}\\[2cm]
+\makeatother
+
+% If you don't want a supervisor, uncomment the two lines below and remove the section above
+%\Large \emph{Author:}\\
+%John \textsc{Smith}\\[3cm] % Your name
+
+%----------------------------------------------------------------------------------------
+%	DATE SECTION
+%----------------------------------------------------------------------------------------
+
+{\large \today}\\[2cm] % Date, change the \today to a set date if you want to be precise
+
+\vfill % Fill the rest of the page with whitespace
+
+\end{titlepage}

@@ -71,12 +71,50 @@ from record_verification import (Driver, densify, clearance_all,      # noqa: E4
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRATCH = "/tmp/claude-1000/-home-gausms-kortex-ws/3732aa29-5a7e-4c8e-b77e-379233bdc9c9/scratchpad"
 RVIZ_CFG = os.path.join(ROOT, "src/srl_experiments/config/verification_capture.rviz")
-DISPLAY = ":99"
-W, H = 1600, 1000
+# FOUR SIMULTANEOUS VIEWS, one RViz per virtual display, all watching the same
+# ROS graph -- so the four recordings are frame-for-frame the same trial, not
+# four passes that might diverge. One angle hides things: the front view
+# flattens reach depth, the top view is where a coordination error is obvious,
+# and only a tight gripper view answers "did it actually grab it".
+VIEWS = {
+    #  name      display  yaw     pitch  dist  focal(x,y,z)          hud
+    "front":  (":91", 1.5708, 0.32, 2.25, (0.0, 0.26, 1.16), True),
+    "side":   (":92", 0.0000, 0.20, 2.10, (0.0, 0.30, 1.15), False),
+    "top":    (":93", 1.5708, 1.40, 2.30, (0.0, 0.30, 1.15), False),
+    "gripper": (":94", 1.5708, 0.25, 0.45, (0.0, 0.0, 0.0), False),
+}
+VW, VH = 800, 500          # per view; the 2x2 tile is 1600x1000
+W, H = VW, VH
 CONDITIONS = ("direct", "assisted", "shared")
 
 SLING_L, BALL_R = 0.350, 0.020
 TILT_FAIL_DEG = 11.3
+
+# ---------------------------------------------------------------- grippers
+# THE GRIPPER WAS NEVER COMMANDED. mock_components boots the Robotiq driven
+# knuckle at 0.793 rad -- fully closed on nothing -- so every clip showed a
+# shut hand throughout, and the "grasp" existed only in the marker layer. A
+# pick rendered with a closed gripper is not a pick.
+GRIP_OPEN = 0.05
+# Robotiq 2F-85: 85 mm stroke across roughly 0 -> 0.8 rad of driven knuckle,
+# so closing on a w-mm object leaves the knuckle short of full closure.
+# bimanual_metrics calls 0.10..0.74 "holding" and >= 0.74 "free air" -- closed
+# on NOTHING -- so an object grasp must land inside that band, which is what
+# makes the marker gate meaningful rather than decorative.
+def grip_for(width_mm):
+    return max(0.12, min(0.70, 0.8 * (1.0 - float(width_mm) / 85.0)))
+
+
+GRIP_HOLD_MIN, GRIP_FREE_AIR = 0.10, 0.74
+
+
+def holding(knuckle):
+    """True only when the fingers are closed ON SOMETHING."""
+    return (knuckle is not None and knuckle == knuckle
+            and GRIP_HOLD_MIN <= knuckle < GRIP_FREE_AIR)
+
+
+KNUCKLE = "%s_robotiq_85_left_knuckle_joint"
 
 
 # ------------------------------------------------------------------ markers
@@ -156,9 +194,18 @@ class Scene:
         self.placed = []          # world positions of blocks left in the box
         self.carrying_block = False
         self.tool_released_at = None
+        self.knuck = {}
+        self.grip_log = []        # (t, arm, knuckle) for the pixel check
 
     # -------------------------------------------------------------- build
-    def markers(self, t, el, er, phase, frac, metric_text):
+    def markers(self, t, el, er, phase, frac, metric_text, knuck=None):
+        """knuck: {"left": rad, "right": rad} MEASURED from /joint_states.
+
+        The carried object is attached only while `holding()` is true for the
+        arm that should have it, so the marker follows the gripper instead of
+        substituting for it.
+        """
+        self.knuck = knuck or {}
         A = MarkerArray()
         # DELETEALL FIRST, EVERY FRAME. The array is TRANSIENT_LOCAL and ids
         # are reassigned sequentially, so without this the previous run's
@@ -247,6 +294,9 @@ class Scene:
         sep = float(np.linalg.norm(a - b))
         if not live or sep > 0.60:
             return          # not holding it yet -- draw nothing, fail nothing
+        if not (holding(self.knuck.get("left"))
+                and holding(self.knuck.get("right"))):
+            return          # fingers are not closed on it, so it is not held
         dz = float(a[2] - b[2])
         tilt = math.degrees(math.atan2(abs(dz), max(sep, 1e-6)))
         if self.task == "t3":
@@ -334,13 +384,17 @@ class Scene:
                      .9, .55, .1))
         # the carried block, and the ones already dropped in
         side = sc.get("block_mm", 40) / 1000.0
-        grasp_f, release_f = 0.18, 0.80
-        if grasp_f <= frac < release_f:
+        # ATTACH ON THE MEASURED FINGERS, not on a path fraction. The block
+        # rides the gripper only while it is actually closed on it, and is
+        # released the moment the fingers open.
+        k = self.knuck.get(fa)
+        near_pick = float(np.linalg.norm(fill_ee - pick)) < 0.12
+        if holding(k) and (self.carrying_block or near_pick):
             self.carrying_block = True
             b = mk("carry", 0, Marker.CUBE)
             add(rgba(scale(at(b, (fill_ee[0], fill_ee[1], fill_ee[2] - 0.055)),
                            side, side, side), 1.0, .45, .0))
-        elif frac >= release_f and self.carrying_block:
+        elif self.carrying_block and not holding(k):
             self.carrying_block = False
             self.placed.append(np.array([opening[0], opening[1],
                                          opening[2] - 0.06]))
@@ -358,14 +412,18 @@ class Scene:
         ee = el if arm == "left" else er
         recv = np.asarray(sc["receive"], float)
         obj = np.asarray(sc["object"], float)
-        grasp_f, release_f = 0.22, 0.86
-        if frac < grasp_f:
-            p = obj
-        elif frac < release_f and ee is not None:
+        k = self.knuck.get(arm)
+        if holding(k) and ee is not None and self.tool_released_at is None:
+            # in the hand
             p = np.asarray(ee, float) + np.array([0.0, 0.0, -0.03])
-        else:
+            self.carrying_block = True
+        elif self.carrying_block and not holding(k):
             p = recv
             self.tool_released_at = recv
+        elif self.tool_released_at is not None:
+            p = recv
+        else:
+            p = obj
         h = mk("object", 0, Marker.CUBE)
         add(rgba(scale(at(h, p), 0.13, 0.032, 0.024), .2, .2, .22))
         head = mk("object", 1, Marker.CUBE)
@@ -376,43 +434,190 @@ class Scene:
 
 
 # ------------------------------------------------------------------ capture
-def ensure_display(log):
-    """Xvfb + RViz on :99. Idempotent."""
-    def running(pat):
-        out = subprocess.run(["ps", "-eo", "args", "--no-headers"],
-                             capture_output=True, text=True).stdout
-        return any(pat in l for l in out.splitlines())
-    if not running("Xvfb %s" % DISPLAY):
-        subprocess.Popen(["setsid", "/usr/bin/Xvfb", DISPLAY, "-screen", "0",
-                          "%dx%dx24" % (W, H)],
-                         stdout=open(log + ".xvfb", "w"),
-                         stderr=subprocess.STDOUT, start_new_session=True)
-        time.sleep(4)
-    if not running("rviz2 -d %s" % RVIZ_CFG):
-        env = dict(os.environ, DISPLAY=DISPLAY, LIBGL_ALWAYS_SOFTWARE="1",
-                   GALLIUM_DRIVER="llvmpipe", QT_QPA_PLATFORM="xcb")
-        subprocess.Popen(["rviz2", "-d", RVIZ_CFG], env=env,
-                         stdout=open(log + ".rviz", "w"),
-                         stderr=subprocess.STDOUT, start_new_session=True)
-        time.sleep(16)
+CFG_DIR = os.path.join(SCRATCH, "rvizcfg")
 
 
-def start_grab(path):
-    return subprocess.Popen(
-        [FFMPEG, "-y", "-loglevel", "error", "-f", "x11grab",
-         "-video_size", "%dx%d" % (W, H), "-framerate", "12",
-         "-i", "%s.0" % DISPLAY, "-c:v", "libx264", "-preset", "ultrafast",
-         "-pix_fmt", "yuv420p", path],
-        stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL)
+def write_cfg(name, arm="left"):
+    """One RViz config per view. The HUD lives on its own topic so only the
+    FRONT view shows it -- four copies of the same text is clutter."""
+    yaw, pitch, dist, focal, hud = VIEWS[name][1:]
+    tgt = "%s_end_effector_link" % arm if name == "gripper" else "world"
+    disp = ["""    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 0.5
+      Plane Cell Count: 14
+      Color: 90; 90; 90
+      Alpha: 0.4
+      Reference Frame: world
+      Value: true
+    - Class: rviz_default_plugins/RobotModel
+      Name: RobotModel
+      Enabled: true
+      Description Source: Topic
+      Description Topic:
+        Value: /robot_description
+      Visual Enabled: true
+      Collision Enabled: false
+      Alpha: 1
+      Update Interval: 0
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Name: TaskObjects
+      Enabled: true
+      Namespaces: {}
+      Topic:
+        Depth: 20
+        Durability Policy: Transient Local
+        Value: /task_objects
+      Value: true"""]
+    if hud:
+        disp.append("""    - Class: rviz_default_plugins/MarkerArray
+      Name: HUD
+      Enabled: true
+      Namespaces: {}
+      Topic:
+        Depth: 20
+        Durability Policy: Transient Local
+        Value: /task_hud
+      Value: true""")
+    txt = """Panels: []
+Visualization Manager:
+  Class: ""
+  Name: root
+  Displays:
+%s
+  Global Options:
+    Background Color: 45; 45; 48
+    Fixed Frame: world
+    Frame Rate: 30
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Name: %s
+      Distance: %.3f
+      Focal Point:
+        X: %.3f
+        Y: %.3f
+        Z: %.3f
+      Pitch: %.4f
+      Yaw: %.4f
+      Target Frame: %s
+      Near Clip Distance: 0.01
+      Invert Z Axis: false
+      Value: Orbit (rviz_default_plugins)
+Window Geometry:
+  Height: %d
+  Width: %d
+  Hide Left Dock: true
+  Hide Right Dock: true
+""" % ("\n".join(disp), name, dist, focal[0], focal[1], focal[2],
+       pitch, yaw, tgt, VH, VW)
+    os.makedirs(CFG_DIR, exist_ok=True)
+    # PER-ARM FILENAME for the gripper view. With a single gripper.rviz path
+    # the "is it already running?" check matched the instance started for the
+    # OTHER arm, so the restart never fired and a right-arm task was filmed
+    # with the camera still bolted to the left hand. Caught because the
+    # pixel check saw no finger motion on T5 while the joint trace showed a
+    # clean open-close-open.
+    fn = ("gripper_%s" % arm) if name == "gripper" else name
+    p = os.path.join(CFG_DIR, "%s.rviz" % fn)
+    open(p, "w").write(txt)
+    return p
 
 
-def stop_grab(p):
-    try:
-        p.communicate(input=b"q", timeout=12)
-    except Exception:                                          # noqa: BLE001
-        p.terminate()
-        p.wait(timeout=8)
+def _running(pat):
+    out = subprocess.run(["ps", "-eo", "args", "--no-headers"],
+                         capture_output=True, text=True).stdout
+    return any(pat in l for l in out.splitlines())
+
+
+_GRIP_ARM = {"cur": None}
+
+
+def ensure_display(log, gripper_arm="left"):
+    """Four Xvfb displays, each with its own RViz. Idempotent.
+
+    The gripper camera follows a LINK (Target Frame = <arm>_end_effector_link)
+    so it tracks the hand rather than a fixed point. That frame is baked into
+    the config, so this restarts only that one view when the active arm
+    changes -- which is rare, because the sweep is grouped by task.
+    """
+    for name, (disp, *_rest) in VIEWS.items():
+        if not _running("Xvfb %s" % disp):
+            subprocess.Popen(["setsid", "/usr/bin/Xvfb", disp, "-screen", "0",
+                              "%dx%dx24" % (VW, VH)],
+                             stdout=open(log + ".xvfb", "a"),
+                             stderr=subprocess.STDOUT, start_new_session=True)
+    time.sleep(3)
+    started = False
+    for name, (disp, *_rest) in VIEWS.items():
+        cfg = write_cfg(name, gripper_arm)
+        if name == "gripper":
+            # stop any gripper RViz bound to the OTHER arm
+            other = write_cfg("gripper", "right" if gripper_arm == "left"
+                              else "left")
+            if _running("rviz2 -d %s" % other):
+                subprocess.run(["pkill", "-f", "rviz2 -d %s" % other],
+                               capture_output=True)
+                time.sleep(1.5)
+        if not _running("rviz2 -d %s" % cfg):
+            env = dict(os.environ, DISPLAY=disp, LIBGL_ALWAYS_SOFTWARE="1",
+                       GALLIUM_DRIVER="llvmpipe", QT_QPA_PLATFORM="xcb")
+            subprocess.Popen(["rviz2", "-d", cfg], env=env,
+                             stdout=open(log + ".rviz." + name, "w"),
+                             stderr=subprocess.STDOUT, start_new_session=True)
+            started = True
+    _GRIP_ARM["cur"] = gripper_arm
+    if started:
+        time.sleep(20)
+
+
+def start_grabs(out_dir):
+    """One ffmpeg per view, started together so the four are synchronised."""
+    procs = {}
+    for name, (disp, *_rest) in VIEWS.items():
+        path = os.path.join(out_dir, "rviz_%s.mp4" % name)
+        procs[name] = subprocess.Popen(
+            [FFMPEG, "-y", "-loglevel", "error", "-f", "x11grab",
+             "-video_size", "%dx%d" % (VW, VH), "-framerate", "12",
+             "-i", "%s.0" % disp, "-c:v", "libx264", "-preset", "ultrafast",
+             "-pix_fmt", "yuv420p", path],
+            stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL)
+    return procs
+
+
+def stop_grabs(procs):
+    for p in procs.values():
+        try:
+            p.communicate(input=b"q", timeout=15)
+        except Exception:                                      # noqa: BLE001
+            p.terminate()
+            try:
+                p.wait(timeout=8)
+            except Exception:                                  # noqa: BLE001
+                p.kill()
+
+
+def make_quad(out_dir):
+    """2x2 tile: the one file worth watching. front | side / top | gripper."""
+    src = [os.path.join(out_dir, "rviz_%s.mp4" % n)
+           for n in ("front", "side", "top", "gripper")]
+    if not all(os.path.exists(p) and os.path.getsize(p) > 20000 for p in src):
+        return False
+    dst = os.path.join(out_dir, "rviz_quad.mp4")
+    r = subprocess.run(
+        [FFMPEG, "-y", "-loglevel", "error",
+         "-i", src[0], "-i", src[1], "-i", src[2], "-i", src[3],
+         "-filter_complex",
+         "[0:v][1:v]hstack=inputs=2[t];[2:v][3:v]hstack=inputs=2[b];"
+         "[t][b]vstack=inputs=2[v]",
+         "-map", "[v]", "-c:v", "libx264", "-pix_fmt", "yuv420p", dst],
+        capture_output=True)
+    return r.returncode == 0 and os.path.exists(dst)
 
 
 # ------------------------------------------------------------------- runs
@@ -513,26 +718,106 @@ def live_metric(task, el, er, cmd):
     return ""
 
 
-def run_one(dr, pub, run, cond, out_dir, fps=10.0):
-    """Drive the arms, publish the scene, and screen-record the whole thing."""
+def grip_schedule(task, sc, arm, frac, phase):
+    """Commanded knuckle angle for one arm at one instant.
+
+    open before approach -> close on the object at its own width -> hold
+    through transit -> open on release. Widths come from the scenario, so the
+    fingers stop ON the object rather than slamming to free air, which is what
+    makes `holding()` true and lets the marker attach.
+    """
+    if task == "t2":
+        if arm == sc["hold_arm"]:
+            return grip_for(35)                      # the container handle
+        if phase == "approach" or frac < 0.18:
+            return GRIP_OPEN
+        if frac < 0.80:
+            return grip_for(sc.get("block_mm", 40))
+        return GRIP_OPEN
+    if task in ("t3", "t6"):
+        return GRIP_OPEN if phase == "approach" else grip_for(20)
+    if task == "t5":
+        if arm != sc.get("arm", "right"):
+            return GRIP_OPEN
+        if phase == "approach" or frac < 0.22:
+            return GRIP_OPEN
+        if frac < 0.86:
+            return grip_for(32)                      # the tool handle
+        return GRIP_OPEN
+    return GRIP_OPEN                                  # t7/t8/t9: nothing held
+
+
+def active_arm(task, sc):
+    if task == "t2":
+        return sc["fill_arm"]
+    if task == "t5":
+        return sc.get("arm", "right")
+    if task == "t8":
+        return sc.get("arm", "left")
+    return "left"
+
+
+def run_one(dr, pub, hud_pub, run, cond, out_dir, fps=10.0):
+    """Drive the arms AND the grippers, publish the scene, record four views."""
     run = dict(run, condition=cond)
-    scene = Scene(run["task"], run)
+    task = run["task"]
+    sc = run["sc"]
+    scene = Scene(task, run)
     q = {a: dr.ee_quat(a) for a in ("left", "right")}
     smooth = {"direct": 0.0, "assisted": 0.30, "shared": 0.55}[cond]
     dense = {a: (densify(p, 0.015) if len(p) > 1 else list(p))
              for a, p in run["paths"].items()}
     nmax = max(len(p) for p in dense.values())
-    stride = max(1, int(math.ceil(nmax / 26.0)))
+    stride = max(1, int(math.ceil(nmax / 22.0)))
     os.makedirs(out_dir, exist_ok=True)
-    mp4 = os.path.join(out_dir, "rviz.mp4")
 
-    # home first, off camera-time, so the clip starts from a clean pose
+    def knuckles():
+        return {a: dr.js.get(KNUCKLE % a) for a in ("left", "right")}
+
+    def set_grips(frac, phase):
+        for a in ("left", "right"):
+            dr.send_gripper(a, grip_schedule(task, sc, a, frac, phase))
+
     go_home(dr)
-    grab = start_grab(mp4)
+    set_grips(0.0, "approach")          # OPEN before the approach
+    dr.spin(1.0)
+    procs = start_grabs(out_dir)
     time.sleep(1.2)
     t0 = time.monotonic()
     frames = 0
     prev = {}
+    grip_trace = []
+
+    def tick(phase, frac, cmd):
+        nonlocal frames
+        set_grips(frac, phase)
+        el = dr.link_pose("left_end_effector_link")
+        er = dr.link_pose("right_end_effector_link")
+        k = knuckles()
+        grip_trace.append(dict(t=round(time.monotonic() - t0, 2), phase=phase,
+                               left=k.get("left"), right=k.get("right")))
+        A = scene.markers(time.monotonic() - t0,
+                          el.tolist() if el is not None else None,
+                          er.tolist() if er is not None else None,
+                          phase, frac, live_metric(task, el, er, cmd), knuck=k)
+        # HUD on its own topic: only the FRONT view subscribes to it
+        # The HUD needs its OWN DELETEALL. Splitting the array sent the
+        # single leading DELETEALL to the objects topic only, so the previous
+        # run's title text stayed on screen under the new one -- two headings
+        # superimposed and neither readable.
+        hud = MarkerArray()
+        clr = Marker()
+        clr.header.frame_id = "world"
+        clr.action = Marker.DELETEALL
+        hud.markers.append(clr)
+        keep = []
+        for m in A.markers:
+            (hud.markers if m.ns == "hud" else keep).append(m)
+        A.markers = keep
+        pub.publish(A)
+        hud_pub.publish(hud)
+        frames += 1
+
     first = {a: np.asarray(p[0], float) for a, p in dense.items()}
     for arm, tgt in first.items():
         sol = dr.solve_joints(arm, list(tgt), q[arm])
@@ -540,14 +825,7 @@ def run_one(dr, pub, run, cond, out_dir, fps=10.0):
             dr.send(arm, sol, 1.6)
     for _ in range(int(1.6 * fps)):
         dr.spin(1.0 / fps)
-        el, er = dr.link_pose("left_end_effector_link"), \
-            dr.link_pose("right_end_effector_link")
-        pub.publish(scene.markers(time.monotonic() - t0,
-                                  el.tolist() if el is not None else None,
-                                  er.tolist() if er is not None else None,
-                                  "approach", 0.0,
-                                  live_metric(run["task"], el, er, first)))
-        frames += 1
+        tick("approach", 0.0, first)
     prev.update(first)
 
     for i in range(0, nmax, stride):
@@ -562,32 +840,28 @@ def run_one(dr, pub, run, cond, out_dir, fps=10.0):
             if sol is not None:
                 dr.send(arm, sol, 0.28)
         dr.spin(0.28)
-        el = dr.link_pose("left_end_effector_link")
-        er = dr.link_pose("right_end_effector_link")
-        frac = i / max(1, nmax - 1)
-        pub.publish(scene.markers(
-            time.monotonic() - t0,
-            el.tolist() if el is not None else None,
-            er.tolist() if er is not None else None,
-            "task", frac, live_metric(run["task"], el, er, cmd)))
-        frames += 1
+        tick("task", i / max(1, nmax - 1), cmd)
 
-    for _ in range(int(1.4 * fps)):
+    # release, and let the fingers be SEEN to open before the clip ends
+    for _ in range(int(1.8 * fps)):
         dr.spin(1.0 / fps)
-        el = dr.link_pose("left_end_effector_link")
-        er = dr.link_pose("right_end_effector_link")
-        pub.publish(scene.markers(
-            time.monotonic() - t0,
-            el.tolist() if el is not None else None,
-            er.tolist() if er is not None else None,
-            "hold", 1.0, live_metric(run["task"], el, er, prev)))
-        frames += 1
+        tick("hold", 1.0, prev)
+
     dur = time.monotonic() - t0
-    stop_grab(grab)
-    return dict(frames=frames, duration_s=dur, mp4=mp4,
+    stop_grabs(procs)
+    quad = make_quad(out_dir)
+    json.dump(grip_trace, open(os.path.join(out_dir, "grip_trace.json"), "w"))
+    ks = [g for g in grip_trace if g.get(active_arm(task, sc)) is not None]
+    vals = [g[active_arm(task, sc)] for g in ks]
+    return dict(frames=frames, duration_s=dur, quad=quad,
                 blocks_placed=len(scene.placed),
                 ball_fallen=bool(scene.ball_fallen),
-                tool_delivered=scene.tool_released_at is not None)
+                tool_delivered=scene.tool_released_at is not None,
+                grip_min=min(vals) if vals else None,
+                grip_max=max(vals) if vals else None,
+                grip_opened=bool(vals and min(vals) < 0.10),
+                grip_closed_on_object=bool(vals and any(
+                    GRIP_HOLD_MIN <= v < GRIP_FREE_AIR for v in vals)))
 
 
 def go_home(dr):
@@ -606,7 +880,6 @@ def main():
     ap.add_argument("--all", action="store_true")
     a = ap.parse_args()
 
-    ensure_display(os.path.join(SCRATCH, "capture"))
     rclpy.init()
     dr = Driver()
     dr.spin(3.0)
@@ -616,6 +889,22 @@ def main():
     qos = QoSProfile(depth=20)
     qos.durability = QoSDurabilityPolicy.TRANSIENT_LOCAL
     pub = dr.create_publisher(MarkerArray, "/task_objects", qos)
+    hud_pub = dr.create_publisher(MarkerArray, "/task_hud", qos)
+    from trajectory_msgs.msg import JointTrajectory as _JT
+    gpub = {a: dr.create_publisher(
+        _JT, "/%s_gripper_controller/joint_trajectory" % a, 5)
+        for a in ("left", "right")}
+
+    def send_gripper(arm, angle):
+        from trajectory_msgs.msg import JointTrajectoryPoint as _JTP
+        m = _JT()
+        m.joint_names = [KNUCKLE % arm]
+        pt = _JTP()
+        pt.positions = [float(angle)]
+        pt.time_from_start.nanosec = 250_000_000
+        m.points = [pt]
+        gpub[arm].publish(m)
+    dr.send_gripper = send_gripper
 
     spec = yaml.safe_load(open(os.path.join(BIM, "scenarios_verified.yaml")))
     runs = build_runs(spec, a.task, a.scenario)
@@ -626,16 +915,25 @@ def main():
     for run in runs:
         for cond in conds:
             d = os.path.join(OUT, run["task"], run["scenario"], cond)
-            r = run_one(dr, pub, run, cond, d)
-            sz = os.path.getsize(r["mp4"]) if os.path.exists(r["mp4"]) else 0
+            ensure_display(os.path.join(SCRATCH, "capture"),
+                           active_arm(run["task"], run["sc"]))
+            r = run_one(dr, pub, hud_pub, run, cond, d)
+            sz = sum(os.path.getsize(os.path.join(d, "rviz_%s.mp4" % n))
+                     for n in VIEWS
+                     if os.path.exists(os.path.join(d, "rviz_%s.mp4" % n)))
             r.update(task=run["task"], scenario=run["scenario"],
                      condition=cond, note=run["note"], bytes=sz)
             json.dump(r, open(os.path.join(d, "rviz_capture.json"), "w"),
                       indent=2)
             idx.append(r)
-            print("  %-4s %-22s %-9s %5.1f s  %4d frames  %6.1f KB  %s"
+            print("  %-4s %-22s %-9s %5.1f s  grip %.2f..%.2f %s  quad=%s  %s"
                   % (run["task"], run["scenario"], cond, r["duration_s"],
-                     r["frames"], sz / 1024.0,
+                     r["grip_min"] if r["grip_min"] is not None else -1,
+                     r["grip_max"] if r["grip_max"] is not None else -1,
+                     "OPEN+CLOSE" if (r["grip_opened"]
+                                      and r["grip_closed_on_object"])
+                     else "static",
+                     r["quad"],
                      "blocks=%d" % r["blocks_placed"] if run["task"] == "t2"
                      else ("ball_fell" if r["ball_fallen"] else "")))
     json.dump(idx, open(os.path.join(OUT, "rviz_index.json"), "w"), indent=2)

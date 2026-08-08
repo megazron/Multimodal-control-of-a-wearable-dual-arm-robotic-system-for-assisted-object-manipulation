@@ -1,0 +1,113 @@
+\chapter{Background}
+
+\section{Supernumerary robotic limbs}
+
+Supernumerary robotic limbs augment rather than restore: the wearer keeps
+their own limbs and gains additional ones. \todo{CITE: an origin paper for
+supernumerary robotic limbs -- Parietti and Asada, bracing and body support}
+Reported applications span bracing and postural support, supernumerary
+fingers, and general-purpose extra arms for shared-workspace tasks.
+\todo{CITE: supernumerary fingers -- Prattichizzo et al.}
+\todo{CITE: a recent survey or quantitative review of SRL design and
+embodiment}
+
+Two questions recur in this literature and both matter here. The first is how
+the extra limbs are \emph{commanded}, given that the wearer's own limbs are
+already occupied; reported approaches include body-mounted sensing of residual
+degrees of freedom, foot and tongue interfaces, and inference from the
+wearer's ongoing motion. \todo{CITE: exploiting body redundancy to control
+supernumerary robotic limbs -- Lisini Baldi et al., IJRR 2025}
+\todo{CITE: shared control of SRLs using mixed reality and mouth-and-tongue
+interfaces, Biosensors 2025} The second is whether the wearer comes to
+experience the limbs as part of their body, which is normally framed in terms
+of body schema and ownership. \todo{CITE: body schema / embodiment of extra
+limbs}
+
+The configuration used in this project sidesteps the first question entirely
+by placing the operator outside the wearer's body, and makes the second
+inapplicable: the arms are never mechanically linked to the wearer's own
+limbs, so ownership language does not apply to them.
+
+\section{Teleoperation with a separate wearer}
+
+The direct predecessor to this configuration is Fusion, which mounted a
+robotic head and two arms on a backpack worn by one person and drove them from
+a second, remote operator wearing a head-mounted display.
+\todo{CITE: Saraiji, Sasaki, Matsumura, Minamizawa and Inami, Fusion: full
+body surrogacy for collaborative communication, ACM SIGGRAPH 2018 Emerging
+Technologies, Article 7} Fusion defined three levels of what it termed bodily
+driven communication, distinguished by how much the robot arms were physically
+coupled to the wearer's own arms; in all three the operator commanded the
+motion and the machine decided nothing. It was presented as an Emerging
+Technologies demonstration and reported no user study or quantitative
+evaluation, so it establishes the architecture as buildable rather than
+characterised.
+
+More recently, the spatial behaviour of back-mounted arms around a wearer has
+been studied directly, with a concealed separate operator and varying levels
+of apparent autonomy. \todo{CITE: SRL Proxemics: Spatial Guidelines for
+Supernumerary Robotic Limbs in Near-Body Interactions, CHI 2026} That work
+reported that higher autonomy did not improve the wearer's perceived safety,
+and produced body-zone guidance on approach distances and trajectory shapes.
+It is relevant to the present system both as a precedent for the two-person
+arrangement and as a caution against assuming autonomy is experienced as
+reassuring.
+
+\section{Teleoperation from a moving base}
+
+Where the manipulator base is not inertial, base motion enters the control
+problem as a disturbance. Approaches reported for mobile manipulators include
+disturbance estimation and compensation, and master--slave schemes with local
+feedback on the follower.
+\todo{CITE: motion/force control of mobile manipulators via extended
+uncertainty and disturbance estimation}
+For supernumerary limbs specifically, the wearer's body is the floating base
+and the disturbance is the wearer's own postural sway.
+\todo{CITE: Zhang et al. 2024, motion-compensation control of SRAs subject to
+human-induced disturbances}
+\todo{CITE: A Human Motion Compensation Framework for a Supernumerary Robotic
+Arm, arXiv:2310.10029}
+In the reported cases the wearer is also the operator, so the disturbance is
+self-generated; the two-person configuration removes that, which is the
+distinction this project is positioned against.
+
+\section{Shared autonomy in teleoperation}
+
+Assistive teleoperation is commonly formulated as an arbitration between the
+operator's input and a robot policy derived from a prediction of their goal.
+\todo{CITE: Dragan and Srinivasa, formalising assistive teleoperation /
+policy blending}
+A structural weakness of predicting before acting is that confidence often
+arrives too late to be useful, which motivates formulations that assist under
+goal uncertainty.
+\todo{CITE: Javdani et al., shared autonomy via hindsight optimisation}
+\todo{CITE: evidence on when blending helps and when it hurts}
+
+\section{Platform: Kinova Gen3, ROS 2 and MoveIt 2}
+
+The arms used are seven-degree-of-freedom Kinova Gen3 manipulators with
+Robotiq 2F-85 grippers. \todo{CITE: Kinova Gen3 technical specification}
+The redundant seventh degree of freedom is used in this work for collision
+avoidance: the elbow can be swung about the shoulder--wrist axis without
+moving the gripper, which provides a family of solutions to search when a pose
+is otherwise blocked.
+
+The software stack is ROS 2 Jazzy with MoveIt 2 for kinematics and collision
+checking. \todo{CITE: ROS 2} \todo{CITE: MoveIt 2} Inverse kinematics is
+solved by TRAC-IK. \todo{CITE: Beeson and Ames, TRAC-IK} TRAC-IK's use of
+randomised restarts is relevant to the verification methodology described in
+Chapter~\ref{ch:method}, because it makes a single successful solve a weak
+statement about reachability.
+
+\section{Open-vocabulary visual grounding}
+
+The autonomy modes in this system require objects to be located from a
+description rather than from a fixed model. Open-vocabulary detectors admit an
+arbitrary class list at inference time.
+\todo{CITE: YOLO-World open-vocabulary detection}
+\todo{CITE: Grounding DINO}
+Speech transcription uses a Whisper-family model.
+\todo{CITE: Whisper / faster-whisper}
+A deliberate decision not to use an end-to-end vision--language--action model
+is discussed in Chapter~\ref{ch:discussion}.
+\todo{CITE: OpenVLA or a comparable VLA, for the comparison being declined}

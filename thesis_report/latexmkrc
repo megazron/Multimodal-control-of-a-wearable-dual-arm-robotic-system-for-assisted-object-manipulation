@@ -1,0 +1,6 @@
+# XeLaTeX toolchain: xelatex -> bibtex -> xelatex -> xelatex
+$pdf_mode = 5;            # 5 = xelatex
+$postscript_mode = $dvi_mode = 0;
+$xelatex = 'xelatex -interaction=nonstopmode -halt-on-error -file-line-error %O %S';
+$bibtex_use = 2;          # run bibtex and clean its output
+$clean_ext = 'bbl blg run.xml synctex.gz fdb_latexmk fls';

@@ -1,0 +1,104 @@
+\chapter{Introduction}
+
+Supernumerary robotic limbs (SRLs) are additional arms worn on the body, which
+act alongside the wearer's own limbs rather than replacing or rehabilitating
+them. They differ from prostheses in that the wearer retains full natural
+function, and from industrial manipulators in that the base of the robot is a
+person: it accelerates, sways and steps, and it is soft, valuable and
+irreplaceable. The work reported in this thesis concerns a wearable system of
+two seven-degree-of-freedom Kinova Gen3 arms carried on a backpack frame and
+teleoperated from an instrumented mannequin master arm.
+
+The configuration that this system implements is deliberately a
+\emph{two-person} one: the arms are worn by one individual and commanded by
+another. \todo{CITE: Fusion, Saraiji et al., SIGGRAPH 2018 Emerging
+Technologies -- the direct predecessor for the operator/wearer architecture}
+That separation is the source of most of the interesting engineering
+difficulty in the project, because the person who bears the risk has no
+control input, and the person issuing the commands has neither proprioception
+of the wearer nor any vestibular sense of the base motion they are working
+against.
+
+\section{Objectives}
+
+The project set out to build and characterise a complete teleoperation stack
+for this configuration, and specifically to establish, by measurement rather
+than by demonstration, what such a system can and cannot do. The objectives
+were:
+
+\begin{enumerate}
+  \item to implement an end-to-end pipeline from the master arm's sensors to
+    joint trajectories on two arms, including the mapping from the operator's
+    limb pose to a commanded end-effector pose;
+  \item to design a safety layer appropriate to a robot mounted beside a
+    person's head, and to demonstrate its behaviour under injected faults
+    rather than only under nominal conditions;
+  \item to characterise the reachable workspace of the mounted configuration,
+    and to determine which manipulation tasks it can actually support;
+  \item to establish what performance survives when the master arm's sensing
+    degrades, since a substantial fraction of its channels are unreliable;
+  \item to design an experimental protocol capable of separating the
+    contribution of machine autonomy from that of the human operator.
+\end{enumerate}
+
+\section{Challenges}
+
+Three difficulties shaped the work more than any others.
+
+The first is that \emph{the base moves}. Conventional manipulator control
+assumes an inertial base; here the base is a standing person. This is a
+recognised problem in the supernumerary-limb literature
+\todo{CITE: Zhang et al., Motion-Compensation Control of Supernumerary Robotic
+Arms Subject to Human-Induced Disturbances, Advanced Intelligent Systems 2024}
+but it is normally treated in the single-person case, where the wearer is also
+the operator and their own motor commands are available as feed-forward. In
+the two-person case that information does not exist.
+
+The second is that \emph{the input is degraded}. The master arm's
+potentiometer channels are, in their present physical state, substantially
+unreliable, and the system therefore has to remain usable on a subset of its
+intended sensing rather than assuming all of it.
+
+The third is that \emph{almost every failure in this system is silent}. An arm
+that has stopped moving looks the same whether it is blocked for a good
+reason, blocked for a bad one, or not receiving data at all. A great deal of
+the engineering effort described in this thesis went into making the system's
+internal state legible, and a recurring theme of the results is that
+measurement instruments failed more often, and more quietly, than the system
+being measured.
+
+\section{Contributions}
+
+The contributions claimed here are limited to those the implementation and its
+recorded artefacts can support.
+
+\begin{enumerate}
+  \item \textbf{A complete, safety-instrumented dual-arm teleoperation stack}
+    for a backpack-mounted pair of Kinova Gen3 arms, comprising master-arm
+    sensing, a spherical pose mapping, collision-aware inverse kinematics with
+    redundancy resolution, a clearance floor referenced to the wearer's body,
+    and a multi-path emergency stop. The behaviour of the safety layer was
+    exercised by systematic fault injection rather than by inspection.
+
+  \item \textbf{A workspace characterisation of the mounted configuration},
+    including the negative result that the two arms share no reachable
+    workspace, which blocks inter-arm handover for geometric reasons that no
+    control or planning change can address.
+
+  \item \textbf{A quantified account of degraded-input teleoperation}: which
+    capabilities survive the loss of individual sensing channels, and what
+    each loss costs.
+
+  \item \textbf{A verification methodology}, with a set of recorded runs
+    covering every task, scenario and autonomy condition, checked
+    automatically for object handling, gripper actuation and wearer clearance.
+
+  \item \textbf{An experimental design for the two-person configuration},
+    including measures for the wearer as a participant rather than as
+    apparatus.
+\end{enumerate}
+
+Chapter~\ref{ch:results} states explicitly, for each result, whether it was
+verified in simulation, exercised only against mock hardware, or validated on
+physical arms. \todo{CONFIRM: that the contribution list matches what the
+final Results chapter supports, once the outstanding measurements are taken}

@@ -1,0 +1,48 @@
+\chapter{Conclusion}
+
+This project produced a complete, safety-instrumented teleoperation stack for
+a backpack-mounted pair of seven-degree-of-freedom arms commanded by a remote
+operator, together with a characterisation of what that configuration can do.
+
+The engineering contributions are the pipeline itself --- master-arm sensing
+with a spherical pose decomposition, collision-aware inverse kinematics with
+redundancy resolution, a clearance margin referenced to the wearer's body, and
+a multi-path emergency stop whose blocking behaviour is made externally
+visible --- together with a degraded-operation mode that keeps the system
+usable on a subset of its intended sensing and refuses to invent a position
+when none survives.
+
+The measured contributions are a workspace characterisation of the mounted
+configuration, including the negative result that the two arms share no
+reachable workspace and that inter-arm handover is therefore blocked by
+geometry; a quantified account of what degraded sensing costs; the finding
+that the deployed clearance margin and the planner's collision test disagree
+across the entire working band, and that the conflict is resolvable laterally
+but not fore-and-aft; and a set of eighty-seven recorded verification runs
+with automated checking of object handling, gripper actuation and wearer
+clearance.
+
+The methodological contribution is the discipline of validating an instrument
+against a known answer before reporting a surprising measurement taken with
+it. This arose from necessity rather than principle: across the project,
+unexpected results were more often defects in measurement than in the system,
+and the practice of requiring every analysis routine to recover a constructed
+answer before being trusted with real data caught a substantial number of
+errors that would otherwise have entered the record.
+
+\section{Future work}
+
+The immediate next steps are determined by the limitations rather than by
+ambition. Two specific master-arm channels should be repaired, since the
+analysis identifies them as the constraint on the left arm's usable motion and
+every direct-teleoperation baseline depends on them. The clearance conflict
+should be resolved by relocating the working band laterally, with the object
+specifications re-derived and the scenarios re-verified in one deliberate
+pass. The real-arm bring-up should be repeated with logging retained, so that
+the control rate, homing behaviour and session handling become citable rather
+than recorded only in a notebook.
+
+Beyond that, the experimental programme is designed and instrumented but
+unexecuted, and executing it is the substantial remaining work.
+\todo{MEASURE: the full experimental programme -- no human participant data
+exists}

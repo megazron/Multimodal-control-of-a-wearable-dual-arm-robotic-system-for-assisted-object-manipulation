@@ -1,0 +1,215 @@
+\chapter{Method}
+\label{ch:method}
+
+\section{System architecture}
+
+The system is organised as six ROS 2 packages with a deliberately one-way
+dependency structure. \texttt{srl\_teleop} contains teleoperation only and
+depends on nothing else in the workspace; \texttt{srl\_perception} contains
+object detection and pose estimation; \texttt{srl\_autonomy} depends on both
+and adds grasp generation, intent inference and handover arbitration;
+\texttt{srl\_experiments} depends on all of them and contains the protocols,
+logging and analysis. \texttt{srl\_description} holds the robot and wearer
+model and \texttt{srl\_moveit\_config} the planning configuration.
+
+The direction of that dependency arrow is load-bearing rather than tidy.
+Direct teleoperation is the baseline condition against which every autonomy
+condition is compared, so if the teleoperation package imported anything from
+the autonomy package the comparison would be circular. The property was
+checked in two ways: by searching for imports, and by physically removing the
+autonomy and perception packages from the install tree and confirming that the
+teleoperation follower still reached its running state.
+
+\section{Master arm and sensing}
+
+The operator commands the system through an instrumented mannequin arm. Joint
+angles are read by potentiometers and limb orientation by an inertial
+measurement unit, both sampled by a Teensy~4.1 microcontroller and streamed
+over USB serial as fixed-format frames.
+
+The serial port is discovered rather than configured. The board enumerates as
+either \texttt{/dev/ttyACM0} or \texttt{/dev/ttyACM1} depending on the order of
+USB attachment, so the driver globs the candidate devices, opens each and
+sniffs for a valid frame header. On failure it raises an exception naming the
+recovery command rather than continuing silently, because a node that runs
+with no data is indistinguishable from one with a dead sensor.
+
+Access to the port is made exclusive with an advisory lock taken on the open
+file descriptor. This is not merely defensive: the port \emph{search} itself
+reads bytes, so probing a port that another node already owns removes frames
+from that node's stream. Two readers on one board previously invalidated a
+full day of recordings.
+
+\subsection{Pose mapping}
+
+The commanded end-effector position is constructed in spherical form about the
+master's shoulder rather than by forward kinematics of the full chain.
+Elevation is taken from the wrist inertial measurement unit, as the angle
+between the limb's long axis in the sensor frame and the measured
+gravity vector; this is drift-free and requires no integration. Azimuth is
+taken from the shoulder roll potentiometer alone, zero-referenced at
+calibration. Reach magnitude is taken from the forward kinematics of the
+proximal joints, using magnitude only.
+
+The reason for this decomposition is that the full seven-joint forward
+kinematic solution collapsed directionally when it was evaluated against
+recorded gestures: a singular value decomposition of the resulting positions
+placed most of the variance on a single axis. The spherical decomposition
+isolates the three quantities the pipeline actually needs and allows each to
+be sourced from the most reliable available sensor.
+
+The azimuth channel carries a known limitation. The shoulder roll axis is
+fixed in the mount, so rolling it moves the tip only once a downstream joint
+has offset the tip from the roll axis; azimuth per degree of roll therefore
+depends on how bent the arm is, and azimuth and elevation are not independent
+as the spherical model assumes. \todo{MEASURE: the residual lateral mapping
+error after the potentiometer wiring is repaired, since the present figure is
+confounded by incoherent channels}
+
+\subsection{Degraded operation}
+
+Because a substantial fraction of the potentiometer channels are unreliable,
+the system treats channel loss as an expected condition rather than a fault.
+Validation is scoped to the channels the active mapping mode consumes, so a
+dead joint that the mode does not use cannot reject an otherwise-good frame.
+A channel manager publishes which channels are live and what each loss costs,
+and can retire a channel that has been reporting a firmware-clamped constant.
+
+The policy is to degrade rather than to fail, with one exception that is
+stated explicitly in the implementation: if no positional channel survives,
+position is reported as unavailable rather than substituted. Inventing a
+position for a robot mounted beside a person's head is the most dangerous
+available failure mode.
+
+\section{Kinematics and conventions}
+
+\subsection{Coordinate convention}
+
+The world frame used throughout has $x$ lateral, $y$ forward with the wearer
+facing $+y$, and $z$ up. This is \emph{not} the usual ROS convention of
+$x$~forward, and the difference caused a substantial error in the mount
+orientation which is described in Chapter~\ref{ch:results}. The frame was
+confirmed independently from the geometry of the wearer model itself.
+
+A separate convention conversion is required between the Kinova controller,
+which reports actuator positions in degrees over $[0,360)$, and the ROS joint
+state in radians over $[-\pi,\pi)$. This is implemented in a single module,
+\texttt{kortex\_convention}, and is unit-tested, because it is applied on
+every homing command and an error in it is a large unattended motion.
+
+\subsection{Inverse kinematics and the redundancy}
+
+Commanded poses are solved with TRAC-IK through MoveIt's \texttt{compute\_ik}
+service, with collision checking enabled against a model that includes the
+wearer. The seeding is taken from the current joint state, so the solution is
+continuous with the arm's present configuration.
+
+Two mechanisms handle failure. On an unsolved pose the redundant degree of
+freedom is re-seeded and the solve retried, fanning the elbow either side of
+its natural posture; this recovers poses that are reachable but blocked in the
+posture the arm happens to be in. On a solution far from the current state the
+follower commits a bounded step towards it rather than discarding it. The
+distinction matters: an earlier implementation discarded any solution further
+than a threshold from the current state, which could never converge, because a
+discarded solution leaves the arm where it was and the next solution is
+equally far away. Solutions are rejected only when the target pose has barely
+moved and the solution has jumped, which indicates a redundancy flip, and even
+then a counter forces acceptance after a bounded number of consecutive
+rejections so that rejection cannot deadlock either.
+
+\section{Wearer model and clearance}
+
+The wearer is represented in the robot description as a kinematic model with
+collision geometry for the torso, head, hips, legs, arms and hands. Collision
+checking against this model is what makes \texttt{avoid\_collisions} meaningful
+for the operator rather than nominal.
+
+Pairs of links that are permanently adjacent because they are bolted together
+are excluded in the semantic robot description; everything distal of the upper
+arm remains enabled, since that is what must actually avoid the wearer. An
+exclusion silences an alarm without moving any metal, and the mount
+interference described in Chapter~\ref{ch:results} is recorded as a mechanical
+action rather than treated as resolved by the exclusion that hides it.
+
+Separately from the binary collision check, a geometric clearance is computed
+from the transform tree between the arm's distal links and primitive
+approximations of the wearer's body. This produces a margin rather than a
+contact flag, and the follower refuses to publish below a configurable floor.
+The distinction between a contact test and a margin is central to one of the
+results in Chapter~\ref{ch:results}.
+
+\section{Safety layer}
+
+\subsection{Emergency stop}
+
+The emergency stop has three independent triggers, any of which latches until
+an explicit reset: a service call or topic message; both master buttons held
+simultaneously for a sustained interval; and a dead-man on the master data
+stream. On trip, each arm's measured joint positions are republished as a
+short trajectory, so a follower that continues commanding is continuously
+overridden.
+
+The dead-man keys on the \emph{source timestamp} of the master pose rather
+than on message arrival. This is the single most important detail in the
+safety layer, and Chapter~\ref{ch:results} describes why: the master node does
+not go silent when it degrades, it republishes its last good value, so an
+arrival-based dead-man cannot fire on the failure that actually occurs.
+
+\subsection{Making blocking visible}
+
+Several mechanisms in the system can legitimately stop motion. The recurring
+defect was never that they blocked, but that blocking was indistinguishable
+from working. Every such mechanism therefore registers with a monitor that
+requires a recovery string at registration, announces the first block by name,
+escalates if a block is sustained, and publishes an aggregated state.
+
+The monitor treats a blocker that has not been re-asserted as \emph{expired}
+rather than clear. A held condition is re-asserted every cycle by design, so a
+blocker nobody is asserting indicates that the asserting loop has stopped, and
+the guarded condition is therefore unknown rather than absent. Consumers treat
+expired as blocking.
+
+\section{Simulation and control interface}
+
+All results reported in this thesis were obtained against the simulated stack,
+in which the hardware interface is \texttt{mock\_components/GenericSystem} and
+joint commands are echoed with no dynamics. Trajectories are sent to
+\texttt{joint\_trajectory\_controller} instances, one per arm and one per
+gripper.
+
+A separate high-level bridge exists for the physical arms, using the Kinova
+high-level velocity API rather than the cyclic real-time interface.
+\todo{CONFIRM: whether the real-arm bridge should be described in Method at
+all, given that no artefact from a physical arm exists in the repository}
+
+\section{Verification methodology}
+
+Because much of this work consists of measurements rather than features, the
+method by which measurements are trusted is itself part of the method.
+
+Two rules were adopted after repeated failures. The first is that a pose which
+passes a single inverse-kinematics call is not established as reachable:
+TRAC-IK restarts randomly, so a pose at the edge of the feasible set is a coin
+flip and one call is one flip. Verification is therefore $N$ repeats over a
+path densified to a fixed spatial step, rather than a single call at each
+declared waypoint, since the arm travels the segments between waypoints and
+those are not reachable by virtue of their endpoints being reachable.
+
+The second is that an instrument must be validated against a known answer
+before a surprising measurement taken with it is reported. Every analysis
+routine that will touch experimental data has a test that feeds it an input
+whose answer is known by construction and confirms that it is recovered.
+
+\section{Recorded verification}
+
+Each task, scenario and autonomy condition is driven in simulation by a
+scripted operator and recorded in two forms. The first is a rendering
+generated directly from the transform tree, drawn from the same samples that
+produce the logged metrics, so the picture and the numbers cannot disagree.
+The second is a screen capture of the RViz visualisation from four fixed
+camera angles, which is what a human reviewer actually watches.
+
+Task objects are published as visualisation markers at their physical
+dimensions and are attached to the gripper only while the measured gripper
+joint indicates closure on an object, so that the rendered object follows the
+gripper rather than standing in for it.

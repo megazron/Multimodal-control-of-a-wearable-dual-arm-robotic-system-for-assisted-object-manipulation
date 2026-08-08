@@ -35,7 +35,7 @@ DONE=0; SKIP=0
 for r in "${RUNS[@]}"; do
   read -r T S C <<<"$r"
   KEYLINE="$T/$S/$C"
-  MP4="recordings/verification/$T/$S/$C/rviz.mp4"
+  MP4="recordings/verification/$T/$S/$C/rviz_quad.mp4"
   if grep -qxF "$KEYLINE" "$PROG" && [ -s "$MP4" ]; then
     SKIP=$((SKIP+1)); continue
   fi

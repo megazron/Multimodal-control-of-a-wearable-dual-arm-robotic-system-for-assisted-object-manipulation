@@ -1,0 +1,53 @@
+note: 'T1 reach: one target per arm, symmetric about the sagittal plane.'
+table:
+  x: 0.0
+  y: 0.3
+  z: 0.86
+  size_x: 1.2
+  size_y: 0.6
+  thickness: 0.04
+objects:
+  target_left:
+    shape: box
+    x: -0.24
+    y: 0.32
+    z: 0.88
+    size:
+    - 0.05
+    - 0.05
+    - 0.04
+    graspable: true
+    grasp:
+    - -0.24
+    - 0.32
+    - 0.88
+  target_right:
+    shape: box
+    x: 0.24
+    y: 0.32
+    z: 0.88
+    size:
+    - 0.05
+    - 0.05
+    - 0.04
+    graspable: true
+    grasp:
+    - 0.24
+    - 0.32
+    - 0.88
+targets:
+  target_left:
+    xyz:
+    - -0.24
+    - 0.32
+    - 0.88
+    arm: left
+  target_right:
+    xyz:
+    - 0.24
+    - 0.32
+    - 0.88
+    arm: right
+source: protocol.md layout table, verbatim. Positions are in the world frame in metres;
+  +x is the wearer's RIGHT and +y is FORWARD (this repo's convention, not ROS x-forward).
+  NO APRILTAGS -- measured once with a rule from the marked table origin.

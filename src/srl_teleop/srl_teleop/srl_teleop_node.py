@@ -31,6 +31,7 @@ from rclpy.node import Node
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from std_msgs.msg import String
 from builtin_interfaces.msg import Duration
+from srl_teleop.serial_port import find_port
 import math
 import sys
 
@@ -96,7 +97,9 @@ class SrlTeleop(Node):
         super().__init__("srl_teleop")
         self.mode = mode
 
-        self.declare_parameter("serial_port", "/dev/ttyACM0")
+        # "auto" sniffs for the board (it moves between ACM0/ACM1 on every
+        # usbipd re-attach); an explicit path bypasses detection.
+        self.declare_parameter("serial_port", "auto")
         self.declare_parameter("baud_rate", 115200)
         self.declare_parameter("do_homing", True)
         self.do_homing = self.get_parameter("do_homing").value
@@ -143,18 +146,16 @@ class SrlTeleop(Node):
             self.get_logger().info("MODE: SIM — input from /fake_serial")
         else:
             # real or both → real Teensy serial
-            try:
-                import serial
-                port = self.get_parameter("serial_port").value
-                baud = self.get_parameter("baud_rate").value
-                self.ser = serial.Serial(port, baud, timeout=0.01)
-                self.create_timer(0.01, self.read_serial)
-                self.get_logger().info(
-                    f"MODE: {self.mode.upper()} — real serial {port} @ {baud}")
-            except Exception as e:
-                self.get_logger().warn(
-                    f"Serial failed ({e}) — holding home. "
-                    f"(Use mode 1/SIM if no Teensy connected.)")
+            # Fails loudly rather than silently holding home -- choose mode
+            # 1/SIM to run deliberately without a Teensy.
+            import serial
+            baud = self.get_parameter("baud_rate").value
+            port = find_port(self.get_parameter("serial_port").value, baud,
+                             logger=self.get_logger())
+            self.ser = serial.Serial(port, baud, timeout=0.01)
+            self.create_timer(0.01, self.read_serial)
+            self.get_logger().info(
+                f"MODE: {self.mode.upper()} — real serial {port} @ {baud}")
 
         self.create_timer(0.05, self.publish_targets)
 

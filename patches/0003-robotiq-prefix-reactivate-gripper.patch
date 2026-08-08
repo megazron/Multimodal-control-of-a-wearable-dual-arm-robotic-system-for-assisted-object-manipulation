@@ -1,0 +1,51 @@
+--- a/src/ros2_robotiq_gripper/robotiq_description/urdf/2f_85.ros2_control.xacro	2026-08-06 10:45:05.519653391 +0100
++++ b/src/ros2_robotiq_gripper/robotiq_description/urdf/2f_85.ros2_control.xacro	2026-08-06 10:44:53.274999470 +0100
+@@ -42,6 +42,10 @@
+                     <plugin>robotiq_driver/RobotiqGripperHardwareInterface</plugin>
+                     <param name="gripper_closed_position">${gripper_closed_position}</param>
+                     <param name="COM_port">${com_port}</param>
++                    <!-- Resource prefix for the reactivate_gripper GPIO, which
++                         the driver exports from C++. Both arms otherwise
++                         export the same resource name. -->
++                    <param name="prefix">${prefix}</param>
+                     <param name="gripper_speed_multiplier">${gripper_speed_multiplier}</param>
+                     <param name="gripper_force_multiplier">${gripper_force_multiplier}</param>
+                     <param name="gripper_max_speed">${gripper_max_speed}</param>
+@@ -104,7 +108,7 @@
+                      right_gripper_controller refusing to activate. The
+                      earlier vendor patch prefixed the hardware NAME but
+                      missed this. -->
+-                <gpio name="reactivate_gripper">
++                <gpio name="${prefix}reactivate_gripper">
+                     <command_interface name="reactivate_gripper_cmd" />
+                     <command_interface name="reactivate_gripper_response" />
+                 </gpio>
+--- a/src/ros2_robotiq_gripper/robotiq_driver/src/hardware_interface.cpp	2026-08-06 10:44:53.182999483 +0100
++++ b/src/ros2_robotiq_gripper/robotiq_driver/src/hardware_interface.cpp	2026-08-06 10:44:53.262999471 +0100
+@@ -208,10 +208,23 @@
+                                            std::stod(info_.hardware_parameters.at("gripper_force_multiplier")) :
+                                            1.0);
+ 
+-  command_interfaces.emplace_back(
+-      hardware_interface::CommandInterface("reactivate_gripper", "reactivate_gripper_cmd", &reactivate_gripper_cmd_));
++  // PREFIXED. The GPIO name was a literal here, so on a dual-arm robot both
++  // gripper components exported the identical resource "reactivate_gripper"
++  // and the second to load exported none of its command interfaces -- the
++  // knuckle showing [unavailable] [unclaimed] while the other arm's was
++  // [available] [claimed]. Prefixing the GPIO in the xacro alone was NOT
++  // enough: that fixed the URDF declaration while this code still exported
++  // the unprefixed name, so the two disagreed. It went unnoticed because
++  // robotiq_driver is COLCON_IGNOREd here (it needs a `serial` package that
++  // is unavailable) and every gripper test to date ran against
++  // mock_components/GenericSystem, which reads the URDF and never runs this.
++  const std::string prefix = info_.hardware_parameters.count("prefix")
++                                 ? info_.hardware_parameters.at("prefix")
++                                 : std::string("");
+   command_interfaces.emplace_back(hardware_interface::CommandInterface(
+-      "reactivate_gripper", "reactivate_gripper_response", &reactivate_gripper_response_));
++      prefix + "reactivate_gripper", "reactivate_gripper_cmd", &reactivate_gripper_cmd_));
++  command_interfaces.emplace_back(hardware_interface::CommandInterface(
++      prefix + "reactivate_gripper", "reactivate_gripper_response", &reactivate_gripper_response_));
+ 
+   return command_interfaces;
+ }

@@ -1,0 +1,28 @@
+# =====================================================================
+# REAL-ROBOT REFERENCE -- LEFT ARM. LIVE READING, 2026-07-31 18:21
+# =====================================================================
+# THE SIM HOME IS AUTHORITATIVE. The real arm is moved TO it, never the
+# reverse. Conversion lives only in srl_teleop/kortex_convention.py and is
+# validated against these live readings (round-trip 4.4e-16 rad).
+#
+# The previous LEGACY values in this file were STALE by up to 149.50 deg and
+# were actively misleading -- they are removed, not kept alongside, so they
+# cannot be picked up again by mistake.
+# =====================================================================
+
+# --- LEFT 192.168.1.10, live ---
+left_kortex_deg:   276.99  309.93   22.32  309.49   44.60  342.63  147.39
+left_ros_rad:     -1.44880 -0.87392  0.38950 -0.88151  0.77847 -0.30325  2.57251
+left_ros_deg:      -83.01  -50.07   22.32  -50.51   44.60  -17.37  147.39
+left_sim_home_deg: 150.00  -94.00  -53.00  -65.00 -123.00   41.00  121.00
+left_delta_deg:   -126.99  -43.93  -75.32  -14.49 -167.60   58.37  -26.39
+# worst joint_5 at 167.60 deg. At homing_vel 0.03 rad/s that is ~98 s.
+# EXCEEDS the 120 deg refusal -> needs allow_large_move:=true, set
+# deliberately per session (see real_homing_node).
+
+# --- RIGHT 192.168.1.9 ---
+# NOT READ. The right arm cannot run its real driver at the same time as the
+# left: kortex_driver exports tcp/twist.* WITHOUT an arm prefix, so two real
+# components collide and abort the whole hardware load. Right is mock.
+# Its last known offset from sim home was 180.36 deg on joint_2 (a LIMITED
+# joint) -- that figure is from the legacy data and is UNVERIFIED.

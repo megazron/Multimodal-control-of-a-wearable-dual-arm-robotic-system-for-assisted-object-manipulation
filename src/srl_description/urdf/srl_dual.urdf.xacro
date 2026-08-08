@@ -2,13 +2,48 @@
 <robot name="srl_dual" xmlns:xacro="http://ros.org/wiki/xacro">
 
   <xacro:arg name="use_fake_hardware" default="true"/>
+  <!-- Grippers get their OWN flag. robotiq_driver is not built in this
+       workspace (the plugin class is not registered), and a missing gripper
+       plugin aborts the ENTIRE hardware load including the arms. Keeping the
+       grippers mock lets the real ARMS come up on their own. -->
+  <xacro:arg name="use_fake_gripper_hardware" default="true"/>
+  <!-- PER-ARM hardware selection. kortex_driver exports the Cartesian
+       command interfaces (tcp/twist.*, tcp/pose.*) WITHOUT an arm prefix, so
+       two real Kortex components collide:
+         "ResourceStorage: Tried to insert CommandInterface with already
+          existing key. Insert[tcp/twist.linear.x]"
+       and the collision aborts the whole hardware load. Until that is fixed
+       upstream, only ONE arm may use the real driver at a time. -->
+  <xacro:arg name="left_use_fake_hardware"  default="$(arg use_fake_hardware)"/>
+  <xacro:arg name="right_use_fake_hardware" default="$(arg use_fake_hardware)"/>
   <xacro:arg name="left_robot_ip"  default="192.168.1.10"/>
   <xacro:arg name="right_robot_ip" default="192.168.1.9"/>
+  <!-- Each real gripper needs its OWN serial port. The vendor macro defaults
+       both to /dev/ttyUSB0, so with two real arms the two drivers would fight
+       over one device: the same unprefixed-resource class of bug as the
+       reactivate_gripper GPIO. -->
+  <xacro:arg name="left_gripper_com_port"  default="/dev/ttyUSB0"/>
+  <xacro:arg name="right_gripper_com_port" default="/dev/ttyUSB1"/>
+
+  <!-- ARM MOUNT. Derived in closed form; see human_backpack.xacro and
+       CLAUDE.md. Position is backpack-relative; the backpack link is at
+       torso+(0,-0.12,0.02), so world = (mount_x, mount_y-0.12, mount_z+1.07).
+       Exposed as arguments so a candidate can be swept without editing. -->
+  <xacro:arg name="mount_x" default="0.20"/>
+  <xacro:arg name="mount_y" default="-0.20"/>
+  <xacro:arg name="mount_z" default="0.18"/>
+  <xacro:arg name="left_mount_rpy"  default="1.247666407 -0.232161321 1.508064663"/>
+  <xacro:arg name="right_mount_rpy" default="-1.256457931 -0.033197491 1.699631975"/>
 
   <link name="world"/>
 
   <xacro:include filename="$(find srl_description)/urdf/human_backpack.xacro"/>
-  <xacro:human_backpack parent="world"/>
+  <xacro:human_backpack parent="world"
+                        mount_x="$(arg mount_x)"
+                        mount_y="$(arg mount_y)"
+                        mount_z="$(arg mount_z)"
+                        left_mount_rpy="$(arg left_mount_rpy)"
+                        right_mount_rpy="$(arg right_mount_rpy)"/>
 
   <xacro:include filename="$(find kortex_description)/arms/gen3/7dof/urdf/gen3_macro.xacro"/>
   <!-- Robotiq 2F-85 gripper macro (from the robotiq_description package,
@@ -16,17 +51,21 @@
        exactly how kortex_robot.xacro's load_robot wires it in). -->
   <xacro:include filename="$(find kortex_description)/grippers/robotiq_2f_85/urdf/robotiq_2f_85_macro.xacro"/>
 
-  <!-- LEFT arm -->
+  <!-- LEFT arm.
+       initial_positions == the LEGACY REAL home, so sim and real start at the
+       SAME pose and enabling the sim->real bridge is a no-op rather than a
+       jump. Kortex 259.03/277.69/267.74/286.14/194.10/27.48/55.26.
+       Mirrors config/home_positions_left.txt; keep the two in step. -->
   <xacro:load_arm
       parent="left_mount"
       prefix="left_"
       dof="7"
       vision="true"
       robot_ip="$(arg left_robot_ip)"
-      use_fake_hardware="$(arg use_fake_hardware)"
+      use_fake_hardware="$(arg left_use_fake_hardware)"
       gripper="robotiq_2f_85"
       gripper_joint_name="left_robotiq_85_left_knuckle_joint"
-      use_internal_bus_gripper_comm="false"
+      use_internal_bus_gripper_comm="true"
       initial_positions="${dict(joint_1=-1.7623,joint_2=-1.4366,joint_3=-1.6102,joint_4=-1.2891,joint_5=-2.8955,joint_6=0.4796,joint_7=0.9645)}">
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:load_arm>
@@ -36,21 +75,27 @@
   <xacro:load_gripper
       parent="left_end_effector_link"
       prefix="left_"
-      use_fake_hardware="$(arg use_fake_hardware)"
+      com_port="$(arg left_gripper_com_port)"
+      use_fake_hardware="$(arg use_fake_gripper_hardware)"
       moveit_active="true"/>
 
-  <!-- RIGHT arm -->
+  <!-- RIGHT arm.
+       initial_positions == the LEGACY REAL home, same reasoning as the left.
+       This gives up the mirror symmetry the previous pose had; matching the
+       real arm matters more, because a mismatch is a commanded jump.
+       Kortex 303.65/77.06/98.57/58.57/317.14/36.39/154.71.
+       Mirrors config/home_positions_right.txt; keep the two in step. -->
   <xacro:load_arm
       parent="right_mount"
       prefix="right_"
       dof="7"
       vision="true"
       robot_ip="$(arg right_robot_ip)"
-      use_fake_hardware="$(arg use_fake_hardware)"
+      use_fake_hardware="$(arg right_use_fake_hardware)"
       gripper="robotiq_2f_85"
       gripper_joint_name="right_robotiq_85_left_knuckle_joint"
-      use_internal_bus_gripper_comm="false"
-      initial_positions="${dict(joint_1=-1.7623,joint_2=-1.4366,joint_3=-1.6102,joint_4=-1.2891,joint_5=-2.8955,joint_6=0.4796,joint_7=0.9645)}">
+      use_internal_bus_gripper_comm="true"
+      initial_positions="${dict(joint_1=-0.9835,joint_2=1.3450,joint_3=1.7204,joint_4=1.0222,joint_5=-0.7480,joint_6=0.6351,joint_7=2.7002)}">
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:load_arm>
 
@@ -58,7 +103,8 @@
   <xacro:load_gripper
       parent="right_end_effector_link"
       prefix="right_"
-      use_fake_hardware="$(arg use_fake_hardware)"
+      com_port="$(arg right_gripper_com_port)"
+      use_fake_hardware="$(arg use_fake_gripper_hardware)"
       moveit_active="true"/>
 
 </robot>

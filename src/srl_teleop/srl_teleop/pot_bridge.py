@@ -7,6 +7,7 @@ from rclpy.node import Node
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from std_msgs.msg import String
 from builtin_interfaces.msg import Duration
+from srl_teleop.serial_port import find_port
 import math
 
 
@@ -14,7 +15,9 @@ class PotBridge(Node):
     def __init__(self):
         super().__init__("pot_bridge")
         self.declare_parameter("use_fake", False)
-        self.declare_parameter("serial_port", "/dev/ttyACM0")
+        # "auto" sniffs for the board (it moves between ACM0/ACM1 on every
+        # usbipd re-attach); an explicit path bypasses detection.
+        self.declare_parameter("serial_port", "auto")
         self.declare_parameter("baud_rate", 115200)
         self.use_fake = self.get_parameter("use_fake").value
         self.home = {
@@ -37,15 +40,16 @@ class PotBridge(Node):
             self.create_subscription(String, "/fake_serial", self.on_fake_line, 10)
             self.get_logger().info("Input: FAKE topic /fake_serial")
         else:
-            try:
-                import serial
-                port = self.get_parameter("serial_port").value
-                baud = self.get_parameter("baud_rate").value
-                self.ser = serial.Serial(port, baud, timeout=0.01)
-                self.create_timer(0.01, self.read_serial)
-                self.get_logger().info(f"Input: REAL serial {port} @ {baud}")
-            except Exception as e:
-                self.get_logger().warn(f"Serial failed ({e}) holding home")
+            # Fails loudly: silently "holding home" on a wrong port is
+            # indistinguishable from a dead board. Use -p use_fake:=true to
+            # run deliberately without hardware.
+            import serial
+            baud = self.get_parameter("baud_rate").value
+            port = find_port(self.get_parameter("serial_port").value, baud,
+                             logger=self.get_logger())
+            self.ser = serial.Serial(port, baud, timeout=0.01)
+            self.create_timer(0.01, self.read_serial)
+            self.get_logger().info(f"Input: REAL serial {port} @ {baud}")
         self.create_timer(0.05, self.publish_targets)
         self.get_logger().info("pot_bridge DUAL started.")
         self.get_logger().info(f"Connected pots: {self.connected_pots}")

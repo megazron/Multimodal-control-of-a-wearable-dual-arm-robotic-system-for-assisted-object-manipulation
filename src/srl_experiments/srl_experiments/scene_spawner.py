@@ -24,8 +24,8 @@ from std_msgs.msg import ColorRGBA
 CUBE_SIZE = 0.04   # 4 cm cubes
 
 # Table: sits in front of the torso, waist/chest height.
-TABLE_SIZE = (0.5, 0.4, 0.05)      # x, y, z (thickness)
-TABLE_CENTER = (0.0, 0.40, 0.95)   # in front of body, table-height
+TABLE_SIZE = (1.0, 0.6, 0.05)      # 100cm x 60cm x 5cm thick (real table size)
+TABLE_CENTER = (0.0, 0.45, 0.95)   # in front of body, table-height
 TABLE_TOP_Z = TABLE_CENTER[2] + TABLE_SIZE[2] / 2.0
 
 # Cubes sit ON the table surface, spread across X (left/right),

@@ -1,0 +1,90 @@
+# real_controllers.yaml -- controller_manager config for the /real stack ONLY.
+#
+# SEPARATE FROM THE SIM ON PURPOSE. srl_moveit_config/config/ros2_controllers.yaml
+# is keyed to the bare node name `controller_manager` and runs at 100 Hz, which
+# is correct for the mock sim: its read() is a memory copy and costs microseconds.
+# The REAL stack is a different machine entirely -- every read() is a round trip
+# to the arm over WSL2 NAT.
+#
+# MEASURED, and the first diagnosis was WRONG. The original symptom was
+#     Read time : 11479 us   against a 10000 us budget
+# which looks like "the loop is too fast for the link". It is not.
+#
+# At 30 Hz and at 20 Hz, with update_rate confirmed applied:
+#     Read time  :      50 - 160 us      <- fast
+#     Write time : 3000000 - 6008589 us  <- THREE TO SIX SECONDS, then
+#                  "timeout detected: BaseCyclicClient::RefreshFeedback"
+# 22 write timeouts, 47 overruns, achieved /real/joint_states 4.0 Hz, and
+# joint feedback FROZEN (1 distinct value per joint, std 0.000e+00).
+#
+# No update_rate can absorb a 3-second blocking call, so the rate is NOT the
+# variable. The cause is visible in the driver's own startup banner:
+#     Port used          '10000'   <- TCP config channel: works perfectly
+#     Realtime port used '10001'   <- UDP cyclic channel: times out
+# TCP 10000 opens, the session is created and the arm reports 7 actuators.
+# The realtime UDP channel on 10001 is what write() uses, and under WSL2's
+# default NAT the arm's return UDP is dropped.
+#
+# >>> MIRRORED NETWORKING IS MANDATORY, NOT OPTIONAL. <<<
+# In Windows %UserProfile%\.wslconfig:
+#     [wsl2]
+#     networkingMode=mirrored
+# then `wsl --shutdown` and restart. /etc/wsl.conf here has no networkingMode,
+# i.e. this box is still on NAT.
+#
+# CAUTION reading these numbers: the "fast" 50-160 us read is NOT an
+# improvement. Once the write error deactivates the component, read() returns
+# a cache -- which is exactly why joint_states freezes. A fast read here is
+# the dead-channel signature, not a win.
+#
+# 20 Hz is kept because it is strictly better than 100 for the read budget and
+# costs nothing, but it does NOT make the arm commandable on NAT.
+
+/real/controller_manager:
+  ros__parameters:
+    # 20 Hz. Does NOT fix the UDP-10001 write timeout; see above.
+    # The sim stays at 100 Hz in srl_moveit_config and is unaffected.
+    update_rate: 20  # Hz
+    left_arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+    right_arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+/real/left_arm_controller:
+  ros__parameters:
+    joints:
+      - left_joint_1
+      - left_joint_2
+      - left_joint_3
+      - left_joint_4
+      - left_joint_5
+      - left_joint_6
+      - left_joint_7
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    allow_nonzero_velocity_at_trajectory_end: true
+
+# Declared but NOT spawned: the two-arm tcp/twist.linear.x collision keeps the
+# right arm mock. Present so enabling it later is a spawner line, not a config
+# change.
+/real/right_arm_controller:
+  ros__parameters:
+    joints:
+      - right_joint_1
+      - right_joint_2
+      - right_joint_3
+      - right_joint_4
+      - right_joint_5
+      - right_joint_6
+      - right_joint_7
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    allow_nonzero_velocity_at_trajectory_end: true

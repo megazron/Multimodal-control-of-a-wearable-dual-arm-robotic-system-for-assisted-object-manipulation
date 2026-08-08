@@ -1,0 +1,15 @@
+# E1 - Fitts characterisation. SYSTEM EVALUATION: no participants needed.
+experiment: e1_fitts_characterisation
+arm: left
+# Distance D and width W are crossed; ID = log2(D/W + 1).
+# Distances span the MASTER's usable ball (0.22 m radius, measured), not the
+# robot's workspace, because the master is the limiting element.
+distances_m: [0.06, 0.10, 0.16, 0.24]
+widths_m:    [0.015, 0.025, 0.040, 0.060]
+repeats: 3
+# NEW P_HOME after the 2026-08-05 mount fix. Derived from the mount, not an
+# independent constant: if the mount changes this must be re-derived.
+home_xyz: [-0.5195, 0.2138, 1.3928]
+dwell_s: 0.30
+timeout_s: 20.0
+grasping: false          # isolates POINTING cost from GRASPING cost

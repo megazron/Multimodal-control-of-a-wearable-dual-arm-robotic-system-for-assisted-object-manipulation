@@ -1,0 +1,142 @@
+{
+ "l_j1": {
+  "verdict": "INTERMITTENT",
+  "why": "2.2% dropouts",
+  "updates": 168,
+  "drop_pct": 2.2,
+  "range_deg": 261.5,
+  "jump_pct": 0.6,
+  "step_p50": 2.3,
+  "noise_deg": 0.2
+ },
+ "l_j2": {
+  "verdict": "INCOHERENT",
+  "why": "5% of updates jump >60 deg",
+  "updates": 172,
+  "drop_pct": 0.0,
+  "range_deg": 164.1,
+  "jump_pct": 5.2,
+  "step_p50": 1.3,
+  "noise_deg": 0.2
+ },
+ "l_j3": {
+  "verdict": "INCOHERENT",
+  "why": "8% of updates jump >60 deg",
+  "updates": 261,
+  "drop_pct": 0.0,
+  "range_deg": 306.2,
+  "jump_pct": 8.4,
+  "step_p50": 3.0,
+  "noise_deg": 0.2
+ },
+ "l_j4": {
+  "verdict": "INCOHERENT",
+  "why": "6% of updates jump >60 deg",
+  "updates": 97,
+  "drop_pct": 22.4,
+  "range_deg": 218.6,
+  "jump_pct": 6.2,
+  "step_p50": 2.3,
+  "noise_deg": 0.2
+ },
+ "l_j5": {
+  "verdict": "INCOHERENT",
+  "why": "12% of updates jump >60 deg",
+  "updates": 82,
+  "drop_pct": 40.4,
+  "range_deg": 315.1,
+  "jump_pct": 12.2,
+  "step_p50": 7.0,
+  "noise_deg": 1.2
+ },
+ "l_j6": {
+  "verdict": "INCOHERENT",
+  "why": "8% of updates jump >60 deg",
+  "updates": 36,
+  "drop_pct": 70.4,
+  "range_deg": 190.9,
+  "jump_pct": 8.3,
+  "step_p50": 1.75,
+  "noise_deg": 0.2
+ },
+ "l_j7": {
+  "verdict": "ALIVE",
+  "why": "range 26 deg",
+  "updates": 27,
+  "drop_pct": 0.0,
+  "range_deg": 25.8,
+  "jump_pct": 0.0,
+  "step_p50": 0.8,
+  "noise_deg": 0.6
+ },
+ "r_j1": {
+  "verdict": "ALIVE",
+  "why": "range 195 deg",
+  "updates": 248,
+  "drop_pct": 0.0,
+  "range_deg": 195.4,
+  "jump_pct": 2.0,
+  "step_p50": 1.3,
+  "noise_deg": 0.3
+ },
+ "r_j2": {
+  "verdict": "ALIVE",
+  "why": "range 261 deg",
+  "updates": 265,
+  "drop_pct": 0.0,
+  "range_deg": 261.2,
+  "jump_pct": 1.9,
+  "step_p50": 1.8,
+  "noise_deg": 0.2
+ },
+ "r_j3": {
+  "verdict": "INCOHERENT",
+  "why": "14% of updates jump >60 deg",
+  "updates": 37,
+  "drop_pct": 79.7,
+  "range_deg": 153.5,
+  "jump_pct": 13.5,
+  "step_p50": 6.3,
+  "noise_deg": 5.4
+ },
+ "r_j4": {
+  "verdict": "ALIVE",
+  "why": "range 291 deg",
+  "updates": 242,
+  "drop_pct": 0.2,
+  "range_deg": 290.7,
+  "jump_pct": 5.0,
+  "step_p50": 2.05,
+  "noise_deg": 0.2
+ },
+ "r_j5": {
+  "verdict": "DEAD",
+  "why": "range 0.0 deg, 0 updates",
+  "updates": 0,
+  "drop_pct": 100.0,
+  "range_deg": 0.0,
+  "jump_pct": null,
+  "step_p50": null,
+  "noise_deg": 0.9
+ },
+ "r_j6": {
+  "verdict": "ALIVE",
+  "why": "range 250 deg",
+  "updates": 309,
+  "drop_pct": 0.1,
+  "range_deg": 250.1,
+  "jump_pct": 1.6,
+  "step_p50": 1.5,
+  "noise_deg": 0.4
+ },
+ "r_j7": {
+  "verdict": "DEAD",
+  "why": "range 0.0 deg, 0 updates",
+  "updates": 0,
+  "drop_pct": 100.0,
+  "range_deg": 0.0,
+  "jump_pct": null,
+  "step_p50": null,
+  "noise_deg": 3.0
+ }
+}

@@ -1,0 +1,26 @@
+# E4 layouts. POSITION IS HELD CONSTANT across scenarios and only the
+# REQUIRED APPROACH ORIENTATION varies. That is the whole design: any
+# difference between scenarios is attributable to orientation alone.
+scenarios:
+  - name: upright_easy
+    approach_tilt_deg: 0
+    expected_difficulty: control
+    why: graspable top-down; both conditions should succeed
+  - name: tilted_30
+    approach_tilt_deg: 30
+    expected_difficulty: moderate
+    why: within what a fixed-orientation command can still reach
+  - name: tilted_60
+    approach_tilt_deg: 60
+    expected_difficulty: hard
+    why: at the edge of direct teleoperation
+  - name: side_facing
+    approach_tilt_deg: 90
+    expected_difficulty: ungraspable by direct teleoperation
+    why: >
+      Requires a wrist orientation the master cannot measure. This is the
+      categorical case the experiment exists for.
+  - name: inverted
+    approach_tilt_deg: 120
+    expected_difficulty: ungraspable by direct teleoperation
+    why: as above, past the limit

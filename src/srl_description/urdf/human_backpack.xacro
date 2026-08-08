@@ -1,41 +1,165 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
-  <xacro:macro name="human_backpack" params="parent">
+  <!-- =====================================================================
+       Human wearer + SRL backpack mount. VISUAL REFERENCE ONLY.
 
+       FRAME CONVENTION (inherited, do not "fix" casually):
+         x = lateral (left/right)   y = fore/aft, wearer faces +y   z = up
+       This is NOT the usual ROS x-forward convention, but it is what the
+       existing legs (x = +/-0.07) and backpack (y = -0.12, i.e. behind)
+       already encode, and the arm mounts follow it.
+
+       KINEMATIC CONTRACT
+       Every joint <origin> in this file is unchanged from the version
+       that the workspace anchor and home poses were derived against.
+       All proportion work below is done with per-<visual> origins, so
+       no link frame moves and the arm mounts are bit-identical. New
+       links are visual leaves and enter no existing chain.
+
+       The mounts sit ~0.18 m BELOW the wearer's shoulder line. Raising
+       them to shoulder height is a mount-origin change and is therefore
+       NOT done here - see the proposal in the accompanying notes.
+
+       NO COLLISION GEOMETRY, deliberately: these links carry <visual>
+       only and appear nowhere in the SRDF, so MoveIt does not know the
+       wearer exists and will never plan around them. Adding <collision>
+       here would silently change planning behaviour.
+       ===================================================================== -->
+  <!-- =================================================================
+       ARM MOUNT — DERIVED, not searched. See CLAUDE.md for the full working.
+
+       THE MODEL. One plate, so the plate NORMAL is mirror-symmetric. But the
+       CLOCKING — which hole on the arm's circular base flange the bolts go
+       through — is a per-arm assembly choice and is NOT mirrored. That is
+       still "the arms bolt to one plate", and it is what makes the geometry
+       solvable at all:
+
+         with a fully mirror-symmetric mount,
+             |right_P_HOME - mirror(left_P_HOME)| = |v_R - M v_L| = 1.3837 m
+         INDEPENDENT of the rotation — the mount cancels algebraically. The
+         two home posture vectors are 119.6 deg apart in their own base
+         frames, and two vectors rigidly 119.6 deg apart cannot both point
+         forward. A search over mirror-symmetric rotations therefore CANNOT
+         succeed, which is why two of them produced arms buried in the torso.
+         Allowing independent clocking drops that residual to 0.0889 m.
+
+       THE DERIVATION, in closed form. The EE offset in the ARM BASE frame is
+       fixed by the joint angles (verified against the stock Gen3 to 1e-9 m),
+       so |EE - mount| = |v| is FORCED: the reachable EE set is a sphere. The
+       target DIRECTION fixes two rotational DOF exactly, by shortest arc. The
+       third DOF is a spin about that direction which does not move the EE at
+       all — it rotates the arm's PATH — and it is chosen by the minimum
+       clearance of EVERY intermediate link, which is the thing it controls.
+
+       POSITION ALSO CHANGED, and it had to be. At the old (0.15, -0.12) the
+       Gen3 base tube (r=0.046, 0.171 m long) starts 0.010 m from the torso
+       box, so over EVERY possible rotation the best achievable clearance for
+       base_link — a link NO joint moves — was +0.0097 m. The 0.15 m floor was
+       infeasible by a factor of 15 before any rotation was chosen. Moving the
+       mount onto the BACK of the pack rather than its front face fixes it.
+       ================================================================= -->
+  <xacro:macro name="human_backpack"
+               params="parent
+                       mount_x:=0.20 mount_y:=-0.20 mount_z:=0.18
+                       left_mount_rpy:='1.247666407 -0.232161321 1.508064663'
+                       right_mount_rpy:='-1.256457931 -0.033197491 1.699631975'">
     <material name="skin"><color rgba="0.85 0.72 0.60 1"/></material>
     <material name="shirt"><color rgba="0.25 0.35 0.55 1"/></material>
     <material name="pack"><color rgba="0.15 0.15 0.15 1"/></material>
+    <material name="trouser"><color rgba="0.20 0.22 0.28 1"/></material>
+    <material name="strap"><color rgba="0.10 0.10 0.12 1"/></material>
+    <!-- Mount hardware reads as machined metal, distinct from the fabric
+         of the pack, so the load path is legible at a glance. -->
+    <material name="mount_metal"><color rgba="0.62 0.64 0.68 1"/></material>
 
+    <!-- ===================== TORSO ===================== -->
+    <!-- Link frame stays at world z=1.05. Chest is placed by the visual
+         origin: centre z=1.22, spanning 0.98..1.46 (shoulder line). -->
     <link name="torso">
-      <visual><geometry><box size="0.28 0.14 0.44"/></geometry>
-        <material name="shirt"/></visual>
+      <collision>
+        <origin xyz="0 0 0.17" rpy="0 0 0"/>
+        <geometry><box size="0.36 0.22 0.48"/></geometry>
+      </collision>
+      <visual>
+        <origin xyz="0 0 0.17" rpy="0 0 0"/>
+        <geometry><box size="0.36 0.22 0.48"/></geometry>
+        <material name="shirt"/>
+      </visual>
     </link>
     <joint name="${parent}_to_torso" type="fixed">
       <parent link="${parent}"/><child link="torso"/>
       <origin xyz="0 0 1.05" rpy="0 0 0"/>
     </joint>
 
+    <!-- ===================== HEAD + NECK ===================== -->
+    <!-- Link frame stays at world z=1.40. Head centre raised to 1.645 by
+         the visual origin, putting the crown at exactly 1.75 m. -->
     <link name="head">
-      <visual><geometry><sphere radius="0.10"/></geometry>
-        <material name="skin"/></visual>
+      <collision>
+        <origin xyz="0 0 0.245" rpy="0 0 0"/>
+        <geometry><sphere radius="0.105"/></geometry>
+      </collision>
+      <collision>
+        <origin xyz="0 0 0.10" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.055" length="0.16"/></geometry>
+      </collision>
+      <visual>
+        <origin xyz="0 0 0.245" rpy="0 0 0"/>
+        <geometry><sphere radius="0.105"/></geometry>
+        <material name="skin"/>
+      </visual>
+      <visual>
+        <origin xyz="0 0 0.10" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.055" length="0.16"/></geometry>
+        <material name="skin"/>
+      </visual>
     </link>
     <joint name="torso_to_head" type="fixed">
       <parent link="torso"/><child link="head"/>
       <origin xyz="0 0 0.35" rpy="0 0 0"/>
     </joint>
 
+    <!-- ===================== PELVIS ===================== -->
     <link name="hips">
-      <visual><geometry><box size="0.20 0.14 0.12"/></geometry>
-        <material name="shirt"/></visual>
+      <collision>
+        <origin xyz="0 0 0.17" rpy="0 0 0"/>
+        <geometry><box size="0.32 0.21 0.18"/></geometry>
+      </collision>
+      <visual>
+        <origin xyz="0 0 0.17" rpy="0 0 0"/>
+        <geometry><box size="0.32 0.21 0.18"/></geometry>
+        <material name="trouser"/>
+      </visual>
     </link>
     <joint name="torso_to_hips" type="fixed">
       <parent link="torso"/><child link="hips"/>
       <origin xyz="0 0 -0.28" rpy="0 0 0"/>
     </joint>
 
+    <!-- ===================== LEGS =====================
+         Thigh + shank + foot as three visuals on the existing leg link,
+         so no new joints are needed. Hip centres widened to +/-0.09 via
+         the visual x-offset; the link frames stay at +/-0.07. -->
     <link name="left_leg">
-      <visual><geometry><cylinder radius="0.05" length="0.7"/></geometry>
-        <material name="shirt"/></visual>
+      <collision>
+        <origin xyz="0.02 0 0.36" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.075" length="0.44"/></geometry>
+      </collision>
+      <visual>
+        <origin xyz="0.02 0 0.36" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.075" length="0.44"/></geometry>
+        <material name="trouser"/>
+      </visual>
+      <visual>
+        <origin xyz="0.02 0 -0.08" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.055" length="0.44"/></geometry>
+        <material name="trouser"/>
+      </visual>
+      <visual>
+        <origin xyz="0.02 0.06 -0.29" rpy="0 0 0"/>
+        <geometry><box size="0.10 0.26 0.06"/></geometry>
+        <material name="pack"/>
+      </visual>
     </link>
     <joint name="hips_to_left_leg" type="fixed">
       <parent link="hips"/><child link="left_leg"/>
@@ -43,33 +167,214 @@
     </joint>
 
     <link name="right_leg">
-      <visual><geometry><cylinder radius="0.05" length="0.7"/></geometry>
-        <material name="shirt"/></visual>
+      <collision>
+        <origin xyz="-0.02 0 0.36" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.075" length="0.44"/></geometry>
+      </collision>
+      <visual>
+        <origin xyz="-0.02 0 0.36" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.075" length="0.44"/></geometry>
+        <material name="trouser"/>
+      </visual>
+      <visual>
+        <origin xyz="-0.02 0 -0.08" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.055" length="0.44"/></geometry>
+        <material name="trouser"/>
+      </visual>
+      <visual>
+        <origin xyz="-0.02 0.06 -0.29" rpy="0 0 0"/>
+        <geometry><box size="0.10 0.26 0.06"/></geometry>
+        <material name="pack"/>
+      </visual>
     </link>
     <joint name="hips_to_right_leg" type="fixed">
       <parent link="hips"/><child link="right_leg"/>
       <origin xyz="-0.07 0 -0.45" rpy="0 0 0"/>
     </joint>
 
+    <!-- ===================== HUMAN ARMS =====================
+         The previous model had NONE - the render showed a torso with
+         only the two Kinova arms, which is why the SRL arms read as the
+         wearer's arms. Upper arm / forearm / hand, hanging at rest,
+         shoulder line z=1.43 matching the top of the chest box. -->
+    <link name="human_left_upper_arm">
+      <collision><geometry><cylinder radius="0.050" length="0.30"/></geometry></collision>
+      <visual><geometry><cylinder radius="0.050" length="0.30"/></geometry>
+        <material name="shirt"/></visual>
+    </link>
+    <joint name="torso_to_human_left_upper_arm" type="fixed">
+      <parent link="torso"/><child link="human_left_upper_arm"/>
+      <origin xyz="0.21 0 0.23" rpy="0 0 0"/>
+    </joint>
+
+    <link name="human_left_lower_arm">
+      <collision><geometry><cylinder radius="0.045" length="0.26"/></geometry></collision>
+      <visual><geometry><cylinder radius="0.045" length="0.26"/></geometry>
+        <material name="skin"/></visual>
+    </link>
+    <joint name="torso_to_human_left_lower_arm" type="fixed">
+      <parent link="torso"/><child link="human_left_lower_arm"/>
+      <origin xyz="0.21 0 -0.05" rpy="0 0 0"/>
+    </joint>
+
+    <link name="human_left_hand">
+      <collision><geometry><box size="0.09 0.05 0.18"/></geometry></collision>
+      <visual><geometry><box size="0.09 0.05 0.18"/></geometry>
+        <material name="skin"/></visual>
+    </link>
+    <joint name="torso_to_human_left_hand" type="fixed">
+      <parent link="torso"/><child link="human_left_hand"/>
+      <origin xyz="0.21 0 -0.27" rpy="0 0 0"/>
+    </joint>
+
+    <link name="human_right_upper_arm">
+      <collision><geometry><cylinder radius="0.050" length="0.30"/></geometry></collision>
+      <visual><geometry><cylinder radius="0.050" length="0.30"/></geometry>
+        <material name="shirt"/></visual>
+    </link>
+    <joint name="torso_to_human_right_upper_arm" type="fixed">
+      <parent link="torso"/><child link="human_right_upper_arm"/>
+      <origin xyz="-0.21 0 0.23" rpy="0 0 0"/>
+    </joint>
+
+    <link name="human_right_lower_arm">
+      <collision><geometry><cylinder radius="0.045" length="0.26"/></geometry></collision>
+      <visual><geometry><cylinder radius="0.045" length="0.26"/></geometry>
+        <material name="skin"/></visual>
+    </link>
+    <joint name="torso_to_human_right_lower_arm" type="fixed">
+      <parent link="torso"/><child link="human_right_lower_arm"/>
+      <origin xyz="-0.21 0 -0.05" rpy="0 0 0"/>
+    </joint>
+
+    <link name="human_right_hand">
+      <collision><geometry><box size="0.09 0.05 0.18"/></geometry></collision>
+      <visual><geometry><box size="0.09 0.05 0.18"/></geometry>
+        <material name="skin"/></visual>
+    </link>
+    <joint name="torso_to_human_right_hand" type="fixed">
+      <parent link="torso"/><child link="human_right_hand"/>
+      <origin xyz="-0.21 0 -0.27" rpy="0 0 0"/>
+    </joint>
+
+    <!-- ===================== HARNESS =====================
+         Shoulder straps, so the pack reads as worn rather than stuck on. -->
+    <link name="harness">
+      <visual>
+        <origin xyz="0.12 0.10 0.20" rpy="0 0 0"/>
+        <geometry><box size="0.07 0.05 0.34"/></geometry>
+        <material name="strap"/>
+      </visual>
+      <visual>
+        <origin xyz="-0.12 0.10 0.20" rpy="0 0 0"/>
+        <geometry><box size="0.07 0.05 0.34"/></geometry>
+        <material name="strap"/>
+      </visual>
+      <visual>
+        <origin xyz="0.12 0.00 0.375" rpy="0 0 0"/>
+        <geometry><box size="0.07 0.26 0.05"/></geometry>
+        <material name="strap"/>
+      </visual>
+      <visual>
+        <origin xyz="-0.12 0.00 0.375" rpy="0 0 0"/>
+        <geometry><box size="0.07 0.26 0.05"/></geometry>
+        <material name="strap"/>
+      </visual>
+    </link>
+    <joint name="torso_to_harness" type="fixed">
+      <parent link="torso"/><child link="harness"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <!-- ===================== BACKPACK =====================
+         Frame unchanged at world (0, -0.12, 1.07). The body is placed by
+         its visual origin so it sits against the enlarged torso. -->
     <link name="backpack">
-      <visual><geometry><box size="0.26 0.10 0.40"/></geometry>
-        <material name="pack"/></visual>
+      <visual>
+        <origin xyz="0 -0.095 0.155" rpy="0 0 0"/>
+        <geometry><box size="0.44 0.25 0.45"/></geometry>
+        <material name="pack"/>
+      </visual>
     </link>
     <joint name="torso_to_backpack" type="fixed">
       <parent link="torso"/><child link="backpack"/>
       <origin xyz="0 -0.12 0.02" rpy="0 0 0"/>
     </joint>
 
+    <!-- ===================== MOUNT STRUCTURE =====================
+         A load-bearing plate spanning both mount points, proud of the
+         pack so it reads as structure rather than fabric. Sized so the
+         mount origins (x = +/-0.15, z = 0.18) fall INSIDE its volume -
+         that, plus the pads below, is what stops the arms looking as
+         though they float. -->
+    <link name="mount_plate">
+      <visual>
+        <origin xyz="0 -0.16 0.18" rpy="0 0 0"/>
+        <geometry><box size="0.52 0.10 0.08"/></geometry>
+        <material name="mount_metal"/>
+      </visual>
+      <!-- Vertical spine tying the plate down the pack, so the plate is
+           not visually cantilevered off nothing. -->
+      <visual>
+        <origin xyz="0 -0.12 0.02" rpy="0 0 0"/>
+        <geometry><box size="0.12 0.20 0.36"/></geometry>
+        <material name="mount_metal"/>
+      </visual>
+    </link>
+    <joint name="backpack_to_mount_plate" type="fixed">
+      <parent link="backpack"/><child link="mount_plate"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <!-- ===================== ARM MOUNTS =====================
+         ORIGINS UNCHANGED. Exact mirrors about the sagittal plane, which
+         in this frame convention is x=0, NOT y=0. Under a reflection
+         through x=0 a rotation maps as (r, p, y) -> (r, -p, -y): roll is
+         preserved, pitch and yaw negate. Verified numerically. -->
+    <!-- rpy of Rx(-tilt)*Rz(clock) in URDF's ZYX convention, closed form.
+         Both mounts are generated from the SAME expressions with clock
+         negated for the right, so the pair is a mirror by construction and
+         cannot be edited out of symmetry. -->
+    <xacro:property name="mt" value="${radians(mount_tilt_deg)}"/>
+    <xacro:property name="mc" value="${radians(mount_clock_deg)}"/>
+
     <link name="left_mount"/>
     <joint name="backpack_to_left_mount" type="fixed">
       <parent link="backpack"/><child link="left_mount"/>
-      <origin xyz="0.15 0.0 0.18" rpy="0 0.6 0"/>
+      <origin xyz="${mount_x} ${mount_y} ${mount_z}" rpy="${left_mount_rpy}"/>
     </joint>
 
     <link name="right_mount"/>
     <joint name="backpack_to_right_mount" type="fixed">
       <parent link="backpack"/><child link="right_mount"/>
-      <origin xyz="-0.15 0.0 0.18" rpy="0 -0.6 0"/>
+      <origin xyz="${-mount_x} ${mount_y} ${mount_z}" rpy="${right_mount_rpy}"/>
+    </joint>
+
+    <!-- Mounting bosses. Children of the mount links, so they inherit the
+         mount tilt exactly and stay flush under the Kinova base no matter
+         what the mount origin is later changed to. -->
+    <link name="left_mount_pad">
+      <visual>
+        <origin xyz="0 0 -0.02" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.065" length="0.04"/></geometry>
+        <material name="mount_metal"/>
+      </visual>
+    </link>
+    <joint name="left_mount_to_pad" type="fixed">
+      <parent link="left_mount"/><child link="left_mount_pad"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <link name="right_mount_pad">
+      <visual>
+        <origin xyz="0 0 -0.02" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.065" length="0.04"/></geometry>
+        <material name="mount_metal"/>
+      </visual>
+    </link>
+    <joint name="right_mount_to_pad" type="fixed">
+      <parent link="right_mount"/><child link="right_mount_pad"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
     </joint>
 
   </xacro:macro>

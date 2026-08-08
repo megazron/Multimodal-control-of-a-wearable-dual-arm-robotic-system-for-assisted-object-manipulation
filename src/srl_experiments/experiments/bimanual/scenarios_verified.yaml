@@ -1,0 +1,182 @@
+frame: world
+note: +x is the wearer's RIGHT, +y FORWARD, +z UP. Verified against a live /compute_ik
+  with the arms at home; every waypoint solved twice.
+nominal_separation_m: 0.31
+tasks:
+  T3_rigid: &id001
+    S1_short_straight:
+      sep: 0.31
+      tol_deg: 8.0
+      why: short vertical lift, generous tilt tolerance
+      path:
+      - - 0.0
+        - 0.35
+        - 1.15
+      - - 0.0
+        - 0.35
+        - 1.1749999999999998
+      - - 0.0
+        - 0.35
+        - 1.2
+      verified: true
+      reason: ''
+    S2_long_height:
+      sep: 0.31
+      tol_deg: 6.0
+      why: full-band lift, twice the travel
+      path:
+      - - 0.0
+        - 0.35
+        - 1.1
+      - - 0.0
+        - 0.35
+        - 1.1500000000000001
+      - - 0.0
+        - 0.35
+        - 1.2000000000000002
+      - - 0.0
+        - 0.35
+        - 1.25
+      - - 0.0
+        - 0.35
+        - 1.3
+      verified: true
+      reason: ''
+    S3_curved_obstacle:
+      sep: 0.31
+      tol_deg: 6.0
+      why: detour in y around a virtual obstacle
+      path:
+      - - 0.0
+        - 0.35
+        - 1.15
+      - - 0.0
+        - 0.4
+        - 1.2
+      - - 0.0
+        - 0.4
+        - 1.25
+      - - 0.0
+        - 0.35
+        - 1.3
+      verified: true
+      reason: ''
+    S4_tight:
+      sep: 0.33
+      tol_deg: 3.8
+      why: separation 330 mm, 10 mm from the 340 mm sling failure threshold; tight
+        tilt tolerance
+      path:
+      - - 0.0
+        - 0.35
+        - 1.15
+      - - 0.0
+        - 0.35
+        - 1.1833333333333333
+      - - 0.0
+        - 0.35
+        - 1.2166666666666666
+      - - 0.0
+        - 0.35
+        - 1.25
+      verified: true
+      reason: ''
+  T6_compliant: *id001
+  T7_pursuit:
+    S1_both_slow:
+      speed_left: 0.05
+      speed_right: 0.05
+      centre_left: &id002
+      - 0.4
+      - 0.35
+      - 1.05
+      centre_right: &id003
+      - -0.4
+      - 0.35
+      - 1.05
+      amplitude_m: 0.08
+      verified: true
+      reason: ''
+    S2_one_fast:
+      speed_left: 0.2
+      speed_right: 0.05
+      centre_left: *id002
+      centre_right: *id003
+      amplitude_m: 0.08
+      verified: true
+      reason: ''
+    S3_both_fast:
+      speed_left: 0.2
+      speed_right: 0.2
+      centre_left: *id002
+      centre_right: *id003
+      amplitude_m: 0.08
+      verified: true
+      reason: ''
+    S4_asymmetric:
+      speed_left: 0.3
+      speed_right: 0.08
+      unpredictable: true
+      centre_left: *id002
+      centre_right: *id003
+      amplitude_m: 0.08
+      verified: true
+      reason: ''
+    B1_left_only:
+      speed_left: 0.2
+      speed_right: 0.0
+      unimanual: left
+      centre_left: *id002
+      centre_right: *id003
+      amplitude_m: 0.08
+      verified: true
+      reason: ''
+    B2_right_only:
+      speed_left: 0.0
+      speed_right: 0.2
+      unimanual: right
+      centre_left: *id002
+      centre_right: *id003
+      amplitude_m: 0.08
+      verified: true
+      reason: ''
+  T5_handover:
+    S1_near:
+      object:
+      - -0.3
+      - 0.35
+      - 1.05
+      receive:
+      - -0.16
+      - 0.35
+      - 1.05
+      hands_occupied: false
+      arm: right
+      verified: true
+      reason: ''
+    S2_far:
+      object:
+      - -0.4
+      - 0.35
+      - 1.15
+      receive:
+      - -0.2
+      - 0.35
+      - 1.1
+      hands_occupied: false
+      arm: right
+      verified: true
+      reason: ''
+    S3_busy:
+      object:
+      - -0.3
+      - 0.35
+      - 1.1
+      receive:
+      - -0.16
+      - 0.35
+      - 1.05
+      hands_occupied: true
+      arm: right
+      verified: true
+      reason: ''

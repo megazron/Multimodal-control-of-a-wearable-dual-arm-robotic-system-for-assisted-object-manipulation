@@ -1,0 +1,140 @@
+--- a/src/ros2_kortex/kortex_driver/src/hardware_interface.cpp	2026-08-06 10:42:47.457836984 +0100
++++ b/src/ros2_kortex/kortex_driver/src/hardware_interface.cpp	2026-08-06 10:41:13.292458250 +0100
+@@ -30,6 +30,8 @@
+ #include <string>
+ #include <vector>
+ 
++#include <algorithm>
++
+ #include "kortex_driver/hardware_interface.hpp"
+ #include "kortex_driver/kortex_math_util.hpp"
+ 
+@@ -166,6 +168,22 @@
+   {
+     RCLCPP_INFO(LOGGER, "Connection inactivity timeout is '%d'", connection_inactivity_timeout);
+   }
++  // RESOURCE PREFIX. Empty for a single arm, so single-arm behaviour is
++  // bit-identical to upstream. On a DUAL-arm robot the non-joint resources
++  // ("tcp", "reset_fault") are otherwise identical between the two hardware
++  // components, and ros2_control resource names must be unique across the
++  // whole robot -- the second component to load loses, exactly as the
++  // unprefixed reactivate_gripper GPIO did.
++  resource_prefix_ = info_.hardware_parameters.count("prefix")
++                       ? info_.hardware_parameters["prefix"]
++                       : std::string("");
++  // The vendor xacro writes tf_prefix wrapped in literal quotes; tolerate the
++  // same accident here rather than exporting a resource called "left_".
++  resource_prefix_.erase(
++    std::remove(resource_prefix_.begin(), resource_prefix_.end(), '"'),
++    resource_prefix_.end());
++  RCLCPP_INFO(LOGGER, "Resource prefix is '%s'", resource_prefix_.c_str());
++
+   // gripper joint name
+   gripper_joint_name_ = info_.hardware_parameters["gripper_joint_name"];
+   if (gripper_joint_name_.empty())
+@@ -325,7 +343,8 @@
+ 
+   // state interface which reports if robot is faulted
+   state_interfaces.emplace_back(
+-    hardware_interface::StateInterface("reset_fault", "internal_fault", &in_fault_));
++    hardware_interface::StateInterface(
++      resource_prefix_ + "reset_fault", "internal_fault", &in_fault_));
+ 
+   return state_interfaces;
+ }
+@@ -369,23 +388,30 @@
+ 
+   // register twist command interfaces
+   command_interfaces.emplace_back(
+-    hardware_interface::CommandInterface("tcp", "twist.linear.x", &twist_commands_[0]));
++    hardware_interface::CommandInterface(
++      resource_prefix_ + "tcp", "twist.linear.x", &twist_commands_[0]));
+   command_interfaces.emplace_back(
+-    hardware_interface::CommandInterface("tcp", "twist.linear.y", &twist_commands_[1]));
++    hardware_interface::CommandInterface(
++      resource_prefix_ + "tcp", "twist.linear.y", &twist_commands_[1]));
+   command_interfaces.emplace_back(
+-    hardware_interface::CommandInterface("tcp", "twist.linear.z", &twist_commands_[2]));
++    hardware_interface::CommandInterface(
++      resource_prefix_ + "tcp", "twist.linear.z", &twist_commands_[2]));
+   command_interfaces.emplace_back(
+-    hardware_interface::CommandInterface("tcp", "twist.angular.x", &twist_commands_[3]));
++    hardware_interface::CommandInterface(
++      resource_prefix_ + "tcp", "twist.angular.x", &twist_commands_[3]));
+   command_interfaces.emplace_back(
+-    hardware_interface::CommandInterface("tcp", "twist.angular.y", &twist_commands_[4]));
++    hardware_interface::CommandInterface(
++      resource_prefix_ + "tcp", "twist.angular.y", &twist_commands_[4]));
+   command_interfaces.emplace_back(
+-    hardware_interface::CommandInterface("tcp", "twist.angular.z", &twist_commands_[5]));
++    hardware_interface::CommandInterface(
++      resource_prefix_ + "tcp", "twist.angular.z", &twist_commands_[5]));
+ 
+   command_interfaces.emplace_back(
+-    hardware_interface::CommandInterface("reset_fault", "command", &reset_fault_cmd_));
++    hardware_interface::CommandInterface(
++      resource_prefix_ + "reset_fault", "command", &reset_fault_cmd_));
+ 
+   command_interfaces.emplace_back(hardware_interface::CommandInterface(
+-    "reset_fault", "async_success", &reset_fault_async_success_));
++    resource_prefix_ + "reset_fault", "async_success", &reset_fault_async_success_));
+ 
+   return command_interfaces;
+ }
+@@ -448,13 +474,17 @@
+       }
+     }
+     if (
+-      (key == "tcp/twist.linear.x") || (key == "tcp/twist.linear.y") ||
+-      (key == "tcp/twist.linear.z") || (key == "tcp/twist.angular.x") ||
+-      (key == "tcp/twist.angular.y") || (key == "tcp/twist.angular.z"))
++      (key == resource_prefix_ + "tcp/twist.linear.x") ||
++      (key == resource_prefix_ + "tcp/twist.linear.y") ||
++      (key == resource_prefix_ + "tcp/twist.linear.z") ||
++      (key == resource_prefix_ + "tcp/twist.angular.x") ||
++      (key == resource_prefix_ + "tcp/twist.angular.y") ||
++      (key == resource_prefix_ + "tcp/twist.angular.z"))
+     {
+       stop_modes_.emplace_back(StopStartInterface::STOP_TWIST);
+     }
+-    if ((key == "reset_fault/command") || (key == "reset_fault/async_success"))
++    if ((key == resource_prefix_ + "reset_fault/command") ||
++        (key == resource_prefix_ + "reset_fault/async_success"))
+     {
+       stop_modes_.emplace_back(StopStartInterface::STOP_FAULT_CTRL);
+     }
+@@ -497,13 +527,17 @@
+       }
+     }
+     if (
+-      (key == "tcp/twist.linear.x") || (key == "tcp/twist.linear.y") ||
+-      (key == "tcp/twist.linear.z") || (key == "tcp/twist.angular.x") ||
+-      (key == "tcp/twist.angular.y") || (key == "tcp/twist.angular.z"))
++      (key == resource_prefix_ + "tcp/twist.linear.x") ||
++      (key == resource_prefix_ + "tcp/twist.linear.y") ||
++      (key == resource_prefix_ + "tcp/twist.linear.z") ||
++      (key == resource_prefix_ + "tcp/twist.angular.x") ||
++      (key == resource_prefix_ + "tcp/twist.angular.y") ||
++      (key == resource_prefix_ + "tcp/twist.angular.z"))
+     {
+       start_modes_.emplace_back(StopStartInterface::START_TWIST);
+     }
+-    if ((key == "reset_fault/command") || (key == "reset_fault/async_success"))
++    if ((key == resource_prefix_ + "reset_fault/command") ||
++        (key == resource_prefix_ + "reset_fault/async_success"))
+     {
+       start_modes_.emplace_back(StopStartInterface::START_FAULT_CTRL);
+     }
+--- a/src/ros2_kortex/kortex_driver/include/kortex_driver/hardware_interface.hpp	2026-08-06 10:42:47.457836984 +0100
++++ b/src/ros2_kortex/kortex_driver/include/kortex_driver/hardware_interface.hpp	2026-08-06 10:41:27.084712940 +0100
+@@ -196,6 +196,10 @@
+   bool first_pass_;
+ 
+   // gripper stuff
++  // Prefix for NON-JOINT resources ("tcp", "reset_fault"). Joints are
++  // already prefixed by the xacro; these were not, so two real arms exported
++  // identical resource names and the second component to load exported none.
++  std::string resource_prefix_;
+   std::string gripper_joint_name_;
+   bool use_internal_bus_gripper_comm_;
+ 

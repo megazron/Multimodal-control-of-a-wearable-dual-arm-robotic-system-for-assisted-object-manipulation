@@ -1,0 +1,17 @@
+# E4 - DOF recovery. A CATEGORICAL result, not a percentage.
+experiment: e4_dof_recovery
+arm: left
+conditions: [direct, shared]
+scenarios: [upright_easy, tilted_30, tilted_60, side_facing, inverted]
+repeats: 4
+home_xyz: [-0.5195, 0.2138, 1.3928]
+timeout_s: 45.0
+# THE CONTROL that answers "you added autonomy to fix a broken device".
+# The deficit under test must be the STRUCTURAL one, so orientation is masked
+# in SOFTWARE on otherwise-healthy channels and channel liveness is recorded.
+mask_orientation_in_software: true
+require_healthy_channels: [j1, j2, j4, accel]
+# 2% threshold set from the MEASURED separation: healthy channels 0%,
+# faulty right j4 12.9%.
+max_dropout_fraction: 0.02
+dwell_s: 0.4          # trial ends when the target is held this long

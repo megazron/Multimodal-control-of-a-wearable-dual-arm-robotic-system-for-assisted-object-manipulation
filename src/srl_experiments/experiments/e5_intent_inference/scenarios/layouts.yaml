@@ -1,0 +1,15 @@
+# E5 layouts are generated from the spacing x distractor grid in config.yaml
+# rather than fixed, because spacing is the independent variable.
+scenarios:
+  - name: mid_single
+    distractors: 0
+    expected_difficulty: trivial - inference cannot be wrong with one object
+  - name: near_pair
+    distractors: 1
+    expected_difficulty: the interesting case; accuracy should fall as spacing shrinks
+  - name: cluttered
+    distractors: 3
+    expected_difficulty: hard
+    why: >
+      Four objects within the master's reach ball. Tests whether the estimator
+      degrades gracefully (spreads probability) or fails confidently (picks one).

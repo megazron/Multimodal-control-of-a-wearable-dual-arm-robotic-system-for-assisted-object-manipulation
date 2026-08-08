@@ -1,0 +1,52 @@
+note: 'T5 handover to wearer: right lifts the tool to the receive point.'
+table:
+  x: 0.0
+  y: 0.3
+  z: 0.86
+  size_x: 1.2
+  size_y: 0.6
+  thickness: 0.04
+objects:
+  tool:
+    shape: cylinder
+    x: 0.3
+    y: 0.32
+    z: 0.884
+    radius: 0.014
+    height: 0.14
+    graspable: true
+    grasp:
+    - 0.3
+    - 0.32
+    - 0.884
+  cradle:
+    shape: box
+    x: 0.3
+    y: 0.32
+    z: 0.868
+    size:
+    - 0.08
+    - 0.05
+    - 0.016
+targets:
+  tool_cradle:
+    xyz:
+    - 0.3
+    - 0.32
+    - 0.884
+    arm: right
+  receive_point:
+    xyz:
+    - 0.16
+    - 0.18
+    - 1.02
+    arm: right
+  retreat:
+    xyz:
+    - 0.3
+    - 0.3
+    - 1.05
+    arm: right
+source: protocol.md layout table, verbatim. Positions are in the world frame in metres;
+  +x is the wearer's RIGHT and +y is FORWARD (this repo's convention, not ROS x-forward).
+  NO APRILTAGS -- measured once with a rule from the marked table origin.

@@ -1,0 +1,45 @@
+{
+  "arm": "left",
+  "config": {
+    "arm": "left",
+    "distance_thresholds_m": [
+      0.15,
+      0.25,
+      0.35
+    ],
+    "distractor_counts": [
+      0,
+      1,
+      2,
+      4
+    ],
+    "dwell_s": 0.4,
+    "experiment": "e5_intent_inference",
+    "home_xyz": [
+      -0.5195,
+      0.2138,
+      1.3928
+    ],
+    "object_spacings_m": [
+      0.05,
+      0.1,
+      0.2,
+      0.35
+    ],
+    "p_thresholds": [
+      0.5,
+      0.6,
+      0.7,
+      0.8
+    ],
+    "repeats": 4,
+    "timeout_s": 25.0
+  },
+  "created": "2026-08-05T04:06:02",
+  "experiment": "e5_intent_inference",
+  "mounting": "bench",
+  "note": "system evaluation; SETS the Part 5 thresholds",
+  "participant": "PILOT",
+  "scripted": true,
+  "session": "20260805_040602"
+}

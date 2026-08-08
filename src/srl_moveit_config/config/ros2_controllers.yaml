@@ -1,6 +1,3 @@
-cd ~/kortex_ws
-colcon build --packages-select srl_moveit_config
-source ~/.bashrc
 # This config file is used by ros2_control
 controller_manager:
   ros__parameters:

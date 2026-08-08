@@ -1,0 +1,91 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>SRL VR teleoperation</title>
+<style>
+ body{font-family:system-ui;background:#111;color:#eee;margin:0;padding:1rem}
+ #hud{font:14px/1.4 monospace;white-space:pre}
+ button{font-size:1.2rem;padding:.6rem 1.2rem;margin:.4rem}
+ .bad{color:#f66}.ok{color:#6f6}
+</style>
+<h2>SRL VR teleoperation</h2>
+<p>Open this page in the Quest browser, on the same network as the ROS host.</p>
+<label>ROS host <input id="host" value="ws://192.168.1.20:8765" size="30"></label>
+<button id="go">Enter VR</button>
+<div id="hud">not connected</div>
+<script>
+// WebXR client. Deliberately dependency-free: no Unity, no build step, no
+// sideloading. Edit this file, reload the page on the headset.
+//
+// LATENCY. Poses are read inside requestAnimationFrame, so pose age is bounded
+// below by one headset frame (13.9 ms at 72 Hz) whatever the transport - a
+// Unity app has exactly the same floor. Every frame carries a client timestamp
+// which the bridge echoes back, so the round trip is measured, not assumed.
+let ws=null, xrSession=null, refSpace=null, seq=0, rtt=0;
+const hud=document.getElementById('hud');
+const state={};
+
+function connect(url){
+  ws=new WebSocket(url);
+  ws.onopen =()=>hud.textContent='connected to '+url;
+  ws.onclose=()=>{hud.textContent='DISCONNECTED - the arm will FREEZE';ws=null;};
+  ws.onerror=()=>hud.textContent='connection error';
+  ws.onmessage=e=>{
+    const m=JSON.parse(e.data);
+    if(m.echo_t) rtt=performance.now()-m.echo_t;
+    Object.assign(state,m);
+  };
+}
+
+function pose(src,frame){
+  const p=frame.getPose(src.gripSpace,refSpace);
+  if(!p) return {valid:false};
+  const t=p.transform, g=src.gamepad||{axes:[],buttons:[]};
+  return {p:[t.position.x,t.position.y,t.position.z],
+          q:[t.orientation.x,t.orientation.y,t.orientation.z,t.orientation.w],
+          trig:(g.buttons[0]||{}).value||0, grip:(g.buttons[1]||{}).value||0,
+          a:!!((g.buttons[4]||{}).pressed), b:!!((g.buttons[5]||{}).pressed),
+          stick:[g.axes[2]||0,g.axes[3]||0], valid:true};
+}
+
+function loop(t,frame){
+  xrSession.requestAnimationFrame(loop);
+  if(!ws||ws.readyState!==1) return;
+  const msg={t:performance.now(),seq:seq++,rtt:rtt};
+  for(const src of xrSession.inputSources){
+    if(!src.gripSpace) continue;
+    msg[src.handedness==='left'?'l':'r']=pose(src,frame);
+  }
+  const v=frame.getViewerPose(refSpace);
+  if(v) msg.hmd={p:[v.transform.position.x,v.transform.position.y,v.transform.position.z],
+                 q:[v.transform.orientation.x,v.transform.orientation.y,
+                    v.transform.orientation.z,v.transform.orientation.w]};
+  ws.send(JSON.stringify(msg));
+  render();
+}
+
+function render(){
+  // The main feedback channel: there is no force feedback on a Quest
+  // controller, so everything the operator needs must be legible here.
+  const a=state.arms||{};
+  let s='rtt '+rtt.toFixed(1)+' ms   seq '+seq+'\n';
+  if(state.frozen) s+='*** FROZEN ***\n';
+  for(const k in a){
+    const x=a[k];
+    s+=k+'  '+(x.autonomy||'-')+'  EE '+(x.ee?x.ee.p.map(v=>v.toFixed(3)).join(' '):'-')+'\n';
+    if(x.intent_top) s+='    intent '+x.intent_top+' p='+(x.intent_p||0).toFixed(2)
+                       +(x.intent_ambiguous?' AMBIGUOUS':'')+'\n';
+  }
+  for(const o of (state.objects||[])) s+='  obj '+o.id+' '+o.p.join(' ')+'\n';
+  for(const w of (state.boundary||[])) s+='  BOUNDARY '+w.arm+' '+w.axis+' '+w.margin_m+'\n';
+  hud.textContent=s;
+}
+
+document.getElementById('go').onclick=async()=>{
+  connect(document.getElementById('host').value);
+  if(!navigator.xr){hud.textContent='WebXR unavailable in this browser';return;}
+  xrSession=await navigator.xr.requestSession('immersive-vr',
+      {optionalFeatures:['local-floor','bounded-floor']});
+  refSpace=await xrSession.requestReferenceSpace('local-floor');
+  xrSession.requestAnimationFrame(loop);
+};
+</script>

@@ -1,0 +1,53 @@
+{
+  "arm": "left",
+  "condition_order": [
+    "direct",
+    "shared"
+  ],
+  "config": {
+    "arm": "left",
+    "conditions": [
+      "direct",
+      "shared"
+    ],
+    "dwell_s": 0.4,
+    "experiment": "e4_dof_recovery",
+    "home_xyz": [
+      -0.5195,
+      0.2138,
+      1.3928
+    ],
+    "mask_orientation_in_software": true,
+    "max_dropout_fraction": 0.02,
+    "repeats": 4,
+    "require_healthy_channels": [
+      "j1",
+      "j2",
+      "j4",
+      "accel"
+    ],
+    "scenarios": [
+      "upright_easy",
+      "tilted_30",
+      "tilted_60",
+      "side_facing",
+      "inverted"
+    ],
+    "timeout_s": 45.0
+  },
+  "created": "2026-08-05T17:29:53",
+  "experiment": "e4_dof_recovery",
+  "mask_orientation_in_software": true,
+  "max_dropout_fraction": 0.02,
+  "mounting": "bench",
+  "note": "CATEGORICAL result. Orientation deficit imposed in SOFTWARE on healthy channels so the deficit under test is the STRUCTURAL one, not this rig's incidental broken pots.",
+  "participant": "FAULTTEST",
+  "required_channels": [
+    "j1",
+    "j2",
+    "j4",
+    "accel"
+  ],
+  "scripted": true,
+  "session": "20260805_172953"
+}

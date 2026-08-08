@@ -1,0 +1,78 @@
+{
+  "arm": "left",
+  "condition_order": [
+    "mannequin_direct",
+    "vr_shared",
+    "mannequin_shared",
+    "vr_direct"
+  ],
+  "config": {
+    "arm": "left",
+    "block_minutes_max": 8,
+    "conditions": [
+      "mannequin_direct",
+      "mannequin_shared",
+      "vr_direct",
+      "vr_shared"
+    ],
+    "counterbalance": "williams",
+    "dwell_s": 0.4,
+    "experiment": "e6_vr_vs_mannequin",
+    "home_xyz": [
+      0.6966,
+      0.2481,
+      1.1463
+    ],
+    "optional_condition": "vr_direct_no_orientation",
+    "repeats": 3,
+    "scenarios": [
+      "mid_single",
+      "near_pair",
+      "tilted_60",
+      "side_facing",
+      "inverted"
+    ],
+    "sessions": 2,
+    "timeout_s": 45.0
+  },
+  "counterbalance": {
+    "n_participants": 12,
+    "perfectly_balanced": true,
+    "position_counts": {
+      "mannequin_direct": [
+        3,
+        3,
+        3,
+        3
+      ],
+      "mannequin_shared": [
+        3,
+        3,
+        3,
+        3
+      ],
+      "vr_direct": [
+        3,
+        3,
+        3,
+        3
+      ],
+      "vr_shared": [
+        3,
+        3,
+        3,
+        3
+      ]
+    },
+    "position_imbalance": 0,
+    "sequence_imbalance": 0,
+    "square_size": 4
+  },
+  "created": "2026-08-05T17:30:33",
+  "experiment": "e6_vr_vs_mannequin",
+  "mounting": "bench",
+  "note": "2x2 device x autonomy; device is a BLOCK factor because a headset swap takes ~30 s",
+  "participant": "FAULTTEST",
+  "scripted": true,
+  "session": "20260805_173033"
+}

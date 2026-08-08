@@ -1,0 +1,17 @@
+# E6 - mannequin vs VR. THE experiment that isolates the central claim.
+experiment: e6_vr_vs_mannequin
+arm: left
+# 2x2: input device x autonomy. Device is a BLOCK factor - never alternate
+# trial-by-trial, a headset change takes ~30 s and would dominate the timing.
+conditions: [mannequin_direct, mannequin_shared, vr_direct, vr_shared]
+# Secondary control: VR with orientation disabled in SOFTWARE, reproducing the
+# mannequin's structural deficit on good hardware. Enable for the ablation.
+optional_condition: vr_direct_no_orientation
+scenarios: [mid_single, near_pair, tilted_60, side_facing, inverted]
+repeats: 3
+home_xyz: [0.6966, 0.2481, 1.1463]      # re-derived after the mount fix
+timeout_s: 45.0
+dwell_s: 0.4
+counterbalance: williams
+block_minutes_max: 8
+sessions: 2                              # exceeds the 45 min fatigue cap

@@ -1,0 +1,64 @@
+{
+  "arm": "left",
+  "condition_order": [
+    "direct",
+    "full_auto",
+    "shared"
+  ],
+  "config": {
+    "arm": "left",
+    "block_minutes_max": 8,
+    "conditions": [
+      "direct",
+      "shared",
+      "full_auto"
+    ],
+    "counterbalance": "williams",
+    "dwell_s": 0.4,
+    "experiment": "e2_autonomy_level",
+    "home_xyz": [
+      -0.5195,
+      0.2138,
+      1.3928
+    ],
+    "repeats": 3,
+    "scenarios": [
+      "near_single",
+      "mid_single",
+      "far_single",
+      "near_pair"
+    ],
+    "timeout_s": 45.0
+  },
+  "counterbalance": {
+    "n_participants": 12,
+    "perfectly_balanced": true,
+    "position_counts": {
+      "direct": [
+        4,
+        4,
+        4
+      ],
+      "full_auto": [
+        4,
+        4,
+        4
+      ],
+      "shared": [
+        4,
+        4,
+        4
+      ]
+    },
+    "position_imbalance": 0,
+    "sequence_imbalance": 0,
+    "square_size": 6
+  },
+  "created": "2026-08-05T04:05:08",
+  "experiment": "e2_autonomy_level",
+  "mounting": "bench",
+  "note": "core comparison; within-subjects",
+  "participant": "PILOT",
+  "scripted": true,
+  "session": "20260805_040508"
+}

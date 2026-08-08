@@ -1,0 +1,99 @@
+note: 'T2 hold and fill: left holds the box, right feeds graded blocks A/B/C.'
+table:
+  x: 0.0
+  y: 0.3
+  z: 0.86
+  size_x: 1.2
+  size_y: 0.6
+  thickness: 0.04
+objects:
+  box:
+    shape: box
+    x: -0.28
+    y: 0.34
+    z: 0.905
+    size:
+    - 0.12
+    - 0.08
+    - 0.09
+    graspable: true
+    grasp:
+    - -0.28
+    - 0.34
+    - 0.905
+  block_a:
+    shape: box
+    x: 0.18
+    y: 0.3
+    z: 0.873
+    size:
+    - 0.026
+    - 0.026
+    - 0.026
+    graspable: true
+    grasp:
+    - 0.18
+    - 0.3
+    - 0.873
+  block_b:
+    shape: box
+    x: 0.26
+    y: 0.3
+    z: 0.88
+    size:
+    - 0.04
+    - 0.04
+    - 0.04
+    graspable: true
+    grasp:
+    - 0.26
+    - 0.3
+    - 0.88
+  block_c:
+    shape: box
+    x: 0.34
+    y: 0.3
+    z: 0.888
+    size:
+    - 0.056
+    - 0.056
+    - 0.056
+    graspable: true
+    grasp:
+    - 0.34
+    - 0.3
+    - 0.888
+targets:
+  box_lip:
+    xyz:
+    - -0.28
+    - 0.34
+    - 0.905
+    arm: left
+  box_release:
+    xyz:
+    - -0.28
+    - 0.34
+    - 1.005
+    arm: left
+  block_a:
+    xyz:
+    - 0.18
+    - 0.3
+    - 0.873
+    arm: right
+  block_b:
+    xyz:
+    - 0.26
+    - 0.3
+    - 0.88
+    arm: right
+  block_c:
+    xyz:
+    - 0.34
+    - 0.3
+    - 0.888
+    arm: right
+source: protocol.md layout table, verbatim. Positions are in the world frame in metres;
+  +x is the wearer's RIGHT and +y is FORWARD (this repo's convention, not ROS x-forward).
+  NO APRILTAGS -- measured once with a rule from the marked table origin.

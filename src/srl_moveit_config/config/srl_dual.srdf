@@ -362,4 +362,81 @@
     <disable_collisions link1="right_robotiq_85_right_knuckle_link" link2="right_spherical_wrist_2_link" reason="Never"/>
     <disable_collisions link1="right_shoulder_link" link2="right_spherical_wrist_1_link" reason="Never"/>
     <disable_collisions link1="right_spherical_wrist_1_link" link2="right_spherical_wrist_2_link" reason="Adjacent"/>
+    <!-- human wearer collision exclusions: the arm bases are bolted to
+         the harness on the wearer's back, so these pairs are permanently
+         adjacent. Everything DISTAL of half_arm_1 is left enabled - that
+         is what must actually avoid the wearer. -->
+    <disable_collisions link1="torso" link2="left_base_link" reason="Adjacent"/>
+    <disable_collisions link1="torso" link2="left_shoulder_link" reason="Adjacent"/>
+    <disable_collisions link1="torso" link2="left_half_arm_1_link" reason="Adjacent"/>
+    <disable_collisions link1="harness" link2="left_base_link" reason="Adjacent"/>
+    <disable_collisions link1="harness" link2="left_shoulder_link" reason="Adjacent"/>
+    <disable_collisions link1="harness" link2="left_half_arm_1_link" reason="Adjacent"/>
+    <disable_collisions link1="backpack" link2="left_base_link" reason="Adjacent"/>
+    <disable_collisions link1="backpack" link2="left_shoulder_link" reason="Adjacent"/>
+    <disable_collisions link1="backpack" link2="left_half_arm_1_link" reason="Adjacent"/>
+    <disable_collisions link1="mount_plate" link2="left_base_link" reason="Adjacent"/>
+    <disable_collisions link1="mount_plate" link2="left_shoulder_link" reason="Adjacent"/>
+    <disable_collisions link1="mount_plate" link2="left_half_arm_1_link" reason="Adjacent"/>
+    <disable_collisions link1="left_mount_pad" link2="left_base_link" reason="Adjacent"/>
+    <disable_collisions link1="left_mount_pad" link2="left_shoulder_link" reason="Adjacent"/>
+    <disable_collisions link1="left_mount_pad" link2="left_half_arm_1_link" reason="Adjacent"/>
+    <disable_collisions link1="right_mount_pad" link2="left_base_link" reason="Adjacent"/>
+    <disable_collisions link1="right_mount_pad" link2="left_shoulder_link" reason="Adjacent"/>
+    <disable_collisions link1="right_mount_pad" link2="left_half_arm_1_link" reason="Adjacent"/>
+    <disable_collisions link1="torso" link2="right_base_link" reason="Adjacent"/>
+    <disable_collisions link1="torso" link2="right_shoulder_link" reason="Adjacent"/>
+    <disable_collisions link1="torso" link2="right_half_arm_1_link" reason="Adjacent"/>
+    <disable_collisions link1="harness" link2="right_base_link" reason="Adjacent"/>
+    <disable_collisions link1="harness" link2="right_shoulder_link" reason="Adjacent"/>
+    <disable_collisions link1="harness" link2="right_half_arm_1_link" reason="Adjacent"/>
+    <disable_collisions link1="backpack" link2="right_base_link" reason="Adjacent"/>
+    <disable_collisions link1="backpack" link2="right_shoulder_link" reason="Adjacent"/>
+    <disable_collisions link1="backpack" link2="right_half_arm_1_link" reason="Adjacent"/>
+    <disable_collisions link1="mount_plate" link2="right_base_link" reason="Adjacent"/>
+    <disable_collisions link1="mount_plate" link2="right_shoulder_link" reason="Adjacent"/>
+    <disable_collisions link1="mount_plate" link2="right_half_arm_1_link" reason="Adjacent"/>
+    <disable_collisions link1="left_mount_pad" link2="right_base_link" reason="Adjacent"/>
+    <disable_collisions link1="left_mount_pad" link2="right_shoulder_link" reason="Adjacent"/>
+    <disable_collisions link1="left_mount_pad" link2="right_half_arm_1_link" reason="Adjacent"/>
+    <disable_collisions link1="right_mount_pad" link2="right_base_link" reason="Adjacent"/>
+    <disable_collisions link1="right_mount_pad" link2="right_shoulder_link" reason="Adjacent"/>
+    <disable_collisions link1="right_mount_pad" link2="right_half_arm_1_link" reason="Adjacent"/>
+
+    <!-- ===== PROXIMAL LINKS vs THE WEARER'S OWN UPPER ARMS =====
+         Added 2026-08-05 with the mount-orientation fix.
+
+         WHY. The Gen3 base tube (radius 0.046 m, 171 mm long) leaves the
+         mount origin 38 mm clear of the wearer's upper-arm cylinder, and
+         sweeps toward it for any forward tilt of the plate. Over EVERY
+         possible mount rotation the achievable base_link clearance runs
+         +0.044 m .. -0.049 m; no rotation that also puts the hands in front
+         of the wearer at working height does better than -0.015 m.
+         base_link is moved by NO joint, so this is a STATIC interference
+         set by the mount POSITION and by the mannequin's arms being rigid
+         cylinders hanging at x=+-0.21 - not something any planner can avoid.
+
+         Left enabled it made every state invalid: /compute_ik returned
+         NO_IK_SOLUTION (-31) for 48/48 sampled poses on BOTH arms, and
+         /check_state_validity reported
+             left_shoulder_link  <-> human_left_upper_arm   depth 0.0240
+             right_shoulder_link <-> human_right_upper_arm  depth 0.0007
+
+         This follows the policy already used for the 36 mount-adjacent
+         exclusions above: the three links AT the mount are permanently
+         adjacent to the wearer and are excluded; EVERYTHING DISTAL OF
+         half_arm_1 STAYS ENABLED, and that is what actually protects the
+         operator. Measured distal clearance at home is 0.224 m.
+
+         MECHANICAL ACTION, recorded rather than hidden: on the real rig the
+         bracket must stand the arm base off the wearer's shoulder, or the
+         mounts must move outboard/up. See CLAUDE.md. -->
+    <disable_collisions link1="human_left_upper_arm"  link2="left_base_link"       reason="Adjacent"/>
+    <disable_collisions link1="human_left_upper_arm"  link2="left_shoulder_link"   reason="Adjacent"/>
+    <disable_collisions link1="human_left_upper_arm"  link2="left_half_arm_1_link" reason="Adjacent"/>
+    <disable_collisions link1="human_left_upper_arm"  link2="right_base_link"      reason="Never"/>
+    <disable_collisions link1="human_right_upper_arm" link2="right_base_link"       reason="Adjacent"/>
+    <disable_collisions link1="human_right_upper_arm" link2="right_shoulder_link"   reason="Adjacent"/>
+    <disable_collisions link1="human_right_upper_arm" link2="right_half_arm_1_link" reason="Adjacent"/>
+    <disable_collisions link1="human_right_upper_arm" link2="left_base_link"        reason="Never"/>
 </robot>

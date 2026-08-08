@@ -1,8 +1,41 @@
+# ---------------------------------------------------------------- build
 build/
 install/
 log/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# ------------------------------------------------------- python environments
+# .kortex_venv holds the Kinova kortex_api wheel, which pins protobuf 3.5.1
+# and must stay isolated from the protobuf ROS needs. Rebuild it with the
+# recipe in README.md; do not commit it.
+.kortex_venv/
+# .percep_venv is 5.6 GB: torch, CUDA runtime libraries, faster-whisper and
+# ultralytics. Nothing in it is ours.
+.percep_venv/
+
+# ------------------------------------------------------------ model weights
+# Downloaded on first use, not authored here, and one of them is larger than
+# GitHub's 100 MB hard limit:
+#   weights/clip/ViT-B-32.pt   337.6 MB   CLIP text encoder, pulled by
+#                                         ultralytics when YOLO-World's
+#                                         set_classes() is first called
+#   yolov8s-worldv2.pt          24.7 MB   YOLO-World detector
+# Both reappear automatically; see README.md.
+weights/
+*.pt
+*.onnx
+*.engine
+
+# ----------------------------------------------------------- vendor packages
+# Cloned, not authored. Patches that must be applied to them live in patches/
+# and ARE tracked. See README.md for the clone commands.
 src/ros2_kortex/
 src/ros2_robotiq_gripper/
 src/ros2_kortex_vision/
-__pycache__/
-*.pyc
+
+# ------------------------------------------------------------------ scratch
+*.log
+core
+/tmp/

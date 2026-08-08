@@ -1,0 +1,148 @@
+{
+  "csv": "/home/gausms/kortex_ws/recordings/teleop_20260731_133310.csv",
+  "button_mapping": {
+    "left": 2,
+    "right": 1
+  },
+  "button_mapping_measured": true,
+  "segments": [
+    {
+      "label": "left_rest",
+      "rows": 1020,
+      "seconds": 21.76275658607483,
+      "motion_m": 0.008670495205438673
+    },
+    {
+      "label": "left_A_down_to_up",
+      "rows": 1240,
+      "seconds": 24.691508293151855,
+      "motion_m": 0.1865720788480697
+    },
+    {
+      "label": "left_A_up_to_down",
+      "rows": 700,
+      "seconds": 12.96005916595459,
+      "motion_m": 0.26006998546436627
+    },
+    {
+      "label": "left_A_left_to_right",
+      "rows": 1150,
+      "seconds": 22.7302348613739,
+      "motion_m": 0.3861827237637588
+    },
+    {
+      "label": "left_A_right_to_left",
+      "rows": 930,
+      "seconds": 18.03702402114868,
+      "motion_m": 0.32642044798454084
+    },
+    {
+      "label": "left_A_forward_to_back",
+      "rows": 820,
+      "seconds": 15.599372386932373,
+      "motion_m": 0.43294450411403185
+    },
+    {
+      "label": "left_A_back_to_forward",
+      "rows": 720,
+      "seconds": 15.297192573547363,
+      "motion_m": 0.4519046654854049
+    },
+    {
+      "label": "left_shoulder_rot",
+      "rows": 1150,
+      "seconds": 22.430799961090088,
+      "motion_m": 0.18410256032458672
+    },
+    {
+      "label": "left_A_diag",
+      "rows": 890,
+      "seconds": 16.946189880371094,
+      "motion_m": 0.420469336035614
+    },
+    {
+      "label": "right_rest",
+      "rows": 1250,
+      "seconds": 24.769696712493896,
+      "motion_m": 0.00316056292860901
+    },
+    {
+      "label": "right_A_down_to_up",
+      "rows": 1340,
+      "seconds": 26.479764223098755,
+      "motion_m": 0.37125217276689676
+    },
+    {
+      "label": "right_A_up_to_down",
+      "rows": 1030,
+      "seconds": 19.922080516815186,
+      "motion_m": 0.4453593781402531
+    },
+    {
+      "label": "right_A_left_to_right",
+      "rows": 970,
+      "seconds": 18.572230100631714,
+      "motion_m": 0.2561630408474768
+    },
+    {
+      "label": "right_A_right_to_left",
+      "rows": 490,
+      "seconds": 8.354222536087036,
+      "motion_m": 0.2833100702962558
+    },
+    {
+      "label": "right_A_forward_to_back",
+      "rows": 930,
+      "seconds": 17.831990003585815,
+      "motion_m": 0.37115991683626187
+    },
+    {
+      "label": "right_A_back_to_forward",
+      "rows": 810,
+      "seconds": 17.17471170425415,
+      "motion_m": 0.3171787318337283
+    },
+    {
+      "label": "right_shoulder_rot",
+      "rows": 1480,
+      "seconds": 29.555360555648804,
+      "motion_m": 0.08924806827688002
+    },
+    {
+      "label": "right_A_diag",
+      "rows": 540,
+      "seconds": 11.456927299499512,
+      "motion_m": 0.18424361186917637
+    },
+    {
+      "label": "clutch_engaged_move",
+      "rows": 620,
+      "seconds": 11.140081405639648,
+      "motion_m": 0.009837403820613749
+    },
+    {
+      "label": "clutch_disengage",
+      "rows": 630,
+      "seconds": 11.571150541305542,
+      "motion_m": 0.011487758897982406
+    },
+    {
+      "label": "clutch_reposition",
+      "rows": 420,
+      "seconds": 8.947633504867554,
+      "motion_m": 0.0
+    },
+    {
+      "label": "clutch_reengage",
+      "rows": 640,
+      "seconds": 11.731616497039795,
+      "motion_m": 0.0
+    },
+    {
+      "label": "clutch_after",
+      "rows": 670,
+      "seconds": 12.379090309143066,
+      "motion_m": 0.0
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+# E5 - intent inference characterisation. SYSTEM EVALUATION.
+experiment: e5_intent_inference
+arm: left
+object_spacings_m: [0.05, 0.10, 0.20, 0.35]
+distractor_counts: [0, 1, 2, 4]
+repeats: 4
+home_xyz: [-0.5195, 0.2138, 1.3928]
+timeout_s: 25.0
+# Swept here; the winners become the Part 5 defaults.
+p_thresholds: [0.5, 0.6, 0.7, 0.8]
+distance_thresholds_m: [0.15, 0.25, 0.35]
+dwell_s: 0.4          # trial ends when the target is held this long

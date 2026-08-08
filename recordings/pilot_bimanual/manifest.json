@@ -1,0 +1,50 @@
+[
+ {
+  "participant": "P00",
+  "order": [
+   "direct",
+   "assisted",
+   "shared"
+  ]
+ },
+ {
+  "participant": "P01",
+  "order": [
+   "assisted",
+   "shared",
+   "direct"
+  ]
+ },
+ {
+  "participant": "P02",
+  "order": [
+   "shared",
+   "direct",
+   "assisted"
+  ]
+ },
+ {
+  "participant": "P03",
+  "order": [
+   "direct",
+   "assisted",
+   "shared"
+  ]
+ },
+ {
+  "participant": "P04",
+  "order": [
+   "assisted",
+   "shared",
+   "direct"
+  ]
+ },
+ {
+  "participant": "P05",
+  "order": [
+   "shared",
+   "direct",
+   "assisted"
+  ]
+ }
+]

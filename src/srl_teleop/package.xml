@@ -2,14 +2,19 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>srl_teleop</name>
-  <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="gausms@todo.todo">gausms</maintainer>
-  <license>TODO: License declaration</license>
+  <version>0.1.0</version>
+  <description>Teleoperation only: master sensing, IK follower, clutch, scaling, sim-to-real bridge and e-stop. No autonomy.</description>
+  <maintainer email="gmsayyadsvc4@gmail.com">gausms</maintainer>
+  <license>Apache-2.0</license>
 
   <depend>rclpy</depend>
   <depend>trajectory_msgs</depend>
   <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>moveit_msgs</depend>
+  <depend>tf2_ros</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

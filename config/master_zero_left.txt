@@ -1,0 +1,38 @@
+# left master arm reference, captured with the arm HANGING
+# STRAIGHT DOWN at rest. (The old header here said STRAIGHT OUT IN
+# FRONT; that was stale and wrong -- see CLAUDE.md. The hanging-down
+# posture is now REQUIRED, because a_hat below is only meaningful
+# when the arm axis is along gravity at capture time.)
+
+joint_1: 153.3
+joint_2: 344.2
+joint_3: 59.3
+joint_4: 217.1
+joint_5: 218.9
+joint_6: 0.0
+joint_7: 360.0
+
+# flip to -1 if a joint drives the robot backwards
+
+sign_1: 1
+sign_2: 1
+sign_3: 1
+sign_4: 1
+sign_5: 1
+sign_6: 1
+sign_7: 1
+
+# Arm long axis in the wrist IMU sensor frame, unit vector.
+#   a_hat = -normalize(accel at rest, arm hanging down)
+# Used by position_mode:=spherical for elevation, which is
+# mount-independent and drift-free. Must stay unit length;
+# load() rejects it otherwise.
+
+a_hat: +0.813542108 +0.091993270 -0.574183313
+
+# Gyro zero-rate offset in deg/s, measured stationary.
+# Subtracted every frame; integrating the raw offset is what
+# makes gyro yaw drift. Drifts with temperature -- re-capture
+# if the node warns about residual rest rate.
+
+gyro_bias: +2.333508 +1.604634 +1.694267

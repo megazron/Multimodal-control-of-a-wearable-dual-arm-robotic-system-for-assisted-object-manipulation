@@ -1,0 +1,9 @@
+# E1 uses no object scenarios: targets are generated from the
+# distance x width grid in config.yaml. This file documents that on purpose,
+# so an empty scenarios/ directory is not mistaken for an oversight.
+scenarios: []
+note: >
+  E1 is a pointing task with no objects and no grasping. Target positions are
+  computed at run time on a circle at the requested distance from home, so
+  every (D, W) cell is sampled at eight different directions and a direction
+  bias cannot masquerade as a difficulty effect.

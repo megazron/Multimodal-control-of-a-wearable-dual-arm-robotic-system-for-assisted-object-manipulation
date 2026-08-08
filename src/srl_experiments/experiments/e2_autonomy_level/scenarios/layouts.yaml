@@ -1,0 +1,24 @@
+# E2 object layouts. Positions are RELATIVE TO ARM HOME, so they move with
+# the mount and do not have to be re-derived when the mount changes.
+scenarios:
+  - name: near_single
+    objects: [[0.10, 0.10, -0.20]]
+    target: 0
+    expected_difficulty: easy
+    why: single object, short reach; the floor condition
+  - name: mid_single
+    objects: [[0.18, 0.16, -0.30]]
+    target: 0
+    expected_difficulty: moderate
+    why: mid reach, still unambiguous
+  - name: far_single
+    objects: [[0.26, 0.22, -0.38]]
+    target: 0
+    expected_difficulty: hard
+    why: near the edge of the measured continuous-reach ball (0.22 m)
+  - name: near_pair
+    objects: [[0.10, 0.14, -0.24], [0.19, 0.14, -0.24]]
+    target: 0
+    expected_difficulty: moderate, ambiguous
+    why: two objects 9 cm apart; the intent estimator must disambiguate
+used_by: [e2_autonomy_level, e3_divided_attention]

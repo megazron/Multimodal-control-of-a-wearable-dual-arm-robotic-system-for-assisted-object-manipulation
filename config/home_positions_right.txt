@@ -1,0 +1,30 @@
+# RIGHT arm home == LEGACY REAL-ROBOT HOME (set 2026-07-31).
+#
+# Same reasoning as the left: the bridge replays SIM joint angles to the real
+# arm, so sim home and real home must be the SAME pose or enabling the bridge
+# commands a jump. See home_positions_left.txt.
+#
+# Legacy Kortex values converted through kortex_convention:
+#   Kortex deg : 303.65  77.06   98.57   58.57   317.14  36.39   154.71
+#   ROS deg    : -56.35  77.06   98.57   58.57   -42.86  36.39   154.71
+#   ROS rad    : -0.9835 1.3450  1.7204  1.0222  -0.7480 0.6351  2.7002
+#
+# NOTE. This REPLACES the mirror-optimised pose (28.9 / -103.3 / -107.3 /
+# 62.0 / -78.9 / 53.6 / 66.4) that had IK 100% over the task volume, seam
+# margin 1.27 rad and |right_P_HOME - mirror(left_P_HOME)| = 0.000 m. The
+# legacy pose is NOT the mirror of the legacy left pose, so mirror symmetry
+# is given up by this change. That is deliberate: matching the real arm
+# matters more than symmetry, because a mismatch is a commanded jump.
+#
+# The RIGHT arm stays MOCK for now (the two-arm tcp/twist.linear.x collision
+# blocks real bring-up), so these values are not yet exercised on hardware.
+#
+# Values are ROS degrees, joint_1..joint_7.
+
+joint_1: -56.35
+joint_2: 77.06
+joint_3: 98.57
+joint_4: 58.57
+joint_5: -42.86
+joint_6: 36.39
+joint_7: 154.71

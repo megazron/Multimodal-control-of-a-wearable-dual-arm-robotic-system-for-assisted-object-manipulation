@@ -1,0 +1,44 @@
+{
+  "arm": "left",
+  "condition_order": [
+    "direct",
+    "full_auto",
+    "shared"
+  ],
+  "config": {
+    "arm": "left",
+    "attention": [
+      "single_task",
+      "dual_task"
+    ],
+    "conditions": [
+      "direct",
+      "shared",
+      "full_auto"
+    ],
+    "dwell_s": 0.4,
+    "experiment": "e3_divided_attention",
+    "home_xyz": [
+      -0.5195,
+      0.2138,
+      1.3928
+    ],
+    "primary_task": "continuous_tracking",
+    "primary_task_rate_hz": 30.0,
+    "primary_task_speed": 0.35,
+    "repeats": 3,
+    "scenarios": [
+      "mid_single",
+      "near_pair"
+    ],
+    "timeout_s": 45.0
+  },
+  "created": "2026-08-05T04:05:28",
+  "experiment": "e3_divided_attention",
+  "mounting": "bench",
+  "note": "autonomy level CROSSED with divided attention; the interaction term is the result of interest",
+  "participant": "PILOT",
+  "primary_task": "continuous_tracking",
+  "scripted": true,
+  "session": "20260805_040528"
+}

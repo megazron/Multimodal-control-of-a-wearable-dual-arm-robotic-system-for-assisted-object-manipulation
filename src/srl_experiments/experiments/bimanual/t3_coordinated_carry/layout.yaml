@@ -1,0 +1,69 @@
+note: 'T3 coordinated carry: both arms grip one tray; the ball is the metric.'
+table:
+  x: 0.0
+  y: 0.3
+  z: 0.86
+  size_x: 1.2
+  size_y: 0.6
+  thickness: 0.04
+objects:
+  tray:
+    shape: box
+    x: 0.0
+    y: 0.34
+    z: 0.885
+    size:
+    - 0.34
+    - 0.22
+    - 0.02
+    graspable: true
+    grasp:
+    - -0.15
+    - 0.34
+    - 0.885
+  ball:
+    shape: sphere
+    x: 0.0
+    y: 0.34
+    z: 0.905
+    radius: 0.02
+targets:
+  tray_left_pick:
+    xyz:
+    - -0.15
+    - 0.34
+    - 0.885
+    arm: left
+  tray_right_pick:
+    xyz:
+    - 0.15
+    - 0.34
+    - 0.885
+    arm: right
+  lift_left:
+    xyz:
+    - -0.15
+    - 0.34
+    - 1.01
+    arm: left
+  lift_right:
+    xyz:
+    - 0.15
+    - 0.34
+    - 1.01
+    arm: right
+  place_left:
+    xyz:
+    - -0.15
+    - 0.16
+    - 0.885
+    arm: left
+  place_right:
+    xyz:
+    - 0.15
+    - 0.16
+    - 0.885
+    arm: right
+source: protocol.md layout table, verbatim. Positions are in the world frame in metres;
+  +x is the wearer's RIGHT and +y is FORWARD (this repo's convention, not ROS x-forward).
+  NO APRILTAGS -- measured once with a rule from the marked table origin.

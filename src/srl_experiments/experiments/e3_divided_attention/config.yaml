@@ -1,0 +1,15 @@
+# E3 - divided attention. THE SRL-SPECIFIC EXPERIMENT.
+experiment: e3_divided_attention
+arm: left
+conditions: [direct, shared, full_auto]
+attention: [single_task, dual_task]
+scenarios: [mid_single, near_pair]
+repeats: 3
+home_xyz: [-0.5195, 0.2138, 1.3928]
+timeout_s: 45.0
+# Continuous manual tracking, NOT n-back: it loads the same manual/visual
+# channel the SRL competes for, which is the competition an SRL creates.
+primary_task: continuous_tracking
+primary_task_rate_hz: 30.0
+primary_task_speed: 0.35
+dwell_s: 0.4          # trial ends when the target is held this long

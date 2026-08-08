@@ -1,0 +1,34 @@
+# Meta Quest teleoperation parameters.
+quest_bridge_node:
+  ros__parameters:
+    port: 8765
+    stale_timeout_s: 0.2      # a dropout, a sleeping headset and a
+                              # backgrounded app all look identical here
+vr_pose_mapper:
+  ros__parameters:
+    scale: 0.5                # VR's play space is much larger than the robot
+                              # workspace, so 1:1 (the mannequin default) is
+                              # wrong here
+    scale_min: 0.1
+    scale_max: 2.0
+    command_orientation: true # THE VR ADVANTAGE. The mannequin cannot.
+    ema_alpha: 0.6            # light: the Quest is high-rate and low-noise,
+                              # unlike the pot chain which needs 0.3
+    max_speed_mps: 0.35
+    quiet_engage_m: 0.003     # never latch a reference off a moving hand
+vr_gripper_node:
+  ros__parameters:
+    latch_close: 0.30         # same semantics as the FSR latch, in trigger units
+    latch_open: 0.10
+    release_hold_s: 0.5
+vr_safety_node:
+  ros__parameters:
+    tracking_timeout_s: 0.2
+    require_observer_estop: true   # the operator CANNOT SEE THE ARM
+    ws_warn_margin_m: 0.12
+vr_handover_arbiter:
+  ros__parameters:
+    p_threshold: 0.60
+    engage_distance_m: 0.20
+    snap_full_m: 0.03         # the funnel closes over the last 3 cm
+    operator_override_rad_s: 1.2   # back off if the operator is rotating

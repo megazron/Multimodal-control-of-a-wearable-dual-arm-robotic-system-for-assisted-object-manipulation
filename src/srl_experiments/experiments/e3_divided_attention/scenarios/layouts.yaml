@@ -1,0 +1,14 @@
+# E3 reuses E2's layouts so the two are directly comparable; the manipulation
+# is the concurrent task, not the scene.
+scenarios: [mid_single, near_pair]
+see: ../e2_autonomy_level/scenarios/layouts.yaml
+primary_task:
+  name: continuous_tracking
+  why: >
+    Loads the same manual and visual channel the SRL competes for. An n-back
+    would load working memory instead, which is not the competition a
+    supernumerary limb actually creates.
+  difficulty_note: >
+    Tracking speed is fixed across conditions. If it were adaptive, the
+    primary-task load would differ by condition and the interaction term would
+    be uninterpretable.

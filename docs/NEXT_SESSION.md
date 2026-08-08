@@ -1,0 +1,594 @@
+# NEXT SESSION — LAB ORDER
+
+## READ THIS FIRST
+
+**Every number in the protocols is IK FEASIBILITY IN SIMULATION.** Nothing in
+the bimanual programme has been driven by a human through the master arm.
+The DIRECT condition of every task — the baseline the whole design rests on —
+depends on channels that are currently **INCOHERENT**: 7 of 14 fail the
+coherence test, and degraded mode freezes l_j2 and l_j4, which costs the left
+arm its entire radial dimension.
+
+So the reachability, the scenarios, the sling geometry and the pilot all say
+what the ROBOT can do. None of them say what an OPERATOR can do through this
+master arm today.
+
+## In order
+
+### 1. Repair l_j2 and l_j4 — these two buy the most
+Degraded mode freezes them, and with both frozen the left arm's commanded set
+collapses from a 135 mm-thick shell to a SURFACE: no in/out motion at all.
+Measured: regressing true reach on every still-coherent channel plus the IMU
+gives **R² = 0.133, residual 51 mm = 93% of the 55 mm true spread** — there is
+no reach observable left on that arm. The right arm needs no help (R² = 0.986).
+
+### 2. `bash scripts/check_channels.sh` after EACH repair attempt
+Diffs automatically against `recordings/baselines/channels_20260806.json`.
+**Target: 12+ of 14 coherent**, which is where `degraded_mode:=auto` stops
+engaging. Re-test after each attempt, not once at the end — a repair that
+breaks a working channel should be caught immediately.
+
+### 3. ONE 35-minute recapture, gate fix live, exactly ONE stack
+The 2026-08-06 capture lost 41 of 42 directional segments to a clutch-gating
+bug (each arm gated by its OWN button) and the e-stop latched through block F.
+Both are fixed. **Exactly one stack**: two `master_pose_node` instances split
+the serial stream and invalidated a whole day; that is now impossible at the
+fd level (`claim_exclusive`), but confirm the refusal message never appears.
+
+### 4. Cascade rate limit, end to end with a stack up
+`clamp_towards` now cascades `max_step` as well as `max_vel`; it is
+unit-tested and **has never been measured with a stack running**.
+**Expected result: divergence stays roughly CONSTANT as `lag_trip_rad`
+changes, rather than scaling with it.** If divergence still scales with the
+threshold, the cascade is still not rate-limiting and the fix is wrong.
+
+### 5. Photograph the task objects — the mode-6 detection gate
+Per the Part 9 decision below. 25 images per object at 0.25 / 0.35 / 0.50 m.
+Pass = **≥95% detection at working distance**. Until then mode 6 is not
+participant-ready.
+
+---
+
+# NEXT SESSION
+
+# ============================================================
+# BLOCKER — NO PARTICIPANT MAY BE RUN UNTIL THIS CLEARS
+# ============================================================
+
+**7 of 14 master channels are INCOHERENT.** Only 6 of 14 are usable
+(5 ALIVE + 1 INTERMITTENT). An incoherent channel returns values that span a
+wide range but are not a trajectory — consecutive updates jump tens of degrees
+in 60 ms, which no hand produces.
+
+**Running participants on that measures the harness, not the research
+question.** Every number a session produced would be a property of the wiring.
+
+**Acceptance test — the objective gate:**
+
+```bash
+bash scripts/check_channels.sh          # ~3 min, block A only
+```
+
+**Target: 12+ of 14 coherent.** It diffs automatically against
+`recordings/baselines/channels_20260806.json`, so each repair attempt shows as
+a verdict change. Re-run it as often as you like with the iron in hand.
+
+This is a soldering problem. Do not attempt to filter an incoherent channel
+into usefulness: the sim is a RELAY, so whatever the pots feed in the sim
+reproduces and the real arm copies a second later.
+
+## SECOND BLOCKER — the task layouts are not reachable
+
+`python3 scripts/check_layout_reachable.py` reports **12 of 12 layout points
+UNREACHABLE** as the protocols currently specify them. This is independent of
+the wiring and must be fixed before T2/T3/T5 can run at all. See
+"Front reach" below.
+
+---
+
+Priority order. Item 1 is first because a number derived from it currently
+shapes the whole experiment design and **may be a measurement bug**.
+
+Read `CLAUDE.md`'s final section — "HARDENING PASS — CONSOLIDATED SUMMARY" —
+before touching anything. The single most important line in it:
+**nothing in the hardening pass has ever run against a real arm.**
+
+## Before anything, every session
+
+```
+bash scripts/recover.sh                  # known-good from any state
+bash scripts/diagnostics.sh              # before blaming the code
+ros2 run srl_teleop preflight            # refuses to start, and names why
+```
+
+`preflight` now fails on an EXPIRED blocker as well as an active one. An
+expiry means the unit asserting it stopped running, so the condition is
+unknown — do not start a session on it. See the consolidated summary for the
+three-state semantics.
+
+If the graph looks empty, suspect the **ros2 daemon**, not the network:
+`ros2 daemon stop && ros2 daemon start`, and use
+`ros2 node list --no-daemon` as ground truth.
+
+---
+
+## 1. Reconcile the two IK harnesses — 95.8% vs 0%
+
+**Why this is first.** The 18.8% figure in "The seven constraints" is what
+supports the conclusion that *these arms cannot reach a table*, and that
+conclusion drives the task volume, the home poses, the grasp library and every
+experiment's scenario set. If it is a measurement artefact, a large part of
+the design is built on it. Two harnesses disagreed by essentially the entire
+range, which is not the signature of a marginal geometry — it is the
+signature of a harness bug.
+
+**START HERE, and it is not what you expect: neither harness exists in the
+repo.** Both numbers came from ad-hoc scripts written into a scratchpad and
+discarded. `grep -rl compute_ik` over `src/` returns only production nodes
+(`ik_follower_node`, `grasp_generator`, `master_calibration`) — there is no
+committed IK-sweep tool. So this cannot begin by "re-running" either side.
+
+### What to run
+
+1. **Write ONE harness and commit it**, e.g. `scripts/ik_sweep.py`, and make
+   it print its own configuration in the header of every run: pose list, seed
+   policy, `avoid_collisions`, orientation constraint, group name, timeout,
+   and which frame the target is expressed in. Every disagreement below is a
+   configuration difference that a printed header would have made obvious.
+2. Sample the frontal task volume on each arm's own side and report, per
+   sample, the FAILURE REASON, not just a pass rate:
+
+```
+bash scripts/run_teleop.sh gate:=false          # move_group + TRAC-IK live
+python3 scripts/ik_sweep.py --arm left  --volume frontal --report-reasons
+python3 scripts/ik_sweep.py --arm right --volume frontal --report-reasons
+```
+
+3. Check these five differences explicitly, because they are the ones that
+   can produce 95.8% vs 0% from the same geometry:
+   - **`avoid_collisions` true vs false**, and whether the wearer links are in
+     the planning scene at all when it is true;
+   - **seeded from the current joint state vs from a fixed seed** — the
+     continuous-reachability work already showed pointwise IK and
+     seeded-from-previous IK answer different questions;
+   - **orientation exact vs yaw-free vs an `OrientationConstraint`** — this
+     `/compute_ik` setup **ignores the `constraints` field entirely** (measured:
+     identical to the digit, 79.3%/68.9% both ways), so a harness that thinks
+     it relaxed orientation did not;
+   - **target frame** — `world` vs the arm's `base_link`. A frame error gives
+     0% cleanly and looks like a reach limit;
+   - **a stale `move_group`** holding the pre-mount-fix URDF. Read
+     `/robot_description` off the TOPIC and compare the
+     `backpack_to_*_mount` origins against the xacro, as was done for the
+     mount fix.
+
+### What a pass looks like
+
+One committed harness, run twice with the two configurations, reproducing
+BOTH numbers and explaining the gap in one sentence — e.g. "95.8% was
+collisions-off with yaw free; 18.8% was collisions-on with an exact pose."
+Then a single agreed figure, with its configuration recorded, replacing the
+18.8% in `CLAUDE.md`'s constraint 7.
+
+A pass is **not** "the new number is 60%". It is knowing which of the two old
+numbers was wrong and why.
+
+### What it blocks
+
+The table-reach conclusion, the mount trade-off between constraints 2 and 7,
+the task volume, the home-pose work, and the scenario sets in E1–E6. Do not
+re-optimise the mount or the homes until this is settled — both previous
+mount searches were invalidated by scoring the wrong thing.
+
+---
+
+## 2. Verify the mount fix against the real arms at the legacy home angles
+
+**Why.** The mount was DERIVED, not searched, and verified only in sim — the
+xacro parses, the rpy pair are exact mirrors to 0.000e+00, `/robot_description`
+read back off the topic matches to 3.89e-16, and MoveIt reports
+`valid=True, contacts=0` at home. None of that is evidence about the physical
+bracket.
+
+**GROUND TRUTH, and do not negotiate with it:** at the legacy Kortex home
+angles the REAL arms point FORWARD. The home joint angles in
+`config/home_positions_{left,right}.txt` and the two `initial_positions` in
+`srl_dual.urdf.xacro` are correct and **must not be changed to fix geometry**.
+If sim and real disagree, the mount is the suspect.
+
+### What to run
+
+```
+bash scripts/check_arm_network.sh                    # latency, loss, ports
+bash scripts/start_real.sh --mock                    # rehearse first
+ros2 launch srl_teleop real_drivers_readonly.launch.py   # no motion at all
+ros2 topic echo /real/joint_states --once
+ros2 run tf2_ros tf2_echo world left_end_effector_link
+ros2 run tf2_ros tf2_echo world right_end_effector_link
+```
+
+Compare the real joint angles against
+`config/home_positions_{left,right}.txt` through `kortex_convention`, and the
+real arm's physical pose against the sim's P_HOME:
+
+```
+left  P_HOME (-0.5195, 0.2138, 1.3928)
+right P_HOME (-0.8596, 0.3169, 1.3456)
+```
+
+**Read the right arm's home angles off the hardware while you are there.**
+`config/home_positions_right.txt` and `config/real_home_reference.txt` both
+record that they were NEVER READ and are UNVERIFIED, and right P_HOME depends
+on them.
+
+### What a pass looks like
+
+Both arms come over the shoulders to the FRONT at roughly chest height, with
+`half_arm_1` crossing in front of the chest — matching the "What you should
+SEE in RViz" list. Both hands land on the wearer's left with the arms
+crossing; **that is expected**, not a bug — it follows from the home angles
+and is provably independent of the mount (`|v_R − M·v_L| = 1.3837 m` for every
+mirror-symmetric mount).
+
+Fail signature: arms splayed sideways, reaching up and back over the
+shoulders, one hand above the head. That is the OLD mount — suspect a stale
+`move_group` process, not a stale install (`srl_description` is
+symlink-installed).
+
+**Also check the thing sim can no longer warn you about:** the Gen3 base tube
+is 46 mm in radius and starts ~38 mm from the wearer's upper-arm surface, so
+`{base_link, shoulder_link, half_arm_1_link}` vs `human_*_upper_arm` are
+SRDF-excluded. On the real rig the bracket must stand the base off the
+shoulder, or the mounts move outboard/up. **An exclusion silences the alarm;
+it does not move the metal.**
+
+### What it blocks
+
+Every clearance figure, the workspace anchor, all grasp poses, and wearing the
+rig at all. Worn operation is **not recommended** until the proximal
+interference is resolved mechanically.
+
+---
+
+## 3. The wiring repair — seven compromised channels
+
+**Why.** Seven of fourteen pot channels are dead, railed, clamped or
+intermittent, and they are the reason the whole system is built around
+IMU-primary sensing:
+
+| arm | live | compromised |
+| --- | --- | --- |
+| LEFT | j1 j2 j3 j4 | **j5** (2.8% zeros, 14% railed), **j6** (12.8% clamped 0), **j7** (75% railed) |
+| RIGHT | j1 j2 j6 | **j3** (70% zeros), **j5** (99% zeros), **j7** (99% zeros), **j4 intermittent (12.9% zeros)** |
+
+Two priorities, in this order:
+
+1. **Right j4 — the most consequential.** It is a channel spherical mode
+   USES, and its dropouts are bursty: 51.1% of `right_A_back_to_forward`.
+   The validator handles it correctly (`valid==0` tracks `j4==0` to within
+   0.1%), so no fabricated data reaches the command — the damage is
+   **staleness**, a frozen command for half of one sweep. **Check the j4
+   connector first.**
+2. **All three dead right channels are ROLL joints** (j3, j5, j7). Suspect
+   ONE wiring fault fatigued through the rotation, not three independent pot
+   failures. Look for a single common-mode cause before replacing pots.
+
+Repairing the wrist channels (left j7/j6, right j3/j5/j7) is what unlocks
+`orientation_mode: anchored` — currently `fixed`, i.e. position-only teleop,
+because the wrist cannot be measured at all.
+
+### What to run — the gain matrix IS the acceptance test
+
+```
+terminal 1:  ros2 launch srl_teleop teleop.launch.py
+terminal 2:  bash scripts/run_teleop_capture.sh
+             ros2 run srl_teleop analyse_teleop <csv>
+```
+
+The recorder is **button-gated** — it waits, you press to start, sweep at your
+own pace, press to end. Every segment is gated by the **OPPOSITE** arm's
+button, because an arm's own button also toggles that arm's clutch and would
+disengage it exactly when the sweep starts. A press under 0.5 s discards the
+segment and re-prompts.
+
+**Before capturing, check** `ros2 control list_controllers` shows
+`joint_state_broadcaster` and both arm controllers ACTIVE, and
+`ros2 topic hz /joint_states` is ~100 Hz. A recording with 0/20440 EE rows has
+happened, and the cause was dead `/tf`, not the recorder.
+
+### What a pass looks like
+
+`d(ACTUAL ROBOT EE)/d(master)` — not `d(command)/d(master)` — approaching
+`diag(+1,+1,+1)` with a **moving** master. The distinction is not pedantic:
+the one existing moving-master measurement showed the command sweeping
+correctly at gain ~1.0 while the robot EE gain was **~0.1**.
+
+Specific targets:
+- **lateral finally works.** Up/down and fore/aft already track; lateral does
+  not, and AXIS_MAP cannot fix it — azimuth comes from j1 alone, and j1 only
+  produces lateral motion once a downstream bend offsets the tip from the roll
+  axis, so azimuth and elevation are not independent. The reversal test is the
+  cleanest metric (it assumes only that you reversed each motion): left is
+  12.6° mean error from 180°, right 26.2°.
+- right j4 dropouts gone: `valid==0` fraction near zero on the right arm.
+- **Do not re-try hybrid azimuth** (`atan2(p_fk.y, p_fk.x)`) until the pot
+  ANGLE calibration is fixed — it was tested and made every axis worse
+  (left 12.6° → 33.3°), because FK azimuth compounds four suspect angles while
+  j1 is one directly-measured zero-referenced quantity. Calibrated q3 spanned
+  336° and q6 ±130–170°, which is physically impossible.
+
+### What it blocks
+
+`orientation_mode: anchored`, the two-IMU elbow path (needs a second I²C bus —
+`Wire1` on Teensy pins 16/17 — because 0x68 and 0x69 are both already taken),
+E4's DOF-recovery manipulation, and any claim that the teleop baseline is a
+fair comparison rather than a broken one.
+
+---
+
+## 4. `start_real.sh` end to end
+
+**Why.** It reached `REAL ARMS LIVE` once, then the lag monitor tripped at
+0.152 rad. The tuning issue behind that was fixed and **never retested**, so
+the gated flow has never completed against real hardware.
+
+### What to run
+
+```
+terminal 1:  bash scripts/run_teleop.sh gate:=false
+terminal 2:  ros2 run srl_teleop live_monitor
+terminal 3:  bash scripts/start_real.sh --mock      # rehearse the identical sequence
+terminal 3:  bash scripts/start_real.sh             # then for real
+```
+
+`start_real.sh` refuses with a NAMED reason and exit 1 when the sim stack is
+down, the e-stop is latched, homing finishes outside tolerance, or the bridge
+will not enable.
+
+### What a pass looks like
+
+- Homing: all 7 joints within tolerance (mock reference: ≤0.05 rad, max error
+  0.0174 rad = the 1° deadband), and joint_5 taking the short way round.
+- `REAL ARMS LIVE`, and the lag monitor **does not trip** through a full
+  sequence of deliberate moves.
+- On exit, grep for `kortex session closed cleanly`. **The arm permits exactly
+  one session and a leaked one blocks the next run.** SIGINT the bridge
+  directly if you kill things by hand; SIGKILL leaks the session.
+- Read the LOGGED achieved rate, never assume `rate_hz`: expect ~18.4–18.7 Hz,
+  not 30. A cycle is two sequential round trips and back-to-back RPCs cost
+  ~26 ms each. That is fine — at vmax 0.05 rad/s a joint moves 2.8 mrad per
+  cycle against a 17 mrad deadband.
+
+### Expectations worth setting
+
+- **The cyclic path is unusable over WSL** and this is settled, not worth
+  re-litigating: every cyclic write is a ~10 ms network round trip, which
+  consumes the entire 100 Hz budget. Use the HIGH-LEVEL API
+  (`kortex_highlevel_bridge`, `real_arms_highlevel.launch.py`). If you find
+  yourself debugging `ros2_control`'s Kortex driver, stop.
+- **Mirrored networking is mandatory** (`networkingMode=mirrored` in
+  `%UserProfile%\.wslconfig`, then `wsl --shutdown`). Under NAT, TCP 10000
+  connects fine and the UDP realtime channel on 10001 times out — 3–6 SECOND
+  writes, feedback frozen, controllers reporting "active" while the hardware
+  deactivates underneath them.
+- **A fast read is the dead-channel signature**, not an improvement. Once a
+  write error deactivates the component, `read()` returns a cache. Same
+  zero-variance pattern as the frozen `/real/joint_states` and the dead j7 pot.
+
+### What it blocks
+
+Every real-arm experiment, and the **untested Kortex session recovery** —
+`/real/session_recover` closes the one permitted session and opens a fresh
+one, and that sequence has only ever run against a mock. It is the riskiest
+thing in the recovery layer and a real run will hit it first. Exercise it
+deliberately once the bridge is up:
+
+```
+ros2 service call /real/session_recover std_srvs/srv/Trigger
+```
+
+Pass: `fresh session created without a relaunch (recovery #1)`, the arm still
+responds, and no leaked session on the next start.
+
+---
+
+## Things that will waste your day if you forget them
+
+- **Never `pkill -f` a node name.** The pattern matches the shell running the
+  command and kills your own terminal. Kill an explicit PID list.
+- **Never clean up with broad name patterns while a stack you want is
+  running.** That is what killed `joint_state_broadcaster` mid-capture and
+  produced a recording with zero EE rows.
+- **`/dev/shm` fills with stale `fastrtps_*` segments** from killed stacks and
+  discovery goes intermittent. Clear them with the stack STOPPED.
+- **`ros2 param set` hangs on this box** (the daemon). Use a parameter client.
+- **Never use `time.time()` for intervals** — the WSL wall clock steps
+  backwards and once produced a send latency of −2321 ms. `time.monotonic()`.
+  The audit found six files still doing it; all fixed, keep it that way.
+- **`/estop_reset` is a SERVICE, not a topic.** Publishing a Bool at it does
+  nothing, which once made six consecutive fault injections report NOT HANDLED
+  for that single reason.
+- Shell scripts sourcing ROS must wrap it in `set +u` / `set -u`.
+
+---
+
+# FRONT REACH — measured, and it constrains every task
+
+`python3 scripts/diagnose_front_reach.py --arm both`
+
+The arms work far better BEHIND the wearer than in front, and in front is
+where every task volume is.
+
+| direction | LEFT | RIGHT | binding constraint |
+| --- | --- | --- | --- |
+| front | **0.160 m** | **0.100 m** | **IK INFEASIBLE** |
+| back | 0.900 m (sweep limit) | 0.900 m | wearer collision |
+
+**(a) The front limit is NOT the wearer, and NOT orientation.**
+
+- Re-solved with `avoid_collisions=False`: **still fails**. So it is not the
+  wearer.
+- Re-solved with yaw sampled over 8 angles: gains only **+0.010 m** (left) and
+  **+0.040 m** (right). So it is not `orientation_mode: fixed` either.
+- The limited joints are nowhere near their stops at the failure point:
+  **joint_2 at 62% / 57%**, joint_6 at 41%. So it is not a joint limit.
+
+It is genuine kinematic infeasibility for that arm base pose. By contrast
+**back** IS wearer collision, and there orientation matters enormously —
+yaw-free extends it +0.390 m on both arms.
+
+**(b) Mount rotation DOES trade in our favour, and back does not pay for it.**
+`python3 scripts/sweep_mount_tradeoff.py --arm both` (pitch about the mount
+x-axis; **nothing applied**):
+
+| delta | left front | left back | left down | right front | right back |
+| --- | --- | --- | --- | --- | --- |
+| **−40°** | **0.280** | 0.900 | 0.400 | **0.200** | 0.900 |
+| −20° | 0.220 | 0.900 | 0.320 | 0.160 | 0.900 |
+| **0° (current)** | **0.160** | 0.900 | 0.220 | **0.100** | 0.900 |
+| +20° | 0.080 | 0.900 | 0.140 | 0.020 | 0.900 |
+| +40° | 0.000 | 0.900 | 0.020 | 0.000 | 0.000 |
+
+−40° nearly doubles front reach (left +75%, right +100%) and improves down
+reach (0.220 → 0.400 / 0.180 → 0.360) while **back stays pinned at 0.900**.
+
+**Caveat, and it matters:** back is measured only to the 0.90 m sweep limit,
+so it is saturated and cannot show degradation. The trade-off is measured
+against a truncated back. Re-run with a larger `--max` before acting.
+
+**NOT APPLIED.** A mount change invalidates P_HOME, the workspace anchor and
+every clearance figure, and would force re-deriving the orientation lock.
+
+**(c) 0.160 / 0.100 m is NOT enough. The layouts do not work.**
+
+`python3 scripts/check_layout_reachable.py` → **12 of 12 points UNREACHABLE**,
+walking from home exactly as the follower does:
+
+| point | arm | needed | reached |
+| --- | --- | --- | --- |
+| T2 box lip | right | 0.556 | 0.520 |
+| T2 block A/B/C | left | 0.59 / 0.51 / 0.44 | 0.48 / 0.45 / 0.41 |
+| T3 tray grips | both | 0.68 / 0.61 | 0.56 / 0.46 |
+| T3 place | both | 0.69 / 0.61 | 0.56 / 0.46 |
+| T5 cradle, receive | left | 0.48 / 0.56 | 0.41 / 0.44 |
+
+Raising the work surface by 0.15 m and 0.25 m was tested: **still 12 of 12**.
+
+### What has to change — layout, not mount or posture
+
+Three separate problems, and only the first is about height:
+
+1. **The stations are simply too far.** 0.44–0.69 m required against ~0.41–0.63 m
+   achieved. Stations must sit within roughly **0.35 m of each arm's home EE**:
+   left `(0.697, 0.248, 1.146)`, right `(−0.763, 0.298, 1.179)`.
+2. **The naming quirk was applied wrongly in my own protocols.** `left_*` links
+   sit at **+x**. The T2 draft put the box at x=−0.28 and assigned it to the
+   left arm, i.e. reaching across the body. Corrected in the checker; the
+   protocol layout tables still need updating.
+3. **T3 is geometrically impossible as specified.** The two home EEs are
+   **1.46 m apart in x**. A 300 mm tray on the midline requires each arm to come
+   ~0.65 m inward — far beyond the ~0.4 m typical reach. T3 needs either the
+   tray placed off-midline within one arm's reach of each grip point, or a
+   different home parking pose. **Do not attempt T3 until this is resolved.**
+
+Mount change and wearer posture are NOT the first lever here: the mount buys
++0.12 m of front reach at best, and the shortfall is 0.03–0.23 m across the
+points, so layout alone can close it for T2 and T5. T3 needs more.
+
+---
+
+# PARTICIPANT SESSION ORDER
+
+**Gated on the blocker above. Do not run until `check_channels.sh` shows 12+
+of 14 coherent, and the layouts are re-sited.**
+
+| | phase | min | notes |
+| --- | --- | --- | --- |
+| **P0** | Consent, briefing, baselines | 10 | embodiment questionnaire + proprioceptive drift, **BEFORE any system use** |
+| **P1** | Familiarisation and practice | 10 | free play, then practice to a stated criterion. **Log whether the criterion was met** |
+| **P2** | **T1 Bimanual Reach** | 10 | no objects; doubles as extended familiarisation while producing real characterisation data |
+| **P3** | **T3 Coordinated Carry** | 15 | **PRIMARY TASK, deliberately early on the freshest participant** |
+| **P4** | Break — harness OFF | 5 | **Borg CR10** fatigue probe |
+| **P5** | **T2 Hold and Fill** | 15 | less demanding, forgiving of moderate fatigue |
+| **P6** | **T5 Handover to Wearer** | 8 | **OPTIONAL — cut this first if running long** |
+| **P7** | Post-session measures | 10 | embodiment + drift repeated, NASA-TLX per condition, trust scale, demand-characteristics question |
+
+**Full session 83 min, which is over the ceiling for wearing unpowered mass.
+Without P6 it is 75 min. Treat 75 as the target and P6 as a stretch.**
+
+**T3 goes early on purpose.** The master arm has no gravity compensation, so
+the operator's own arm carries its weight throughout and fatigue drifts
+monotonically through the session. The headline measure must not be taken
+last.
+
+**T4 Inter-Arm Handover does not appear: it is BLOCKED** pending wrist
+orientation.
+
+## Counterbalancing and fatigue
+
+- Three autonomy conditions — **DIRECT / ASSISTED / SHARED** — Latin-square
+  counterbalanced **WITHIN each task, not across tasks**. Each task is its own
+  square, so a task's three conditions are order-balanced against each other.
+- **Log elapsed wear time per trial** (`wear_time_s` from harness-on) so
+  fatigue enters the model as a covariate.
+- **Order cannot remove fatigue, only measure it.** Counterbalancing converts
+  a systematic bias into variance; the Borg probe at P4 and the wear-time
+  covariate are what make it estimable.
+
+---
+
+# BLOCKED-ON-WHAT (2026-08-07)
+
+| item | blocked by | note |
+| --- | --- | --- |
+| **T4 inter-arm handover** | **GEOMETRY, not orientation** | corrects the earlier note. 0 of 16 transfer points and 0 of 63 grid cells are reachable by both arms. Wrist angle was never the blocker; there is nowhere to hand anything over. Needs the right arm re-parked in hardware |
+| **T2 hold and fill** | geometry | no (hold, release-above) pair exists |
+| **T3 coordinated carry** | layout only | feasible at **z 1.10-1.30 m**, not the protocol's 0.885 m table. Put the tray on a stand |
+| **mode 3 orientation assist** | this `/compute_ik` plugin **ignores `OrientationConstraint`** | measured: identical IK success with and without it, 79.3%/68.9% both ways over 270 calls. To make it real needs EITHER a constraint-aware IK plugin (e.g. bio_ik or a TRAC-IK build with constraint support) OR explicit yaw sampling inside `ik_follower_node` — sample N yaw values about the commanded approach axis and accept the first that solves. The scaffolding for the second already exists in the home-pose scorer |
+| **mode 6 participant-readiness** | **detection rate unmeasured** | models install and fit (2012/4096 MiB) but the synthetic harness is out of distribution and measures itself. Needs the real cameras |
+| **voice input** | audio routing, needs the lab | `/dev/snd` holds only `timer`. `scripts/win_mic_sender.py` (Windows-side UDP) is written and NOT exercised with a real microphone |
+| **grasp / handover success rates** | the above | unmeasured because execution stops at PLAN: the objects that would be grasped are not reachable by the arms that would need to cooperate, and there is no trustworthy detection to drive them |
+
+## DETECTION RATE — the gate on mode 6 (decision: option 1)
+
+**Chosen: photograph the real objects on the real table and run detection on
+those images.** Justified against the alternatives:
+
+- A photorealistic renderer would take a physically-based pipeline, HDRI
+  lighting and real material parameters to be worth more than flat shading —
+  and it would still be a model of the Kinova camera, not the camera. The
+  effort buys a number that must be re-measured on hardware anyway.
+- "Accept as unmeasurable" is where it already stands and yields nothing.
+- Photographs need only the lab, a phone or the wrist camera itself, and 20
+  minutes. It is the honest measurement.
+
+### Procedure
+
+1. Place the task objects on the table in the verified positions.
+2. Capture **≥ 25 images per object** at each of 0.25, 0.35 and 0.50 m,
+   varying pose and lighting; use the **wrist camera** if the arm is live,
+   otherwise a phone at the same working distance.
+3. Label the true bounding box once per image (a rectangle drag).
+4. Run `scripts/measure_detection.py --images <dir>` (the renderer is
+   replaced by a file loader; the metric code is unchanged and already
+   known-answer tested).
+
+### What a PASS looks like
+
+| | threshold |
+| --- | --- |
+| detection rate at 0.25–0.35 m | **≥ 95%** per object |
+| position error | ≤ 15 mm mean, ≤ 30 mm p95 |
+| latency | ≤ 100 ms per frame |
+| false positives on an empty table | ≤ 1 in 100 frames |
+
+**Below 95% at working distance, mode 6 stays not-participant-ready.** It is
+there now, and this is the only measurement that moves it.
+
+### Already established, so it need not be redone
+
+- models install and coexist: faster-whisper small/int8 + YOLO-World-s =
+  **2012 MiB of 4096**, ~23 ms/frame
+- the model is not the problem: **0.89–0.91 confidence on a real photograph**
+- ultralytics 8.4.116 + torch 2.13: call `set_classes()` BEFORE the first
+  CUDA predict, or it raises a device-placement error

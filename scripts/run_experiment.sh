@@ -24,7 +24,9 @@ usage: $0 <task> [args]
     t6    compliant coupled carry    the contrast with T3
     t7    bimanual pursuit           cross-arm interference
     t5    handover to the wearer
-    t2    hold and fill              4 verified scenarios; outcome not instrumented
+    t2    hold and fill              4 verified scenarios; outcome instrumented
+    t8    wearer-assisted reach      TWO-PERSON: neither can do it alone
+    t9    reach under wearer motion  TWO-PERSON: sway is the IV (<=100 mm)
 
     common args:  --participant P01 [--condition direct|assisted|shared]
                   [--scenario S1..S4] [--scripted] [--dry-run]
@@ -43,7 +45,7 @@ TASK="${1:-}"; shift || true
 [ -z "$TASK" ] && usage
 
 case "$TASK" in
-  t2|t3|t5|t6|t7)
+  t2|t3|t5|t6|t7|t8|t9)
     exec ros2 run srl_experiments run_bimanual.py --task "$TASK" "$@" ;;
   e1) SCRIPT=run_fitts.py ;;
   e2) SCRIPT=run_autonomy_level.py ;;

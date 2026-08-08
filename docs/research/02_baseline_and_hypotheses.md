@@ -1,5 +1,14 @@
 # Baseline, Pre-Registered Hypotheses, and Threats to Validity
 
+> **REFRAMED 2026-08-08 — TWO PEOPLE.** The arms are worn by one person and driven by
+> a **different** person. Sections 1-5 below were written for a single person who both
+> wore and drove them; their reasoning about baselines, fatigue and within-subject
+> design still holds, but **the unit of analysis is now the DYAD**, and the wearer is a
+> **participant with their own measures and their own consent**, not part of the
+> apparatus. Section 6 states the two-person design and takes precedence wherever it
+> disagrees with what follows.
+
+
 **System under study:** two Kinova Gen3 7-DOF arms mounted on a wearable backpack,
 commanded from an instrumented mannequin master arm (potentiometers per joint plus a wrist
 IMU, read by a Teensy 4.1), ROS 2 Jazzy, TRAC-IK through MoveIt `/compute_ik`.
@@ -785,3 +794,148 @@ sources; [UNVERIFIED] in detail)*
 this document (channel health, dropout rates, gyro drift, Kabsch residuals, IK feasibility
 by orientation mode, clearance margins, master reach 0.272 m, real-arm loop rate and
 latency) are measurements from this rig, not published results.
+
+
+---
+
+# 6. THE TWO-PERSON DESIGN
+
+*Added 2026-08-08. Supersedes Sections 1-5 wherever they conflict.*
+
+## 6.1 What changed, and what did not
+
+**Did not change.** The baseline is still *this system in direct teleoperation*,
+within-subjects (§1). Cross-paper baselines are still uninterpretable here (§1.2).
+Fitts throughput is still the bridge to the wider literature (§2).
+
+**Changed.**
+
+| | single-person framing | two-person framing |
+| --- | --- | --- |
+| unit of analysis | participant | **dyad** |
+| who consents | one | **both, separately and independently** |
+| whose fatigue | one curve | **two different curves** — the wearer bears >17 kg, the operator bears an ungravity-compensated master arm |
+| the wearer | apparatus | **participant, with their own DVs** |
+| base motion | a nuisance | **an independent variable (T9) and a measured covariate everywhere else** |
+| task space | one person's reach | **plus tasks neither person can complete alone (T8)** |
+
+## 6.2 The primary hypothesis, restated for two people
+
+The single-person version asked whether autonomy improves task performance. That is
+now only half of it, because SRL Proxemics (CHI 2026) found autonomy makes the wearer
+*worse* off — higher arousal, lower trust — while the shared-autonomy literature says
+it makes the operator *better* off. **Both ends must be reported or the result is not
+interpretable.**
+
+> **H1 (DYADIC TRADE).** Increasing autonomy improves OPERATOR task performance and
+> degrades WEARER experience, and the two effects are separable and both non-zero.
+>
+> - **H1a** operator: completion time and tracking error improve with autonomy level.
+> - **H1b** wearer: perceived safety and trust do **not** improve, and may decline —
+>   **directionally pre-registered as a decline**, following SRL Proxemics rather than
+>   intuition.
+> - **H1c** the trade is **mediated by predictability**, not by autonomy per se. If
+>   wearer-rated predictability of the arms' motion is entered as a covariate, the
+>   autonomy effect on H1b is substantially reduced.
+>
+> H1c is the one worth being right about. If it holds, the design implication is
+> "make autonomy legible", not "use less autonomy", and that is an actionable finding.
+
+## 6.3 The hypothesis the architecture makes uniquely available
+
+> **H2 (EXOGENOUS DISTURBANCE).** Autonomy compensates wearer-induced base motion
+> better than direct teleoperation does, and the advantage **GROWS with disturbance
+> amplitude**.
+>
+> Interaction, not main effect. A main effect of autonomy would be unsurprising and
+> could come from anywhere; the interaction `autonomy x disturbance amplitude` is the
+> prediction, and its mechanism is specific: the operator cannot anticipate a
+> disturbance originating in another person's body, having neither efference copy nor
+> vestibular access to it, and seeing it only through a camera mounted on the moving
+> base. Autonomy reads the base state directly.
+>
+> **This is the strongest hypothesis in the set, but not because it is untested —
+> it is partly tested and that is what makes it safe.** Zhang et al. (2024) report
+> 1.37 ± 0.58 mm tracking with the human shoulder as floating base, so the control
+> problem is known to be solvable. What is untested is the two-person case where the
+> disturbance is exogenous to the operator. A null result would therefore be
+> *informative* rather than a failure to build the thing.
+
+> **H2-null (stated in advance).** If the operator can see the sway and track it
+> visually, direct teleoperation may not degrade with amplitude at these frequencies
+> at all, and the interaction will be absent. Metronome rates are chosen (§T9) to span
+> both sides of plausible visual tracking bandwidth for exactly this reason.
+
+## 6.4 Coordination, which does not exist in the single-person literature
+
+> **H3 (COORDINATION).** In tasks neither person can complete alone (T8), the dyad
+> converges: coordination latency falls across repetitions and initiation shifts from
+> the operator toward the wearer.
+>
+> The shift in **who initiates** is the substantive claim. Early on the operator must
+> ask; if the wearer begins to reposition *before* being asked, the wearer has built a
+> predictive model of the operator's intent — which is body-schema-like learning by a
+> person who has no control over the limbs and no proprioception of them. Measured as
+> the sign of `t_wearer_moves − t_operator_requests`.
+
+> **H4 (ROLE ASYMMETRY).** Wearing and operating are not symmetric experiences, and
+> the order in which a person does them changes their ratings.
+>
+> Specifically: having *worn* first will raise an operator's caution (slower, larger
+> clearance) relative to operators who have not worn. This is why role order is
+> counterbalanced and logged rather than assumed away — and it is a real threat to a
+> within-dyad role swap, since it cannot be removed, only balanced and measured.
+
+## 6.5 Design, and the awkward arithmetic of dyads
+
+**Within-dyad on autonomy** (direct / assisted / shared), **within-dyad on role**
+(each person wears and operates), **between-dyad on nothing**.
+
+The cost is real and must be stated: **role is crossed with everything**, so a full
+crossing of role x autonomy x task doubles the session. §7 of `04_protocol.md`
+resolves this by swapping role **only on a subset of tasks** (T5 and T9), which are
+the two where the wearer's role differs most, and holding role fixed elsewhere. That
+is a deliberate loss of power on the role factor, taken because the alternative is a
+session no participant pair can complete without fatigue confounding everything.
+
+**Williams squares are now assigned per DYAD**, and role order is counterbalanced
+ACROSS dyads (AB / BA), so with n dyads the role-order imbalance is 0 for even n.
+
+## 6.6 New threats to validity
+
+**6.6.1 The wearer is not blind and cannot be.** They feel every motion. Condition
+masking is impossible for them, so wearer-rated measures carry demand
+characteristics that operator-rated ones do not. Mitigation: the wearer is never told
+the autonomy level, autonomy is never named in their instructions, and **skin
+conductance is recorded** as a measure they cannot consciously manage — following SRL
+Proxemics, where the physiological and subjective measures dissociated.
+
+**6.6.2 Two fatigue curves that are not exchangeable.** The wearer's is **mass**
+(>17 kg, isometric, monotonic, and worst in the shoulders and lumbar spine). The
+operator's is **effort** against an uncompensated master arm (dynamic, worst in the
+deltoid). They saturate at different rates, so a single session length is wrong for
+both; Borg CR10 is taken from **both** at every block boundary and entered as a
+covariate, and the wearer's block is the one that sets the ceiling.
+
+**6.6.3 A dyad is one observation, not two.** Ratings within a dyad are not
+independent — they talked to each other, and in T8 they had to. Analyses are on
+dyad-level aggregates or mixed models with a dyad random effect; treating 12 dyads as
+24 participants would roughly halve the true standard errors.
+
+**6.6.4 Pairs who know each other coordinate differently.** Prior acquaintance is
+recorded (stranger / colleague / friend) and reported. With small n it cannot be
+balanced, only disclosed.
+
+**6.6.5 The wearer can end the session unilaterally, and that is not missing data at
+random.** A wearer who stops because they felt unsafe is precisely the observation the
+safety measures exist to capture. Stops are recorded with the reason, reported in the
+results, and **never** silently dropped.
+
+## 6.7 What this design still cannot answer
+
+- **Embodiment for the wearer.** Our arms are never linked to their limbs (Fusion's
+  *Enforced* mode), so ownership language does not apply and is not measured.
+- **Long-term adaptation.** A single session cannot separate skill acquisition from
+  trust calibration.
+- **Whether autonomy would help a wearer who had a control input.** By construction
+  they have none; that is the architecture, not an oversight.

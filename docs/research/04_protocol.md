@@ -1,5 +1,26 @@
 # Experimental protocol
 
+> **SUPERSEDED IN PART, 2026-08-08 — TWO-PERSON REFRAMING.** The arms are worn
+> by one person and driven by a **different** person. This document's task
+> descriptions, geometry and metrics remain correct; what changed is who is in
+> the room and what is measured about them. Read alongside, and where they
+> disagree defer to:
+>
+> | | |
+> | --- | --- |
+> | `06_task_set_two_person.md` | the revised task set, **T8** and **T9**, T5 promoted to core, feasibility with numbers |
+> | `05_two_person_measures.md` | wearer, operator and dyadic measures; role counterbalancing |
+> | `07_session_order_two_person.md` | the 165-minute two-person session |
+> | `01_literature_review.md` §7 | Fusion, SRL Proxemics, and the corrected gap |
+> | `02_baseline_and_hypotheses.md` §6 | H1-H4 for the dyad |
+> | `03_ethics_and_safety.md` | separate consent, the wearer's stop, stops as data |
+>
+> **The T2-vs-T5 slot argument is resolved and reversed.** This document
+> records keeping T5 over T2 as a close call decided on framing. Under the
+> two-person reframing it is not close: T5 is the canonical Fusion scenario
+> and the only task in which the wearer has a functional role. **Both are in**,
+> and the session grew to hold them.
+
 All coordinates are world frame: **+x is the wearer's RIGHT, +y is FORWARD,
 +z is UP** (this repo's convention, *not* ROS x-forward). Every position below
 was confirmed against a live `/compute_ik` with the arms at home — see

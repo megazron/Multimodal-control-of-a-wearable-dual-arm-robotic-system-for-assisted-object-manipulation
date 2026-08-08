@@ -78,9 +78,13 @@ TASKS = {
     "t5": ("T5 handover to wearer", "t5_handover_to_wearer", "handover"),
     "t6": ("T6 compliant coupled carry", "t6_compliant_carry", "transport"),
     "t7": ("T7 bimanual pursuit", "t7_pursuit", "pursuit"),
+    # TWO-PERSON tasks. The wearer is a participant in both.
+    "t8": ("T8 wearer-assisted reach", "t8_wearer_assisted_reach", "coordination"),
+    "t9": ("T9 reach under wearer motion", "t9_wearer_motion", "pursuit"),
 }
 SCENARIO_KEY = {"t3": "T3_rigid", "t6": "T6_compliant", "t7": "T7_pursuit",
-                "t5": "T5_handover", "t2": "T2_hold_fill"}
+                "t5": "T5_handover", "t2": "T2_hold_fill",
+                "t8": "T8_wearer_assisted_reach", "t9": "T9_wearer_motion"}
 CONDITIONS = ("direct", "assisted", "shared")
 
 
@@ -310,6 +314,28 @@ def run_single_arm(sess, sc, dur, dt, log, kind):
             "kind": kind}, None
 
 
+def run_coordination(sess, sc, dur, dt, log):
+    """T8. The metric is the DYAD, not the arm.
+
+    Coordination latency, who initiated, and whether the wearer begins to move
+    BEFORE being asked are all events between two people; none can be derived
+    from joint states. They are entered by the experimenter against the trial
+    clock, so this runner logs the trajectory and leaves the dyadic fields for
+    the operator console -- and says so, rather than emitting a zero that
+    would read as "no coordination was needed".
+    """
+    t0 = time.monotonic()
+    n = 0
+    while time.monotonic() - t0 < dur:
+        log.sample()
+        sess.spin(dt)
+        n += 1
+    return {"samples": n, "duration_s": time.monotonic() - t0,
+            "kind": "coordination",
+            "wearer_stance": sc.get("wearer_stance", ""),
+            "target_id": sc.get("arm", "")}, None
+
+
 def run_hold_and_fill(sess, sc, dur, dt, log):
     """T2. THE DISCRETE OUTCOME, instrumented from joint states and TF.
 
@@ -431,6 +457,8 @@ def main(argv=None):
                                            else "rigid")
                 elif kind == "pursuit":
                     m, err = run_pursuit(sess, sc, a.duration, dt, log)
+                elif kind == "coordination":
+                    m, err = run_coordination(sess, sc, a.duration, dt, log)
                 elif kind == "discrete":
                     m, err = run_hold_and_fill(sess, sc, a.duration, dt, log)
                 else:
@@ -459,6 +487,11 @@ def main(argv=None):
         print("  NOTE: T5's outcome is the WEARER'S BUTTON PRESS — a human "
               "judgement, correctly not inferred from joint states. Wire the "
               "pedal before reporting a handover success rate.")
+    if kind == "coordination":
+        print("  NOTE: T8's dyadic measures — coordination latency, who "
+              "initiated, whether the wearer ANTICIPATED — are events between "
+              "two people and are entered by the experimenter. They are not "
+              "logged here, and are NOT zero.")
     if kind == "discrete":
         print("  Blocks placed/missed/dropped are detected from gripper "
               "TRANSITIONS and the opening is tracked from the holding arm's "

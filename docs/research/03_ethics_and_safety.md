@@ -231,3 +231,74 @@ After the session:
   and the bridge owns it.
 - **The right arm's home joint values were never read from hardware.** They
   are documented as unverified, and P_HOME for that arm depends on them.
+
+---
+
+# TWO-PERSON ETHICS — added 2026-08-08 with the reframing
+
+**The wearer is a participant, not apparatus, and they bear a risk they cannot
+control.** Everything above was written for one person who chose to move the
+arms that were on their own back. That person could stop the danger by
+stopping their own hand. The wearer cannot.
+
+## The four changes that are not negotiable
+
+**1. CONSENT IS TAKEN SEPARATELY, IN DIFFERENT ROOMS.**
+Two people who arrived together will not decline in front of each other, and
+the wearer is consenting to strictly more than the operator: 17 kg of borne
+mass, and physical risk from motion they do not command. A joint consent
+session makes refusal socially expensive for exactly the person who most needs
+to be free to refuse. Separate rooms, separate forms, separate opportunity to
+withdraw, and neither is told whether the other consented until both have.
+
+**2. THE WEARER HAS AN UNCONDITIONAL STOP, AND REHEARSES IT BEFORE ANY DATA.**
+A physical e-stop in the wearer's own hand, on the dead-man path already built
+(`estop_node`, `/estop`). They **physically press it twice and see the arms
+halt** during the safety brief, before any recorded trial. A stop mechanism a
+person has not personally exercised is not one they trust, and trust is a
+dependent variable in this study — measuring it while the wearer is unsure the
+stop works would measure the wrong thing.
+
+No justification is ever requested for a stop. No persuasion, not once.
+
+**3. A STOP IS DATA, NOT ATTRITION.**
+A wearer who halts because they felt unsafe is the single most informative
+observation the safety measures can produce. Stops are logged with the wearer's
+own stated reason, reported in the results, and **never** silently dropped.
+Sessions that end early are **not** replaced with a fresh dyad to top up n —
+that would select for tolerant wearers, whose safety ratings are the least
+informative ones available.
+
+**4. THE OPERATOR IS TOLD, EXPLICITLY, THAT THEY CANNOT FEEL THE WEARER.**
+This is a briefing item, not a footnote. The operator has no proprioception of
+the wearer, no vestibular sense of their sway, and sees them only through a
+camera mounted on the moving base. Operators reliably over-estimate their own
+awareness — which is why §2.1 of `05_two_person_measures.md` measures it by
+probe accuracy rather than self-report. They are told that the wearer's stop
+is the real backstop, and that reaching for it is never a failure on their
+part.
+
+## Risk that is new to the two-person configuration
+
+| risk | who bears it | mitigation |
+| --- | --- | --- |
+| Arms move toward the wearer's head or torso on a command they did not make | **wearer** | collision-aware IK; clearance floor (0.12 m in `real_robot`); `mount_guard_node`, which ignores the SRDF deliberately; wearer's own e-stop |
+| Wearer loses balance under 17 kg while swaying to a metronome (T9) | **wearer** | T9 is performed **seated or with a rail within reach**; sway amplitude capped at 100 mm, which is a weight shift and NOT a step; the step condition was removed for reachability and is not reinstated for realism |
+| Wearer repositions INTO the arms' workspace (T8) | **wearer** | T8 stances are verified poses; the reposition is completed and confirmed **before** the operator is cleared to approach; the operator is briefed never to move during a reposition |
+| Social pressure to continue | **wearer** | separate consent; separate debrief; Borg ≥ 7 ends their wearing regardless of what they say; the experimenter, not the operator, calls the break |
+| Operator over-confidence about wearer state | wearer | awareness probes with confidence, so **calibration** is measured; poor calibration is reported as a safety finding |
+| Fatigue divergence between the two | both | pack **off** during every break, not loosened; 12-minute wearing cap; Borg from both at every boundary |
+
+## The clearance finding, and what it obliges
+
+Recording every task revealed that the T3/T6 carry paths bring the arms within
+**51-62 mm** of the wearer's torso — IK-valid, contact-free, and **below the
+120 mm margin `real_robot` mode enforces**. MoveIt's check is binary contact;
+the floor is a margin, and a scenario can pass one and be refused by the other.
+
+**Ethically this resolves one way only: the floor stands and the task moves.**
+T3/T6 are either re-specified with the carry band further forward, or run
+bench-mounted (`mounting: bench`, already supported). **Lowering the floor to
+make a task run is not available** — that margin is the last thing between the
+arms and a person's chest, and the person it protects is the one who did not
+choose the motion.

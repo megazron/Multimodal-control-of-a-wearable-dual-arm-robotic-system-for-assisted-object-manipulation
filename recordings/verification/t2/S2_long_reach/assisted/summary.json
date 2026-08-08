@@ -1,0 +1,16 @@
+{
+  "task": "t2",
+  "scenario": "S2_long_reach",
+  "condition": "assisted",
+  "note": "right holds, left fills",
+  "frames": 81,
+  "duration_s": 17.671733305003727,
+  "tracking_rms_mm": 0.7827647532583827,
+  "tracking_max_mm": 1.5887773257641555,
+  "tracking_rms_incl_approach_mm": 129.5785178026112,
+  "min_clearance_m": 0.050060818187876985,
+  "clearance_to": "torso",
+  "ee_travel_m": 1.4415579322990715,
+  "passes_through_wearer": false,
+  "below_real_floor": true
+}

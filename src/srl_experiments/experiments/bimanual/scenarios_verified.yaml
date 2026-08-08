@@ -844,3 +844,348 @@ tasks:
         - 1.26
       verified: true
       reason: ''
+  T8_wearer_assisted_reach:
+    S1_left_lean_forward:
+      arm: left
+      target:
+      - 0.55
+      - 0.35
+      - 0.95
+      wearer_stance: lean_forward
+      stance_offset_m:
+      - 0.0
+      - 0.12
+      - -0.06
+      unreachable_at_nominal: true
+      approach_path:
+      - - 0.303
+        - 0.35
+        - 1.1
+      - - 0.319
+        - 0.342
+        - 1.094
+      - - 0.336
+        - 0.334
+        - 1.088
+      - - 0.352
+        - 0.326
+        - 1.082
+      - - 0.369
+        - 0.318
+        - 1.076
+      - - 0.385
+        - 0.31
+        - 1.07
+      - - 0.402
+        - 0.302
+        - 1.064
+      - - 0.418
+        - 0.294
+        - 1.058
+      - - 0.435
+        - 0.286
+        - 1.052
+      - - 0.451
+        - 0.278
+        - 1.046
+      - - 0.468
+        - 0.27
+        - 1.04
+      - - 0.484
+        - 0.262
+        - 1.034
+      - - 0.501
+        - 0.254
+        - 1.028
+      - - 0.517
+        - 0.246
+        - 1.022
+      - - 0.534
+        - 0.238
+        - 1.016
+      - - 0.55
+        - 0.23
+        - 1.01
+      verified: true
+      reason: ''
+      why: operator cannot reach it; wearer must lean forward. Neither alone.
+    S2_left_step_forward:
+      arm: left
+      target:
+      - 0.55
+      - 0.45
+      - 0.95
+      wearer_stance: step_forward
+      stance_offset_m:
+      - 0.0
+      - 0.3
+      - 0.0
+      unreachable_at_nominal: true
+      approach_path:
+      - - 0.303
+        - 0.35
+        - 1.1
+      - - 0.316
+        - 0.339
+        - 1.092
+      - - 0.33
+        - 0.328
+        - 1.083
+      - - 0.344
+        - 0.317
+        - 1.075
+      - - 0.358
+        - 0.306
+        - 1.067
+      - - 0.371
+        - 0.294
+        - 1.058
+      - - 0.385
+        - 0.283
+        - 1.05
+      - - 0.399
+        - 0.272
+        - 1.042
+      - - 0.413
+        - 0.261
+        - 1.033
+      - - 0.426
+        - 0.25
+        - 1.025
+      - - 0.44
+        - 0.239
+        - 1.017
+      - - 0.454
+        - 0.228
+        - 1.008
+      - - 0.468
+        - 0.217
+        - 1.0
+      - - 0.481
+        - 0.206
+        - 0.992
+      - - 0.495
+        - 0.194
+        - 0.983
+      - - 0.509
+        - 0.183
+        - 0.975
+      - - 0.522
+        - 0.172
+        - 0.967
+      - - 0.536
+        - 0.161
+        - 0.958
+      - - 0.55
+        - 0.15
+        - 0.95
+      verified: true
+      reason: ''
+      why: operator cannot reach it; wearer must step forward. Neither alone.
+    S3_right_crouch:
+      arm: right
+      target:
+      - -0.55
+      - 0.45
+      - 0.95
+      wearer_stance: crouch
+      stance_offset_m:
+      - 0.0
+      - 0.05
+      - -0.2
+      unreachable_at_nominal: true
+      approach_path:
+      - - -0.303
+        - 0.35
+        - 1.1
+      - - -0.322
+        - 0.354
+        - 1.104
+      - - -0.341
+        - 0.358
+        - 1.108
+      - - -0.36
+        - 0.362
+        - 1.112
+      - - -0.379
+        - 0.365
+        - 1.115
+      - - -0.398
+        - 0.369
+        - 1.119
+      - - -0.417
+        - 0.373
+        - 1.123
+      - - -0.436
+        - 0.377
+        - 1.127
+      - - -0.455
+        - 0.381
+        - 1.131
+      - - -0.474
+        - 0.385
+        - 1.135
+      - - -0.493
+        - 0.388
+        - 1.138
+      - - -0.512
+        - 0.392
+        - 1.142
+      - - -0.531
+        - 0.396
+        - 1.146
+      - - -0.55
+        - 0.4
+        - 1.15
+      verified: true
+      reason: ''
+      why: operator cannot reach it; wearer must crouch. Neither alone.
+    S4_right_step_forward:
+      arm: right
+      target:
+      - -0.55
+      - 0.55
+      - 0.95
+      wearer_stance: step_forward
+      stance_offset_m:
+      - 0.0
+      - 0.3
+      - 0.0
+      unreachable_at_nominal: true
+      approach_path:
+      - - -0.303
+        - 0.35
+        - 1.1
+      - - -0.318
+        - 0.344
+        - 1.091
+      - - -0.333
+        - 0.337
+        - 1.081
+      - - -0.349
+        - 0.331
+        - 1.072
+      - - -0.364
+        - 0.325
+        - 1.062
+      - - -0.38
+        - 0.319
+        - 1.053
+      - - -0.395
+        - 0.312
+        - 1.044
+      - - -0.411
+        - 0.306
+        - 1.034
+      - - -0.426
+        - 0.3
+        - 1.025
+      - - -0.442
+        - 0.294
+        - 1.016
+      - - -0.457
+        - 0.288
+        - 1.006
+      - - -0.473
+        - 0.281
+        - 0.997
+      - - -0.488
+        - 0.275
+        - 0.988
+      - - -0.504
+        - 0.269
+        - 0.978
+      - - -0.519
+        - 0.263
+        - 0.969
+      - - -0.535
+        - 0.256
+        - 0.959
+      - - -0.55
+        - 0.25
+        - 0.95
+      verified: true
+      reason: ''
+      why: operator cannot reach it; wearer must step forward. Neither alone.
+  T9_wearer_motion:
+    S1_sway_000mm:
+      sway_amplitude_m: 0.0
+      metronome_bpm:
+      - 0
+      centre_left: &id006
+      - 0.35
+      - 0.35
+      - 1.15
+      centre_right: &id007
+      - -0.35
+      - 0.35
+      - 1.15
+      envelope_left: 1/1
+      envelope_right: 1/1
+      verified: true
+      reason: ''
+      why: static control, no sway
+    S2_sway_020mm:
+      sway_amplitude_m: 0.02
+      metronome_bpm:
+      - 30
+      - 50
+      - 70
+      centre_left: *id006
+      centre_right: *id007
+      envelope_left: 8/8
+      envelope_right: 8/8
+      verified: true
+      reason: ''
+      why: 20 mm sway -- quiet-standing postural sway
+    S3_sway_060mm:
+      sway_amplitude_m: 0.06
+      metronome_bpm:
+      - 30
+      - 50
+      - 70
+      centre_left: *id006
+      centre_right: *id007
+      envelope_left: 8/8
+      envelope_right: 8/8
+      verified: true
+      reason: ''
+      why: 60 mm sway -- gentle weight shift
+    S4_sway_100mm:
+      sway_amplitude_m: 0.1
+      metronome_bpm:
+      - 30
+      - 50
+      - 70
+      centre_left: *id006
+      centre_right: *id007
+      envelope_left: 8/8
+      envelope_right: 8/8
+      verified: true
+      reason: ''
+      why: 100 mm sway -- deliberate weight shift
+wearer_stances_m:
+  nominal:
+  - 0.0
+  - 0.0
+  - 0.0
+  lean_forward:
+  - 0.0
+  - 0.12
+  - -0.06
+  step_forward:
+  - 0.0
+  - 0.3
+  - 0.0
+  step_right:
+  - 0.25
+  - 0.0
+  - 0.0
+  step_left:
+  - -0.25
+  - 0.0
+  - 0.0
+  crouch:
+  - 0.0
+  - 0.05
+  - -0.2

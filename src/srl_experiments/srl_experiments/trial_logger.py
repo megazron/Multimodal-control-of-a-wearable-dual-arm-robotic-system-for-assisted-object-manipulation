@@ -92,6 +92,24 @@ TRIAL_COLUMNS = [
     "time_to_first_place_s", "mean_cycle_time_s", "scene_faults",
     # --- shared ---
     "duration_s", "samples", "kind",
+    # --- TWO-PERSON (2026-08-08). The wearer is a participant.
+    # Most of these are entered by the experimenter rather than derived from
+    # joint states, because they are events between two people. They are
+    # columns so that a session which did not capture them is visibly EMPTY
+    # rather than silently absent.
+    "dyad_id", "role_order", "wearer_id", "operator_id", "mounting",
+    "prior_acquaintance",
+    "wearer_stance",                 # T8: what the wearer had to do
+    "coordination_latency_s",        # T8: request -> reposition complete
+    "anticipation_s",                # T8: NEGATIVE = moved before being asked
+    "initiator",                     # T8: operator | wearer
+    "comm_events", "comm_requests", "comm_warnings",
+    "wearer_motion_rms_mm",          # the disturbance, MEASURED
+    "wearer_motion_hz",
+    "sway_amplitude_mm", "metronome_bpm",   # T9: the commanded IV
+    "awareness_accuracy", "awareness_confidence",
+    "wearer_borg", "operator_borg",
+    "wearer_stop_events", "flinch_events",
     # --- validity ---
     "valid", "invalid_reason",
     "dropout_fraction",

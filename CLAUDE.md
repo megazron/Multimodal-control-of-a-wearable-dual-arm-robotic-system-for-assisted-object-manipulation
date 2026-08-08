@@ -4423,3 +4423,103 @@ that looks live but has not changed is the failure this panel exists to show.
    diagnostics, which are ADD-ONS to a running stack. Refusing those whenever
    a stack exists makes the refusal useless in the only situation where you
    would use them. Now scoped by `starts_stack`.
+
+---
+
+# TWO-PERSON REFRAMING (2026-08-08) — operator and wearer are different people
+
+**The arms are worn by one person and driven by a DIFFERENT person.** This is
+not a change of emphasis; it changes who is a participant, what is measured,
+and which literature the work sits in. Engineering is unaffected — the arms,
+the master, the safety stack and every coordinate are the same — but anything
+describing "the operator" as the person wearing the pack is now wrong.
+
+Research docs, in reading order:
+`docs/research/01_literature_review.md` §7 (Fusion, SRL Proxemics, the gap),
+`02_baseline_and_hypotheses.md` §6 (H1-H4 for the dyad),
+`05_two_person_measures.md`, `06_task_set_two_person.md`,
+`07_session_order_two_person.md`, `03_ethics_and_safety.md`.
+
+## The gap, corrected twice — do not overstate it
+
+Fusion (SIGGRAPH 2018 E-Tech) is the direct predecessor and its architecture
+is ours. Two corrections to the obvious novelty claim, both of which must
+survive into any write-up:
+
+- **Fusion's Direct / Induced / Enforced are levels of PHYSICAL COUPLING to
+  the wearer's own arms, not levels of machine autonomy.** In all three the
+  robot decides nothing. It is also a 2-page demo with **no user study and no
+  numbers** — cite it for existence, never for performance.
+- **The gap is NOT untouched.** SRL Proxemics (CHI 2026) already ran a
+  separate concealed operator, varied autonomy, and measured wearer safety and
+  trust — finding **higher autonomy made both WORSE** (SCR Mdn 0.85 vs 0.25,
+  p=.002; trust 4.18 vs 5.42). Its autonomy was a hidden human and its wearer
+  had no task, so what remains open is performance-and-experience together,
+  not "nobody has looked".
+
+Likewise **T9's disturbance compensation is partly solved already**: Zhang et
+al. (2024) report 1.37 ± 0.58 mm with the human shoulder as floating base.
+What is untested is the **two-person** case, where the disturbance comes from
+a nervous system the operator has no efference copy of.
+
+## New tasks, verified
+
+| | |
+| --- | --- |
+| **T8 wearer-assisted reach** | 4/4 verified, **2 per arm, 3 distinct stances**. A target unreachable at nominal stance and reachable after the wearer repositions |
+| **T9 reach under wearer motion** | 4/4 verified at (±0.35, 0.35, **1.15**). **IV capped at 100 mm** — 160 mm ("step in place") leaves the reachable set at every centre probed and was REMOVED rather than left to lose trials to geometry |
+
+`scripts/verify_t8_t9_scenarios.py`. Wearer stance is simulated by
+transforming TARGETS, which is exact kinematically but does **not** move the
+wearer's collision geometry — an upper bound on reach, a lower bound on
+clearance.
+
+## THE CLEARANCE FINDING — IK-valid is not clearance-valid
+
+Recording every task surfaced something no amount of IK verification would:
+
+> **T3/T6 carry paths bring the arms within 48-62 mm of the wearer's torso.**
+> Contact-free, IK-valid, and **below the 120 mm floor `real_robot` enforces.**
+
+MoveIt's `avoid_collisions` is **binary contact**; the real-robot floor is a
+**margin**. A scenario can pass one and be refused by the other, and this pair
+does. Consistent with CLAUDE.md's own "through-range clearance +0.0495 /
++0.0544 m" — the number was known, but had never been connected to the task
+scenarios.
+
+**Resolve by moving the task, not the floor.** Either push the carry band
+forward in y, or run bench-mounted. Lowering the floor is not available: it is
+the last thing between the arms and the chest of someone who did not choose
+the motion.
+
+## Verification recordings
+
+    python3 scripts/record_verification.py --all     # every task x scenario x condition
+    python3 scripts/make_clip_index.py               # -> recordings/verification/INDEX.md
+
+Two panels per clip: a 3-D view and a **front view**, because the 3-D view
+cannot show whether two grippers are level and that is the whole of the T3/T6
+metric. The wearer is drawn from `human_backpack.xacro`, the object is drawn
+(rigid tray as a straight line, sling with its closed-form sag and a ball that
+turns red when released), and clearance is delegated to the project's OWN
+`srl_teleop/clearance.py` so the clip and the numbers cannot disagree.
+
+**The conditions in these clips are smoothing levels, not the autonomy stack.**
+They verify geometry, motion and clearance. No autonomy claim may be read off
+them, and INDEX.md says so at the top.
+
+### Four instrument bugs, all caught before their output was believed
+
+1. **My clearance model was invented** — hardcoded world-frame boxes reporting
+   0.064 m where the shipped guard reports far more. Two clearance metrics are
+   worse than one; it now calls `clearance.py`.
+2. **The tracking metric included the approach from home**, where the command
+   is deliberately far ahead of the arm: 224 mm on a run that tracks to
+   **2.1 mm** once moving. Frames are now phase-tagged and scored on the task
+   phase only.
+3. **Paths were too short and too fast** — a 3-frame clip of an arm asked to
+   cross half a metre in 0.1 s.
+4. **A per-frame matplotlib 3-D axes** put the full sweep at three hours;
+   reusing one figure brought it to ~38 s per run.
+
+Fifth instance of the standing rule, and the reason it is a rule.

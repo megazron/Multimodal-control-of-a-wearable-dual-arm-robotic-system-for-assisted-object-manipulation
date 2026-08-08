@@ -39,3 +39,10 @@ src/ros2_kortex_vision/
 *.log
 core
 /tmp/
+
+# ------------------------------------------------- verification recordings
+# recordings/verification/ holds one rosbag2 per task x scenario x condition
+# (~87 of them). The CLIPS, PLOTS and summaries are tracked -- they are the
+# reviewable artefact and are small. The BAGS are not: they are regenerable
+# from the same script in one command and would dominate the repo.
+recordings/verification/*/*/*/bag/

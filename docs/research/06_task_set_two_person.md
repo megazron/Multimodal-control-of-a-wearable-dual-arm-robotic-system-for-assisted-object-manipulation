@@ -1,0 +1,219 @@
+# THE TASK SET UNDER THE TWO-PERSON FRAMING
+
+*2026-08-08. Every verdict below is backed by a number from a live
+`/compute_ik` with both arms VERIFIED at home, N=10 repeats over the whole
+densified path. `FEASIBLE-IF` means it works only with a stated change.*
+
+---
+
+## Summary table
+
+| task | single-person verdict | **two-person verdict** | evidence |
+| --- | --- | --- | --- |
+| T1 bimanual reach | subsumed by T7 | **DROPPED**, unchanged | T7 measures the same construct continuously |
+| T2 hold and fill | IN | **IN, and now stronger** | 4/4 scenarios verified; discrete outcome instrumented |
+| T3 rigid carry | IN, respec'd | **IN** | 4/4 verified; **but see the clearance finding** |
+| T4 inter-arm handover | BLOCKED | **STILL BLOCKED** | 0 of 16 transfer points, 0 of 63 grid cells reachable by both arms |
+| T5 handover to wearer | IN, contested slot | **PROMOTED TO CORE** | 3/3 verified; the canonical Fusion scenario |
+| T6 compliant carry | IN | **IN** | 4/4 verified |
+| T7 pursuit | IN | **IN, re-verified** | 6/6; centres moved z 1.05 → 1.10 |
+| **T8 wearer-assisted reach** | did not exist | **NEW — FEASIBLE** | 4/4 verified, 2 per arm, 3 distinct stances |
+| **T9 reach under wearer motion** | did not exist | **NEW — FEASIBLE-IF** | 4/4 verified; **IV capped at 100 mm, not 160 mm** |
+
+---
+
+## What the reframing changes, task by task
+
+### T5 — PROMOTED TO CORE, and the argument has flipped
+
+Under the single-person framing I argued **against** T5's displacement by T2,
+on the grounds that T5 is the only task where the robot serves the wearer.
+Under the two-person framing that argument becomes much stronger and is no
+longer a preference:
+
+- **T5 is the canonical Fusion scenario.** Fusion's stated motivation is
+  remote assistance and instruction of the surrogate. T5 is that scenario with
+  a measurement attached, which is precisely what Fusion did not have.
+- **It is the ONLY task where the wearer has a functional role.** In T2, T3,
+  T6 and T7 the wearer is a moving mount. In T5 they receive the object, and
+  the "collaborator or platform" item has a referent instead of being
+  hypothetical.
+- **It is the only single-arm task**, so it survives if the bimanual geometry
+  degrades further.
+
+**Verified:** 3/3 scenarios, right arm, whole delivery path densified to
+20 mm — approach, grasp, lift, transit, present, retreat. Cradle at
+(−0.30, 0.35, 1.05), receive at (−0.16, 0.35, 1.05).
+
+**Still blocked on wiring:** the outcome is the **wearer's button press**, a
+foot pedal that does not exist yet. That is correct — only the wearer knows
+whether they have the tool — but it means T5's headline metric is not
+instrumented. See §"remaining blockers".
+
+### T2, T3, T6, T7 — unchanged as tasks, changed as measurements
+
+The tasks are identical. What changes is that **wearer body motion is now a
+measured covariate in every one of them**, from the wearer's torso IMU, and
+the wearer's questionnaire battery is taken after every block. A trial that
+was previously "the operator tracked badly" can now be attributed.
+
+**T3/T6 carry a finding that recording surfaced and IK verification did not.**
+See below.
+
+### T4 — still blocked, and the two-person framing does not rescue it
+
+0 of 16 transfer points and 0 of 63 frontal grid cells are reachable by both
+arms; with collisions off only 3 of 63, and the wearer removes all three. This
+is geometry, not orientation and not autonomy. **A wearer reposition does not
+fix it either** — moving the base moves BOTH arms together, so their mutual
+separation is invariant. T4 needs the right arm re-parked in hardware.
+
+---
+
+## T8 — WEARER-ASSISTED REACH (new)
+
+**A target the operator cannot reach at the wearer's nominal stance, and can
+reach once the wearer repositions. Neither person can complete it alone:
+the operator cannot reach, and the wearer cannot manipulate.**
+
+### Verified scenarios — 4/4
+
+| scenario | arm | target (x, y, z) | wearer must | approach path |
+| --- | --- | --- | --- | --- |
+| S1_left_lean_forward | left | (+0.55, 0.35, 0.95) | lean forward ~20° | 16/16 |
+| S2_left_step_forward | left | (+0.55, 0.45, 0.95) | step forward 0.30 m | 19/19 |
+| S3_right_crouch | right | (−0.55, 0.45, 0.95) | crouch 0.20 m | 14/14 |
+| S4_right_step_forward | right | (−0.55, 0.55, 0.95) | step forward 0.30 m | 17/17 |
+
+Two per arm, three distinct stances. **The first version of the search
+returned four left-arm lean-forward variants** — one situation measured four
+times and called a graded task set. Balance is now enforced.
+
+Every target is confirmed **unreachable at nominal** (the defining property)
+and every approach path is verified densified to 20 mm after the reposition.
+
+### Metrics
+
+| metric | definition |
+| --- | --- |
+| `coordination_latency_s` | `t_wearer_completes_reposition − t_operator_requests` |
+| `anticipation_s` | `t_wearer_starts_moving − t_operator_requests`. **Negative = the wearer moved before being asked** |
+| `initiator` | who acted first: operator request, or wearer volunteering |
+| `comm_events` | utterances, coded request / acknowledgement / warning / social |
+| `attempts_before_request` | how long the operator tried to reach it alone before asking — an operator-side awareness measure |
+| `repositions_per_trial` | over-correction: a wearer who keeps shuffling has not understood the requirement |
+
+### The learning hypothesis, and how it is tested
+
+**H3.** Across repetitions, `coordination_latency_s` falls and `anticipation_s`
+turns negative. A negative anticipation means the wearer predicted the
+operator's intent **without controlling the limbs and without proprioception
+of them** — body-schema-like learning in a person who is not driving.
+
+8 repetitions per condition, so the trend is estimable within a block rather
+than only across them.
+
+### Limitation, stated
+
+The wearer's stance is simulated in verification by **transforming targets**,
+which is exactly equivalent kinematically but does **not** move the wearer's
+own collision geometry. On the real rig a wearer who leans *into* the workspace
+brings their torso with them. Every T8 pose is therefore also checked at the
+nominal stance with collisions on, and the real-rig clearance must be
+re-measured with the wearer actually leaning.
+
+---
+
+## T9 — REACH UNDER WEARER MOTION (new)
+
+**The wearer sways or steps to a metronome while the operator works. Sway
+amplitude is the independent variable.**
+
+This is the hypothesis the architecture makes uniquely available, but **not
+because it is untested** — see the correction in §7.5 of the literature
+review. Zhang et al. (2024) report 1.37 ± 0.58 mm tracking with the human
+shoulder as a floating base, so the *control* problem is known to be solvable.
+What is untested is the **two-person** case, where the disturbance originates
+in a different nervous system: no efference copy, no vestibular access, and
+visible to the operator only through a camera mounted on the moving base.
+
+### Verified scenarios — 4/4, and the IV is CAPPED
+
+| scenario | sway amplitude | envelope reachable | what it is |
+| --- | --- | --- | --- |
+| S1_sway_000mm | 0 mm | 1/1, 1/1 | static control |
+| S2_sway_020mm | 20 mm | 8/8, 8/8 | quiet-standing postural sway |
+| S3_sway_060mm | 60 mm | 8/8, 8/8 | gentle weight shift |
+| S4_sway_100mm | 100 mm | 8/8, 8/8 | deliberate weight shift |
+
+Targets at (±0.35, 0.35, **1.15**) — **not** the T7 centre. Measured: at
+z = 1.10 the left arm tolerates only 60 mm of sway before the envelope leaves
+its reachable set; z = 1.15 gives 100 mm on both arms.
+
+**160 mm ("step in place") was tested and REMOVED.** The envelope leaves the
+reachable set at every centre probed. Keeping it would lose trials to geometry
+and score them as disturbance effects, which is exactly backwards. **So the IV
+spans quiet sway to a deliberate weight shift, and NOT a step** — recorded as
+a limitation rather than quietly dropped, and it does weaken the top of the
+range.
+
+Metronome: 30 / 50 / 70 bpm, chosen to straddle plausible visual-tracking
+bandwidth so **H2-null** (the operator simply watches and compensates) is
+falsifiable rather than assumed away.
+
+### Metrics
+
+`rms_error_mm` and `max_error_mm` against a world-fixed target; `phase_lag_s`
+of the EE against the **wearer's** motion (not the target's — that is what
+distinguishes compensation from following); `wearer_body_motion` RMS and
+dominant frequency, from the torso IMU, as the manipulation check; clearance
+minimum; and the operator's awareness-probe accuracy.
+
+**The manipulation check matters.** If the wearer's measured sway does not
+track the commanded amplitude, the IV did not happen and the trial says
+nothing.
+
+---
+
+## THE CLEARANCE FINDING — from the recordings, not from IK
+
+Every T3/T6 scenario passes IK with `avoid_collisions=True`, so MoveIt reports
+the poses valid. Driving them and measuring with the project's **own**
+`clearance.py` gives a different answer:
+
+> **T3/T6 carry paths bring the arms to within 51–62 mm of the wearer's
+> torso** — comfortably clear of contact, and **below the 120 mm floor
+> `real_robot` mode enforces.**
+
+This is consistent with CLAUDE.md's own "through-range clearance +0.0495 /
++0.0544 m", so it is not new physics — but it had never been connected to the
+task scenarios. **MoveIt's collision check is binary contact; the real-robot
+floor is a margin.** A scenario can pass one and be refused by the other.
+
+**Consequence:** as specified, T3 and T6 would be **blocked by the clearance
+floor on real hardware** even though every waypoint is IK-valid. Options, in
+order of preference:
+
+1. **Move the carry band forward in y** (0.35 → 0.45) to buy torso clearance,
+   then re-verify — the band was chosen for reachability alone.
+2. Run T3/T6 **bench-mounted**, which the protocol already permits and records
+   as `mounting: bench`.
+3. Lower the floor for these tasks, which I do **not** recommend: the floor is
+   the last thing between the arms and a person's chest.
+
+Not applied here — it changes verified geometry and must be re-verified as one
+deliberate pass.
+
+---
+
+## Remaining blockers on wiring
+
+| blocked | on |
+| --- | --- |
+| T5's headline metric | the wearer's **foot pedal / receipt button**. Not built |
+| T8 and T9 wearer motion | a **wearer torso IMU** publishing to ROS. The disturbance is currently commanded, not measured |
+| Wearer arousal | an **EDA sensor**. Nothing in the repo reads one |
+| Operator awareness probes | an experimenter script to freeze the arms and pose the probe; the freeze path exists (`/estop` + clutch) but the probe UI does not |
+| Every DIRECT condition | 7 of 14 master channels **INCOHERENT**. `l_j2`/`l_j4` first |
+| T4 | the right arm re-parked in hardware |
+| T3/T6 on real hardware | the clearance finding above |

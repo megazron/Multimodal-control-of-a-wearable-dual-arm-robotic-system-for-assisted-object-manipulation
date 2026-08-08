@@ -1,7 +1,17 @@
 # Literature Review
 
-**Project:** dual Kinova Gen3 supernumerary arms on a wearable backpack, teleoperated
-from an instrumented mannequin master arm (potentiometers + IMU, Teensy 4.1, ROS 2 Jazzy).
+**Project:** dual Kinova Gen3 supernumerary arms on a wearable backpack, worn by one
+person (the **WEARER**) and teleoperated by a **DIFFERENT** person (the **OPERATOR**)
+from an instrumented mannequin master arm (potentiometers + IMU, Teensy 4.1, ROS 2
+Jazzy).
+
+> **REFRAMED 2026-08-08 — TWO PEOPLE, NOT ONE.** Sections 1-6 below were written for a
+> single person who both wore and drove the arms. That framing is superseded. Where a
+> section says "the operator" and means the wearer, read it as describing the
+> *single-person* literature, which remains the correct background for the control and
+> intent-inference work but is **not** the architecture this project instantiates. The
+> two-person literature, the corrected gap statement and the revised novelty claim are
+> in **Section 7**, which takes precedence over Section 6 wherever they disagree.
 
 **Scope and method.** Citations below were located by web search and, where possible,
 verified against the publisher record or the paper text itself. Claims I could not
@@ -853,3 +863,211 @@ secondary sources; [UNVERIFIED] in detail)*
 
 `kortex_ws/CLAUDE.md` — engineering log of measured channel health, azimuth/Kabsch
 residuals, gyro drift, IK reachability, clearance and real-arm latency for this rig.
+
+
+---
+
+# 7. THE TWO-PERSON ARCHITECTURE — operator, wearer, and the gap
+
+*Added 2026-08-08 when the project was reframed. This section supersedes Section 6.*
+
+## 7.1 Fusion (Saraiji, Sasaki, Matsumura, Minamizawa, Inami — SIGGRAPH 2018 E-Tech)
+
+**The direct predecessor.** Fusion is a backpack worn by a *surrogate* carrying a
+**3-axis robotic head** with stereo vision and binaural audio, and **two anthropomorphic
+6-DOF arms with removable hands**. A remote **operator** wears an Oculus CV1 and sees
+through the surrogate's shoulders, controlling the arms with handheld controllers. The
+architecture is exactly ours: *one person bears the machine, another drives it.*
+
+**The three "levels of bodily driven communication" are levels of PHYSICAL COUPLING,
+not levels of machine autonomy.** This distinction is the whole of the gap and is easy
+to misread, because "Direct / Enforced / Induced" reads like an autonomy ladder:
+
+| Fusion level | what it means physically | who decides the motion |
+| --- | --- | --- |
+| **Direct** | robot arms operate INDEPENDENTLY of the surrogate's own arms — a collaborative third-and-fourth arm | 100% operator |
+| **Induced** | the hands guide or instruct the surrogate's arms, cueing a motion the surrogate then makes | 100% operator |
+| **Enforced** | the removable hands are LINKED to the surrogate's wrists, so the operator drives the surrogate's own limbs directly | 100% operator |
+
+In all three the robot decides **nothing**. There is no goal inference, no arbitration,
+no assistance, no autonomous segment. Fusion moved along the axis of *how much of the
+wearer's body the operator commands* and never along the axis of *how much the machine
+decides.*
+
+**What it did NOT do, stated precisely:**
+
+- **No autonomy of any kind**, therefore no shared autonomy.
+- **No user study and no quantitative evaluation.** It is a 2-page Emerging Technologies
+  demonstration (Article 7, pp. 1-2). Task performance, workload, trust, embodiment and
+  safety are all unmeasured. Fusion **demonstrated** the architecture; it did not
+  **validate** it.
+- **No measurement of the wearer as a participant.** The surrogate's experience —
+  perceived safety, agency, comfort, willingness — is discussed as motivation and never
+  instrumented.
+- **No treatment of the wearer's motion as a disturbance** to the arms it carries.
+- **No task in which the two people must coordinate to succeed.** The scenarios are
+  demonstrations of coupling, not tasks with a failure mode.
+
+## 7.2 SRL Proxemics (CHI 2026) — the nearest and most awkward neighbour
+
+This is the paper that most constrains what we may claim, and it did not exist when
+this project's earlier gap statement was written.
+
+18 participants wore MetaLimbs (two 7-DOF back-mounted arms) in a **Wizard-of-Oz**
+study. Crucially, **a concealed separate operator drove the limbs via mechanical
+linkage — not the wearer.** Measures: think-aloud, semi-structured interview, **skin
+conductance response**, and questionnaires on trust, safety and embodiment.
+
+**Its central finding is a direct challenge to the naive hypothesis of this project:**
+
+> Higher autonomy did **not** enhance perceived safety. Approach-phase arousal was
+> significantly *higher* in the High-Autonomy condition (SCR Mdn = 0.85) than under
+> participant-defined rules (Mdn = 0.25, p = .002), and trust was *lower*
+> (Mdn = 4.18 vs 5.42, p < .05).
+
+It also produced a body-zone sensitivity map that we should simply adopt rather than
+rediscover: head/face rejected by 17/18 at roughly arm's length; torso entry tolerated
+by 13/18 only with evident purpose and a palm-width (~10 cm) buffer; hands/forearms
+near-contact accepted by 15/18 during task-relevant handovers; the **elbow** named by
+14/18 as a reflex boundary. Preferred motion was **pause-move-pause**, **arc-shaped
+rather than frontal**, whole-limb rather than isolated-hand, with an audible motor cue
+for limbs behind the body.
+
+**What it did NOT do:** the autonomy was *simulated* — a hidden human, not a planner —
+so it measures the wearer's **perception of autonomy**, not the behaviour or
+performance of an actual shared-autonomy system. The wearer had **no task**. There was
+**no task-performance measure at all**, so the question "does autonomy trade wearer
+comfort against operator performance" cannot be asked of it. And the operator was an
+experimental instrument, not a participant: their workload, awareness and trust are
+unmeasured.
+
+## 7.3 Teleoperation from a moving, non-inertial base
+
+The wearer's body is a floating base, and this is a mature control literature. Base
+disturbance is compensated in mobile manipulation via extended
+uncertainty-and-disturbance estimation, via virtual-spring master-slave schemes with
+local force feedback, and on legged platforms via whole-body and residual-learning
+controllers that counteract locomotion-induced inertial effects.
+
+**Within SRLs specifically the problem is named and solved as a control problem.**
+Zhang et al. (2024, *Advanced Intelligent Systems*) model supernumerary arms on an
+omnidirectional floating base and give three feedback schemes, reporting tracking
+errors of **1.18 ± 0.56 mm** (point) and **1.42 ± 0.43 mm** (circular) with the
+manipulator as floating base, and **1.37 ± 0.58 mm** with the **human shoulder** as
+floating base. A related framework (arXiv:2310.10029) reconstructs the SRA Jacobian
+against IMU-derived whole-body skeleton feedback.
+
+**THE CRITICAL LIMITATION FOR US, AND IT IS NOT A SMALL ONE:** in every one of these,
+**the wearer IS the operator.** The disturbance is *self-generated*. A person who is
+about to sway knows they are about to sway, and their own motor commands are available
+as feed-forward. Splitting the roles removes that: the disturbance now originates in a
+**different nervous system**, is unavailable to the operator as efference copy, and is
+visible to them only through a camera that is itself mounted on the moving base.
+
+## 7.4 Trust and agency when you bear the risk without the control
+
+The wearer's position has no clean precedent in robotics, and the closest validated
+literature is the **autonomous-vehicle passenger**: a person who has ceded control,
+remains physically exposed to the consequences, and whose risk perception is driven by
+the violation of self-set **safety margins** rather than by objective performance.
+That literature contributes two things we should take: validated trust instruments,
+and the repeated finding that **physiological measures (electrodermal activity) and
+subjective report dissociate** — which is precisely why SRL Proxemics' SCR result is
+more persuasive than a questionnaire alone would have been.
+
+The disanalogy matters too, and is in our favour as a research contribution: an AV
+passenger has chosen a destination and can usually stop the vehicle, whereas our
+wearer has **no goal of their own and no control input whatsoever**. That is a more
+extreme position than the passenger literature has had to describe.
+
+## 7.5 THE GAP, stated precisely
+
+**The original reading was: "Fusion established the operator/wearer architecture but
+did not study shared autonomy within it." That is correct, and it is not the whole
+story. Three corrections, one of which weakens the claim and two of which sharpen it.**
+
+**Correction 1 — Fusion is weaker evidence than "established" implies.** It is a
+2-page demonstration with no study and no numbers. It established the architecture as
+*buildable and compelling*, not as *characterised*. Anything we cite it for must be
+existence, never performance.
+
+**Correction 2 — the gap is NOT untouched, and claiming so would be wrong.**
+SRL Proxemics (CHI 2026) already studied a separate operator, varied autonomy, and
+measured wearer safety and trust — and found **higher autonomy made things worse**.
+Any claim of the form "nobody has looked at autonomy in a two-person wearable system"
+is false as of 2026. What remains open is narrower and better: their autonomy was a
+concealed human, their wearer had no task, and they measured **no task performance**.
+
+**Correction 3 — the same applies to base motion, which was briefed as untested.**
+The T9 hypothesis was put to me as "the strongest hypothesis available and no one has
+tested it." The *control* problem is tested — Zhang et al. report millimetre tracking
+under human-induced disturbance with the human shoulder as the floating base. What is
+untested is the **two-person** case, where the disturbance is generated by someone the
+operator cannot feel, cannot predict, and did not command.
+
+**So the gap that survives contact with the literature:**
+
+> No study has measured, in a system where one person wears the arms and a **different**
+> person drives them, whether **machine autonomy** changes **task performance and the
+> wearer's experience at the same time** — and in particular whether autonomy earns its
+> cost when the base is moving under a disturbance the operator cannot anticipate
+> because it originates in another person's body.
+
+Three things make that a real gap rather than a gap by construction:
+
+1. **The two measures are in tension and both must be reported.** SRL Proxemics says
+   autonomy *lowers* wearer trust; the shared-autonomy literature (Section 1) says it
+   *raises* operator performance. Nobody has measured both ends of that trade in one
+   system, so nobody knows the exchange rate.
+2. **The disturbance is exogenous to the operator.** This is a genuinely different
+   control-and-attention problem from the self-generated case, and it is the one an
+   operator/wearer architecture necessarily creates.
+3. **Coordination becomes a task variable.** With two people there are tasks neither
+   can complete alone (T8), and that class does not exist in the single-person
+   literature at all.
+
+## 7.6 What must NOT be claimed
+
+- **Not** "the first wearable robot driven by a remote operator" — Fusion, 2018.
+- **Not** "the first study of autonomy and wearer safety in such a system" — SRL
+  Proxemics, 2026.
+- **Not** "the first compensation of wearer-induced base disturbance" — Zhang 2024.
+- **Not** any claim of superiority over Fusion on performance. Fusion reported no
+  performance numbers, so there is nothing to be superior to.
+- **Not** an embodiment claim for the wearer. Our arms are not linked to their limbs;
+  Fusion's Enforced mode is the mode that would license embodiment language, and we do
+  not implement it.
+
+## 7.7 Sources for this section
+
+- Saraiji, Sasaki, Matsumura, Minamizawa, Inami. *Fusion: full body surrogacy for
+  collaborative communication.* ACM SIGGRAPH 2018 Emerging Technologies, Art. 7, 1-2.
+  https://dl.acm.org/doi/10.1145/3214907.3214912 —
+  https://history.siggraph.org/experience/fusion-full-body-surrogacy-for-collaborative-communication-by-saraiji-sasaki-matsumura-minamizawa-and-inami/
+- IEEE Spectrum, *Fusion: A Collaborative Robotic Telepresence Parasite That Lives on
+  Your Back* (system details; Direct / Induced / Enforced).
+  https://spectrum.ieee.org/fusion-a-collaborative-robotic-telepresence-parasite-that-lives-on-your-back
+- *SRL Proxemics: Spatial Guidelines for Supernumerary Robotic Limbs in Near-Body
+  Interactions.* CHI 2026. https://arxiv.org/html/2602.00494v1 —
+  https://doi.org/10.1145/3772318.3790532
+- Zhang et al. *Motion-Compensation Control of Supernumerary Robotic Arms Subject to
+  Human-Induced Disturbances.* Advanced Intelligent Systems, 2024.
+  https://doi.org/10.1002/aisy.202300448
+- *A Human Motion Compensation Framework for a Supernumerary Robotic Arm.*
+  arXiv:2310.10029. http://arxiv.org/abs/2310.10029
+- Lisini Baldi et al. *Exploiting body redundancy to control supernumerary robotic
+  limbs in human augmentation.* IJRR 2025. https://doi.org/10.1177/02783649241265451
+- *Shared Control of Supernumerary Robotic Limbs Using Mixed Reality and
+  Mouth-and-Tongue Interfaces.* Biosensors 2025.
+  https://pmc.ncbi.nlm.nih.gov/articles/PMC11853150/
+- *I Need a Third Arm! Eliciting Body-based Interactions with a Wearable Robotic Arm.*
+  CHI 2023. https://dl.acm.org/doi/10.1145/3544548.3581184 (adjustable autonomy and
+  intent transparency as elicited user requirements; WoZ remote operator condition)
+- *Trust, risk perception, and intention to use autonomous vehicles.*
+  https://pmc.ncbi.nlm.nih.gov/articles/PMC11968569/
+- *Risk Assessment by a Passenger of an Autonomous Vehicle Among Pedestrians:
+  Relationship Between Subjective and Physiological Measures.*
+  https://pmc.ncbi.nlm.nih.gov/articles/PMC10790836/
+
+**Search caveat, unchanged from the header:** web search only, English only, not an
+exhaustive Scopus/IEEE query. The novelty claim in 7.5 should be read against that.

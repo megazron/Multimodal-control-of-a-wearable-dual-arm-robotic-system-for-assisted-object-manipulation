@@ -173,48 +173,89 @@ title/logo.eps} once ghostscript is available, then restore the
 \texttt{includegraphics} in \repo{title/title.tex}.}
 
 \begin{abstract}
-A supernumerary robotic limb is mounted on a person, so its base moves, is
-soft, and cannot be commanded to hold still. This thesis reports a
+The base of a supernumerary robotic limb is a person. It sways, it is soft and
+irreplaceable, and it cannot be told to hold still. This thesis reports a
 teleoperation system for two seven-degree-of-freedom arms carried on a worn
-backpack frame and commanded from an instrumented mannequin master, built on
-two premises: that commanding fourteen joints through a body-worn master is a
-usability problem rather than a plumbing one, and that a master routing
-fourteen analog channels through rotating joints will lose channels, so losing
-them must be survivable.
+backpack frame and commanded from an instrumented mannequin master, together
+with what measuring that system revealed about what it can and cannot do.
 
-The command mapping takes each component of position from whichever sensor
-observes it most directly, with elevation from the gravity vector, azimuth
-from a single shoulder joint, and radius from a forward-kinematic magnitude
-insensitive to roll errors. Channel health is classified per channel over
-distinct sensor updates, validation is scoped to the channels the active mode
-consumes, and the cost of each reduction is measured on \num{20430} recorded
-frames. With no well-conditioned channels the system reports position
-unavailable rather than extrapolating one.
+Two design premises shaped the work. The first is that commanding fourteen
+joints through a body-worn master is a usability problem rather than a wiring
+one, so position is taken from three or four well-conditioned channels,
+orientation from an inertial sensor, and the remainder is supplied by autonomy
+or left uncommanded. The second is that a master routing fourteen analog
+channels through rotating joints will lose channels as connectors fatigue, so
+losing them has to be survivable. Channel health is therefore classified per
+channel, frame validation is scoped to the channels the active mode consumes,
+and each channel can be disabled at run time with its cost published rather
+than inferred. When no well-conditioned channel remains, the system reports
+position unavailable instead of extrapolating one.
 
-Measurements on the physical master found six of fourteen channels usable and
-reversed two long-standing verdicts, both of which had come from computing
-statistics across transmitted rows rather than distinct updates. Vertical and
-fore-and-aft command track correctly on both arms; lateral does not, and a
-rotation-invariant test shows the measured directions are not an orthogonal
-triad, so no axis map can correct them. Fourteen of fourteen injected faults
-were handled, including two whose diagnosis required correcting the observable
-a safety mechanism was keyed on.
+Position is decomposed so that each component comes from whichever sensor
+observes it most directly: elevation from the gravity vector, azimuth from a
+single shoulder joint, and radius from a forward-kinematic magnitude that
+tolerates a dead roll channel. Measured against \num{20430} recorded frames,
+the reduction from four sensed joints to one costs \SI{63.8}{\milli\metre} of
+commanded tip error. Six of fourteen channels met the health criterion, and
+classifying them correctly reversed two verdicts that had stood for weeks,
+both of which came from computing statistics across transmitted rows rather
+than distinct sensor updates. Replaying the failing channels with the
+operator's input held constant showed them injecting \SI{54.5}{\milli\metre}
+of commanded motion nobody asked for, against a master reach of
+\SI{272}{\milli\metre}.
 
-The workspace characterisation returned a negative result with a quantified
-mechanical remedy: under the as-built mount the two arms share no reachable
-cell of a sixty-three-cell frontal grid, with a \SI{0.25}{\metre} dead band
-between the reachable sets, which blocks inter-arm handover for geometric
-reasons no control or planning change can address. A buildable mount
-modification raising the shared count to twenty-two is quantified and
-deliberately not applied.
+Vertical and fore-and-aft command track correctly on both arms. Lateral does
+not, and a rotation-invariant test settles why: directions intended to be
+\SI{90}{\degree} apart measure \SI{137.7}{\degree} apart, so the commanded
+directions are not an orthogonal triad and no axis mapping can make them one.
+Fourteen of fourteen injected faults were handled, two of them only after
+correcting which observable a safety mechanism was keyed on.
 
-No result was validated on a physical arm. The blockers to a two-person study
-are enumerated, and the first is two soldered joints.
+Characterising the workspace produced a negative result with a quantified
+mechanical remedy. Under the as-built mount the two arms share no reachable
+cell of a sixty-three-cell frontal grid, separated by a \SI{0.25}{\metre} dead
+band, which blocks inter-arm handover for geometric reasons that no control or
+planning change can address. A buildable mount modification raising the shared
+count to twenty-two of sixty-three is quantified and deliberately not applied,
+because applying it invalidates the home pose and every clearance figure
+derived from it.
+
+No result in this thesis was validated on a physical arm. What stands between
+the system and the two-person study it was designed around is enumerated, and
+the first item is two soldered joints.
 \end{abstract}
 
 \renewcommand{\abstractname}{Acknowledgements}
 \begin{abstract}
-\todo[inline]{WRITE: acknowledgements.}
+I thank my supervisor, Dr.\ Dandan Zhang, for the direction of this project
+and for consistently pushing the work toward what could be measured rather
+than what could be claimed. Much of what is useful in this thesis exists
+because a result was questioned before it was written down.
+
+I thank my co-supervisor, Dr.\ Etienne Burdet, for the framing that changed
+the shape of the project. Treating the wearer and the operator as two people
+with different stakes, rather than as one role, is what turned a control
+problem into a question worth asking, and it is the reason the workspace and
+safety chapters exist in the form they do.
+
+I am grateful to the Human Robotics Group for access to the Dr.\ Octopus
+platform, and to everyone who kept two Kinova arms and a backpack frame
+available and working.
+\todo{CONFIRM: name the technical staff, lab members and fellow students who
+gave practical help, and anyone who lent equipment or time on the platform.
+Only the two supervisors and the group are named here, because those are the
+only contributions on record; the rest must be added by hand before
+submission.}
+
+This project spent a great deal of its time discovering that the instrument
+was wrong rather than the system. I am thankful to everyone who responded to
+a surprising number with scepticism instead of enthusiasm, which is the only
+reason several of them are not in this document as findings.
+
+Finally, I thank my family and friends for their support over the course of
+the year.
+\todo{CONFIRM: personalise the closing paragraph. It is deliberately generic
+because the specifics are not mine to write.}
 \end{abstract}
 
 \tableofcontents

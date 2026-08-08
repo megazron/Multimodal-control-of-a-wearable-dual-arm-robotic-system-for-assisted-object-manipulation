@@ -12,7 +12,7 @@ TikZ sources are excluded.
 
 | Section | Words | State |
 | --- | --- | --- |
-| Front matter (abstract, title) | 624 | written; acknowledgements outstanding |
+| Front matter (abstract, acknowledgements, title) | 1006 | **written**; two names-and-personal slots left marked |
 | 1 Introduction | 1532 | **rewritten** |
 | 2 Background | 1617 | **rewritten and deepened**, thematic, ends with the gap |
 | 3 The master arm | 2396 | **new chapter** |
@@ -23,11 +23,12 @@ TikZ sources are excluded.
 | 8 Discussion | 1286 | **rewritten** |
 | 9 Conclusion | 822 | **rewritten** |
 | Appendices | 148 | firmware listings plus a record index |
-| **Total body** | **16 799** | |
+| **Total body** | **17 181** | |
 
 ## Figures
 
-**Nineteen figures exist and compile. Nine are placeholders.**
+**Twenty-six figure environments. Nineteen carry real content (11 vector
+diagrams, 8 plots from data); seven are marked placeholders.**
 
 ### Vector diagrams, generated (11)
 
@@ -61,12 +62,12 @@ baselines under `recordings/baselines/`, so they regenerate.
 `workspace_disjoint`, `mount_sweep`, `lateral_constraint`,
 `clearance_by_task`, `sling_geometry`.
 
-### Placeholders (9)
+### Placeholders (7)
 
 Each is a marked box in the compiled document with a full caption saying what
 the image must show, so a missing figure is visible rather than absent.
 
-**Images required (6)** — `\imgplaceholder`:
+**Images required (5)** --- `\imgplaceholder`:
 
 1. Two-person configuration photograph (background).
 2. Master arm CAD, exploded, dimensioned, showing cable routing across each
@@ -76,25 +77,27 @@ the image must show, so a missing figure is visible rather than absent.
    (system as built).
 5. Operations console under load, captured with a fault present so the
    first-out annunciation is visible (results).
-6. Imperial College logo on the title page, blocked on ghostscript.
 
-**Reproduced from other papers (3)** — `\reprodplaceholder`, each carrying a
-note that written permission is required and has not been obtained:
+The Imperial College logo on the title page is a sixth missing image but is
+tracked as a `FIGURE` todo rather than a placeholder box, because floats are
+lost inside a titlepage. It is blocked on ghostscript, not on the image.
+
+**Reproduced from other papers (2)** --- `\reprodplaceholder`, each carrying
+a note in the compiled document that written permission is required and has
+not been obtained:
 
 1. Parietti and Asada bracing configuration.
 2. Dragan and Srinivasa policy-blending arbitration function.
-3. (Third slot reserved; currently two are placed.)
 
 ## Outstanding markers
 
-Twelve, all visible inline in the compiled document and in the todo list.
+Thirteen, all visible inline in the compiled document and in the todo list.
 
 | Kind | Count | Substance |
 | --- | --- | --- |
-| CONFIRM | 8 | title; word limit; divergence appendix or supporting file; simulation-phase dates; ethics status; `MPU6050.h` not handed over (×2); the force-channel filter discrepancy |
+| CONFIRM | 10 | title; word limit; divergence appendix or supporting file; simulation-phase dates; ethics status; `MPU6050.h` not handed over (×2); the force-channel filter discrepancy; two in the acknowledgements (names, closing paragraph) |
 | MEASURE | 2 | corrected filter seed on hardware; isolate the update-rate explanation with the virtual board |
 | FIGURE | 1 | Imperial logo |
-| WRITE | 1 | acknowledgements |
 
 Two of the CONFIRM markers are substantive rather than administrative and are
 described in `EVIDENCE.md`:

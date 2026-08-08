@@ -1,7 +1,12 @@
 {
   "frames": 49,
-  "duration_s": 8.142302783991909,
+  "duration_s": 8.492850675014779,
   "quad": true,
+  "grasp_planned": false,
+  "grasp_refused": "pre-grasp standoff not solvable",
+  "grasp_yaw_deg": null,
+  "grasp_width_mm": 40.0,
+  "grasp_standoff_m": null,
   "blocks_placed": 1,
   "ball_fallen": false,
   "tool_delivered": false,
@@ -13,5 +18,5 @@
   "scenario": "S4_tight_tolerance",
   "condition": "direct",
   "note": "right holds, left fills",
-  "bytes": 1641193
+  "bytes": 2340801
 }

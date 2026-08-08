@@ -1,7 +1,12 @@
 {
   "frames": 44,
-  "duration_s": 6.778803506982513,
+  "duration_s": 7.0392070899833925,
   "quad": true,
+  "grasp_planned": false,
+  "grasp_refused": "pre-grasp standoff not solvable",
+  "grasp_yaw_deg": null,
+  "grasp_width_mm": 40.0,
+  "grasp_standoff_m": null,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
@@ -13,5 +18,5 @@
   "scenario": "S4_tight",
   "condition": "shared",
   "note": "compliant sling, 330 mm span",
-  "bytes": 1320179
+  "bytes": 1959494
 }

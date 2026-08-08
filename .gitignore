@@ -46,3 +46,18 @@ core
 # reviewable artefact and are small. The BAGS are not: they are regenerable
 # from the same script in one command and would dominate the repo.
 recordings/verification/*/*/*/bag/
+
+# ---------------------------------------------- per-angle verification rushes
+# Each run records seven camera angles. rviz_quad.mp4 tiles the four that
+# matter and is what anyone actually reviews, so only the quad is tracked; the
+# individual angles are ~950 MB in total and regenerate in one command via
+# scripts/record_rviz.py. Several were also left unfinalised by an interrupted
+# sweep and cannot be stream-copied back to a sane size.
+recordings/verification/*/*/*/rviz_front.mp4
+recordings/verification/*/*/*/rviz_back.mp4
+recordings/verification/*/*/*/rviz_left.mp4
+recordings/verification/*/*/*/rviz_right.mp4
+recordings/verification/*/*/*/rviz_iso.mp4
+recordings/verification/*/*/*/rviz_top.mp4
+recordings/verification/*/*/*/rviz_side.mp4
+recordings/verification/*/*/*/rviz_gripper.mp4

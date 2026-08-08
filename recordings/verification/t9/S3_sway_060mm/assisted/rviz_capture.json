@@ -1,7 +1,12 @@
 {
   "frames": 51,
-  "duration_s": 8.740810126008,
+  "duration_s": 9.031006940000225,
   "quad": true,
+  "grasp_planned": false,
+  "grasp_refused": "",
+  "grasp_yaw_deg": null,
+  "grasp_width_mm": null,
+  "grasp_standoff_m": null,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
@@ -13,5 +18,5 @@
   "scenario": "S3_sway_060mm",
   "condition": "assisted",
   "note": "wearer sway 60 mm",
-  "bytes": 1808007
+  "bytes": 2916491
 }

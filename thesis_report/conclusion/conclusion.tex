@@ -1,2 +1,63 @@
 \chapter{Conclusion}
 \label{ch:conclusion}
+
+This project produced a complete, safety-instrumented teleoperation stack for
+a backpack-mounted pair of seven-degree-of-freedom arms commanded through a
+miniature mannequin master, together with a characterisation of what that
+configuration can and cannot do.
+
+Against the objectives of \cref{ch:intro}: the master was designed and
+fabricated and its sensing characterised, including a dated record of
+progressive channel degradation; the mapping was derived and implemented,
+including the coordinate-convention layer that isolates a class of error whose
+failure mode is a near-full joint revolution; the safety architecture was
+implemented and validated by fault injection rather than inspection; the
+workspace was characterised, yielding the finding that determines the task
+set; a verification methodology was established and applied across the
+recorded runs; and the constraints blocking hardware validation were
+identified by measurement rather than assumed.
+
+The principal measured contributions are the workspace characterisation, with
+its negative result and its quantified mechanical remedy; the account of what
+degraded sensing costs and which two channels matter most; the finding that
+the deployed clearance margin and the planner's collision test disagree across
+the entire working band, resolvable laterally but not fore-and-aft; and the
+observation that two independent constraints --- clearance and wrist
+feasibility --- place the usable boundary in the same place.
+
+The methodological contribution is the discipline of validating an instrument
+against a known answer before reporting a surprising measurement taken with
+it. This arose from necessity: across the project, unexpected results were
+more often defects in measurement than in the system, and requiring every
+analysis routine to recover a constructed answer caught a substantial number
+of errors that would otherwise have entered the record.
+
+\section{Future work}
+
+The immediate steps are set by the limitations rather than by ambition, and
+are ordered by how much each would improve the system.
+
+\textbf{Repair the two identified master channels.} Regression shows the left
+arm retains no reach observable without them, and every direct-teleoperation
+baseline depends on them. This is the single highest-value action.
+
+\textbf{Measure control-path latency.} The instrumentation is small --- seven
+timestamps and a sequence number already partly present --- and it is the only
+one of the planning report's targets that is both untouched and immediately
+measurable. The result must be reported as a lower bound.
+
+\textbf{Apply the mount change and re-derive.} The sweep quantifies the gain;
+applying it invalidates the home pose, the workspace anchor and every
+clearance figure, so it should be one deliberate pass with full
+re-verification.
+
+\textbf{Ingest and document the master hardware record.} The firmware, CAD and
+bill of materials exist outside the repository; committing them would supply
+the pin map, ADC resolution and fabrication parameters that
+\cref{ch:method} currently cannot state.
+
+\textbf{Then run the study.} The design is complete and costed at sixteen
+dyads over a \SI{167}{\minute} session, comparing direct teleoperation against
+shared autonomy across all five tasks.
+\todo{MEASURE: the experimental programme in full --- no participant data
+exists}

@@ -1,7 +1,12 @@
 {
   "frames": 55,
-  "duration_s": 10.071350065001752,
+  "duration_s": 10.34454513998935,
   "quad": true,
+  "grasp_planned": false,
+  "grasp_refused": "",
+  "grasp_yaw_deg": null,
+  "grasp_width_mm": null,
+  "grasp_standoff_m": null,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
@@ -13,5 +18,5 @@
   "scenario": "S3_both_fast",
   "condition": "assisted",
   "note": "pursuit L 0.20 / R 0.20 m/s",
-  "bytes": 2263907
+  "bytes": 3481433
 }

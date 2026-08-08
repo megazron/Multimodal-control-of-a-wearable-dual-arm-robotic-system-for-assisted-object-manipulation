@@ -1,2 +1,207 @@
 \chapter{Results}
 \label{ch:results}
+
+\section{How to read this chapter}
+
+Every result is labelled with the strength of evidence behind it:
+\textbf{Simulated} (measured against a running planning and control stack with
+a mock hardware interface), \textbf{Mock-exercised} (the code path ran and its
+failure modes were injected, but no physical device was involved), or
+\textbf{Hardware} (a physical arm, microcontroller or participant took part).
+
+\textbf{No result in this chapter is of the Hardware tier for the robot.} No
+experiment was run with a participant and no logged artefact from a physical
+Kinova arm exists. One category of hardware evidence does exist and is
+reported in \cref{sec:channels}: recorded master-arm data.
+
+\section{The five-task set}
+
+Nine task families were consolidated to five. The consolidation criterion for
+the bimanual tasks was strict: one arm alone must be unable to complete the
+task \emph{given unlimited time}. Because the two reachable sets are disjoint
+(\cref{ch:workspace}), that can only be achieved in two ways --- a rigid object
+spanning the dead band, or two targets requiring simultaneous satisfaction ---
+and both are used.
+
+\begin{table}[htbp]
+  \centering
+  \caption[The five-task set]{The consolidated task set. Every coordinate was
+  verified at $N=10$ repeats over the full densified path with both arms
+  confirmed at the home pose; total failures zero.}
+  \label{tab:tasks}
+  \begin{tabular}{llp{62mm}}
+    \toprule
+    Task & Arms & Why it earns its place \\
+    \midrule
+    1 Positioning & L, R, both & Fitts characterisation and warm-up; the
+      single-versus-both contrast is the attention bottleneck, needing no
+      object to exist \\
+    2 Pick and place & one at a time & Single-arm manipulation baseline and the
+      only discrete success/failure outcome in the set \\
+    3 Rigid carry & both & A rigid body held at two points \SI{500}{\milli\metre}
+      apart spans the dead band; one arm cannot hold two separated points \\
+    4 Compliant carry & both & Identical paths, compliant object; failure is
+      nonlinear and abrupt rather than proportional \\
+    5 Dual pursuit & both & The two targets lie in disjoint sets, so one arm
+      can never reach both; simultaneity is the success criterion \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\todo{MEASURE: every task metric with a participant. The protocols, scenarios,
+metrics and success detection exist and have been exercised with scripted
+input, but no human has driven the master arm.}
+
+\section{Master-arm channel health and degradation}
+\label{sec:channels}
+
+Twelve recordings made on 27 July 2026 constitute the only physical-hardware
+data in the project: \num{10890} rows at \SI{100.0}{\hertz} over
+\SI{109}{\second}, capturing all fourteen potentiometer channels, two inertial
+units, two force-sensitive resistors and two buttons, in six labelled
+directions per arm. \emph{(Hardware.)}
+
+Classifying channels between \emph{distinct} sensor updates rather than
+between rows --- the distinction matters, as \cref{sec:instrument} explains ---
+gives five live channels on the left arm and two on the right at that date.
+Re-measuring on 6 August against the same hardware shows substantial
+degradation (\cref{fig:degrade}): the left arm's third and fourth channels,
+which spanned \SI{234}{\degree} and \SI{175}{\degree} with no dropouts in July,
+are classed incoherent in August.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{figures/channel_degradation.pdf}
+  \caption[Progressive channel degradation]{Dropout fraction per channel on two
+  dates ten days apart, same hardware. The left arm's shoulder and elbow
+  channels degrade from fully live to incoherent.}
+  \label{fig:degrade}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{figures/channel_health.pdf}
+  \caption[Channel health baseline]{The 6 August baseline. Six of fourteen
+  channels are usable.}
+  \label{fig:channels}
+\end{figure}
+
+\subsection{What degraded input costs}
+
+Replaying recorded traces with every coherent channel held at its median
+isolates the contribution of the failed channels alone --- a perfectly steady
+hand, so every millimetre of output is contributed by the faults. The left
+arm's incoherent channels contribute \SI{54.5}{\milli\metre} of commanded tip
+motion; the right arm's contribute \SI{0.014}{\milli\metre}.
+\emph{(Simulated replay of hardware data.)}
+
+Regressing true reach on the surviving channels shows the left arm retains
+\emph{no} reach observable once its shoulder and elbow channels are excluded
+($R^{2} = \num{0.133}$, residual \SI{93}{\percent} of the true spread), whereas
+the right arm does ($R^{2} = \num{0.986}$). This identifies the two specific
+channels whose repair would restore the most capability, and it is the highest
+priority hardware action.
+
+\section{Safety layer}
+
+Fourteen distinct faults were injected and all fourteen were handled, meaning
+detected, responded to in the designed way, and made visible in the published
+state. \emph{(Mock-exercised.)} Faults injected mid-trial into the experiment
+runners caused the affected trial to be marked invalid with the cause
+recorded, the session to continue, and the analysis to exclude the trial as
+pre-registered.
+
+The most consequential defect found was that the dead-man could not detect the
+failure that actually occurs, for the reason given in \cref{ch:method}. After
+keying it on the source timestamp, the measured trip times were
+\SIrange{0.94}{0.99}{\second} for a degraded-but-publishing master and
+\SI{0.97}{\second} for a silent one, against a \SI{1.00}{\second} deadline,
+with no false positive over \num{243} fresh frames.
+\todo{MEASURE: capture these trip traces to file --- the figures above are from
+the engineering log and no artefact was retained}
+
+\section{Clearance}
+
+Driving every task and measuring clearance produced the result with the
+largest consequence for the programme, developed fully in \cref{ch:workspace}.
+Across all recorded runs, \num{48} of \num{87} sit below the
+\SI{0.12}{\metre} real-robot floor while passing the planner's collision check
+(\cref{fig:clear}).
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\textwidth]{figures/clearance_by_task.pdf}
+  \caption[Clearance by task]{Minimum clearance to the wearer across all
+  recorded runs. Tasks working at $|x| \ge \SI{0.35}{\metre}$ clear the floor
+  comfortably; those in the inboard band do not.}
+  \label{fig:clear}
+\end{figure}
+
+\section{Recorded verification}
+
+Every task, scenario and control condition was driven in simulation and
+recorded from multiple fixed camera angles, with automated checking of object
+handling, gripper actuation and wearer clearance. Across all runs no arm link
+entered the wearer's collision geometry and no run showed a stationary robot.
+\emph{(Simulated.)}
+
+\subsection{A grasp that was not a grasp}
+
+The first round of recordings contained a defect that no automated check
+caught and that only viewing the clips revealed: the gripper was never
+commanded. The mock hardware interface initialises the driven knuckle at a
+fully closed value, and because nothing in the recording path issued a gripper
+command, the hand remained shut throughout while the grasp was represented
+solely by an attached marker.
+
+The object-attachment check passed, and correctly so: the marker genuinely was
+following the gripper. It was following a gripper that never opened. This is
+the clearest instance in the project of a verification that was true and
+useless.
+
+The recording path now commands the gripper controller directly and executes
+the full sequence --- pre-grasp standoff along the approach vector with the
+wrist aligned to the object, straight-line approach, closure to the object's
+own width rather than to full closure, lift back along the vector --- using the
+existing grasp-pose generator, with the marker attaching only once the
+\emph{measured} joint indicates closure.
+
+\subsection{Where a top-down grasp is refused}
+
+Exercising the generator produced a quantified refusal that is itself a
+result. A top-down grasp requires $|x| \ge \SI{0.30}{\metre}$: zero of nine
+candidates solve at \SI{0.25}{\metre} and nine of nine at \SI{0.30}{\metre},
+and the failure persists with collision checking disabled, so it is kinematic
+infeasibility of the wrist orientation rather than obstruction. Grasps at the
+container, at the tray edge and at the tool cradle are therefore refused, and
+the recordings show the arm doing what it can with the refusal displayed
+rather than pretending otherwise.
+
+\section{The instrument failed more often than the system}
+\label{sec:instrument}
+
+A finding that shaped the methodology more than any design decision is that
+surprising measurements were more often defects in the measuring instrument
+than in the system measured. The instances are numerous enough to be a result
+rather than an anecdote.
+
+A noise floor of \num{0.000} on every sensor channel was the recorder
+oversampling a \SI{15}{\hertz} sensor at \SI{50}{\hertz}, so
+\SIrange{82}{88}{\percent} of adjacent rows were bit-identical. A workspace
+statistic varying by a factor of two between identical runs was a summary
+statistic sensitive to a rare tail event; on medians the inter-quartile range
+is \SI{0.000}{\metre}. A set of verification clips reported as failing were
+failing a colour test calibrated against the requested marker colour rather
+than the rendered one --- eleven clips whose objects had just been inspected by
+eye. A carried object reported as stationary was a centroid dragged towards
+fixed overlay text, of which \num{529} of \num{587} matching pixels were
+letters. In each case the system was behaving correctly and the instrument was
+not.
+
+\section{Unit tests}
+
+Twenty-eight test files are present, including known-answer recovery for every
+continuous task metric, the discrete task outcome, the inverse-kinematics
+guard convergence and the cross-arm interference fit. Style tests fail and
+failed prior to this work, because the codebase uses double quotes throughout;
+this is pre-existing and is not a regression.

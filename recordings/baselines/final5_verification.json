@@ -1,0 +1,164 @@
+{
+  "repeats": 10,
+  "step_m": 0.02,
+  "failures": 0,
+  "detail": {
+    "task1": {
+      "left": [
+        {
+          "p": [
+            0.3,
+            0.35,
+            1.05
+          ],
+          "ok": true
+        },
+        {
+          "p": [
+            0.3,
+            0.35,
+            1.25
+          ],
+          "ok": true
+        },
+        {
+          "p": [
+            0.45,
+            0.35,
+            1.15
+          ],
+          "ok": true
+        }
+      ],
+      "right": [
+        {
+          "p": [
+            -0.3,
+            0.35,
+            1.05
+          ],
+          "ok": true
+        },
+        {
+          "p": [
+            -0.3,
+            0.35,
+            1.25
+          ],
+          "ok": true
+        },
+        {
+          "p": [
+            -0.45,
+            0.35,
+            1.15
+          ],
+          "ok": true
+        }
+      ]
+    },
+    "task2": {
+      "left": [
+        {
+          "pick": [
+            0.32,
+            0.35,
+            1.15
+          ],
+          "approach_ok": true,
+          "place_ok": true,
+          "n_way": 15
+        },
+        {
+          "pick": [
+            0.38,
+            0.35,
+            1.15
+          ],
+          "approach_ok": true,
+          "place_ok": true,
+          "n_way": 15
+        },
+        {
+          "pick": [
+            0.44,
+            0.35,
+            1.15
+          ],
+          "approach_ok": true,
+          "place_ok": true,
+          "n_way": 15
+        }
+      ],
+      "right": [
+        {
+          "pick": [
+            -0.32,
+            0.35,
+            1.15
+          ],
+          "approach_ok": true,
+          "place_ok": true,
+          "n_way": 15
+        },
+        {
+          "pick": [
+            -0.38,
+            0.35,
+            1.15
+          ],
+          "approach_ok": true,
+          "place_ok": true,
+          "n_way": 15
+        },
+        {
+          "pick": [
+            -0.44,
+            0.35,
+            1.15
+          ],
+          "approach_ok": true,
+          "place_ok": true,
+          "n_way": 15
+        }
+      ]
+    },
+    "task3_4": {
+      "S1_short_lift": {
+        "waypoints": 4,
+        "bad": 0,
+        "ok": true
+      },
+      "S2_full_lift": {
+        "waypoints": 11,
+        "bad": 0,
+        "ok": true
+      },
+      "S3_detour": {
+        "waypoints": 10,
+        "bad": 0,
+        "ok": true
+      }
+    },
+    "task5": {
+      "left": {
+        "centre": [
+          0.35,
+          0.35,
+          1.15
+        ],
+        "shell_fail": 0,
+        "ok": true
+      },
+      "right": {
+        "centre": [
+          -0.35,
+          0.35,
+          1.15
+        ],
+        "shell_fail": 0,
+        "ok": true
+      }
+    }
+  }
+}

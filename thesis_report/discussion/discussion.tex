@@ -1,2 +1,165 @@
 \chapter{Discussion}
 \label{ch:discussion}
+
+\section{What the geometry decides}
+
+The most consequential outcome of this project is not a control result but a
+geometric one: as mounted and as parked, the two arms share no reachable
+workspace. That removes an entire class of task, and it does so in a way no
+planning, control or autonomy change can address, because the constraint is on
+where the arms can be at all rather than on how they get there.
+
+It is worth stating precisely what follows and what does not. Tasks requiring
+the two arms to meet at a point are impossible. Tasks requiring two distinct
+points a fixed distance apart are not, and were shown feasible once the
+coupled objects were widened to a \SI{500}{\milli\metre} span. The distinction
+was initially missed, and a bimanual programme was briefly declared blocked on
+the strength of a test that answered the stronger question. The correction
+matters more than the original error: the requirement a task actually imposes
+should be tested, rather than a convenient proxy for it.
+
+That the fix is mechanical and quantified --- three to twenty-two shared cells
+for a buildable mount change --- is what turns the null result into a
+contribution rather than a complaint.
+
+\section{Two constraints, one boundary}
+
+Wearer clearance and top-down grasp feasibility were measured independently,
+for different reasons, and both place the usable boundary at
+$|x| \approx \SIrange{0.25}{0.30}{\metre}$. Neither measurement was designed to
+corroborate the other, which is what makes the agreement informative: the
+inboard band is unusable for two unrelated reasons at once.
+
+The clearance half of that pair deserves emphasis because it is easy to
+mistake for a tuning problem. The planner's collision check and the deployed
+clearance floor ask different questions --- contact against margin --- and a
+pose can satisfy the first while being refused by the second. Attempting to
+resolve it by moving the working volume forward fails instructively: clearance
+improves and reachability collapses, because the volume moves towards the edge
+of the arm's reach as it moves away from the body. The axis along which the
+conflict resolves is lateral, and that was not obvious in advance. It was
+found only because the probe recorded \emph{which link} was closest rather
+than only how close it was.
+
+The ethical position is one-directional. The floor exists to protect a person
+who did not choose the motion, so the task moves and the floor does not.
+
+\section{Instrumentation as a first-class concern}
+
+The pattern reported in \cref{sec:instrument} --- that surprising measurements
+were more often instrument defects than system defects --- became the
+methodological centre of the work. The response, requiring every analysis
+routine to recover a constructed answer before being trusted with real data,
+is in the author's assessment the most transferable outcome.
+
+It is also incomplete, and honesty requires saying so. The rule was adopted
+part-way through, and the earlier measurements have not all been re-derived
+under it. Where a figure in this thesis originates in the engineering log
+rather than in a retained artefact, it is marked as such.
+
+\section{Silent failure as the dominant mode}
+
+The safety work consistently found that the problem was not mechanisms failing
+to act, but that acting and not acting looked identical from outside. The
+dead-man defect is the clearest case: the mechanism was correct, its trigger
+condition was correct, and it could not fire on the failure that actually
+occurs, because the upstream node degraded by republishing stale data rather
+than by falling silent. Every test of it had passed, because every test
+removed the cable.
+
+The general lesson is that a test exercising a failure mode different from the
+one that occurs provides confidence without providing safety.
+
+\section{The plan and the delivery}
+
+The delivered system diverges substantially from the planning report, and the
+divergences are engineering decisions rather than omissions.
+
+\textbf{The simulator changed} from Isaac Lab to MuJoCo and then to ROS~2 with
+MoveIt. Isaac Lab requires a heavyweight GPU stack; the development machine
+carries \SI{4}{\gibi\byte} of video memory already committed to the perception
+models. More importantly, the question that actually needed answering was
+collision-aware kinematics against a wearer model, which MoveIt provides
+natively.
+
+\textbf{The compliance layer was not built.} The manufacturer's impedance mode
+requires the cyclic control interface, and that interface is unusable on this
+machine: measured write times of \SIrange{3}{6}{\second} against a
+\SI{10}{\milli\second} budget, because the realtime channel is UDP and the
+network translation layer breaks it. The delivered path uses the high-level
+velocity API instead, which cannot express joint impedance. This is an
+infrastructure constraint, not a design preference, and it is the reason the
+haptic objectives could not be attempted.
+
+\textbf{The master arms are passive.} This follows from the above: with no
+force channel there is nothing for master actuators to render.
+
+\section{Evaluation against the planning report's targets}
+
+Of the nine targets in the planning report, none was met and none refuted.
+Four are measurable with what exists; three require building a subsystem
+first; one requires participants.
+
+The three that require building are worth distinguishing carefully, because
+calling them merely ``unmeasured'' would understate the position. Force
+reflection and closed-loop overshoot are \textbf{structurally undefined on this
+platform}: the mock hardware interface returns identically zero for every
+force and effort field, so a number derived from it exists but carries no
+information. Angular tracking is undefined for a different reason: the
+commanded orientation is pinned to the anchor and never follows the master's
+wrist, because the wrist channels are dead or incoherent.
+
+\section{Limitations}
+
+\subsection{Nothing was validated on the robot}
+
+No result here was obtained from a physical Kinova arm or a participant. The
+simulation uses a mock interface that echoes commands with no dynamics, so it
+cannot answer questions about payload, compliance, latency under load, or any
+consequence of real actuator behaviour. Where it has been asked such a
+question it returned a null result that is a property of the mock rather than
+evidence about the robot.
+
+\subsection{The input is degraded and the baseline depends on it}
+
+Seven of fourteen master channels are unreliable, and the degradation is
+progressive: channels healthy in July were incoherent ten days later. Every
+direct-teleoperation condition depends on those channels, so the baseline
+against which autonomy would be compared is currently compromised. Repairing
+two specific channels was identified by regression as the highest-value
+intervention.
+
+\subsection{The lateral axis is wrong and cannot be fixed by remapping}
+
+Azimuth is derived from the shoulder roll joint alone. That joint's axis is
+fixed in the mount, so rolling it moves the tip only once a downstream joint
+has offset the tip from the roll axis; azimuth per degree of roll therefore
+depends on how bent the arm is. Azimuth and elevation are consequently not
+independent, which is precisely what the spherical model assumes. No axis
+permutation can repair this --- it is a modelling error, not a sign error --- and
+a hybrid using the full forward kinematics was tested and made the reversal
+metric worse, because it inherits errors from four suspect joint angles rather
+than one.
+
+\subsection{The latency figure, when it exists, is a lower bound}
+
+The end-to-end latency measurement designed for this system instruments the
+control path from serial read to commanded joint state. Under the mock
+interface the final stage measures command echo rather than physical motion,
+so the resulting figure is \textbf{control-path latency and a lower bound} on
+true end-to-end latency. That caveat travels with the number wherever it
+appears.
+
+\subsection{The experimental programme is designed but unexecuted}
+
+Protocols, measures, counterbalancing and analysis routines exist and have
+been exercised with scripted input. No participant has taken part, so every
+hypothesis remains pre-registered intent.
+\todo{CONFIRM: whether ethics approval was sought and its status}
+
+\subsection{The version history cannot date the work}
+
+The repository's commit history consists of one large import and a single day
+of subsequent commits, so it cannot support claims about the order or timing
+of development. The dated engineering log is the usable chronology and is a
+laboratory notebook rather than an independent record.

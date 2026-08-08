@@ -1,17 +1,22 @@
 {
-  "frames": 52,
-  "duration_s": 8.883905032998882,
+  "frames": 112,
+  "duration_s": 15.90735164200305,
   "quad": true,
+  "grasp_planned": true,
+  "grasp_refused": "",
+  "grasp_yaw_deg": 0.0,
+  "grasp_width_mm": 20.0,
+  "grasp_standoff_m": 0.12,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": true,
   "grip_min": 0.05,
-  "grip_max": 0.4988235294117647,
+  "grip_max": 0.6089652839822837,
   "grip_opened": true,
   "grip_closed_on_object": true,
   "task": "t5",
   "scenario": "S3_busy",
   "condition": "shared",
   "note": "right arm delivers to the wearer",
-  "bytes": 1276088
+  "bytes": 3425517
 }

@@ -1,2 +1,130 @@
 \chapter{Background}
 \label{ch:background}
+
+\section{Supernumerary robotic limbs}
+
+Supernumerary robotic limbs (SRLs) augment rather than restore: the wearer
+keeps their own limbs and gains additional ones \cite{tong2021srlreview,
+prattichizzo2021augmentation}. The design space is broad. Early systems were
+oriented towards bracing and body support, in which the extra limbs take load
+rather than manipulate \cite{parietti2016support}; later work added active
+impedance control to improve the safety and naturalness of contact
+\cite{zhang2023srlreview}. Recent reviews quantify the field's design
+parameters, actuation choices, intent-recognition strategies and feedback
+modalities \cite{yang2021srlreview, zheng2026quantitative}.
+
+Two questions recur, and both bear directly on this project. The first is how
+the extra limbs are \emph{commanded}, given that the wearer's own limbs are
+generally occupied by the primary task. The second is whether the wearer comes
+to experience the limbs as part of their own body, which is normally framed in
+terms of body schema and ownership \cite{pinardi2023feedback}.
+
+The configuration used here answers the first question by placing the
+commanding person outside the wearer's body entirely, and renders the second
+inapplicable: the arms are never mechanically coupled to the wearer's limbs,
+so ownership language does not apply to them. The MUVE platform on which the
+work was conducted mounts two Kinova Gen3 arms on a backpack frame
+\cite{muve, kinova2022gen3}.
+
+\section{Teleoperation with a separate wearer}
+
+The direct predecessor to the two-person configuration is Fusion, which
+mounted a three-axis robotic head with stereo vision and two six-degree-of-freedom
+arms on a backpack worn by a \emph{surrogate}, and drove them from a remote
+operator wearing a head-mounted display \cite{saraiji2018fusion}. Fusion
+defined three levels of what it termed bodily driven communication ---
+\emph{Direct}, \emph{Induced} and \emph{Enforced} --- distinguished by how far
+the robot arms were physically coupled to the surrogate's own arms.
+
+It is worth being precise about what those levels are, because the naming
+invites a misreading. They are levels of \emph{physical coupling}, not levels
+of machine autonomy: in all three the operator commanded every motion and the
+machine decided nothing. Fusion was moreover presented as a two-page Emerging
+Technologies demonstration and reported no user study and no quantitative
+evaluation. It therefore establishes the architecture as buildable and
+compelling, rather than as characterised.
+
+The spatial behaviour of back-mounted arms around a wearer has more recently
+been studied directly, with a concealed separate operator and varying apparent
+autonomy \cite{zhou2026proxemics}. That work reported that higher autonomy did
+\emph{not} improve the wearer's perceived safety, and produced body-zone
+guidance on approach distances and trajectory shapes. It is relevant here both
+as a precedent for the two-person arrangement and as a caution against
+assuming that autonomy is experienced as reassuring.
+
+\section{Master--slave teleoperation and the mapping problem}
+
+Bilateral teleoperation, in which position and force information flow in both
+directions, is the classical route to transparent interaction, and impedance
+control at the follower is the usual mechanism \cite{dewolde2024impedance}.
+Where the leader and follower have \emph{dissimilar} morphologies, a
+joint-to-joint mapping is unavailable and the correspondence must be
+established in task space, at the cost of a scaling calibration and a residual
+mapping error.
+
+Physical prototyping with miniature models is an established route to
+validating such a mapping before committing to full-scale hardware, and
+miniature masters have been shown to provide useful inherent haptic feedback
+\cite{guggenheim2021haptic}. The device built for this project is of that
+family: a scaled replica of the follower's own kinematic chain, so that the
+operator's intention maps onto robot motion without an intervening
+abstraction.
+
+\section{Compliance and series elastic actuation}
+
+Series elastic actuators place a compliant element between the motor and the
+load, trading positioning bandwidth for force fidelity, shock tolerance and
+safety in contact \cite{toubar2022sea, lee2019sea}. The planning report for
+this project proposed a dual-layer compliance strategy: physical springs at
+the miniature master and virtual spring impedance at the full-scale follower,
+the latter through the manufacturer's impedance mode. \Cref{ch:discussion}
+explains why the impedance layer was not delivered, and what constraint
+prevented it.
+
+\section{Teleoperation from a moving base}
+
+Where the base of a manipulator is not inertial, base motion enters the
+control problem as a disturbance. For supernumerary limbs the base is the
+wearer's own body, and the disturbance is their postural sway. Zhang et
+al.\ model supernumerary arms on a floating base and report tracking errors of
+\SI{1.37(58)}{\milli\metre} with the human shoulder as that base
+\cite{zhang2024motioncomp}.
+
+The limitation of that result for the present work is that the wearer is also
+the operator, so the disturbance is \emph{self-generated} and the person's own
+motor commands are available as feed-forward. Separating the roles removes
+that information entirely, which is the distinction this project is positioned
+against.
+
+\section{Simulation}
+
+The planning report proposed Isaac Lab for offline tuning of impedance
+parameters \cite{isaaclab}. The delivered work used MuJoCo for early dynamics
+and ROS~2 with MoveIt~2 for the final collision-aware kinematics;
+\cref{ch:discussion} gives the reasons.
+
+\section{Research gap}
+
+The gap the planning report identified was the absence of studies combining a
+custom miniature dual-arm master with direct teleoperation of a wearable
+dual-arm platform. That remains broadly true, but it requires two corrections
+which this thesis makes explicitly.
+
+First, Fusion already established the operator/wearer architecture
+\cite{saraiji2018fusion}, so novelty cannot be claimed for the architecture
+itself --- only for its characterisation, which Fusion did not attempt.
+Second, the question of how autonomy affects the wearer is \emph{not}
+untouched: \cite{zhou2026proxemics} measured exactly that and found autonomy
+made perceived safety worse. What remains genuinely open is the conjunction:
+no study has measured, in a system where one person wears the arms and another
+drives them, whether machine autonomy changes task performance \emph{and} the
+wearer's experience at the same time. Those two literatures currently point in
+opposite directions, and nobody has measured both ends in one system.
+\todo{CITE: a shared-autonomy formalism for the policy-blending claim ---
+Dragan and Srinivasa, and Javdani et al.\ on hindsight optimisation}
+\todo{CITE: Fitts' law and the ISO 9241-9 pointing methodology, for the
+Task~1 throughput measure}
+\todo{CITE: NASA-TLX (Hart and Staveland 1988; Hart 2006 for raw TLX)}
+\todo{CITE: an embodiment / agency instrument for the wearer measures}
+\todo{CITE: an open-vocabulary detector for the vision mode ---
+YOLO-World or Grounding DINO}

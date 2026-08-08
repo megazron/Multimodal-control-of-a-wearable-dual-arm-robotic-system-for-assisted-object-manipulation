@@ -1,7 +1,12 @@
 {
   "frames": 50,
-  "duration_s": 8.292460558994208,
+  "duration_s": 8.478141911997227,
   "quad": true,
+  "grasp_planned": false,
+  "grasp_refused": "",
+  "grasp_yaw_deg": null,
+  "grasp_width_mm": null,
+  "grasp_standoff_m": null,
   "blocks_placed": 0,
   "ball_fallen": false,
   "tool_delivered": false,
@@ -13,5 +18,5 @@
   "scenario": "S1_left_lean_forward",
   "condition": "assisted",
   "note": "left arm; wearer must lean forward",
-  "bytes": 1774348
+  "bytes": 2337108
 }

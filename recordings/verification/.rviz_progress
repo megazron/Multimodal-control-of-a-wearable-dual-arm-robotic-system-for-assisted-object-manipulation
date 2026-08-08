@@ -25,6 +25,8 @@ t3/S4_tight/shared
 t5/S1_near/direct
 t5/S1_near/assisted
 t5/S1_near/shared
+t5/S2_far/direct
+t5/S2_far/assisted
 t5/S2_far/shared
 t5/S3_busy/direct
 t5/S3_busy/assisted

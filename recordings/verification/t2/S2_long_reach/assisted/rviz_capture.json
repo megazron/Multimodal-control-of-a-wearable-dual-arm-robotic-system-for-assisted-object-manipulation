@@ -1,8 +1,13 @@
 {
-  "frames": 53,
-  "duration_s": 9.483251569996355,
+  "frames": 107,
+  "duration_s": 17.885327272000723,
   "quad": true,
-  "blocks_placed": 1,
+  "grasp_planned": true,
+  "grasp_refused": "",
+  "grasp_yaw_deg": 0.0,
+  "grasp_width_mm": 40.0,
+  "grasp_standoff_m": 0.1,
+  "blocks_placed": 2,
   "ball_fallen": false,
   "tool_delivered": false,
   "grip_min": 0.05,
@@ -13,5 +18,5 @@
   "scenario": "S2_long_reach",
   "condition": "assisted",
   "note": "right holds, left fills",
-  "bytes": 1941055
+  "bytes": 20407692
 }

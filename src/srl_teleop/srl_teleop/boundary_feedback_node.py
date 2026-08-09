@@ -45,8 +45,14 @@ TIP = {"left": "left_end_effector_link", "right": "right_end_effector_link"}
 
 IK_WALL, CLEAR_WALL, NONE_WALL = "reach", "wearer", "clear"
 
+# A gap longer than this means the previous stream ended; cached
+# position and velocity from before it are not evidence about now.
+STREAM_GAP_S = 0.5
+
 
 class BoundaryFeedback(Node):
+
+    STREAM_GAP_S = STREAM_GAP_S
 
     def __init__(self):
         super().__init__("boundary_feedback_node")
@@ -56,6 +62,8 @@ class BoundaryFeedback(Node):
         self.declare_parameter("min_speed_m_s", 0.01)
         self.declare_parameter("rate_hz", 4.0)
         self.declare_parameter("clearance_floor_m", 0.12)
+        self.declare_parameter("debug", False)
+        self.debug = bool(self.get_parameter("debug").value)
 
         # A ReentrantCallbackGroup and a MultiThreadedExecutor, because this
         # node calls a service from inside a timer callback. Doing that on the
@@ -92,6 +100,17 @@ class BoundaryFeedback(Node):
                       msg.pose.position.z])
         now = self.get_clock().now().nanoseconds * 1e-9
         with self.lock:
+            # STALE STATE ACROSS A GAP IN THE STREAM. If the pose stream stops
+            # and restarts, the cached position and velocity are from before
+            # the gap, so the first probe is fired from the OLD position along
+            # the OLD direction. Measured: two runs reported the wall at 88 mm
+            # and a third, started straight after, reported 0 mm at t=0.8 s
+            # because it was still probing from the previous run's end point
+            # near the wall. Anything older than the gap is discarded.
+            if (self.t[arm] is not None
+                    and now - self.t[arm] > self.STREAM_GAP_S):
+                self.last[arm] = None
+                self.vel[arm] = np.zeros(3)
             if self.last[arm] is not None and self.t[arm] is not None:
                 dt = now - self.t[arm]
                 if dt > 1e-3:
@@ -159,12 +178,25 @@ class BoundaryFeedback(Node):
         # arms at 4 Hz, which at ~7 ms a call is over half the CPU budget for
         # a feedback signal. Bisection finds the same boundary to `step`
         # resolution in about log2(far/step) + 1 calls: 4 instead of 10.
-        if self.solvable(arm, p + u * far):
+        if self.debug:
+            self.get_logger().warn(
+                "[dbg %s] p=(%.3f,%.3f,%.3f) u=(%.2f,%.2f,%.2f) sp=%.3f "
+                "quat=%s" % (arm, p[0], p[1], p[2], u[0], u[1], u[2], sp,
+                             "set" if getattr(self, "quat", None) else "MISSING"))
+        far_ok = self.solvable(arm, p + u * far)
+        if self.debug:
+            self.get_logger().warn("[dbg %s] far x=%.3f -> %s"
+                                   % (arm, (p + u * far)[0], far_ok))
+        if far_ok:
             return dict(dist=None, wall=NONE_WALL, speed=sp, moving=True)
         lo, hi = 0.0, far                       # lo reachable, hi is not
         while hi - lo > step:
             mid = 0.5 * (lo + hi)
-            if self.solvable(arm, p + u * mid):
+            got = self.solvable(arm, p + u * mid)
+            if self.debug:
+                self.get_logger().warn("[dbg %s] mid x=%.3f -> %s"
+                                       % (arm, (p + u * mid)[0], got))
+            if got:
                 lo = mid
             else:
                 hi = mid

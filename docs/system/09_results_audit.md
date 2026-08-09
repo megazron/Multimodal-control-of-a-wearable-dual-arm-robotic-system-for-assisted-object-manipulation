@@ -100,25 +100,37 @@ stronger test and would very likely find misunderstandings this one does not.
 | --- | --- | --- | --- |
 | bisection 5 calls vs linear 10 | arithmetic | n/a | SOUND |
 | executor deadlock is real | node started, logged, published zero messages | yes — fixed, and it then published | VALIDATED |
-| **warning leads the wall, and by how much** | drove the commanded pose outward and recorded the first warning | **NO** | **UNVERIFIED — see below** |
+| **warning leads the wall: 88 mm** | drove the commanded pose outward with a REACHABLE orientation, single node instance, 3 of 4 repeats identical | **yes** — see below | VALIDATED |
 
-### The unresolved one, stated plainly
+### The contradiction, resolved
 
-`boundary_feedback_node` publishes and warns, but it reports the boundary at
-**0 mm remaining** along a line that a direct inverse-kinematics probe shows is
-reachable at **6 of 6** sample points with the same orientation. Those two
-measurements contradict each other, so at least one instrument is wrong and I
-do not know which.
+It was the harness, twice, and the node was right both times.
 
-Two candidate causes, neither eliminated: the node may probe before its cached
-orientation is populated, in which case it is testing identity — which the
-same experiment showed is unreachable at **0 of 6** points on that line; or
-the velocity estimate may still be near zero when the first probe fires, so
-the probe direction is not the direction of travel.
+**First**, the drive test commanded an IDENTITY orientation. Identity is
+unreachable at 0 of 6 points along that line while the home orientation
+reaches 6 of 6, so "wall at 0 mm" was the correct answer to the question
+actually being asked.
 
-Per the standing rule, a result contradicting an earlier measurement is an
-instrument check and not a finding until the two are reconciled. **The node is
-therefore not verified, and the lead distance is not reported.**
+**Second**, after fixing that, a separate probe script still commanded
+identity — I had corrected one test file and not the other. It reported
+`prox=1.00 dist=0.000` while the node's own instrumented trace showed it
+probing correctly and finding every far point reachable. The two were asking
+different questions.
+
+The IK request format was eliminated first, by A/B: seed against no seed,
+`ik_link_name` set against unset, 100 ms against 8 ms. **All six
+configurations returned 6 of 6**, including the node's exact one, so the
+request was never the cause.
+
+**One real bug did surface**, from a third repeat disagreeing with the first
+two: the cached position and velocity survived a gap in the pose stream, so
+the first probe after a restart fired from the PREVIOUS run's end point, near
+the wall. Anything older than `STREAM_GAP_S` is now discarded.
+
+**Verified: the warning arrives with 88 mm of travel still remaining**, after
+334 mm of travel, identical in 3 of 4 repeats. The fourth reported 0 mm at
+t = 0.0 s, which is a message queued from the previous run sitting in the
+subscriber's depth-10 queue rather than a fresh probe — harness, again.
 
 ---
 
@@ -126,11 +138,14 @@ therefore not verified, and the lead distance is not reported.**
 
 | verdict | count |
 | --- | --- |
-| VALIDATED | 14 |
+| VALIDATED | 15 |
 | SOUND | 15 |
-| UNVERIFIED | 4 |
+| UNVERIFIED | 3 |
 | STRUCTURAL | 1 |
 
-The four UNVERIFIED are: end-to-end fingerprint accuracy, smallest grippable
-object, anything against a real headset, and the boundary warning's lead
-distance. None is reported as a result anywhere.
+The three UNVERIFIED are: end-to-end fingerprint accuracy, smallest grippable
+object, and anything against a real headset. None is reported as a result
+anywhere.
+
+**Instrument-fault tally for this run of work: eleven.** Nine were mine and
+two were pre-existing. Every one looked like a system failure first.

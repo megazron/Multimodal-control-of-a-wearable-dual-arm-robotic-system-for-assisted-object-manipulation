@@ -2083,3 +2083,61 @@ settle before the resweep to close that.
 topic is verified to carry the right content; nobody has yet confirmed from
 pixels that RViz draws it as intended. Use the Xvfb route -- x11grab on the
 WSLg `:0` records black.
+
+## JOB F — PRECISION/SPEED DIAL: MODULE DONE, SAFETY MEASUREMENT NOT (2026-08-09)
+
+`src/srl_teleop/precision_speed.py` (new). One dial in [0, 1]:
+
+| dial | | scale | smoothing | max_vel | max_step |
+| --- | --- | --- | --- | --- | --- |
+| 0.00 | PRECISION | 0.20 | 0.08 | 0.10 rad/s | 0.10 rad |
+| 0.50 | BALANCED | 0.45 | 0.29 | 0.35 rad/s | 0.22 rad |
+| 1.00 | SPEED | 1.00 | 0.50 | 0.60 rad/s | 0.35 rad |
+
+**Scale is GEOMETRIC, not linear.** Perceived precision goes as motion per unit
+of hand travel and the useful range is bunched low: 0.2 to 0.4 is a large
+change in feel, 0.8 to 1.0 is barely noticeable. A linear map would waste most
+of the dial.
+
+### The safety invariant is enforced, not documented
+
+`SAFETY_PARAMS` names the nine things the dial must never touch (clearance
+floor, wearer pad, `avoid_collisions`, redundancy samples, dead-man timeout
+and enable, e-stop enable, flip-reject limit, IK watchdog).
+`assert_safety_unconditional()` RAISES on any of them, and the test that
+matters walks **all 101 dial positions** and asserts the emitted settings dict
+never contains one -- so a future edit that adds a key to `RANGE` fails the
+test rather than silently shipping.
+
+At dial 1.0 the arm moves faster and therefore reaches the floor sooner, but
+the floor is in the same place. **Speed changes how quickly a wrong motion
+happens, not how far it is allowed to go.**
+
+### No jump on change
+
+`rebase_anchor()` absorbs a scale change into the anchor:
+`pos_anchor += (old - new) * (current - reference)`. Proven continuous to
+**1e-12** across 1.0->0.2, 0.2->1.0 and 0.6->0.35, with the operator well away
+from the engage point -- which is exactly where the uncorrected jump is worst
+and least predictable. It reuses the correction the motion-scale parameter
+already had rather than inventing a second one that could disagree.
+
+9 tests pass.
+
+### NOT DONE, and NOT to be assumed
+
+**The safety measurement did not run.** `scripts/probe_dial_safety.py` is
+written and drives the commanded pose straight at the wearer at both dial
+extremes, but it recorded **zero clearance samples** and correctly refused to
+conclude anything ("NO CLEARANCE SAMPLES -- nothing may be concluded"). Cause:
+`/ik_status_<arm>` publishes an **EMPTY data array** in this state, so the
+clearance field CLAUDE.md documents at index 5 is not there to read. Fix that
+first -- either the follower only fills the array after activity, or the
+documented layout has drifted from the code -- then re-run the probe.
+
+**So the headline claim of Job F ("safety does not scale with the dial") is
+proven in CODE and NOT YET IN MOTION.** Do not report it as measured.
+
+**Also not done:** wiring the dial into the GUI as a slider and onto the VR
+thumbstick, and the tracking-error-at-each-end measurement. The module is the
+single source both would call.

@@ -1,3 +1,50 @@
+# JOB C: C1 DONE, C2 STARTED, C3/C4/C5 NOT STARTED (2026-08-09)
+
+## C1 /mnt/c: WORKS. No action needed.
+It recovered on its own; `ls /mnt/c` and the project directory both read
+fine. The mount entry is the same 9p one that was returning EIO earlier in
+the session, so that was transient. No Windows-side command required.
+
+Prior work confirmed present at `/mnt/c/Users/Gausms/Desktop/MSc_Project`:
+`mujoco_menagerie`, `MUJOCO_LOG.TXT`, `singlekinova.py`, `srl_teleop.py`,
+`testjoints.py`, `com_read.py`, `basic_control/`, `3dprint/`, `BOM/`.
+
+## C2 CAD: FIRST MEASUREMENT TAKEN, no library needed
+
+**Recommendation: no CAD library.** STEP is a TEXT format and every vertex is
+a `CARTESIAN_POINT` with literal coordinates, so a bounding box needs a regex
+rather than a kernel. cadquery and pythonocc-core are each a large install
+with a compiled OCCT dependency, and neither is needed to answer "how big is
+this part". `scripts/measure_cad_step.py` does it with the standard library.
+
+Reach for pythonocc-core ONLY for what the regex genuinely cannot do: mass
+from material properties, the assembly tree, and the pose of a subpart inside
+an assembly. Those are exactly what C2's mount-angle question needs, so that
+install is still coming.
+
+    PotArm.step     20804 points, mm   extent X 113.61  Y 94.28  Z 363.15
+    backpack.step   39958 points, mm   extent X 161.24  Y 176.58  Z 69.50
+
+**FIRST COMPARISON, and it is NOT yet a finding.** The FK chain sums to
+272.0 mm over seven links; the CAD arm's Z extent is 363.2 mm, a difference of
+91.2 mm. That is plausibly the base boss plus the tip fixture, neither of
+which is a kinematic link. **It cannot be resolved without decomposing the
+STEP into per-link solids, which needs the kernel.** Do not report 91 mm as a
+disagreement until the parts are separated.
+
+## STILL TO DO IN JOB C
+* **C2 the mount geometry** -- the actual question. Where the arm bases attach
+  to `backpack.step`, at what angle, against the URDF mount rpy that was
+  solved analytically and NEVER measured against the bracket. Needs
+  pythonocc-core for the assembly poses.
+* **C2 per-link lengths** vs the FK values. Needs the same.
+* **C3** read the MuJoCo and prior programs for the development-path section.
+* **C4** RViz screenshots, CAD figures, and the Results chapter skeleton.
+* **C5** state in the report that the CAD has no articulated joints and that
+  no URDF derives from it.
+
+---
+
 # VACUOUS CHECKS FIXED + POST-HOC WIRED (2026-08-09)
 
 ## The four vacuous checks: 0 remaining

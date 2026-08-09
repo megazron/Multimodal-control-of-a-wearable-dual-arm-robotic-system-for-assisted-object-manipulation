@@ -1,3 +1,52 @@
+# JOB A DONE (2026-08-09) - and the pot repair does NOT take effect yet
+
+## THE HEADLINE: degraded mode will STILL ENGAGE after the repair
+
+`degraded_mode.decide()` reads a **stored baseline file**, not live hardware.
+`recordings/baselines/channels_20260806.json` still says **6/14 coherent**, so
+`master_pose_node` will engage degraded mode at startup and **freeze eight
+now-working channels**, silently.
+
+    stale baseline    6/14 coherent  ->  degraded engages: True
+    repaired arm     14/14 coherent  ->  degraded engages: False   (verified)
+
+**Nothing in Job B's capability list is actually available until that baseline
+is re-captured**, which needs the lab: `bash scripts/check_channels.sh`.
+Until then the software behaves exactly as it did with broken pots.
+
+This is the "state left from a previous run" instrument mechanism, in the one
+place where it silently discards a hardware repair.
+
+**Mitigation shipped:** `staleness_warning()` fires on EVERY engage, naming
+the file and its age. Age was tried as the trigger first and was WRONG: the
+file is 3.1 days old, which is recent, and its content is still completely
+wrong. A re-capture would also reset the age and hide the problem it caused.
+Verified both directions: warns on the stale baseline, silent on a healthy one.
+
+## Audit totals
+    A wall-clock interval        0   (the 1 hit was the ARCHIVED prior work,
+                                      now excluded: it is a historical record)
+    B block() with no clear()    0
+    C unprefixed C++ resource    3   all VENDOR, already patch targets
+    D can start a second stack   0
+    E1 entry point unresolved    0
+    F1 missing referenced path   0
+    F2 task arg runner rejects   0
+    H check passes on no data    0   (was 4, fixed last session)
+    E2 module with main() unregistered  3
+    G defined and never called   248
+
+E2: `boundary_feedback_node` (deliberately withdrawn) and
+`kortex_highlevel_bridge` (runs via its own venv) are correct as they stand.
+**`analyse_sensing` remains a genuine omission.**
+
+## JOBS B-G NOT STARTED
+Job B's first question (does a working j7 make orientation_mode:tilt viable)
+is pure sim and IS answerable without the lab. The rest of Job B needs a fresh
+master capture.
+
+---
+
 # C4 PART TWO (2026-08-09) - CAD render works; ONE RVIZ CLAIM WAS WRONG
 
 ## CORRECTION to the previous C4 commit

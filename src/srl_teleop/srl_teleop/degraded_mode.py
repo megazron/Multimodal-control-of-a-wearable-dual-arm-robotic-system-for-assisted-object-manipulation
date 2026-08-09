@@ -121,6 +121,60 @@ def excluded_channels(baseline):
             for a in ARMS}
 
 
+def baseline_age_days(path=None):
+    """How old the stored channel baseline is, in days.
+
+    THE BASELINE IS STATE FROM A PREVIOUS RUN, which is one of the four
+    instrument-failure mechanisms this project has catalogued. It is a
+    snapshot of channel health taken on one day, and nothing invalidates it
+    when the hardware changes. Repair every pot on the bench and this file
+    still says the arm is broken, so degraded mode still engages and still
+    freezes eight working channels.
+    """
+    import os
+    import time
+    if path is None:
+        here = os.path.dirname(os.path.abspath(__file__))
+        for up in range(2, 7):
+            cand = os.path.normpath(os.path.join(
+                here, *([".."] * up),
+                "recordings/baselines/channels_20260806.json"))
+            if os.path.exists(cand):
+                path = cand
+                break
+    if not path or not os.path.exists(path):
+        return None
+    return (time.time() - os.path.getmtime(path)) / 86400.0
+
+
+def staleness_warning(baseline, path=None):
+    """A sentence to log whenever the baseline is about to degrade the arm.
+
+    AGE IS THE WRONG TRIGGER, and trying it first showed why. A baseline
+    written three days ago is recent, and if the pots were repaired yesterday
+    it is still completely wrong: what is stale is the CONTENT, not the
+    timestamp, and no age threshold can see that. A file rewritten by a
+    re-capture would also reset its own age and hide the problem it caused.
+
+    So this fires whenever the stored file is about to freeze channels, every
+    time, and names the file and its date so the reader can judge. Freezing
+    working channels is worth one line of log unconditionally; a warning that
+    only appears sometimes is one an operator learns to wait for.
+
+    Returned rather than logged so this module stays free of ROS handles.
+    """
+    n = n_coherent(baseline)
+    if n >= 12:
+        return None                     # nothing is being frozen
+    age = baseline_age_days(path)
+    when = ("%.1f days old" % age) if age is not None else "unknown age"
+    return ("degraded mode is engaging on a STORED BASELINE (%s) that says "
+            "%d/%d coherent, NOT on live hardware. If the pots have been "
+            "repaired since it was captured, this is freezing working "
+            "channels. Refresh with scripts/check_channels.sh, or pass "
+            "degraded_mode:=off to override." % (when, n, TOTAL_CHANNELS))
+
+
 def decide(baseline, mode, min_coherent=12):
     """(active, {arm: [frozen idx]}, reason).
 

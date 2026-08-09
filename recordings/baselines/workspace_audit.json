@@ -1,5 +1,11 @@
 {
-  "A  wall-clock used as an interval": [],
+  "A  wall-clock used as an interval": [
+    [
+      "thesis_report/_source/prior_work/srl_teleop.py",
+      407,
+      "with self._lock: elapsed = time.time() - self._t"
+    ]
+  ],
   "B  block() with no clear() anywhere": [],
   "C  unprefixed resource in C++": [
     [
@@ -66,31 +72,6 @@
       "src/srl_experiments/srl_experiments/trial_logger.py",
       239,
       "elapsed_columns_present"
-    ],
-    [
-      "src/srl_experiments/experiments/e5_intent_inference/analyse_intent_inference.py",
-      92,
-      "holm"
-    ],
-    [
-      "src/srl_experiments/experiments/e3_divided_attention/analyse_divided_attention.py",
-      92,
-      "holm"
-    ],
-    [
-      "src/srl_experiments/experiments/e2_autonomy_level/analyse_autonomy_level.py",
-      92,
-      "holm"
-    ],
-    [
-      "src/srl_experiments/experiments/e6_vr_vs_mannequin/analyse_vr_vs_mannequin.py",
-      92,
-      "holm"
-    ],
-    [
-      "src/srl_experiments/experiments/e4_dof_recovery/analyse_dof_recovery.py",
-      92,
-      "holm"
     ],
     [
       "src/srl_experiments/experiments/bimanual/bimanual_metrics.py",
@@ -1288,28 +1269,7 @@
       "forward_kinematics_position"
     ]
   ],
-  "H  check can pass on no data": [
-    [
-      "scripts/verify_autonomy.py",
-      117,
-      "ok_words = all(w.lower() in said for w in expect_words)"
-    ],
-    [
-      "scripts/verify_scenarios.py",
-      165,
-      "ok7 = all(centres.values())"
-    ],
-    [
-      "scripts/verify_final5.py",
-      67,
-      "good = all(ok(arm, w) for w in path)"
-    ],
-    [
-      "scripts/verify_final5.py",
-      70,
-      "goodb = all(ok(arm, w) for w in place)"
-    ]
-  ],
+  "H  check can pass on no data": [],
   "E1 entry point does not resolve": [],
   "E2 module with main() not registered": [
     [

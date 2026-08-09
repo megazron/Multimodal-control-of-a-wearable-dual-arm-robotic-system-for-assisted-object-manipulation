@@ -360,6 +360,16 @@ class MasterPoseNode(Node):
         self.dg_baseline = dg.load_baseline(
             str(self.get_parameter("channel_baseline").value))
         self.dg_min = int(self.get_parameter("degraded_min_coherent").value)
+        # WARN LOUDLY IF THE BASELINE IS STALE. decide() reads a stored file,
+        # so repairing the hardware does not change its answer until the file
+        # is refreshed. Silently freezing eight repaired channels is exactly
+        # the failure this project keeps meeting.
+        try:
+            _stale = dg.staleness_warning(baseline)
+        except Exception:                                    # noqa: BLE001
+            _stale = None
+        if _stale:
+            self.get_logger().error("[CHANNELS] %s" % _stale)
         self.degraded, self.frozen_idx, dg_reason = dg.decide(
             self.dg_baseline, dmode, self.dg_min)
         # Per-arm validation set: a frozen channel is constant, so checking

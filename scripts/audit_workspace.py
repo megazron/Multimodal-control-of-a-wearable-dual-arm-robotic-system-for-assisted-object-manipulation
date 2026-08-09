@@ -37,7 +37,12 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKIP_DIRS = {".git", "build", "install", "log", "__pycache__", "_template",
-             ".percep_venv", ".kortex_venv", "node_modules", "recordings"}
+             ".percep_venv", ".kortex_venv", "node_modules", "recordings",
+             # The prior-work archive is a HISTORICAL RECORD, not maintained
+             # code. Auditing it reports defects in programs that were
+             # superseded months ago and must not be edited: their value is
+             # that they show what was actually done at the time.
+             "prior_work"}
 # THE AUDIT MUST NOT SCAN ITSELF. Every check here contains the pattern it
 # looks for, as a string, so a self-scan reports the checker as a finding.
 # The leftover-process check in this project once reported 2-3 phantom

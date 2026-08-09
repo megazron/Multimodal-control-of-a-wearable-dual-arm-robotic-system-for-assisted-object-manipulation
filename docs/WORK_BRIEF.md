@@ -16,11 +16,29 @@ the lab.**
 
 ## START HERE
 
-**First incomplete part: PART 5 — the 7-ANGLE CAPTURE SWEEP.** Both blockers
-are cleared and all four modes now drive the arms, measured:
+**First incomplete part: PART 6 — GRAPHS.**
 
-| mode | task B, 0.200 m declared lift | via |
-| --- | --- | --- |
+Part 5 is DONE. 12 clips recorded through the GUI, 3 tasks x 4 modes, 8 files
+each; 50 of 51 clips in the tree pass every automatic pixel criterion, and the
+one failure was caught, re-recorded and now passes.
+
+The GUI was also rebuilt as a dark HUD with a master-arm kinematic schematic
+(`scripts/srl_hud.py`). Frame time median 2.26 ms, p95 9.14, max 16.66 against
+a 100 ms budget, n=300.
+
+Two things worth carrying forward:
+
+* **`master:=false`** on `teleop.launch.py` — a stack driven by a scripted
+  operator has no master node, and without it master_pose_node is a second
+  publisher on `/master_arm_pose_*` and the sweep's isolation check correctly
+  refuses to record.
+* **The A/B/C clips carry NO task objects.** The sweep drives the arms through
+  each mode's command path and does not run the scene publisher, so they are
+  judged on brightness, colour variety and motion, as f1 and f5 are. They
+  evidence that the mode moved the arms; the object-in-frame criterion is not
+  met by them and must not be claimed.
+
+--- | --- | --- |
 | 01_master_teleop | **0.2000 / 0.2000 m** | `/master_arm_pose_<arm>` |
 | 02_vr_teleop | **0.1000 / 0.1000 m** | `/vr/controller_pose_*` -> mapper (scale 0.5) |
 | 04_shared_autonomy | **0.2000 / 0.2000 m** | `/autonomy/assist_pose_<arm>` |
@@ -52,8 +70,8 @@ report until it has caught seven constructed broken clips.
 | 2 | Full diagnosis (report before fixing) | **DONE** | `9e0dce4` |
 | 3 | Finish outstanding work (lang sweep, gripper, degraded warning, tasks A/B/C) | **DONE** | `d5bbec8` |
 | 4 | Dual-view GUI, everything runs through it | **DONE** | `95adcf4` |
-| 5 | Re-record, driven from the GUI | **PARTLY DONE** | `bc3b890` |
-| 6 | Graphs | NOT STARTED | — |
+| 5 | Re-record, driven from the GUI | **DONE** | `131f2af` |
+| 6 | Graphs | **NEXT** | — |
 | 7 | Report and commit / push | NOT STARTED | — |
 
 Rules: set STATUS to DONE with the commit hash **in the same commit as the

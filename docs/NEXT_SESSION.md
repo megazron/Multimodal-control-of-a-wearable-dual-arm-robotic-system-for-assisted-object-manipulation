@@ -1,6 +1,6 @@
 # PART 4 DONE (2026-08-09) -- the divergence is visible, the two panels are not
 
-Commit `PART4HASH`.
+Commit `95adcf4`.
 
 ## WHAT SHIPPED
 

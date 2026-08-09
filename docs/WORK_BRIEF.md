@@ -52,7 +52,7 @@ measurement that assumes the home pose — `measure_workspace.py` asserts on it,
 | 1 | Does autonomy move the arm? | **DONE — YES** | `6736ee7` |
 | 2 | Full diagnosis (report before fixing) | **DONE** | `9e0dce4` |
 | 3 | Finish outstanding work (lang sweep, gripper, degraded warning, tasks A/B/C) | **DONE** | `d5bbec8` |
-| 4 | Dual-view GUI, everything runs through it | **DONE** | `PART4HASH` |
+| 4 | Dual-view GUI, everything runs through it | **DONE** | `95adcf4` |
 | 5 | Re-record, driven from the GUI | **NEXT** | — |
 | 6 | Graphs | NOT STARTED | — |
 | 7 | Report and commit / push | NOT STARTED | — |
@@ -223,7 +223,7 @@ PART 3 - FINISH THE OUTSTANDING WORK
 
 ## PART 4 — DUAL-VIEW GUI, AND EVERYTHING RUNS THROUGH IT
 
-**STATUS: DONE** — Commit `PART4HASH`. Full write-up in NEXT_SESSION.md.
+**STATUS: DONE** — Commit `95adcf4`. Full write-up in NEXT_SESSION.md.
 
 Delivered: the divergence readout (per-joint and EE, coloured against
 `lag_trip_rad` READ FROM THE BRIDGE), both wrist cameras subscribed and never

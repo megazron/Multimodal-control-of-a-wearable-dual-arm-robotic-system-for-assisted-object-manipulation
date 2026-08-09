@@ -103,8 +103,44 @@ Other findings:
 NEEDS THE LAB: real Kortex sessions, the vision driver on real cameras, and
 mode switching with the real cascade up.
 
-## PARTS 5-9 - NOT STARTED
-5 free-form language,
+## PART 5 - free-form language: DONE, this commit
+
+`srl_autonomy/referring.py`. **Opens the NOUN, not the VERB.** The recorded
+decision against an LLM still holds: mis-hearing a verb makes the robot do the
+wrong ACTION, while mis-grounding a noun makes it do the right action to the
+wrong THING, which reachability, the keep-out and confirmation all bound.
+
+Measured on 30 phrasings, most never designed for (politeness, filler,
+misspellings, superlatives, compound clauses, relational, and phrases that
+sound specific while constraining nothing):
+
+    CORRECT        17   56.7%
+    ASKED           7   23.3%
+    REFUSED         6   20.0%
+    MISUNDERSTOOD   0    0.0%   <-- the dangerous category
+
+Verb handling unchanged and still closed: 0 mismatches over 8 cases, with
+"stop" winning even inside "grab it but stop if it slips".
+
+TWO REAL BUGS, found by the undesigned phrasings:
+  * **relational references grounded to the ANCHOR.** "the one behind the red
+    block" returned the red block with full confidence -- the only dangerous
+    outcome in the set. Relational phrases are now REFUSED by name.
+  * **verb words leaked into the noun list**, so "grab the leftmost object"
+    was scored against the word "grab" and refused.
+
+Superlatives are DEFINITE (argmax, not graded scoring), which is semantics
+rather than threshold tuning and converted four wrong ASKs into CORRECT.
+
+Reachability is checked BEFORE announcing and names why:
+"I can see the far cup, but I can't reach it: it is 1.40 m in front of me,
+past my reach." Keep-out objects are filtered BEFORE grounding, so a forbidden
+target is never offered as an option.
+
+12 known-answer tests.
+
+## PARTS 6-9 - NOT STARTED
+6 GUI with embedded RViz,
 6 GUI with embedded RViz, 7 VR setup + README, 8 new operator features,
 9 re-record + self-audit. Each is a session's work; they were not begun
 rather than begun badly.

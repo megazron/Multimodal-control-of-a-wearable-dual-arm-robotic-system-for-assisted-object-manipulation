@@ -1,0 +1,251 @@
+{
+  "rows": [
+    {
+      "phrase": "pick up the red block",
+      "expected": "red block",
+      "note": "canonical",
+      "verdict": "CORRECT",
+      "resolved": "red block",
+      "say": "the red block"
+    },
+    {
+      "phrase": "grab the green cube",
+      "expected": "green cube",
+      "note": "canonical",
+      "verdict": "CORRECT",
+      "resolved": "green cube",
+      "say": "the green cube"
+    },
+    {
+      "phrase": "take the blue cup",
+      "expected": "blue cup",
+      "note": "canonical",
+      "verdict": "CORRECT",
+      "resolved": "blue cup",
+      "say": "the blue cup"
+    },
+    {
+      "phrase": "could you please pick up the red block for me",
+      "expected": "red block",
+      "note": "polite",
+      "verdict": "CORRECT",
+      "resolved": "red block",
+      "say": "the red block"
+    },
+    {
+      "phrase": "um, grab the green cube I guess",
+      "expected": "green cube",
+      "note": "filler",
+      "verdict": "CORRECT",
+      "resolved": "green cube",
+      "say": "the green cube"
+    },
+    {
+      "phrase": "yeah go ahead and take the blue cup now",
+      "expected": "blue cup",
+      "note": "filler",
+      "verdict": "CORRECT",
+      "resolved": "blue cup",
+      "say": "the blue cup"
+    },
+    {
+      "phrase": "if you would be so kind as to lift the red block",
+      "expected": "red block",
+      "note": "elaborate",
+      "verdict": "CORRECT",
+      "resolved": "red block",
+      "say": "the red block"
+    },
+    {
+      "phrase": "pick that random thing",
+      "expected": null,
+      "note": "VACUOUS -- must ask",
+      "verdict": "ASKED",
+      "resolved": null,
+      "say": "I can see red block, blue block, blue cup and green cube. Which one?"
+    },
+    {
+      "phrase": "grab something",
+      "expected": null,
+      "note": "VACUOUS",
+      "verdict": "ASKED",
+      "resolved": null,
+      "say": "I can see red block, blue block, blue cup and green cube. Which one?"
+    },
+    {
+      "phrase": "just take whatever",
+      "expected": null,
+      "note": "VACUOUS",
+      "verdict": "ASKED",
+      "resolved": null,
+      "say": "I can see red block, blue block, blue cup and green cube. Which one?"
+    },
+    {
+      "phrase": "get me that thing over there",
+      "expected": null,
+      "note": "VACUOUS + deictic",
+      "verdict": "ASKED",
+      "resolved": null,
+      "say": "I can see red block, blue block, blue cup and green cube. Which one?"
+    },
+    {
+      "phrase": "pick up one of them",
+      "expected": null,
+      "note": "VACUOUS",
+      "verdict": "REFUSED",
+      "resolved": null,
+      "say": "I can't see anything matching \"them\"."
+    },
+    {
+      "phrase": "grab the leftmost object",
+      "expected": "blue block",
+      "note": "spatial superlative",
+      "verdict": "CORRECT",
+      "resolved": "blue block",
+      "say": "the blue block"
+    },
+    {
+      "phrase": "pick up the one on the right",
+      "expected": "red block",
+      "note": "spatial",
+      "verdict": "ASKED",
+      "resolved": null,
+      "say": "Do you mean red block, green cube or blue cup?"
+    },
+    {
+      "phrase": "take the nearest thing",
+      "expected": "green cube",
+      "note": "spatial + vacuous noun",
+      "verdict": "CORRECT",
+      "resolved": "green cube",
+      "say": "the green cube"
+    },
+    {
+      "phrase": "get the furthest one",
+      "expected": "blue cup",
+      "note": "spatial superlative",
+      "verdict": "CORRECT",
+      "resolved": "blue cup",
+      "say": "the blue cup"
+    },
+    {
+      "phrase": "pick up the biggest one",
+      "expected": "blue cup",
+      "note": "size superlative",
+      "verdict": "CORRECT",
+      "resolved": "blue cup",
+      "say": "the blue cup"
+    },
+    {
+      "phrase": "grab the smallest object",
+      "expected": "green cube",
+      "note": "size superlative",
+      "verdict": "CORRECT",
+      "resolved": "green cube",
+      "say": "the green cube"
+    },
+    {
+      "phrase": "pick up the blue one",
+      "expected": null,
+      "note": "AMBIGUOUS -- two blue objects",
+      "verdict": "ASKED",
+      "resolved": null,
+      "say": "Do you mean blue block or blue cup?"
+    },
+    {
+      "phrase": "grab the blue thing",
+      "expected": null,
+      "note": "AMBIGUOUS",
+      "verdict": "ASKED",
+      "resolved": null,
+      "say": "Do you mean blue block or blue cup?"
+    },
+    {
+      "phrase": "pick up the blue block",
+      "expected": "blue block",
+      "note": "colour + noun",
+      "verdict": "CORRECT",
+      "resolved": "blue block",
+      "say": "the blue block"
+    },
+    {
+      "phrase": "take the blue cup please",
+      "expected": "blue cup",
+      "note": "colour + noun",
+      "verdict": "CORRECT",
+      "resolved": "blue cup",
+      "say": "the blue cup"
+    },
+    {
+      "phrase": "pick up the purple elephant",
+      "expected": null,
+      "note": "not present -- must refuse",
+      "verdict": "REFUSED",
+      "resolved": null,
+      "say": "I can't see anything matching \"purple elephant\"."
+    },
+    {
+      "phrase": "grab the yellow banana",
+      "expected": null,
+      "note": "not present",
+      "verdict": "REFUSED",
+      "resolved": null,
+      "say": "I can't see anything matching \"yellow banana\"."
+    },
+    {
+      "phrase": "pik up the redd blok",
+      "expected": "red block",
+      "note": "misspelt",
+      "verdict": "REFUSED",
+      "resolved": null,
+      "say": "I can't see anything matching \"redd\"."
+    },
+    {
+      "phrase": "grabb the grean cube",
+      "expected": "green cube",
+      "note": "misspelt",
+      "verdict": "CORRECT",
+      "resolved": "green cube",
+      "say": "the green cube"
+    },
+    {
+      "phrase": "pick up the red block and put it in the bin",
+      "expected": "red block",
+      "note": "compound",
+      "verdict": "CORRECT",
+      "resolved": "red block",
+      "say": "the red block"
+    },
+    {
+      "phrase": "take the green cube then stop",
+      "expected": "green cube",
+      "note": "compound",
+      "verdict": "CORRECT",
+      "resolved": "green cube",
+      "say": "the green cube"
+    },
+    {
+      "phrase": "the block next to the cup",
+      "expected": null,
+      "note": "RELATIONAL -- not supported",
+      "verdict": "REFUSED",
+      "resolved": null,
+      "say": "I can only pick objects out by colour, size, name or where they are, not by what they are next to something else. Which one do you mean?"
+    },
+    {
+      "phrase": "the one behind the red block",
+      "expected": null,
+      "note": "RELATIONAL -- not supported",
+      "verdict": "REFUSED",
+      "resolved": null,
+      "say": "I can only pick objects out by colour, size, name or where they are, not by what they are behind something else. Which one do you mean?"
+    }
+  ],
+  "buckets": {
+    "CORRECT": 17,
+    "ASKED": 7,
+    "REFUSED": 6
+  },
+  "n": 30,
+  "verb_mismatches": 0
+}

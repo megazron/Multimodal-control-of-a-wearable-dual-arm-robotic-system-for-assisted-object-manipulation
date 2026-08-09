@@ -590,6 +590,19 @@
   {
     "ok": true,
     "why": "",
+    "duration_s": 36.7,
+    "bright": 62.5,
+    "variety": 6304,
+    "delta": 1.09,
+    "objects": {},
+    "mode": "01_master_teleop",
+    "task": "a",
+    "scenario": "S1_single_arm",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
     "duration_s": 35.6,
     "bright": 87.6,
     "variety": 4094,
@@ -598,6 +611,19 @@
     "mode": "01_master_teleop",
     "task": "a",
     "scenario": "S3_both",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 28.1,
+    "bright": 62.5,
+    "variety": 6409,
+    "delta": 1.17,
+    "objects": {},
+    "mode": "01_master_teleop",
+    "task": "b",
+    "scenario": "S1_bimanual",
     "condition": "-"
   },
   {
@@ -629,6 +655,32 @@
   {
     "ok": true,
     "why": "",
+    "duration_s": 30.5,
+    "bright": 60.6,
+    "variety": 8722,
+    "delta": 0.8,
+    "objects": {},
+    "mode": "01_master_teleop",
+    "task": "c",
+    "scenario": "S1_present_probe",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 45.9,
+    "bright": 62.3,
+    "variety": 6050,
+    "delta": 0.5,
+    "objects": {},
+    "mode": "02_vr_teleop",
+    "task": "a",
+    "scenario": "S1_single_arm",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
     "duration_s": 41.0,
     "bright": 87.7,
     "variety": 4080,
@@ -637,6 +689,19 @@
     "mode": "02_vr_teleop",
     "task": "a",
     "scenario": "S3_both",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 39.1,
+    "bright": 62.4,
+    "variety": 5930,
+    "delta": 0.88,
+    "objects": {},
+    "mode": "02_vr_teleop",
+    "task": "b",
+    "scenario": "S1_bimanual",
     "condition": "-"
   },
   {
@@ -668,6 +733,58 @@
   {
     "ok": true,
     "why": "",
+    "duration_s": 41.1,
+    "bright": 60.6,
+    "variety": 8193,
+    "delta": 0.45,
+    "objects": {},
+    "mode": "02_vr_teleop",
+    "task": "c",
+    "scenario": "S1_present_probe",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 35.6,
+    "bright": 62.5,
+    "variety": 6281,
+    "delta": 1.06,
+    "objects": {},
+    "mode": "03_shared_autonomy",
+    "task": "a",
+    "scenario": "S1_single_arm",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 27.1,
+    "bright": 62.6,
+    "variety": 6308,
+    "delta": 1.18,
+    "objects": {},
+    "mode": "03_shared_autonomy",
+    "task": "b",
+    "scenario": "S1_bimanual",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 31.4,
+    "bright": 60.7,
+    "variety": 8790,
+    "delta": 0.79,
+    "objects": {},
+    "mode": "03_shared_autonomy",
+    "task": "c",
+    "scenario": "S1_present_probe",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
     "duration_s": 29.7,
     "bright": 87.7,
     "variety": 4176,
@@ -680,11 +797,11 @@
   },
   {
     "ok": false,
-    "why": "picture is black (mean 0.0); almost no colour variety (43); capture is FROZEN (frame delta 0.000)",
-    "duration_s": 23.3,
-    "bright": 0.0,
-    "variety": 43,
-    "delta": 0.0,
+    "why": "capture is FROZEN (frame delta 0.014)",
+    "duration_s": 24.4,
+    "bright": 87.6,
+    "variety": 4234,
+    "delta": 0.01,
     "objects": {},
     "mode": "04_shared_autonomy",
     "task": "b",
@@ -707,6 +824,58 @@
   {
     "ok": true,
     "why": "",
+    "duration_s": 37.1,
+    "bright": 62.4,
+    "variety": 6206,
+    "delta": 0.56,
+    "objects": {},
+    "mode": "04_vr_shared",
+    "task": "a",
+    "scenario": "S1_single_arm",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 27.0,
+    "bright": 62.5,
+    "variety": 6299,
+    "delta": 1.15,
+    "objects": {},
+    "mode": "04_vr_shared",
+    "task": "b",
+    "scenario": "S1_bimanual",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 31.3,
+    "bright": 60.6,
+    "variety": 8779,
+    "delta": 0.8,
+    "objects": {},
+    "mode": "04_vr_shared",
+    "task": "c",
+    "scenario": "S1_present_probe",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 38.2,
+    "bright": 62.5,
+    "variety": 6038,
+    "delta": 1.05,
+    "objects": {},
+    "mode": "06_full_autonomy",
+    "task": "a",
+    "scenario": "S1_single_arm",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
     "duration_s": 32.8,
     "bright": 87.7,
     "variety": 4195,
@@ -715,6 +884,19 @@
     "mode": "06_full_autonomy",
     "task": "a",
     "scenario": "S3_both",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 29.8,
+    "bright": 62.5,
+    "variety": 6488,
+    "delta": 1.18,
+    "objects": {},
+    "mode": "06_full_autonomy",
+    "task": "b",
+    "scenario": "S1_bimanual",
     "condition": "-"
   },
   {
@@ -741,6 +923,19 @@
     "mode": "06_full_autonomy",
     "task": "c",
     "scenario": "S1_both_slow",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 32.0,
+    "bright": 60.7,
+    "variety": 8812,
+    "delta": 0.8,
+    "objects": {},
+    "mode": "06_full_autonomy",
+    "task": "c",
+    "scenario": "S1_present_probe",
     "condition": "-"
   }
 ]

@@ -119,6 +119,24 @@ class Executive(Node):
         self.stage_pub = self.create_publisher(String, "/autonomy_stage", 10)
         self.dec_pub = self.create_publisher(String, "/autonomy_decision", 10)
         self.estop_pub = self.create_publisher(Bool, "/estop", 10)
+        # THE MOTION OUTPUT. Until this existed the executive's complete
+        # publisher list was speech, stage, decision and estop: it narrated a
+        # pick and the arm never heard a word of it. /autonomy/assist_pose_
+        # <arm> is consumed by ik_follower_node, which routes it into
+        # request_ik -- the same door teleop uses, so this inherits
+        # collision-aware IK, the clearance floor, the guard and the e-stop
+        # with no per-mode exemption and no private route to the controller.
+        from geometry_msgs.msg import PoseStamped
+        self._PoseStamped = PoseStamped
+        self.cmd_pub = {a: self.create_publisher(
+            PoseStamped, "/autonomy/assist_pose_%s" % a, 10)
+            for a in ("left", "right")}
+        # The pose is republished at a steady rate rather than once per stage:
+        # the follower treats autonomy as driving only while poses keep
+        # arriving, so a single publish would hand control straight back to
+        # the master mid-motion.
+        self._cmd = {}
+        self.create_timer(0.05, self._pump_cmd)
         self.create_subscription(String, "/voice_transcript",
                                  self.on_voice, 10)
         self.create_subscription(String, "/detections", self.on_detections, 10)
@@ -146,7 +164,35 @@ class Executive(Node):
         self.dec_pub.publish(String(data=json.dumps(rec, default=str)))
         return rec
 
+    def command(self, arm, xyz, quat=None):
+        """Set the world-frame target this arm should be driven to."""
+        self._cmd[arm] = (tuple(float(v) for v in xyz),
+                          tuple(float(v) for v in (quat or (0.0, 0.0, 0.0, 1.0))))
+        self.decide("command", arm=arm, xyz=list(self._cmd[arm][0]))
+
+    def release(self, arm=None):
+        """Stop driving. The follower hands back to the master on its own once
+        poses stop arriving, so releasing is simply ceasing to publish."""
+        if arm is None:
+            self._cmd.clear()
+        else:
+            self._cmd.pop(arm, None)
+
+    def _pump_cmd(self):
+        if self.estopped if hasattr(self, "estopped") else False:
+            return
+        for arm, (xyz, q) in list(self._cmd.items()):
+            m = self._PoseStamped()
+            m.header.frame_id = "world"
+            m.header.stamp = self.get_clock().now().to_msg()
+            m.pose.position.x, m.pose.position.y, m.pose.position.z = xyz
+            (m.pose.orientation.x, m.pose.orientation.y,
+             m.pose.orientation.z, m.pose.orientation.w) = q
+            self.cmd_pub[arm].publish(m)
+
     def to(self, stage, why=""):
+        if stage in ("IDLE", "REFUSED"):
+            self.release()
         self.stage = stage
         self.stage_t = time.monotonic()
         self.stage_pub.publish(String(data=json.dumps(

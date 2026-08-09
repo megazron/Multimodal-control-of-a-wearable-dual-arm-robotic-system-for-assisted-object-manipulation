@@ -2141,3 +2141,66 @@ proven in CODE and NOT YET IN MOTION.** Do not report it as measured.
 **Also not done:** wiring the dial into the GUI as a slider and onto the VR
 thumbstick, and the tracking-error-at-each-end measurement. The module is the
 single source both would call.
+
+## BLOCKER 1 — AUTONOMY CAN NOW REACH THE ARM (2026-08-09)
+
+### The fix
+
+`ik_follower_node` now subscribes to **`/autonomy/assist_pose_<arm>`**, which
+previously had **zero subscribers anywhere** -- handover_arbiter and (now)
+autonomy_executive computed a correct pose and dropped it, which is how three
+of the four study modes shipped without ever driving the arm.
+
+**IT ENTERS AT `request_ik`, THE SAME DOOR TELEOP USES.** `on_pose` maps a
+MASTER-frame displacement through the anchor and scale and then calls
+`request_ik`; an autonomy pose is already world-frame, so it skips the mapping
+and *nothing else*. Collision-aware IK, the redundancy re-seed, the clearance
+floor, the step guard, the flip reject, the e-stop and every BlockMonitor
+blocker are literally the same code. **There is deliberately no second path to
+the controller.**
+
+`autonomy_executive` gained `command(arm, xyz, quat)` / `release()` and a
+20 Hz pump. Its complete publisher list was speech, stage, decision and estop:
+it narrated a pick and the arm never heard a word of it. The pose is
+republished at a steady rate rather than once per stage, because the follower
+treats autonomy as driving only while poses keep arriving.
+
+**One source at a time.** A new `autonomy_has_control` blocker suppresses the
+master while autonomy is live. Interleaving two sources on one arm is the
+two-publishers-on-one-topic bug wearing a different hat.
+
+### Verified live
+
+| check | result |
+| --- | --- |
+| `/autonomy/assist_pose_left` has a subscriber | **yes** (pub 1, sub 1) |
+| autonomy pose reaches the follower | **yes** -- `autonomy_has_control` is asserted, and only `on_pose` can set it, which requires a received autonomy pose |
+| the SAME clearance floor applies | **yes** -- aiming inside the wearer names `clearance_floor` and `ik_failed`, and produced 0 trajectories |
+| autonomy moves the arm | **NOT CONFIRMED -- see below** |
+
+### NOT CONFIRMED, and not to be assumed
+
+**0 trajectories at a reachable target.** The path is connected and the safety
+stack demonstrably fires, but no motion was observed. Do not read this as
+"autonomy now works". Two things point at the harness rather than the fix:
+the stack logged `RTPS_TRANSPORT_SHM Error ... Failed init_port
+fastrtps_port7004` (the documented stale `/dev/shm` segment problem), and a
+second graph read of the same topic returned sub 0 while blockers from that
+very subscription were arriving -- so discovery on this stack is degraded.
+
+Also unresolved from Job F and likely related: `/ik_status_<arm>` publishes an
+**empty data array** on this stack, so clearance cannot be read from it.
+
+**Next session, in order:** stop the stack, clear `/dev/shm/fastrtps_*`,
+relaunch, confirm the arms are at home, then re-run
+`scripts/verify_autonomy_command_path.py`. It uses the arm's OWN anchor
+orientation (an identity quaternion is not a neutral choice -- it is a
+specific, unreachable one, and using it produced a false negative once here
+and once in Job D).
+
+### NOT DONE
+
+The language/vision sweep (vague, relational, superlative, compound,
+misspelled, absent objects; correct / asked / refused / **MISUNDERSTOOD**) was
+not run. Blockers 2 and 3, the three task specifications, the session
+timeline, and the dual-view GUI were not started.

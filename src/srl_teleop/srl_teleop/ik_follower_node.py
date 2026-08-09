@@ -291,6 +291,30 @@ class IKFollowerNode(Node):
         self.create_subscription(
             PoseStamped, f"/master_arm_pose_{self.arm}", self.on_pose, 10)
 
+        # AUTONOMY INPUT -- modes 4, 5 and 6.
+        #
+        # This subscription is the whole fix for "autonomy cannot command the
+        # arm". handover_arbiter and autonomy_executive published
+        # /autonomy/assist_pose_<arm> and NOTHING SUBSCRIBED TO IT, so three
+        # of the four study modes computed a correct pose and dropped it.
+        #
+        # IT ENTERS AT request_ik, WHICH IS THE SAME DOOR TELEOP USES. on_pose
+        # maps a MASTER-frame displacement through the anchor and scale and
+        # then calls request_ik; an autonomy pose is already world-frame, so
+        # it skips the mapping and nothing else. Everything downstream --
+        # collision-aware IK, the redundancy re-seed, the clearance floor, the
+        # step guard, the flip reject, the e-stop and every BlockMonitor
+        # blocker -- is literally the same code. There is deliberately NO
+        # second path to the controller: a private route for autonomy would be
+        # a different robot wearing the same name, and it is the highest
+        # autonomy mode where nobody is watching.
+        self.autonomy_pose_t = 0.0
+        self.declare_parameter("accept_autonomy_pose", True)
+        self.declare_parameter("autonomy_pose_timeout_s", 0.5)
+        self.create_subscription(
+            PoseStamped, f"/autonomy/assist_pose_{self.arm}",
+            self.on_autonomy_pose, 10)
+
         # Track the arm's CURRENT real joint state, to use as the IK
         # seed -- without this, the numerical (KDL) solver has nothing
         # to start searching from and fails with NO_IK_SOLUTION (-31)
@@ -331,6 +355,10 @@ class IKFollowerNode(Node):
              "so its condition is unknown and motion is refused",
              "the asserting unit must run again and either re-assert or clear "
              "the expired blocker; check /blocking_summary for which unit"),
+            ("autonomy_has_control",
+             "an autonomy mode is commanding this arm; master input ignored",
+             "stops on its own once /autonomy/assist_pose_<arm> goes quiet "
+             "for autonomy_pose_timeout_s, or set accept_autonomy_pose false"),
             ("clearance_floor", "arm is inside the clearance floor of the wearer",
              "move the commanded pose away; the arm holds, it does not retreat"),
             ("flip_reject", "solution rejected as a redundancy flip",
@@ -609,6 +637,14 @@ class IKFollowerNode(Node):
         return self.clearance_model.clearance(pts, pad)
 
     def on_pose(self, msg: PoseStamped):
+        # ONE SOURCE AT A TIME. If autonomy is commanding this arm, the master
+        # does not also get to: interleaving two sources on one arm is the
+        # two-publishers-on-one-topic bug wearing a different hat, and on a
+        # rig bolted to a person it would be worse than either source alone.
+        if self.autonomy_is_driving():
+            self.blocks.block("autonomy_has_control")
+            return
+        self.blocks.clear("autonomy_has_control")
         if not self.tracking_enabled:
             self.blocks.block("startup_unwind")
             return  # startup unwind still in progress
@@ -654,6 +690,47 @@ class IKFollowerNode(Node):
         self.blocks.clear("ik_inflight")
         self.redundancy_try = 0
         self.request_ik(msg)
+
+    def on_autonomy_pose(self, msg: PoseStamped):
+        """A WORLD-frame target from the autonomy stack.
+
+        Applies exactly the gates on_pose applies before handing to the solver.
+        They are repeated rather than shared because on_pose's remaining body
+        is the master-frame mapping, which must NOT run for a world-frame
+        target -- routing an autonomy pose through it would scale a world
+        coordinate as if it were a hand displacement.
+        """
+        if not bool(self.get_parameter("accept_autonomy_pose").value):
+            return
+        if not self.tracking_enabled:
+            self.blocks.block("startup_unwind")
+            return
+        self.blocks.clear("startup_unwind")
+        if self.estopped:
+            return                      # blocker maintained by publish_status
+        if self.real_robot and self.home_gate_ok is False:
+            return
+        now = time.monotonic()
+        if self.autonomy_pose_t == 0.0:
+            self.get_logger().info(
+                "[SOURCE:%s] AUTONOMY is now driving this arm via "
+                "/autonomy/assist_pose_%s. Same IK, same clearance floor, "
+                "same guard, same e-stop as teleop."
+                % (self.arm, self.arm))
+        self.autonomy_pose_t = now
+        self.request_ik(msg)
+
+    def autonomy_is_driving(self):
+        """True while a fresh autonomy pose is arriving.
+
+        Used to suppress the master input rather than let two sources
+        interleave on one arm -- the same failure as two publishers on one
+        topic, which has already cost this project a measurement.
+        """
+        if self.autonomy_pose_t == 0.0:
+            return False
+        t = float(self.get_parameter("autonomy_pose_timeout_s").value)
+        return (time.monotonic() - self.autonomy_pose_t) < t
 
     def request_ik(self, msg, seed_perturb=0):
         """Fire one /compute_ik call.

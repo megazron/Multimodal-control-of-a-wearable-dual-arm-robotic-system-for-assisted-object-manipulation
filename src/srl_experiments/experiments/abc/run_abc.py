@@ -59,14 +59,29 @@ import tasks as T                                            # noqa: E402
 ARMS = ("left", "right")
 
 MODES = {
+    # EVERY ENTRY TOPIC CARRIES A WORLD POSE. `ik_follower_node.request_ik`
+    # assigns the message straight into the IK request
+    # (`req.ik_request.pose_stamped = msg`), so /master_arm_pose_<arm> is an
+    # ALREADY-MAPPED world pose -- master_pose_node owns the anchor, the scale
+    # and the clutch reference, and the follower owns none of them.
+    #
+    # This was got backwards first, and the failure was silent in an
+    # instructive way. Sending a master-frame DISPLACEMENT put the target near
+    # the world origin, IK failed every call, and from the outside it looked
+    # like the master was being suppressed -- 0.0048 m for a 0.200 m command
+    # with no blocker ever active. The diagnosis came from /ik_status, where
+    # `fail` climbed by exactly the number of poses sent and `success` never
+    # moved.
     "01_master_teleop": dict(
-        topic="/master_arm_pose_%s", frame="master",
-        note="the pose master_pose_node would publish; the follower maps it "
-             "through the anchor and scale exactly as in live teleop"),
+        topic="/master_arm_pose_%s", frame="world",
+        note="the world pose master_pose_node would publish once it has "
+             "applied the anchor, scale and clutch reference; enters the "
+             "follower at on_pose, the live-teleop callback"),
     "02_vr_teleop": dict(
-        topic="/vr/controller_pose_%s", frame="master",
-        note="vr_pose_mapper must be running; it turns this into "
-             "/master_arm_pose_<arm>"),
+        topic="/vr/controller_pose_%s", frame="world",
+        vr=True,
+        note="vr_pose_mapper turns a controller pose into "
+             "/master_arm_pose_<arm>; it must be running"),
     "04_shared_autonomy": dict(
         topic="/autonomy/assist_pose_%s", frame="world",
         note="world-frame pose, entering request_ik at the same door teleop "
@@ -160,6 +175,28 @@ class Runner(Node):
             self.pub[a] = self.create_publisher(
                 PoseStamped, self.spec["topic"] % key, 10)
         self.state = self.create_publisher(String, "/trial_state", 10)
+        # VR IS THE ONE GENUINELY RELATIVE PATH, and it needs a held grip.
+        # vr_pose_mapper anchors on the clutch ENGAGE and then commands the
+        # arm by the controller's motion SINCE that engage -- which is what
+        # makes indexing work and the re-engage jump zero. So a controller
+        # pose alone drives nothing: without `axes[1] > 0.6` the mapper is
+        # disengaged and correctly publishes nothing at all.
+        self.joy = None
+        if self.spec.get("vr"):
+            from sensor_msgs.msg import Joy
+            self._Joy = Joy
+            self.joy = {a: self.create_publisher(
+                Joy, "/vr/controller_joy_%s" % a, 10) for a in ARMS}
+            # /vr/tracking_ok DEFAULTS TO FALSE, and the mapper refuses to
+            # command anything while it is false -- correctly: a headset that
+            # has lost tracking must not keep driving an arm bolted to a
+            # person. Nothing in this runner was publishing it, so the clutch
+            # engaged perfectly at the task start and the mapper then froze
+            # for the whole run. The headset's bridge is what normally
+            # publishes this; the scripted operator has to as well.
+            from std_msgs.msg import Bool as _B
+            self._Bool = _B
+            self.track = self.create_publisher(_B, "/vr/tracking_ok", 10)
         self.speech = None
         if self.spec.get("via_executive"):
             self.speech = self.create_publisher(String, "/voice_transcript", 10)
@@ -187,23 +224,44 @@ class Runner(Node):
         while time.monotonic() < end and rclpy.ok():
             rclpy.spin_once(self, timeout_sec=0.01)
 
+    def hold_grip(self):
+        """Keep the VR clutch engaged. Re-sent every cycle, because the
+        mapper reads a level, not an edge."""
+        if self.joy is None:
+            return
+        self.track.publish(self._Bool(data=True))
+        for a in ARMS:
+            j = self._Joy()
+            j.header.stamp = self.get_clock().now().to_msg()
+            j.axes = [0.0, 1.0, 0.0, 0.0]      # axes[1] is the grip
+            j.buttons = [0, 0, 0, 0]
+            self.joy[a].publish(j)
+
     def send(self, arm, xyz):
         m = PoseStamped()
         m.header.stamp = self.get_clock().now().to_msg()
         m.header.frame_id = "world"
         m.pose.position.x, m.pose.position.y, m.pose.position.z = xyz
-        # Orientation is left as the identity ONLY on the master-frame path,
-        # where the follower replaces it with the arm's own anchor. On the
-        # world-frame path an identity quaternion is NOT neutral -- it is a
-        # specific, unreachable pose, and it has produced a false negative
-        # three times in this project -- so the anchor is used explicitly.
-        if self.spec["frame"] == "world":
-            from srl_teleop import master_calibration as mc
-            q = mc.WORKSPACE_ORIENT[arm]
-            (m.pose.orientation.x, m.pose.orientation.y,
-             m.pose.orientation.z, m.pose.orientation.w) = q
-        else:
-            m.pose.orientation.w = 1.0
+        # THE ARM'S OWN ANCHOR ORIENTATION, ON EVERY PATH. NEVER IDENTITY.
+        #
+        # This used to send identity on the master-frame path, on the belief
+        # that the follower would replace it with the anchor. IT DOES NOT --
+        # `on_pose` hands the message straight to `request_ik`, orientation
+        # included, because in live teleop master_pose_node has already
+        # resolved it (orientation_mode: fixed pins it to the anchor there).
+        #
+        # MEASURED CONSEQUENCE, and it is the project's own documented trap
+        # walked into again: mode 01 made 7 IK calls and FAILED ALL SEVEN,
+        # burning 42 redundancy retries (7 x redundancy_samples), while every
+        # BlockMonitor blocker stayed clear. From outside it looked like the
+        # master was being suppressed; it was being asked for a pose that does
+        # not exist. An identity quaternion is not neutral -- it is a
+        # specific, unreachable orientation, and this is the fourth false
+        # negative it has produced here.
+        from srl_teleop import master_calibration as mc
+        q = mc.WORKSPACE_ORIENT[arm]
+        (m.pose.orientation.x, m.pose.orientation.y,
+         m.pose.orientation.z, m.pose.orientation.w) = q
         self.pub[arm].publish(m)
 
 
@@ -250,34 +308,109 @@ def main(argv=None):
         n.speech.publish(String(data="hey doc oc grab the blue cube"))
         n.spin(2.5)
 
-    # MASTER-FRAME MODES TAKE A DISPLACEMENT, NOT A WORLD COORDINATE.
+    # APPROACH THE START, SETTLE, AND ONLY THEN START MEASURING.
     #
-    # `ik_follower_node.on_pose` computes `pos_anchor + scale * (tip - d_ref)`:
-    # the pose on /master_arm_pose_<arm> is the master's TIP inside its own
-    # ~0.22 m ball, and the follower maps it onto the arm's anchor. Feeding it
-    # a world coordinate like (0.25, 0.35, 1.30) asks for a displacement of
-    # well over a metre, which the guards clamp to nothing -- measured, the
-    # arms travelled 0.0000 m and the run correctly refused to call itself a
-    # success.
-    #
-    # So the task's world path is re-expressed as a displacement from its own
-    # first waypoint, which is exactly what the operator's hand does: the
-    # first frame latches the reference and everything after is relative to
-    # it. The world-frame modes are untouched, because /autonomy/assist_pose_*
-    # really is a world pose.
-    if n.spec["frame"] == "master":
+    # Travel was measured from wherever the previous run happened to leave the
+    # arm, so a second run of the same task reported 0.0118 m instead of
+    # 0.4761 m -- not because anything failed, but because the arm was already
+    # there. A number that depends on what ran before it is not a measurement
+    # of this run, and it would have made every clip in a sweep look worse
+    # than the first one.
+    # VR: engage the clutch FIRST and let the mapper anchor, then move. The
+    # path is sent as a displacement from its own first waypoint, because the
+    # mapper commands motion since engage rather than an absolute pose.
+    if n.spec.get("vr"):
+        # PLACE THE ARM AT THE TASK START BEFORE ENGAGING.
+        #
+        # VR commands motion SINCE the clutch engage, so wherever the arm is
+        # when the operator squeezes becomes the origin of the task path. Left
+        # where a previous run finished, the engage anchored at z = 1.3 and
+        # the task's +0.20 m lift then asked for z = 1.5, which is outside the
+        # reachable set -- 0.0000 m of travel from a clutch that had engaged
+        # perfectly well.
+        #
+        # This setup move is NOT part of the recorded motion and is not
+        # claimed as VR: it is the operator walking the arm to the start,
+        # done here over the autonomy topic because it is a placement, not a
+        # trial. The clip begins after it.
+        from geometry_msgs.msg import PoseStamped as _PS
+        setup = {arm: n.create_publisher(_PS, "/autonomy/assist_pose_%s" % arm,
+                                         10) for arm in ARMS}
+        for _ in range(30):
+            for arm in ARMS:
+                m = _PS()
+                m.header.frame_id = "world"
+                m.header.stamp = n.get_clock().now().to_msg()
+                (m.pose.position.x, m.pose.position.y,
+                 m.pose.position.z) = wp[arm][0]
+                from srl_teleop import master_calibration as mc
+                q = mc.WORKSPACE_ORIENT[arm]
+                (m.pose.orientation.x, m.pose.orientation.y,
+                 m.pose.orientation.z, m.pose.orientation.w) = q
+                setup[arm].publish(m)
+            # THE CONTROLLER STREAM MUST NEVER STOP. vr_pose_mapper has a
+            # tracking-loss watchdog and freezes if poses stop arriving --
+            # correctly, since a headset that has lost tracking must not keep
+            # driving an arm. A silent pause during setup tripped it and the
+            # mapper spent the whole run FROZEN, publishing nothing.
+            for arm in ARMS:
+                n.send(arm, [0.0, 0.0, 0.0])
+            n.spin(0.1)
+        for _ in range(15):  # let the autonomy hold expire, still streaming
+            for arm in ARMS:
+                n.send(arm, [0.0, 0.0, 0.0])
+            n.spin(0.1)
+        # HAND STILL FIRST, THEN SQUEEZE -- the order a real operator uses,
+        # and the order the mapper requires. It refuses to engage on a moving
+        # controller ("the reference would be latched off a moving hand"),
+        # which is correct and is the same quasi-static gate the mannequin
+        # clutch uses. Sending the grip and the first pose together gave it
+        # one sample to judge, so it refused every time and the arm never
+        # moved: measured 0.0000 m with the mapper logging the refusal on
+        # every cycle.
+        # 50 Hz, because the quiet gate needs at least THREE samples inside
+        # `quiet_window_s`. At 20 Hz only two landed in the window, `_quiet()`
+        # returned False on the `len(h) < 3` line, and the mapper refused
+        # every engage -- while the controller was in fact perfectly still.
+        # The refusal was correct; the sample rate was not.
+        for _ in range(100):                    # ~2 s of a stationary hand
+            n.track.publish(n._Bool(data=True))
+            for arm in ARMS:
+                n.send(arm, [0.0, 0.0, 0.0])
+            n.spin(0.02)
+        for _ in range(50):                     # then squeeze, and hold
+            n.hold_grip()
+            for arm in ARMS:
+                n.send(arm, [0.0, 0.0, 0.0])
+            n.spin(0.02)
         wp = {a: [[p[i] - v[0][i] for i in range(3)] for p in v]
               for a, v in wp.items()}
-        print("   master-frame mode: path re-expressed as a displacement, "
-              "span %.3f m" % max(math.dist([0, 0, 0], p)
-                                  for v in wp.values() for p in v))
+
+    for _ in range(8):
+        n.hold_grip()
+        for arm in ARMS:
+            n.send(arm, wp[arm][0])
+        n.spin(0.35)
+    n.spin(1.2)
+    start = {arm: n.ee(arm) for arm in ARMS}
 
     n_sent = 0
     for k in range(len(wp["left"])):
-        for arm in ARMS:
-            n.send(arm, wp[arm][min(k, len(wp[arm]) - 1)])
-            n_sent += 1
-        n.spin(a.hold_s)
+        # RE-SEND THE SAME TARGET AT 20 Hz FOR THE WHOLE HOLD, rather than
+        # once per waypoint. A single publish followed by a 0.45 s pause is a
+        # 0.45 s silence on the topic, and vr_pose_mapper's tracking watchdog
+        # freezes after 0.20 s -- so the previous version engaged the clutch
+        # correctly at the task start and was then FROZEN for every waypoint
+        # of the run. Continuous streaming is also what a real controller and
+        # a real master both do, so this makes every mode more faithful, not
+        # just VR.
+        steps = max(1, int(a.hold_s / 0.05))
+        for _ in range(steps):
+            n.hold_grip()
+            for arm in ARMS:
+                n.send(arm, wp[arm][min(k, len(wp[arm]) - 1)])
+            n.spin(0.05)
+        n_sent += len(ARMS)
     n.spin(1.5)
 
     end = {arm: n.ee(arm) for arm in ARMS}

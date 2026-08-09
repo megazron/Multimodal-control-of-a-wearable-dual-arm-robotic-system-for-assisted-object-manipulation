@@ -354,7 +354,12 @@ class Scene:
         hdr = mk("hud", 0, Marker.TEXT_VIEW_FACING)
         # RViz renders TEXT_VIEW_FACING with very narrow spaces, so
         # "T3  S2  [direct]" came out as "T3S2[direct]". Explicit separators.
-        hdr.text = "%s | %s | %s" % (task.upper(), self.run["scenario"],
+        # THE RUN'S OWN NAME, not the scene code. `task` here is the RENDERER
+        # code (t3 tray, t6 sling, ...), so a five-task clip labelled itself
+        # "T3" when it is f3. A clip that misnames itself is worse than an
+        # unlabelled one: it looks authoritative.
+        hdr.text = "%s | %s | %s" % (self.run["task"].upper(),
+                                     self.run["scenario"],
                                      self.run["condition"])
         add(rgba(scale(at(hdr, (0.0, 0.0, 1.95)), .001, .001, .085), 1, 1, 1))
         sub = mk("hud", 1, Marker.TEXT_VIEW_FACING)
@@ -363,6 +368,16 @@ class Scene:
             t, metric_text, phase, (" | " + note) if note else "")
         add(rgba(scale(at(sub, (0.0, 0.0, 1.85)), .001, .001, .062),
                  1.0, .85, .3))
+        # THE CAVEAT IS BURNED INTO THE PICTURE, not left to the index. A clip
+        # whose motion comes from a direct /compute_ik call is not something an
+        # operator could command, and a viewer who never opens INDEX.md must
+        # still not conclude that teleoperated grasping works.
+        cav = self.run.get("caveat", "")
+        if cav:
+            cv = mk("hud", 2, Marker.TEXT_VIEW_FACING)
+            cv.text = cav
+            add(rgba(scale(at(cv, (0.0, 0.0, 1.76)), .001, .001, .052),
+                     1.0, .30, .25))
         return A
 
     # -------------------------------------------------------------- T3/T6
@@ -837,7 +852,12 @@ def active_arm(task, sc):
 def run_one(dr, pub, hud_pub, run, cond, out_dir, fps=10.0):
     """Drive the arms AND the grippers, publish the scene, record four views."""
     run = dict(run, condition=cond)
-    task = run["task"]
+    # SCENE CODE, not the run's own name. The five-task runs are named f1..f5
+    # so their output cannot collide with the stale nine-task clips, but the
+    # Scene renders by the proven codes (t2 container, t3 tray, t6 sling, t7
+    # targets). Everything downstream that switches on `task` is choosing a
+    # RENDERER, so it must see the code.
+    task = run.get("scene_code") or run["task"]
     sc = run["sc"]
     scene = Scene(task, run)
     q = {a: dr.ee_quat(a) for a in ("left", "right")}
@@ -1046,6 +1066,10 @@ def main():
     ap.add_argument("--scenario", default=None)
     ap.add_argument("--condition", default=None, choices=CONDITIONS)
     ap.add_argument("--all", action="store_true")
+    ap.add_argument("--final5", action="store_true",
+                    help="record the CURRENT five-task spec, not the stale nine")
+    ap.add_argument("--resume", action="store_true",
+                    help="skip clips that already have a rviz_capture.json")
     a = ap.parse_args()
 
     rclpy.init()
@@ -1074,14 +1098,41 @@ def main():
         gpub[arm].publish(m)
     dr.send_gripper = send_gripper
 
-    spec = yaml.safe_load(open(os.path.join(BIM, "scenarios_verified.yaml")))
-    runs = build_runs(spec, a.task, a.scenario)
+    if a.final5:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import final5_runs
+        runs = [r for r in final5_runs.build()
+                if (not a.task or r["task"] == a.task)
+                and (not a.scenario or r["scenario"].startswith(a.scenario))]
+    else:
+        spec = yaml.safe_load(open(os.path.join(BIM,
+                                                "scenarios_verified.yaml")))
+        runs = build_runs(spec, a.task, a.scenario)
     conds = [a.condition] if a.condition else list(CONDITIONS)
     print("RVIZ SCREEN CAPTURE -- %d run(s) x %d condition(s)"
           % (len(runs), len(conds)))
     idx = []
+    prog_path = os.path.join(OUT, "sweep_progress.json")
+    done = set()
+    if a.resume and os.path.exists(prog_path):
+        try:
+            for row in json.load(open(prog_path)).get("done", []):
+                done.add(tuple(row))
+        except Exception:                                    # noqa: BLE001
+            pass
+        print("  resuming: %d clip(s) already recorded" % len(done))
+    total = sum(len(run.get("conditions", conds)) for run in runs)
+    n_done = 0
     for run in runs:
-        for cond in conds:
+        # A run may restrict its own conditions. f2 is modes 4 and above only,
+        # because teleoperated grasping is not achievable on this master, so
+        # there is no DIRECT or VR clip to record.
+        for cond in run.get("conditions", conds):
+            key = (run["task"], run["scenario"], cond)
+            if key in done:
+                n_done += 1
+                print("  [%d/%d] skip (done) %s" % (n_done, total, "/".join(key)))
+                continue
             d = os.path.join(OUT, run["task"], run["scenario"], cond)
             ensure_display(os.path.join(SCRATCH, "capture"),
                            active_arm(run["task"], run["sc"]))
@@ -1094,8 +1145,16 @@ def main():
             json.dump(r, open(os.path.join(d, "rviz_capture.json"), "w"),
                       indent=2)
             idx.append(r)
-            print("  %-4s %-22s %-9s %5.1f s  grip %.2f..%.2f %s  quad=%s  %s"
-                  % (run["task"], run["scenario"], cond, r["duration_s"],
+            # PROGRESS AFTER EVERY CLIP, not at the end. A sweep that dies at
+            # clip 60 of 87 must not lose 60 clips' worth of work, and the
+            # previous sweep did exactly that.
+            done.add(key)
+            n_done += 1
+            json.dump(dict(done=sorted(done), total=total),
+                      open(prog_path, "w"), indent=2)
+            print("  [%d/%d] %-4s %-22s %-9s %5.1f s  grip %.2f..%.2f %s  quad=%s  %s"
+                  % (n_done, total, run["task"], run["scenario"], cond,
+                     r["duration_s"],
                      r["grip_min"] if r["grip_min"] is not None else -1,
                      r["grip_max"] if r["grip_max"] is not None else -1,
                      "OPEN+CLOSE" if (r["grip_opened"]

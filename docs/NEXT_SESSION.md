@@ -1,3 +1,56 @@
+# STOPPED HERE - 2026-08-09 overnight run
+
+## ITEM 1 RE-RECORD CLIPS: INFRASTRUCTURE DONE + VERIFIER VALIDATED.
+## THE SWEEP ITSELF HAS NOT BEEN RUN. 4 of 38 clips exist.
+
+### What is finished and committed
+* `scripts/final5_runs.py` builds the sweep from the CURRENT five-task spec:
+  **14 runs, 38 clips, 266 files at 7 angles**. Output under `f1..f5` so it
+  cannot collide with the 87 stale nine-task clips.
+* `record_rviz.py --final5 --resume`: per-run conditions (f2 is shared-only),
+  progress written to `recordings/verification/sweep_progress.json` AFTER
+  EVERY CLIP, and `--resume` skips what is already done.
+* **The Task 2 caveat is burned into the overlay in red** and confirmed
+  visible in a captured frame: "DIRECT-IK: not operator-commandable. Grasp
+  needs 169.7/164.6 deg from the pinned wrist anchor."
+* Overlay label bug fixed: clips were labelling themselves by the RENDERER
+  code, so an f3 clip said "T3". A clip that misnames itself looks
+  authoritative; it now shows the run's own name.
+
+### THE VERIFIER WAS MISCALIBRATED IN TWO WAYS. Both caught BEFORE any clip
+### was reported as failed, which is what the brief required.
+1. `block_orange` fired **495 px on an f3 frame with no orange object** -- RViz
+   lighting brings the tan tray into the orange band. Now requires R-B > 155,
+   calibrated against a confirmed positive AND a confirmed negative.
+2. Worse: **`tray_tan` fires 220 px and `ball_yellow` 21 px on the WEARER'S
+   SKIN** with no task object present. At the shared 12 px floor, every f3 and
+   f4 clip would have passed whether or not the object rendered. Per-object
+   floors now sit above the skin and far below the object:
+   tray 220 (absent) vs 828 (present), floor 400; ball 21 vs 649, floor 120.
+
+### TO RESUME: one command
+```
+python3 scripts/record_rviz.py --final5 --all --resume
+```
+It skips the 4 clips already recorded and writes progress after each. Then
+`python3 scripts/verify_rviz_clips.py` and rebuild INDEX.md with the Task 2
+caveat at the TOP.
+
+### Known, unresolved
+* **f3/f4 grasp is REFUSED**: "pre-grasp standoff not solvable". Correct and
+  expected -- the tray edge sits at |x| = 0.25 and Part 1 measured top-down
+  grasping infeasible below |x| = 0.30. The clips show the carry, not a grasp.
+  Decide whether to widen the tray or accept a carry-without-grasp clip.
+* **Repo size not yet checked**: 266 files at roughly 1.3 MB each is about
+  350 MB. Check before committing the sweep; consider tracking quad+gripper
+  only and keeping the rest local.
+
+## ITEMS 2, 3, 4: NOT STARTED
+2 wrist camera relay, 3 thesis sections, 4 lab list. Stopped at the item
+boundary rather than half-doing item 1's sweep.
+
+---
+
 # SESSION 2026-08-09 - NINE-PART BRIEF, PARTS 1-2 DONE
 
 Sim and mock only. No lab.

@@ -66,8 +66,15 @@ def _teal(a):
 
 
 def _orange(a):
+    # R-B > 155 SEPARATES THE ORANGE BLOCK FROM THE TAN TRAY. Without it this
+    # detector fired 495 px on an f3 frame containing no orange object at all,
+    # because RViz's lighting brings the tray's bright pixels (192,141,72) into
+    # the orange band. Calibrated against BOTH a confirmed positive (the blocks
+    # in an f2 frame) and a confirmed negative (the tray in an f3 frame): the
+    # blocks keep 88 px across every threshold from 130 up, while the tray
+    # leak falls under the 12 px floor at 150.
     return ((a[:, :, 0] > 165) & (a[:, :, 1] > 55) & (a[:, :, 1] < 175)
-            & (a[:, :, 2] < 90))
+            & (a[:, :, 2] < 90) & (a[:, :, 0] - a[:, :, 2] > 155))
 
 
 def _green(a):
@@ -87,8 +94,34 @@ PALETTE = {
 # black frame -- but 12 clips failed against the old number. 12 sits above the
 # noise floor (which is exactly 0) and below every confirmed detection.
 MIN_PIXELS = 12
+# PER-OBJECT FLOORS, because a single floor cannot work: two of these
+# detectors fire on the WEARER, not on any task object. Measured on a rendered
+# f1 frame containing the wearer and no tray, ball or block:
+#
+#     tray_tan     220 px      <- the mannequin's skin
+#     ball_yellow   21 px      <- skin highlights
+#     container_teal 0 px
+#     block_orange   0 px
+#
+# against true positives of 828 px (tray) and 649 px (ball) on a frame with
+# both plainly visible. A shared floor of 12 px would have passed every f3 and
+# f4 clip whether or not the object rendered at all, which is the failure this
+# verifier exists to prevent. Floors sit above the skin and far below the
+# object.
+FLOOR = {"tray_tan": 400, "sling_orange": 400, "ball_yellow": 120}
+
+
+def floor_for(name):
+    return FLOOR.get(name, MIN_PIXELS)
 # what each task MUST show at least one of
 REQUIRED = {
+    # Five-task clips. f1 and f5 carry no object at all, so requiring one
+    # would fail every clip of them; they are judged on arm travel instead.
+    "f1": [],
+    "f2": ["container_teal", "block_orange"],
+    "f3": ["tray_tan", "ball_yellow"],
+    "f4": ["sling_orange", "ball_yellow"],
+    "f5": ["target_green"],
     "t2": ["container_teal", "block_orange"],
     "t3": ["tray_tan", "ball_yellow"],
     "t5": ["target_green"],
@@ -181,7 +214,7 @@ def main():
         found = {}
         for want in REQUIRED.get(task, []):
             found[want] = max(colour_hits(f, want) for f in F)
-        missing = [k for k, v in found.items() if v < MIN_PIXELS]
+        missing = [k for k, v in found.items() if v < floor_for(k)]
         why = []
         if bright < 8:
             why.append("picture is black (mean %.1f)" % bright)

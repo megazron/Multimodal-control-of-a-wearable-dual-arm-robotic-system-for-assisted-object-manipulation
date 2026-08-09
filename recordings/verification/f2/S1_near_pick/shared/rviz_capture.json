@@ -1,0 +1,22 @@
+{
+  "frames": 104,
+  "duration_s": 14.686307411990128,
+  "quad": true,
+  "grasp_planned": true,
+  "grasp_refused": "",
+  "grasp_yaw_deg": 0.0,
+  "grasp_width_mm": 40.0,
+  "grasp_standoff_m": 0.1,
+  "blocks_placed": 1,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.42352941176470593,
+  "grip_opened": true,
+  "grip_closed_on_object": true,
+  "task": "f2",
+  "scenario": "S1_near_pick",
+  "condition": "shared",
+  "note": "pick and place, left arm, modes 4+ only",
+  "bytes": 3932496
+}

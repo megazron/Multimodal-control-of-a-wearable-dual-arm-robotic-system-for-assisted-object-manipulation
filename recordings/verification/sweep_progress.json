@@ -1,0 +1,20 @@
+{
+  "done": [
+    [
+      "f1",
+      "S1_left_only",
+      "assisted"
+    ],
+    [
+      "f1",
+      "S1_left_only",
+      "direct"
+    ],
+    [
+      "f1",
+      "S1_left_only",
+      "shared"
+    ]
+  ],
+  "total": 3
+}

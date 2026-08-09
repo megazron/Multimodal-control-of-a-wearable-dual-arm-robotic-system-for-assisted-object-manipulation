@@ -2018,3 +2018,68 @@ The language/vision prompt sweep (correct / asked / refused / MISUNDERSTOOD)
 was not run. Given modes 5 and 6 cannot move the arm, the sweep would measure
 the parser in isolation rather than the mode -- worth doing, but it should
 follow the missing command path, not precede it.
+
+## JOB E — THE CALIBRATION SWEEP IS NOW VISIBLE (2026-08-09)
+
+`srl_perception/scene_markers.py` (new) + wired into `scene_fingerprint_node`,
+publishing `MarkerArray` on **`/scene/markers`**.
+
+Before this the sweep published only `/scene/state` and `/scene/objects` as
+JSON strings and logged "SCENE CHANGED" with a list of names. The operator had
+no way to see WHICH object the diff meant, and the log scrolls.
+
+Per object: a coloured box at its pose, plus a TEXT_VIEW_FACING label carrying
+**name, verdict, confidence, displacement and rotation**.
+
+| verdict | colour | rationale |
+| --- | --- | --- |
+| SAME | desaturated grey-green, alpha 0.45 | normal is most of the scene; if it shouts, nothing else can |
+| MOVED | amber | |
+| MOVED_OR_SWAPPED | orange | association itself is in doubt |
+| APPEARED | blue | new to the scene |
+| RECLASSIFIED | magenta | identity changed |
+| VANISHED | red, alpha 0.55 | transient, see below |
+
+Three decisions worth keeping:
+
+- **A dropped object is SHOWN before it goes.** Removing it instantly is
+  indistinguishable from one that was never there: the operator sees a scene
+  with one fewer object and no reason. It is drawn at its **stored** pose (the
+  only pose it has -- there is no observation, that being what vanished means)
+  for `drop_hold_s` (3.0 s default), then stops being republished.
+- **A move is drawn as an ARROW from where it was**, because a displacement is
+  only meaningful against its origin and the operator should not have to
+  remember.
+- **Text is always fully opaque** even when its box is faint. A desaturated
+  box still reads as an object; desaturated text is simply unreadable, and the
+  label is the part carrying the information.
+
+Every frame begins with **DELETEALL** -- ids are per-frame, and without it the
+previous sweep's markers stay on screen underneath the current one. That bug
+has already been paid for once in this project.
+
+### Verification
+
+`src/srl_perception/test/test_scene_markers.py`, **10 known-answer tests**:
+DELETEALL is first; all six verdicts are visually distinct; SAME is the least
+saturated; a dropped object is shown at 0.5 s and gone at 9.0 s; VANISHED is
+drawn at its stored pose; the label carries name and confidence; MOVED gets an
+arrow from stored to observed and SAME gets none; text stays opaque; ids are
+unique within a frame.
+
+Live on a real graph, driven by a synthetic detector: **16 marker frames
+received, DELETEALL first, 4 boxes + 4 labels**, e.g.
+`red_cube  APPEARED  conf 0.92` at rgba 0.20 0.65 0.95.
+
+**HONEST LIMIT:** the live run exercised only the APPEARED path. My fake
+detector called `/scene/resweep` before the first fingerprint had settled, so
+the second sweep compared against an incomplete store and every object came
+back APPEARED rather than the SAME/MOVED/VANISHED mix intended. The colour and
+lifetime logic for the other five verdicts is proven by the known-answer tests
+against constructed verdicts, **not** by a live sweep. Re-run with a longer
+settle before the resweep to close that.
+
+**NOT DONE:** an RViz pixel capture of the markers. The `/scene/markers`
+topic is verified to carry the right content; nobody has yet confirmed from
+pixels that RViz draws it as intended. Use the Xvfb route -- x11grab on the
+WSLg `:0` records black.

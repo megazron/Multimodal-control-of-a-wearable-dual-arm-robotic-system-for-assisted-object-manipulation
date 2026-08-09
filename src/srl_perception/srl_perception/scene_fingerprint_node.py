@@ -28,6 +28,7 @@ is the same class of fault as two readers on one serial port, and the fix is
 the same: exactly one owner, everything else subscribes.
 """
 import json
+import time
 import os
 
 import rclpy
@@ -37,6 +38,7 @@ from std_srvs.srv import Trigger
 from vision_msgs.msg import Detection3DArray
 
 from srl_perception import scene_fingerprint as sf
+from srl_perception import scene_markers
 
 DEFAULT_STORE = os.path.expanduser("~/kortex_ws/config/scene_fingerprint.json")
 
@@ -63,6 +65,17 @@ class SceneFingerprintNode(Node):
         self.last_summary = None
         self.drift_flags = []
 
+        # JOB E: the sweep must be VISIBLE, not just logged. A calibration
+        # that prints "SCENE CHANGED" and moves on gives the operator no way
+        # to see WHICH object the diff is talking about, and the log scrolls.
+        from visualization_msgs.msg import MarkerArray
+        self.pub_mk = self.create_publisher(MarkerArray, "/scene/markers", 4)
+        self.declare_parameter("marker_frame", "world")
+        self.declare_parameter("drop_hold_s", 3.0)
+        # label -> monotonic time it was first reported VANISHED, so a dropped
+        # object can be shown briefly and then allowed to go.
+        self._dropped_at = {}
+        self._last_verdicts = []
         self.pub = self.create_publisher(String, "/scene/state", 10)
         self.pub_obj = self.create_publisher(String, "/scene/objects", 10)
         self.create_subscription(Detection3DArray, "/perception/objects",
@@ -165,14 +178,25 @@ class SceneFingerprintNode(Node):
             self.get_logger().info(
                 "FIRST FINGERPRINT: %d objects in %.1f s -> %s"
                 % (len(obs), dt, self.get_parameter("store_path").value))
+            # A first sweep has nothing to diff against, but the operator
+            # still needs to see WHAT was registered -- that is the moment a
+            # missing or misplaced object is cheapest to notice.
+            self._set_verdicts([dict(verdict=sf.APPEARED, label=o.label,
+                                     stored=None, observed=list(o.xyz),
+                                     quat=list(o.quat) if o.quat else None,
+                                     size=list(o.size) if o.size else None,
+                                     confidence=o.confidence, delta_m=None)
+                                for o in obs])
             return
 
+        self._first_sweep_markers = None
         verdicts, summ = sf.compare(
             self.store, obs,
             pos_tol=float(self.get_parameter("pos_tol_m").value),
             gate=float(self.get_parameter("gate_m").value))
         summ["sweep_s"] = dt
         self.last_summary = summ
+        self._set_verdicts(verdicts)
         if summ["unchanged"]:
             self.state = "match_skip_calibration"
             self.get_logger().info(
@@ -209,6 +233,42 @@ class SceneFingerprintNode(Node):
                 "store now holds %d"
                 % (len(summ["reregister"]), kept, len(summ["drop"]),
                    len(self.store.objects)))
+
+    # --------------------------------------------------------- markers
+    def _set_verdicts(self, verdicts):
+        """Latch a sweep result and start the clock on anything dropped."""
+        now = time.monotonic()
+        live = set()
+        for v in verdicts:
+            if v["verdict"] == sf.VANISHED:
+                live.add(v["label"])
+                self._dropped_at.setdefault(v["label"], now)
+        # A label that came back is no longer dropped; without this its old
+        # timestamp would suppress it forever if it vanished again later.
+        for lbl in [k for k in self._dropped_at if k not in live]:
+            self._dropped_at.pop(lbl, None)
+        self._last_verdicts = list(verdicts)
+        self.publish_markers()
+
+    def publish_markers(self):
+        if not self._last_verdicts:
+            return
+        now = time.monotonic()
+        ages = {k: now - t for k, t in self._dropped_at.items()}
+        hold = float(self.get_parameter("drop_hold_s").value)
+        arr = scene_markers.build(
+            self._last_verdicts,
+            frame=str(self.get_parameter("marker_frame").value),
+            stamp=self.get_clock().now().to_msg(),
+            drop_ages=ages, drop_hold_s=hold)
+        self.pub_mk.publish(arr)
+        # Once every dropped object has aged out, stop republishing them: the
+        # next DELETEALL then removes them and they do not come back.
+        for lbl in [k for k, a in ages.items() if a > hold]:
+            self._dropped_at.pop(lbl, None)
+            self._last_verdicts = [v for v in self._last_verdicts
+                                   if not (v["verdict"] == sf.VANISHED
+                                           and v["label"] == lbl)]
 
     # ----------------------------------------------------------- drift
     def check_drift(self, o):
@@ -253,6 +313,7 @@ class SceneFingerprintNode(Node):
 
     # ------------------------------------------------------------- tick
     def tick(self):
+        self.publish_markers()
         if self.sweeping:
             settle = float(self.get_parameter("sweep_settle_s").value)
             el = self.get_clock().now().nanoseconds * 1e-9 - self.sweep_t0

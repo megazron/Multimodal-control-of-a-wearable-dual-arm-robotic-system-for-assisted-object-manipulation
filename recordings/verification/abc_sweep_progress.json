@@ -171,7 +171,7 @@
     "dir": "recordings/verification/03_shared_autonomy/C/S1_present_probe"
   },
   "02_vr_teleop/a/S1_single_arm": {
-    "ok": false,
+    "ok": true,
     "msg": "run exited 0",
     "mode": "02_vr_teleop",
     "task": "a",
@@ -190,7 +190,7 @@
     "dir": "recordings/verification/02_vr_teleop/A/S1_single_arm"
   },
   "02_vr_teleop/b/S1_bimanual": {
-    "ok": false,
+    "ok": true,
     "msg": "run exited 0",
     "mode": "02_vr_teleop",
     "task": "b",
@@ -209,12 +209,12 @@
     "dir": "recordings/verification/02_vr_teleop/B/S1_bimanual"
   },
   "02_vr_teleop/c/S1_present_probe": {
-    "ok": false,
+    "ok": true,
     "msg": "run exited 0",
     "mode": "02_vr_teleop",
     "task": "c",
     "scenario": "S1_present_probe",
-    "quad": true,
+    "quad": false,
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",

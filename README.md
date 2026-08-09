@@ -62,6 +62,64 @@ geometry, 0 of 16 transfer points reachable by both arms. **Mode 3.**
 **Voice input** — `/dev/snd` holds only `timer`. **VR on hardware** — `adb`
 is installed nowhere yet.
 
+## VR: connecting the Quest
+
+One command. It finds `adb`, waits for the headset, opens the reverse tunnel,
+starts the bridge, and then supervises the tunnel for as long as it runs.
+
+```bash
+bash scripts/vr_connect.sh
+```
+
+**The one hard prerequisite is Android Platform-Tools, installed on the
+WINDOWS side.** The headset enumerates as a Windows USB device, so a
+WSL-side `adb` cannot see it. The script looks in `C:\platform-tools` and the
+usual SDK locations and refuses with that instruction if it finds nothing.
+It is not installed on this machine.
+
+The transport is `adb reverse` over USB rather than the network, for one
+reason worth knowing: the headset then connects to `ws://127.0.0.1`, which is
+a secure origin **by definition**. Over a LAN the same connection needs a
+certificate carrying the address, a firewall exception, and an operator
+accepting a browser warning inside a headset they are wearing. It is also USB,
+so it does not share the wireless network the arms are on.
+
+The tunnel is supervised rather than opened once. `adb reverse` dies with the
+USB connection, and if it is opened only at start-up a nudged cable leaves the
+bridge running and the headset silently unable to reach it, which from the
+operator's side is indistinguishable from a frozen application.
+
+### What every control does
+
+![Quest controller mapping](docs/img/vr_controls.svg)
+
+Three points the diagram makes that are easy to get wrong:
+
+* **The grip is the clutch, and releasing it is the normal stop.** It needs no
+  button press and no software to be healthy, which is why it is the one an
+  operator should reach for by reflex.
+* **Re-gripping anywhere carries on from there.** The anchor re-latches on
+  engagement, so indexing across a large workspace costs nothing and produces
+  no jump. Measured on the mannequin path: re-engagement jump 0.29 mm mean,
+  0.35 mm max.
+* **A/X and B/Y are deliberately unbound.** A mis-pressed button should never
+  be able to start a motion.
+
+The emergency stop is **not on the controller**. It is a physical button held
+by the observer, and the bridge refuses to drive at all unless that observer
+e-stop is present and reporting. Tracking loss freezes the arm within 0.20 s
+and link loss within 0.30 s; both are measured against the desktop mock, not
+against a headset.
+
+### State of this path
+
+The bridge, the tunnel script and the mapping are implemented and the command
+path is verified connected end to end in simulation. **No part of it has run
+against a headset**, because `adb` is not installed on this machine. The
+round-trip figure of 8.66 ms median, 16.5 ms p95 was measured against the
+desktop mock and is a lower bound: it excludes the headset's own frame period,
+which is 13.9 ms at 72 Hz.
+
 ## Hardware state
 
 7 of 14 master channels are **INCOHERENT** (over 5% of updates jumping >60°,

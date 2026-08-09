@@ -139,8 +139,28 @@ target is never offered as an option.
 
 12 known-answer tests.
 
-## PARTS 6-9 - NOT STARTED
-6 GUI with embedded RViz,
+## PART 6 - GUI: DONE (485fad5)
+Qt5, Helvetica via a user-level fontconfig alias, **RViz embedded as a panel**
+by X11 reparenting (verified from pixels, 31 fps), five indicator groups, and
+a frame time of 0.45 ms median / 0.76 p95 against a 100 ms budget. Three
+embedding routes costed in `docs/system/07_gui_rviz_embedding.md`.
+
+## PART 7 - VR setup and README: DONE, this commit
+`scripts/vr_connect.sh` does the whole connection in one command and then
+SUPERVISES the tunnel, because `adb reverse` dies with the USB connection and
+opening it once leaves the headset silently unable to reach a running bridge.
+Verified: with no adb it refuses with the exact install instruction and exits
+non-zero.
+
+`docs/img/vr_controls.svg` is the control diagram, drawn rather than tabulated.
+Trigger = gripper, grip = clutch, thumbstick y = live scale, face buttons
+deliberately unbound. README section added.
+
+**BLOCKED ON: Android Platform-Tools, installed on the WINDOWS side.** Not
+present. Nothing in this path has run against a headset.
+
+## PARTS 8-9 - NOT STARTED
+8 new operator features,
 6 GUI with embedded RViz, 7 VR setup + README, 8 new operator features,
 9 re-record + self-audit. Each is a session's work; they were not begun
 rather than begun badly.

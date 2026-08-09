@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" font-family="Liberation Sans, Helvetica, Arial, sans-serif">
+  <rect width="900" height="560" fill="#fbfbfb"/>
+  <text x="450" y="34" font-size="21" font-weight="700" text-anchor="middle" fill="#1a1a1a">Quest controller mapping</text>
+  <text x="450" y="56" font-size="13" text-anchor="middle" fill="#6b6b6b">Both controllers are identical. Left drives the left arm, right drives the right arm.</text>
+
+  <!-- ============ controller body ============ -->
+  <g transform="translate(300,90)">
+    <!-- ring -->
+    <ellipse cx="150" cy="70" rx="112" ry="46" fill="none" stroke="#b9b9b9" stroke-width="11"/>
+    <!-- head -->
+    <rect x="96" y="46" width="108" height="104" rx="30" fill="#e9e9e9" stroke="#9a9a9a" stroke-width="2"/>
+    <!-- grip stem -->
+    <path d="M150 148 q -30 62 -18 132 q 20 30 36 0 q 12 -70 -18 -132 z" fill="#e9e9e9" stroke="#9a9a9a" stroke-width="2"/>
+
+    <!-- thumbstick -->
+    <circle cx="150" cy="76" r="17" fill="#cfd8dc" stroke="#607d8b" stroke-width="2.5"/>
+    <circle cx="150" cy="76" r="5" fill="#607d8b"/>
+    <!-- up/down arrows on the stick -->
+    <path d="M150 50 l7 11 h-14 z" fill="#607d8b"/>
+    <path d="M150 102 l7 -11 h-14 z" fill="#607d8b"/>
+
+    <!-- face buttons -->
+    <circle cx="122" cy="124" r="11" fill="#eeeeee" stroke="#9a9a9a" stroke-width="2"/>
+    <circle cx="178" cy="124" r="11" fill="#eeeeee" stroke="#9a9a9a" stroke-width="2"/>
+    <text x="122" y="129" font-size="11" text-anchor="middle" fill="#555">A/X</text>
+    <text x="178" y="129" font-size="11" text-anchor="middle" fill="#555">B/Y</text>
+
+    <!-- trigger (index, front face) -->
+    <rect x="126" y="150" width="48" height="22" rx="9" fill="#ffe0b2" stroke="#ef6c00" stroke-width="2.5"/>
+    <!-- grip (side) -->
+    <rect x="176" y="186" width="24" height="52" rx="10" fill="#c8e6c9" stroke="#2e7d32" stroke-width="2.5"/>
+  </g>
+
+  <!-- ============ callouts ============ -->
+  <!-- thumbstick -->
+  <line x1="300" y1="166" x2="182" y2="140" stroke="#607d8b" stroke-width="2"/>
+  <circle cx="300" cy="166" r="3.5" fill="#607d8b"/>
+  <g transform="translate(24,112)">
+    <rect width="158" height="72" rx="7" fill="#eceff1" stroke="#607d8b" stroke-width="2"/>
+    <text x="12" y="22" font-size="14" font-weight="700" fill="#37474f">Thumbstick</text>
+    <text x="12" y="42" font-size="12" fill="#37474f">push up / down</text>
+    <text x="12" y="59" font-size="12.5" font-weight="600" fill="#1a1a1a">motion scale, live</text>
+  </g>
+
+  <!-- trigger -->
+  <line x1="600" y1="272" x2="478" y2="252" stroke="#ef6c00" stroke-width="2"/>
+  <circle cx="600" cy="272" r="3.5" fill="#ef6c00"/>
+  <g transform="translate(614,226)">
+    <rect width="262" height="92" rx="7" fill="#fff3e0" stroke="#ef6c00" stroke-width="2"/>
+    <text x="12" y="22" font-size="14" font-weight="700" fill="#e65100">Trigger  (index finger)</text>
+    <text x="12" y="42" font-size="12.5" font-weight="600" fill="#1a1a1a">GRIPPER  — squeeze to close</text>
+    <text x="12" y="60" font-size="11.5" fill="#5d4037">proportional, with a deadband so a</text>
+    <text x="12" y="75" font-size="11.5" fill="#5d4037">resting finger does not creep it shut</text>
+  </g>
+
+  <!-- grip -->
+  <line x1="600" y1="382" x2="500" y2="352" stroke="#2e7d32" stroke-width="2"/>
+  <circle cx="600" cy="382" r="3.5" fill="#2e7d32"/>
+  <g transform="translate(614,336)">
+    <rect width="262" height="108" rx="7" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+    <text x="12" y="22" font-size="14" font-weight="700" fill="#1b5e20">Grip  (middle finger)</text>
+    <text x="12" y="42" font-size="12.5" font-weight="600" fill="#1a1a1a">CLUTCH — hold to drive the arm</text>
+    <text x="12" y="60" font-size="11.5" fill="#33691e">Release and the arm FREEZES where</text>
+    <text x="12" y="75" font-size="11.5" fill="#33691e">it is. Re-grip anywhere to carry on:</text>
+    <text x="12" y="90" font-size="11.5" fill="#33691e">the anchor re-latches, so no jump.</text>
+  </g>
+
+  <!-- face buttons -->
+  <line x1="248" y1="300" x2="404" y2="216" stroke="#8e8e8e" stroke-width="2"/>
+  <circle cx="248" cy="300" r="3.5" fill="#8e8e8e"/>
+  <g transform="translate(24,266)">
+    <rect width="220" height="70" rx="7" fill="#f2f2f2" stroke="#8e8e8e" stroke-width="2"/>
+    <text x="12" y="22" font-size="14" font-weight="700" fill="#424242">A / X  and  B / Y</text>
+    <text x="12" y="42" font-size="12" fill="#424242">not bound to any motion</text>
+    <text x="12" y="59" font-size="11.5" fill="#616161">deliberately: see the note below</text>
+  </g>
+
+  <!-- ============ safety strip ============ -->
+  <g transform="translate(24,398)">
+    <rect width="558" height="140" rx="8" fill="#ffebee" stroke="#c62828" stroke-width="2.5"/>
+    <text x="16" y="26" font-size="15" font-weight="700" fill="#b71c1c">Stopping</text>
+    <text x="16" y="50" font-size="12.5" fill="#1a1a1a">Release the GRIP and the arm freezes. That is the normal stop and it is</text>
+    <text x="16" y="67" font-size="12.5" fill="#1a1a1a">always available: it needs no button press and no software to be healthy.</text>
+    <text x="16" y="92" font-size="12.5" font-weight="600" fill="#b71c1c">The emergency stop is NOT on the controller.</text>
+    <text x="16" y="110" font-size="12.5" fill="#1a1a1a">It is a physical button held by the observer. The bridge refuses to drive</text>
+    <text x="16" y="127" font-size="12.5" fill="#1a1a1a">at all unless that observer e-stop is present and reporting.</text>
+  </g>
+
+  <text x="614" y="470" font-size="11.5" fill="#6b6b6b">Tracking loss freezes the arm within 0.20 s;</text>
+  <text x="614" y="487" font-size="11.5" fill="#6b6b6b">link loss within 0.30 s. Both measured.</text>
+  <text x="614" y="512" font-size="11.5" fill="#6b6b6b">Buttons are unbound because a mis-press</text>
+  <text x="614" y="529" font-size="11.5" fill="#6b6b6b">should never be able to start a motion.</text>
+</svg>

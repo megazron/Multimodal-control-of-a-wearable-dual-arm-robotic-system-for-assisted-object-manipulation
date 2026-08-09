@@ -1,3 +1,145 @@
+# PART 4 DONE (2026-08-09) -- the divergence is visible, the two panels are not
+
+Commit `PART4HASH`.
+
+## WHAT SHIPPED
+
+`scripts/srl_gui.py`, rebuilt around the question the brief asks: what is the
+gap between what was commanded and what the arms actually did?
+
+* **Divergence readout**, per joint and end-effector, coloured against
+  `lag_trip_rad` -- **read from the running bridge**, not hardcoded. A panel
+  that colours against 0.5 while the bridge runs at 0.3 says "fine" up to the
+  moment the arm stops. The header names its source, and says
+  "default -- bridge not read" when it could not get one.
+* **Both wrist cameras**, subscribed and never opened, with NO CAMERA shown
+  explicitly and a stale frame never painted.
+* **Controls**: precision/speed dial (with the settings it implies shown),
+  force-clutch, per-arm scale, re-base anchor, per-arm grip release, e-stop
+  and e-stop reset. All parameter writes go through parameter CLIENTS with
+  read-back; `ros2 param set` goes via the daemon, which hangs on this box.
+* **26 launch specs**, 23 live and 3 disabled with the reason ON the button.
+
+## THE FINDING: TWO EMBEDDED RVIZ PANELS DO NOT WORK ON THIS HOST
+
+X11 reparenting (`QWindow.fromWinId` + `createWindowContainer`) **embeds and
+positions but does not CLIP**. Measured from screenshots, not return codes:
+
+| | |
+| --- | --- |
+| Qt layout underneath | **correct** -- the GUI's own geometry dump put controls at (8,49)-(478,983), commanded (487,75)-(1180,857), actual (1194,75)-(1887,857), divergence (482,868)-(1892,983) |
+| where rviz2 actually painted | **(0,0) at 1595x995** -- over the banner, the cameras, every indicator and the divergence readout |
+| with two instances | they paint over each other as well |
+
+Positioning the foreign window in top-level coordinates instead of (0,0) moved
+it and raised the second panel's content from 36 to 292 distinct colours, so
+the handle is real -- but no amount of positioning produces clipping. Clipping
+a reparented client is the **window manager's** job and **no window manager is
+installed** (twelve checked; `sudo` needs a password so none can be added).
+
+**Shipped instead: one RViz with the COMMANDED arm solid and the ACTUAL arm
+translucent in the same scene** (`TF Prefix: real_`, alpha 0.45). This is the
+fallback the brief asked to be proposed, and it is the better answer: the
+operator sees the GAP in one 3-D view instead of comparing two viewports by
+eye, and it costs 248 MB less. `--embed-rviz --dual-rviz` opts back in.
+
+## `/real/tf` DOES NOT EXIST
+
+The brief specifies the actual arms come from "/real/joint_states and
+/real/tf". The first exists; the second does not. Checked against a running
+mock stack, the only `real` topics are `/real/joint_states`, the two
+controller topics, `/real_status_*` and `/realmock/robot_description`.
+
+Both real launches run `robot_state_publisher` with `namespace="real"` and
+`frame_prefix="real_"`, so the real arm's transforms are in the **SHARED /tf**
+under prefixed frames joined to `world` by a static transform -- one tree with
+two robots, not two trees. Subscribing to `/real/tf` would have produced a
+permanently empty ACTUAL panel that looked exactly like an embedding failure.
+
+## NEGATIVE CONTROLS, WHICH IS WHAT THIS PART WAS REALLY ABOUT
+
+**The indicator self-test.** Three synthetic snapshots -- GOOD, BAD, ABSENT --
+are pushed through the SAME `refresh()` the live data uses, and every
+indicator must render healthy differently from NOT CHECKED, and healthy
+differently from abnormal. Compared on (value, colour, NOTE): dropping the
+note was the first version's mistake, because "--" purple "NO ATTEMPTS --
+follower up, no poses in" and "--" purple "no ik_status published" differ only
+there, and that difference is the whole point.
+
+**Result: 17/17.** Two indicators legitimately treat absence AS the
+abnormality (the detectors have no other way to be wrong), and that is
+reported rather than asserted away.
+
+**It found two real bugs on its first run**, neither of which reading would
+have caught:
+
+1. **`"ENGAGED" in "DISENGAGED"` is TRUE.** The clutch indicator reported a
+   disengaged clutch as engaged. Same shape as the `/blocking` substring match
+   that reported every registered blocker as active. Now word-boundary
+   matched, DISENGAGED tested first.
+2. **The mode indicator had no abnormal state at all** -- it could not be
+   shown to be reading anything. It now reports CONFLICT when more than one
+   source claims the arm, which is a real fault by this project's own
+   one-source-at-a-time rule.
+
+**Divergence carries the discipline in its type.** Seven statuses and only
+`OK` carries a number: a real arm that is not publishing reads **NO REAL ARM**,
+not 0.000 rad. `REAL_FROZEN` is separate again, because `/real/joint_states`
+publishes a CACHE at full rate when the hardware component goes inactive, so
+arrival-rate freshness cannot see it -- the Side tracker keeps arrival and
+content-change apart for exactly that.
+
+**Buttons: 55/55**, in three levels, because one check cannot cover it
+honestly. Level 1 RUNS the dispatcher for all 13 tasks with `--dry-run` and
+requires exit 0 -- the direct regression for the five buttons that exited 2
+while appearing to launch. Level 2 constructs the GUI offscreen and presses
+every button, requiring an observable outcome from each (silence fails, and so
+does a traceback), with launching intercepted so the check cannot start
+stacks. Level 3 requires every refusal to name a reason.
+
+**Tasks A/B/C are DISABLED, deliberately.** They have a verified spec and no
+runner. Pointing them at t3/t6/t7 would run the superseded 300/310 mm span and
+log it under a 500 mm name -- a button that launches something DIFFERENT from
+what it claims is worse than one that refuses.
+
+## MEASURED
+
+| configuration | peak RSS | processes |
+| --- | --- | --- |
+| indicators only (`--no-rviz`) | **182 MB** | 2 |
+| default: one RViz + ghost | **506 MB** | 3 |
+| `--embed-rviz --dual-rviz` | **754 MB** | 4 |
+
+Frame time with the cameras subscribed and the divergence live, READ FROM THE
+GUI'S OWN STATUS BAR in the screenshots:
+
+    indicators only   frame 18.64 ms   median 2.41   p95 18.64   max 35.05
+    default + ghost   frame  4.38 ms   median 2.88   p95 24.81   max 66.22
+
+against a **100 ms budget**, so roughly 3% of it at the median and two thirds
+at the worst sample. Stated honestly: the harness's programmatic capture of
+that line came back EMPTY (the GUI's stdout was not captured through the
+subprocess pipe), so these are read from the status bar rather than parsed.
+That is a gap in the harness, not in the numbers -- the status bar is what the
+operator sees -- but it should be closed before anyone regresses on frame time.
+
+No OOM. The machine reported 7.8-11 GB available throughout, so the two
+earlier OOM kills were not this stack.
+
+The ghost is proved DIFFERENTIALLY -- the same scene rendered with the ghost
+display on and off differs by **36,651 pixels**. "It looks right" is not a
+check; if the ghost were absent the difference would be zero, which is the
+outcome that had to be reportable.
+
+## STILL OPEN
+
+* Two embedded panels need a window manager on the host. Not a code fix.
+* The GUI has never driven a REAL Kortex session; everything above is sim plus
+  the mock real stack.
+* Part 2's "NOT FIXED, AND WHY" list is unchanged.
+
+---
+
 # PART 3 DONE (2026-08-09) — four items, and three of them were worse than reported
 
 Commits `c0ff406` (3.1), `759dfe6` (3.2), `c51ee0f` (3.3), `d5bbec8` (3.4).

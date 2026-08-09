@@ -1,46 +1,58 @@
 #!/usr/bin/env python3
-"""SRL operations GUI: Qt5, Helvetica, embedded RViz, everything indicated.
+"""SRL operations GUI -- DUAL VIEW: commanded beside actual, and the gap named.
 
-    python3 scripts/srl_gui.py          or    ros2 run srl_teleop gui
+    python3 scripts/srl_gui.py                 # both panels
+    python3 scripts/srl_gui.py --single-rviz   # fallback: one panel, ghosted
+    python3 scripts/srl_gui.py --no-rviz       # indicators only (capture/CI)
 
-WHY Qt5 AND NOT THE EXISTING DEAR PYGUI CONSOLE. Three reasons, in order of
-weight. RViz is itself a Qt application, so its window can be reparented into
-a Qt widget and become a panel rather than a second window; that is measured
-below and it is the whole point of this rewrite. Qt resolves fonts through
-fontconfig, so "Helvetica" is a request the toolkit can actually satisfy. And
-Dear PyGui segfaulted on import during this work, intermittently, which is not
-a property one wants in the tool used to diagnose everything else.
+WHY TWO PANELS. The cascade drives the real arms from the sim arms, and the
+lag monitor trips at `lag_trip_rad`. Until now that threshold was a number
+nobody could see: it fired, or it did not, and the operator found out from an
+e-stop. Two views plus a divergence readout make the quantity the monitor acts
+on continuously visible, next to the thing it describes.
 
-RVIZ EMBEDDING: MEASURED, NOT ASSUMED. Three routes were investigated.
+  LEFT   COMMANDED -- the sim arms, driven by whichever mode is active
+  RIGHT  ACTUAL    -- the real arms, from /real/joint_states and /real/tf
 
-  1. X11 reparenting. QX11EmbedContainer was removed in Qt5; the modern
-     equivalent is QWindow.fromWinId() wrapped by
-     QWidget.createWindowContainer(). VERIFIED FROM PIXELS under Xvfb: the
-     host label renders above and the complete RViz UI renders inside the
-     container at 31 fps. Cost: rviz2 stays a separate process, so it cannot
-     be styled by the host and it flashes as its own window for the moment
-     between mapping and reparenting. That separateness is also a benefit: an
-     RViz crash does not take the GUI with it.
-  2. librviz as a widget. The headers exist under
-     /opt/ros/jazzy/include/rviz_common/, but there are no usable Python
-     bindings for rviz2, so this means a new C++ Qt package and a build step,
-     and RViz then shares the GUI's process and its crashes. NOT ATTEMPTED;
-     route 1 already works.
-  3. Render to an image topic and display frames. Proven in this repository by
-     the clip pipeline (Xvfb plus ffmpeg), so it is known to work, but it adds
-     an encode and decode per frame and loses interaction entirely: the
-     operator cannot orbit the camera. Strictly worse than route 1 wherever
-     route 1 is available. Kept as the fallback for a headless host.
+RVIZ EMBEDDING is X11 reparenting: QWindow.fromWinId() wrapped by
+QWidget.createWindowContainer(). QX11EmbedContainer was removed in Qt5. This
+is verified from pixels, not from a return code -- a container can be visible
+and empty. rviz2 stays a separate process, which costs styling and a brief
+flash before reparenting and buys the property that matters most here: an
+RViz crash does not take down the tool used to diagnose everything else.
+The two instances are told apart by DIFFING the window list around each
+launch, because both present as "RViz" and matching on the title would
+reparent whichever appeared first into both panels.
 
-Route 1 is used, with a runtime check that falls back to a message rather than
-an empty panel if the window never appears.
+THE DISCIPLINE THIS GUI IS BUILT ON, restated because it is the reason for
+most of the code below. EVERY INDICATOR THAT CAN SHOW "NOTHING WRONG" MUST BE
+ABLE TO PROVE IT IS NOT SHOWING "NOT CHECKED". This GUI once reported
+"IK BLOCKED -- 0% success" computed over ZERO attempts, which sent the
+operator to the solver instead of to the missing input. So:
+
+  * a value with no data behind it renders "--" in PURPLE (unknown), never a
+    zero and never a colour that means healthy;
+  * divergence has SEVEN statuses and only one of them carries a number
+    (see srl_teleop/divergence.py) -- a real arm that is not publishing reads
+    "NO REAL ARM", not 0.000 rad;
+  * a camera past its staleness limit is not painted at all, because a frozen
+    picture of a workspace cannot be told from a live picture of a workspace
+    that is not moving;
+  * a button whose target cannot be resolved is DISABLED with the reason on
+    its tooltip, because five buttons in an earlier build exited 2 on press
+    while appearing to launch;
+  * SELF-TEST (bottom bar) drives synthetic bad data through the real
+    formatters and asserts each one changes -- so "all clear" can be shown to
+    be a reading rather than a stuck widget.
 
 THREADING. ROS owns one thread and every subscription. The GUI reads ONE
 immutable snapshot dict, rebound atomically; it never calls a service, never
 waits and never locks. Every control action is queued to the ROS thread and
-answered by callback. This is the same rule the Dear PyGui console arrived at
-after two threading bugs, and it is kept.
+answered by callback. Parameter writes go through parameter CLIENTS, never
+`ros2 param set`, which goes via the daemon -- the daemon hangs on this box
+and has reported success it had not earned.
 """
+import argparse
 import json
 import os
 import re
@@ -51,21 +63,27 @@ import time
 
 import rclpy
 from rclpy.node import Node
+from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
+from rcl_interfaces.srv import SetParameters
 from std_msgs.msg import Bool, Float64MultiArray, String
+from std_srvs.srv import Trigger
 from sensor_msgs.msg import Image, JointState
 
-# The package lives in src/, and this tool runs from scripts/, so make the
-# workspace's own modules importable whether or not install/ is sourced.
 _HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(os.path.dirname(_HERE), "src/srl_teleop"))
+_WS = os.path.dirname(_HERE)
+sys.path.insert(0, os.path.join(_WS, "src/srl_teleop"))
 from srl_teleop import camera_relay as cr                    # noqa: E402
-from srl_teleop import capability as cap                     # noqa: E402
+from srl_teleop import divergence as dv                      # noqa: E402
+from srl_teleop import gui_launch_specs as gls               # noqa: E402
+from srl_teleop import precision_speed as ps                 # noqa: E402
 
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QColor, QFont, QImage, QPalette, QPixmap, QWindow
-from PyQt5.QtWidgets import (QApplication, QGridLayout, QGroupBox, QHBoxLayout,
-                             QLabel, QMainWindow, QPushButton, QVBoxLayout,
-                             QWidget)
+from PyQt5.QtCore import Qt, QTimer                          # noqa: E402
+from PyQt5.QtGui import (QColor, QFont, QImage, QPalette,    # noqa: E402
+                         QPixmap, QWindow)
+from PyQt5.QtWidgets import (QApplication, QCheckBox, QGridLayout,  # noqa: E402
+                             QGroupBox, QHBoxLayout, QLabel, QMainWindow,
+                             QPushButton, QScrollArea, QSizePolicy, QSlider,
+                             QSplitter, QVBoxLayout, QWidget)
 
 ARMS = ("left", "right")
 
@@ -79,31 +97,74 @@ C_WARN = "#ef6c00"
 C_OK = "#2e7d32"
 C_UNKNOWN = "#7b1fa2"      # distinct from bad: not knowing is its own state
 
+# Colour per divergence band. `band()` lives in divergence.py so the GUI and
+# the lag monitor cannot quietly disagree about where the threshold is.
+BAND_COLOUR = {"ok": C_TEXT, "watch": C_MUTED, "near": C_WARN,
+               "trip": C_BAD, "unknown": C_UNKNOWN}
+
+RVIZ_TEMPLATE = os.path.join(
+    _WS, "src/srl_experiments/config/verification_capture.rviz")
+
 
 def helvetica(size=11, bold=False):
     """Helvetica is licensed and absent here; fontconfig aliases it to
     Liberation Sans, which shares Helvetica's advance widths, so a layout
-    designed for one does not reflow in the other. Requesting it by name keeps
-    the intent visible in the source."""
+    designed for one does not reflow in the other."""
     f = QFont("Helvetica", size)
     f.setBold(bold)
     f.setStyleHint(QFont.Helvetica)
     return f
 
 
+# ===========================================================================
+#  ROS SIDE
+# ===========================================================================
 class Bus(Node):
-    """Every subscription lives here, on the ROS thread."""
+    """Every subscription, service call and parameter write lives here."""
 
     def __init__(self):
         super().__init__("srl_gui")
         self.snap = dict(t=time.monotonic())
         self._d = {}
         self._q = []
-        self.sub_specs()
-        self.create_timer(0.1, self._publish_snapshot)
+        self.log = []
+        # Divergence trackers. Two Sides per arm; see divergence.py for why
+        # arrival and CHANGE are tracked separately.
+        self.sim = {a: dv.Side("sim/%s" % a) for a in ARMS}
+        self.real = {a: dv.Side("real/%s" % a) for a in ARMS}
+        # THE TRIP THRESHOLD IS READ FROM THE BRIDGE, NOT ASSUMED. A panel
+        # that colours divergence against a hardcoded 0.5 while the bridge
+        # runs at 0.3 is a panel that says "fine" up to the moment the arm
+        # stops. Until it is read, the header says so.
+        self.lag_trip = 0.5
+        self.lag_trip_src = "default -- bridge not read"
+        # ONE TF BUFFER, AND THE REASON IS A MEASUREMENT.
+        #
+        # The brief specifies the actual arms come from "/real/joint_states and
+        # /real/tf". `/real/joint_states` exists. `/real/tf` DOES NOT -- checked
+        # on a running mock stack, `ros2 topic list` shows /real/joint_states,
+        # /real/<arm>_arm_controller/joint_trajectory and
+        # /realmock/robot_description, and no /real/tf at all.
+        #
+        # Both real launches (real_arms.launch.py:83, mock_real.launch.py:57)
+        # run robot_state_publisher with namespace="real" and
+        # frame_prefix="real_", which puts the real arm's transforms in the
+        # SHARED /tf tree under prefixed frame names -- `real_world`,
+        # `real_left_end_effector_link` -- joined to `world` by a static
+        # transform. So there is one tree with two robots in it, not two trees,
+        # and subscribing to a topic that does not exist would have produced a
+        # permanently empty ACTUAL panel that looked like an embedding failure.
+        import tf2_ros
+        self.buf = tf2_ros.Buffer()
+        self.real_desc_topic = None       # discovered, not assumed
+        self._sub()
+        self.create_timer(0.1, self._snapshot)
         self.create_timer(0.05, self._drain)
+        self.create_timer(5.0, self._read_lag_trip)
 
-    def sub_specs(self):
+    # ---------------------------------------------------------- subscribe
+    def _sub(self):
+        from rclpy.qos import qos_profile_sensor_data
         for a in ARMS:
             self.create_subscription(
                 String, "/master_capability_%s" % a,
@@ -111,50 +172,129 @@ class Bus(Node):
             self.create_subscription(
                 Float64MultiArray, "/ik_status_%s" % a,
                 lambda m, k="ik_%s" % a: self._set(k, list(m.data)), 10)
-        self.create_subscription(String, "/scene/state",
-                                 lambda m: self._set("scene", m.data), 10)
-        self.create_subscription(String, "/blocking_summary",
-                                 lambda m: self._set("blocking", m.data), 10)
+            self.create_subscription(
+                String, "/master_status_%s" % a,
+                lambda m, k="mstat_%s" % a: self._set(k, m.data), 10)
+        for t, k in (("/scene/state", "scene"),
+                     ("/blocking_summary", "blocking"),
+                     ("/master_channel_state", "chan"),
+                     ("/autonomy_decision", "autonomy"),
+                     ("/vr_state", "vr"),
+                     ("/gripper_reference", "grip"),
+                     ("/recovery_state", "recovery")):
+            self.create_subscription(String, t,
+                                     lambda m, k=k: self._set(k, m.data), 10)
         self.create_subscription(Bool, "/estop_state",
                                  lambda m: self._set("estop", m.data), 10)
-        self.create_subscription(String, "/master_channel_state",
-                                 lambda m: self._set("chan", m.data), 10)
-        self.create_subscription(String, "/autonomy_decision",
-                                 lambda m: self._set("autonomy", m.data), 10)
-        self.create_subscription(String, "/vr_state",
-                                 lambda m: self._set("vr", m.data), 10)
+
+        # THE TWO JOINT STREAMS. Both go through divergence.Side, which keeps
+        # arrival and content-change apart -- /real/joint_states is known to
+        # FREEZE at full rate rather than stop when the hardware component
+        # goes inactive, and arrival-rate freshness cannot see that.
         self.create_subscription(JointState, "/joint_states",
-                                 lambda m: self._set("js", len(m.name)), 10)
+                                 self._on_sim_js, 20)
+        self.create_subscription(JointState, "/real/joint_states",
+                                 self._on_real_js, 20)
+
+        from tf2_msgs.msg import TFMessage
+        from rclpy.qos import QoSProfile, DurabilityPolicy
+        static_qos = QoSProfile(depth=200,
+                                durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self.create_subscription(TFMessage, "/tf",
+                                 lambda m: self._on_tf(m, False), 200)
+        self.create_subscription(TFMessage, "/tf_static",
+                                 lambda m: self._on_tf(m, True), static_qos)
+
         # ONE MORE SUBSCRIBER, NEVER A SECOND DEVICE OWNER. The vendor vision
         # driver owns the camera; this sits beside the detector on its topic.
-        # depth=1 and best-effort: a viewer wants the NEWEST frame, and a
-        # reliable queue would deliver a backlog of old ones after any hiccup,
-        # which is precisely the stale view this relay exists to prevent.
-        from rclpy.qos import qos_profile_sensor_data
+        # depth=1 best-effort: a viewer wants the NEWEST frame, and a reliable
+        # queue would deliver a backlog after any hiccup -- exactly the stale
+        # view this relay exists to prevent.
         self.cam = {a: cr.ChannelState() for a in ARMS}
         self.cam_img = {a: None for a in ARMS}
         for a in ARMS:
             for topic in ("/%s_wrist_camera/image_raw" % a,
                           "/wrist_mounted_camera/%s/image" % a):
                 self.create_subscription(
-                    Image, topic,
-                    (lambda m, arm=a: self._on_image(arm, m)),
+                    Image, topic, (lambda m, arm=a: self._on_image(arm, m)),
                     qos_profile_sensor_data)
+
+    def _on_sim_js(self, m):
+        for a in ARMS:
+            self.sim[a].update(m.name, m.position)
+
+    def _on_real_js(self, m):
+        for a in ARMS:
+            self.real[a].update(m.name, m.position)
+
+    def _on_tf(self, msg, static):
+        for t in msg.transforms:
+            try:
+                if static:
+                    self.buf.set_transform_static(t, "srl_gui")
+                else:
+                    self.buf.set_transform(t, "srl_gui")
+            except Exception:                                 # noqa: BLE001
+                pass
+
+    def ee(self, which, arm):
+        """(x, y, z) of an end effector in `world`, or None.
+
+        `which` selects the frame PREFIX, not a separate tree: the real arm
+        lives in the same /tf under `real_*` frames (see the note above).
+
+        None is returned for EVERY failure -- missing frame, broken chain,
+        extrapolation. It must never fall back to a previous value: a stale
+        transform is exactly the frozen-cache reading this GUI exists to make
+        impossible, and here it would land inside a DISTANCE, where it looks
+        like excellent tracking.
+        """
+        frame = ("%s_end_effector_link" % arm if which == "sim"
+                 else "real_%s_end_effector_link" % arm)
+        try:
+            tr = self.buf.lookup_transform("world", frame, rclpy.time.Time())
+        except Exception:                                     # noqa: BLE001
+            return None
+        v = tr.transform.translation
+        return (v.x, v.y, v.z)
+
+    def _read_lag_trip(self):
+        if self.lag_trip_src.startswith("bridge"):
+            return
+        from rcl_interfaces.srv import GetParameters
+        for node in ("/sim_to_real_bridge_left", "/sim_to_real_bridge"):
+            cli = self.create_client(GetParameters, "%s/get_parameters" % node)
+            if not cli.service_is_ready():
+                continue
+            req = GetParameters.Request()
+            req.names = ["lag_trip_rad"]
+            fut = cli.call_async(req)
+
+            def done(f, node=node):
+                try:
+                    v = f.result().values[0].double_value
+                except Exception:                             # noqa: BLE001
+                    return
+                if v > 0:
+                    self.lag_trip = float(v)
+                    self.lag_trip_src = "bridge %s" % node
+                    self.note("lag_trip_rad = %.3f read from %s" % (v, node))
+            fut.add_done_callback(done)
+            return
 
     def _on_image(self, arm, msg):
         self.cam[arm].on_frame(msg.width, msg.height, msg.encoding)
-        # Keep the RAW buffer and convert on the GUI thread only when it will
-        # actually be painted. Converting here would spend ROS-thread time on
-        # frames the GUI is about to discard as stale.
+        # Keep the RAW buffer; convert on the GUI thread only when it will
+        # actually be painted, so ROS-thread time is not spent on frames the
+        # GUI is about to discard as stale.
         self.cam_img[arm] = (msg.width, msg.height, msg.encoding,
                              bytes(msg.data), msg.step)
 
     def _set(self, k, v):
         self._d[k] = (v, time.monotonic())
 
-    def _publish_snapshot(self):
-        # ONE dict, rebound atomically. The GUI thread only ever reads the
-        # binding, so it can never observe a half-updated view.
+    # ----------------------------------------------------------- snapshot
+    def _snapshot(self):
         s = {k: v for k, v in self._d.items()}
         s["t"] = time.monotonic()
         s["topics"] = {t for t, _ in self.get_topic_names_and_types()}
@@ -162,19 +302,116 @@ class Bus(Node):
                         self.cam[a].show_image(), self.cam[a].hz())
                     for a in ARMS}
         s["cam_img"] = dict(self.cam_img)
+        # The sim is "moving" if any sim joint changed recently. Passed to
+        # compare() so a STILL real arm beside a STILL sim arm is not called
+        # frozen -- a false FROZEN costs a glance, a missed one costs the
+        # belief that the arm is tracking.
+        s["div"] = {}
+        for a in ARMS:
+            ca = self.sim[a].change_age()
+            moving = (ca is not None and ca < 1.0)
+            r = dv.compare(self.sim[a], self.real[a], dv.joint_names(a),
+                           sim_is_moving=moving)
+            # EE distance is attached even when the joint comparison failed,
+            # because the two can fail independently: TF can be healthy while
+            # a joint is missing from the message, and vice versa. It is only
+            # DISPLAYED on a measured row, but computing it regardless keeps
+            # the two failures separable in the snapshot.
+            r.ee_m, r.ee_reason = dv.ee_distance(self.ee("sim", a),
+                                                 self.ee("real", a))
+            s["div"][a] = r
+        s["lag_trip"] = self.lag_trip
+        s["lag_trip_src"] = self.lag_trip_src
+        s["log"] = list(self.log[-6:])
         self.snap = s
 
+    def note(self, text, bad=False):
+        self.log.append((time.strftime("%H:%M:%S"), text, bad))
+        (self.get_logger().error if bad else self.get_logger().info)(text)
+
+    # ------------------------------------------------------------ actions
     def submit(self, fn):
         self._q.append(fn)
 
     def _drain(self):
         while self._q:
+            fn = self._q.pop(0)
             try:
-                self._q.pop(0)()
+                fn()
             except Exception as e:                            # noqa: BLE001
-                self.get_logger().error("action failed: %r" % (e,))
+                self.note("action failed: %r" % (e,), bad=True)
+
+    def publish_once(self, msg_type, topic, value):
+        p = self.create_publisher(msg_type, topic, 10)
+        m = msg_type()
+        m.data = value
+        p.publish(m)
+
+    def call_trigger(self, name):
+        cli = self.create_client(Trigger, name)
+        if not cli.service_is_ready():
+            # NEVER wait_for_service HERE. Blocking the ROS thread on a
+            # service that may not exist is the 4-second e-stop stall, and
+            # this thread also carries the e-stop's own publish.
+            self.note("%s: service not present -- nothing was sent" % name,
+                      bad=True)
+            return
+        fut = cli.call_async(Trigger.Request())
+        fut.add_done_callback(
+            lambda f: self.note("%s -> %s" % (name, _res(f))))
+
+    def set_param(self, node, name, value):
+        """Parameter CLIENT, read back, and LOUD on failure.
+
+        `ros2 param set` goes through the ros2 daemon, which hangs on this box
+        and has reported success it had not earned. A silent failure here
+        means the operator believes a limit was applied when it was not.
+        """
+        cli = self.create_client(SetParameters, "%s/set_parameters" % node)
+        if not cli.service_is_ready():
+            self.note("%s: no set_parameters service -- %s UNCHANGED"
+                      % (node, name), bad=True)
+            return
+        p = Parameter()
+        p.name = name
+        v = ParameterValue()
+        if isinstance(value, bool):
+            v.type = ParameterType.PARAMETER_BOOL
+            v.bool_value = value
+        else:
+            v.type = ParameterType.PARAMETER_DOUBLE
+            v.double_value = float(value)
+        p.value = v
+        req = SetParameters.Request()
+        req.parameters = [p]
+        fut = cli.call_async(req)
+
+        def done(f):
+            try:
+                r = f.result().results[0]
+            except Exception as e:                            # noqa: BLE001
+                self.note("%s %s FAILED: %r -- value UNCHANGED"
+                          % (node, name, e), bad=True)
+                return
+            if r.successful:
+                self.note("%s %s -> %s" % (node, name, value))
+            else:
+                self.note("%s %s REFUSED (%s) -- value UNCHANGED"
+                          % (node, name, r.reason), bad=True)
+        fut.add_done_callback(done)
 
 
+def _res(f):
+    try:
+        r = f.result()
+        return "%s %s" % ("ok" if r.success else "FAILED", r.message)
+    except Exception as e:                                    # noqa: BLE001
+        return "error %r" % (e,)
+
+
+# ===========================================================================
+#  WIDGETS
+# ===========================================================================
 class Ind(QLabel):
     """One indicator: caption, value, and a colour that means something."""
 
@@ -183,9 +420,11 @@ class Ind(QLabel):
         self.caption = caption
         self.setFont(helvetica(11))
         self.setTextFormat(Qt.RichText)
-        self.set("--", C_MUTED, "no data")
+        self.value = "--"
+        self.set("--", C_UNKNOWN, "no data")
 
     def set(self, value, colour=C_TEXT, note=""):
+        self.value, self.colour, self.note = value, colour, note
         self.setText(
             "<span style='color:%s;font-size:10px'>%s</span><br>"
             "<span style='color:%s;font-size:15px;font-weight:600'>%s</span>"
@@ -193,13 +432,50 @@ class Ind(QLabel):
             % (C_MUTED, self.caption, colour, value, C_MUTED, note))
 
 
+class Dial(QWidget):
+    """Precision <-> speed, one slider, with the settings it implies shown."""
+
+    def __init__(self, on_change):
+        super().__init__()
+        v = QVBoxLayout(self)
+        v.setContentsMargins(0, 0, 0, 0)
+        row = QHBoxLayout()
+        row.addWidget(QLabel("PRECISION"))
+        self.s = QSlider(Qt.Horizontal)
+        self.s.setRange(0, 100)
+        self.s.setValue(100)
+        self.s.sliderReleased.connect(lambda: on_change(self.s.value() / 100.0))
+        row.addWidget(self.s, 1)
+        row.addWidget(QLabel("SPEED"))
+        v.addLayout(row)
+        self.lbl = QLabel()
+        self.lbl.setFont(helvetica(9))
+        self.lbl.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.lbl)
+        self.s.valueChanged.connect(self._show)
+        self._show(100)
+
+    def _show(self, x):
+        st = ps.settings(x / 100.0)
+        self.lbl.setText(
+            "scale %.2f   ema %.2f   vmax %.2f rad/s   step %.2f rad"
+            % (st["scale"], st["ema_alpha"], st["max_vel_rad_s"],
+               st["max_step_rad"]))
+
+
+# ===========================================================================
+#  MAIN WINDOW
+# ===========================================================================
 class Gui(QMainWindow):
 
-    def __init__(self, bus):
+    def __init__(self, bus, args):
         super().__init__()
         self.bus = bus
-        self.rviz = None
-        self.setWindowTitle("SRL operations")
+        self.args = args
+        self.rviz = []                  # [(name, Popen)]
+        self.embedded = {}              # key -> (QWindow, container)
+        self.jobs = []                  # [(label, Popen)]
+        self.setWindowTitle("SRL operations -- commanded | actual")
         self.setFont(helvetica(11))
         pal = self.palette()
         pal.setColor(QPalette.Window, QColor(C_BG))
@@ -207,53 +483,95 @@ class Gui(QMainWindow):
 
         root = QWidget()
         outer = QVBoxLayout(root)
-        outer.setContentsMargins(10, 8, 10, 8)
+        outer.setContentsMargins(8, 6, 8, 6)
 
         self.banner = QLabel()
         self.banner.setFont(helvetica(16, True))
         self.banner.setAlignment(Qt.AlignCenter)
         outer.addWidget(self.banner)
 
-        body = QHBoxLayout()
-        outer.addLayout(body, 1)
+        self.split = QSplitter(Qt.Horizontal)
+        outer.addWidget(self.split, 1)
+        self.split.addWidget(self._left_column())
+        self.split.addWidget(self._right_column())
+        self.split.setStretchFactor(0, 0)
+        self.split.setStretchFactor(1, 1)
+        # The left column must NOT be collapsible. Once a foreign RViz window
+        # is reparented, its own natural size becomes the container's size
+        # hint -- two of them ask for ~2400 px and the splitter obliges by
+        # squeezing this column to ZERO. Measured: the first screenshot showed
+        # RViz covering the banner, controls, cameras, indicators AND the
+        # divergence readout, i.e. every panel the GUI exists to show.
+        self.split.setCollapsible(0, False)
+        self.split.setSizes([540, 1360])
 
-        left = QVBoxLayout()
-        body.addLayout(left, 0)
-        # THE CAMERAS GO FIRST. For a remote operator this is the only view
-        # of the workspace at all: every other panel describes the ROBOT, and
-        # the arms are on somebody else's back. Placed last it fell below the
-        # fold on a 950 px display, which for the single most important panel
-        # is a real defect rather than a cosmetic one.
-        campanel = QGroupBox("Wrist cameras")
+        outer.addLayout(self._bottom_bar())
+        self.setCentralWidget(root)
+        self.resize(1900, 1040)
+
+        self._ft = []
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.refresh)
+        self.timer.start(100)
+        QTimer.singleShot(400, self.start_rviz)
+        # ALWAYS dump geometry, including with --no-rviz. The pixel proof
+        # needs the panel rectangles and refuses to guess regions without
+        # them; scheduling this only on the RViz paths meant the one case
+        # that isolates the GUI's OWN panels could not be verified at all.
+        QTimer.singleShot(3000, self._dump_geometry)
+        # And print the frame statistics periodically, so a measurement
+        # harness can read them without OCR-ing the status bar.
+        self.stat_timer = QTimer(self)
+        self.stat_timer.timeout.connect(
+            lambda: print(self.frame_lbl.text(), flush=True))
+        self.stat_timer.start(5000)
+
+    # ---------------------------------------------------------- left column
+    def _left_column(self):
+        host = QScrollArea()
+        host.setWidgetResizable(True)
+        host.setMinimumWidth(516)
+        inner = QWidget()
+        col = QVBoxLayout(inner)
+
+        # THE CAMERAS GO FIRST. For a remote operator this is the only view of
+        # the workspace at all: every other panel describes the ROBOT, and the
+        # arms are on somebody else's back. Placed last it fell below the fold
+        # on a 950 px display, which for the single most important panel is a
+        # real defect rather than a cosmetic one.
+        campanel = QGroupBox("Wrist cameras (subscribed, never opened)")
         campanel.setFont(helvetica(11, True))
         cl = QHBoxLayout(campanel)
         self.cam_lbl, self.cam_cap = {}, {}
         for a in ARMS:
-            col = QVBoxLayout()
-            name = QLabel(a.upper())
-            name.setFont(helvetica(10, True))
-            name.setAlignment(Qt.AlignCenter)
+            c = QVBoxLayout()
+            nm = QLabel(a.upper())
+            nm.setFont(helvetica(10, True))
+            nm.setAlignment(Qt.AlignCenter)
             img = QLabel()
-            img.setMinimumSize(260, 195)
+            img.setMinimumSize(196, 150)
             img.setAlignment(Qt.AlignCenter)
             img.setStyleSheet("background:#111;color:#bbb;border:1px solid #999")
             cap = QLabel()
             cap.setFont(helvetica(9))
             cap.setAlignment(Qt.AlignCenter)
-            col.addWidget(name)
-            col.addWidget(img)
-            col.addWidget(cap)
-            cl.addLayout(col)
+            c.addWidget(nm)
+            c.addWidget(img)
+            c.addWidget(cap)
+            cl.addLayout(c)
             self.cam_lbl[a], self.cam_cap[a] = img, cap
-        left.addWidget(campanel)
+        col.addWidget(campanel)
+
+        col.addWidget(self._controls())
+        col.addWidget(self._launchers())
 
         self.ind = {}
         for title, keys in (
-            ("Master", ("capability_left", "capability_right",
-                        "channels")),
+            ("Master", ("capability_left", "capability_right", "channels",
+                        "clutch")),
             ("Scene", ("fingerprint", "detector_left", "detector_right")),
             ("Mode", ("mode", "autonomy", "intent")),
-            ("Target", ("reachable", "clearance_left", "clearance_right")),
+            ("Target", ("gripper", "clearance_left", "clearance_right")),
             ("Safety", ("estop", "blockers", "ik_left", "ik_right")),
         ):
             g = QGroupBox(title)
@@ -263,20 +581,171 @@ class Gui(QMainWindow):
                 w = Ind(k.replace("_", " "))
                 self.ind[k] = w
                 gl.addWidget(w, i // 2, i % 2)
-            left.addWidget(g)
-        left.addStretch(1)
+            col.addWidget(g)
 
+        self.eventlog = QLabel()
+        self.eventlog.setFont(helvetica(9))
+        self.eventlog.setWordWrap(True)
+        self.eventlog.setStyleSheet("color:%s" % C_MUTED)
+        lg = QGroupBox("Recent actions")
+        lg.setFont(helvetica(11, True))
+        QVBoxLayout(lg).addWidget(self.eventlog)
+        col.addWidget(lg)
 
-        self.viz_host = QWidget()
-        self.viz_host.setMinimumSize(720, 520)
-        vl = QVBoxLayout(self.viz_host)
-        vl.setContentsMargins(0, 0, 0, 0)
-        self.viz_msg = QLabel("starting RViz...")
-        self.viz_msg.setAlignment(Qt.AlignCenter)
-        self.viz_msg.setFont(helvetica(12))
-        vl.addWidget(self.viz_msg)
-        body.addWidget(self.viz_host, 1)
+        col.addStretch(1)
+        host.setWidget(inner)
+        return host
 
+    def _controls(self):
+        g = QGroupBox("Controls")
+        g.setFont(helvetica(11, True))
+        v = QVBoxLayout(g)
+
+        self.dial = Dial(self.on_dial)
+        v.addWidget(self.dial)
+
+        row = QHBoxLayout()
+        self.force_clutch = QCheckBox("force clutch ENGAGED")
+        self.force_clutch.stateChanged.connect(self.on_force_clutch)
+        row.addWidget(self.force_clutch)
+        b = QPushButton("re-base anchor")
+        b.setToolTip("/master_rebase -- the next VALID frame becomes the "
+                     "reference. The bridge calls this when it enables.")
+        b.clicked.connect(lambda: self.bus.submit(
+            lambda: self.bus.call_trigger("/master_rebase")))
+        row.addWidget(b)
+        v.addLayout(row)
+
+        self.scale = {}
+        for a in ARMS:
+            r = QHBoxLayout()
+            r.addWidget(QLabel("%s scale" % a))
+            s = QSlider(Qt.Horizontal)
+            s.setRange(20, 200)
+            s.setValue(100)
+            lab = QLabel("1.00")
+            lab.setFont(helvetica(10))
+            s.valueChanged.connect(lambda x, l=lab: l.setText("%.2f" % (x / 100.0)))
+            s.sliderReleased.connect(
+                lambda a=a, s=s: self.on_scale(a, s.value() / 100.0))
+            r.addWidget(s, 1)
+            r.addWidget(lab)
+            v.addLayout(r)
+            self.scale[a] = s
+
+        r = QHBoxLayout()
+        for lbl, fn in (("release LEFT grip", lambda: self.on_release("left")),
+                        ("release RIGHT grip", lambda: self.on_release("right"))):
+            b = QPushButton(lbl)
+            b.clicked.connect(fn)
+            r.addWidget(b)
+        v.addLayout(r)
+        return g
+
+    def _launchers(self):
+        g = QGroupBox("Launch")
+        g.setFont(helvetica(11, True))
+        v = QVBoxLayout(g)
+        self.specs = gls.all_specs()
+        gls.validate(self.specs)
+        self.buttons = {}
+        for group, title in (("mode", "Modes"), ("task", "Tasks"),
+                             ("diag", "Diagnostics")):
+            lab = QLabel(title)
+            lab.setFont(helvetica(10, True))
+            v.addWidget(lab)
+            grid = QGridLayout()
+            items = [s for s in self.specs if s.group == group]
+            for i, s in enumerate(items):
+                b = QPushButton(s.label)
+                b.setFont(helvetica(10))
+                if s.enabled:
+                    b.setToolTip(s.note)
+                    b.clicked.connect(lambda _, sp=s: self.on_launch(sp))
+                else:
+                    # DISABLED WITH THE REASON ON IT. A button that exits 2 on
+                    # press looks exactly like one that launched something
+                    # invisible; a greyed button with a sentence does not.
+                    b.setEnabled(False)
+                    b.setToolTip(s.disabled_reason)
+                    b.setText(s.label + "  (unavailable)")
+                grid.addWidget(b, i // 2, i % 2)
+                self.buttons[s.key] = b
+            v.addLayout(grid)
+        b = QPushButton("stop all launched jobs")
+        b.clicked.connect(self.on_stop_jobs)
+        v.addWidget(b)
+        return g
+
+    # --------------------------------------------------------- right column
+    def _right_column(self):
+        w = QWidget()
+        v = QVBoxLayout(w)
+        v.setContentsMargins(0, 0, 0, 0)
+
+        self.viz_split = QSplitter(Qt.Horizontal)
+        self.viz_host = {}
+        self.viz_msg = {}
+        # DEFAULT IS ONE PANEL WITH THE COMMANDED ARM GHOSTED OVER THE ACTUAL
+        # ONE, and that is a measurement result rather than a preference. Two
+        # embedded RViz windows do not clip to their containers on this
+        # display stack, so they paint over each other and over every
+        # indicator (screenshotted). The overlay is also the better answer to
+        # the question the panels exist for: the operator sees the GAP in one
+        # 3-D scene instead of comparing two viewports by eye, and it costs
+        # ~294 MB less. --dual-rviz opts back in where a window manager runs.
+        panels = ([("commanded", "COMMANDED  --  sim, driven by the active mode"),
+                   ("actual", "ACTUAL  --  real arms (real_* frames)")]
+                  if getattr(self.args, "dual_rviz", False) else
+                  [("overlay",
+                    "COMMANDED (solid) ghosted over ACTUAL (translucent)")])
+        for key, title in panels:
+            box = QGroupBox(title)
+            box.setFont(helvetica(11, True))
+            bl = QVBoxLayout(box)
+            bl.setContentsMargins(2, 2, 2, 2)
+            host = QWidget()
+            host.setMinimumSize(600, 420)
+            hl = QVBoxLayout(host)
+            hl.setContentsMargins(0, 0, 0, 0)
+            msg = QLabel("starting RViz...")
+            msg.setAlignment(Qt.AlignCenter)
+            msg.setFont(helvetica(12))
+            hl.addWidget(msg)
+            bl.addWidget(host)
+            self.viz_host[key], self.viz_msg[key] = host, msg
+            self.viz_split.addWidget(box)
+        v.addWidget(self.viz_split, 1)
+        v.addWidget(self._divergence_panel())
+        return w
+
+    def _divergence_panel(self):
+        g = QGroupBox("Divergence: commanded vs actual")
+        g.setFont(helvetica(11, True))
+        grid = QGridLayout(g)
+        self.div_head = QLabel()
+        self.div_head.setFont(helvetica(10))
+        grid.addWidget(self.div_head, 0, 0, 1, 10)
+        self.div_max, self.div_ee, self.div_state, self.div_joint = {}, {}, {}, {}
+        for r, a in enumerate(ARMS):
+            grid.addWidget(QLabel(a.upper()), r + 1, 0)
+            self.div_state[a] = QLabel()
+            self.div_state[a].setFont(helvetica(11, True))
+            grid.addWidget(self.div_state[a], r + 1, 1)
+            self.div_max[a] = QLabel()
+            self.div_max[a].setFont(helvetica(13, True))
+            grid.addWidget(self.div_max[a], r + 1, 2)
+            self.div_ee[a] = QLabel()
+            self.div_ee[a].setFont(helvetica(13, True))
+            grid.addWidget(self.div_ee[a], r + 1, 3)
+            self.div_joint[a] = QLabel()
+            self.div_joint[a].setFont(helvetica(9))
+            self.div_joint[a].setStyleSheet("color:%s" % C_MUTED)
+            grid.addWidget(self.div_joint[a], r + 1, 4, 1, 6)
+        grid.setColumnStretch(4, 1)
+        return g
+
+    def _bottom_bar(self):
         bar = QHBoxLayout()
         self.estop_btn = QPushButton("E-STOP")
         self.estop_btn.setFont(helvetica(14, True))
@@ -284,106 +753,467 @@ class Gui(QMainWindow):
             "background:%s;color:white;padding:10px;" % C_BAD)
         self.estop_btn.clicked.connect(self.on_estop)
         bar.addWidget(self.estop_btn)
+        b = QPushButton("reset e-stop")
+        b.clicked.connect(self.on_estop_reset)
+        bar.addWidget(b)
+        b = QPushButton("SELF-TEST indicators")
+        b.setToolTip("Drive synthetic bad data through the real formatters "
+                     "and require every indicator to change. Proves 'all "
+                     "clear' is a reading and not a stuck widget.")
+        b.clicked.connect(self.on_self_test)
+        bar.addWidget(b)
+        self.selftest_lbl = QLabel()
+        self.selftest_lbl.setFont(helvetica(10, True))
+        bar.addWidget(self.selftest_lbl)
+        bar.addStretch(1)
         self.frame_lbl = QLabel()
         self.frame_lbl.setFont(helvetica(10))
         bar.addWidget(self.frame_lbl)
-        bar.addStretch(1)
-        outer.addLayout(bar)
+        return bar
 
-        self.setCentralWidget(root)
-        self.resize(1500, 900)
-
-        self._ft = []
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.refresh)
-        self.timer.start(100)
-        QTimer.singleShot(500, self.start_rviz)
-
-    # ------------------------------------------------------------- rviz
+    # ---------------------------------------------------------------- rviz
     def start_rviz(self):
-        # --no-rviz exists for capture and for headless checks. The embedded
-        # RViz is a separate top-level X window until it is reparented, and
-        # during that window it covers the host -- which defeated every
-        # screenshot attempt at the camera panel.
-        if "--no-rviz" in sys.argv:
-            self.viz_msg.setText("RViz embedding disabled (--no-rviz)")
+        """Start RViz. NOT EMBEDDED BY DEFAULT, and that is a measurement.
+
+        X11 reparenting via QWindow.fromWinId + createWindowContainer does
+        embed -- the container is created, the window moves when told to --
+        but on this display stack it is NOT CLIPPED to the container. Verified
+        from screenshots: RViz rendered at its own 1595x995 over the top-left
+        of the GUI, covering the banner, the wrist cameras, every indicator
+        group and the divergence readout, while the Qt layout underneath was
+        perfectly correct (the geometry dump put each panel exactly where it
+        belonged). With two instances they also paint over each other.
+
+        Clipping a reparented foreign window is the window manager's job and
+        none is installed here, so this is reported rather than worked around.
+        RViz therefore runs as its own top-level window -- which is how every
+        other tool in this repository uses it -- carrying the SAME ghost
+        config, so the commanded arm is still drawn over the actual one. The
+        GUI's own window then reliably shows the things only it provides: the
+        cameras, the controls, the launchers and the divergence readout.
+
+        --embed-rviz opts into reparenting where a window manager makes it
+        behave.
+        """
+        if self.args.no_rviz:
+            for k in self.viz_msg:
+                self.viz_msg[k].setText("RViz disabled (--no-rviz)")
             return
-        cfg = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "src/srl_experiments/config/verification_capture.rviz")
-        cmd = ["rviz2"] + (["-d", cfg] if os.path.exists(cfg) else [])
+        if not getattr(self.args, "embed_rviz", False):
+            key = list(self.viz_msg.keys())[0]
+            cfg = self._rviz_config(key)
+            try:
+                p = subprocess.Popen(["rviz2", "-d", cfg],
+                                     stdout=subprocess.DEVNULL,
+                                     stderr=subprocess.DEVNULL)
+                self.rviz.append((key, p))
+            except FileNotFoundError:
+                self.viz_msg[key].setText("rviz2 not on PATH")
+                return
+            for k, m in self.viz_msg.items():
+                m.setText(
+                    "RViz runs as a SEPARATE WINDOW (not embedded).\n\n"
+                    "It carries the ghost config: the COMMANDED arm solid,\n"
+                    "the ACTUAL arm translucent, in one scene.\n\n"
+                    "Embedding is available with --embed-rviz, but on a host\n"
+                    "with no window manager the reparented window is not\n"
+                    "clipped and covers this GUI's own panels.")
+                m.setStyleSheet("color:%s" % C_MUTED)
+            QTimer.singleShot(2000, self._dump_geometry)
+            return
+        self._pending = list(self.viz_msg.keys())
+        self._launch_next_rviz()
+
+    def _launch_next_rviz(self):
+        if not self._pending:
+            return
+        key = self._pending[0]
+        cfg = self._rviz_config(key)
+        # DIFF THE WINDOW LIST AROUND THE LAUNCH. Both instances present as
+        # "RViz"; matching on the title would reparent whichever appeared
+        # first into both panels, and the second panel would sit empty while
+        # looking like an embedding failure.
+        self._before = self._rviz_windows()
+        # NO TF REMAP. Both robots are in the same /tf; the real one is told
+        # apart by its `real_` frame prefix and by the fixed frame in the
+        # generated config. Remapping to /real/tf -- which the brief names and
+        # which does not exist -- would leave this panel permanently empty.
+        argv = ["rviz2", "-d", cfg]
         try:
-            self.rviz = subprocess.Popen(cmd, stdout=subprocess.DEVNULL,
-                                         stderr=subprocess.DEVNULL)
+            p = subprocess.Popen(argv, stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
         except FileNotFoundError:
-            self.viz_msg.setText("rviz2 not on PATH")
+            self.viz_msg[key].setText("rviz2 not on PATH")
+            self._pending.pop(0)
+            QTimer.singleShot(200, self._launch_next_rviz)
             return
-        self._rviz_tries = 0
-        QTimer.singleShot(1200, self._try_embed)
+        self.rviz.append((key, p))
+        self._tries = 0
+        QTimer.singleShot(1500, self._try_embed)
 
     def _try_embed(self):
-        self._rviz_tries += 1
-        wid = self._find_rviz_window()
-        if wid is None:
-            if self._rviz_tries > 30:
+        if not self._pending:
+            return
+        key = self._pending[0]
+        self._tries += 1
+        new = self._rviz_windows() - self._before
+        if not new:
+            if self._tries > 30:
                 # Fall back with a REASON rather than an empty panel. An empty
                 # panel is indistinguishable from a working one showing
-                # nothing, which is the failure this whole GUI exists to make
-                # impossible elsewhere.
-                self.viz_msg.setText(
-                    "RViz did not present an X window in 36 s.\n"
+                # nothing, which is the failure this GUI exists to prevent.
+                self.viz_msg[key].setText(
+                    "RViz did not present an X window in 45 s.\n"
                     "Embedding needs an X11 (or XWayland) session.\n"
                     "Run rviz2 separately; every indicator here still works.")
+                self._pending.pop(0)
+                QTimer.singleShot(300, self._launch_next_rviz)
                 return
-            QTimer.singleShot(1200, self._try_embed)
+            QTimer.singleShot(1500, self._try_embed)
             return
+        wid = sorted(new)[0]
         foreign = QWindow.fromWinId(wid)
-        container = QWidget.createWindowContainer(foreign, self.viz_host)
-        self.viz_msg.hide()
-        self.viz_host.layout().addWidget(container)
+        container = QWidget.createWindowContainer(foreign, self.viz_host[key])
+        # IGNORED SIZE POLICY IS LOAD-BEARING, not tidying. The container
+        # inherits the foreign window's geometry as its size hint; Ignored
+        # tells Qt to disregard that hint entirely and give the widget
+        # whatever the layout allots. Without it the two RViz windows push
+        # every other panel out of the window (verified from a screenshot,
+        # not from a return code).
+        container.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        container.setMinimumSize(160, 120)
+        self.viz_msg[key].hide()
+        self.viz_host[key].layout().addWidget(container)
+        # KEEP THE FOREIGN WINDOW THE SIZE OF ITS CONTAINER, ACTIVELY.
+        # Reparenting a foreign window does NOT make Qt manage its geometry:
+        # measured, the embedded rviz2 kept its own 1595x995 and painted over
+        # the banner, the cameras, the indicators and the divergence readout,
+        # while the Qt layout underneath was perfectly correct (the geometry
+        # dump put the panels exactly where they belonged). The container is
+        # in the right place; the X window simply was not in the container.
+        # Re-asserted every refresh rather than once, because RViz resizes
+        # itself when its own docks change.
+        self.embedded[key] = (foreign, container)
+        self._pending.pop(0)
+        # Re-assert the split AFTER embedding, because the container is what
+        # disturbed it.
+        self.split.setSizes([540, max(600, self.width() - 540)])
+        QTimer.singleShot(600, self._launch_next_rviz)
+        QTimer.singleShot(1500, self._dump_geometry)
+
+    def _rviz_config(self, key):
+        """Write a per-panel config.
+
+        The ACTUAL panel differs from the COMMANDED one in exactly two fields:
+        the RobotModel's description topic, and the fixed frame (`real_world`,
+        because every frame on that side carries the `real_` prefix).
+
+        THE DESCRIPTION TOPIC IS DISCOVERED, NOT ASSUMED. real_arms.launch.py
+        publishes /real/robot_description and mock_real.launch.py publishes
+        /realmock/robot_description, so hardcoding either gives an empty panel
+        against the other -- and an empty RViz panel is indistinguishable from
+        a failed embedding, which is the confusion this GUI exists to remove.
+        If neither is present the panel says so instead of rendering nothing.
+        """
+        try:
+            src = open(RVIZ_TEMPLATE).read()
+        except OSError:
+            src = ""
+        out = os.path.join(_scratch(), "srl_%s.rviz" % key)
+        if key == "overlay":
+            src = self._ghost_config(src)
+        if key == "actual":
+            topics = self.bus.snap.get("topics", set())
+            desc = next((t for t in ("/real/robot_description",
+                                     "/realmock/robot_description")
+                         if t in topics), None)
+            self.bus.real_desc_topic = desc
+            if desc is None:
+                self.bus.note("no real robot_description topic "
+                              "(/real/... or /realmock/...) -- the ACTUAL "
+                              "panel will show TF only", bad=True)
+                desc = "/real/robot_description"
+            src = src.replace("Value: /robot_description", "Value: %s" % desc)
+            src = src.replace("Fixed Frame: world", "Fixed Frame: real_world")
+        with open(out, "w") as fh:
+            fh.write(src)
+        return out
+
+    def _dump_geometry(self):
+        """Write where each panel actually IS, in root-window pixels.
+
+        The pixel proof needs regions to crop, and hardcoding them is a guess
+        that goes stale the moment the layout changes -- the first version
+        guessed, and mislabelled a perfectly good control column as empty
+        because the box was in the wrong place. Asking the widgets where they
+        are makes the check follow the layout instead of arguing with it.
+        """
+        try:
+            out = {}
+            for name, w in [("commanded", self.viz_host.get("commanded")),
+                            ("actual", self.viz_host.get("actual")),
+                            ("overlay", self.viz_host.get("overlay")),
+                            ("controls", self.split.widget(0)),
+                            ("divergence", self.div_head.parentWidget())]:
+                if w is None:
+                    continue
+                tl = w.mapToGlobal(w.rect().topLeft())
+                out[name] = [tl.x(), tl.y(), tl.x() + w.width(),
+                             tl.y() + w.height()]
+            with open(os.path.join(_scratch(), "srl_gui_geometry.json"),
+                      "w") as fh:
+                json.dump(out, fh)
+        except Exception as e:                                # noqa: BLE001
+            self.bus.note("geometry dump failed: %r" % (e,), bad=True)
+
+    def _ghost_config(self, src):
+        """Add a SECOND RobotModel for the real arm, translucent, same scene.
+
+        This is what makes one panel answer the two-panel question. Both
+        robots already live in one /tf tree -- the real one under `real_`
+        frames -- so RViz's own `TF Prefix` property on RobotModel is exactly
+        the right mechanism and no remapping is involved.
+
+        If no real description is being published the ghost is NOT added, and
+        the panel title says so. A translucent robot that is absent because
+        nothing is publishing looks identical to one that is absent because
+        the arms agree perfectly, which is the confusion this whole GUI
+        exists to remove.
+        """
+        topics = self.bus.snap.get("topics", set())
+        desc = next((t for t in ("/real/robot_description",
+                                 "/realmock/robot_description")
+                     if t in topics), None)
+        self.bus.real_desc_topic = desc
+        if desc is None:
+            self.bus.note("no real robot_description -- NO GHOST is drawn. "
+                          "The single robot on screen is the COMMANDED one; "
+                          "it is not an agreement between two.", bad=True)
+            return src
+        ghost = (
+            "    - Class: rviz_default_plugins/RobotModel\n"
+            "      Name: RobotModelACTUAL\n"
+            "      Enabled: true\n"
+            "      Description Source: Topic\n"
+            "      Description Topic:\n"
+            "        Depth: 5\n"
+            "        Durability Policy: Volatile\n"
+            "        History Policy: Keep Last\n"
+            "        Reliability Policy: Reliable\n"
+            "        Value: %s\n"
+            "      Visual Enabled: true\n"
+            "      Collision Enabled: false\n"
+            "      Alpha: 0.45\n"
+            "      TF Prefix: real_\n"
+            "      Update Interval: 0\n"
+            "      Value: true\n" % desc)
+        anchor = "    - Class: rviz_default_plugins/MarkerArray\n"
+        if anchor in src:
+            return src.replace(anchor, ghost + anchor, 1)
+        return src
 
     @staticmethod
-    def _find_rviz_window():
+    def _rviz_windows():
         try:
-            out = subprocess.run(["xwininfo", "-root", "-tree"],
-                                 capture_output=True, text=True,
-                                 timeout=6).stdout
+            o = subprocess.run(["xwininfo", "-root", "-tree"],
+                               capture_output=True, text=True, timeout=6).stdout
         except Exception:                                     # noqa: BLE001
-            return None
-        for line in out.splitlines():
+            return set()
+        ids = set()
+        for line in o.splitlines():
             if "RViz" in line or "rviz" in line:
                 m = re.search(r"(0x[0-9a-f]+)", line)
                 if m:
-                    return int(m.group(1), 16)
-        return None
+                    ids.add(int(m.group(1), 16))
+        return ids
 
-    # ---------------------------------------------------------- actions
+    # ------------------------------------------------------------- actions
     def on_estop(self):
-        def act():
-            from std_msgs.msg import Bool as B
-            p = self.bus.create_publisher(B, "/estop", 10)
-            m = B()
-            m.data = True
-            p.publish(m)
-        self.bus.submit(act)
+        self.bus.submit(lambda: (self.bus.publish_once(Bool, "/estop", True),
+                                 self.bus.note("E-STOP published")))
 
-    # ---------------------------------------------------------- refresh
+    def on_estop_reset(self):
+        # /estop_reset IS A SERVICE, NOT A TOPIC. Publishing a Bool at it once
+        # left the e-stop latched and made six subsequent fault injections
+        # report NOT HANDLED for that one reason.
+        self.bus.submit(lambda: self.bus.call_trigger("/estop_reset"))
+
+    def on_dial(self, d):
+        st = ps.settings(d)
+        ps.assert_safety_unconditional(st)     # raises if it moved anything safe
+        def act():
+            for a in ARMS:
+                self.bus.set_param("/master_pose_node", "%s_scale" % a,
+                                   st["scale"])
+                self.bus.set_param("/ik_follower_%s" % a, "max_vel_rad_s",
+                                   st["max_vel_rad_s"])
+                self.bus.set_param("/ik_follower_%s" % a, "max_step_rad",
+                                   st["max_step_rad"])
+            self.bus.set_param("/master_pose_node", "ema_alpha",
+                               st["ema_alpha"])
+        self.bus.submit(act)
+        for a in ARMS:
+            self.scale[a].setValue(int(round(st["scale"] * 100)))
+
+    def on_scale(self, arm, v):
+        self.bus.submit(lambda: self.bus.set_param(
+            "/master_pose_node", "%s_scale" % arm, v))
+
+    def on_force_clutch(self, state):
+        on = bool(state)
+        self.bus.submit(lambda: self.bus.set_param(
+            "/master_pose_node", "force_clutch_engaged", on))
+
+    def on_release(self, arm):
+        self.bus.submit(
+            lambda: self.bus.call_trigger("/gripper_release_%s" % arm))
+
+    def on_launch(self, spec):
+        fails = self._preflight(spec)
+        if fails:
+            self.bus.note("REFUSED %s: %s" % (spec.label, "; ".join(fails)),
+                          bad=True)
+            return
+        env = dict(os.environ, PYTHONUNBUFFERED="1")
+        try:
+            p = subprocess.Popen(spec.argv, env=env, start_new_session=True,
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
+        except Exception as e:                                # noqa: BLE001
+            self.bus.note("LAUNCH FAILED %s: %r" % (spec.label, e), bad=True)
+            return
+        self.jobs.append((spec.label, p))
+        self.bus.note("launched %s (pid %d)" % (spec.label, p.pid))
+        # A BUTTON THAT LAUNCHES A PROCESS WHICH IMMEDIATELY DIES MUST SAY SO.
+        # Five buttons in an earlier build exited 2 on press while appearing
+        # to launch, because nothing ever looked again.
+        QTimer.singleShot(2500, lambda: self._check_job(spec, p))
+
+    def _check_job(self, spec, p):
+        rc = p.poll()
+        if rc is not None and rc != 0:
+            self.bus.note("%s EXITED %d within 2.5 s -- it did not run"
+                          % (spec.label, rc), bad=True)
+
+    def _preflight(self, spec):
+        fails = []
+        s = self.bus.snap
+        topics = s.get("topics", set())
+        stack_up = _stack_pids() > 0
+        if spec.starts_stack and stack_up:
+            fails.append("a stack is already running (%d procs); two "
+                         "master_pose_node instances split the serial stream"
+                         % _stack_pids())
+        if spec.needs_stack and not stack_up:
+            fails.append("no stack is running")
+        if spec.needs_teensy and not _teensy():
+            fails.append("no /dev/ttyACM* -- the Teensy is not attached")
+        if spec.needs_real and "/real/joint_states" not in topics:
+            fails.append("no /real/joint_states -- the real stack is not up")
+        return fails
+
+    def on_stop_jobs(self):
+        n = 0
+        for label, p in self.jobs:
+            if p.poll() is None:
+                try:
+                    os.killpg(os.getpgid(p.pid), 2)     # SIGINT to the group
+                    n += 1
+                except Exception:                             # noqa: BLE001
+                    pass
+        self.jobs = []
+        self.bus.note("SIGINT to %d job(s)" % n)
+
+    # ----------------------------------------------------------- self test
+    def on_self_test(self):
+        """PROVE EVERY INDICATOR DISTINGUISHES 'NOTHING WRONG' FROM 'NOT CHECKED'.
+
+        This is the requirement the whole GUI is built to satisfy, made
+        executable. Three synthetic snapshots are pushed through the SAME
+        `refresh()` the live data uses, and each indicator is required to
+        render all of them differently where it can:
+
+            GOOD    healthy data on every topic
+            BAD     data present, and abnormal
+            ABSENT  nothing publishing at all
+
+        The two assertions and why each one is separate:
+
+          GOOD != ABSENT   the user's requirement literally. An indicator that
+                           renders the same thing for "measured and fine" and
+                           for "no publisher" is a lie in the calm direction,
+                           and it is exactly what "IK BLOCKED, 0% over zero
+                           attempts" was -- a stuck reading that pointed at
+                           the solver instead of at the missing input.
+          GOOD != BAD      that the formatter reacts to content at all.
+
+        BAD vs ABSENT is reported but NOT asserted, because for some
+        indicators absence IS the abnormality -- a detector that is not
+        publishing has no other way to be wrong -- and demanding a third
+        distinct rendering there would be demanding a distinction that does
+        not exist.
+
+        COMPARED ON (value, colour, NOTE). Dropping the note was the first
+        version's mistake: "--" purple "NO ATTEMPTS -- follower up, no poses
+        in" and "--" purple "no ik_status published" are different readings
+        that differ only in the note, and that difference is the entire point
+        of the indicator.
+        """
+        live = self.bus.snap
+        shots = {}
+        try:
+            for name, snap in (("good", _good_snapshot()),
+                               ("bad", _bad_snapshot()),
+                               ("absent", _absent_snapshot())):
+                self.bus.snap = snap
+                self.refresh()
+                shots[name] = {k: (w.value, w.colour, w.note)
+                               for k, w in self.ind.items()}
+        finally:
+            self.bus.snap = live
+            self.refresh()
+
+        same_absent = sorted(k for k in shots["good"]
+                             if shots["good"][k] == shots["absent"][k])
+        same_bad = sorted(k for k in shots["good"]
+                          if shots["good"][k] == shots["bad"][k])
+        info = sum(1 for k in shots["bad"]
+                   if shots["bad"][k] == shots["absent"][k])
+        n = len(shots["good"])
+
+        if same_absent or same_bad:
+            msg = []
+            if same_absent:
+                msg.append("healthy == NOT CHECKED for %s"
+                           % ", ".join(same_absent))
+            if same_bad:
+                msg.append("healthy == abnormal for %s" % ", ".join(same_bad))
+            self.selftest_lbl.setText("SELF-TEST FAILED: " + "; ".join(msg))
+            self.selftest_lbl.setStyleSheet("color:%s" % C_BAD)
+            self.bus.note("indicator self-test FAILED: %s" % "; ".join(msg),
+                          bad=True)
+            return False
+
+        self.selftest_lbl.setText(
+            "SELF-TEST PASS: %d/%d indicators separate healthy, abnormal and "
+            "NOT CHECKED (%d treat absence as the abnormality)"
+            % (n, n, info))
+        self.selftest_lbl.setStyleSheet("color:%s" % C_OK)
+        self.bus.note("indicator self-test PASS: %d indicators, %d treat "
+                      "absence as the abnormality" % (n, info))
+        return True
+
+    # ------------------------------------------------------------- refresh
     def refresh(self):
         t0 = time.perf_counter()
         s = self.bus.snap
         now = s.get("t", time.monotonic())
 
-        def age(key):
-            v = s.get(key)
-            return None if v is None else now - v[1]
-
         def val(key, default=None):
             v = s.get(key)
             return default if v is None else v[0]
 
-        stale = lambda k, lim=2.0: (age(k) is None or age(k) > lim)  # noqa
-
-        # ---- capability, per arm
+        # ---- capability
         for a in ARMS:
             k = "capability_%s" % a
             raw = val("cap_%s" % a)
@@ -395,54 +1225,98 @@ class Gui(QMainWindow):
                 except Exception:                             # noqa: BLE001
                     self.ind[k].set("?", C_UNKNOWN, "unparsable")
                     continue
-                col = (C_OK if d["key"] in ("FK", "SPHERICAL")
-                       else C_WARN if d["position_available"] else C_BAD)
+                col = (C_OK if d.get("key") in ("FK", "SPHERICAL")
+                       else C_WARN if d.get("position_available") else C_BAD)
                 cost = d.get("cost_m")
                 note = (("cost %.0f mm" % (1000 * cost["mean_m"]))
                         if cost else "cost unmeasured")
-                if not d["position_available"]:
+                if not d.get("position_available"):
                     note = "NO POSITION"
-                self.ind[k].set("%s %s" % (a[:1].upper(), d["key"]), col, note)
+                self.ind[k].set("%s %s" % (a[:1].upper(), d.get("key", "?")),
+                                col, note)
 
         raw = val("chan")
+        # The channel line now carries the baseline FILENAME when degraded, so
+        # the operator can see WHICH stored file is freezing channels without
+        # opening a log.
         self.ind["channels"].set(
             (raw or "--").split("|")[0].strip() if raw else "--",
-            C_MUTED if raw else C_UNKNOWN,
-            "master_pose_node" if raw else "not publishing")
+            (C_WARN if raw and "DEGRADED" in raw else C_MUTED) if raw
+            else C_UNKNOWN,
+            (raw.split("|")[-1].strip()[:38] if raw else "not publishing"))
 
-        # ---- scene fingerprint
+        # CLUTCH. "ENGAGED" is a SUBSTRING OF "DISENGAGED", so a containment
+        # test reports a disengaged clutch as engaged -- found by the
+        # indicator self-test, and the same shape as the `/blocking` substring
+        # match that reported every registered blocker as active. Word
+        # boundaries, and DISENGAGED is tested first.
+        clutch, engaged_any = [], False
+        for a in ARMS:
+            m = val("mstat_%s" % a)
+            u = a[0].upper()
+            if m is None:
+                clutch.append("%s?" % u)
+            elif re.search(r"\bDISENGAGED\b", str(m)):
+                clutch.append("%s-" % u)
+            elif re.search(r"\bENGAGED\b", str(m)):
+                clutch.append("%s+" % u)
+                engaged_any = True
+            else:
+                clutch.append("%s?" % u)
+        any_status = any(val("mstat_%s" % a) is not None for a in ARMS)
+        self.ind["clutch"].set(
+            " ".join(clutch),
+            (C_TEXT if engaged_any else C_WARN) if any_status else C_UNKNOWN,
+            "+ engaged / - disengaged" if any_status else "no /master_status_*")
+
+        # ---- scene
         raw = val("scene")
         if raw is None:
             self.ind["fingerprint"].set("--", C_UNKNOWN, "node not running")
         else:
-            d = json.loads(raw)
+            try:
+                d = json.loads(raw)
+            except Exception:                                 # noqa: BLE001
+                d = {}
             st = d.get("state", "?")
-            col = {"match_skip_calibration": C_OK,
-                   "registered": C_OK,
-                   "changed_reregistered": C_WARN,
-                   "sweeping": C_MUTED,
+            col = {"match_skip_calibration": C_OK, "registered": C_OK,
+                   "changed_reregistered": C_WARN, "sweeping": C_MUTED,
                    "sweep_invalid_no_detections": C_BAD}.get(st, C_UNKNOWN)
             self.ind["fingerprint"].set(
-                st.replace("_", " "), col,
+                str(st).replace("_", " "), col,
                 "%d object(s), %d drift flag(s)"
                 % (d.get("n_stored", 0), len(d.get("drift_flags", []))))
 
-        # ---- cameras, per arm: presence of the detection topic AND traffic
         topics = s.get("topics", set())
         for a in ARMS:
             t = "/perception/detections/%s" % a
-            if t not in topics:
-                self.ind["detector_%s" % a].set("absent", C_UNKNOWN,
-                                                "no detector publishing")
-            else:
-                self.ind["detector_%s" % a].set("present", C_OK, t)
+            self.ind["detector_%s" % a].set(
+                *(("present", C_OK, t) if t in topics
+                  else ("absent", C_UNKNOWN, "no detector publishing")))
 
         # ---- mode / autonomy / intent
-        vr = val("vr")
-        self.ind["mode"].set("VR" if vr else ("DIRECT" if val("chan")
-                                              else "--"),
-                             C_TEXT if (vr or val("chan")) else C_UNKNOWN,
-                             "from live publishers")
+        # MODE, from live publishers -- with CONFLICT as a real state. The
+        # project's rule is one source at a time (`autonomy_has_control`
+        # suppresses the master for exactly this reason), so two sources
+        # claiming the arm is a fault and not a display detail. Without this
+        # the indicator had no abnormal state at all and could not be shown
+        # to be reading anything.
+        vr, chan = val("vr"), val("chan")
+        auto = val("autonomy")
+        driving = [n for n, v in (("VR", vr), ("DIRECT", chan)) if v]
+        if auto:
+            try:
+                if json.loads(auto).get("stage") not in (None, "DIRECT", "IDLE"):
+                    driving.append("AUTONOMY")
+            except Exception:                                 # noqa: BLE001
+                pass
+        if len(driving) > 1:
+            self.ind["mode"].set("CONFLICT", C_BAD,
+                                 "%s all claim the arm" % "+".join(driving))
+        elif driving:
+            self.ind["mode"].set(driving[0], C_TEXT, "from live publishers")
+        else:
+            self.ind["mode"].set("--", C_UNKNOWN, "no source is publishing")
         au = val("autonomy")
         if au is None:
             self.ind["autonomy"].set("--", C_UNKNOWN, "no autonomy node")
@@ -460,7 +1334,27 @@ class Gui(QMainWindow):
                 C_UNKNOWN if p is None else (C_OK if p > 0.8 else C_WARN),
                 "top-1 confidence")
 
-        # ---- reachability and clearance, from ik_status
+        # ---- gripper reference (Part 3.2): startup verdict, per arm
+        g = val("grip")
+        if g is None:
+            self.ind["gripper"].set("--", C_UNKNOWN, "fsr_gripper_node absent")
+        else:
+            try:
+                d = json.loads(g)
+            except Exception:                                 # noqa: BLE001
+                d = {}
+            st = d.get("startup", {})
+            worst = ("no_feedback" if "no_feedback" in st.values() else
+                     "open_UNCONFIRMED" if "open_UNCONFIRMED" in st.values()
+                     else "holding" if "holding" in st.values()
+                     else "open_confirmed" if st else "?")
+            col = {"open_confirmed": C_OK, "holding": C_WARN,
+                   "open_UNCONFIRMED": C_BAD, "no_feedback": C_UNKNOWN,
+                   "pending": C_MUTED}.get(worst, C_UNKNOWN)
+            self.ind["gripper"].set(worst.replace("_", " "), col,
+                                    "open reference")
+
+        # ---- clearance
         for a in ARMS:
             v = val("ik_%s" % a)
             k = "clearance_%s" % a
@@ -468,20 +1362,17 @@ class Gui(QMainWindow):
                 self.ind[k].set("--", C_UNKNOWN, "no ik_status")
                 continue
             clr = v[5]
-            col = (C_UNKNOWN if clr < 0 else
-                   C_BAD if clr < 0.12 else C_WARN if clr < 0.20 else C_OK)
+            col = (C_UNKNOWN if clr < 0 else C_BAD if clr < 0.12
+                   else C_WARN if clr < 0.20 else C_OK)
             self.ind[k].set("--" if clr < 0 else "%.3f m" % clr, col,
                             "floor 0.12 m")
-        self.ind["reachable"].set(
-            "--", C_UNKNOWN, "set by the autonomy target check")
 
         # ---- safety
         es = val("estop")
-        self.ind["estop"].set("LATCHED" if es else ("clear" if es is not None
-                                                    else "--"),
-                              C_BAD if es else (C_TEXT if es is not None
-                                                else C_UNKNOWN),
-                              "/estop_state")
+        self.ind["estop"].set(
+            "LATCHED" if es else ("clear" if es is not None else "--"),
+            C_BAD if es else (C_TEXT if es is not None else C_UNKNOWN),
+            "/estop_state")
         bl = val("blocking")
         if bl is None:
             self.ind["blockers"].set("--", C_UNKNOWN,
@@ -489,34 +1380,149 @@ class Gui(QMainWindow):
         else:
             try:
                 d = json.loads(bl)
-                n = int(d.get("n_blocking", 0))
-                unk = int(d.get("state_unknown", 0))
+                n, unk = int(d.get("n_blocking", 0)), int(d.get("state_unknown", 0))
             except Exception:                                 # noqa: BLE001
                 n, unk = 0, 0
             self.ind["blockers"].set(
                 "%d" % n, C_BAD if n else (C_UNKNOWN if unk else C_TEXT),
                 "%d unknown" % unk)
+
+        # ---- IK. ZERO ATTEMPTS IS NOT ZERO PER CENT. This exact conflation
+        # -- "BLOCKED, 0% success" over no attempts -- pointed an operator at
+        # the solver instead of at the missing input, and it is why the
+        # attempt count is part of the reading rather than a footnote.
         for a in ARMS:
             v = val("ik_%s" % a)
             k = "ik_%s" % a
             if not v:
-                self.ind[k].set("--", C_UNKNOWN, "no ik_status")
-            else:
-                att, suc = (v[0] or 0), (v[1] or 0)
-                pct = 100.0 * suc / att if att else None
-                self.ind[k].set(
-                    "--" if pct is None else "%.0f%%" % pct,
-                    C_UNKNOWN if pct is None else
-                    (C_OK if pct > 90 else C_WARN if pct > 60 else C_BAD),
-                    "%d attempts" % att)
+                self.ind[k].set("--", C_UNKNOWN, "no ik_status published")
+                continue
+            att, suc = (v[0] or 0), (v[1] or 0)
+            if not att:
+                self.ind[k].set("--", C_UNKNOWN,
+                                "NO ATTEMPTS -- follower up, no poses in")
+                continue
+            pct = 100.0 * suc / att
+            self.ind[k].set(
+                "%.0f%%" % pct,
+                C_OK if pct > 90 else C_WARN if pct > 60 else C_BAD,
+                "%d attempts" % att)
 
-        # ---- wrist cameras
+        self._sync_embedded()
+        self._refresh_divergence(s)
+        self._refresh_cameras(s)
+
+        # ---- banner
+        if es:
+            self.banner.setText("E-STOP LATCHED")
+            self.banner.setStyleSheet("color:white;background:%s;padding:6px"
+                                      % C_BAD)
+        elif not topics:
+            self.banner.setText("no ROS graph")
+            self.banner.setStyleSheet("color:white;background:%s;padding:6px"
+                                      % C_UNKNOWN)
+        else:
+            self.banner.setText("running")
+            self.banner.setStyleSheet("color:%s;padding:6px" % C_MUTED)
+
+        self.eventlog.setText("<br>".join(
+            "<span style='color:%s'>%s %s</span>"
+            % (C_BAD if bad else C_MUTED, ts, txt)
+            for ts, txt, bad in reversed(s.get("log", []))))
+
+        dt = (time.perf_counter() - t0) * 1000.0
+        self._ft.append(dt)
+        self._ft = self._ft[-300:]
+        srt = sorted(self._ft)
+        self.frame_lbl.setText(
+            "frame %.2f ms   median %.2f   p95 %.2f   max %.2f   "
+            "(budget 100 ms)   rss %s"
+            % (dt, srt[len(srt) // 2], srt[int(len(srt) * 0.95)], srt[-1],
+               _rss()))
+
+    def _sync_embedded(self):
+        """Force each foreign RViz window onto its container's rectangle.
+
+        POSITIONED IN TOP-LEVEL COORDINATES, NOT (0, 0). Reparenting a foreign
+        window does not necessarily attach it to the container's own native
+        window -- measured here, `setPosition(0, 0)` put rviz2 at the top-left
+        of the WHOLE GUI, covering the banner, the cameras, the indicators and
+        the divergence readout, while the Qt layout underneath was correct
+        (the geometry dump put every panel exactly where it belonged). So the
+        target is the container's position mapped into the top-level window,
+        which is right whether the foreign window ended up parented to the
+        container or to the window.
+
+        Re-asserted rather than set once, because RViz resizes itself when its
+        docks change -- but only at 2 Hz and only on a mismatch: doing this
+        every 10 Hz frame pushed the median frame time from 2.5 ms to 10 ms.
+        """
+        now = time.monotonic()
+        if now - getattr(self, "_last_sync", 0.0) < 0.5:
+            return
+        self._last_sync = now
+        from PyQt5.QtCore import QPoint
+        for key, (win, cont) in list(self.embedded.items()):
+            try:
+                tl = cont.mapTo(self.window(), QPoint(0, 0))
+                if (win.size() != cont.size()
+                        or win.position() != tl):
+                    win.setPosition(tl)
+                    win.resize(max(1, cont.width()), max(1, cont.height()))
+            except Exception:                                 # noqa: BLE001
+                self.embedded.pop(key, None)
+
+    def _refresh_divergence(self, s):
+        trip = s.get("lag_trip", 0.5)
+        self.div_head.setText(
+            "per-joint (commanded - actual) and end-effector distance, "
+            "against lag_trip_rad = %.2f  [%s]. Only a MEASURED row carries "
+            "a number."
+            % (trip, s.get("lag_trip_src", "default -- bridge not read")))
+        for a in ARMS:
+            r = s.get("div", {}).get(a)
+            if r is None:
+                self.div_state[a].setText("--")
+                continue
+            if not r.measured:
+                # THE WHOLE POINT. A missing real arm reads NO REAL ARM, not
+                # 0.000 rad, and it is purple rather than any colour that
+                # could be mistaken for healthy.
+                label = {dv.NO_SIM: "NO SIM", dv.NO_REAL: "NO REAL ARM",
+                         dv.SIM_STALE: "SIM STALE", dv.REAL_STALE: "REAL STALE",
+                         dv.REAL_FROZEN: "REAL FROZEN",
+                         dv.PARTIAL: "PARTIAL"}.get(r.status, r.status.upper())
+                col = C_BAD if r.status == dv.REAL_FROZEN else C_UNKNOWN
+                self.div_state[a].setText(label)
+                self.div_state[a].setStyleSheet("color:%s" % col)
+                self.div_max[a].setText("--")
+                self.div_max[a].setStyleSheet("color:%s" % col)
+                self.div_ee[a].setText("--")
+                self.div_ee[a].setStyleSheet("color:%s" % col)
+                self.div_joint[a].setText(r.reason)
+                continue
+            b = dv.band(r.max_rad, trip)
+            col = BAND_COLOUR[b]
+            self.div_state[a].setText("MEASURED")
+            self.div_state[a].setStyleSheet("color:%s" % C_MUTED)
+            self.div_max[a].setText("%.4f rad" % r.max_rad)
+            self.div_max[a].setStyleSheet("color:%s" % col)
+            ee = r.ee_m
+            self.div_ee[a].setText("--" if ee is None else "%.1f mm" % (1000 * ee))
+            self.div_ee[a].setStyleSheet(
+                "color:%s" % (C_UNKNOWN if ee is None else col))
+            self.div_joint[a].setText(
+                "worst %s   " % r.max_joint + "  ".join(
+                    "j%d %+.3f" % (i + 1, r.per_joint.get("%s_joint_%d" % (a, i + 1), 0.0))
+                    for i in range(7)))
+
+    def _refresh_cameras(self, s):
         cams = s.get("cam", {})
         imgs = s.get("cam_img", {})
         for a in ARMS:
             cap, st, show, hz = cams.get(a, ("no data", "absent", False, 0.0))
-            col = {"live": C_OK, "stale": C_WARN,
-                   "dead": C_BAD, "absent": C_UNKNOWN}.get(st, C_UNKNOWN)
+            col = {"live": C_OK, "stale": C_WARN, "dead": C_BAD,
+                   "absent": C_UNKNOWN}.get(st, C_UNKNOWN)
             self.cam_cap[a].setText(cap)
             self.cam_cap[a].setStyleSheet("color:%s" % col)
             if not show:
@@ -535,8 +1541,7 @@ class Gui(QMainWindow):
             if raw is None:
                 continue
             w, h, enc, buf, step = raw
-            fmt = {"rgb8": QImage.Format_RGB888,
-                   "bgr8": QImage.Format_BGR888,
+            fmt = {"rgb8": QImage.Format_RGB888, "bgr8": QImage.Format_BGR888,
                    "mono8": QImage.Format_Grayscale8}.get(enc)
             if fmt is None:
                 self.cam_lbl[a].setText("unsupported encoding %s" % enc)
@@ -545,49 +1550,221 @@ class Gui(QMainWindow):
             self.cam_lbl[a].setPixmap(QPixmap.fromImage(qi).scaled(
                 self.cam_lbl[a].width(), self.cam_lbl[a].height(),
                 Qt.KeepAspectRatio, Qt.SmoothTransformation))
-            self.cam_lbl[a].setStyleSheet("background:#111;border:1px solid #999")
-
-        # ---- banner
-        if es:
-            self.banner.setText("E-STOP LATCHED")
-            self.banner.setStyleSheet("color:white;background:%s;padding:6px"
-                                      % C_BAD)
-        elif not topics:
-            self.banner.setText("no ROS graph")
-            self.banner.setStyleSheet("color:white;background:%s;padding:6px"
-                                      % C_UNKNOWN)
-        else:
-            self.banner.setText("running")
-            self.banner.setStyleSheet("color:%s;padding:6px" % C_MUTED)
-
-        dt = (time.perf_counter() - t0) * 1000.0
-        self._ft.append(dt)
-        self._ft = self._ft[-200:]
-        srt = sorted(self._ft)
-        self.frame_lbl.setText(
-            "frame %.2f ms  median %.2f  p95 %.2f  (budget 100 ms)"
-            % (dt, srt[len(srt) // 2], srt[int(len(srt) * 0.95)]))
+            self.cam_lbl[a].setStyleSheet(
+                "background:#111;border:1px solid #999")
 
     def closeEvent(self, ev):
-        if self.rviz:
-            self.rviz.terminate()
+        for _, p in self.rviz:
+            try:
+                p.terminate()
+            except Exception:                                 # noqa: BLE001
+                pass
+        self.on_stop_jobs()
         ev.accept()
 
 
+# ===========================================================================
+#  helpers
+# ===========================================================================
+def _scratch():
+    d = os.environ.get("SRL_SCRATCH") or "/tmp"
+    return d
+
+
+def _stack_pids():
+    try:
+        o = subprocess.run(
+            ["pgrep", "-fc", "lib/srl_teleop/master_pose_node|"
+                             "lib/moveit_ros_move_group/move_group"],
+            capture_output=True, text=True, timeout=5).stdout.strip()
+        return int(o or 0)
+    except Exception:                                         # noqa: BLE001
+        return 0
+
+
+def _teensy():
+    import glob
+    return bool(glob.glob("/dev/ttyACM*") or glob.glob("/dev/ttyUSB*"))
+
+
+def _rss():
+    """Total RSS of this process plus its RViz children, in MB.
+
+    Reported because the brief asks: this is a 15 GB machine and two earlier
+    runs were OOM-killed, so a second RViz is a memory decision as much as a
+    layout one.
+    """
+    try:
+        out = subprocess.run(["ps", "-o", "rss=", "-p",
+                              ",".join(str(p) for p in _family())],
+                             capture_output=True, text=True, timeout=5).stdout
+        kb = sum(int(x) for x in out.split() if x.isdigit())
+        return "%.0f MB" % (kb / 1024.0)
+    except Exception:                                         # noqa: BLE001
+        return "--"
+
+
+def _family():
+    pids = [os.getpid()]
+    try:
+        o = subprocess.run(["pgrep", "-P", str(os.getpid())],
+                           capture_output=True, text=True, timeout=5).stdout
+        pids += [int(x) for x in o.split() if x.isdigit()]
+    except Exception:                                         # noqa: BLE001
+        pass
+    return pids
+
+
+def _sides(same=True):
+    """(sim, real) joint-state trackers for a synthetic snapshot."""
+    names = dv.joint_names("left") + dv.joint_names("right")
+    sim = dv.Side("sim")
+    sim.update(names, [0.1] * 14)
+    if not same:
+        return sim, dv.Side("real")            # never published -> NO_REAL
+    real = dv.Side("real")
+    real.update(names, [0.1] * 14)
+    return sim, real
+
+
+def _absent_snapshot():
+    """NOTHING IS PUBLISHING. The state every indicator must be able to show.
+
+    Deliberately not "an empty dict": the GUI must survive a snapshot that
+    has the right shape and no content, which is what a running GUI attached
+    to a dead graph actually sees.
+    """
+    return {"t": time.monotonic(), "topics": set(),
+            "cam": {a: ("no data", "absent", False, 0.0) for a in ARMS},
+            "cam_img": {a: None for a in ARMS},
+            "div": {a: dv.compare(dv.Side("sim"), dv.Side("real"),
+                                  dv.joint_names(a)) for a in ARMS},
+            "lag_trip": 0.5, "log": []}
+
+
+def _good_snapshot():
+    """Everything publishing and healthy. The calm reading."""
+    t = time.monotonic()
+
+    def w(v):
+        return (v, t)
+    sim, real = _sides(same=True)
+    return {
+        "t": t,
+        "topics": {"/perception/detections/%s" % a for a in ARMS},
+        "estop": w(False),
+        "chan": w("FULL | 14/14 coherent | left: use j1234567"),
+        "cap_left": w(json.dumps(dict(key="SPHERICAL", position_available=True,
+                                      cost_m=dict(mean_m=0.0)))),
+        "cap_right": w(json.dumps(dict(key="SPHERICAL", position_available=True,
+                                       cost_m=dict(mean_m=0.0)))),
+        "mstat_left": w("clutch ENGAGED"),
+        "mstat_right": w("clutch ENGAGED"),
+        "scene": w(json.dumps(dict(state="registered", n_stored=3,
+                                   drift_flags=[]))),
+        "autonomy": w(json.dumps(dict(stage="DIRECT", note="idle",
+                                      confidence=0.95))),
+        "grip": w(json.dumps(dict(startup=dict(left="open_confirmed",
+                                               right="open_confirmed")))),
+        "blocking": w(json.dumps(dict(n_blocking=0, state_unknown=0))),
+        "ik_left": w([100.0, 100.0, 0, 0, 0, 0.35, 0, 0]),
+        "ik_right": w([100.0, 100.0, 0, 0, 0, 0.35, 0, 0]),
+        "cam": {a: ("live 15.0 Hz 320x240", "live", False, 15.0) for a in ARMS},
+        "cam_img": {a: None for a in ARMS},
+        "div": {a: dv.compare(sim, real, dv.joint_names(a)) for a in ARMS},
+        "lag_trip": 0.5, "lag_trip_src": "bridge", "log": [],
+    }
+
+
+def _bad_snapshot():
+    """Everything publishing and ABNORMAL.
+
+    Built from the same shapes the live subscriptions produce, so it exercises
+    the real formatters rather than a parallel path that could drift from
+    them. `ik_left` carries ZERO ATTEMPTS on purpose -- that is the exact
+    reading this GUI once mislabelled as "BLOCKED, 0% success".
+    """
+    t = time.monotonic()
+
+    def w(v):
+        return (v, t)
+    sim, real = _sides(same=False)
+    return {
+        "t": t,
+        "topics": set(),
+        "estop": w(True),
+        "chan": w("DEGRADED | 6/14 coherent | baseline=old.json STALE?"),
+        "cap_left": w(json.dumps(dict(key="NONE", position_available=False))),
+        "cap_right": w(json.dumps(dict(key="NONE", position_available=False))),
+        "mstat_left": w("clutch DISENGAGED"),
+        "mstat_right": w("clutch DISENGAGED"),
+        "scene": w(json.dumps(dict(state="sweep_invalid_no_detections",
+                                   n_stored=0, drift_flags=["a"]))),
+        "autonomy": w(json.dumps(dict(stage="REFUSED", note="synthetic",
+                                      confidence=0.10))),
+        "grip": w(json.dumps(dict(startup=dict(left="open_UNCONFIRMED",
+                                               right="no_feedback")))),
+        "blocking": w(json.dumps(dict(n_blocking=3, state_unknown=2))),
+        "ik_left": w([0.0] * 8),
+        "ik_right": w([10.0, 1.0, 0, 0, 0, 0.05, 0, 0]),
+        "cam": {a: ("no signal", "dead", False, 0.0) for a in ARMS},
+        "cam_img": {a: None for a in ARMS},
+        "div": {a: dv.compare(sim, real, dv.joint_names(a)) for a in ARMS},
+        "lag_trip": 0.5, "lag_trip_src": "bridge", "log": [],
+    }
+
+
 def main(argv=None):
-    rclpy.init(args=argv)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--no-rviz", action="store_true",
+                    help="indicators only; for capture and headless checks")
+    ap.add_argument("--embed-rviz", action="store_true",
+                    help="reparent RViz INTO a panel. Measured on this "
+                         "display stack: the foreign window is moved but NOT "
+                         "CLIPPED to its container, so it paints over the "
+                         "cameras, indicators and divergence readout. Needs a "
+                         "window manager; none is installed here.")
+    ap.add_argument("--dual-rviz", action="store_true",
+                    help="TWO RViz panels side by side. Needs a window "
+                         "manager: without one, Qt does not clip a reparented "
+                         "foreign window to its container and the two "
+                         "instances paint over each other and over this GUI "
+                         "(measured -- see docs/system/07_gui_rviz_embedding.md)")
+    ap.add_argument("--single-rviz", action="store_true",
+                    help="deprecated alias; the ghosted single panel is now "
+                         "the default")
+    ap.add_argument("--self-test-exit", action="store_true",
+                    help="run the indicator self-test and exit with its result")
+    args, rest = ap.parse_known_args(argv if argv is not None else sys.argv[1:])
+
+    rclpy.init(args=None)
     bus = Bus()
-    th = threading.Thread(target=lambda: rclpy.spin(bus), daemon=True)
-    th.start()
-    app = QApplication(sys.argv)
+    threading.Thread(target=lambda: rclpy.spin(bus), daemon=True).start()
+    app = QApplication([sys.argv[0]] + rest)
     app.setFont(helvetica(11))
-    g = Gui(bus)
+    g = Gui(bus, args)
     g.show()
-    rc = app.exec_()
+
+    if args.self_test_exit:
+        rc = {"v": 1}
+
+        def run():
+            ok = g.on_self_test()
+            print(g.selftest_lbl.text())
+            rc["v"] = 0 if ok else 1
+            app.quit()
+        QTimer.singleShot(1500, run)
+        app.exec_()
+        bus.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
+        return rc["v"]
+
+    r = app.exec_()
     bus.destroy_node()
     if rclpy.ok():
         rclpy.shutdown()
-    return rc
+    return r
 
 
 if __name__ == "__main__":

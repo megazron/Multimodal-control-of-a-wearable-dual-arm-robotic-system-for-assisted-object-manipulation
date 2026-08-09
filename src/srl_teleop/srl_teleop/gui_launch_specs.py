@@ -1,0 +1,231 @@
+#!/usr/bin/env python3
+"""Everything the GUI can launch, as ONE manifest that can be checked.
+
+WHY A MANIFEST AND NOT BUTTONS. Five experiment buttons in an earlier GUI
+exited 2 the instant they were pressed while appearing to launch: the label
+said "T3 rigid carry", the dispatcher only accepted `e1..e6`, and the process
+died before anything drew. From the operator's side a button that launches
+nothing and a button that launches something invisible look identical.
+
+The defence is not care, it is a shared list plus a checker. `validate()`
+resolves every entry against the thing that will actually run -- the script on
+disk, the dispatcher's own accepted-task list, the package's entry points --
+and `scripts/verify_gui_buttons.py` presses each one for real and requires
+evidence that it started. A spec whose target cannot be resolved is DISABLED
+with the reason on the button, never rendered as live.
+
+`starts_stack` scopes the second-stack refusal. Two `master_pose_node`
+instances split the serial stream and cost a full day of measurements, so a
+stack-starting entry is refused while one is up. Add-ons (an autonomy node, a
+diagnostic) are NOT second stacks, and refusing those whenever a stack exists
+makes the refusal useless in the only situation where you would use them.
+"""
+import os
+import re
+import subprocess
+
+WS = os.environ.get("SRL_WS") or os.path.expanduser("~/kortex_ws")
+
+
+class Spec:
+    def __init__(self, key, label, group, argv, starts_stack=False,
+                 needs_stack=False, needs_teensy=False, needs_real=False,
+                 note="", disabled_reason=None):
+        self.key = key
+        self.label = label
+        self.group = group
+        self.argv = list(argv)
+        self.starts_stack = starts_stack
+        self.needs_stack = needs_stack
+        self.needs_teensy = needs_teensy
+        self.needs_real = needs_real
+        self.note = note
+        # Set by validate(), or given up front for a thing we KNOW cannot run.
+        self.disabled_reason = disabled_reason
+
+    @property
+    def enabled(self):
+        return self.disabled_reason is None
+
+    def __repr__(self):
+        return "Spec(%s, %s)" % (self.key, "ok" if self.enabled else "DISABLED")
+
+
+def _sh(*parts):
+    return [os.path.join(WS, "scripts", parts[0])] + list(parts[1:])
+
+
+def dispatcher_tasks():
+    """The tasks `run_experiment.sh` ACTUALLY accepts, read from the script.
+
+    Parsed rather than duplicated. A hand-copied list is how the labels and
+    the dispatcher drifted apart in the first place, and a list that can go
+    out of date silently is worth less than no list.
+    """
+    p = os.path.join(WS, "scripts", "run_experiment.sh")
+    try:
+        src = open(p).read()
+    except OSError:
+        return set()
+    ok = set()
+    for m in re.finditer(r"^\s*([a-z0-9|]+)\)\s*$|^\s*([a-z0-9|]+)\)\s*\n?\s*exec",
+                         src, re.M):
+        grp = m.group(1) or m.group(2) or ""
+        for t in grp.split("|"):
+            if re.fullmatch(r"[te]\d", t):
+                ok.add(t)
+    # The `eN) SCRIPT=...` form sits on one line and the regex above misses it.
+    for m in re.finditer(r"^\s*(e\d)\)\s*SCRIPT=", src, re.M):
+        ok.add(m.group(1))
+    # Tasks the dispatcher explicitly REFUSES (t1 subsumed, t4 blocked) are
+    # matched by the same pattern, so drop anything whose branch echoes to
+    # stderr and exits.
+    for m in re.finditer(r"^\s*([te]\d)\)\s*\n?\s*echo[^\n]*>&2", src, re.M):
+        ok.discard(m.group(1))
+    return ok
+
+
+MODES = [
+    Spec("sim", "Sim teleop only", "mode",
+         _sh("run_teleop.sh", "gate:=false"), starts_stack=True,
+         note="MoveIt, RViz, master_pose_node, both followers, e-stop"),
+    Spec("autonomy", "+ perception and shared autonomy", "mode",
+         _sh("run_autonomy.sh"), starts_stack=True,
+         note="mode 4: adds vision, grasp generation, the arbiter"),
+    Spec("real", "Cascade to the REAL arms", "mode",
+         _sh("start_real.sh"), needs_stack=True, needs_real=True,
+         note="refuses unless the sim stack is up and homing succeeds"),
+    Spec("real_mock", "Cascade, MOCK hardware", "mode",
+         _sh("start_real.sh", "--mock"), needs_stack=True,
+         note="the identical sequence against mock_real.launch.py"),
+    Spec("vr", "VR transport (Quest)", "mode",
+         _sh("vr_connect.sh"), needs_stack=True,
+         note="needs Android platform-tools on the WINDOWS side"),
+]
+
+DIAGNOSTICS = [
+    Spec("diag", "Diagnostics", "diag", _sh("diagnostics.sh"),
+         note="controllers, /joint_states rate, serial port, SHM, e-stop"),
+    Spec("channels", "Channel check (~3 min)", "diag",
+         _sh("check_channels.sh"), needs_teensy=True,
+         note="FIRST ACTION OF EVERY LAB SESSION"),
+    Spec("recover", "Recover to known-good", "diag", _sh("recover.sh")),
+    Spec("blocking", "Blocking aggregator", "diag",
+         ["ros2", "run", "srl_teleop", "blocking_aggregator"],
+         needs_stack=True,
+         note="teleop.launch.py does not start it"),
+    Spec("preflight", "Preflight", "diag",
+         ["ros2", "run", "srl_teleop", "preflight"], needs_stack=True),
+]
+
+
+def task_specs():
+    """One button per task the dispatcher accepts, plus the A/B/C row."""
+    accepted = dispatcher_tasks()
+    out = []
+    labels = {
+        "t2": "T2 hold and fill", "t3": "T3 rigid carry",
+        "t5": "T5 handover to wearer", "t6": "T6 compliant carry",
+        "t7": "T7 bimanual pursuit", "t8": "T8 wearer-assisted reach",
+        "t9": "T9 reach under wearer motion",
+        "e1": "E1 Fitts", "e2": "E2 autonomy level",
+        "e3": "E3 divided attention", "e4": "E4 DOF recovery",
+        "e5": "E5 intent inference", "e6": "E6 VR vs mannequin",
+    }
+    for k in sorted(labels):
+        lab = labels[k]
+        why = None if k in accepted else (
+            "run_experiment.sh does not accept %r -- this button would exit 2"
+            % k)
+        out.append(Spec(k, lab, "task",
+                        _sh("run_experiment.sh", k, "--participant", "PILOT",
+                            "--scripted"),
+                        needs_stack=True, note="scripted pilot run",
+                        disabled_reason=why))
+
+    # TASKS A, B AND C: specified and VERIFIED, and deliberately not runnable.
+    #
+    # Part 3 built the specification and the N=10 full-path verification; it
+    # did not build a runner, exactly as the five-task set before it ("nothing
+    # runs this spec"). The tempting move is to point these buttons at t3/t6/t7,
+    # whose geometry is close. That would be WRONG and quietly so: the bimanual
+    # package still carries the superseded 300/310 mm span, so a button
+    # labelled "B coordinated carry" would run a 300 mm tray and log it under a
+    # 500 mm specification. A button that launches something DIFFERENT from
+    # what it claims is worse than one that refuses.
+    for k, lab in (("A", "A positioning"), ("B", "B coordinated carry"),
+                   ("C", "C dual pursuit")):
+        out.append(Spec("abc_%s" % k.lower(), lab, "task", [],
+                        needs_stack=True,
+                        note="specified and verified N=10; no runner yet",
+                        disabled_reason=(
+                            "Task %s has a verified SPEC but no runner. Do "
+                            "not wire this to t3/t6/t7: that package still "
+                            "uses the superseded 300/310 mm span and would "
+                            "log the wrong geometry under this name." % k)))
+    return out
+
+
+def all_specs():
+    return MODES + task_specs() + DIAGNOSTICS
+
+
+def validate(specs=None):
+    """Resolve every spec against what will actually run.
+
+    Returns [(spec, ok, detail)]. Sets `disabled_reason` on failures, so a
+    spec that cannot run is never drawn as live.
+    """
+    rows = []
+    for s in specs if specs is not None else all_specs():
+        if s.disabled_reason is not None:
+            rows.append((s, False, s.disabled_reason))
+            continue
+        if not s.argv:
+            s.disabled_reason = "no command"
+            rows.append((s, False, s.disabled_reason))
+            continue
+        head = s.argv[0]
+        if head.startswith("/") or head.startswith("."):
+            if not os.path.exists(head):
+                s.disabled_reason = "missing script: %s" % head
+                rows.append((s, False, s.disabled_reason))
+                continue
+            if not os.access(head, os.X_OK) and not head.endswith(".py"):
+                s.disabled_reason = "not executable: %s" % head
+                rows.append((s, False, s.disabled_reason))
+                continue
+            rows.append((s, True, head))
+            continue
+        if head == "ros2":
+            # `ros2 run <pkg> <exe>` -- the exe must be a real entry point.
+            pkg, exe = s.argv[2], s.argv[3]
+            try:
+                out = subprocess.run(["ros2", "pkg", "executables", pkg],
+                                     capture_output=True, text=True,
+                                     timeout=25).stdout
+            except Exception as e:                            # noqa: BLE001
+                rows.append((s, True, "unchecked (%s)" % e))
+                continue
+            if exe not in out.split():
+                s.disabled_reason = "%s has no executable %r" % (pkg, exe)
+                rows.append((s, False, s.disabled_reason))
+                continue
+            rows.append((s, True, "%s/%s" % (pkg, exe)))
+            continue
+        rows.append((s, True, head))
+    return rows
+
+
+if __name__ == "__main__":
+    import sys
+    rows = validate()
+    n_bad = 0
+    for s, ok, detail in rows:
+        n_bad += not ok
+        print("  %-10s %-32s %-8s %s"
+              % (s.group, s.label, "ok" if ok else "DISABLED", detail))
+    print("\n%d specs, %d enabled, %d disabled with a stated reason"
+          % (len(rows), len(rows) - n_bad, n_bad))
+    print("dispatcher accepts: %s" % " ".join(sorted(dispatcher_tasks())))
+    sys.exit(0)

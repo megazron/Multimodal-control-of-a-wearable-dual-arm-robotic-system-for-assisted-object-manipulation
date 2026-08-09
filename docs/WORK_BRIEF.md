@@ -16,8 +16,8 @@ the lab.**
 
 ## START HERE
 
-**First incomplete part: PART 4 — DUAL-VIEW GUI.** It is a whole GUI and
-needs its own session; nothing in Parts 1-3 is left open for it.
+**First incomplete part: PART 5 — RE-RECORD, DRIVEN FROM THE GUI.** It is a
+full clip sweep and needs its own session.
 
 - Part 1 DONE (`6736ee7`): autonomy moves the arm — 1092 trajectories and
   0.0700 / 0.1204 m of real EE displacement, residual 0.0000 m. Root cause was
@@ -27,10 +27,16 @@ needs its own session; nothing in Parts 1-3 is left open for it.
   "NOT FIXED, AND WHY" list before starting new work — five wall-clock
   intervals, four identity-quaternion drive sites, two audit blind spots and
   D2 (second-stack prevention) are diagnosed but open, each with a reason.
-- Part 3 DONE (this commit): 7 MISUNDERSTOOD utterances closed; the gripper no
+- Part 3 DONE (`d5bbec8`): 7 MISUNDERSTOOD utterances closed; the gripper no
   longer inherits a leftover as its open reference; the pot repair can now
   reach the runtime AT ALL (it could not); Tasks A/B/C verified N=10 over the
   full path with 0 failures and a 116-minute session that a checker validates.
+- Part 4 DONE (this commit): the GUI now shows commanded vs actual with a
+  divergence readout that names the lag threshold it is judged against, and
+  every indicator is PROVEN to separate healthy / abnormal / not-checked.
+  **Two embedded RViz panels do not work on this host** and the reason is
+  measured, not guessed -- see the reported findings. The ghosted single
+  panel ships instead, which the brief itself proposed as the fallback.
 
 **The stack is currently UP** (`teleop.launch.py gate:=false`) with the left
 arm parked mid-workspace from the dial probe. Re-home or relaunch before any
@@ -46,8 +52,8 @@ measurement that assumes the home pose — `measure_workspace.py` asserts on it,
 | 1 | Does autonomy move the arm? | **DONE — YES** | `6736ee7` |
 | 2 | Full diagnosis (report before fixing) | **DONE** | `9e0dce4` |
 | 3 | Finish outstanding work (lang sweep, gripper, degraded warning, tasks A/B/C) | **DONE** | `d5bbec8` |
-| 4 | Dual-view GUI, everything runs through it | **NEXT** | — |
-| 5 | Re-record, driven from the GUI | NOT STARTED | — |
+| 4 | Dual-view GUI, everything runs through it | **DONE** | `PART4HASH` |
+| 5 | Re-record, driven from the GUI | **NEXT** | — |
 | 6 | Graphs | NOT STARTED | — |
 | 7 | Report and commit / push | NOT STARTED | — |
 
@@ -217,7 +223,22 @@ PART 3 - FINISH THE OUTSTANDING WORK
 
 ## PART 4 — DUAL-VIEW GUI, AND EVERYTHING RUNS THROUGH IT
 
-**STATUS: NOT STARTED** — Commit: —
+**STATUS: DONE** — Commit `PART4HASH`. Full write-up in NEXT_SESSION.md.
+
+Delivered: the divergence readout (per-joint and EE, coloured against
+`lag_trip_rad` READ FROM THE BRIDGE), both wrist cameras subscribed and never
+opened, mode/dial/clutch/scale/e-stop controls through parameter clients, and
+26 launch specs of which 23 are live and 3 are disabled with their reason on
+the button. 55/55 button checks, 17/17 indicator self-test.
+
+**NOT delivered as specified, with the measurement:** two side-by-side
+embedded RViz panels. Reparenting embeds and positions but does NOT CLIP on
+this host, so RViz painted over the cameras, the indicators and the divergence
+readout; with two instances they also paint over each other. Clipping is the
+window manager's job and no window manager is installed. The single panel with
+COMMANDED ghosted over ACTUAL ships instead -- the fallback this brief asked
+to be proposed -- and it answers the question better, in one scene, for
+248 MB less.
 
 ### Brief (verbatim)
 

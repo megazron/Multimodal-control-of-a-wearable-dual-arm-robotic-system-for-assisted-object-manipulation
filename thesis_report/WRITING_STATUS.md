@@ -1,6 +1,6 @@
 # Writing status — 2026-08-08 rewrite
 
-Built with XeLaTeX. **72 pages, 0 errors, 0 undefined references, 34
+Built with XeLaTeX. **76 pages, 0 errors, 0 undefined references, 34
 references all cited.**
 
     cd thesis_report && xelatex main && bibtex main && xelatex main && xelatex main
@@ -18,7 +18,8 @@ TikZ sources are excluded.
 | 3 The master arm | 2396 | **new chapter** |
 | 4 How the control approach reached its present form | 1566 | **new chapter** |
 | 5 System as built | 2870 | **rewritten** |
-| 6 Results | 2731 | **rewritten** |
+| 6 When the instrument is the fault | 1180 | **new chapter**, the methods contribution |
+| 7 Results | 2948 | **rewritten** |
 | 7 Workspace characterisation | 1207 | kept, language corrected |
 | 8 Discussion | 1286 | **rewritten** |
 | 9 Conclusion | 822 | **rewritten** |

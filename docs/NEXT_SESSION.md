@@ -1,3 +1,28 @@
+# ITEM 3 - THESIS: instrument-validation chapter written
+
+The master arm chapter (2799 words), the MuJoCo-to-ROS development path
+(1631), and all four control-mode flowcharts ALREADY EXISTED from the earlier
+rewrite. Checked before writing rather than duplicated.
+
+The genuinely missing piece was the methods contribution, now written:
+`thesis_report/methods/instrument.tex`, Chapter 6, "When the instrument is the
+fault". Sixteen cases in one table (looked like / actually was / caught by),
+four mechanisms, and the finding that **9 of 16 were caught by an
+independently known quantity and only 3 by inspection** -- which is the
+argument for building the cross-check in rather than trying harder.
+
+76 pages, 0 errors, 0 undefined references.
+
+### Thesis work still outstanding
+* The Results chapter predates Parts 1-9 and does NOT yet carry: the aperture
+  curve validated against the vendor stroke, the capability ladder costs, the
+  scene-fingerprint numbers, the broken-then-fixed VR path, the free-form
+  language results, or the 39/39 clip sweep.
+* Placeholders: 5 images, 2 reproduced figures needing permission.
+* 13 todo markers (10 CONFIRM, 2 MEASURE, 1 FIGURE).
+
+---
+
 # ITEM 2 - WRIST CAMERA RELAY: LOGIC MEASURED, GUI WIDGET UNCONFIRMED
 
 ## Measured and working

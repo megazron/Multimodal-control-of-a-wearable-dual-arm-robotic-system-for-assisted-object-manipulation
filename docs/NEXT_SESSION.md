@@ -2204,3 +2204,121 @@ The language/vision sweep (vague, relational, superlative, compound,
 misspelled, absent objects; correct / asked / refused / **MISUNDERSTOOD**) was
 not run. Blockers 2 and 3, the three task specifications, the session
 timeline, and the dual-view GUI were not started.
+
+## PART 1 — YES, AUTONOMY MOVES THE ARM (2026-08-09)
+
+**Answer: YES.** 1092 trajectories at a reachable target, and — the measurement
+that matters — **0.0700 m and 0.1204 m of real tf2 end-effector displacement
+over two legs, residual 0.0000 m to target on both.** Three of four study modes
+are no longer blocked at the last hop.
+
+### The real bug: `ik_follower_node` had no `import time`
+
+Not a discovery problem. `ik_follower_node.py`'s import block was
+`sys, os, math, home_positions, rclpy, …` — **`time` was never imported**,
+while the autonomy path added last session calls `time.monotonic()` twice:
+line 713 in `on_autonomy_pose` and line 733 in `autonomy_is_driving`.
+
+A missing name is only evaluated when the code path RUNS. So the node imported
+cleanly, launched cleanly, logged `Tracking enabled`, and then died on the
+**first `/autonomy/assist_pose_<arm>` message it ever received**:
+
+```
+File ".../ik_follower_node.py", line 713, in on_autonomy_pose
+    now = time.monotonic()
+NameError: name 'time' is not defined
+[ERROR] [ik_follower_node-13]: process has died [pid 682827, exit code 1]
+```
+
+The followers launch **without `respawn`** (only `master_pose_node` has it), so
+it stayed dead for the remainder of the session. Every autonomy pose after the
+first went to a topic with no live subscriber. That is the whole of "0
+trajectories", across two sessions.
+
+The crash is at line 713, **before** `self.autonomy_pose_t = now` at line 720 —
+the only assignment that can make `autonomy_is_driving()` return True. So last
+session's row *"`autonomy_has_control` is asserted, and only `on_pose` can set
+it"* could not have been true as written, and is now retracted.
+
+### Discovery WAS also degraded — and it was a separate, non-causal fault
+
+Both were real; only one mattered.
+
+- **Four concurrent stacks were running**, not one — 35 stack PIDs across four
+  `ros2 launch` trees, plus three orphaned `ros2 bag record` processes left from
+  the 2026-08-08 verification sweep.
+- **188 stale `/dev/shm/fastrtps_*` entries**, oldest dated Aug 5.
+- The **`ros2` daemon was hung**, not merely stale: `ros2 daemon stop` blocked
+  and died with `TimeoutError: [Errno 110] Connection timed out` after 120 s.
+
+Cleared all of it, relaunched a single stack, confirmed both arms at home
+(**max error 0.0000 rad, all 7 joints, both arms**) — and the re-run *still*
+reported `autonomy moves arm : False`. **Fixing discovery changed nothing.**
+That is what promoted the remaining failure from "environment" to "bug".
+
+**Trap worth keeping:** `rm /dev/shm/fastrtps_*` leaves **39 `sem.fastrtps_*`
+semaphores** behind — the glob does not match them. A count that greps only
+`fastrtps` then reads "39 still there" and sends you hunting for a live writer
+that does not exist. Remove both patterns.
+
+### THE INSTRUMENT WAS LYING ABOUT THE SAFETY CHECK
+
+`verify_autonomy_command_path.py` decided which blockers fired with a
+**substring match over the raw `/blocking` payload**. That payload is JSON and
+carries `blockers` — the list of every blocker the unit **registered** at
+construction, active or not. So `"clearance_floor" in msg.data` was true in
+**every message the follower ever published**, including at a perfectly
+reachable target and including with the arm doing nothing.
+
+It measured registration, not assertion. Last session's row *"aiming inside the
+wearer names `clearance_floor` and `ik_failed`"* was therefore not evidence of
+anything, and is retracted.
+
+Fixed by parsing the JSON and reading `active` (plus `expired`, which is not an
+all-clear) only, with the reachable drive kept as an explicit **control**:
+
+| | trajectories | ACTIVE blockers |
+| --- | --- | --- |
+| reachable target (0.32, 0.35, 1.15) | **1092** | **none** |
+| inside the wearer (0.0, −0.10, 1.25) | **0** | **`ik_failed`** |
+
+Ten names would have been reported as "fired" by the old match and were not
+active: `autonomy_has_control, clearance_floor, estop, flip_reject, home_gate,
+ik_inflight, motion_disarmed, no_joint_state, startup_unwind, state_unknown`.
+
+**The discriminating blocker is `ik_failed`, NOT `clearance_floor`.** The
+clearance floor never fired — collision-aware IK refused to solve first. That
+is a *cross-check passing*, not a new finding: it reproduces the graduated
+collision response already measured here (`probe_collision_response.py`, "the
+hard floor was never reached ... the earlier stages stopped the arm
+0.072–0.079 m away"). Two independent measurements agreeing is the reason to
+believe this one.
+
+### Regression test
+
+`src/srl_teleop/test/test_no_unresolved_module_names.py`, **4 tests**.
+
+The obvious test — bring a node up and publish a pose — is the bug class this
+project keeps paying for (#5: a test that constructs the environment where the
+bug cannot occur). It needs `/compute_ik`, tf, a controller and home files.
+This test parses the **shipped source** with `ast` and needs no environment at
+all: any name used in attribute position (`time.monotonic`) that is never
+imported or bound is reported, across **every module in every `srl_*`
+package**. The next missing import is caught by the same test rather than by a
+dead node.
+
+**Negative-control checked both ways**, which is the only reason to trust it:
+deleting the `import time` line makes 2 of the 4 fail with the real message,
+and two further tests assert the *analysis itself* both detects a constructed
+missing import and does not flag correct source.
+
+Current sweep across all six `srl_*` packages: **no other unresolved module
+names.**
+
+### Still open, carried forward
+
+- The followers have **no `respawn`**. A follower that dies and stays dead is
+  the silent-stop class this project has paid for repeatedly. Not changed here
+  — respawn also masks crashes, so it is a deliberate decision, not a default.
+- `/ik_status_<arm>` publishing an empty data array (blocks the clearance
+  readout and the Job F safety measurement) is untouched and is Part 2 work.

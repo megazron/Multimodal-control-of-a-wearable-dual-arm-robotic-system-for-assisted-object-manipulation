@@ -36,6 +36,7 @@ Run:
 import sys
 import os
 import math
+import time    # monotonic ONLY -- never time.time() for an interval, see CLAUDE.md
 sys.path.insert(0, os.path.expanduser("~/kortex_ws/config"))
 import home_positions  # loads from ~/kortex_ws/config/home_positions_<arm>.txt
 

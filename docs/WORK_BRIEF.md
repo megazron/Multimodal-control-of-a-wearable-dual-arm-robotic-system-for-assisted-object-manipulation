@@ -16,8 +16,31 @@ the lab.**
 
 ## START HERE
 
-**First incomplete part: PART 5 — RE-RECORD, DRIVEN FROM THE GUI.** It is a
-full clip sweep and needs its own session.
+**First incomplete part: PART 5 — RE-RECORD, DRIVEN FROM THE GUI. PARTLY
+DONE, and the blocker underneath it is now cleared.**
+
+Resume at the SWEEP. Everything it needs exists and is proven:
+
+* `bash scripts/run_experiment.sh <a|b|c> --mode <01|02|04|06>_... --scripted`
+  drives the arms through that mode's OWN command path -- measured, 0.16-0.53 m
+  of real tf2 EE travel under modes 04 and 06 -- and exits non-zero if they
+  did not move.
+* the GUI has 12 A/B/C buttons (task x mode), all live, all pressed by
+  `scripts/verify_gui_buttons.py`.
+* `scripts/verify_rviz_clips.py` refuses to report until it has caught seven
+  constructed broken clips, and it found a real bug doing so.
+
+STILL TO DO: the 7-angle capture sweep itself
+(`recordings/verification/<mode>/<task>/<scenario>/`, front/back/left/right/
+iso/gripper/quad, overlay on front only, Xvfb :99, resumable with progress
+written after each clip), and two modes:
+
+* **01_master_teleop does not drive the arms yet.** Poses reach the follower
+  (sub=1) and are suppressed rather than rejected: 0.0048 m for a 0.200 m
+  command, with both followers `blocked=true, active=[], expired=["ik_failed"],
+  state_unknown=true`. Suspect `autonomy_has_control` -- which would mean
+  MODES MUST NOT SHARE A STACK SESSION. Unconfirmed.
+* **02_vr_teleop has not been exercised**; it needs `vr_pose_mapper` running.
 
 - Part 1 DONE (`6736ee7`): autonomy moves the arm — 1092 trajectories and
   0.0700 / 0.1204 m of real EE displacement, residual 0.0000 m. Root cause was
@@ -53,7 +76,7 @@ measurement that assumes the home pose — `measure_workspace.py` asserts on it,
 | 2 | Full diagnosis (report before fixing) | **DONE** | `9e0dce4` |
 | 3 | Finish outstanding work (lang sweep, gripper, degraded warning, tasks A/B/C) | **DONE** | `d5bbec8` |
 | 4 | Dual-view GUI, everything runs through it | **DONE** | `95adcf4` |
-| 5 | Re-record, driven from the GUI | **NEXT** | — |
+| 5 | Re-record, driven from the GUI | **PARTLY DONE** | `93ce00c` |
 | 6 | Graphs | NOT STARTED | — |
 | 7 | Report and commit / push | NOT STARTED | — |
 
@@ -279,7 +302,17 @@ single-RViz fallback with commanded ghosted over actual.
 
 ## PART 5 — RE-RECORD, DRIVEN FROM THE GUI
 
-**STATUS: NOT STARTED** — Commit: —
+**STATUS: PARTLY DONE** — Commits `3597e0a`, `93ce00c`.
+
+DONE: the verifier's negative control (7 constructed clips, refuses to report
+until all are correct -- and it caught a real path-parsing bug that had made
+every object check vacuous); the A/B/C runner that drives the arms through a
+named mode's own entry topic, measured at 0.16-0.53 m of real tf2 EE travel;
+the dispatcher and GUI wiring (35 specs, all live).
+
+NOT DONE: the capture sweep itself, mode 01_master_teleop (suppressed, not
+rejected -- evidence in the commit message), mode 02_vr_teleop (never
+exercised). See START HERE.
 
 ### Brief (verbatim)
 

@@ -187,6 +187,16 @@ class Runner(Node):
             self.pub[a] = self.create_publisher(
                 PoseStamped, self.spec["topic"] % key, 10)
         self.state = self.create_publisher(String, "/trial_state", 10)
+        # THE GRIPPER. Without this the sweep recorded arms moving past
+        # objects: no gripper command was ever sent, so nothing could be
+        # grasped and the scene had nothing to attach. fsr_gripper_node owns
+        # the pad-driven behaviour; this is the scripted operator's squeeze,
+        # published to the same controller topic.
+        from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+        self._JT, self._JTP = JointTrajectory, JointTrajectoryPoint
+        self.grip_pub = {a: self.create_publisher(
+            JointTrajectory, "/%s_gripper_controller/joint_trajectory" % a, 10)
+            for a in ARMS}
         # VR IS THE ONE GENUINELY RELATIVE PATH, and it needs a held grip.
         # vr_pose_mapper anchors on the clutch ENGAGE and then commands the
         # arm by the controller's motion SINCE that engage -- which is what
@@ -249,6 +259,16 @@ class Runner(Node):
             j.buttons = [0, 0, 0, 0]
             self.joy[a].publish(j)
 
+    def grip(self, arm, rad):
+        t = self._JT()
+        t.joint_names = ["%s_robotiq_85_left_knuckle_joint" % arm]
+        p = self._JTP()
+        p.positions = [float(rad)]
+        p.time_from_start.sec = 0
+        p.time_from_start.nanosec = 250_000_000
+        t.points = [p]
+        self.grip_pub[arm].publish(t)
+
     def send(self, arm, xyz):
         m = PoseStamped()
         m.header.stamp = self.get_clock().now().to_msg()
@@ -302,11 +322,13 @@ def main(argv=None):
         spec = CT.TASKS[key.lower()]
         scen = a.scenario or spec["scenario"]
         wp = spec["build"]()
+        grip_sched = spec["grip"](len(wp["left"]))
     else:
         default_scen = {"A": "S3_both", "B": "S2_full_lift",
                         "C": "S1_both_slow"}
         scen = a.scenario or default_scen[key]
         wp = waypoints(key, scen)
+        grip_sched = None
 
     if a.dry_run:
         print("task %s / %s / mode %s : %d waypoints per arm, entry topic %s"
@@ -408,6 +430,13 @@ def main(argv=None):
         wp = {a: [[p[i] - v[0][i] for i in range(3)] for p in v]
               for a, v in wp.items()}
 
+    # Open both hands before the approach, so the clip starts from a known
+    # gripper state rather than wherever the last run left it.
+    if grip_sched is not None:
+        for _ in range(6):
+            for arm in ARMS:
+                n.grip(arm, 0.0)
+            n.spin(0.1)
     for _ in range(8):
         n.hold_grip()
         for arm in ARMS:
@@ -441,6 +470,8 @@ def main(argv=None):
             n.hold_grip()
             for arm in ARMS:
                 n.send(arm, wp[arm][min(k, len(wp[arm]) - 1)])
+                if grip_sched is not None:
+                    n.grip(arm, grip_sched[arm][min(k, len(grip_sched[arm]) - 1)])
             n.spin(0.05)
         for arm in ARMS:
             pt = n.ee(arm)

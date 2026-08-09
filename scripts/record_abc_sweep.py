@@ -443,14 +443,30 @@ def main():
                 os.makedirs(out_dir, exist_ok=True)
                 log("   %-28s recording..." % pkey)
                 spec = CT.TASKS[task]
+                # THE SCENE PUBLISHER, one per task, torn down after. Without
+                # it the clips show arms moving past nothing at all.
+                procscan.kill_all("clip_scene.py")
+                scene_p = subprocess.Popen(
+                    [sys.executable, os.path.join(WS, "scripts",
+                                                  "clip_scene.py"),
+                     "--task", task,
+                     "--out", os.path.join(out_dir, "scene_events.json")],
+                    start_new_session=True, stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL)
+                time.sleep(3.0)
+                grip_arm = "left" if task in ("a", "c") else "right"
                 rr.ensure_display(os.path.join(out_dir, "rviz"),
-                                  gripper_arm="left")
+                                  gripper_arm=grip_arm)
                 time.sleep(a.settle_s)
                 grabs = rr.start_grabs(out_dir)
                 time.sleep(1.0)
                 good, msg = run_one(app, gui, task, mode, out_dir)
                 time.sleep(1.0)
                 rr.stop_grabs(grabs)
+                try:
+                    os.killpg(os.getpgid(scene_p.pid), 15)
+                except Exception:                             # noqa: BLE001
+                    pass
                 # CAPTION ON THE FRONT VIEW ONLY -- the other six stay clean,
                 # and the quad is built AFTER so the tile carries it too.
                 import textwrap as _tw

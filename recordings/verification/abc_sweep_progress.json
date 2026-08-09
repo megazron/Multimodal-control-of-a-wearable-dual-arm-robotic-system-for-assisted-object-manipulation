@@ -43,7 +43,7 @@
     "mode": "06_full_autonomy",
     "task": "c",
     "scenario": "S1_present_probe",
-    "quad": true,
+    "quad": false,
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",
@@ -57,7 +57,7 @@
     "dir": "recordings/verification/06_full_autonomy/C/S1_present_probe"
   },
   "01_master_teleop/a/S1_single_arm": {
-    "ok": true,
+    "ok": false,
     "msg": "run exited 0",
     "mode": "01_master_teleop",
     "task": "a",
@@ -76,7 +76,7 @@
     "dir": "recordings/verification/01_master_teleop/A/S1_single_arm"
   },
   "01_master_teleop/b/S1_bimanual": {
-    "ok": true,
+    "ok": false,
     "msg": "run exited 0",
     "mode": "01_master_teleop",
     "task": "b",
@@ -95,7 +95,7 @@
     "dir": "recordings/verification/01_master_teleop/B/S1_bimanual"
   },
   "01_master_teleop/c/S1_present_probe": {
-    "ok": true,
+    "ok": false,
     "msg": "run exited 0",
     "mode": "01_master_teleop",
     "task": "c",
@@ -114,7 +114,7 @@
     "dir": "recordings/verification/01_master_teleop/C/S1_present_probe"
   },
   "03_shared_autonomy/a/S1_single_arm": {
-    "ok": true,
+    "ok": false,
     "msg": "run exited 0",
     "mode": "03_shared_autonomy",
     "task": "a",
@@ -133,7 +133,7 @@
     "dir": "recordings/verification/03_shared_autonomy/A/S1_single_arm"
   },
   "03_shared_autonomy/b/S1_bimanual": {
-    "ok": true,
+    "ok": false,
     "msg": "run exited 0",
     "mode": "03_shared_autonomy",
     "task": "b",
@@ -152,7 +152,7 @@
     "dir": "recordings/verification/03_shared_autonomy/B/S1_bimanual"
   },
   "03_shared_autonomy/c/S1_present_probe": {
-    "ok": true,
+    "ok": false,
     "msg": "run exited 0",
     "mode": "03_shared_autonomy",
     "task": "c",
@@ -171,7 +171,7 @@
     "dir": "recordings/verification/03_shared_autonomy/C/S1_present_probe"
   },
   "02_vr_teleop/a/S1_single_arm": {
-    "ok": true,
+    "ok": false,
     "msg": "run exited 0",
     "mode": "02_vr_teleop",
     "task": "a",
@@ -190,7 +190,7 @@
     "dir": "recordings/verification/02_vr_teleop/A/S1_single_arm"
   },
   "02_vr_teleop/b/S1_bimanual": {
-    "ok": true,
+    "ok": false,
     "msg": "run exited 0",
     "mode": "02_vr_teleop",
     "task": "b",
@@ -209,7 +209,7 @@
     "dir": "recordings/verification/02_vr_teleop/B/S1_bimanual"
   },
   "02_vr_teleop/c/S1_present_probe": {
-    "ok": true,
+    "ok": false,
     "msg": "run exited 0",
     "mode": "02_vr_teleop",
     "task": "c",
@@ -228,7 +228,7 @@
     "dir": "recordings/verification/02_vr_teleop/C/S1_present_probe"
   },
   "04_vr_shared/a/S1_single_arm": {
-    "ok": true,
+    "ok": false,
     "msg": "run exited 0",
     "mode": "04_vr_shared",
     "task": "a",
@@ -247,7 +247,7 @@
     "dir": "recordings/verification/04_vr_shared/A/S1_single_arm"
   },
   "04_vr_shared/b/S1_bimanual": {
-    "ok": true,
+    "ok": false,
     "msg": "run exited 0",
     "mode": "04_vr_shared",
     "task": "b",
@@ -266,7 +266,7 @@
     "dir": "recordings/verification/04_vr_shared/B/S1_bimanual"
   },
   "04_vr_shared/c/S1_present_probe": {
-    "ok": true,
+    "ok": false,
     "msg": "run exited 0",
     "mode": "04_vr_shared",
     "task": "c",

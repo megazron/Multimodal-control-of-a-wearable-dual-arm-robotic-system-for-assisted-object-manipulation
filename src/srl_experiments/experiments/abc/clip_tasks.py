@@ -104,10 +104,45 @@ def task_c():
     return {"left": left, "right": right}
 
 
+def grip_for(width_mm):
+    """Knuckle angle that closes on an object of this width. Same map as
+    record_rviz.grip_for, restated here so this module has no dependency on
+    the recorder, and asserted equal by the sweep."""
+    return max(0.12, min(0.70, 0.8 * (1.0 - float(width_mm) / 85.0)))
+
+
+OPEN = 0.0
+
+
+def _sched(n, arm, close_at, open_at, width_mm):
+    """A per-waypoint gripper schedule: OPEN, close to the object's WIDTH,
+    hold, open again.
+
+    Closing to the WIDTH rather than fully is what makes the grasp legible and
+    what makes the attachment honest -- the scene attaches only once the
+    fingers reach 0.90 of this value, so a gripper that merely left the open
+    position never picks anything up.
+    """
+    g = grip_for(width_mm)
+    out = []
+    for k in range(n):
+        if k < close_at:
+            out.append(OPEN)
+        elif k < open_at:
+            out.append(g)
+        else:
+            out.append(OPEN)
+    return {arm: out, ("right" if arm == "left" else "left"): [OPEN] * n}
+
+
 TASKS = {
     "a": dict(name="pick and place",
               scenario="S1_single_arm",
               build=task_a,
+              # descend (open) -> close on the 40 mm block at the pick ->
+              # carry -> open over the bin
+              grip=lambda n: _sched(n, "left", 5, n - 4, 40),
+              width_mm=40,
               expect="LEFT arm descends 0.10 m to the pick, closes, lifts "
                      "0.14 m, carries to the bin and releases. RIGHT arm "
                      "holds still throughout.",
@@ -115,6 +150,10 @@ TASKS = {
     "b": dict(name="hold and place",
               scenario="S1_bimanual",
               build=task_b,
+              # RIGHT already holds the part, carries it down, releases at the
+              # placement; LEFT stays open, holding the work steady.
+              grip=lambda n: _sched(n, "right", 1, n - 5, 45),
+              width_mm=45,
               expect="LEFT arm HOLDS the work still at x=+0.25. RIGHT arm "
                      "brings the part down 0.15 m and places it. Both arms "
                      "engaged at once.",
@@ -122,9 +161,14 @@ TASKS = {
     "c": dict(name="multimeter",
               scenario="S1_present_probe",
               build=task_c,
+              # LEFT grips the multimeter for the whole task and never lets
+              # go -- presenting it IS the task. RIGHT stays open: the probe
+              # is the gripper itself.
+              grip=lambda n: _sched(n, "left", 0, n, 50),
+              width_mm=50,
               expect="LEFT presents the body and holds it steady. RIGHT "
                      "brings the probe down 0.11 m, holds contact, retracts.",
-              caveat="NO MULTIMETER IS IN THE SCENE. This is the "
-                     "present-and-probe MOTION on verified coordinates; the "
-                     "instrument is not modelled in this repository."),
+              caveat="The multimeter is a DUMMY BODY -- a coloured box of "
+                     "the right size, not an instrument model. It is grasped, "
+                     "carried and presented for real."),
 }

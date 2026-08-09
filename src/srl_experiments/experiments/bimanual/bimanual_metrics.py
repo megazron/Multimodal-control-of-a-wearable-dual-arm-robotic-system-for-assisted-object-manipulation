@@ -13,26 +13,17 @@ import math
 import numpy as np
 
 # Robotiq 2F-85 driven knuckle, radians. 0 = open, ~0.79 = closed on nothing.
-GRIPPER_OPEN_RAD = 0.10
-GRIPPER_FREE_AIR_RAD = 0.74
+# IMPORTED, NOT RESTATED. `srl_teleop.gripper_state` owns these because the
+# startup/shutdown open reference depends on the same bands, and a grasp
+# threshold that drifts between the runtime and the analysis silently
+# reclassifies every trial in a study.
+from srl_teleop.gripper_state import (                        # noqa: E402
+    OPEN_RAD as GRIPPER_OPEN_RAD,
+    FREE_AIR_RAD as GRIPPER_FREE_AIR_RAD,
+    classify as gripper_state,
+)
+
 TRAY_SEPARATION_M = 0.300
-
-
-def gripper_state(knuckle_rad):
-    """open | holding | free_air  -- the three states that matter.
-
-    `free_air` is the one that earns its keep: a gripper that closes all the
-    way has nothing in it. Without this, a missing or knocked object is
-    indistinguishable from a grasp the operator fumbled, and the experiment
-    silently blames the participant for a scene error.
-    """
-    if knuckle_rad is None or not math.isfinite(knuckle_rad):
-        return "unknown"
-    if knuckle_rad < GRIPPER_OPEN_RAD:
-        return "open"
-    if knuckle_rad >= GRIPPER_FREE_AIR_RAD:
-        return "free_air"
-    return "holding"
 
 
 def object_present(knuckle_rad):

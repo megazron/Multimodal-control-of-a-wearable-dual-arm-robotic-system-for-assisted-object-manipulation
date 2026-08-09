@@ -43,11 +43,15 @@ from sensor_msgs.msg import JointState
 from shape_msgs.msg import SolidPrimitive
 from std_msgs.msg import String
 
-# Robotiq 2F-85 driven knuckle. Same constants as bimanual_metrics, restated
-# here rather than imported so this node has no dependency on the analysis
-# code path -- they are asserted equal by test_task_scene.
-GRIPPER_OPEN_RAD = 0.10
-GRIPPER_FREE_AIR_RAD = 0.74
+# Robotiq 2F-85 driven knuckle. Previously restated here to avoid depending on
+# the analysis code path, with a test asserting the two copies equal. Now
+# imported from `srl_teleop`, which depends on nothing in-repo, so the node
+# still carries no dependency on the analysis path AND there is one number
+# instead of three. bimanual_metrics imports the same owner.
+from srl_teleop.gripper_state import (                        # noqa: E402
+    OPEN_RAD as GRIPPER_OPEN_RAD,
+    FREE_AIR_RAD as GRIPPER_FREE_AIR_RAD,
+)
 
 KNUCKLE = "%s_robotiq_85_left_knuckle_joint"
 GRIP_LINK = "%s_robotiq_85_left_finger_link"

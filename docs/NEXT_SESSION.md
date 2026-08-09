@@ -1,3 +1,152 @@
+# LAB SESSION: DO THESE, IN THIS ORDER
+
+Everything below needs hardware. Nothing above this line does. The order is
+not arbitrary: each step's result changes whether the next one is worth doing.
+
+---
+
+## 0. BEFORE YOU TOUCH ANYTHING: exactly one stack
+
+Two `master_pose_node` instances split the serial stream and invalidated a
+full day of measurements. It is now impossible at the file-descriptor level,
+but confirm the refusal never appears:
+
+```bash
+pgrep -fc "lib/srl_teleop/master_pose_node"     # must be 0 or 1, never 2
+ls /dev/shm | grep -c fastrtps                  # if in the hundreds, see below
+```
+
+Stale shared-memory segments from killed stacks silently kill NEWLY LAUNCHED
+nodes: empty logs, no processes, no error at all. This cost hours on 08-09.
+Clear them **with the stack stopped**:
+
+```bash
+rm -f /dev/shm/fastrtps_*
+```
+
+Kill by explicit PID, never `pkill -f <pattern>` -- the pattern matches the
+shell running it, which killed the working shell three times in one session.
+
+---
+
+## 1. REPAIR LEFT j2 AND j4. Nothing else on the master is worth soldering.
+
+**These two, and only these two.** Two independent routes agree, which is why
+this is stated flatly rather than as a suggestion:
+
+* the observability regression: with j1 and j7 alone the left arm retains
+  **no reach observable at all**, $R^2 = 0.133$ with a residual that is
+  \SI{93}{\percent} of the true spread. The right arm needs no help
+  ($R^2 = 0.986$).
+* `capability.regain()`, which was never told the above, independently names
+  **j2 and j4 as WORTH IT** and j3, j5 and j6 as **no change**.
+
+Fixing a roll buys nothing while both bends are dead, because a roll carries
+no radial information. That is why the health table alone cannot tell you what
+to repair, and the regain map can.
+
+Expected gain: the left arm moves from rung **SPH_RATE** (radius driven as a
+rate off the wrist, cost \SI{0.076}{\metre} mean) back to **SPHERICAL**
+(radius measured, cost \SI{0.000}{\metre}).
+
+## 2. Re-test AFTER EACH ATTEMPT, not once at the end
+
+```bash
+bash scripts/check_channels.sh          # ~3 min, block A only
+```
+
+It diffs automatically against `recordings/baselines/channels_20260806.json`.
+**Target: 12 or more of 14 coherent**, which is where `degraded_mode:=auto`
+stops engaging.
+
+Run it after *each* attempt. A repair that breaks a working channel should be
+caught immediately, not discovered at the end of the session when you cannot
+tell which attempt did it.
+
+Watch for the verdict **INCOHERENT** specifically. A failing pot does not go
+quiet: it returns a wide spread of values that are not a trajectory, and range
+alone calls that healthy. That is how a broken channel keeps getting trusted.
+
+## 3. ONE 35-minute recapture, gate fix live
+
+```bash
+terminal 1:  bash scripts/run_teleop.sh gate:=false
+terminal 2:  ros2 run srl_teleop live_monitor
+terminal 3:  bash run_teleop_capture.sh
+```
+
+The 2026-08-06 capture lost **41 of 42 directional segments** to a clutch
+gating bug and latched the e-stop through the whole of block F. Both are
+fixed, but confirm from the recorder's own output rather than assuming:
+
+* each segment must record with the clutch **ENGAGED** on the arm under test
+  (each arm is gated by the OPPOSITE arm's button, because an arm's own button
+  also toggles its clutch);
+* the e-stop must not latch. The both-button trigger now needs a sustained
+  \SI{0.30}{\second} hold, so gating taps can no longer fire it.
+
+This capture is what unblocks: the gyro-azimuth decision, any smoothing
+parameter, and the first real gain matrix with a **moving** master. Every
+tracking figure in the thesis was taken with the master at rest.
+
+## 4. Verify the cascade rate limit end to end
+
+`clamp_towards` now cascades `max_step` as well as `max_vel`. It is
+unit-tested and has **never been measured with a stack up**.
+
+```bash
+bash scripts/start_real.sh --mock
+# then vary the trip threshold and watch the divergence
+ros2 param set /sim_to_real_bridge_left lag_trip_rad 0.3
+ros2 param set /sim_to_real_bridge_left lag_trip_rad 0.5
+ros2 param set /sim_to_real_bridge_left lag_trip_rad 0.8
+```
+
+**EXPECTED: divergence stays roughly CONSTANT as `lag_trip_rad` changes.**
+If it SCALES with the threshold, the fix is wrong: that would mean the sim is
+still running ahead and only the trip point moved, which is the bug the
+cascade was meant to remove.
+
+Record the actual numbers either way. This is a prediction with a clear
+falsifier, which is the only kind worth testing.
+
+## 5. Unblock VR: platform-tools on WINDOWS
+
+```
+https://dl.google.com/android/repository/platform-tools-latest-windows.zip
+```
+
+Unzip to `C:\platform-tools`. No install, no admin rights. Verify from WSL:
+
+```bash
+/mnt/c/platform-tools/adb.exe devices
+```
+
+`unauthorized` instead of `device` means the **Allow USB debugging** prompt
+has not been accepted, and that prompt appears **inside the headset** -- put
+it on to answer it. This traps everyone.
+
+It must be the **Windows** build: the headset enumerates as a Windows USB
+device, so `apt install adb` inside WSL gives a binary that cannot see it.
+
+Then the whole connection is one command, which also supervises the tunnel:
+
+```bash
+bash scripts/vr_connect.sh
+```
+
+## 6. While you are there, two cheap measurements
+
+* **Read the right arm's home joint angles from hardware.** They have NEVER
+  been read (`config/home_positions_right.txt` says so), and $P_{\text{HOME}}$
+  for that arm, the workspace anchor and every clearance figure depend on
+  them.
+* **Photograph the task objects**, 25 images each, for the detection measure.
+  The current detection figure characterises a renderer, not a detector, so
+  the \SI{95}{\percent} gate is neither passed nor failed.
+
+---
+
 # ITEM 3 - THESIS: instrument-validation chapter written
 
 The master arm chapter (2799 words), the MuJoCo-to-ROS development path

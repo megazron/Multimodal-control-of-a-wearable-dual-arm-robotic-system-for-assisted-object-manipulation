@@ -31,6 +31,8 @@ setup(
             'colour_shape_detector = srl_perception.colour_shape_detector:main',
             # Turns detections into stable, world-frame object poses.
             'object_pose_tracker = srl_perception.object_pose_tracker:main',
+            # Scene fingerprinting: calibrate only when the bed has changed.
+            'scene_fingerprint_node = srl_perception.scene_fingerprint_node:main',
             # Offline characterisation: detection rate, accuracy, latency.
             'measure_detector = srl_perception.measure_detector:main',
             # Legacy VLM locator, kept but not part of the study pipeline.

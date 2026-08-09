@@ -47,8 +47,36 @@ observability regression (R^2 = 0.133 on j1+j7 alone).
 
 18 known-answer tests.
 
-## PARTS 3-9 - NOT STARTED
-3 scene fingerprinting, 4 four-mode real-arm path check, 5 free-form language,
+## PART 3 - scene fingerprinting: DONE, this commit
+
+`srl_perception/scene_fingerprint.py` (pure matcher) + `scene_fingerprint_node`.
+
+Verified end to end against synthetic detections, four stages:
+
+    1st sweep   FIRST FINGERPRINT: 3 objects in 0.9 s
+    2nd sweep   SCENE MATCHES (max delta 0.0 mm) -- calibration SKIPPED
+    3rd sweep   block_b moved 60.0 mm -> re-registered 1, kept 2 unchanged
+    4th sweep   block_b vanished -> dropped 1, store now holds 2
+
+Measured (matcher only; the DETECTOR is not measurable here):
+  * decision accuracy at AprilTag noise (sigma 0.8 mm): 100% on all four of
+    same / moved / appeared / vanished, 2000 trials each.
+  * smallest detected displacement: 20 mm at 95% (model predicts 15 mm).
+  * compare() costs 0.12 ms for 5 objects, 6.7 ms for 50. The decision is
+    free; a sweep's cost is arm motion.
+
+**The fingerprint is only useful with a tag-grade detector.** At the
+colour/shape fallback's 10 mm noise the "unchanged" verdict is right 2.6% of
+the time -- it would re-register every start. Widening the tolerance fixes the
+false alarms and costs sensitivity:
+
+    pos_tol   false "changed"   min detected move
+     15 mm       97.3%            30 mm
+     30 mm       13.0%            50 mm
+     40 mm        0.8%            60 mm
+
+## PARTS 4-9 - NOT STARTED
+4 four-mode real-arm path check, 5 free-form language,
 6 GUI with embedded RViz, 7 VR setup + README, 8 new operator features,
 9 re-record + self-audit. Each is a session's work; they were not begun
 rather than begun badly.

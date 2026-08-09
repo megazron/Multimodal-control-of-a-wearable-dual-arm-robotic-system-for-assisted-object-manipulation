@@ -162,7 +162,9 @@ def main():
             if centres[arm]: break
     print("  target centres: left %s   right %s" % (centres["left"], centres["right"]))
     amp = AMP
-    ok7 = all(centres.values())
+    # all() over an EMPTY dict is True. centres is built by a search that can
+    # find nothing, so require both arms to be present as well as truthy.
+    ok7 = (len(centres) == 2 and all(centres.get(a) for a in ("left", "right")))
     t7o = {}
     for name, s in T7.items():
         t7o[name] = dict(**s, centre_left=centres["left"],

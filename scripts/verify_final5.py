@@ -64,9 +64,23 @@ def main():
         for p in picks:
             pre = [p[0], p[1], p[2] + T.TASK2["standoff_m"]]
             path = densify([pre, p], STEP)
+            # AN EMPTY PATH MUST NOT VERIFY. all() over nothing is True, so a
+            # densify() that returned no waypoints would make this report
+            # "TOTAL FAILURES: 0" -- indistinguishable from having checked
+            # every waypoint. That is the same mechanism that let a
+            # known-answer check pass on zero parsed rows, sitting under the
+            # result this project leans on hardest.
+            if not path:
+                raise RuntimeError(
+                    "densify returned no waypoints for the approach to %s; "
+                    "refusing to report a pass on an empty path" % (p,))
             good = all(ok(arm, w) for w in path)
             binp = T.TASK2["bins"][arm]
             place = densify([[binp[0], binp[1], binp[2] + 0.12], binp], STEP)
+            if not place:
+                raise RuntimeError(
+                    "densify returned no waypoints for the place at %s"
+                    % (binp,))
             goodb = all(ok(arm, w) for w in place)
             rows.append(dict(pick=p, approach_ok=bool(good), place_ok=bool(goodb),
                              n_way=len(path) + len(place)))

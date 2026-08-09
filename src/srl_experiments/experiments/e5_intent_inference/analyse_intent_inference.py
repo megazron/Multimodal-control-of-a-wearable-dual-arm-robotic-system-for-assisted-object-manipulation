@@ -90,16 +90,12 @@ def friedman_or_rm(groups, labels):
 
 
 def holm(pvals):
-    """Holm-Bonferroni, the pre-registered correction."""
-    idx = np.argsort(pvals)
-    out = np.empty(len(pvals))
-    m = len(pvals)
-    prev = 0.0
-    for rank, i in enumerate(idx):
-        v = min(1.0, (m - rank) * pvals[i])
-        prev = max(prev, v)
-        out[i] = prev
-    return out
+    """DEPRECATED HERE. The shared implementation, with the post-hoc stage it
+    was written for, lives in srl_experiments.posthoc. This local copy existed
+    in five analysers and was called by none of them, so every E-series result
+    was reported uncorrected."""
+    from srl_experiments.posthoc import holm as _holm
+    return _holm(pvals)
 
 
 def main():
@@ -164,6 +160,23 @@ def main():
         ax.set_title("E5 intent accuracy by cell")
         fig.tight_layout(); fig.savefig(a.plot, dpi=130)
         print("plot -> %s" % a.plot)
+
+    # NO INFERENTIAL TEST IS RUN IN THIS ANALYSER. It defines
+    # friedman_or_rm() and holm() and calls NEITHER, so everything printed
+    # above is descriptive only. Saying so at the end is the minimum: a table
+    # of condition means with no test beside it reads like a result, and a
+    # reader has no way to tell that no hypothesis was evaluated.
+    #
+    # Wiring the omnibus in blind was declined deliberately -- the correct
+    # test depends on this experiment's design and on which series pair with
+    # which, and guessing that is how a wrong p-value enters a thesis.
+    print()
+    print("  !! DESCRIPTIVE ONLY: no inferential test was run. The omnibus "
+          "and the")
+    print("     Holm correction are defined in this file and called nowhere. "
+          "Do NOT")
+    print("     read the differences above as significant or as null.")
+
     return 0
 
 

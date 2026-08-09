@@ -90,16 +90,12 @@ def friedman_or_rm(groups, labels):
 
 
 def holm(pvals):
-    """Holm-Bonferroni, the pre-registered correction."""
-    idx = np.argsort(pvals)
-    out = np.empty(len(pvals))
-    m = len(pvals)
-    prev = 0.0
-    for rank, i in enumerate(idx):
-        v = min(1.0, (m - rank) * pvals[i])
-        prev = max(prev, v)
-        out[i] = prev
-    return out
+    """DEPRECATED HERE. The shared implementation, with the post-hoc stage it
+    was written for, lives in srl_experiments.posthoc. This local copy existed
+    in five analysers and was called by none of them, so every E-series result
+    was reported uncorrected."""
+    from srl_experiments.posthoc import holm as _holm
+    return _holm(pvals)
 
 
 def main():
@@ -135,6 +131,13 @@ def main():
     print()
     print("H2.1 completion time differs by autonomy level (pre-registered):")
     print("   ", json.dumps(friedman_or_rm([series[c] for c in order], order)))
+    # POST-HOC, which is what holm() was written for. The omnibus
+    # above says something differs across conditions; it does not
+    # say WHICH PAIR, and with three conditions the pair is the
+    # question. Without this stage the correction had nothing to
+    # correct, which is why it sat uncalled in five analysers.
+    from srl_experiments.posthoc import pairwise, summarise
+    print(summarise(pairwise([series[c] for c in order], order)))
     if a.plot and order:
         import matplotlib; matplotlib.use("Agg")
         import matplotlib.pyplot as plt

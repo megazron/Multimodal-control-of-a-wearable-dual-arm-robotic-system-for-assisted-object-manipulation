@@ -1,3 +1,46 @@
+# VACUOUS CHECKS FIXED + POST-HOC WIRED (2026-08-09)
+
+## The four vacuous checks: 0 remaining
+`verify_final5.py` now RAISES if densify returns no waypoints, rather than
+reporting "TOTAL FAILURES: 0" on a path it never checked. Same guard on the
+place path, on `verify_scenarios`'s centres dict (all() over an empty dict is
+True) and on `verify_autonomy`'s expected-words list (an empty expectation
+passes anything the robot says, including nothing).
+
+## holm: the gap was not a missing call
+`holm()` had NOTHING TO CORRECT. Each analyser ran one omnibus test and
+stopped; an omnibus says something differs, not WHICH PAIR. The missing piece
+was the post-hoc stage holm was written for.
+
+`srl_experiments/posthoc.py` now provides it once: paired Wilcoxon over all
+pairs, Holm-corrected, reporting RAW and ADJUSTED p side by side plus a
+rank-biserial effect size. A pair with too few observations is excluded from
+the family rather than counted, because including it would weaken every other
+comparison on the strength of a test that never ran. `holm([])` now raises.
+Known-answer checked: [0.01,0.04,0.03] -> [0.03,0.06,0.06], monotone.
+The five duplicate copies now delegate to it.
+
+## WORSE THAN THE AUDIT REPORTED, and this is the finding
+**Three of the five E-series analysers run NO inferential test at all.** They
+define `friedman_or_rm()` AND `holm()` and call neither:
+
+    analyse_divided_attention   omnibus calls 0
+    analyse_dof_recovery        omnibus calls 0
+    analyse_intent_inference    omnibus calls 0
+    analyse_autonomy_level      omnibus 1, post-hoc 1   (wired)
+    analyse_vr_vs_mannequin     omnibus 1, post-hoc 1   (wired)
+
+Those three now END with a loud DESCRIPTIVE ONLY warning. I did NOT wire the
+omnibus in blind: the correct test depends on each experiment's design and on
+which series pair with which, and guessing that is how a wrong p-value enters
+a thesis. **That wiring is a real outstanding task, not a formality.**
+
+67 tests pass.
+
+## JOB C: NOT STARTED
+
+---
+
 # JOB B DONE - workspace audit. REPORT ONLY, nothing fixed (2026-08-09)
 
 `scripts/audit_workspace.py` -- repeatable, 232 python files scanned. Each

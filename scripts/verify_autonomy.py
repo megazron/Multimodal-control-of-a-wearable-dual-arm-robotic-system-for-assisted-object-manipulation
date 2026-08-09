@@ -114,6 +114,11 @@ def case(h, name, dets, utter, expect_stage, expect_words, results):
         lat = (ts - t0) * 1000.0
         break
     ok_stage = expect_stage in stages
+    # An EMPTY expect_words passes whatever the robot said, including
+    # nothing. A case that expects no particular words is not a test.
+    if not expect_words:
+        raise ValueError("case %r declares no expected words; that cannot "
+                         "fail and so cannot pass" % name)
     ok_words = all(w.lower() in said for w in expect_words)
     ok = ok_stage and ok_words
     results.append((name, ok, stages, said[:120], lat))

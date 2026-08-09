@@ -16,55 +16,31 @@ the lab.**
 
 ## START HERE
 
-**First incomplete part: PART 5 — RE-RECORD, DRIVEN FROM THE GUI. PARTLY
-DONE, and the blocker underneath it is now cleared.**
+**First incomplete part: PART 5 — the 7-ANGLE CAPTURE SWEEP.** Both blockers
+are cleared and all four modes now drive the arms, measured:
 
-Resume at the SWEEP. Everything it needs exists and is proven:
+| mode | task B, 0.200 m declared lift | via |
+| --- | --- | --- |
+| 01_master_teleop | **0.2000 / 0.2000 m** | `/master_arm_pose_<arm>` |
+| 02_vr_teleop | **0.1000 / 0.1000 m** | `/vr/controller_pose_*` -> mapper (scale 0.5) |
+| 04_shared_autonomy | **0.2000 / 0.2000 m** | `/autonomy/assist_pose_<arm>` |
+| 06_full_autonomy | **0.1766 / 0.2000 m** | voice -> executive -> same topic |
 
-* `bash scripts/run_experiment.sh <a|b|c> --mode <01|02|04|06>_... --scripted`
-  drives the arms through that mode's OWN command path -- measured, 0.16-0.53 m
-  of real tf2 EE travel under modes 04 and 06 -- and exits non-zero if they
-  did not move.
-* the GUI has 12 A/B/C buttons (task x mode), all live, all pressed by
-  `scripts/verify_gui_buttons.py`.
-* `scripts/verify_rviz_clips.py` refuses to report until it has caught seven
-  constructed broken clips, and it found a real bug doing so.
+**PRECONDITION THE SWEEP MUST HONOUR: ONE MODE OWNS THE GRAPH AT A TIME.**
+Measured -- after a VR run, modes 01/04/06 all reported 0.0000 m, and killing
+`vr_pose_mapper` restored them to 0.2000 m immediately. The mapper stays
+ENGAGED when its run ends and keeps publishing on `/master_arm_pose_<arm>`,
+which is the same topic mode 01 uses, so it holds the arm at its last command.
+This is the project's own one-source-at-a-time rule at the PROCESS level. The
+sweep must start each mode's upstream nodes before its runs and stop them
+after, or every mode after the first records a stationary arm.
 
-STILL TO DO: the 7-angle capture sweep itself
-(`recordings/verification/<mode>/<task>/<scenario>/`, front/back/left/right/
-iso/gripper/quad, overlay on front only, Xvfb :99, resumable with progress
-written after each clip), and two modes:
-
-* **01_master_teleop does not drive the arms yet.** Poses reach the follower
-  (sub=1) and are suppressed rather than rejected: 0.0048 m for a 0.200 m
-  command, with both followers `blocked=true, active=[], expired=["ik_failed"],
-  state_unknown=true`. Suspect `autonomy_has_control` -- which would mean
-  MODES MUST NOT SHARE A STACK SESSION. Unconfirmed.
-* **02_vr_teleop has not been exercised**; it needs `vr_pose_mapper` running.
-
-- Part 1 DONE (`6736ee7`): autonomy moves the arm — 1092 trajectories and
-  0.0700 / 0.1204 m of real EE displacement, residual 0.0000 m. Root cause was
-  a missing `import time`.
-- Part 2 DONE (`9e0dce4`): full diagnosis. One bug wore three costumes; two
-  measuring instruments were lying. Job F re-measured honestly. Read Part 2's
-  "NOT FIXED, AND WHY" list before starting new work — five wall-clock
-  intervals, four identity-quaternion drive sites, two audit blind spots and
-  D2 (second-stack prevention) are diagnosed but open, each with a reason.
-- Part 3 DONE (`d5bbec8`): 7 MISUNDERSTOOD utterances closed; the gripper no
-  longer inherits a leftover as its open reference; the pot repair can now
-  reach the runtime AT ALL (it could not); Tasks A/B/C verified N=10 over the
-  full path with 0 failures and a 116-minute session that a checker validates.
-- Part 4 DONE (this commit): the GUI now shows commanded vs actual with a
-  divergence readout that names the lag threshold it is judged against, and
-  every indicator is PROVEN to separate healthy / abnormal / not-checked.
-  **Two embedded RViz panels do not work on this host** and the reason is
-  measured, not guessed -- see the reported findings. The ghosted single
-  panel ships instead, which the brief itself proposed as the fallback.
-
-**The stack is currently UP** (`teleop.launch.py gate:=false`) with the left
-arm parked mid-workspace from the dial probe. Re-home or relaunch before any
-measurement that assumes the home pose — `measure_workspace.py` asserts on it,
-`diagnose_front_reach.py` does not and should.
+STILL TO DO: the capture itself --
+`recordings/verification/<mode>/<task>/<scenario>/`, one file per angle
+(front, back, left, right, iso, gripper, quad), overlay on front only, Xvfb
+on :99 and never WSLg's :0, resumable with progress written after each clip.
+The verifier is ready and validated: `scripts/verify_rviz_clips.py` refuses to
+report until it has caught seven constructed broken clips.
 
 ---
 
@@ -76,7 +52,7 @@ measurement that assumes the home pose — `measure_workspace.py` asserts on it,
 | 2 | Full diagnosis (report before fixing) | **DONE** | `9e0dce4` |
 | 3 | Finish outstanding work (lang sweep, gripper, degraded warning, tasks A/B/C) | **DONE** | `d5bbec8` |
 | 4 | Dual-view GUI, everything runs through it | **DONE** | `95adcf4` |
-| 5 | Re-record, driven from the GUI | **PARTLY DONE** | `93ce00c` |
+| 5 | Re-record, driven from the GUI | **PARTLY DONE** | `bc3b890` |
 | 6 | Graphs | NOT STARTED | — |
 | 7 | Report and commit / push | NOT STARTED | — |
 

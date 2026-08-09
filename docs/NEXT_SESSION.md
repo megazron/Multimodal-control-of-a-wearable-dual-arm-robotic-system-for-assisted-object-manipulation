@@ -175,7 +175,29 @@ how far the warning leads the wall.
 NOT BUILT: the wrist camera relay. Evaluated as the second-best candidate and
 still is; it is a subscriber and a widget.
 
-## PART 9 - NOT STARTED
+## PART 9 - audit DONE, re-recording NOT DONE, this commit
+
+`docs/system/09_results_audit.md` audits every number in Parts 1-8: how it was
+measured, whether the instrument was validated, verdict.
+
+    VALIDATED  14      SOUND 15      UNVERIFIED 4      STRUCTURAL 1
+
+The four UNVERIFIED, none of which is reported as a result anywhere:
+end-to-end fingerprint accuracy (no cameras), smallest grippable object (the
+mock cannot produce positioning error), anything against a real headset (no
+adb), and the boundary warning's lead distance (below).
+
+**BOUNDARY NODE STILL NOT VERIFIED.** It publishes and warns, but reports the
+wall at 0 mm along a line a direct IK probe reaches at 6/6 with the same
+orientation. Two measurements contradict; at least one instrument is wrong.
+Candidates: the node probes before its cached orientation is populated (and
+identity is unreachable at 0/6 on that line), or the velocity estimate is
+still near zero when the first probe fires. FIRST JOB NEXT.
+
+**CLIP RE-RECORDING NOT DONE.** The 87 clips still use the OLD nine-task
+geometry and predate the single-owner gripper fix. Re-recording needs a
+healthy stack for hours and was not attempted rather than attempted badly.
+
 
 6 GUI with embedded RViz, 7 VR setup + README, 8 new operator features,
 9 re-record + self-audit. Each is a session's work; they were not begun

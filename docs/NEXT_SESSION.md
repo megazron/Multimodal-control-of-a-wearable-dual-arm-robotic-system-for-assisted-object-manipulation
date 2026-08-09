@@ -1,3 +1,35 @@
+# C5 DONE - the CAD is not the kinematic source (2026-08-09)
+
+83 pages, 0 errors, 0 undefined references.
+
+New section in the master arm chapter, `\label{sec:cad-not-kinematic}`. Three
+statements, each CHECKED rather than asserted:
+
+1. **The CAD carries no articulated joints.** Both STEP files declare AP214,
+   a schema that CAN carry kinematics. Searching for every entity that would
+   express it (`KINEMATIC_JOINT`, `REVOLUTE_PAIR`, `PRISMATIC_PAIR`,
+   `KINEMATIC_LINK`, `MECHANISM`) returns **zero** in both.
+2. **No robot description derives from them.** No URDF or xacro references any
+   `.step` file. Stronger: **the master arm has NO URDF at all** -- it is not
+   modelled as a robot description in any form.
+3. **The kinematics are seven measured constants**, `LINK_LENGTHS` in
+   `master_calibration.py`, originating in the prior work's C++ header as
+   "shaft-center to shaft-center, measured directly on the physical master
+   arm".
+
+The section also states why the 1.2% CAD agreement does NOT make the CAD the
+source: it was established by measuring the CAD *against* the constants, and
+if the two ever disagree the question must be settled on the physical arm.
+And it records that regenerating kinematics from the CAD is impossible anyway
+-- the geometry gives pair pitch and cannot separate the 43 mm roll from the
+37 mm bend.
+
+## JOB C REMAINDER
+Only C4's outstanding figures are left: more RViz stills (recipe works, one
+command per view) and the CAD figures (cadquery installed, can render).
+
+---
+
 # C4 PARTLY DONE (2026-08-09)
 
 82 pages, 0 errors, 0 undefined references.

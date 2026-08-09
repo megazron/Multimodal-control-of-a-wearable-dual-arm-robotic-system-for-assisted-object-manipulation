@@ -401,6 +401,58 @@ the board is found when it moves between \texttt{/dev/ttyACM0} and
 state rather than an instantaneous level, so a host that misses frames cannot
 miss a press.
 
+
+\section{The CAD is not the kinematic source}
+\label{sec:cad-not-kinematic}
+
+This section exists so that nobody later mistakes the mechanical drawings for
+the model the software uses. Three statements, each checked rather than
+assumed.
+
+\paragraph{The CAD carries no articulated joints.} Both STEP files declare the
+\texttt{AUTOMOTIVE\_DESIGN} (AP214) schema, which \emph{is} capable of
+carrying kinematic structure. Searching them for every entity that would
+express it, \texttt{KINEMATIC\_JOINT}, \texttt{REVOLUTE\_PAIR},
+\texttt{PRISMATIC\_PAIR}, \texttt{KINEMATIC\_LINK} and \texttt{MECHANISM},
+returns zero occurrences in either file. They are solid geometry for
+manufacture, drawn for three-dimensional printing, and they describe one fixed
+configuration.
+
+\paragraph{No robot description derives from them.} No URDF or xacro anywhere
+in the workspace references \repo{PotArm.step}, \repo{backpack.step}, or any
+\texttt{.step} file. More strongly: \textbf{the master arm has no URDF at
+all.} It is not modelled as a robot description in any form.
+
+\paragraph{The kinematics are seven measured constants.} What the software
+actually uses is a single line,
+\repo{srl\_teleop/master\_calibration.py}:
+
+\begin{lstlisting}[language=Python]
+LINK_LENGTHS = [0.043, 0.037, 0.043, 0.037, 0.043, 0.036, 0.033]
+\end{lstlisting}
+
+Those values did not come from the CAD. They originate in
+\repo{basic\_control/kinematics.h} from the prior work
+(\cref{ch:development}), where they are declared as ``physical link lengths
+(metres), shaft-center to shaft-center, measured directly on the physical
+master arm''. The chain is measured, not designed.
+
+\paragraph{Why this matters, and why the agreement does not change it.}
+\Cref{ch:results} reports that the CAD's joint-module pitch agrees with the
+forward-kinematic link lengths to \SI{1.2}{\percent}. That is a genuine
+cross-check and it is worth having, because until it was made those seven
+numbers had never been compared against anything. It is emphatically
+\textbf{not} a licence to treat the CAD as the source: the agreement was
+established by measuring the CAD \emph{against} the constants, and the
+constants remain the definition. If the two are ever found to disagree, the
+question of which is correct is open and must be settled on the physical arm,
+not by preferring whichever artefact is more convenient.
+
+A successor tempted to regenerate the kinematics from the CAD should note that
+it cannot be done: the geometry gives centre-to-centre pitch for a
+\emph{pair} of joints and does not distinguish the \SI{43}{\milli\metre} roll
+from the \SI{37}{\milli\metre} bend within it.
+
 \section{Summary}
 
 The master supplies fourteen joint angles, two three-axis accelerations, two

@@ -55,6 +55,7 @@ from std_msgs.msg import String
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import tasks as T                                            # noqa: E402
+import clip_tasks as CT                                      # noqa: E402
 
 ARMS = ("left", "right")
 
@@ -86,6 +87,17 @@ MODES = {
         topic="/autonomy/assist_pose_%s", frame="world",
         note="world-frame pose, entering request_ik at the same door teleop "
              "uses"),
+    # The recording set's mode names. 03_shared_autonomy and 04_vr_shared are
+    # the same command paths as 04_shared_autonomy / VR-plus-autonomy; the
+    # numbering is the one the clip tree uses.
+    "03_shared_autonomy": dict(
+        topic="/autonomy/assist_pose_%s", frame="world",
+        note="master present, autonomy commanding -- the arbiter's topic"),
+    "04_vr_shared": dict(
+        topic="/autonomy/assist_pose_%s", frame="world",
+        vr_present=True,
+        note="VR transport up AND autonomy commanding; the mapper runs but "
+             "the arbiter owns the pose"),
     "06_full_autonomy": dict(
         topic="/autonomy/assist_pose_%s", frame="world",
         via_executive=True,
@@ -269,6 +281,10 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", required=True, choices=["a", "b", "c",
                                                       "A", "B", "C"])
+    ap.add_argument("--taskset", default="study", choices=["study", "clip"],
+                    help="'clip' selects the RECORDING tasks (pick and place, "
+                         "hold and place, multimeter); 'study' the "
+                         "participant spec")
     ap.add_argument("--mode", default="04_shared_autonomy",
                     choices=sorted(MODES))
     ap.add_argument("--scenario", default=None)
@@ -282,9 +298,15 @@ def main(argv=None):
     a = ap.parse_args(argv if argv is not None else sys.argv[1:])
     key = a.task.upper()
 
-    default_scen = {"A": "S3_both", "B": "S2_full_lift", "C": "S1_both_slow"}
-    scen = a.scenario or default_scen[key]
-    wp = waypoints(key, scen)
+    if a.taskset == "clip":
+        spec = CT.TASKS[key.lower()]
+        scen = a.scenario or spec["scenario"]
+        wp = spec["build"]()
+    else:
+        default_scen = {"A": "S3_both", "B": "S2_full_lift",
+                        "C": "S1_both_slow"}
+        scen = a.scenario or default_scen[key]
+        wp = waypoints(key, scen)
 
     if a.dry_run:
         print("task %s / %s / mode %s : %d waypoints per arm, entry topic %s"
@@ -394,6 +416,16 @@ def main(argv=None):
     n.spin(1.2)
     start = {arm: n.ee(arm) for arm in ARMS}
 
+    # PATH LENGTH, NOT START-TO-END DISPLACEMENT.
+    #
+    # Travel was `dist(start, end)`, which is ZERO for any path that returns
+    # to where it began -- and task C is a present-and-probe round trip by
+    # design. It duly reported 0.0000 m and the motion guard refused the run,
+    # correctly by its own rule and wrongly about the world: the arm had moved
+    # 0.22 m and come back. Accumulating the path integral answers "did this
+    # arm move" for every path shape, which is what the guard is actually for.
+    track = {arm: [start[arm]] for arm in ARMS}
+
     n_sent = 0
     for k in range(len(wp["left"])):
         # RE-SEND THE SAME TARGET AT 20 Hz FOR THE WHOLE HOLD, rather than
@@ -410,16 +442,24 @@ def main(argv=None):
             for arm in ARMS:
                 n.send(arm, wp[arm][min(k, len(wp[arm]) - 1)])
             n.spin(0.05)
+        for arm in ARMS:
+            pt = n.ee(arm)
+            if pt is not None:
+                track[arm].append(pt)
         n_sent += len(ARMS)
     n.spin(1.5)
 
     end = {arm: n.ee(arm) for arm in ARMS}
-    travel = {}
+    travel, net = {}, {}
     for arm in ARMS:
-        if start[arm] is None or end[arm] is None:
+        pts = [p for p in track[arm] if p is not None]
+        if len(pts) < 2:
             travel[arm] = None
         else:
-            travel[arm] = math.dist(start[arm], end[arm])
+            travel[arm] = sum(math.dist(pts[i], pts[i + 1])
+                              for i in range(len(pts) - 1))
+        net[arm] = (None if (start[arm] is None or end[arm] is None)
+                    else math.dist(start[arm], end[arm]))
 
     n.state.publish(String(data=json.dumps(
         dict(experiment="abc", task=key, scenario=scen, mode=a.mode,
@@ -427,9 +467,11 @@ def main(argv=None):
     print("task %s / %s / mode %s : %d poses published on %s"
           % (key, scen, a.mode, n_sent, MODES[a.mode]["topic"] % "<arm>"))
     for arm in ARMS:
-        print("   %-5s tf2 EE travel: %s"
-              % (arm, "NO TF -- cannot tell whether it moved"
-                 if travel[arm] is None else "%.4f m" % travel[arm]))
+        print("   %-5s tf2 EE path %s   net %s"
+              % (arm,
+                 "NO TF -- cannot tell whether it moved"
+                 if travel[arm] is None else "%.4f m" % travel[arm],
+                 "--" if net[arm] is None else "%.4f m" % net[arm]))
     n.destroy_node()
     rclpy.shutdown()
 

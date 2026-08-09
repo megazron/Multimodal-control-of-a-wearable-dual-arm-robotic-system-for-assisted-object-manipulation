@@ -59,12 +59,19 @@ OUT = os.path.join(WS, "recordings/verification")
 PROGRESS = os.path.join(OUT, "abc_sweep_progress.json")
 
 TASKS = ("a", "b", "c")
-SCENARIO = {"a": "S3_both", "b": "S2_full_lift", "c": "S1_both_slow"}
+sys.path.insert(0, os.path.join(WS, "src/srl_experiments/experiments/abc"))
+import clip_tasks as CT                                      # noqa: E402
+SCENARIO = {k: v["scenario"] for k, v in CT.TASKS.items()}
 
 # Per mode: which upstream nodes it needs, and how many publishers the
 # FOLLOWER's input topic must have while it runs. The expected counts are the
 # whole point -- they are predictions, written before the run, that the sweep
 # refuses to proceed without.
+# ORDER IS DELIBERATE: most self-sufficient first, so a session that dies
+# part-way still leaves the modes that needed no operator on the remote.
+MODE_ORDER = ["06_full_autonomy", "01_master_teleop", "03_shared_autonomy",
+              "02_vr_teleop", "04_vr_shared"]
+
 MODES = {
     "01_master_teleop": dict(
         needs=[], follower_topic="/master_arm_pose_%s", expect_pubs=1,
@@ -81,6 +88,15 @@ MODES = {
     "06_full_autonomy": dict(
         needs=[], follower_topic="/autonomy/assist_pose_%s", expect_pubs=1,
         note="the runner itself, commanded by a spoken instruction"),
+    "03_shared_autonomy": dict(
+        needs=[], follower_topic="/autonomy/assist_pose_%s", expect_pubs=1,
+        note="the arbiter's topic; the master is present but not commanding"),
+    "04_vr_shared": dict(
+        needs=[("vr_pose_mapper",
+                ["ros2", "run", "srl_vr_teleop", "vr_pose_mapper"])],
+        follower_topic="/autonomy/assist_pose_%s", expect_pubs=1,
+        vr_present=True,
+        note="the VR transport is UP and autonomy owns the pose"),
 }
 
 # Every upstream any mode can start. Anything not in a mode's `needs` is torn
@@ -89,6 +105,133 @@ MODES = {
 ALL_UPSTREAMS = ["lib/srl_vr_teleop/vr_pose_mapper",
                  "lib/srl_autonomy/autonomy_executive",
                  "lib/srl_vr_teleop/quest_vendor_bridge"]
+
+
+def burn_caption(front_mp4, lines, width=800):
+    """Composite the caption ONTO the front clip, as pixels.
+
+    RViz TEXT_VIEW_FACING markers were tried first and are the wrong tool: a
+    marker is one 3-D object in the scene, so a caption line is a metres-wide
+    billboard that mostly falls outside the frame. Two attempts produced a
+    caption that was present, correct and unreadable -- words scattered across
+    the picture. `drawtext` is not compiled into this ffmpeg build, so the
+    caption is rendered to a PNG with exact control and composited with
+    `overlay`, which is.
+
+    Overlaid for the WHOLE clip rather than appearing at the end, so the
+    viewer knows what to expect before the motion starts and can see the
+    outcome without waiting for it.
+    """
+    from PIL import Image, ImageDraw, ImageFont
+    if not os.path.exists(front_mp4):
+        return False
+    pad, lh = 9, 15
+    h = pad * 2 + lh * len(lines)
+    im = Image.new("RGBA", (width, h), (7, 11, 15, 232))
+    d = ImageDraw.Draw(im)
+    d.line([(0, h - 1), (width, h - 1)], fill=(63, 182, 201, 210))
+    for i, (txt, col) in enumerate(lines):
+        try:
+            f = ImageFont.truetype(
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans%s.ttf"
+                % ("-Bold" if i == 0 else ""), 11 if i == 0 else 10)
+        except OSError:
+            f = ImageFont.load_default()
+        d.text((10, pad + i * lh), txt, fill=col, font=f)
+    png = front_mp4 + ".caption.png"
+    im.save(png)
+    tmp = front_mp4 + ".cap.mp4"
+    r = subprocess.run(
+        [rr.FFMPEG, "-y", "-loglevel", "error", "-i", front_mp4, "-i", png,
+         "-filter_complex", "overlay=0:0", "-c:v", "libx264", "-preset",
+         "ultrafast", "-pix_fmt", "yuv420p", tmp],
+        capture_output=True, text=True)
+    if r.returncode == 0 and os.path.exists(tmp) and os.path.getsize(tmp) > 10000:
+        os.replace(tmp, front_mp4)
+        os.remove(png)
+        return True
+    return False
+
+
+W_TXT = (238, 244, 248, 255)
+C_TXT = (99, 200, 216, 255)
+A_TXT = (232, 163, 61, 255)
+R_TXT = (255, 90, 105, 255)
+
+
+class Caption:
+    """The clip's own caption, published into the scene as HUD markers.
+
+    BURNT IN, not written in a sidecar. A viewer must be able to tell from the
+    picture alone whether the run did what it was supposed to; a caption that
+    lives in a JSON file beside the clip is a caption nobody reads while
+    watching. Only the FRONT view renders /task_hud, so the other six angles
+    stay clean.
+
+    RESULT is filled in AFTER the run and the last frames carry it, so the
+    clip ends by stating its own outcome -- including a failure. A recording
+    that cannot say it failed is a recording that always looks like a pass.
+    """
+
+    def __init__(self, node):
+        from visualization_msgs.msg import MarkerArray
+        from rclpy.qos import QoSProfile, DurabilityPolicy
+        self._MA = MarkerArray
+        self.pub = node.create_publisher(
+            MarkerArray, "/task_hud",
+            QoSProfile(depth=4, durability=DurabilityPolicy.TRANSIENT_LOCAL))
+        self.node = node
+        self.lines = []
+
+    WRAP = 58
+
+    def set(self, lines):
+        """Wrap to the frame BEFORE publishing.
+
+        An RViz TEXT_VIEW_FACING marker is one 3-D object: a 150-character
+        string at this camera distance spans several metres, so most of it
+        falls outside the view and what lands looks like words scattered
+        across the picture. Measured on the first attempt -- the caption was
+        present, correct and completely unreadable. Wrapped to 58 characters
+        it sits inside the frame.
+        """
+        import textwrap
+        out = []
+        for txt, col in lines:
+            for chunk in textwrap.wrap(txt, self.WRAP) or [""]:
+                out.append((chunk, col))
+        self.lines = out
+        self.publish()
+
+    def publish(self):
+        from visualization_msgs.msg import Marker
+        ma = self._MA()
+        d = Marker()
+        d.action = Marker.DELETEALL
+        ma.markers.append(d)
+        for i, (txt, col) in enumerate(self.lines):
+            m = Marker()
+            m.header.frame_id = "world"
+            m.header.stamp = self.node.get_clock().now().to_msg()
+            m.ns = "hud"
+            m.id = i
+            m.type = Marker.TEXT_VIEW_FACING
+            m.action = Marker.ADD
+            m.pose.position.x = 0.0
+            m.pose.position.y = 0.30
+            m.pose.position.z = 1.98 - 0.058 * i
+            m.pose.orientation.w = 1.0
+            m.scale.z = 0.050 if i == 0 else 0.042
+            m.color.r, m.color.g, m.color.b, m.color.a = col
+            m.text = txt
+            ma.markers.append(m)
+        self.pub.publish(ma)
+
+
+WHITE = (0.93, 0.96, 0.98, 1.0)
+CYAN = (0.25, 0.71, 0.79, 1.0)
+AMBER = (0.91, 0.64, 0.24, 1.0)
+RED = (1.0, 0.30, 0.37, 1.0)
 
 
 def log(msg):
@@ -257,7 +400,7 @@ def main():
     ap.add_argument("--settle-s", type=float, default=3.0)
     a = ap.parse_args()
 
-    modes = [a.only] if a.only else list(MODES)
+    modes = [a.only] if a.only else list(MODE_ORDER)
     tasks = [t for t in TASKS if t in a.tasks]
     prog = load_progress() if a.resume else {}
 
@@ -267,6 +410,14 @@ def main():
     log("=" * 74)
 
     graph = Graph()
+    # CLEAR ANY LATCHED HUD MARKERS FIRST. /task_hud is TRANSIENT_LOCAL, so a
+    # previous run's caption markers survive that process and RViz picks them
+    # up on connect -- the earlier marker-based caption attempt was still in
+    # the scene, scattered across the picture, under the new overlay. A
+    # MarkerArray must begin with DELETEALL, and so must a session.
+    cap = Caption(graph.n)
+    cap.set([])
+    time.sleep(1.0)
     started = {}
     app, gui = build_gui()
     done = failed = skipped = 0
@@ -291,6 +442,7 @@ def main():
                     continue
                 os.makedirs(out_dir, exist_ok=True)
                 log("   %-28s recording..." % pkey)
+                spec = CT.TASKS[task]
                 rr.ensure_display(os.path.join(out_dir, "rviz"),
                                   gripper_arm="left")
                 time.sleep(a.settle_s)
@@ -299,6 +451,23 @@ def main():
                 good, msg = run_one(app, gui, task, mode, out_dir)
                 time.sleep(1.0)
                 rr.stop_grabs(grabs)
+                # CAPTION ON THE FRONT VIEW ONLY -- the other six stay clean,
+                # and the quad is built AFTER so the tile carries it too.
+                import textwrap as _tw
+                cap_lines = [("%s  |  TASK %s: %s  |  %s"
+                              % (mode.replace("_", " ").upper(), task.upper(),
+                                 spec["name"].upper(), scen), W_TXT)]
+                for ln in _tw.wrap("EXPECTED: " + spec["expect"], 104):
+                    cap_lines.append((ln, C_TXT))
+                if spec["caveat"]:
+                    for ln in _tw.wrap("CAVEAT: " + spec["caveat"], 104):
+                        cap_lines.append((ln, A_TXT))
+                for ln in _tw.wrap("RESULT: %s -- %s"
+                                   % ("AS EXPECTED" if good
+                                      else "DID NOT COMPLETE", msg), 104):
+                    cap_lines.append((ln, C_TXT if good else R_TXT))
+                burn_caption(os.path.join(out_dir, "rviz_front.mp4"),
+                             cap_lines)
                 quad = rr.make_quad(out_dir)
                 files = sorted(f for f in os.listdir(out_dir)
                                if f.endswith(".mp4"))

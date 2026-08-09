@@ -160,13 +160,14 @@ def task_specs():
     for k, lab in (("a", "A positioning"), ("b", "B coordinated carry"),
                    ("c", "C dual pursuit")):
         for mode in ("01_master_teleop", "02_vr_teleop",
+                     "03_shared_autonomy", "04_vr_shared",
                      "04_shared_autonomy", "06_full_autonomy"):
             short = mode.split("_", 1)[1].replace("_", " ")
             out.append(Spec(
                 "abc_%s_%s" % (k, mode[:2]),
                 "%s  [%s]" % (lab, short), "task",
-                _sh("run_experiment.sh", k, "--mode", mode,
-                    "--participant", "PILOT", "--scripted"),
+                _sh("run_experiment.sh", k, "--mode", mode, "--taskset",
+                    "clip", "--participant", "PILOT", "--scripted"),
                 needs_stack=True,
                 disabled_reason=(
                     None if k in accepted else

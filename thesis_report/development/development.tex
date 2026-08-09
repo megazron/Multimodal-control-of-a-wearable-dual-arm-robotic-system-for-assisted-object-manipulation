@@ -8,9 +8,9 @@ and what each abandoned approach contributed to the one that shipped. The
 divergence from the planning report is analysed separately in
 \repo{thesis\_report/DIVERGENCE.md}.
 
-\todo{CONFIRM: dates and durations of the simulation phase with Dr.\ Zhang.
-The sequence below is accurate; the calendar is reconstructed from repository
-history and supervision notes rather than from a contemporaneous log.}
+The account below is no longer reconstructed. The prior programs were
+recovered and are archived at \repo{thesis\_report/\_source/prior\_work/};
+file dates give the calendar directly, running from 7 June to 27 July 2026.
 
 \section{Phase 1: joint-space control in simulation}
 
@@ -47,6 +47,45 @@ what motivated the move to a framework with a collision model in it.
 Injecting a stuck or noisy channel showed the arm following it faithfully,
 because a direct joint mapping has no notion of a reading being implausible.
 The channel-health architecture in \cref{ch:method} is a direct response.
+
+\subsection{What the prior programs actually did}
+
+Five of the recovered programs import MuJoCo and none contains an inverse
+kinematics call of any kind. The mapping is written literally as a joint-space
+assignment: \verb|data.qpos[k1_qpos[j]] = k1_target[j]| in
+\repo{two\_armsbackpack.py}, and the same pattern by way of degrees in
+\repo{srl\_teleop.py}. Searching the whole set for \emph{inverse} or
+\emph{jacobian} returns nothing. The phase was therefore joint-space
+throughout, exactly as described, and the absence of any solver is what makes
+the later move to a task-space command a change of kind rather than of degree.
+
+Two facts recovered from the source correct the account given previously.
+
+\paragraph{The prior system already drove the real arm.} \repo{srl\_teleop.py}
+imports the manufacturer's Python API directly and calls
+\verb|SendJointSpeedsCommand|, gated behind a \verb|USE_REAL| mode. It is the
+\emph{same high-level velocity interface} the delivered system uses, arrived
+at independently and about two months earlier. So the move to ROS~2 was not
+driven by a need for vendor drivers, as an earlier draft of this chapter
+supposed: the arm was already reachable. It was driven by the collision model,
+the solver and the controller lifecycle, which is a narrower and more honest
+claim.
+
+\paragraph{The link lengths have a documented origin.} The seven values the
+forward kinematics uses were not first written in Python. They appear in
+\repo{basic\_control/kinematics.h} as C++ constants, with the comment
+``physical link lengths (metres), shaft-center to shaft-center, measured
+directly on the physical master arm'', alongside the joint pattern
+\verb|J1 roll, J2 bend, ... J7 roll|.
+
+That provenance settles what the CAD comparison in \cref{ch:results} can
+claim. \emph{Shaft-centre to shaft-centre} is precisely the joint-module pitch
+measured off the STEP assembly, so the two quantities are commensurable, and
+their agreement to \SI{1.2}{\percent} is a genuine cross-check rather than a
+coincidence of similar numbers. It also explains why the individual
+\SI{43}{\milli\metre} and \SI{37}{\milli\metre} figures cannot be separated
+from the CAD: neither the header nor the geometry distinguishes them, only
+their sum.
 
 \subsection{Why joint-space control was abandoned}
 

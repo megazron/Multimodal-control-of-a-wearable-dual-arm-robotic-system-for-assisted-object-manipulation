@@ -1,3 +1,48 @@
+# C3 DONE - prior work recovered and read (2026-08-09)
+
+Source archived at `thesis_report/_source/prior_work/`. The development
+chapter is no longer reconstructed: it now cites the actual programs, and
+file dates give the calendar directly (7 June to 27 July 2026).
+
+## What the prior work actually was
+Five programs import MuJoCo. **None contains an inverse-kinematics call of any
+kind** -- searching the whole set for "inverse" or "jacobian" returns nothing.
+The mapping is a literal joint-space assignment:
+`data.qpos[k1_qpos[j]] = k1_target[j]`. So the phase was joint-space
+throughout, and the later move to a task-space command is a change of KIND.
+
+## TWO CORRECTIONS to what the chapter previously claimed
+
+**1. The prior system ALREADY drove the real arm.** `srl_teleop.py` (35 KB,
+the largest) imports the Kinova API directly and calls
+`SendJointSpeedsCommand` behind a `USE_REAL` gate -- the SAME high-level
+velocity interface the delivered system uses, arrived at independently about
+two months earlier. **The move to ROS 2 was therefore NOT driven by needing
+vendor drivers**, which is what an earlier draft supposed. It was driven by
+the collision model, the solver and the controller lifecycle. Narrower claim,
+and the honest one.
+
+**2. The FK link lengths have a documented origin.** They were not first
+written in Python. `basic_control/kinematics.h` carries them as C++ constants:
+
+    // Physical link lengths (meters), shaft-center to shaft-center, measured
+    // directly on the physical master arm.
+    L1 0.043  L2 0.037  L3 0.043  L4 0.037  L5 0.043  L6 0.036  L7 0.033
+    // J1 roll, J2 bend, J3 roll, J4 bend, J5 roll, J6 bend, J7 roll
+
+**This settles what the C2 CAD comparison can claim.** "Shaft-centre to
+shaft-centre" IS the joint-module pitch measured off the STEP, so the two are
+commensurable and their 1.2% agreement is a genuine cross-check rather than
+similar-looking numbers. It also explains why 43 and 37 cannot be separated
+from the CAD: neither the header nor the geometry distinguishes them, only
+their sum.
+
+76 pages, 0 errors.
+
+## STILL TO DO: C4, C5
+
+---
+
 # C2 FINISHED (2026-08-09)
 
 ## Library: cadquery, not pythonocc-core

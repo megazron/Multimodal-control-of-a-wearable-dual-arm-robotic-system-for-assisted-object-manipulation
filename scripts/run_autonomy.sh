@@ -6,4 +6,9 @@
 # than a dead one.
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
+
+# Clear stale Fast DDS shared-memory segments before launching. A stale
+# segment degrades discovery silently -- see srl_clear_stale_shm in env.sh.
+srl_clear_stale_shm || true
+
 exec ros2 launch srl_autonomy shared_autonomy.launch.py "$@"

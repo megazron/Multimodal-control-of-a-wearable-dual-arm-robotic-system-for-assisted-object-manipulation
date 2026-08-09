@@ -134,3 +134,34 @@ srl_ros_node_list() {
 srl_ros_node_list_direct() {
   timeout "${1:-25}" ros2 node list --no-daemon 2>/dev/null
 }
+
+# ------------------------------------------------- stale Fast DDS SHM segments
+# srl_clear_stale_shm -- remove /dev/shm Fast DDS segments left by killed
+# stacks. Stale segments make Fast DDS log
+#   RTPS_TRANSPORT_SHM Error ... Failed init_port fastrtps_port7002
+# and discovery then goes INTERMITTENT: a service is visible to one client and
+# not another, and wait_for_service times out on a service the graph can see.
+# That is indistinguishable from a broken node, and it has cost this project
+# two sessions of misdiagnosis.
+#
+# TWO GLOBS, NOT ONE. `rm /dev/shm/fastrtps_*` leaves the `sem.fastrtps_*`
+# semaphores behind -- 188 segments cleared to 39 "remaining" on 2026-08-09,
+# which read as a live writer and sent the session hunting for a process that
+# did not exist. Both patterns or neither.
+#
+# ONLY SAFE WITH THE STACK STOPPED. Refuses otherwise, because removing a
+# segment a live participant is using is worse than leaving it.
+srl_clear_stale_shm() {
+  local force="${1:-}"
+  local live
+  live=$(pgrep -c -f "opt/ros/jazzy/lib/(moveit_ros_move_group|controller_manager|robot_state_publisher)" 2>/dev/null || echo 0)
+  if [ "$live" -gt 0 ] && [ "$force" != "--force" ]; then
+    echo "srl_clear_stale_shm: $live stack process(es) running -- NOT clearing." >&2
+    echo "  Stop the stack first, or pass --force if you know they are orphans." >&2
+    return 1
+  fi
+  local n
+  n=$(ls -1 /dev/shm 2>/dev/null | grep -c '^sem\.fastrtps_\|^fastrtps_' || true)
+  rm -f /dev/shm/fastrtps_* /dev/shm/sem.fastrtps_* 2>/dev/null || true
+  echo "srl_clear_stale_shm: removed $n stale Fast DDS segment(s)."
+}

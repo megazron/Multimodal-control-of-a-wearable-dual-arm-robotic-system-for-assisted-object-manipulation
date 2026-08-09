@@ -1,28 +1,48 @@
-[
-  {
-    "dial": 1.0,
-    "params_set": true,
-    "settings": {
-      "scale": 1.0,
-      "ema_alpha": 0.5,
-      "max_vel_rad_s": 0.6,
-      "max_step_rad": 0.35
+{
+  "runs": [
+    {
+      "dial": 1.0,
+      "max_vel": 0.6,
+      "max_step": 0.35,
+      "n_samples": 1894,
+      "min_clearance": 0.08570094292472741,
+      "floor_blocks": 0,
+      "start": [
+        0.32,
+        0.35,
+        1.15
+      ],
+      "end": [
+        0.24,
+        0.2375,
+        1.175
+      ],
+      "closest_to_wearer_m": 0.4209,
+      "ee_travel_m": 0.1403,
+      "moved": true
     },
-    "n": 0,
-    "min_clearance": null,
-    "floor_blocks": 0
-  },
-  {
-    "dial": 0.0,
-    "params_set": true,
-    "settings": {
-      "scale": 0.2,
-      "ema_alpha": 0.08,
-      "max_vel_rad_s": 0.1,
-      "max_step_rad": 0.1
-    },
-    "n": 0,
-    "min_clearance": null,
-    "floor_blocks": 0
-  }
-]
+    {
+      "dial": 0.0,
+      "max_vel": 0.1,
+      "max_step": 0.1,
+      "n_samples": 1781,
+      "min_clearance": 0.08570857817066146,
+      "floor_blocks": 0,
+      "start": [
+        0.32,
+        0.35,
+        1.15
+      ],
+      "end": [
+        0.24,
+        0.2375,
+        1.175
+      ],
+      "closest_to_wearer_m": 0.4209,
+      "ee_travel_m": 0.1403,
+      "moved": true
+    }
+  ],
+  "verdict": "HOLDS",
+  "note": "clearance measured from tf2, not from the ik_status field, which freezes when IK fails"
+}

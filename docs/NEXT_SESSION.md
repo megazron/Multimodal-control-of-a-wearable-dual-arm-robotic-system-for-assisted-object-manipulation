@@ -2322,3 +2322,202 @@ names.**
   — respawn also masks crashes, so it is a deliberate decision, not a default.
 - `/ik_status_<arm>` publishing an empty data array (blocks the clearance
   readout and the Job F safety measurement) is untouched and is Part 2 work.
+
+## PART 2 — FULL DIAGNOSIS (2026-08-09)
+
+Report first, then fixes, then what was deliberately left. **Sim only.**
+
+### THE HEADLINE: one bug was wearing three costumes
+
+Part 1's missing `import time` was not one fault. It killed the left follower
+on the first autonomy pose, and a dead node publishes nothing — so three
+separately-filed problems were the same corpse seen from three angles:
+
+| filed as | actually |
+| --- | --- |
+| "autonomy does not move the arm — 0 trajectories" | the follower was dead |
+| "`/ik_status_<arm>` publishes an empty data array" (Part 2D.3, Job F) | a dead node publishes nothing. Measured live after the fix: **11 fields, index 5 = 0.1277 m**. Never empty |
+| "`probe_dial_safety.py` recorded zero clearance samples" | it was subscribing to a dead publisher |
+
+**Part 2D.3 is closed by the Part 1 fix, not by separate work.** The documented
+field layout had not drifted.
+
+### A. THE FIVE RECURRING BUG CLASSES
+
+**A1 silent blocking — 1 real instance, fixed.** `probe_dial_safety.py` could
+report a safety pass from a run in which the arm never moved (below). The nine
+`ik_follower_node` blockers all carry mandatory recovery strings and are
+covered by BlockMonitor auto-expiry; no new instance found there.
+
+**A2 unreachable `clear()` — 7 occurrences, 0 latch-risk, but THE AUDIT IS
+BLIND IN TWO PLACES.** All 7 are in `ik_follower_node` in the tolerated
+fall-through form. The two "SET-WITHOUT-CLEAR" hits reported in
+`quest_vendor_bridge.py` are **false positives**:
+
+- `self.clutch` *is* cleared, at line 319 — but via `c.clutch = False` on a
+  `Ctl` instance, not through `self`. The audit only searches within the
+  declaring class.
+- `self.frozen` *is* cleared, at line 379 — but by tuple unpacking,
+  `self.frozen, self.freeze_reason = frozen, why`, which the audit does not
+  parse as an assignment.
+
+So `audit_unreachable_clear.py`'s standing "0 LATCH-RISK across 152 files" is
+weaker than it reads: **it cannot see attribute assignment through a
+non-`self` instance, or tuple-unpacked assignment, anywhere in the
+workspace.** Two more instrument blind spots for the register.
+
+**A3 wall-clock intervals — 10 found.** `time.time()` used for a duration:
+
+```
+scripts/drive_mode_paths.py:45,77,78          scripts/probe_dial_safety.py:60,78,103,104
+scripts/measure_grasp_penetration.py:69,136   src/srl_teleop/degraded_mode.py:147
+```
+
+`degraded_mode.py:147` is **correct and deliberately left**: it is
+`(time.time() - os.path.getmtime(path)) / 86400.0`, a file age in days.
+A filesystem mtime is wall-clock by definition and cannot be differenced
+against a monotonic clock. The rest are measurement harnesses, where a
+backwards clock step corrupts the number silently — the fault that once
+produced a **−2321 ms** latency. `probe_dial_safety.py`'s four are fixed as
+part of its rewrite; the other five are noted, not fixed (see "not fixed").
+
+Note `fault_injector.py`'s existing `nonmonotonic_clock` check reports "0
+offenders" — it scans `src/` only, so **every one of these lives in a
+directory it does not look at.** The check is true and useless.
+
+**A4 unprefixed dual-arm resources — clean.** `audit_dual_arm_collisions.py`
+PASSes all five shapes including C++ literals: no duplicate interfaces, no
+shared device endpoints, "every exported resource name is composed, not
+literal", 30 prefixed resources seen.
+
+**A5 tests that construct the environment where the bug cannot occur — 1 real
+instance, fixed.** `verify_autonomy_command_path.py`; see below. The new
+`test_no_unresolved_module_names.py` was written specifically to avoid this
+class: it parses shipped source and needs no running system.
+
+### B. INSTRUMENT FAILURES — 3 NEW, ALL FOUND BY CROSS-CHECK
+
+**B1. The autonomy probe measured registration, not assertion.**
+`verify_autonomy_command_path.py` decided which blockers fired with a
+**substring match over the raw `/blocking` payload**, which is JSON carrying
+`blockers` — every blocker the unit ever *registered*. `"clearance_floor" in
+msg.data` was true in **every message the follower ever published**. Ten names
+would have been falsely reported as fired. *Mechanism: absence read as a
+value.* Fixed: parse JSON, read `active` (+`expired`, which is not an
+all-clear), and keep the reachable drive as an explicit control.
+
+**B2. `probe_dial_safety.py` reported a frozen number as a measurement.** The
+follower assigns `min_clearance` at the *end* of the publish path, **after IK
+succeeds**. Aimed inside the wearer, IK fails and that line is never reached,
+so the field holds the clearance from the last successful pose indefinitely.
+
+Measured: both dial ends returned **bit-identical 0.1277 m**, and tf2 showed
+the arm at **0.0000 m** from where an unrelated earlier test had left it. It
+had not moved at all. *Mechanisms: absence read as a value, plus state left
+from a previous run.* The zero-variance signature is the same one that
+identified the dead j7 pot and the frozen `/real/joint_states`.
+
+**Job F's headline claim is therefore RETRACTED as previously stated** — and
+then re-measured honestly (below). It also published that number to
+`recordings/baselines/dial_safety.json`, so a fabricated figure was persisted
+as a baseline; overwritten by the corrected run.
+
+**B3. The same probe published world coordinates to a master-frame topic.**
+`/master_arm_pose_<arm>` carries a MASTER-FRAME DISPLACEMENT which the
+follower maps through anchor and scale. Feeding it a world position asks for a
+pose nowhere near the intended one — the identical mistake that produced Job
+D's false negative. *Mechanism: order of operations inside the measurement.*
+
+**B4 (my own, caught before reporting).** My first entry-point audit printed
+`checked 0 entry points / all resolve` — the regex matched nothing and the
+absence read as a pass. My first `C3` run flagged `config/kinematics.yaml` and
+two others as missing; they are **package-relative vendor paths** resolved via
+`FindPackageShare` at runtime. Both corrected before use.
+
+### THE CORRECTED JOB F MEASUREMENT
+
+A single target deep inside the body is refused outright, so the arm never
+advances and a correctly-refused run is indistinguishable from a broken
+harness. The approach is now **incremental** — interpolated toward the wearer
+in 2 cm steps, each individually reachable — so the arm genuinely walks in and
+stops at the last pose it can hold. Clearance comes from tf2 through the
+project's **own** `srl_teleop.clearance`, so probe and floor cannot disagree.
+
+| dial | vel | step | clearance | stopped from wearer | floor blocks | EE advanced |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1.0 | 0.60 rad/s | 0.35 | **0.0857 m** | 0.4209 m | 0 | **0.1403 m** |
+| 0.0 | 0.10 rad/s | 0.10 | **0.0857 m** | 0.4209 m | 0 | **0.1403 m** |
+
+**SAFETY UNCONDITIONAL: HOLDS.** Identical stopping geometry at 6× the speed,
+now with 0.1403 m of demonstrated motion behind it rather than none.
+
+**Cross-check, and the reason to believe it:** 0.0857 m sits alongside
+`probe_collision_response.py`'s independently measured 0.072–0.079 m, and both
+report **0 clearance-floor blocks** — collision-aware IK stops the arm first
+and the hard floor stays a backstop. Two instruments, one geometry, agreeing.
+
+The probe now refuses to conclude when the arm does not move — verified: the
+pre-incremental version correctly printed `INCONCLUSIVE — the arm did not move`
+rather than passing.
+
+### C. STALE REFERENCES
+
+- **70 of 70 `console_scripts` entry points resolve** to a module that exists
+  and a function that exists. No orphans.
+- **14 baseline artefacts are written by exactly one script and read by
+  nothing.** Not a defect on its own — a baseline's reader is git and a human —
+  but it matters for Part 6: `make_thesis_figures.py` consumes only
+  `mount_overlap_sweep.json` and `workspace_n10_20260806.json`. The other
+  twelve feed no figure yet.
+
+### D. KNOWN SPECIFIC FAULTS
+
+| | status |
+| --- | --- |
+| D1 identity quaternion as "neutral" | **8 files.** Marker/scene uses are fine (orientation genuinely arbitrary). **Five drive IK and are not fine:** `probe_collision_response.py:79`, `probe_clutch_indexing.py:70`, `measure_grasp_penetration.py:94`, `drive_mode_paths.py:53`, `scripted_operator.py:111`. Fixed in `probe_dial_safety.py` only |
+| D2 anything that can start a second stack | **not audited this pass** |
+| D3 `/ik_status` empty array | **CLOSED** — was the dead follower |
+| D4 stale SHM at startup | **FIXED** — `srl_clear_stale_shm()` in `scripts/env.sh`, called by `run_teleop.sh` and `run_autonomy.sh` |
+
+`srl_clear_stale_shm()` clears **both** `fastrtps_*` and `sem.fastrtps_*`. The
+second glob is the point: `rm /dev/shm/fastrtps_*` alone left 39 semaphores of
+188 entries behind, which reads as a live writer and sends you hunting a
+process that does not exist. It **refuses while a stack is running** (verified:
+`3 stack process(es) running -- NOT clearing`, exit 1) because removing a
+segment a live participant holds is worse than leaving it.
+
+### E. NUMBERS NOT TRACEABLE TO A VALIDATED MEASUREMENT
+
+1. **Job F's "safety does not scale with the dial"** — was fabricated from a
+   frozen field. **Now genuinely measured** (table above).
+2. **`probe_collision_response.py`'s 0.0722–0.0791 m** — provenance in doubt,
+   not withdrawn. It drives with an **identity quaternion**, so a refusal there
+   may be orientation-infeasibility rather than collision. The arm did visibly
+   approach, and the numbers agree with today's independent 0.0857 m, so they
+   are probably sound — but they should be re-run with the anchor orientation
+   before being quoted again.
+3. **`/ik_status` right-arm clearance reads `-1.0000`** with all counters zero.
+   That is the documented sentinel for non-finite, correct here (nothing has
+   driven the right arm), but it is exactly the shape of "absence read as a
+   value" and any consumer must treat `-1.0` as *unknown*, never as a distance.
+
+### NOT FIXED, AND WHY
+
+- **Five wall-clock intervals** in `drive_mode_paths.py` and
+  `measure_grasp_penetration.py`. Mechanical, but each needs its script re-run
+  to confirm nothing else depended on the timing, and neither is on the
+  critical path today. **`fault_injector.py`'s clock check must be widened to
+  `scripts/` at the same time** — it currently reports 0 offenders because it
+  only scans `src/`.
+- **Four identity-quaternion drive sites.** Each needs the anchor lookup and a
+  re-run of the measurement it feeds; changing them without re-measuring would
+  leave numbers in CLAUDE.md whose provenance nobody could state.
+- **`audit_unreachable_clear.py`'s two blind spots.** Worth fixing before its
+  clean bill is relied on again.
+- **D2, second-stack prevention** — not audited.
+- **Follower `respawn`.** `master_pose_node` has it, the followers do not, so a
+  follower that dies stays dead — which is exactly what hid this bug for two
+  sessions. Deliberately NOT added: respawn would have masked the NameError
+  behind a 5 s restart loop instead of a clean traceback. The right fix is that
+  a dead follower be *loud*, which `blocking_aggregator`'s silent-unit
+  detection already covers. Recorded as a decision, not an oversight.

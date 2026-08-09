@@ -53,11 +53,21 @@ recordings/verification/*/*/*/bag/
 # individual angles are ~950 MB in total and regenerate in one command via
 # scripts/record_rviz.py. Several were also left unfinalised by an interrupted
 # sweep and cannot be stream-copied back to a sane size.
-recordings/verification/*/*/*/rviz_front.mp4
-recordings/verification/*/*/*/rviz_back.mp4
-recordings/verification/*/*/*/rviz_left.mp4
-recordings/verification/*/*/*/rviz_right.mp4
-recordings/verification/*/*/*/rviz_iso.mp4
-recordings/verification/*/*/*/rviz_top.mp4
-recordings/verification/*/*/*/rviz_side.mp4
-recordings/verification/*/*/*/rviz_gripper.mp4
+#
+# THE FIVE-TASK CLIPS (f1..f5) KEEP EVERY ANGLE. They are recompressed at
+# crf 30 -- 266 files, 132 MB, largest 5.3 MB -- which is small enough to
+# track, and a single angle cannot answer every question: the front view
+# flattens reach depth, the top view is where a coordination error shows, and
+# only the gripper view answers "did it actually close on it".
+#
+# The retired nine-task clips (t2..t9) keep only the quad tile, because that
+# sweep was interrupted mid-encode and its rushes cannot be stream-copied back
+# to a sane size.
+recordings/verification/t?/*/*/rviz_front.mp4
+recordings/verification/t?/*/*/rviz_back.mp4
+recordings/verification/t?/*/*/rviz_left.mp4
+recordings/verification/t?/*/*/rviz_right.mp4
+recordings/verification/t?/*/*/rviz_iso.mp4
+recordings/verification/t?/*/*/rviz_top.mp4
+recordings/verification/t?/*/*/rviz_side.mp4
+recordings/verification/t?/*/*/rviz_gripper.mp4

@@ -1,3 +1,42 @@
+# C4 PARTLY DONE (2026-08-09)
+
+82 pages, 0 errors, 0 undefined references.
+
+## DONE
+* **The first real RViz figure in the report.** Captured from the running
+  system on Xvfb, cropped, and annotated with arrows: left/right arm, gripper,
+  backpack mount, and the wearer marked as being IN the collision model. It
+  sits in the workspace chapter and shows the disjoint-workspace result rather
+  than only asserting it. `docs/img/rviz/home_pose_labelled.png`.
+  Two arrow tips were wrong on the first pass -- the "right arm" arrow pointed
+  at the torso -- and were corrected against the rendered image.
+* **Full participant-Results chapter skeleton**,
+  `thesis_report/results_skeleton/participant_results.tex`. Every planned
+  figure and table as a labelled placeholder naming the analysis script that
+  produces it: completion time by mode, coordination error traces, cross-arm
+  interference, NASA-TLX, Borg CR10, trust, embodiment, proprioceptive drift,
+  grasp success, and demographics.
+  Three constraints are built into the captions so they cannot be lost:
+  T2 carries NO mode comparison; TLX and Borg are split by ROLE because only
+  the wearer carries 17 kg; and embodiment is decomposed rather than scored,
+  because ownership and agency move independently.
+
+## STILL TO DO IN C4
+* More RViz stills: task scenes, reachable volume, collision model close-up,
+  coordinate frames, and one per control mode in operation. The capture
+  recipe works and is one command per view
+  (`scratchpad/shoot.sh <display> <name>`); it is repetition, not difficulty.
+* **CAD figures: none yet.** Isometric/front/side/top of the master arm with
+  dimensions, exploded view, the backpack mount with bases, the pot/IMU/FSR
+  placement diagram, and the link-length diagram. cadquery is installed and
+  can render, so these are now feasible.
+
+## C5 NOT STARTED
+State in the report that the CAD has no articulated joints, that no URDF
+derives from it, and that the working URDFs come from measured link lengths.
+
+---
+
 # C3 DONE - prior work recovered and read (2026-08-09)
 
 Source archived at `thesis_report/_source/prior_work/`. The development

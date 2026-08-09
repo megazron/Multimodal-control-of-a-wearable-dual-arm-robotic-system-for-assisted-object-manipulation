@@ -42,6 +42,21 @@ terminations from nine to zero on the left arm and three to zero on the right,
 while the medians barely moved. That the medians were already right is what
 establishes the outliers as chain compounding rather than geometry.
 
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.72\linewidth]{figures/rviz/home_pose_labelled.png}
+  \caption[The mounted configuration at the home pose]{The simulated platform
+  at the home joint angles, captured from the running system rather than
+  drawn. Both arms are parked over the shoulders and both hands finish on the
+  same side of the body, \SI{1.46}{\metre} apart. That asymmetry is not a
+  rendering artefact and not a mount error: it follows from the home joint
+  angles, which are ground truth because the simulation-to-hardware bridge
+  replays them onto the real arm. It is the disjoint-workspace result of this
+  chapter made visible.}
+  \label{fig:rviz-home}
+\end{figure}
+
 \section{The two arms share no reachable workspace}
 
 Over a grid of sixty-three cells spanning the frontal working volume, with the

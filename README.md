@@ -64,18 +64,50 @@ is installed nowhere yet.
 
 ## VR: connecting the Quest
 
-One command. It finds `adb`, waits for the headset, opens the reverse tunnel,
-starts the bridge, and then supervises the tunnel for as long as it runs.
+### Prerequisite, before anything else: Android Platform-Tools on WINDOWS
+
+**Not installed on this machine.** It is the one hard blocker and nothing in
+the software can work around it.
+
+Download (Google's official link, Windows build):
+
+```
+https://dl.google.com/android/repository/platform-tools-latest-windows.zip
+```
+
+Unzip it to `C:\platform-tools`. Nothing to install and no admin rights
+needed; it is a folder of executables.
+
+Verify it works, from **WSL**, in one command:
+
+```bash
+/mnt/c/platform-tools/adb.exe devices
+```
+
+Expected once the headset is plugged in and Developer Mode is on:
+
+```
+List of devices attached
+1WMHHxxxxxxxxx   device
+```
+
+`unauthorized` instead of `device` means the **Allow USB debugging** prompt has
+not been accepted. That prompt appears *inside the headset*, so put it on to
+answer it. This is the step that traps everyone.
+
+**It must be the Windows build, not a WSL package.** The headset enumerates as
+a Windows USB device, so `apt install adb` inside WSL gives you a binary that
+cannot see it. `scripts/vr_connect.sh` searches `C:\platform-tools` and the
+usual SDK locations and refuses with this instruction if it finds nothing.
+
+### Then, one command
+
+It finds `adb`, waits for the headset, opens the reverse tunnel, starts the
+bridge, and then supervises the tunnel for as long as it runs.
 
 ```bash
 bash scripts/vr_connect.sh
 ```
-
-**The one hard prerequisite is Android Platform-Tools, installed on the
-WINDOWS side.** The headset enumerates as a Windows USB device, so a
-WSL-side `adb` cannot see it. The script looks in `C:\platform-tools` and the
-usual SDK locations and refuses with that instruction if it finds nothing.
-It is not installed on this machine.
 
 The transport is `adb reverse` over USB rather than the network, for one
 reason worth knowing: the headset then connects to `ws://127.0.0.1`, which is

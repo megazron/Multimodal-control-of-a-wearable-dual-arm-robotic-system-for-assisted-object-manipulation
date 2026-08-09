@@ -74,8 +74,20 @@ TASK1 = dict(
 # kinematically feasible: measured 0/9 candidates at x = 0.25 and 9/9 at
 # x = 0.30, and the failure persists with collision checking off, so it is
 # wrist orientation and not obstruction.
+# CONDITIONS: MODES 4 AND ABOVE ONLY. Task 2 has no DIRECT and no VR
+# condition, and the objects were deliberately NOT made easier to restore one.
+# A top-down grasp needs 169.7 deg (left) / 164.6 deg (right) of wrist rotation
+# from the anchor `orientation_mode: fixed` pins to, and nothing in the master
+# measures the wrist to command it. Choosing objects that suit a pinned wrist
+# would measure the object rather than the interface.
+#
+# CONSEQUENCE FOR ANALYSIS: with no baseline, Task 2 yields NO comparative
+# measure -- no completion time, error, workload or learning comparison. It is
+# a capability demonstration plus a refusal. The two-mode comparison rests on
+# the other four tasks. See docs/research/09_task2_grasping_finding.md.
 TASK2 = dict(
     name="pick_and_place",
+    modes="4+ only (no DIRECT, no VR: see the note above)",
     arms_used="left, then right (sequential)",
     objects=dict(block=dict(size=(0.040, 0.040, 0.040), mass_g=25,
                             colour="orange")),

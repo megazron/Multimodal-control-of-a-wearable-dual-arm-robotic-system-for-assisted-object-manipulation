@@ -156,3 +156,19 @@ the pack removed between them, which is what brings the total to 167 min of
 task-relevant time within a ~190 min visit. **This is the binding constraint
 of the whole design, and it comes from the wearer's load, not from the
 science.**
+
+
+## Amendment 2026-08-09: Task 2 has no baseline
+
+Task 2 loses its DIRECT and VR conditions, because teleoperated grasping is
+not achievable with this master (169.7 deg / 164.6 deg of unmeasurable wrist
+rotation). It is not replaced with easier objects.
+
+**The two-mode comparison therefore rests on FOUR tasks, not five.** That is a
+real loss of power and is recorded as one rather than absorbed. Task 2 remains
+in the programme as a single-condition capability demonstration in modes 4 and
+above: it is the only task with a discrete outcome, and the only one that
+demonstrates rather than asserts the categorical argument for autonomy.
+
+No comparative statistic may be computed for Task 2.
+See `docs/research/09_task2_grasping_finding.md`.

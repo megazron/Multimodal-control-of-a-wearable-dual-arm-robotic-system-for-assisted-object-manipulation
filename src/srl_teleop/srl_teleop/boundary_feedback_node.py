@@ -1,31 +1,39 @@
 #!/usr/bin/env python3
-"""Tell the operator the boundary is coming, BEFORE the arm stops at it.
+"""WITHDRAWN 2026-08-09. NOT AN ENTRY POINT. DO NOT RE-ENABLE AS IT STANDS.
 
-    ros2 run srl_teleop boundary_feedback_node
-    ros2 topic echo /boundary_left
+This node predicts the workspace boundary ahead of the operator, and the idea
+is sound. The implementation emits a FALSE WARNING in the first half-second in
+2 of 5 runs, and the cause is not known.
 
-WHY THIS EXISTS. The reachable set from home is strongly anisotropic: measured
-isotropy 0.16 (left) and 0.10 (right), worst direction 0.14 m against a median
-of 0.40 m. An operator currently discovers that boundary by the arm STOPPING,
-which is the silent-blocking class this project has spent months removing
-everywhere else. An arm that is not moving looks the same whether it is
-blocked, unreachable, or receiving no data.
+WHAT WAS MEASURED
+  * 3 of 5 runs: first warning at t = 8.3-8.5 s with 88 mm of travel
+    remaining, after 334 mm of travel. Correct, and reproducible to the
+    millimetre.
+  * 2 of 5 runs: a warning at t = 0.02-0.44 s claiming 0 mm remaining, at a
+    point a direct IK probe reaches at 6 of 6.
 
-PREDICT, DO NOT REACT. Reporting the boundary once inverse kinematics has
-failed is useless: the operator is already at the wall and the arm has already
-stopped. This node probes AHEAD along the direction the commanded pose is
-travelling and reports the distance remaining, so the warning arrives while
-there is still somewhere to go.
+WHAT WAS RULED OUT, each tested in isolation
+  * a stale message queued from a previous run: the outlier survives a
+    VOLATILE, depth-1 subscription after a 2 s drain, so nothing published
+    before the run can reach it.
+  * a near-zero velocity estimate leaving the probe unaimed: the spurious
+    warnings carry speed 0.053-0.076 m/s, which is the real travel speed.
+  * a missing cached orientation: the instrumented trace shows quat=set on
+    every probe.
+  * the IK request format: A/B over seed, ik_link_name and timeout returned
+    6 of 6 in all six configurations, including this node's exact one.
 
-IT NAMES THE KIND OF WALL. "You cannot go further" is much less useful than
-which of three different things is stopping you, because the recoveries
-differ: an IK wall is escaped by turning, a clearance wall by backing away
-from the wearer, and a step-guard wall by slowing down.
+WHY IT IS CUT RATHER THAN PATCHED. The obvious patch is to suppress warnings
+until the estimator has settled. That would hide the symptom without knowing
+the cause, and the cause is free to reappear later in a run. A boundary
+warning that is wrong teaches the operator to ignore it, which is worse than
+no warning: it spends the credibility that makes every other alarm in this
+system work.
 
-WHAT IT DELIBERATELY DOES NOT DO. It does not alter the command. Feedback that
-also steers is assistance, and assistance in the direct condition would make
-the baseline of every planned comparison not a baseline.
+TO REVIVE IT, find the cause first. The evidence above narrows it a long way,
+and the debug parameter that produced the probe trace is still in the file.
 """
+
 import math
 import threading
 import time

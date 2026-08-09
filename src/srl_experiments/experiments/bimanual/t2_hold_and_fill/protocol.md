@@ -1,5 +1,12 @@
 # T2 — HOLD AND FILL
 
+> **Task 2 has no DIRECT or VR condition.** Teleoperated grasping is not
+> achievable with this master: a top-down grasp needs 169.7 deg (left) /
+> 164.6 deg (right) from the pinned wrist anchor and no channel commands it.
+> Task 2 runs in modes 4 and above only, as a capability demonstration, and
+> yields no comparative measure. See `docs/research/09_task2_grasping_finding.md`.
+
+
 **Left holds an open box steady; right drops graded blocks into it.**
 
 The failure mode IS box movement. A single arm cannot do this task at all: the

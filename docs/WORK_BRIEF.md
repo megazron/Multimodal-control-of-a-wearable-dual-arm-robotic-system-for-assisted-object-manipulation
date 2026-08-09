@@ -45,7 +45,7 @@ measurement that assumes the home pose — `measure_workspace.py` asserts on it,
 | --- | --- | --- | --- |
 | 1 | Does autonomy move the arm? | **DONE — YES** | `6736ee7` |
 | 2 | Full diagnosis (report before fixing) | **DONE** | `9e0dce4` |
-| 3 | Finish outstanding work (lang sweep, gripper, degraded warning, tasks A/B/C) | **DONE** | `0a6c4e4` |
+| 3 | Finish outstanding work (lang sweep, gripper, degraded warning, tasks A/B/C) | **DONE** | `d5bbec8` |
 | 4 | Dual-view GUI, everything runs through it | **NEXT** | — |
 | 5 | Re-record, driven from the GUI | NOT STARTED | — |
 | 6 | Graphs | NOT STARTED | — |
@@ -159,7 +159,7 @@ E. Any reported number not traceable to a validated measurement.
 
 ## PART 3 — FINISH THE OUTSTANDING WORK
 
-**STATUS: DONE** — Commit `0a6c4e4`. Full write-up in NEXT_SESSION.md.
+**STATUS: DONE** — Commit `d5bbec8`. Full write-up in NEXT_SESSION.md.
 
 All four sub-items done. Headline per item:
 

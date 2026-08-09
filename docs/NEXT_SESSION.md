@@ -1,3 +1,171 @@
+# PART 3 DONE (2026-08-09) — four items, and three of them were worse than reported
+
+Commits `c0ff406` (3.1), `759dfe6` (3.2), `c51ee0f` (3.3), `d5bbec8` (3.4).
+
+## 3.1 LANGUAGE AND VISION SWEEP — 7 MISUNDERSTOOD, all seven closed
+
+40 phrasings, 13 categories, written against the parser's STRUCTURE rather
+than alongside it. That distinction is the whole reason the sweep was worth
+running: `measure_freeform_language.py` already reported **0 MISUNDERSTOOD**
+over 30 phrases, and every one of those phrases was written with the grammar
+it tests. Zero is the EXPECTED output of a self-test, not evidence of safety.
+
+    before   10 CORRECT   7 ASKED  16 REFUSED   7 MISUNDERSTOOD
+    after    10 CORRECT   6 ASKED  24 REFUSED   0 MISUNDERSTOOD
+
+"before" is the same 40 cases with the fix stubbed out, so the rows differ by
+the fix and nothing else. **CORRECT did not fall**, so no capability was
+traded for the safety.
+
+**All seven shared one shape**: the grammar matched a real verb and a real
+noun and discarded the word that reversed or qualified them.
+
+| n | category | said | would have done |
+| --- | --- | --- | --- |
+| 4 | negation | "don't grab the blue cube" | grabbed the blue cube |
+| 1 | relational | "the cube to the left of the red block" | grabbed the red cube — grounded to the LANDMARK |
+| 1 | conjunction | "the blue cube AND the green ball" | grabbed one, silently |
+| 1 | sequence | "pick up the red block THEN put it down" | parsed as PLACE — it would have opened the hand |
+
+**Negation is scoped by POSITION, and that is load-bearing.** Only a negation
+BEFORE the verb negates the command; "grab the blue cube but not the red one"
+is an exclusion clause and still grabs the blue cube. A keyword search would
+have thrown that away for no safety at all.
+
+**Verbs stay exact, and the reason is measured.** Fuzzy-matching the closed
+verb set at Damerau-Levenshtein 1 makes **"top" a STOP**, "crop" a DROP, and
+let/yet/net/bet all a GET or SET. So a misspelled VERB refuses outright while
+a misspelled NOUN degrades to a question — the module's closed-verb/open-noun
+principle, now visible in the data (verb 3/3 REFUSED; noun 1 ASKED, 2 CORRECT).
+
+**The harness has a negative control.** The headline is a count of zero, and
+zero is also what a harness prints when it has stopped grading. `self_test()`
+swaps in a deliberately broken parser and REFUSES TO PRINT A RESULT unless all
+four negation cases come back MISUNDERSTOOD.
+
+## 3.2 GRIPPER — two real bugs found by RUNNING it
+
+The 2F-85 holds position when its commanding process dies, so a node killed
+mid-grasp leaves the fingers part-closed and the next start cannot tell a grip
+from a leftover. Neither default is safe: opening drops the object, never
+opening leaves the travel range wrong all session.
+
+**The marker is written when the GRIP IS TAKEN, not when the process exits.**
+`kill -9` runs no exit code — atexit, signal handlers and `finally:` are all
+equally useless against it — so the claim "I may be holding something" has to
+already be on disk before the kill lands. Recovery then needs BOTH halves:
+marker + knuckle in the holding band means still holding; marker + `free_air`
+means the object is gone and the marker is stale. The knuckle alone cannot do
+it (a hand closed on nothing looks closed) and the marker alone cannot (it
+outlives its object).
+
+**An inherited grip cannot be released by a resting pad.** After a crash the
+operator's hand is by definition off the pad, so the ordinary 0.5 s low
+release would have fired and dropped the object half a second after recovery.
+
+Two bugs neither reading nor unit tests would have found:
+
+1. **The shutdown opened the hand, then re-closed it.** Setpoints after
+   SIGTERM were `[0.0, 0.166]` — spinning to flush the publish fired `tick()`
+   once more, which re-read a pad the operator was still touching. Two writers
+   on one gripper in one cycle, the same collision as the 2026-08-08 scripted
+   grasp vs frac schedule.
+2. **The startup verdict was re-decided every tick**, so it read the hand
+   WHILE IT WAS MOVING UNDER ITS OWN OPEN COMMAND. A gripper correctly found
+   at 0.800 rad (free_air, safe to open) was re-judged 0.2 s later at 0.55 rad
+   — mid-ramp, inside the holding band — and concluded it was gripping
+   something. It latched onto its own open.
+
+**16/16 by actually SIGKILLing the node mid-grasp** against a fake 2F-85 that
+stops on the object and OUTLIVES the node. Two harness bugs were caught first:
+the rig published nothing while waiting for the node to die (same shape as the
+four teensy_disconnect runs), and `free_air` is unreachable at a 2500-count
+grasp because that is not a full squeeze — **a real limit now recorded: a
+PARTIAL squeeze on an empty hand is indistinguishable from a grip.**
+
+## 3.3 DEGRADED MODE — the repair could not take effect, and the warning had never fired
+
+Neither defect was "the warning is too quiet".
+
+**1. The runtime read a different file from the one the lab writes.**
+`check_channels.sh` saves `channels_<today>.json` and diffs against
+`ls -t channels_*.json | head -1`. `default_baseline_path()` returned the
+literal string `channels_20260806.json`. A lab session could repair every pot,
+re-capture, watch the script confirm 14/14 — and `master_pose_node` would go
+on reading the 08-06 file and freezing eight working channels for ever.
+
+**2. The Job A mitigation had never fired once.** `dg.staleness_warning(baseline)`
+— `baseline` is not a name in that scope — inside a bare
+`except Exception: _stale = None`. Every run raised NameError and swallowed
+it. Confirmed by running the node: no `[CHANNELS]` line existed at all. Job A
+verified the FUNCTION and never its CALL SITE.
+
+Fixed: newest-by-mtime with a test asserting the shell script and the runtime
+pick the SAME file; warning moved INSIDE the banner (a separate log call is a
+thing that can go missing separately, which is exactly what happened), boxed,
+naming the file and its age, and re-issued every 30 s. Three analysis tools
+were reading the same hardcoded date, including the thesis channel-health
+FIGURE.
+
+**Verified end to end**: dropping a newer 14/14 baseline in and launching the
+real node now gives "full channel set", 14/14 coherent, all seven channels in
+use on both arms. Before this that file was ignored entirely.
+
+`check_channels.sh` is documented as the FIRST ACTION OF EVERY LAB SESSION in
+CLAUDE.md, README.md, docs/system/02_bringup.md (step 0a) and the lab list
+above, where it is now step 1 — before the soldering, because it is both the
+reference every repair is diffed against and the only thing that makes a
+repair visible to the software.
+
+## 3.4 TASKS A, B, C — verified N=10 over the full path, 116-minute session
+
+`src/srl_experiments/experiments/abc/`. Five tasks to three, both merges
+already justified by recorded findings rather than by the clock: T3/T4 were
+never two mechanisms, and T2 carried no comparative measure at all (no DIRECT,
+no VR, by geometry).
+
+    A  POSITIONING        uncoupled control; attention contrast; Fitts
+    B  COORDINATED CARRY  physical coupling, rigid AND compliant
+    C  DUAL PURSUIT       simultaneity across the disjoint sets; b_cross
+
+**2743 IK calls, 0 failures**, both arms at 0.0000 rad from home. Task A also
+verifies every TRANSIT between targets — segments the spec does not name but
+the operator traverses. Task B checks both grippers over the densified path
+AND the sling arithmetic (sag 102.0 mm vs a 40 mm ball; s_max 534.0 mm
+matching the declared threshold to 0.1 mm, 34 mm of margin). Task C checks the
+26-direction amplitude shell plus the radial interior.
+
+**Instrument controls, because the headline is a zero.** A pose past the
+0.902 m reach and a pose inside the wearer must both come back unreachable and
+a declared target must come back reachable; the script refuses to print a
+count if any control is wrong. All three correct.
+
+**The session is data plus a checker**, and the checker found a real error on
+its first run: Task A at 3 repeats is 9.1 min against blocks of 8 and 7. **The
+spec was changed, not the check** — A now runs 2 repeats, and the cost is
+stated where it lands (per-participant Fitts throughput is thin at 2 repeats
+per ID, so the regression is a GROUP-level fit and may not be reported per
+participant).
+
+    116 min against a 120 cap
+    pack-on 36 min total (cap 48), 9 min continuous (cap 12)
+
+Task A is BENCH-mounted, which is what makes it fit — its claim is about
+pointing, not about wearing. A test asserts the WEARER stays the binding
+constraint rather than the clock, so if that flips someone notices.
+
+## STILL OPEN AFTER PART 3
+
+* Part 2's "NOT FIXED, AND WHY" list is unchanged: five wall-clock intervals,
+  four identity-quaternion drive sites, two audit blind spots, D2.
+* **Nothing in Tasks A/B/C has been driven by a human through the master arm.**
+  Every coordinate is IK feasibility in simulation, and the DIRECT condition
+  of all three depends on master channels that are currently incoherent.
+* The optional pick-and-place block remains non-comparative by geometry.
+* `test_flake8` / `test_pep257` still fail, as they did before this work.
+
+---
+
 # JOB A DONE (2026-08-09) - and the pot repair does NOT take effect yet
 
 ## THE HEADLINE: degraded mode will STILL ENGAGE after the repair

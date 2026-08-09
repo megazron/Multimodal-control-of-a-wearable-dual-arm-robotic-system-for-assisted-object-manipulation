@@ -101,6 +101,14 @@ def generate_launch_description():
         DeclareLaunchArgument("left_scale", default_value="1.0"),
         DeclareLaunchArgument("right_scale", default_value="1.0"),
         DeclareLaunchArgument("use_rviz", default_value="true"),
+        # master:=false leaves master_pose_node OUT of the stack, for a run
+        # driven by a SCRIPTED operator instead of the mannequin. Without it
+        # the scripted publisher and master_pose_node are two sources on
+        # /master_arm_pose_<arm> at once -- the one-source-at-a-time rule this
+        # project has already paid for twice -- and the recording sweep's
+        # isolation check correctly refuses to record at all.
+        DeclareLaunchArgument("master", default_value="true",
+                              description="start master_pose_node"),
         DeclareLaunchArgument("dashboard", default_value="false"),
         DeclareLaunchArgument("startup_delay", default_value="12.0"),
         # Real-hardware safety mode: slower, stricter clearance, motion must
@@ -155,6 +163,7 @@ def generate_launch_description():
     master = Node(
         package="srl_teleop", executable="master_pose_node",
         name="master_pose_node", output="screen", emulate_tty=True,
+        condition=IfCondition(LaunchConfiguration("master")),
         respawn=True, respawn_delay=5.0,
         parameters=[{
             "arm": LaunchConfiguration("arm"),

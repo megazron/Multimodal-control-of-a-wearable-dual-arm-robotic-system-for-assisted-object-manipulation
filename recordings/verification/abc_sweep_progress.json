@@ -1,0 +1,230 @@
+{
+  "04_shared_autonomy/b/S2_full_lift": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "04_shared_autonomy",
+    "task": "b",
+    "scenario": "S2_full_lift",
+    "quad": true,
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/04_shared_autonomy/B/S2_full_lift"
+  },
+  "02_vr_teleop/a/S3_both": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "02_vr_teleop",
+    "task": "a",
+    "scenario": "S3_both",
+    "quad": true,
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/02_vr_teleop/A/S3_both"
+  },
+  "02_vr_teleop/b/S2_full_lift": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "02_vr_teleop",
+    "task": "b",
+    "scenario": "S2_full_lift",
+    "quad": true,
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/02_vr_teleop/B/S2_full_lift"
+  },
+  "02_vr_teleop/c/S1_both_slow": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "02_vr_teleop",
+    "task": "c",
+    "scenario": "S1_both_slow",
+    "quad": true,
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/02_vr_teleop/C/S1_both_slow"
+  },
+  "04_shared_autonomy/a/S3_both": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "04_shared_autonomy",
+    "task": "a",
+    "scenario": "S3_both",
+    "quad": true,
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/04_shared_autonomy/A/S3_both"
+  },
+  "04_shared_autonomy/c/S1_both_slow": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "04_shared_autonomy",
+    "task": "c",
+    "scenario": "S1_both_slow",
+    "quad": true,
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/04_shared_autonomy/C/S1_both_slow"
+  },
+  "06_full_autonomy/a/S3_both": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "06_full_autonomy",
+    "task": "a",
+    "scenario": "S3_both",
+    "quad": true,
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/06_full_autonomy/A/S3_both"
+  },
+  "06_full_autonomy/b/S2_full_lift": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "06_full_autonomy",
+    "task": "b",
+    "scenario": "S2_full_lift",
+    "quad": true,
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/06_full_autonomy/B/S2_full_lift"
+  },
+  "06_full_autonomy/c/S1_both_slow": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "06_full_autonomy",
+    "task": "c",
+    "scenario": "S1_both_slow",
+    "quad": true,
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/06_full_autonomy/C/S1_both_slow"
+  },
+  "01_master_teleop/a/S3_both": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "01_master_teleop",
+    "task": "a",
+    "scenario": "S3_both",
+    "quad": true,
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/01_master_teleop/A/S3_both"
+  },
+  "01_master_teleop/b/S2_full_lift": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "01_master_teleop",
+    "task": "b",
+    "scenario": "S2_full_lift",
+    "quad": true,
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/01_master_teleop/B/S2_full_lift"
+  },
+  "01_master_teleop/c/S1_both_slow": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "01_master_teleop",
+    "task": "c",
+    "scenario": "S1_both_slow",
+    "quad": true,
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/01_master_teleop/C/S1_both_slow"
+  }
+}

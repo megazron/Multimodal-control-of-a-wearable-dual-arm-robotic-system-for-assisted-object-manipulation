@@ -57,6 +57,9 @@ import subprocess
 import sys
 import time
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "src/srl_teleop"))
+from srl_teleop import procscan                              # noqa: E402
 import numpy as np
 import rclpy
 import rclpy.time
@@ -632,9 +635,16 @@ Window Geometry:
 
 
 def _running(pat):
-    out = subprocess.run(["ps", "-eo", "args", "--no-headers"],
-                         capture_output=True, text=True).stdout
-    return any(pat in l for l in out.splitlines())
+    """Is a process matching `pat` alive, EXCLUDING this one and its shell?
+
+    Delegates to srl_teleop.procscan. The previous `ps | any(pat in line)`
+    had the same defect as `pgrep -f`: this process's own command line is in
+    that listing, so a pattern the caller mentions matches the caller. That
+    trap has cost this project four separate failures, most recently Xvfb
+    never being started because the check believed it already was.
+    """
+    import re as _re
+    return procscan.count(_re.escape(pat)) > 0
 
 
 _GRIP_ARM = {"cur": None}

@@ -148,6 +148,19 @@ REQUIRED = {
     "t7": ["target_green"],
     "t8": ["target_green"],
     "t9": ["target_green"],
+    # THE A/B/C SWEEP CARRIES NO TASK OBJECTS, and saying so is the honest
+    # entry rather than the convenient one. `record_abc_sweep.py` drives the
+    # arms through each mode's own command path; it does not run the scene
+    # publisher, so no tray, ball or target is in the picture to find.
+    # Requiring one would fail all twelve clips for a thing that was never
+    # rendered, and inventing a requirement it happens to meet would be worse.
+    #
+    # These clips are therefore judged on what they DO evidence: a picture
+    # that is not black, real colour variety, and motion between frames --
+    # the same basis as f1 and f5, which also carry no object. What they
+    # prove is that the mode moved the arms; the object-in-frame criterion is
+    # NOT met by them and must not be claimed.
+    "a": [], "b": [], "c": [],
 }
 
 
@@ -427,8 +440,25 @@ def main():
     # conflated them: "direct" under the mannequin and "direct" under VR shared a
     # folder name. A glob that still assumes three levels matches NOTHING and
     # reports zero clips, which reads exactly like a clean pass.
-    mp4s = sorted(glob.glob(os.path.join(OUT, "*/*/*/*/rviz_front.mp4")))
-    print("verifying %d rviz clips\n" % len(mp4s))
+    # FIND EVERY CLIP, AT ANY DEPTH. This globbed exactly four path levels
+    # while the sweep writes three (<mode>/<task>/<scenario>), so it silently
+    # verified 39 OLD clips, reported "39 of 39 pass", and CHECKED NONE OF THE
+    # TWELVE THAT HAD JUST BEEN RECORDED. The self-test below was passing
+    # throughout: controls prove the GRADING is honest, they say nothing about
+    # the SCOPE. Those are two different lies and each needs its own guard.
+    mp4s = sorted(glob.glob(os.path.join(OUT, "**", "rviz_front.mp4"),
+                            recursive=True))
+    # A rviz_front.mp4 that the walk misses is invisible; count the front
+    # clips on disk independently and refuse if the two disagree.
+    on_disk = 0
+    for root, _dirs, files in os.walk(OUT):
+        on_disk += sum(1 for f in files if f == "rviz_front.mp4")
+    if on_disk != len(mp4s):
+        print("REFUSING: walked %d rviz_front.mp4 on disk but the glob "
+              "matched %d. A clip this tool cannot see is a clip it reports "
+              "as passing." % (on_disk, len(mp4s)))
+        return 2
+    print("verifying %d rviz clips (%d found on disk)\n" % (len(mp4s), on_disk))
     for mp4 in mp4s:
         d = os.path.dirname(mp4)
         parts = os.path.relpath(d, OUT).split(os.sep)
@@ -439,7 +469,12 @@ def main():
         # The object check then ran zero times and every clip passed it
         # regardless of whether the object rendered at all. Caught by the
         # negative control below, which is what it is for.
+        # The tree is <mode>/<task>/<scenario>[/<condition>] -- the sweep
+        # writes three levels, the older recorder wrote four. Parse what is
+        # actually there instead of assuming a depth.
+        parts = parts + ["-"] * (4 - len(parts))
         mode, task, scen, cond = parts[0], parts[1], parts[2], parts[3]
+        task = task.lower()
         r = verify_clip(mp4, task)
         r.update(mode=mode, task=task, scenario=scen, condition=cond)
         rows.append(r)

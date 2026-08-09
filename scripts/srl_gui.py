@@ -92,13 +92,45 @@ ARMS = ("left", "right")
 
 # ISA-101: colour is a scarce alarm channel, so a normal state is largely
 # UNCOLOURED rather than green. Saturated colour is reserved for the abnormal.
-C_BG = "#f4f4f4"
-C_TEXT = "#1a1a1a"
-C_MUTED = "#6b6b6b"
-C_BAD = "#c62828"
-C_WARN = "#ef6c00"
-C_OK = "#2e7d32"
-C_UNKNOWN = "#7b1fa2"      # distinct from bad: not knowing is its own state
+# DARK HUD. One accent hue carries the whole normal state; saturation and
+# glow are spent only on the abnormal. See scripts/srl_hud.py for the full
+# argument -- the short version is that a film-prop interface can afford to
+# glow everywhere because nothing on it has to be diagnosed, and this one
+# cannot. ISA-101 survives the aesthetic unchanged.
+from srl_hud import (ACCENT, BAD, BG, LINE, MUTED, PANEL, TEXT,   # noqa: E402
+                     UNKNOWN, WARN, MasterArmSchematic, RobotSchematic,
+                     mono, sans)
+
+C_BG = BG
+C_TEXT = TEXT
+C_MUTED = MUTED
+C_BAD = BAD
+C_WARN = WARN
+C_OK = ACCENT              # "healthy" is the accent, not a second colour
+C_UNKNOWN = UNKNOWN        # distinct from bad: not knowing is its own state
+
+# ONE STYLESHEET, so every widget inherits the dark field rather than each
+# panel painting its own. Flat borders and no radius: a hairline rule reads as
+# structure, a rounded filled box reads as a button.
+STYLE = """
+QWidget { background: %(bg)s; color: %(text)s; }
+QGroupBox { border: 1px solid %(line)s; margin-top: 14px; padding-top: 8px;
+            background: %(panel)s; }
+QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 4px;
+                   color: %(muted)s; font-size: 8pt; }
+QPushButton { background: %(panel)s; border: 1px solid %(line)s;
+              padding: 5px 8px; color: %(text)s; }
+QPushButton:hover { border: 1px solid %(accent)s; color: %(accent)s; }
+QPushButton:disabled { color: #33424d; border: 1px solid #131c24; }
+QScrollArea, QScrollArea > QWidget > QWidget { background: %(bg)s; }
+QSlider::groove:horizontal { height: 2px; background: %(line)s; }
+QSlider::handle:horizontal { background: %(accent)s; width: 8px;
+                             margin: -5px 0; }
+QCheckBox { color: %(text)s; }
+QSplitter::handle { background: %(line)s; }
+QLabel { background: transparent; }
+""" % dict(bg=BG, text=TEXT, line=LINE, panel=PANEL, muted=MUTED,
+           accent=ACCENT)
 
 # Colour per divergence band. `band()` lives in divergence.py so the GUI and
 # the lag monitor cannot quietly disagree about where the threshold is.
@@ -110,13 +142,14 @@ RVIZ_TEMPLATE = os.path.join(
 
 
 def helvetica(size=11, bold=False):
-    """Helvetica is licensed and absent here; fontconfig aliases it to
-    Liberation Sans, which shares Helvetica's advance widths, so a layout
-    designed for one does not reflow in the other."""
-    f = QFont("Helvetica", size)
-    f.setBold(bold)
-    f.setStyleHint(QFont.Helvetica)
-    return f
+    """Three type levels, and NUMBERS ARE MONOSPACE EVERYWHERE.
+
+    A proportional font reflows as digits change, so a value updating at
+    10 Hz slides sideways and the eye chases it instead of reading it. Fixed
+    advance widths hold the layout still, which is what makes a changing
+    digit visible in peripheral vision -- the whole point of a status panel.
+    """
+    return sans(size, bold)
 
 
 # ===========================================================================
@@ -141,6 +174,16 @@ class Bus(Node):
         # stops. Until it is read, the header says so.
         self.lag_trip = 0.5
         self.lag_trip_src = "default -- bridge not read"
+        self._raw_prev, self._raw_age = {}, {}
+        # Stored channel health, and which channels degraded mode has FROZEN.
+        # Frozen is drawn as its own state because eight repaired channels
+        # once stayed frozen behind a stale baseline with nothing saying so.
+        try:
+            from srl_teleop import degraded_mode as _dg
+            self._baseline = _dg.load_baseline(_dg.default_baseline_path())
+            self._dg = _dg
+        except Exception:                                     # noqa: BLE001
+            self._baseline, self._dg = {}, None
         # ONE TF BUFFER, AND THE REASON IS A MEASUREMENT.
         #
         # The brief specifies the actual arms come from "/real/joint_states and
@@ -178,6 +221,12 @@ class Bus(Node):
             self.create_subscription(
                 String, "/master_status_%s" % a,
                 lambda m, k="mstat_%s" % a: self._set(k, m.data), 10)
+            # RAW master line: [j1..j7 deg, ax, ay, az, gx, gy, gz]. The
+            # schematic needs the RAW vector, never the validated one -- a
+            # substituted value is exactly what must be visible as stale.
+            self.create_subscription(
+                Float64MultiArray, "/master_arm_raw_%s" % a,
+                lambda m, k="raw_%s" % a: self._on_raw(k, list(m.data)), 20)
         for t, k in (("/scene/state", "scene"),
                      ("/blocking_summary", "blocking"),
                      ("/master_channel_state", "chan"),
@@ -187,6 +236,9 @@ class Bus(Node):
                      ("/recovery_state", "recovery")):
             self.create_subscription(String, t,
                                      lambda m, k=k: self._set(k, m.data), 10)
+        self.create_subscription(
+            Float64MultiArray, "/master_fsr_buttons",
+            lambda m: self._set("fsr", list(m.data)), 10)
         self.create_subscription(Bool, "/estop_state",
                                  lambda m: self._set("estop", m.data), 10)
 
@@ -221,6 +273,23 @@ class Bus(Node):
                 self.create_subscription(
                     Image, topic, (lambda m, arm=a: self._on_image(arm, m)),
                     qos_profile_sensor_data)
+
+    def _on_raw(self, key, data):
+        """Track each channel's last DISTINCT value, not its last arrival.
+
+        The dead j7 pot, the frozen /real/joint_states and the 0.000 noise
+        floor were all the same shape: a value arriving at full rate and never
+        changing. Age-since-change is the only quantity that separates a live
+        channel from a republished one, so it is what the schematic draws.
+        """
+        now = time.monotonic()
+        prev = self._raw_prev.setdefault(key, [None] * 7)
+        ages = self._raw_age.setdefault(key, [None] * 7)
+        for i in range(min(7, len(data))):
+            if prev[i] is None or abs(data[i] - prev[i]) > 1e-9:
+                prev[i] = data[i]
+                ages[i] = now
+        self._set(key, data)
 
     def _on_sim_js(self, m):
         for a in ARMS:
@@ -325,8 +394,107 @@ class Bus(Node):
             s["div"][a] = r
         s["lag_trip"] = self.lag_trip
         s["lag_trip_src"] = self.lag_trip_src
+        s["master_schema"] = self._master_schema()
+        s["robot_schema"] = self._robot_schema()
         s["log"] = list(self.log[-6:])
         self.snap = s
+
+    # ------------------------------------------------------- schematics
+    def _frozen_idx(self, arm):
+        raw = (self._d.get("chan") or ("", 0))[0]
+        if not raw or "DEGRADED" not in raw:
+            return set()
+        for part in raw.split("|"):
+            if part.strip().startswith(arm):
+                m = re.search(r"frozen j([0-9]+)", part)
+                if m:
+                    return {int(c) - 1 for c in m.group(1)}
+        return set()
+
+    def _master_schema(self):
+        now = time.monotonic()
+        out = {}
+        fsr = (self._d.get("fsr") or (None, 0))[0]
+        for arm in ARMS:
+            raw = (self._d.get("raw_%s" % arm) or (None, 0))[0]
+            ages = self._raw_age.get("raw_%s" % arm) or [None] * 7
+            frozen = self._frozen_idx(arm)
+            joints = []
+            for i in range(7):
+                if i in frozen:
+                    health = "FROZEN"
+                elif self._dg is not None and self._baseline:
+                    health = self._dg.verdict(self._baseline, arm, i)
+                else:
+                    health = "UNKNOWN"
+                joints.append(dict(
+                    health=health,
+                    deg=(raw[i] if raw and len(raw) > i else None),
+                    age_s=(None if ages[i] is None else now - ages[i])))
+            g = None
+            gy = None
+            if raw and len(raw) >= 10:
+                g = math.sqrt(sum(raw[7 + k] ** 2 for k in range(3)))
+            if raw and len(raw) >= 13:
+                gy = math.sqrt(sum(raw[10 + k] ** 2 for k in range(3)))
+            st = (self._d.get("mstat_%s" % arm) or (None, 0))[0]
+            clutch = None
+            if st is not None:
+                clutch = bool(re.search(r"\bENGAGED\b", str(st))) and not \
+                    re.search(r"\bDISENGAGED\b", str(st))
+            cap = (self._d.get("cap_%s" % arm) or (None, 0))[0]
+            rung = regain = None
+            if cap:
+                try:
+                    cd = json.loads(cap)
+                    rung = cd.get("key")
+                    regain = cd.get("regain") or cd.get("next_repair")
+                except Exception:                             # noqa: BLE001
+                    pass
+            idx = 0 if arm == "left" else 1
+            out[arm] = dict(
+                joints=joints, accel_g=g, gyro_dps=gy,
+                fsr=(fsr[idx] if fsr and len(fsr) > idx else None),
+                latched=None,
+                button=(bool(fsr[2 + idx]) if fsr and len(fsr) > 2 + idx
+                        else None),
+                clutch=clutch, rung=rung,
+                regain=(regain or ("repair l_j2 and l_j4 -> SPHERICAL"
+                                   if arm == "left" else "")))
+        return out
+
+    # Gen3 limits: joints 2/4/6 are limited, 1/3/5/7 continuous.
+    LIMIT = {1: 2.41, 3: 2.66, 5: 2.23}
+
+    def _robot_schema(self):
+        out = {}
+        for arm in ARMS:
+            side = self.sim[arm]
+            joints = []
+            for i in range(7):
+                v = side.pos.get("%s_joint_%d" % (arm, i + 1))
+                if v is None:
+                    joints.append(dict(frac=None, wraps=None))
+                    continue
+                if i in self.LIMIT:
+                    lim = self.LIMIT[i]
+                    frac = min(1.0, max(0.0, (v + lim) / (2 * lim)))
+                    joints.append(dict(frac=frac, wraps=None))
+                else:
+                    wrapped = (v + math.pi) % (2 * math.pi) - math.pi
+                    joints.append(dict(
+                        frac=min(1.0, max(0.0, (wrapped + math.pi)
+                                          / (2 * math.pi))),
+                        wraps=int(abs(v - wrapped) / (2 * math.pi) + 0.4)))
+            ik = (self._d.get("ik_%s" % arm) or (None, 0))[0]
+            knu = side.pos.get("%s_robotiq_85_left_knuckle_joint" % arm)
+            out[arm] = dict(
+                joints=joints,
+                aperture_rad=knu,
+                object_rad=0.42,
+                clearance_m=(ik[5] if ik and len(ik) > 5 else None),
+                floor_m=0.12)
+        return out
 
     def note(self, text, bad=False):
         self.log.append((time.strftime("%H:%M:%S"), text, bad))
@@ -489,16 +657,18 @@ class Gui(QMainWindow):
         outer.setContentsMargins(8, 6, 8, 6)
 
         self.banner = QLabel()
-        self.banner.setFont(helvetica(16, True))
+        self.banner.setFont(sans(11, True))
         self.banner.setAlignment(Qt.AlignCenter)
         outer.addWidget(self.banner)
 
         self.split = QSplitter(Qt.Horizontal)
         outer.addWidget(self.split, 1)
         self.split.addWidget(self._left_column())
+        self.split.addWidget(self._schematic_column())
         self.split.addWidget(self._right_column())
         self.split.setStretchFactor(0, 0)
         self.split.setStretchFactor(1, 1)
+        self.split.setStretchFactor(2, 1)
         # The left column must NOT be collapsible. Once a foreign RViz window
         # is reparented, its own natural size becomes the container's size
         # hint -- two of them ask for ~2400 px and the splitter obliges by
@@ -506,11 +676,11 @@ class Gui(QMainWindow):
         # RViz covering the banner, controls, cameras, indicators AND the
         # divergence readout, i.e. every panel the GUI exists to show.
         self.split.setCollapsible(0, False)
-        self.split.setSizes([540, 1360])
+        self.split.setSizes([336, 1090, 494])
 
         outer.addLayout(self._bottom_bar())
         self.setCentralWidget(root)
-        self.resize(1900, 1040)
+        self.resize(1920, 1060)
 
         self._ft = []
         self.timer = QTimer(self)
@@ -539,8 +709,13 @@ class Gui(QMainWindow):
     def _left_column(self):
         host = QScrollArea()
         host.setWidgetResizable(True)
-        host.setMinimumWidth(516)
+        # NO HORIZONTAL SCROLL. With one, the inner widget keeps its natural
+        # width and every button is clipped at both edges -- which is how the
+        # column looked before: labels sliced down the middle.
+        host.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        host.setMinimumWidth(330)
         inner = QWidget()
+        inner.setMaximumWidth(330)
         col = QVBoxLayout(inner)
 
         # THE CAMERAS GO FIRST. For a remote operator this is the only view of
@@ -558,7 +733,7 @@ class Gui(QMainWindow):
             nm.setFont(helvetica(10, True))
             nm.setAlignment(Qt.AlignCenter)
             img = QLabel()
-            img.setMinimumSize(196, 150)
+            img.setMinimumSize(140, 106)
             img.setAlignment(Qt.AlignCenter)
             img.setStyleSheet("background:#111;color:#bbb;border:1px solid #999")
             cap = QLabel()
@@ -591,15 +766,6 @@ class Gui(QMainWindow):
                 self.ind[k] = w
                 gl.addWidget(w, i // 2, i % 2)
             col.addWidget(g)
-
-        self.eventlog = QLabel()
-        self.eventlog.setFont(helvetica(9))
-        self.eventlog.setWordWrap(True)
-        self.eventlog.setStyleSheet("color:%s" % C_MUTED)
-        lg = QGroupBox("Recent actions")
-        lg.setFont(helvetica(11, True))
-        QVBoxLayout(lg).addWidget(self.eventlog)
-        col.addWidget(lg)
 
         col.addStretch(1)
         host.setWidget(inner)
@@ -667,7 +833,9 @@ class Gui(QMainWindow):
             items = [s for s in self.specs if s.group == group]
             for i, s in enumerate(items):
                 b = QPushButton(s.label)
-                b.setFont(helvetica(10))
+                b.setFont(helvetica(9))
+                b.setMinimumWidth(0)
+                b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
                 if s.enabled:
                     b.setToolTip(s.note)
                     b.clicked.connect(lambda _, sp=s: self.on_launch(sp))
@@ -678,7 +846,7 @@ class Gui(QMainWindow):
                     b.setEnabled(False)
                     b.setToolTip(s.disabled_reason)
                     b.setText(s.label + "  (unavailable)")
-                grid.addWidget(b, i // 2, i % 2)
+                grid.addWidget(b, i, 0)
                 self.buttons[s.key] = b
             v.addLayout(grid)
         b = QPushButton("stop all launched jobs")
@@ -687,6 +855,44 @@ class Gui(QMainWindow):
         return g
 
     # --------------------------------------------------------- right column
+    def _schematic_column(self):
+        """The two schematics. THE PANEL THAT MATTERS MOST goes at the top.
+
+        Fourteen channel numbers in a table do not answer "which channels are
+        driving the robot and which are frozen"; the chain drawn as roll /
+        bend / roll answers it pre-attentively, and the FROZEN state is drawn
+        distinctly because a channel that is healthy and unused is the exact
+        failure that hid a whole pot repair behind a stale baseline file.
+        """
+        w = QWidget()
+        v = QVBoxLayout(w)
+        v.setContentsMargins(6, 0, 6, 0)
+        v.setSpacing(8)
+        self.master_schema = MasterArmSchematic()
+        self.robot_schema = RobotSchematic()
+        # CAPPED, NOT STRETCHED. Letting the cards expand left a bordered box
+        # two thirds empty, which reads as something failing to load rather
+        # than as space. A card should be the size of its content.
+        self.master_schema.setMaximumHeight(404)
+        self.robot_schema.setMaximumHeight(250)
+        v.addWidget(self.master_schema, 0)
+        v.addWidget(self.robot_schema, 0)
+        # The action log moves here, into the space the caps free, where it
+        # sits directly under the panels whose controls generate it.
+        self.eventlog = QLabel()
+        self.eventlog.setFont(mono(8))
+        self.eventlog.setWordWrap(True)
+        self.eventlog.setAlignment(Qt.AlignTop)
+        self.eventlog.setStyleSheet("color:%s" % C_MUTED)
+        lg = QGroupBox("recent actions")
+        lg.setFont(helvetica(8, True))
+        lv = QVBoxLayout(lg)
+        lv.addWidget(self.eventlog)
+        lg.setMaximumHeight(132)
+        v.addWidget(lg, 0)
+        v.addStretch(1)
+        return w
+
     def _right_column(self):
         w = QWidget()
         v = QVBoxLayout(w)
@@ -906,7 +1112,7 @@ class Gui(QMainWindow):
         self._pending.pop(0)
         # Re-assert the split AFTER embedding, because the container is what
         # disturbed it.
-        self.split.setSizes([540, max(600, self.width() - 540)])
+        self.split.setSizes([336, 1090, max(360, self.width() - 1426)])
         QTimer.singleShot(600, self._launch_next_rviz)
         QTimer.singleShot(1500, self._dump_geometry)
 
@@ -1442,22 +1648,30 @@ class Gui(QMainWindow):
                 C_OK if pct > 90 else C_WARN if pct > 60 else C_BAD,
                 "%d attempts" % att)
 
+        self.master_schema.set_data(s.get("master_schema"))
+        self.robot_schema.set_data(s.get("robot_schema"))
         self._sync_embedded()
         self._refresh_divergence(s)
         self._refresh_cameras(s)
 
         # ---- banner
         if es:
+            # THE ONLY SLAB IN THE INTERFACE. Reserved for the one state that
+            # must interrupt whatever the operator was reading.
             self.banner.setText("E-STOP LATCHED")
-            self.banner.setStyleSheet("color:white;background:%s;padding:6px"
-                                      % C_BAD)
+            self.banner.setStyleSheet(
+                "color:#0b0f13;background:%s;padding:5px;letter-spacing:3px"
+                % C_BAD)
         elif not topics:
-            self.banner.setText("no ROS graph")
-            self.banner.setStyleSheet("color:white;background:%s;padding:6px"
-                                      % C_UNKNOWN)
+            self.banner.setText("NO ROS GRAPH")
+            self.banner.setStyleSheet(
+                "color:%s;padding:5px;letter-spacing:3px;"
+                "border-bottom:1px solid %s" % (C_UNKNOWN, LINE))
         else:
-            self.banner.setText("running")
-            self.banner.setStyleSheet("color:%s;padding:6px" % C_MUTED)
+            self.banner.setText("SRL  ·  OPERATIONS")
+            self.banner.setStyleSheet(
+                "color:%s;padding:5px;letter-spacing:4px;"
+                "border-bottom:1px solid %s" % (C_MUTED, LINE))
 
         self.eventlog.setText("<br>".join(
             "<span style='color:%s'>%s %s</span>"
@@ -1775,7 +1989,8 @@ def main(argv=None):
     bus = Bus()
     threading.Thread(target=lambda: rclpy.spin(bus), daemon=True).start()
     app = QApplication([sys.argv[0]] + rest)
-    app.setFont(helvetica(11))
+    app.setFont(helvetica(10))
+    app.setStyleSheet(STYLE)
     g = Gui(bus, args)
     g.show()
 

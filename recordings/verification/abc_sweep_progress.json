@@ -114,12 +114,12 @@
     "dir": "recordings/verification/01_master_teleop/C/S1_present_probe"
   },
   "03_shared_autonomy/a/S1_single_arm": {
-    "ok": false,
+    "ok": true,
     "msg": "run exited 0",
     "mode": "03_shared_autonomy",
     "task": "a",
     "scenario": "S1_single_arm",
-    "quad": true,
+    "quad": false,
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",
@@ -133,12 +133,12 @@
     "dir": "recordings/verification/03_shared_autonomy/A/S1_single_arm"
   },
   "03_shared_autonomy/b/S1_bimanual": {
-    "ok": false,
+    "ok": true,
     "msg": "run exited 0",
     "mode": "03_shared_autonomy",
     "task": "b",
     "scenario": "S1_bimanual",
-    "quad": true,
+    "quad": false,
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",
@@ -152,7 +152,7 @@
     "dir": "recordings/verification/03_shared_autonomy/B/S1_bimanual"
   },
   "03_shared_autonomy/c/S1_present_probe": {
-    "ok": false,
+    "ok": true,
     "msg": "run exited 0",
     "mode": "03_shared_autonomy",
     "task": "c",

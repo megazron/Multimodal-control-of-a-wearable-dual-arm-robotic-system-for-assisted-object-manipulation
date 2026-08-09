@@ -1,0 +1,32 @@
+{
+  "task": "c",
+  "events": [
+    {
+      "t": 42.8,
+      "ev": "GRASPED",
+      "item": "multimeter",
+      "arm": "left",
+      "knuckle": 0.3033,
+      "needed": 0.2965,
+      "at": [
+        0.25,
+        0.35,
+        1.16
+      ]
+    }
+  ],
+  "items": [
+    {
+      "item": "multimeter",
+      "arm": "left",
+      "width_mm": 50,
+      "carried_m": 0.0015,
+      "final": [
+        0.25,
+        0.35,
+        1.135
+      ],
+      "still_held": true
+    }
+  ]
+}

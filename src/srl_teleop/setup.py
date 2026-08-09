@@ -43,6 +43,7 @@ setup(
             'master_imu_node = srl_teleop.master_imu_node:main',
             'pointing_direction_node = srl_teleop.pointing_direction_node:main',
             'channel_manager = srl_teleop.channel_manager:main',
+            'capability_node = srl_teleop.capability_node:main',
             # --- following ---
             'ik_follower_node = srl_teleop.ik_follower_node:main',
             'fsr_gripper_node = srl_teleop.fsr_gripper_node:main',

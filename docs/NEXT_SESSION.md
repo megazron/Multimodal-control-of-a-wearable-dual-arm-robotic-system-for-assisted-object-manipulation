@@ -1,3 +1,60 @@
+# SESSION 2026-08-09 - NINE-PART BRIEF, PARTS 1-2 DONE
+
+Sim and mock only. No lab.
+
+## PART 1 - grasp investigation: DONE, committed ae68df1
+Headline: **the grasp is NOT real under teleoperation.** It is real under the
+scripted and autonomous paths. 169.7 deg (left) / 164.6 deg (right) of wrist
+rotation is needed from the anchor that `orientation_mode: fixed` pins to, and
+no channel commands it. The clips work because the recorder calls
+`/compute_ik` directly, bypassing the teleop orientation lock.
+
+Also: the approach IS a real straight-line approach from a 100 mm standoff
+(0.01 mm max deviation); t2/t5 close on their objects, **t3 and t6 stop
+1.5 mm short**; precision is NOT measurable against the mock and is reported
+as such; dexterity is 5 of 8 approach directions per arm, mirror-symmetric,
+with no from-behind approach on either.
+
+Three instrument bugs were found before any number was trusted. See the
+commit message.
+
+## PART 2 - dynamic degradation as architecture: DONE, this commit
+
+`srl_teleop/capability.py` (pure, testable) + `capability_node`.
+
+Six rungs, selected live from whatever channels pass health:
+
+    L0 FK        7 healthy                       cost 0.000 m
+    L1 SPHERICAL j1 + at least one of j2/j4      cost 0.000 m
+    L2 SPH_RATE  j1 + any spare alive channel    cost 0.076 m mean / 0.114 p95
+    L3 SHELL     j1 only, radius FROZEN          cost 0.151 m mean / 0.232 p95
+    L4 DIR_ONLY  IMU only                        NO POSITION
+    L5 NONE      IMU down                        NO POSITION
+
+Costs are LOADED from `recordings/baselines/capability_ladder.json`, measured
+on 20440 recorded frames. A rung with no measurement prints "unmeasured"
+rather than a plausible number.
+
+Verified live against a synthetic master: DIR_ONLY at startup (conservative,
+"unknown" is not "healthy") -> SPHERICAL -> FK -> fell to SPH_RATE when both
+bends went incoherent -> RECOVERED to SPHERICAL when j4 came back. Recovery
+is automatic and needs no restart.
+
+`scripts/verify_capability_degradation.py` sweeps all 128 channel subsets.
+From the measured left-arm health it independently names **j2 and j4** as the
+only repairs worth making, and j3/j5/j6 as no change, which matches the
+observability regression (R^2 = 0.133 on j1+j7 alone).
+
+18 known-answer tests.
+
+## PARTS 3-9 - NOT STARTED
+3 scene fingerprinting, 4 four-mode real-arm path check, 5 free-form language,
+6 GUI with embedded RViz, 7 VR setup + README, 8 new operator features,
+9 re-record + self-audit. Each is a session's work; they were not begun
+rather than begun badly.
+
+---
+
 # SESSION IN PROGRESS — 2026-08-08 (five-task verification + grasp)
 
 Scope of this session, deliberately narrow: finish the N=10 verification,

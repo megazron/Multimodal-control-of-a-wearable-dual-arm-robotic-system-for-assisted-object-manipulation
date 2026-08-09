@@ -1,0 +1,126 @@
+{
+  "ordered": [
+    {
+      "removed": null,
+      "healthy": [
+        "j1",
+        "j2",
+        "j3",
+        "j4",
+        "j5",
+        "j6",
+        "j7"
+      ],
+      "level": "FK",
+      "position": true,
+      "why": "all 7 channels healthy"
+    },
+    {
+      "removed": "j5",
+      "healthy": [
+        "j1",
+        "j2",
+        "j3",
+        "j4",
+        "j6",
+        "j7"
+      ],
+      "level": "SPHERICAL",
+      "position": true,
+      "why": "radius from j2+j4"
+    },
+    {
+      "removed": "j3",
+      "healthy": [
+        "j1",
+        "j2",
+        "j4",
+        "j6",
+        "j7"
+      ],
+      "level": "SPHERICAL",
+      "position": true,
+      "why": "radius from j2+j4"
+    },
+    {
+      "removed": "j6",
+      "healthy": [
+        "j1",
+        "j2",
+        "j4",
+        "j7"
+      ],
+      "level": "SPHERICAL",
+      "position": true,
+      "why": "radius from j2+j4"
+    },
+    {
+      "removed": "j7",
+      "healthy": [
+        "j1",
+        "j2",
+        "j4"
+      ],
+      "level": "SPHERICAL",
+      "position": true,
+      "why": "radius from j2+j4"
+    },
+    {
+      "removed": "j2",
+      "healthy": [
+        "j1",
+        "j4"
+      ],
+      "level": "SPHERICAL",
+      "position": true,
+      "why": "radius from j4"
+    },
+    {
+      "removed": "j4",
+      "healthy": [
+        "j1"
+      ],
+      "level": "SHELL",
+      "position": true,
+      "why": "no bend joint and no spare channel: radius frozen"
+    },
+    {
+      "removed": "j1",
+      "healthy": [],
+      "level": "DIR_ONLY",
+      "position": false,
+      "why": "j1 unhealthy: no azimuth source, so no position"
+    }
+  ],
+  "subset_counts": {
+    "DIR_ONLY": 64,
+    "SHELL": 1,
+    "SPHERICAL": 47,
+    "SPH_RATE": 15,
+    "FK": 1
+  },
+  "first_seen": {
+    "DIR_ONLY": [],
+    "SHELL": [
+      "j1"
+    ],
+    "SPHERICAL": [
+      "j1",
+      "j2"
+    ],
+    "SPH_RATE": [
+      "j1",
+      "j3"
+    ],
+    "FK": [
+      "j1",
+      "j2",
+      "j3",
+      "j4",
+      "j5",
+      "j6",
+      "j7"
+    ]
+  },
+  "monotonic_recovery": true
+}

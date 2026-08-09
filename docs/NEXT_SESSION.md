@@ -75,8 +75,36 @@ false alarms and costs sensitivity:
      30 mm       13.0%            50 mm
      40 mm        0.8%            60 mm
 
-## PARTS 4-9 - NOT STARTED
-4 four-mode real-arm path check, 5 free-form language,
+## PART 4 - four-mode path verification: DONE, this commit
+
+**THE VR COMMAND PATH WAS BROKEN AND IS NOW FIXED.** `quest_vendor_bridge` --
+the transport the project adopted -- published `/vr_pose_<side>` and
+`/vr_gripper_<side>`, which NOTHING in the workspace subscribes to.
+`vr_pose_mapper`, the stage that turns a controller pose into
+`/master_arm_pose_<arm>`, listens on `/vr/controller_pose_<side>` and
+`/vr/controller_joy_<side>`. Measured on a live graph: `/vr_pose_left` had
+1 publisher and 0 subscribers; `/vr/controller_pose_left` had neither. VR
+could not reach an arm at all through the vendor transport.
+
+Fixed and verified: all three hops now `pub=1 sub=1`, and the mapper publishes
+`/master_arm_pose_left` as a result.
+
+Other findings:
+  * **two detectors write one topic.** apriltag_detector and
+    colour_shape_detector both publish `/perception/detections/<arm>`.
+  * **no camera-device contention inside `srl_*`.** Nothing opens a device;
+    every consumer subscribes. The device owner is the vendor
+    `ros2_kortex_vision` node; two instances of THAT would contend.
+  * **the e-stop is a designed second writer** on the arm controller topics.
+    The first version of the checker flagged it as contention wrongly.
+  * `/blocking` had 1 publisher, 0 subscribers: `blocking_aggregator` is not
+    started by `teleop.launch.py`.
+
+NEEDS THE LAB: real Kortex sessions, the vision driver on real cameras, and
+mode switching with the real cascade up.
+
+## PARTS 5-9 - NOT STARTED
+5 free-form language,
 6 GUI with embedded RViz, 7 VR setup + README, 8 new operator features,
 9 re-record + self-audit. Each is a session's work; they were not begun
 rather than begun badly.

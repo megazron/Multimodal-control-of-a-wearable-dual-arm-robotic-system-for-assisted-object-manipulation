@@ -74,6 +74,7 @@ import numpy as np
 import rclpy
 from geometry_msgs.msg import PoseStamped
 from rclpy.node import Node
+from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool, Float64MultiArray, String
 
 DEFAULT_PORT = 8766
@@ -157,9 +158,29 @@ class QuestVendorBridge(Node):
         # collision kills the node at construction.
         self._ws_clients = set()
 
+        # THE COMMAND PATH ENDED HERE AND REACHED NOTHING. This bridge used to
+        # publish only /vr_pose_<side> and /vr_gripper_<side>, which no node
+        # in the workspace subscribes to: vr_pose_mapper, the stage that turns
+        # a controller pose into /master_arm_pose_<arm>, listens on
+        # /vr/controller_pose_<side> and /vr/controller_joy_<side>. Measured on
+        # a live graph: /vr_pose_left had 1 publisher and 0 subscribers, and
+        # /vr/controller_pose_left had neither. VR commands could not reach an
+        # arm through the vendor transport at all.
+        #
+        # The bridge now publishes the topics the mapper consumes. The legacy
+        # names are kept as well, because the console and the mock read them,
+        # and they cost one publish each.
         self.pose_pub = {
             s: self.create_publisher(PoseStamped, "/vr_pose_%s" % s, 10)
             for s in SIDES}
+        self.mapper_pose_pub = {
+            s: self.create_publisher(PoseStamped,
+                                     "/vr/controller_pose_%s" % s, 10)
+            for s in SIDES}
+        self.mapper_joy_pub = {
+            s: self.create_publisher(Joy, "/vr/controller_joy_%s" % s, 10)
+            for s in SIDES}
+        self.tracking_pub = self.create_publisher(Bool, "/vr/tracking_ok", 10)
         self.grip_pub = {
             s: self.create_publisher(Float64MultiArray, "/vr_gripper_%s" % s,
                                      10) for s in SIDES}
@@ -373,12 +394,45 @@ class QuestVendorBridge(Node):
                 (m.pose.orientation.x, m.pose.orientation.y,
                  m.pose.orientation.z, m.pose.orientation.w) = c.quat
                 self.pose_pub[s].publish(m)
+                # The same pose on the topic vr_pose_mapper listens on. The
+                # mapper owns the anchor and the clutch, so what it needs is
+                # the RAW controller pose, not this bridge's already-anchored
+                # command; c.raw_pose carries it.
+                mm = PoseStamped()
+                mm.header = m.header
+                rp = getattr(c, "raw_pose", None)
+                if rp is None:
+                    rp = c.pos
+                mm.pose.position.x = float(rp[0])
+                mm.pose.position.y = float(rp[1])
+                mm.pose.position.z = float(rp[2])
+                (mm.pose.orientation.x, mm.pose.orientation.y,
+                 mm.pose.orientation.z, mm.pose.orientation.w) = c.quat
+                self.mapper_pose_pub[s].publish(mm)
+                j = Joy()
+                j.header = m.header
+                # Layout the mapper expects: axes [trigger, grip, stick x/y],
+                # buttons [primary, secondary, stick click].
+                j.axes = [float(c.trigger), float(getattr(c, "grip", 0.0)),
+                          float(getattr(c, "stick_x", 0.0)),
+                          float(getattr(c, "stick_y", 0.0))]
+                j.buttons = [int(getattr(c, "btn_a", 0)),
+                             int(getattr(c, "btn_b", 0)),
+                             int(getattr(c, "stick_click", 0))]
+                self.mapper_joy_pub[s].publish(j)
                 g = Float64MultiArray()
                 g.data = [float(c.trigger)]
                 self.grip_pub[s].publish(g)
         b = Bool()
         b.data = bool(self.frozen)
         self.frozen_pub.publish(b)
+        # vr_pose_mapper refuses to drive while tracking is not OK, so the
+        # freeze state has to reach it as well as the console. Publishing the
+        # freeze without publishing this leaves the mapper driving on a frozen
+        # pose, which is worse than either alone.
+        tb = Bool()
+        tb.data = not bool(b.data)
+        self.tracking_pub.publish(tb)
         st = String()
         st.data = json.dumps(self.overlay_state())
         self.state_pub.publish(st)

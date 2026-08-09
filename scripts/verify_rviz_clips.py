@@ -207,7 +207,13 @@ def colour_hits(img, name):
 
 def main():
     rows = []
-    mp4s = sorted(glob.glob(os.path.join(OUT, "*/*/*/rviz_front.mp4")))
+    # ONE MORE PATH LEVEL. The tree is now
+    # recordings/verification/<mode>/<task>/<scenario>/<condition>, because
+    # control mode and autonomy condition are independent axes and the old layout
+    # conflated them: "direct" under the mannequin and "direct" under VR shared a
+    # folder name. A glob that still assumes three levels matches NOTHING and
+    # reports zero clips, which reads exactly like a clean pass.
+    mp4s = sorted(glob.glob(os.path.join(OUT, "*/*/*/*/rviz_front.mp4")))
     print("verifying %d rviz clips\n" % len(mp4s))
     for mp4 in mp4s:
         d = os.path.dirname(mp4)

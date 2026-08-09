@@ -1,8 +1,20 @@
 [
   {
-    "task": "f1",
-    "scenario": "S1_left_only",
-    "condition": "assisted",
+    "task": "00_unclassified_legacy_geometry",
+    "scenario": "t2",
+    "condition": "S1_short_reach",
+    "duration_s": 19.0,
+    "ok": true,
+    "why": "",
+    "bright": 88.1,
+    "variety": 7362,
+    "delta": 1.01,
+    "objects": {}
+  },
+  {
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f1",
+    "condition": "S1_left_only",
     "duration_s": 9.3,
     "ok": true,
     "why": "",
@@ -12,9 +24,9 @@
     "objects": {}
   },
   {
-    "task": "f1",
-    "scenario": "S1_left_only",
-    "condition": "direct",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f1",
+    "condition": "S1_left_only",
     "duration_s": 9.9,
     "ok": true,
     "why": "",
@@ -24,9 +36,9 @@
     "objects": {}
   },
   {
-    "task": "f1",
-    "scenario": "S1_left_only",
-    "condition": "shared",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f1",
+    "condition": "S1_left_only",
     "duration_s": 9.9,
     "ok": true,
     "why": "",
@@ -36,9 +48,9 @@
     "objects": {}
   },
   {
-    "task": "f1",
-    "scenario": "S2_right_only",
-    "condition": "assisted",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f1",
+    "condition": "S2_right_only",
     "duration_s": 9.8,
     "ok": true,
     "why": "",
@@ -48,9 +60,9 @@
     "objects": {}
   },
   {
-    "task": "f1",
-    "scenario": "S2_right_only",
-    "condition": "direct",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f1",
+    "condition": "S2_right_only",
     "duration_s": 9.4,
     "ok": true,
     "why": "",
@@ -60,9 +72,9 @@
     "objects": {}
   },
   {
-    "task": "f1",
-    "scenario": "S2_right_only",
-    "condition": "shared",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f1",
+    "condition": "S2_right_only",
     "duration_s": 9.3,
     "ok": true,
     "why": "",
@@ -72,9 +84,9 @@
     "objects": {}
   },
   {
-    "task": "f1",
-    "scenario": "S3_both",
-    "condition": "assisted",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f1",
+    "condition": "S3_both",
     "duration_s": 9.3,
     "ok": true,
     "why": "",
@@ -84,9 +96,9 @@
     "objects": {}
   },
   {
-    "task": "f1",
-    "scenario": "S3_both",
-    "condition": "direct",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f1",
+    "condition": "S3_both",
     "duration_s": 9.3,
     "ok": true,
     "why": "",
@@ -96,9 +108,9 @@
     "objects": {}
   },
   {
-    "task": "f1",
-    "scenario": "S3_both",
-    "condition": "shared",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f1",
+    "condition": "S3_both",
     "duration_s": 9.8,
     "ok": true,
     "why": "",
@@ -108,444 +120,351 @@
     "objects": {}
   },
   {
-    "task": "f2",
-    "scenario": "S1_near_pick",
-    "condition": "shared",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f2",
+    "condition": "S1_near_pick",
     "duration_s": 16.7,
     "ok": true,
     "why": "",
     "bright": 88.7,
     "variety": 10796,
     "delta": 1.05,
-    "objects": {
-      "container_teal": 445,
-      "block_orange": 78
-    }
+    "objects": {}
   },
   {
-    "task": "f2",
-    "scenario": "S2_far_pick",
-    "condition": "shared",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f2",
+    "condition": "S2_far_pick",
     "duration_s": 16.4,
     "ok": true,
     "why": "",
     "bright": 88.6,
     "variety": 8493,
     "delta": 1.31,
-    "objects": {
-      "container_teal": 618,
-      "block_orange": 92
-    }
+    "objects": {}
   },
   {
-    "task": "f3",
-    "scenario": "S1_short_lift",
-    "condition": "assisted",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f3",
+    "condition": "S1_short_lift",
     "duration_s": 7.8,
     "ok": true,
     "why": "",
     "bright": 88.2,
     "variety": 6247,
     "delta": 2.12,
-    "objects": {
-      "tray_tan": 440,
-      "ball_yellow": 372
-    }
+    "objects": {}
   },
   {
-    "task": "f3",
-    "scenario": "S1_short_lift",
-    "condition": "direct",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f3",
+    "condition": "S1_short_lift",
     "duration_s": 7.9,
     "ok": true,
     "why": "",
     "bright": 88.1,
     "variety": 6340,
     "delta": 2.15,
-    "objects": {
-      "tray_tan": 433,
-      "ball_yellow": 318
-    }
+    "objects": {}
   },
   {
-    "task": "f3",
-    "scenario": "S1_short_lift",
-    "condition": "shared",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f3",
+    "condition": "S1_short_lift",
     "duration_s": 7.3,
     "ok": true,
     "why": "",
     "bright": 88.2,
     "variety": 6281,
     "delta": 2.32,
-    "objects": {
-      "tray_tan": 443,
-      "ball_yellow": 302
-    }
+    "objects": {}
   },
   {
-    "task": "f3",
-    "scenario": "S2_full_lift",
-    "condition": "assisted",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f3",
+    "condition": "S2_full_lift",
     "duration_s": 10.0,
     "ok": true,
     "why": "",
     "bright": 88.2,
     "variety": 6501,
     "delta": 1.82,
-    "objects": {
-      "tray_tan": 470,
-      "ball_yellow": 303
-    }
+    "objects": {}
   },
   {
-    "task": "f3",
-    "scenario": "S2_full_lift",
-    "condition": "direct",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f3",
+    "condition": "S2_full_lift",
     "duration_s": 9.8,
     "ok": true,
     "why": "",
     "bright": 88.1,
     "variety": 6513,
     "delta": 1.86,
-    "objects": {
-      "tray_tan": 465,
-      "ball_yellow": 369
-    }
+    "objects": {}
   },
   {
-    "task": "f3",
-    "scenario": "S2_full_lift",
-    "condition": "shared",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f3",
+    "condition": "S2_full_lift",
     "duration_s": 9.8,
     "ok": true,
     "why": "",
     "bright": 88.1,
     "variety": 6474,
     "delta": 1.77,
-    "objects": {
-      "tray_tan": 435,
-      "ball_yellow": 370
-    }
+    "objects": {}
   },
   {
-    "task": "f3",
-    "scenario": "S3_detour",
-    "condition": "assisted",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f3",
+    "condition": "S3_detour",
     "duration_s": 12.8,
     "ok": true,
     "why": "",
     "bright": 88.1,
     "variety": 6413,
     "delta": 1.67,
-    "objects": {
-      "tray_tan": 528,
-      "ball_yellow": 394
-    }
+    "objects": {}
   },
   {
-    "task": "f3",
-    "scenario": "S3_detour",
-    "condition": "direct",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f3",
+    "condition": "S3_detour",
     "duration_s": 11.8,
     "ok": true,
     "why": "",
     "bright": 88.1,
     "variety": 6408,
     "delta": 1.36,
-    "objects": {
-      "tray_tan": 477,
-      "ball_yellow": 377
-    }
+    "objects": {}
   },
   {
-    "task": "f3",
-    "scenario": "S3_detour",
-    "condition": "shared",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f3",
+    "condition": "S3_detour",
     "duration_s": 11.8,
     "ok": true,
     "why": "",
     "bright": 88.1,
     "variety": 6369,
     "delta": 1.28,
-    "objects": {
-      "tray_tan": 463,
-      "ball_yellow": 376
-    }
+    "objects": {}
   },
   {
-    "task": "f4",
-    "scenario": "S1_short_lift",
-    "condition": "assisted",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f4",
+    "condition": "S1_short_lift",
     "duration_s": 7.8,
     "ok": true,
     "why": "",
     "bright": 88.3,
     "variety": 6632,
     "delta": 1.98,
-    "objects": {
-      "sling_orange": 211,
-      "ball_yellow": 33
-    }
+    "objects": {}
   },
   {
-    "task": "f4",
-    "scenario": "S1_short_lift",
-    "condition": "direct",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f4",
+    "condition": "S1_short_lift",
     "duration_s": 7.8,
     "ok": true,
     "why": "",
     "bright": 88.2,
     "variety": 6538,
     "delta": 1.9,
-    "objects": {
-      "sling_orange": 212,
-      "ball_yellow": 31
-    }
+    "objects": {}
   },
   {
-    "task": "f4",
-    "scenario": "S1_short_lift",
-    "condition": "shared",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f4",
+    "condition": "S1_short_lift",
     "duration_s": 8.2,
     "ok": true,
     "why": "",
     "bright": 88.3,
     "variety": 6591,
     "delta": 2.38,
-    "objects": {
-      "sling_orange": 200,
-      "ball_yellow": 34
-    }
+    "objects": {}
   },
   {
-    "task": "f4",
-    "scenario": "S2_full_lift",
-    "condition": "assisted",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f4",
+    "condition": "S2_full_lift",
     "duration_s": 9.8,
     "ok": true,
     "why": "",
     "bright": 88.3,
     "variety": 6759,
     "delta": 1.62,
-    "objects": {
-      "sling_orange": 207,
-      "ball_yellow": 31
-    }
+    "objects": {}
   },
   {
-    "task": "f4",
-    "scenario": "S2_full_lift",
-    "condition": "direct",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f4",
+    "condition": "S2_full_lift",
     "duration_s": 9.8,
     "ok": true,
     "why": "",
     "bright": 88.2,
     "variety": 6902,
     "delta": 1.66,
-    "objects": {
-      "sling_orange": 213,
-      "ball_yellow": 27
-    }
+    "objects": {}
   },
   {
-    "task": "f4",
-    "scenario": "S2_full_lift",
-    "condition": "shared",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f4",
+    "condition": "S2_full_lift",
     "duration_s": 9.8,
     "ok": true,
     "why": "",
     "bright": 88.2,
     "variety": 6782,
     "delta": 1.59,
-    "objects": {
-      "sling_orange": 202,
-      "ball_yellow": 26
-    }
+    "objects": {}
   },
   {
-    "task": "f4",
-    "scenario": "S3_detour",
-    "condition": "assisted",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f4",
+    "condition": "S3_detour",
     "duration_s": 13.1,
     "ok": true,
     "why": "",
     "bright": 88.2,
     "variety": 6752,
     "delta": 1.17,
-    "objects": {
-      "sling_orange": 213,
-      "ball_yellow": 34
-    }
+    "objects": {}
   },
   {
-    "task": "f4",
-    "scenario": "S3_detour",
-    "condition": "direct",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f4",
+    "condition": "S3_detour",
     "duration_s": 12.8,
     "ok": true,
     "why": "",
     "bright": 88.2,
     "variety": 6742,
     "delta": 1.5,
-    "objects": {
-      "sling_orange": 222,
-      "ball_yellow": 28
-    }
+    "objects": {}
   },
   {
-    "task": "f4",
-    "scenario": "S3_detour",
-    "condition": "shared",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f4",
+    "condition": "S3_detour",
     "duration_s": 12.3,
     "ok": true,
     "why": "",
     "bright": 88.2,
     "variety": 6807,
     "delta": 1.13,
-    "objects": {
-      "sling_orange": 232,
-      "ball_yellow": 32
-    }
+    "objects": {}
   },
   {
-    "task": "f5",
-    "scenario": "S1_both_slow",
-    "condition": "assisted",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f5",
+    "condition": "S1_both_slow",
     "duration_s": 12.3,
     "ok": true,
     "why": "",
     "bright": 88.1,
     "variety": 5541,
     "delta": 1.12,
-    "objects": {
-      "target_green": 29
-    }
+    "objects": {}
   },
   {
-    "task": "f5",
-    "scenario": "S1_both_slow",
-    "condition": "direct",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f5",
+    "condition": "S1_both_slow",
     "duration_s": 11.8,
     "ok": true,
     "why": "",
     "bright": 88.0,
     "variety": 5644,
     "delta": 1.11,
-    "objects": {
-      "target_green": 33
-    }
+    "objects": {}
   },
   {
-    "task": "f5",
-    "scenario": "S1_both_slow",
-    "condition": "shared",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f5",
+    "condition": "S1_both_slow",
     "duration_s": 11.8,
     "ok": true,
     "why": "",
     "bright": 88.1,
     "variety": 5560,
     "delta": 1.17,
-    "objects": {
-      "target_green": 68
-    }
+    "objects": {}
   },
   {
-    "task": "f5",
-    "scenario": "S2_one_fast",
-    "condition": "assisted",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f5",
+    "condition": "S2_one_fast",
     "duration_s": 12.6,
     "ok": true,
     "why": "",
     "bright": 88.1,
     "variety": 5649,
     "delta": 1.13,
-    "objects": {
-      "target_green": 106
-    }
+    "objects": {}
   },
   {
-    "task": "f5",
-    "scenario": "S2_one_fast",
-    "condition": "direct",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f5",
+    "condition": "S2_one_fast",
     "duration_s": 12.3,
     "ok": true,
     "why": "",
     "bright": 88.2,
     "variety": 5634,
     "delta": 1.0,
-    "objects": {
-      "target_green": 109
-    }
+    "objects": {}
   },
   {
-    "task": "f5",
-    "scenario": "S2_one_fast",
-    "condition": "shared",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f5",
+    "condition": "S2_one_fast",
     "duration_s": 12.4,
     "ok": true,
     "why": "",
     "bright": 88.1,
     "variety": 5599,
     "delta": 1.22,
-    "objects": {
-      "target_green": 52
-    }
+    "objects": {}
   },
   {
-    "task": "f5",
-    "scenario": "S3_both_fast",
-    "condition": "assisted",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f5",
+    "condition": "S3_both_fast",
     "duration_s": 11.8,
     "ok": true,
     "why": "",
     "bright": 88.1,
     "variety": 5616,
     "delta": 1.07,
-    "objects": {
-      "target_green": 49
-    }
+    "objects": {}
   },
   {
-    "task": "f5",
-    "scenario": "S3_both_fast",
-    "condition": "direct",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f5",
+    "condition": "S3_both_fast",
     "duration_s": 11.8,
     "ok": true,
     "why": "",
     "bright": 88.1,
     "variety": 5841,
     "delta": 1.14,
-    "objects": {
-      "target_green": 40
-    }
+    "objects": {}
   },
   {
-    "task": "f5",
-    "scenario": "S3_both_fast",
-    "condition": "shared",
+    "task": "00_unclassified_scripted_playback",
+    "scenario": "f5",
+    "condition": "S3_both_fast",
     "duration_s": 12.3,
     "ok": true,
     "why": "",
     "bright": 88.1,
     "variety": 5543,
     "delta": 1.07,
-    "objects": {
-      "target_green": 102
-    }
-  },
-  {
-    "task": "t2",
-    "scenario": "S1_short_reach",
-    "condition": "direct",
-    "duration_s": 19.0,
-    "ok": true,
-    "why": "",
-    "bright": 88.1,
-    "variety": 7362,
-    "delta": 1.01,
-    "objects": {
-      "container_teal": 517,
-      "block_orange": 54
-    }
+    "objects": {}
   }
 ]

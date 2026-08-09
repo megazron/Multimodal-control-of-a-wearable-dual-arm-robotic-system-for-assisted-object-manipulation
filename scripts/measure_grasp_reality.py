@@ -185,7 +185,7 @@ def main():
     P("             compared against each clip's declared object width.")
     rows = []
     for f in sorted(glob.glob(os.path.join(
-            ROOT, "recordings/verification/*/*/*/grip_trace.json"))):
+            ROOT, "recordings/verification/*/*/*/*/grip_trace.json"))):
         try:
             d = json.load(open(f))
         except Exception:

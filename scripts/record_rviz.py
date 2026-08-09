@@ -65,6 +65,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+MODE_BUCKET = "00_unclassified_scripted_playback"
 from record_verification import (Driver, densify, clearance_all,      # noqa: E402
                                  wearer_prims, BIM, OUT, FFMPEG)
 
@@ -1145,7 +1146,8 @@ def main():
                 n_done += 1
                 print("  [%d/%d] skip (done) %s" % (n_done, total, "/".join(key)))
                 continue
-            d = os.path.join(OUT, run["task"], run["scenario"], cond)
+            d = os.path.join(OUT, MODE_BUCKET, run["task"],
+                             run["scenario"], cond)
             ensure_display(os.path.join(SCRATCH, "capture"),
                            active_arm(run["task"], run["sc"]))
             r = run_one(dr, pub, hud_pub, run, cond, d)

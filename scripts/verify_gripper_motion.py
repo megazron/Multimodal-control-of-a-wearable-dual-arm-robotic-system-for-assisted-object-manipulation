@@ -47,7 +47,14 @@ from verify_rviz_clips import duration                          # noqa: E402
 
 OPEN_MAX = 0.10          # below this the hand is open
 HOLD_MIN, FREE_AIR = 0.10, 0.74
-GRASP_TASKS = ("t2", "t3", "t5", "t6")
+# BOTH NAMING GENERATIONS. The five-task set renamed everything (f1..f5) and
+# the retired nine-task clips are still in the tree under their old names. A
+# list carrying only one generation silently classifies the other as
+# "not a grasp clip", which reports 0 grasp clips and reads like a clean pass
+# rather than like a broken filter -- which is exactly what happened when the
+# mode level was added and this list was not revisited.
+GRASP_TASKS = ("t2", "t3", "t5", "t6",          # retired nine-task names
+               "f2", "f3", "f4")                # current five-task names
 
 
 def frame_at(mp4, t):
@@ -86,11 +93,17 @@ def gripper_silhouette(img):
 
 def main():
     rows = []
-    dirs = sorted(glob.glob(os.path.join(OUT, "*/*/*/grip_trace.json")))
+    # ONE MORE PATH LEVEL. The tree is now
+    # recordings/verification/<mode>/<task>/<scenario>/<condition>, because
+    # control mode and autonomy condition are independent axes and the old layout
+    # conflated them: "direct" under the mannequin and "direct" under VR shared a
+    # folder name. A glob that still assumes three levels matches NOTHING and
+    # reports zero clips, which reads exactly like a clean pass.
+    dirs = sorted(glob.glob(os.path.join(OUT, "*/*/*/*/grip_trace.json")))
     print("checking gripper motion in %d runs\n" % len(dirs))
     for tp in dirs:
         d = os.path.dirname(tp)
-        task, scen, cond = os.path.relpath(d, OUT).split(os.sep)[:3]
+        mode, task, scen, cond = os.path.relpath(d, OUT).split(os.sep)[:4]
         tr = json.load(open(tp))
         cap = {}
         cp = os.path.join(d, "rviz_capture.json")

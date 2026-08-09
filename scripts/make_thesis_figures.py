@@ -143,7 +143,7 @@ def fig_degradation():
 # --------------------------------------------------------------- clearance
 def fig_clearance():
     rows = []
-    for p in glob.glob(os.path.join(ROOT, "recordings/verification/*/*/*/summary.json")):
+    for p in glob.glob(os.path.join(ROOT, "recordings/verification/*/*/*/*/summary.json")):
         try:
             rows.append(json.load(open(p)))
         except Exception:

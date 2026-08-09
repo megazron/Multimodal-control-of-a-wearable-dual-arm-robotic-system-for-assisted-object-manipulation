@@ -85,7 +85,25 @@ TOP5 = [
 
 def main():
     rows = []
-    for p in sorted(glob.glob(os.path.join(OUT, "*/*/*/summary.json"))):
+    # ONE MORE PATH LEVEL. The tree is now
+    # recordings/verification/<mode>/<task>/<scenario>/<condition>, because
+    # control mode and autonomy condition are independent axes and the old layout
+    # conflated them: "direct" under the mannequin and "direct" under VR shared a
+    # folder name. A glob that still assumes three levels matches NOTHING and
+    # reports zero clips, which reads exactly like a clean pass.
+    # BOTH RECORD TYPES. summary.json comes from the TF-render pipeline and
+    # rviz_capture.json from the screen recorder, and the five-task clips have
+    # only the latter. Globbing summary.json alone silently dropped all 38 of
+    # them and rewrote this index with the 87 RETIRED clips, discarding the
+    # Task 2 caveat that has to sit at the top. A missing clip type reads as a
+    # smaller index, not as an error.
+    records = sorted(glob.glob(os.path.join(OUT, "*/*/*/*/summary.json"))) + \
+        sorted(glob.glob(os.path.join(OUT, "*/*/*/*/rviz_capture.json")))
+    seen_dirs = set()
+    for p in records:
+        if os.path.dirname(p) in seen_dirs:
+            continue
+        seen_dirs.add(os.path.dirname(p))
         s = json.load(open(p))
         d = os.path.dirname(p)
         s["dir"] = os.path.relpath(d, ROOT)
@@ -98,6 +116,21 @@ def main():
         s["has_quad"] = os.path.exists(os.path.join(d, "rviz_quad.mp4"))
         s["has_rviz"] = s["has_quad"]
         s["rviz"] = json.load(open(rv)) if os.path.exists(rv) else {}
+        # NORMALISE ONCE, HERE. Two record types feed this index --
+        # summary.json from the TF-render pipeline and rviz_capture.json from
+        # the screen recorder -- and they carry different fields. Patching the
+        # consumers field by field is how the previous four attempts each
+        # fixed one KeyError and hit the next. Every numeric field a formatter
+        # will divide, compare or print gets a real default here, and the flag
+        # says which type the row is so a caller can tell "absent" from "zero".
+        DEFAULTS = dict(min_clearance_m=0.0, travel_m=0.0,
+                        duration_s=0.0, frames=0, bytes=0,
+                        passes_through_wearer=False, below_real_floor=False,
+                        below_floor=False, no_motion=False,
+                        rviz=False, clip=False)
+        s = dict(DEFAULTS, **{k: v for k, v in s.items() if v is not None})
+        s["record_type"] = ("screen_capture" if p.endswith("rviz_capture.json")
+                            else "tf_render")
         rows.append(s)
     # attach the two verifiers' verdicts so the index states what was CHECKED,
     # not merely what was recorded
@@ -105,26 +138,51 @@ def main():
         p = os.path.join(OUT, name)
         if not os.path.exists(p):
             return {}
-        return {(r["task"], r["scenario"], r["condition"]): r
+        return {(r.get("task"), r.get("scenario"), r.get("condition")): r
                 for r in json.load(open(p))}
     att = _load("attachment_check.json")
     con = _load("rviz_verification.json")
     grip = _load("gripper_check.json")
     for r in rows:
-        k = (r["task"], r["scenario"], r["condition"])
+        k = (r.get("task"), r.get("scenario"), r.get("condition"))
         r["attach"] = att.get(k, {})
         r["content"] = con.get(k, {})
         r["grip"] = grip.get(k, {})
-    tasks = sorted({r["task"] for r in rows})
+    tasks = sorted({r.get("task") for r in rows})
 
     def find(t, sc, cd):
         for r in rows:
-            if (r["task"], r["scenario"], r["condition"]) == (t, sc, cd):
+            if (r.get("task"), r.get("scenario"), r.get("condition")) == (t, sc, cd):
                 return r
         return None
 
     L = []
     L.append("# VERIFICATION CLIP INDEX\n")
+    # THE CAVEAT IS GENERATED, NOT HAND-ADDED. It was written by hand once and
+    # this generator silently overwrote it on the next run, which is how a
+    # warning that must never be lost gets lost.
+    L.append("""> ## READ FIRST: TASK 2 IS NOT OPERATOR-COMMANDABLE
+>
+> **No f2 clip shows teleoperated grasping, because teleoperated grasping is
+> not achievable on this platform.** A top-down grasp needs **169.7 deg**
+> (left) and **164.6 deg** (right) of wrist rotation from the orientation
+> `orientation_mode: fixed` pins the commanded wrist to, and nothing in the
+> master measures the wrist to command it. Those clips work because the
+> recorder calls `/compute_ik` **directly**, bypassing the teleoperation
+> orientation lock. They show that the ROBOT can execute an aligned grasp, not
+> that an OPERATOR can command one. See
+> `docs/research/09_task2_grasping_finding.md`.
+>
+> ## AND: NO CLIP HERE WAS RECORDED THROUGH A CONTROL MODE
+>
+> The tree is `<mode>/<task>/<scenario>/<condition>`, but the six mode
+> directories are **empty**. Every clip was produced by `record_rviz.py`,
+> which calls `/compute_ik` directly and never publishes
+> `/master_arm_pose_*`, so no follower, clutch, anchor or orientation lock is
+> in the path. They live under two honestly-named buckets instead:
+> `00_unclassified_legacy_geometry` (the retired nine-task clips) and
+> `00_unclassified_scripted_playback` (the current five-task clips).
+""")
     L.append("**%d runs**, every task x scenario x autonomy condition, driven "
              "in sim and recorded two ways.\n" % len(rows))
 
@@ -185,10 +243,11 @@ collision-relevant motion, and it is EXCLUDED from the tracking metric.
         L.append("   `%s\\%s\\%s\\%s\\rviz_quad.mp4`\n"
                  % (WINPATH, t, sc, cd))
 
-    through = [r for r in rows if r["passes_through_wearer"]]
-    low = [r for r in rows if r["below_real_floor"]]
-    still = [r for r in rows if r["ee_travel_m"] < 0.05]
-    norv = [r for r in rows if not r["has_rviz"]]
+    through = [r for r in rows if r.get("passes_through_wearer")]
+    low = [r for r in rows if r.get("below_real_floor")]
+    still = [r for r in rows if r.get("ee_travel_m") is not None
+             and r.get("ee_travel_m") < 0.05]
+    norv = [r for r in rows if not r.get("has_rviz")]
     L.append("\n## Automatic checks across all %d runs\n" % len(rows))
     L.append("| check | result |")
     L.append("| --- | --- |")
@@ -200,18 +259,18 @@ collision-relevant motion, and it is EXCLUDED from the tracking metric.
     L.append("| RViz screen capture present | %d of %d |"
              % (len(rows) - len(norv), len(rows)))
     L.append("| TF clip / plot / bag present | %d / %d / %d |"
-             % (sum(r["has_clip"] for r in rows),
-                sum(r["has_plot"] for r in rows),
-                sum(r["has_bag"] for r in rows)))
+             % (sum(r.get("has_clip") for r in rows),
+                sum(r.get("has_plot") for r in rows),
+                sum(r.get("has_bag") for r in rows)))
 
     for t in tasks:
-        rs = [r for r in rows if r["task"] == t]
+        rs = [r for r in rows if r.get("task") == t]
         L.append("\n---\n\n## %s — %d runs\n" % (t.upper(), len(rs)))
         L.append("**What it should show.** %s\n" % EXPECT.get(t, "—"))
         L.append("| scenario | cond | rviz.mp4 | duration | EE travel | "
                  "min clearance | gripper | object outcome | attachment |")
         L.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
-        for r in sorted(rs, key=lambda r: (r["scenario"], r["condition"])):
+        for r in sorted(rs, key=lambda r: (r.get("scenario"), r.get("condition"))):
             rv = r.get("rviz", {})
             out = ""
             if t == "t2":
@@ -221,9 +280,9 @@ collision-relevant motion, and it is EXCLUDED from the tracking metric.
             elif t == "t5":
                 out = "tool delivered" if rv.get("tool_delivered") else "-"
             flag = ""
-            if r["passes_through_wearer"]:
+            if r.get("passes_through_wearer"):
                 flag = " **THROUGH WEARER**"
-            elif r["below_real_floor"]:
+            elif r.get("below_real_floor"):
                 flag = " *(below floor)*"
             a = r.get("attach", {}).get("verdict", "-")
             a = {"CARRIED": "object CARRIED"}.get(a, a)
@@ -233,13 +292,20 @@ collision-relevant motion, and it is EXCLUDED from the tracking metric.
                 gtxt = ("%.2f..%.2f %s" % (gk.get("grip_min") or 0,
                                            gk.get("grip_max") or 0,
                                            "OK" if gk.get("joint_ok") else "NO"))
-            L.append("| %s | %s | %s | %.1f s | %.2f m | %.3f m%s | %s | "
+            # A field this record type does not measure prints as "--", not
+            # as a number. A screen-capture clip carries no end-effector
+            # travel, and printing 0.00 m for it would assert the arm did not
+            # move.
+            trav = ("%.2f m" % r["ee_travel_m"]
+                    if r.get("ee_travel_m") is not None else "--")
+            clr = ("%.3f m" % r["min_clearance_m"]
+                   if r.get("min_clearance_m") is not None else "--")
+            L.append("| %s | %s | %s | %.1f s | %s | %s%s | %s | "
                      "%s | %s |"
-                     % (r["scenario"], r["condition"],
-                        "%d/4+quad" % len(r["views"]) if r["has_quad"]
+                     % (r.get("scenario"), r.get("condition"),
+                        "%d/4+quad" % len(r.get("views")) if r.get("has_quad")
                         else "**MISSING**",
-                        rv.get("duration_s", 0.0), r["ee_travel_m"],
-                        r["min_clearance_m"], flag, gtxt,
+                        rv.get("duration_s", 0.0), trav, clr, flag, gtxt,
                         out or "-", a))
 
     L.append("""
@@ -264,8 +330,8 @@ Xvfb has no compositor, and the same grab there gives mean 126.8.
     open(p, "w").write("\n".join(L) + "\n")
     print("wrote %s" % p)
     print("  %d runs, %d with rviz.mp4, %d with clip.mp4"
-          % (len(rows), sum(r["has_rviz"] for r in rows),
-             sum(r["has_clip"] for r in rows)))
+          % (len(rows), sum(r.get("has_rviz") for r in rows),
+             sum(r.get("has_clip") for r in rows)))
     print("  through wearer %d   below floor %d   no motion %d"
           % (len(through), len(low), len(still)))
     return 0

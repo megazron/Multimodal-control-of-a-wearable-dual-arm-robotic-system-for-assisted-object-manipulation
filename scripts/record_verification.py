@@ -55,6 +55,14 @@ from audit_scenario_reachability import densify                # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BIM = os.path.join(ROOT, "src/srl_experiments/experiments/bimanual")
 OUT = os.path.join(ROOT, "recordings/verification")
+
+# THE MODE LEVEL. recordings/verification/<mode>/<task>/<scenario>/<condition>.
+# This recorder drives the arm by calling /compute_ik DIRECTLY -- it never
+# publishes /master_arm_pose_*, so no follower, clutch, anchor or orientation
+# lock is in the path. It therefore writes into the scripted-playback bucket
+# and NOT into a control-mode directory, because a clip filed under
+# 01_master_teleop would assert something untrue about how it was produced.
+MODE_BUCKET = "00_unclassified_scripted_playback"
 FFMPEG = os.path.expanduser("~/.local/bin/ffmpeg")
 CONDITIONS = ("direct", "assisted", "shared")
 
@@ -635,7 +643,8 @@ def main():
     index = []
     for run in runs:
         for cond in conds:
-            d = os.path.join(OUT, run["task"], run["scenario"], cond)
+            d = os.path.join(OUT, MODE_BUCKET, run["task"],
+                             run["scenario"], cond)
             os.makedirs(d, exist_ok=True)
             bagp = os.path.join(d, "bag")
             shutil.rmtree(bagp, ignore_errors=True)

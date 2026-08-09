@@ -1,85 +1,364 @@
-# Verification clips: the CURRENT five-task set
+# VERIFICATION CLIP INDEX
 
-> ## READ THIS FIRST: TASK 2 IS NOT OPERATOR-COMMANDABLE
+> ## READ FIRST: TASK 2 IS NOT OPERATOR-COMMANDABLE
 >
-> **The f2 clips do not show teleoperated grasping, because teleoperated
-> grasping is not achievable on this platform.** A top-down grasp needs
-> **169.7 deg** (left arm) and **164.6 deg** (right) of wrist rotation from the
-> orientation `orientation_mode: fixed` pins the commanded wrist to, and
-> nothing in the master measures the wrist to command it.
+> **No f2 clip shows teleoperated grasping, because teleoperated grasping is
+> not achievable on this platform.** A top-down grasp needs **169.7 deg**
+> (left) and **164.6 deg** (right) of wrist rotation from the orientation
+> `orientation_mode: fixed` pins the commanded wrist to, and nothing in the
+> master measures the wrist to command it. Those clips work because the
+> recorder calls `/compute_ik` **directly**, bypassing the teleoperation
+> orientation lock. They show that the ROBOT can execute an aligned grasp, not
+> that an OPERATOR can command one. See
+> `docs/research/09_task2_grasping_finding.md`.
 >
-> Those clips work because the recorder calls `/compute_ik` **directly** with
-> the grasp quaternion, bypassing the teleoperation orientation lock. They
-> demonstrate that the ROBOT can execute an aligned grasp. They do **not**
-> demonstrate that an OPERATOR can command one.
+> ## AND: NO CLIP HERE WAS RECORDED THROUGH A CONTROL MODE
 >
-> The caveat is also burned into the overlay of every f2 clip in red, so a
-> viewer who never opens this file still cannot draw the wrong conclusion.
-> f2 therefore has no DIRECT and no VR condition: it is recorded in the shared
-> condition only. See `docs/research/09_task2_grasping_finding.md`.
+> The tree is `<mode>/<task>/<scenario>/<condition>`, but the six mode
+> directories are **empty**. Every clip was produced by `record_rviz.py`,
+> which calls `/compute_ik` directly and never publishes
+> `/master_arm_pose_*`, so no follower, clutch, anchor or orientation lock is
+> in the path. They live under two honestly-named buckets instead:
+> `00_unclassified_legacy_geometry` (the retired nine-task clips) and
+> `00_unclassified_scripted_playback` (the current five-task clips).
+
+**125 runs**, every task x scenario x autonomy condition, driven in sim and recorded two ways.
 
 
-Recorded against the five-task spec in
-`src/srl_experiments/experiments/final5/tasks.py` (500 mm tray span, 540 mm
-sling), with the single-owner gripper fix. These supersede the 87 clips under
-`t2..t9`, which use the retired nine-task geometry.
+## START HERE -- how to play them from Windows
 
-Seven angles per clip: `rviz_front` (the only one carrying the overlay),
-`rviz_back`, `rviz_left`, `rviz_right`, `rviz_iso`, `rviz_top`,
-`rviz_gripper` (tight on the fingers), plus `rviz_quad` as a review tile.
+The files live in the WSL filesystem. From Windows, paste this into Explorer
+or into a media player's Open dialog:
 
-| task | scenario | condition | dur | grip | grasp | notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| f1 | S1_left_only | assisted | 7.9 s | 0.05..0.05 | n/a |  |
-| f1 | S1_left_only | direct | 8.2 s | 0.05..0.05 | n/a |  |
-| f1 | S1_left_only | shared | 8.2 s | 0.05..0.05 | n/a |  |
-| f1 | S2_right_only | assisted | 7.8 s | 0.05..0.05 | n/a |  |
-| f1 | S2_right_only | direct | 7.9 s | 0.05..0.05 | n/a |  |
-| f1 | S2_right_only | shared | 7.9 s | 0.05..0.05 | n/a |  |
-| f1 | S3_both | assisted | 8.1 s | 0.05..0.05 | n/a |  |
-| f1 | S3_both | direct | 8.0 s | 0.05..0.05 | n/a |  |
-| f1 | S3_both | shared | 8.0 s | 0.05..0.05 | n/a |  |
-| f2 | S1_near_pick | shared | 14.6 s | 0.05..0.42 | planned | **DIRECT-IK, not operator-commandable**, blocks=1 |
-| f2 | S2_far_pick | shared | 14.4 s | 0.05..0.42 | planned | **DIRECT-IK, not operator-commandable**, blocks=1 |
-| f3 | S1_short_lift | assisted | 6.3 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f3 | S1_short_lift | direct | 6.2 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f3 | S1_short_lift | shared | 6.1 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f3 | S2_full_lift | assisted | 8.3 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f3 | S2_full_lift | direct | 8.4 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f3 | S2_full_lift | shared | 8.4 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f3 | S3_detour | assisted | 10.9 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f3 | S3_detour | direct | 10.5 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f3 | S3_detour | shared | 10.5 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f4 | S1_short_lift | assisted | 6.2 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f4 | S1_short_lift | direct | 6.2 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f4 | S1_short_lift | shared | 6.4 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f4 | S2_full_lift | assisted | 8.6 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f4 | S2_full_lift | direct | 8.3 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f4 | S2_full_lift | shared | 8.4 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f4 | S3_detour | assisted | 10.9 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f4 | S3_detour | direct | 10.8 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f4 | S3_detour | shared | 10.6 s | 0.05..0.61 | pre-grasp standoff not solvable |  |
-| f5 | S1_both_slow | assisted | 10.7 s | 0.05..0.05 | n/a |  |
-| f5 | S1_both_slow | direct | 10.4 s | 0.05..0.05 | n/a |  |
-| f5 | S1_both_slow | shared | 10.5 s | 0.05..0.05 | n/a |  |
-| f5 | S2_one_fast | assisted | 10.7 s | 0.05..0.05 | n/a |  |
-| f5 | S2_one_fast | direct | 11.0 s | 0.05..0.05 | n/a |  |
-| f5 | S2_one_fast | shared | 10.6 s | 0.05..0.05 | n/a |  |
-| f5 | S3_both_fast | assisted | 10.5 s | 0.05..0.05 | n/a |  |
-| f5 | S3_both_fast | direct | 10.5 s | 0.05..0.05 | n/a |  |
-| f5 | S3_both_fast | shared | 10.7 s | 0.05..0.05 | n/a |  |
+```
+\\wsl.localhost\Ubuntu\home\gausms\kortex_ws\recordings\verification
+```
 
-## What the automatic check covers, and what it does not
+VLC, MPC-HC and the built-in Films & TV app all open that path directly. Or
+from PowerShell:
 
-`scripts/verify_rviz_clips.py`: **39 of 39 clips pass**. It confirms the task
-object is on screen and that the arm moves, from PIXELS.
+```powershell
+start \\wsl.localhost\Ubuntu\home\gausms\kortex_ws\recordings\verification\t6\S4_tight\direct\rviz.mp4
+```
 
-It does **not** confirm that a grasp is physically correct, that the motion is
-what an operator would command, or that any number in the overlay is right.
-Those come from the measurements in `docs/system/09_results_audit.md`.
+If `\\wsl.localhost` does not resolve, the older form `\\wsl$\Ubuntu\...`
+works on the same machine.
 
-**The f3 and f4 clips show a carry, not a grasp.** Their overlay reads
-`GRASP REFUSED: pre-grasp standoff not solvable`, which is correct: the tray
-edge sits at |x| = 0.25 m and top-down grasping is infeasible below
-|x| = 0.30 m (measured, 0/9 against 9/9). The refusal is on screen rather
-than hidden.
+## The two recordings, and which to watch
+
+| file | what it is |
+| --- | --- |
+| **`rviz_quad.mp4`** | **THE ONE TO WATCH.** All four angles tiled 2x2: front (top-left), side (top-right), top (bottom-left), gripper close-up (bottom-right). |
+| `rviz_front.mp4` | facing the wearer, both arms. Carries the overlay -- the other three do not, deliberately |
+| `rviz_side.mp4` | reach depth and height, which the front view flattens |
+| `rviz_top.mp4` | lateral separation and the arms' relationship -- where a coordination error is obvious |
+| `rviz_gripper.mp4` | tracks the ACTIVE gripper link close up. This is the view that answers "did it actually grab it" |
+| `clip.mp4` | a TF-rendered 3-D + front-view plot. Uglier, but drawn from exactly the samples that produced `summary.json`, so the numbers and the picture cannot disagree. Kept for automated checking. |
+| `plot_metrics.png` | tracking error and clearance against time |
+| `summary.json` | the metrics, and the automatic pass/fail checks |
+| `bag/` | rosbag2 of /tf, /joint_states and the commands (regenerable; not in git) |
+
+Every `rviz.mp4` carries a burnt-in overlay: task, scenario, condition,
+elapsed time, phase, and the live task metric (tilt for T3, separation and sag
+for T6, tracking error elsewhere). The overlay is drawn as scene text inside
+RViz rather than composited afterwards, so the number on screen is the number
+from that frame.
+
+The first ~1.5 s of every clip is the approach from home, tagged
+`approach` in the overlay. It is included because it is the largest and most
+collision-relevant motion, and it is EXCLUDED from the tracking metric.
+
+
+## THE FIVE TO WATCH FIRST
+
+**1. T6 / S4_tight / direct** — 6.9 s
+
+   THE SLING. Live separation and sag in the overlay; the ball sits in the V. S4 is the tight 330 mm case, 10 mm from the documented failure threshold, so it is the one where the object nearly fails.
+
+   `\\wsl.localhost\Ubuntu\home\gausms\kortex_ws\recordings\verification\t6\S4_tight\direct\rviz_quad.mp4`
+
+**2. T2 / S1_short_reach / direct** — 17.4 s
+
+   PICK AND PLACE. A block leaves the slab, travels with the gripper and ends up inside the container. This is the clip that proves the gripper is not closing on nothing.
+
+   `\\wsl.localhost\Ubuntu\home\gausms\kortex_ws\recordings\verification\t2\S1_short_reach\direct\rviz_quad.mp4`
+
+**3. T5 / S1_near / direct** — 9.0 s
+
+   THE HANDOVER -- the canonical Fusion scenario. Tool off the cradle, carried inboard, delivered at the wearer's side.
+
+   `\\wsl.localhost\Ubuntu\home\gausms\kortex_ws\recordings\verification\t5\S1_near\direct\rviz_quad.mp4`
+
+**4. T3 / S2_long_height / direct** — 9.2 s
+
+   THE RIGID CARRY. Tray straight, tilt near zero through a full-band lift. Compare directly against the T6 clip above: same path, different object.
+
+   `\\wsl.localhost\Ubuntu\home\gausms\kortex_ws\recordings\verification\t3\S2_long_height\direct\rviz_quad.mp4`
+
+**5. T9 / S4_sway_100mm / direct** — 9.1 s
+
+   WEARER MOTION at the top of the IV. The arm holds a world-fixed point while the base sways 100 mm underneath it.
+
+   `\\wsl.localhost\Ubuntu\home\gausms\kortex_ws\recordings\verification\t9\S4_sway_100mm\direct\rviz_quad.mp4`
+
+
+## Automatic checks across all 125 runs
+
+| check | result |
+| --- | --- |
+| any arm link inside the wearer | **0** |
+| below the 120 mm `real_robot` clearance floor | **48 of 125** (see the clearance finding in docs/research) |
+| shows no motion (EE travel < 50 mm) | **0** |
+| RViz screen capture present | 125 of 125 |
+| TF clip / plot / bag present | 87 / 87 / 87 |
+
+---
+
+## F1 — 9 runs
+
+**What it should show.** —
+
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | gripper | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1_left_only | assisted | 3/4+quad | 7.9 s | -- | 0.000 m | - | - | - |
+| S1_left_only | direct | 3/4+quad | 8.2 s | -- | 0.000 m | - | - | - |
+| S1_left_only | shared | 3/4+quad | 8.2 s | -- | 0.000 m | - | - | - |
+| S2_right_only | assisted | 3/4+quad | 7.8 s | -- | 0.000 m | - | - | - |
+| S2_right_only | direct | 3/4+quad | 7.9 s | -- | 0.000 m | - | - | - |
+| S2_right_only | shared | 3/4+quad | 7.9 s | -- | 0.000 m | - | - | - |
+| S3_both | assisted | 3/4+quad | 8.1 s | -- | 0.000 m | - | - | - |
+| S3_both | direct | 3/4+quad | 8.0 s | -- | 0.000 m | - | - | - |
+| S3_both | shared | 3/4+quad | 8.0 s | -- | 0.000 m | - | - | - |
+
+---
+
+## F2 — 2 runs
+
+**What it should show.** —
+
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | gripper | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1_near_pick | shared | 3/4+quad | 14.6 s | -- | 0.000 m | 0.05..0.42 OK | - | - |
+| S2_far_pick | shared | 3/4+quad | 14.4 s | -- | 0.000 m | 0.05..0.42 OK | - | - |
+
+---
+
+## F3 — 9 runs
+
+**What it should show.** —
+
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | gripper | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1_short_lift | assisted | 3/4+quad | 6.3 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+| S1_short_lift | direct | 3/4+quad | 6.2 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+| S1_short_lift | shared | 3/4+quad | 6.1 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+| S2_full_lift | assisted | 3/4+quad | 8.3 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+| S2_full_lift | direct | 3/4+quad | 8.4 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+| S2_full_lift | shared | 3/4+quad | 8.4 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+| S3_detour | assisted | 3/4+quad | 10.9 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+| S3_detour | direct | 3/4+quad | 10.5 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+| S3_detour | shared | 3/4+quad | 10.5 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+
+---
+
+## F4 — 9 runs
+
+**What it should show.** —
+
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | gripper | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1_short_lift | assisted | 3/4+quad | 6.2 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+| S1_short_lift | direct | 3/4+quad | 6.2 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+| S1_short_lift | shared | 3/4+quad | 6.4 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+| S2_full_lift | assisted | 3/4+quad | 8.6 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+| S2_full_lift | direct | 3/4+quad | 8.3 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+| S2_full_lift | shared | 3/4+quad | 8.4 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+| S3_detour | assisted | 3/4+quad | 10.9 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+| S3_detour | direct | 3/4+quad | 10.8 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+| S3_detour | shared | 3/4+quad | 10.6 s | -- | 0.000 m | 0.05..0.61 NO | - | - |
+
+---
+
+## F5 — 9 runs
+
+**What it should show.** —
+
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | gripper | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1_both_slow | assisted | 3/4+quad | 10.7 s | -- | 0.000 m | - | - | - |
+| S1_both_slow | direct | 3/4+quad | 10.4 s | -- | 0.000 m | - | - | - |
+| S1_both_slow | shared | 3/4+quad | 10.5 s | -- | 0.000 m | - | - | - |
+| S2_one_fast | assisted | 3/4+quad | 10.7 s | -- | 0.000 m | - | - | - |
+| S2_one_fast | direct | 3/4+quad | 11.0 s | -- | 0.000 m | - | - | - |
+| S2_one_fast | shared | 3/4+quad | 10.6 s | -- | 0.000 m | - | - | - |
+| S3_both_fast | assisted | 3/4+quad | 10.5 s | -- | 0.000 m | - | - | - |
+| S3_both_fast | direct | 3/4+quad | 10.5 s | -- | 0.000 m | - | - | - |
+| S3_both_fast | shared | 3/4+quad | 10.7 s | -- | 0.000 m | - | - | - |
+
+---
+
+## T2 — 12 runs
+
+**What it should show.** The FILL arm picks an orange block off the slab, carries it across, and drops it into the TEAL container that the HOLD arm is carrying. Blocks left in the container turn GREEN. The hold arm holds station throughout; the two arms never swap sides.
+
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | gripper | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1_short_reach | assisted | 0/4+quad | 18.4 s | 1.42 m | 0.050 m *(below floor)* | 0.05..0.42 OK | 3 block(s) placed | object CARRIED |
+| S1_short_reach | direct | 3/4+quad | 17.4 s | 1.47 m | 0.049 m *(below floor)* | 0.05..0.42 OK | 1 block(s) placed | object CARRIED |
+| S1_short_reach | shared | 0/4+quad | 18.6 s | 1.34 m | 0.051 m *(below floor)* | 0.05..0.42 OK | 2 block(s) placed | object CARRIED |
+| S2_long_reach | assisted | 0/4+quad | 17.9 s | 1.44 m | 0.050 m *(below floor)* | 0.05..0.42 OK | 2 block(s) placed | object CARRIED |
+| S2_long_reach | direct | 0/4+quad | 17.7 s | 1.43 m | 0.049 m *(below floor)* | 0.05..0.42 OK | 1 block(s) placed | object CARRIED |
+| S2_long_reach | shared | 0/4+quad | 17.7 s | 1.34 m | 0.051 m *(below floor)* | 0.05..0.42 OK | 2 block(s) placed | object CARRIED |
+| S3_height_change | assisted | 0/4+quad | 16.5 s | 1.46 m | 0.049 m *(below floor)* | 0.05..0.42 OK | 3 block(s) placed | object CARRIED |
+| S3_height_change | direct | 0/4+quad | 16.6 s | 1.50 m | 0.048 m *(below floor)* | 0.05..0.42 OK | 2 block(s) placed | object CARRIED |
+| S3_height_change | shared | 0/4+quad | 15.6 s | 1.44 m | 0.053 m *(below floor)* | 0.05..0.42 OK | 2 block(s) placed | object CARRIED |
+| S4_tight_tolerance | assisted | 0/4+quad | 8.6 s | 1.46 m | 0.050 m *(below floor)* | 0.05..0.56 OK | 1 block(s) placed | object CARRIED |
+| S4_tight_tolerance | direct | 0/4+quad | 8.5 s | 1.40 m | 0.048 m *(below floor)* | 0.05..0.56 OK | 1 block(s) placed | object CARRIED |
+| S4_tight_tolerance | shared | 0/4+quad | 8.7 s | 1.42 m | 0.051 m *(below floor)* | 0.05..0.56 OK | 1 block(s) placed | object CARRIED |
+
+---
+
+## T3 — 12 runs
+
+**What it should show.** Both grippers rise together with the TAN RIGID TRAY between them and a yellow ball on top. The tray stays straight and level -- |tilt| in the overlay should stay near 0 deg. The ball rolls to the low side and would fall off past 11.3 deg.
+
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | gripper | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1_short_straight | assisted | 0/4+quad | 5.2 s | 1.30 m | 0.052 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S1_short_straight | direct | 0/4+quad | 5.3 s | 1.31 m | 0.052 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S1_short_straight | shared | 0/4+quad | 5.3 s | 1.28 m | 0.052 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S2_long_height | assisted | 0/4+quad | 9.2 s | 1.55 m | 0.051 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S2_long_height | direct | 0/4+quad | 9.2 s | 1.57 m | 0.051 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S2_long_height | shared | 0/4+quad | 9.1 s | 1.55 m | 0.051 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S3_curved_obstacle | assisted | 0/4+quad | 8.0 s | 1.47 m | 0.052 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S3_curved_obstacle | direct | 0/4+quad | 7.9 s | 1.52 m | 0.051 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S3_curved_obstacle | shared | 0/4+quad | 7.8 s | 1.44 m | 0.056 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S4_tight | assisted | 0/4+quad | 6.7 s | 1.34 m | 0.058 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S4_tight | direct | 0/4+quad | 7.0 s | 1.39 m | 0.058 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S4_tight | shared | 0/4+quad | 6.9 s | 1.34 m | 0.059 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+
+---
+
+## T5 — 9 runs
+
+**What it should show.** The RIGHT arm (screen right) picks the tool off its cradle, carries it inboard, and stops with it at the GREEN SPHERE -- the receive point at the wearer's side. The left arm never moves.
+
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | gripper | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1_near | assisted | 0/4+quad | 9.4 s | 0.87 m | 0.068 m *(below floor)* | 0.05..0.50 OK | tool delivered | object CARRIED |
+| S1_near | direct | 0/4+quad | 9.0 s | 0.91 m | 0.068 m *(below floor)* | 0.05..0.50 OK | tool delivered | object CARRIED |
+| S1_near | shared | 0/4+quad | 8.8 s | 0.82 m | 0.068 m *(below floor)* | 0.05..0.50 OK | tool delivered | object CARRIED |
+| S2_far | assisted | 0/4+quad | 17.3 s | 0.84 m | 0.095 m *(below floor)* | 0.05..0.59 OK | tool delivered | object CARRIED |
+| S2_far | direct | 0/4+quad | 16.4 s | 0.88 m | 0.095 m *(below floor)* | 0.05..0.60 OK | tool delivered | object CARRIED |
+| S2_far | shared | 0/4+quad | 16.4 s | 0.79 m | 0.095 m *(below floor)* | 0.05..0.60 OK | tool delivered | object CARRIED |
+| S3_busy | assisted | 0/4+quad | 15.9 s | 0.89 m | 0.068 m *(below floor)* | 0.05..0.61 OK | tool delivered | object CARRIED |
+| S3_busy | direct | 0/4+quad | 15.7 s | 0.92 m | 0.068 m *(below floor)* | 0.05..0.60 OK | tool delivered | object CARRIED |
+| S3_busy | shared | 0/4+quad | 15.9 s | 0.85 m | 0.068 m *(below floor)* | 0.05..0.61 OK | tool delivered | object CARRIED |
+
+---
+
+## T6 — 12 runs
+
+**What it should show.** Same paths as T3, but the object is a SLING: an orange catenary between the grippers with the ball sitting in the bottom of the V. The overlay shows live separation and sag; the ball turns RED and drops if sag falls below one ball diameter (40 mm).
+
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | gripper | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1_short_straight | assisted | 0/4+quad | 5.5 s | 1.30 m | 0.052 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S1_short_straight | direct | 0/4+quad | 5.5 s | 1.33 m | 0.052 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S1_short_straight | shared | 0/4+quad | 5.4 s | 1.29 m | 0.052 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S2_long_height | assisted | 0/4+quad | 9.1 s | 1.55 m | 0.051 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S2_long_height | direct | 0/4+quad | 9.1 s | 1.61 m | 0.051 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S2_long_height | shared | 0/4+quad | 9.3 s | 1.53 m | 0.051 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S3_curved_obstacle | assisted | 0/4+quad | 7.9 s | 1.50 m | 0.064 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S3_curved_obstacle | direct | 0/4+quad | 7.8 s | 1.53 m | 0.051 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S3_curved_obstacle | shared | 0/4+quad | 7.9 s | 1.45 m | 0.052 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S4_tight | assisted | 0/4+quad | 6.9 s | 1.37 m | 0.058 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S4_tight | direct | 0/4+quad | 6.9 s | 1.34 m | 0.058 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+| S4_tight | shared | 0/4+quad | 7.0 s | 1.30 m | 0.058 m *(below floor)* | 0.05..0.61 OK | ball retained | object CARRIED |
+
+---
+
+## T7 — 18 runs
+
+**What it should show.** Each arm chases its own GREEN TARGET SPHERE around a small closed loop -- a Lissajous on an 80 mm sphere. The arms are INDEPENDENT. In the B1/B2 baselines only ONE arm moves.
+
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | gripper | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| B1_left_only | assisted | 0/4+quad | 10.0 s | 1.71 m | 0.182 m | - | - | N/A (no carried object) |
+| B1_left_only | direct | 0/4+quad | 10.0 s | 1.76 m | 0.182 m | - | - | N/A (no carried object) |
+| B1_left_only | shared | 0/4+quad | 10.2 s | 1.58 m | 0.187 m | - | - | N/A (no carried object) |
+| B2_right_only | assisted | 0/4+quad | 10.0 s | 1.76 m | 0.161 m | - | - | N/A (no carried object) |
+| B2_right_only | direct | 0/4+quad | 10.0 s | 1.80 m | 0.172 m | - | - | N/A (no carried object) |
+| B2_right_only | shared | 0/4+quad | 10.1 s | 1.63 m | 0.182 m | - | - | N/A (no carried object) |
+| S1_both_slow | assisted | 0/4+quad | 9.3 s | 1.41 m | 0.178 m | - | - | N/A (no carried object) |
+| S1_both_slow | direct | 0/4+quad | 8.8 s | 1.43 m | 0.178 m | - | - | N/A (no carried object) |
+| S1_both_slow | shared | 0/4+quad | 8.7 s | 1.37 m | 0.180 m | - | - | N/A (no carried object) |
+| S2_one_fast | assisted | 0/4+quad | 10.4 s | 2.45 m | 0.182 m | - | - | N/A (no carried object) |
+| S2_one_fast | direct | 0/4+quad | 10.5 s | 2.51 m | 0.181 m | - | - | N/A (no carried object) |
+| S2_one_fast | shared | 0/4+quad | 10.3 s | 2.30 m | 0.187 m | - | - | N/A (no carried object) |
+| S3_both_fast | assisted | 0/4+quad | 10.3 s | 3.47 m | 0.175 m | - | - | N/A (no carried object) |
+| S3_both_fast | direct | 0/4+quad | 10.7 s | 3.58 m | 0.160 m | - | - | N/A (no carried object) |
+| S3_both_fast | shared | 0/4+quad | 10.3 s | 3.21 m | 0.181 m | - | - | N/A (no carried object) |
+| S4_asymmetric | assisted | 0/4+quad | 10.6 s | 3.03 m | 0.184 m | - | - | N/A (no carried object) |
+| S4_asymmetric | direct | 0/4+quad | 10.6 s | 3.23 m | 0.180 m | - | - | N/A (no carried object) |
+| S4_asymmetric | shared | 0/4+quad | 11.1 s | 2.72 m | 0.186 m | - | - | N/A (no carried object) |
+
+---
+
+## T8 — 12 runs
+
+**What it should show.** The arm reaches out to a GREEN TARGET far on its own side, labelled with the stance the wearer had to adopt. The clip shows the reach AFTER the wearer has repositioned. The other arm is parked at home.
+
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | gripper | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1_left_lean_forward | assisted | 0/4+quad | 8.5 s | 0.70 m | 0.158 m | - | - | N/A (no carried object) |
+| S1_left_lean_forward | direct | 0/4+quad | 8.6 s | 0.70 m | 0.158 m | - | - | N/A (no carried object) |
+| S1_left_lean_forward | shared | 0/4+quad | 8.4 s | 0.69 m | 0.158 m | - | - | N/A (no carried object) |
+| S2_left_step_forward | assisted | 0/4+quad | 9.4 s | 0.76 m | 0.158 m | - | - | N/A (no carried object) |
+| S2_left_step_forward | direct | 0/4+quad | 9.7 s | 0.76 m | 0.158 m | - | - | N/A (no carried object) |
+| S2_left_step_forward | shared | 0/4+quad | 9.6 s | 0.75 m | 0.158 m | - | - | N/A (no carried object) |
+| S3_right_crouch | assisted | 0/4+quad | 8.3 s | 0.72 m | 0.170 m | - | - | N/A (no carried object) |
+| S3_right_crouch | direct | 0/4+quad | 8.3 s | 0.73 m | 0.170 m | - | - | N/A (no carried object) |
+| S3_right_crouch | shared | 0/4+quad | 7.9 s | 0.71 m | 0.170 m | - | - | N/A (no carried object) |
+| S4_right_step_forward | assisted | 0/4+quad | 8.7 s | 0.77 m | 0.170 m | - | - | N/A (no carried object) |
+| S4_right_step_forward | direct | 0/4+quad | 9.2 s | 0.79 m | 0.170 m | - | - | N/A (no carried object) |
+| S4_right_step_forward | shared | 0/4+quad | 8.9 s | 0.77 m | 0.170 m | - | - | N/A (no carried object) |
+
+---
+
+## T9 — 12 runs
+
+**What it should show.** The arm traces a circle whose radius is the sway amplitude -- it is HOLDING a world-fixed point while the base moves underneath, so in the arm's own frame the target orbits. The radius should visibly grow across S1->S4 (0, 20, 60, 100 mm).
+
+| scenario | cond | rviz.mp4 | duration | EE travel | min clearance | gripper | object outcome | attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| S1_sway_000mm | assisted | 0/4+quad | 4.1 s | 0.78 m | 0.204 m | - | - | N/A (no carried object) |
+| S1_sway_000mm | direct | 0/4+quad | 4.1 s | 0.78 m | 0.202 m | - | - | N/A (no carried object) |
+| S1_sway_000mm | shared | 0/4+quad | 4.0 s | 0.78 m | 0.202 m | - | - | N/A (no carried object) |
+| S2_sway_020mm | assisted | 0/4+quad | 9.1 s | 1.01 m | 0.183 m | - | - | N/A (no carried object) |
+| S2_sway_020mm | direct | 0/4+quad | 9.2 s | 1.02 m | 0.183 m | - | - | N/A (no carried object) |
+| S2_sway_020mm | shared | 0/4+quad | 9.0 s | 0.97 m | 0.183 m | - | - | N/A (no carried object) |
+| S3_sway_060mm | assisted | 0/4+quad | 9.0 s | 1.51 m | 0.145 m | - | - | N/A (no carried object) |
+| S3_sway_060mm | direct | 0/4+quad | 9.1 s | 1.52 m | 0.145 m | - | - | N/A (no carried object) |
+| S3_sway_060mm | shared | 0/4+quad | 9.4 s | 1.46 m | 0.145 m | - | - | N/A (no carried object) |
+| S4_sway_100mm | assisted | 0/4+quad | 9.5 s | 2.01 m | 0.117 m *(below floor)* | - | - | N/A (no carried object) |
+| S4_sway_100mm | direct | 0/4+quad | 9.1 s | 2.03 m | 0.117 m *(below floor)* | - | - | N/A (no carried object) |
+| S4_sway_100mm | shared | 0/4+quad | 9.0 s | 1.97 m | 0.117 m *(below floor)* | - | - | N/A (no carried object) |
+
+---
+
+## Regenerate
+
+```bash
+ros2 launch srl_moveit_config demo.launch.py     # sim, arms AT HOME
+python3 scripts/record_verification.py --all     # TF clips, plots, bags
+python3 scripts/record_rviz.py --all             # RViz screen captures
+python3 scripts/make_clip_index.py               # this file
+```
+
+`record_rviz.py` starts its own Xvfb on :99 and its own RViz. It has to:
+**x11grab on WSLg's :0 records BLACK** -- a full-screen grab with RViz plainly
+visible measures mean pixel value 0.0, because XWayland window pixels are
+composited by Wayland and never reach the X root window that x11grab reads.
+Xvfb has no compositor, and the same grab there gives mean 126.8.
+

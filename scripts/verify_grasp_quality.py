@@ -93,9 +93,15 @@ def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--task", default=None)
     a = ap.parse_args()
     rows = []
-    for tp in sorted(glob.glob(os.path.join(OUT, "*/*/*/grip_trace.json"))):
+    # ONE MORE PATH LEVEL. The tree is now
+    # recordings/verification/<mode>/<task>/<scenario>/<condition>, because
+    # control mode and autonomy condition are independent axes and the old layout
+    # conflated them: "direct" under the mannequin and "direct" under VR shared a
+    # folder name. A glob that still assumes three levels matches NOTHING and
+    # reports zero clips, which reads exactly like a clean pass.
+    for tp in sorted(glob.glob(os.path.join(OUT, "*/*/*/*/grip_trace.json"))):
         d = os.path.dirname(tp)
-        task, scen, cond = os.path.relpath(d, OUT).split(os.sep)[:3]
+        mode, task, scen, cond = os.path.relpath(d, OUT).split(os.sep)[:4]
         if a.task and task != a.task:
             continue
         gv = os.path.join(d, "rviz_gripper.mp4")

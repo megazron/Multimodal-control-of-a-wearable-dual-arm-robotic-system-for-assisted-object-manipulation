@@ -1755,3 +1755,59 @@ there now, and this is the only measurement that moves it.
 - the model is not the problem: **0.89–0.91 confidence on a real photograph**
 - ultralytics 8.4.116 + torch 2.13: call `set_classes()` BEFORE the first
   CUDA predict, or it raises a device-placement error
+
+## JOB B.1 — WRIST ORIENTATION AFTER THE POT REPAIR (2026-08-09)
+
+`scripts/measure_wrist_capability.py`, both arms verified at home to 0.0000 rad.
+
+**(a) The master can now express the rotation.** Sweeping j5/j6/j7 over their
+full travel gives **180.0 deg** of tip reorientation, against the **169.7 deg
+(left) / 164.6 deg (right)** a top-down grasp needs from the pinned anchor.
+With the wrist channels dead this was unavailable at any angle, so the repair
+does restore the input side.
+
+**(b) The ROBOT is now the binding constraint, and it was not before.**
+27-pose grid per arm (+/-0.10 m, the master ball's half-span), N=5, live
+`/compute_ik`:
+
+| arm | fixed (ships today) | tilt | top-down grasp |
+| --- | --- | --- | --- |
+| left | 74.1% | **73.5%** | 55.6% |
+| right | 85.2% | **81.2%** | 55.6% |
+
+**TILT IS NEARLY FREE, BUT THE 90% BAR IS NOT MET BY EITHER MODE.** Tilt costs
+0.6 pp on the left and 4.0 pp on the right against fixed. Per the stated rule
+(ship if tilt holds above 90%) the answer is **DO NOT SHIP** -- but note the
+rule as written can never fire, because `fixed`, the mode that ships today,
+is itself at 74-85% over the same volume. The comparison that carries
+information is tilt-vs-fixed, and on that tilt is within sampling noise on the
+left.
+
+This does NOT contradict the earlier "tilt is not viable" finding. That one was
+about `OrientationConstraint`, which this `/compute_ik` plugin ignores. This
+commands an EXACT tilted pose instead, and an exact tilted pose solves at
+essentially the same rate as the anchor.
+
+**Top-down grasp is 55.6% over the volume** (it is 100% at the centre pose
+alone). Carried into Job C.
+
+**LIMIT:** this measures what the GEOMETRY permits. Master ACCURACY at those
+orientations depends on the repaired pots and every recording here predates
+the repair. A fresh capture is the only thing that closes it.
+
+### Two instrument bugs, both caught before the number was reported
+
+1. **Tilt was built as an ABSOLUTE master-frame rotation** and never used the
+   anchor, despite the comment saying it did. The roll=pitch=0 cell therefore
+   tested the identity quaternion, not the anchor, and the whole mode scored
+   **0.0%** -- which would have been reported as "tilt is dead". Fixed to
+   `anchor (x) rpy(roll,pitch,0)`, with the zero cell kept as a permanent
+   known-answer check: with no tilt applied, tilt IS fixed.
+2. **That check then demanded exact equality on a randomised solver** and
+   flagged a 0.7 pp difference as a bug. Two independent draws at this sample
+   size have a binomial sd of ~3.7 pp. The band is now 3 sigma. A guard that
+   cries wolf is the failure mode a guard must never have.
+
+**ALSO STANDING FROM JOB A:** degraded mode still reads the stored
+`channels_20260806.json` (6/14 coherent) and will still freeze eight working
+channels until `bash scripts/check_channels.sh` is run in the lab.

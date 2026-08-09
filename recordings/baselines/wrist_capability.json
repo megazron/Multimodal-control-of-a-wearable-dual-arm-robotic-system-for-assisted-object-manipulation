@@ -1,0 +1,27 @@
+{
+  "arms": {
+    "left": {
+      "fixed": 74.07407407407408,
+      "n_poses": 27,
+      "tilt": 73.49794238683127,
+      "tilt_zero_cell": 74.81481481481481,
+      "zero_cell_band_pp": 16.00182888495768,
+      "instrument_ok": true,
+      "top_down_grasp": 55.55555555555556,
+      "rotation_needed_deg": 169.71917888373363
+    },
+    "right": {
+      "fixed": 85.18518518518519,
+      "n_poses": 27,
+      "tilt": 81.1522633744856,
+      "tilt_zero_cell": 85.18518518518519,
+      "zero_cell_band_pp": 12.97177830771723,
+      "instrument_ok": true,
+      "top_down_grasp": 55.55555555555556,
+      "rotation_needed_deg": 164.6465487841007
+    }
+  },
+  "max_master_rotation_deg": 180.0,
+  "n_repeats": 5,
+  "ship_tilt": false
+}

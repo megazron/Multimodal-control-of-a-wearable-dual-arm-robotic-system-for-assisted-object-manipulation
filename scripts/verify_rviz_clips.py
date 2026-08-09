@@ -108,7 +108,23 @@ MIN_PIXELS = 12
 # f4 clip whether or not the object rendered at all, which is the failure this
 # verifier exists to prevent. Floors sit above the skin and far below the
 # object.
-FLOOR = {"tray_tan": 400, "sling_orange": 400, "ball_yellow": 120}
+# CALIBRATED AT THE VERIFIER'S OWN 600 px SCALE, which is not the scale the
+# frames are captured at. frames() rescales every sample to 600 px wide, so a
+# floor calibrated on an 800 px capture is wrong by (600/800)^2 = 0.56 -- and
+# that is exactly what rejected nine sling clips whose object I had already
+# confirmed by eye.
+#
+# Measured on three eye-confirmed frames, at 600 px:
+#
+#                              tan   yellow
+#   wearer only, NO object      54       7    <- the false-positive floor
+#   sling CONFIRMED visible    192      40
+#   tray  CONFIRMED visible    376     312
+#
+# A single floor cannot serve both objects: the sling is a 12 mm LINE_STRIP
+# and covers a fraction of the solid tray. Floors sit midway between the skin
+# and the dimmest confirmed object.
+FLOOR = {"tray_tan": 120, "sling_orange": 120, "ball_yellow": 20}
 
 
 def floor_for(name):

@@ -1,0 +1,22 @@
+{
+  "frames": 49,
+  "duration_s": 8.591480069037061,
+  "quad": true,
+  "grasp_planned": false,
+  "grasp_refused": "pre-grasp standoff not solvable",
+  "grasp_yaw_deg": null,
+  "grasp_width_mm": 40.0,
+  "grasp_standoff_m": null,
+  "blocks_placed": 0,
+  "ball_fallen": false,
+  "tool_delivered": false,
+  "grip_min": 0.05,
+  "grip_max": 0.611764705882353,
+  "grip_opened": true,
+  "grip_closed_on_object": true,
+  "task": "f4",
+  "scenario": "S2_full_lift",
+  "condition": "assisted",
+  "note": "compliant sling, 540 mm",
+  "bytes": 2317155
+}

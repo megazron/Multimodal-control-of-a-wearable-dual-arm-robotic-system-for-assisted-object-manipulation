@@ -92,7 +92,15 @@ VW, VH = 800, 500          # per view; the 2x2 tile is 1600x1000
 W, H = VW, VH
 CONDITIONS = ("direct", "assisted", "shared")
 
-SLING_L, BALL_R = 0.350, 0.020
+# DEFAULTS ONLY. The live value comes from the scenario, because this module
+# constant was the stale nine-task 350 mm and the five-task spec is 540 mm.
+# At the respec'd 500 mm separation a 350 mm sling is GEOMETRICALLY
+# IMPOSSIBLE: (L/2)^2 - (s/2)^2 = -0.032, so sag() takes the root of a
+# negative and the sling rendered as a flat line with the ball instantly
+# fallen. All nine f4 clips failed the verifier on it, correctly. Stale
+# geometry surviving in the renderer is exactly what the re-record existed to
+# remove.
+SLING_L, BALL_R = 0.540, 0.020
 TILT_FAIL_DEG = 11.3
 
 # ---------------------------------------------------------------- grippers
@@ -382,6 +390,7 @@ class Scene:
 
     # -------------------------------------------------------------- T3/T6
     def _carry(self, add, el, er, live=True):
+        L = float(self.run.get("sc", {}).get("length") or SLING_L)
         a, b = np.asarray(el, float), np.asarray(er, float)
         mid = (a + b) / 2.0
         sep = float(np.linalg.norm(a - b))
@@ -416,7 +425,7 @@ class Scene:
                 rgba(scale(at(ball, (bp[0], bp[1], bp[2] + 0.03)),
                            2 * BALL_R, 2 * BALL_R, 2 * BALL_R), .95, .75, .1))
         else:
-            v = max(0.0, (SLING_L / 2) ** 2 - (sep / 2) ** 2)
+            v = max(0.0, (L / 2) ** 2 - (sep / 2) ** 2)
             sag = math.sqrt(v)
             ts = np.linspace(0, 1, 21)
             pts = np.array([a + (b - a) * s for s in ts])
@@ -785,7 +794,7 @@ def build_runs(spec, only_task=None, only_scen=None):
     return runs
 
 
-def live_metric(task, el, er, cmd):
+def live_metric(task, el, er, cmd, sling_l=SLING_L):
     """The number burned into the overlay, chosen per task.
 
     `el`/`er` arrive as numpy arrays here and as lists elsewhere, so they are
@@ -798,7 +807,7 @@ def live_metric(task, el, er, cmd):
         if task == "t3":
             # RViz collapses runs of spaces, so units are joined deliberately
             return "tilt=%.1fdeg" % math.degrees(math.atan2(dz, max(sep, 1e-6)))
-        v = max(0.0, (SLING_L / 2) ** 2 - (sep / 2) ** 2)
+        v = max(0.0, (sling_l / 2) ** 2 - (sep / 2) ** 2)
         return "sep=%.0fmm | sag=%.0fmm" % (1000 * sep, 1000 * math.sqrt(v))
     errs = []
     for arm, c in cmd.items():
@@ -935,7 +944,10 @@ def run_one(dr, pub, hud_pub, run, cond, out_dir, fps=10.0):
         A = scene.markers(time.monotonic() - t0,
                           el.tolist() if el is not None else None,
                           er.tolist() if er is not None else None,
-                          phase, frac, live_metric(task, el, er, cmd), knuck=k)
+                          phase, frac,
+                          live_metric(task, el, er, cmd,
+                                      float(sc.get("length") or SLING_L)),
+                          knuck=k)
         # HUD on its own topic: only the FRONT view subscribes to it
         # The HUD needs its OWN DELETEALL. Splitting the array sent the
         # single leading DELETEALL to the objects topic only, so the previous

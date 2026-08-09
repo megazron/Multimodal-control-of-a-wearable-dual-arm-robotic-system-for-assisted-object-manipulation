@@ -1,3 +1,42 @@
+# ITEM 1 COMPLETE - 2026-08-09 overnight run
+
+## ALL 38 CLIPS RE-RECORDED, 39/39 PASS THE VALIDATED VERIFIER
+
+Five-task geometry (500 mm tray, 540 mm sling), single-owner gripper fix,
+7 angles per clip, 266 files, 132 MB, largest file 5.3 MB.
+`recordings/verification/INDEX.md` carries the Task 2 caveat at the TOP.
+
+### THE VERIFIER WAS MISCALIBRATED FOUR TIMES. Every one caught BEFORE any
+### clip was reported as failed.
+1. `block_orange` fired 495 px on a frame with no orange object: RViz lighting
+   pulls the tan tray into the orange band. Fixed with R-B > 155.
+2. `tray_tan` fires 220 px and `ball_yellow` 21 px on the WEARER'S SKIN. At the
+   shared 12 px floor every f3/f4 clip would have passed whether or not the
+   object rendered.
+3. Per-object floors calibrated on 800 px captures, while `frames()` rescales
+   every sample to **600 px** -- wrong by (600/800)^2 = 0.56, which rejected
+   nine sling clips whose object I had already confirmed by eye.
+4. My own expectation was wrong twice, not the detector: the f2 scene
+   legitimately renders a tan table.
+
+### A REAL STALE-GEOMETRY BUG, which is what the re-record existed to find
+`record_rviz.SLING_L` was still the retired 350 mm while the spec is 540 mm.
+At the respec'd 500 mm separation a 350 mm sling is GEOMETRICALLY IMPOSSIBLE
+((L/2)^2 - (s/2)^2 = -0.032), so it rendered as a flat line with the ball
+instantly fallen, and all nine f4 clips failed correctly. The length now comes
+from the scenario. Confirmed from pixels afterwards: `sag=102mm`, matching the
+predicted 0.102 m, with the ball retained in the V.
+
+### KNOWN AND ON SCREEN
+f3/f4 show a CARRY, not a grasp: `GRASP REFUSED: pre-grasp standoff not
+solvable`. Correct -- the tray edge sits at |x| = 0.25 m and top-down grasping
+is infeasible below 0.30 m (0/9 against 9/9). The refusal is in the overlay.
+
+## ITEMS 2, 3, 4: NOT STARTED
+2 wrist camera relay, 3 thesis sections, 4 lab list.
+
+---
+
 # STOPPED HERE - 2026-08-09 overnight run
 
 ## ITEM 1 RE-RECORD CLIPS: INFRASTRUCTURE DONE + VERIFIER VALIDATED.

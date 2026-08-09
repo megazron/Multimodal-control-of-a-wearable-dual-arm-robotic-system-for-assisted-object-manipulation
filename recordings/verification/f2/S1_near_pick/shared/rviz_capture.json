@@ -1,6 +1,6 @@
 {
   "frames": 104,
-  "duration_s": 14.686307411990128,
+  "duration_s": 14.637946154980455,
   "quad": true,
   "grasp_planned": true,
   "grasp_refused": "",
@@ -18,5 +18,5 @@
   "scenario": "S1_near_pick",
   "condition": "shared",
   "note": "pick and place, left arm, modes 4+ only",
-  "bytes": 3932496
+  "bytes": 39846224
 }

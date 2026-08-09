@@ -1,6 +1,6 @@
 {
   "frames": 42,
-  "duration_s": 6.176183105038945,
+  "duration_s": 6.301577172998805,
   "quad": true,
   "grasp_planned": false,
   "grasp_refused": "pre-grasp standoff not solvable",
@@ -18,5 +18,5 @@
   "scenario": "S1_short_lift",
   "condition": "assisted",
   "note": "rigid tray, 500 mm span",
-  "bytes": 1559639
+  "bytes": 1600551
 }

@@ -12,7 +12,10 @@ e-stop. Two views plus a divergence readout make the quantity the monitor acts
 on continuously visible, next to the thing it describes.
 
   LEFT   COMMANDED -- the sim arms, driven by whichever mode is active
-  RIGHT  ACTUAL    -- the real arms, from /real/joint_states and /real/tf
+  RIGHT  ACTUAL    -- the real arms, from /real/joint_states and the `real_*`
+                     frames in the SHARED /tf. THERE IS NO /real/tf; both real
+                     launches use frame_prefix="real_" into the one tree. See
+                     the note in Bus.__init__.
 
 RVIZ EMBEDDING is X11 reparenting: QWindow.fromWinId() wrapped by
 QWidget.createWindowContainer(). QX11EmbedContainer was removed in Qt5. This
@@ -519,12 +522,18 @@ class Gui(QMainWindow):
         # them; scheduling this only on the RViz paths meant the one case
         # that isolates the GUI's OWN panels could not be verified at all.
         QTimer.singleShot(3000, self._dump_geometry)
-        # And print the frame statistics periodically, so a measurement
-        # harness can read them without OCR-ing the status bar.
+        # FRAME STATS GO TO A FILE, not to stdout.
+        #
+        # They were printed to stdout first, and the measurement harness got
+        # back an EMPTY string every time -- so the only frame numbers Part 4
+        # could report were read off the status bar in a screenshot. Stdout
+        # through a pipe depends on the writer surviving long enough to be
+        # drained, on nothing else holding the pipe open, and on the harness
+        # not killing the process group first; a file depends on none of that.
+        # The same reasoning already applies to the geometry dump.
         self.stat_timer = QTimer(self)
-        self.stat_timer.timeout.connect(
-            lambda: print(self.frame_lbl.text(), flush=True))
-        self.stat_timer.start(5000)
+        self.stat_timer.timeout.connect(self._dump_stats)
+        self.stat_timer.start(2000)
 
     # ---------------------------------------------------------- left column
     def _left_column(self):
@@ -938,6 +947,31 @@ class Gui(QMainWindow):
         with open(out, "w") as fh:
             fh.write(src)
         return out
+
+    def _dump_stats(self):
+        """Frame-time statistics, on disk, for a harness to read.
+
+        Writes the SAME numbers the status bar shows -- computed once in
+        refresh() and shared -- so the file and the operator's view cannot
+        disagree. `n` is included deliberately: a median over three samples is
+        not a median, and a harness that cannot see the count would report it
+        as though it were.
+        """
+        if not self._ft:
+            return
+        srt = sorted(self._ft)
+        try:
+            with open(os.path.join(_scratch(), "srl_gui_stats.json"), "w") as fh:
+                json.dump(dict(n=len(srt),
+                               last_ms=round(srt[-1], 3),
+                               median_ms=round(srt[len(srt) // 2], 3),
+                               p95_ms=round(srt[int(len(srt) * 0.95)], 3),
+                               max_ms=round(srt[-1], 3),
+                               budget_ms=100.0,
+                               rss=_rss(),
+                               status_bar=self.frame_lbl.text()), fh)
+        except OSError:
+            pass
 
     def _dump_geometry(self):
         """Write where each panel actually IS, in root-window pixels.

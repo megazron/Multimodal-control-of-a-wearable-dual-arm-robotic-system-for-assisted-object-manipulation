@@ -37,13 +37,51 @@ def sh(argv, **kw):
     return subprocess.run(argv, capture_output=True, text=True, **kw)
 
 
+def display_works():
+    """Can an X client actually USE the display? Not 'is a process named Xvfb
+    running'.
+
+    `pgrep -f "Xvfb :99"` MATCHES ITS OWN SHELL COMMAND LINE, so the previous
+    version reported the server up when nothing was listening -- the same
+    self-matching pattern that once made a leftover-process check report 2-3
+    leftovers when there were none. Xvfb was therefore never started, every
+    GUI run died with "could not connect to display :99", and the harness
+    still called it alive. Probe the CONDITION, not a process name.
+    """
+    # `-f null -` and NOT `-y /dev/null`: ffmpeg cannot infer an output
+    # format from /dev/null and fails with "Unable to choose an output
+    # format", which made the first version of this probe report a perfectly
+    # good display as dead. The probe has to be able to say yes.
+    try:
+        r = sh(["ffmpeg", "-loglevel", "error", "-f", "x11grab",
+                "-video_size", "64x64", "-i", "%s.0" % DISPLAY,
+                "-frames:v", "1", "-f", "null", "-"], timeout=25)
+    except Exception:                                         # noqa: BLE001
+        return False
+    return r.returncode == 0
+
+
 def ensure_xvfb():
-    if sh(["pgrep", "-f", "Xvfb %s" % DISPLAY]).stdout.strip():
+    if display_works():
         return None
+    # A KILLED Xvfb LEAVES ITS LOCK BEHIND, and the next start then refuses
+    # with "Server is already active for display 99" while nothing is
+    # listening. Clear it only when the display has just been proved dead.
+    lock = "/tmp/.X%s-lock" % DISPLAY.lstrip(":")
+    if os.path.exists(lock) and not sh(["pgrep", "-x", "Xvfb"]).stdout.strip():
+        try:
+            os.remove(lock)
+        except OSError:
+            pass
     p = subprocess.Popen(["Xvfb", DISPLAY, "-screen", "0", "1920x1080x24"],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    time.sleep(2.0)
-    return p
+    for _ in range(15):
+        time.sleep(1.0)
+        if display_works():
+            return p
+    raise RuntimeError("Xvfb %s did not come up -- refusing to run, because "
+                       "every case would 'pass' against a dead display"
+                       % DISPLAY)
 
 
 def env():
@@ -139,17 +177,26 @@ def run_case(name, argv, seconds, shot):
             mb, n = rss_mb(p.pid)
             samples.append((mb, n))
         ok_shot = screenshot(shot) if p.poll() is None else False
+        import shutil
         geom_case = shot + ".geom.json"
         try:
-            import shutil
             shutil.copy(os.path.join(SCRATCH, "srl_gui_geometry.json"),
                         geom_case)
         except Exception:                                     # noqa: BLE001
             geom_case = None
-        # The frame-time line is on the GUI's own bottom bar, so read it from
-        # the screenshot region rather than from stdout: it is what the
-        # operator actually sees.
-        alive = p.poll() is None
+        stats_case = shot + ".stats.json"
+        try:
+            shutil.copy(os.path.join(SCRATCH, "srl_gui_stats.json"),
+                        stats_case)
+        except Exception:                                     # noqa: BLE001
+            stats_case = None
+        # ALIVE MUST MEAN "THE GUI CAME UP", NOT "A THREAD IS STILL RUNNING".
+        # When Qt failed to open the display the process did NOT exit -- the
+        # rclpy spin thread kept it alive -- so `p.poll() is None` reported a
+        # GUI that had never drawn anything as healthy. The stats file is
+        # positive evidence: only the running Qt event loop writes it.
+        alive = p.poll() is None and os.path.exists(
+            os.path.join(SCRATCH, "srl_gui_stats.json"))
     finally:
         if p.poll() is None:
             try:
@@ -158,21 +205,38 @@ def run_case(name, argv, seconds, shot):
                 pass
         try:
             out = p.communicate(timeout=15)[0] or ""
-        except Exception:                                     # noqa: BLE001
-            out = ""
-    ft = None
-    for m in re.finditer(
-            r"frame ([\d.]+) ms\s+median ([\d.]+)\s+p95 ([\d.]+)\s+max ([\d.]+)",
-            out):
-        ft = tuple(float(g) for g in m.groups())
+        except Exception as e:                                # noqa: BLE001
+            # RECORD WHY, never blank silently. `out = ""` swallowed the
+            # reason the frame line could not be captured and left the result
+            # indistinguishable from "the GUI printed nothing".
+            out = "<<communicate failed: %r>>" % (e,)
+    # FRAME STATS COME FROM THE FILE THE GUI WROTE. Parsing stdout was tried
+    # and returned nothing at all; the file is written by the same code that
+    # fills the status bar, so the two cannot disagree.
+    ft, ft_src = None, "not captured"
+    try:
+        st = json.load(open(stats_case))
+        ft = (st["last_ms"], st["median_ms"], st["p95_ms"], st["max_ms"])
+        ft_src = "srl_gui_stats.json, n=%d samples" % st["n"]
+    except Exception as e:                                    # noqa: BLE001
+        ft_src = "NO STATS FILE (%r)" % (e,)
     peak = max((s[0] for s in samples), default=0.0)
     procs = max((s[1] for s in samples), default=0)
-    print("   alive after %.0f s : %s" % (seconds, alive))
+    print("   GUI up after %.0f s: %s%s"
+          % (seconds, alive,
+             "" if alive else
+             "   <-- process %s, stats file %s"
+             % ("running" if p.poll() is None else "exited %s" % p.poll(),
+                "present" if stats_case else "ABSENT")))
     print("   peak RSS (tree)   : %.0f MB across %d processes" % (peak, procs))
     print("   screenshot        : %s" % (shot if ok_shot else "FAILED"))
+    print("   frame time        : %s   [%s]"
+          % ("median %.2f ms  p95 %.2f  max %.2f" % ft[1:] if ft
+             else "NOT CAPTURED", ft_src))
     return dict(name=name, alive=bool(alive), peak_rss_mb=round(peak, 1),
                 procs=procs, screenshot=shot if ok_shot else None,
-                geometry=geom_case, frame_ms=ft, tail=out[-1500:])
+                geometry=geom_case, stats=stats_case, frame_ms=ft,
+                frame_src=ft_src, tail=out[-1500:])
 
 
 def main():

@@ -249,6 +249,18 @@ PART 4 - DUAL-VIEW GUI, AND EVERYTHING RUNS THROUGH IT
 Two RViz panels side by side - reparenting is proven at 31 fps.
  LEFT: commanded, the sim arms driven by the active mode.
  RIGHT: actual, the real arms from /real/joint_states and /real/tf.
+        ^^^^^^^^ CORRECTION (2026-08-09, verified against a running stack):
+        THERE IS NO /real/tf AND NOTHING PUBLISHES ONE. `ros2 topic list`
+        shows only /real/joint_states, the two controller topics,
+        /real_status_* and /realmock/robot_description. Both real launches
+        (real_arms.launch.py:83, mock_real.launch.py:57) run
+        robot_state_publisher with namespace="real" and frame_prefix="real_",
+        so the real arm's transforms are in the SHARED /tf under prefixed
+        frames (real_world, real_left_end_effector_link) joined to `world` by
+        a static transform -- ONE tree with two robots, not two trees.
+        Subscribing to /real/tf yields a permanently empty panel that looks
+        exactly like an embedding failure. The brief text above is kept
+        verbatim per this file's own rule; this annotation is the correction.
 Divergence readout beneath: per-joint difference and EE distance, colour coded
 against the lag trip threshold. The lag is currently a number nobody can see.
 Both wrist cameras live, labelled. SUBSCRIBE to the image topic, never open

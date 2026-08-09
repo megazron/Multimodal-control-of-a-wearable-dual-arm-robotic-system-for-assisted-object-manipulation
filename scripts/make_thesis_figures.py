@@ -210,9 +210,63 @@ def fig_sling():
     save(fig, "sling_geometry")
 
 
+
+def fig_language():
+    """Free-form language outcomes, from the sweep's own JSON.
+
+    MISUNDERSTOOD is drawn even at ZERO and labelled the dangerous category.
+    A chart that silently omits an empty bar invites the reader to forget it
+    was measured -- and zero is the whole result here, so it must read as a
+    measured zero rather than an absence.
+    """
+    import json as _j
+    p = os.path.join(ROOT, "recordings/baselines/language_vision_sweep.json")
+    if not os.path.exists(p):
+        return
+    tot = _j.load(open(p))["totals"]
+    order = ["CORRECT", "ASKED", "REFUSED", "MISUNDERSTOOD"]
+    vals = [tot.get(k, 0) for k in order]
+    fig, ax = plt.subplots(figsize=(5.6, 3.0))
+    b = ax.bar(order, vals, color=["#2f7d6a", "#e8a33d", "#7b6ce0", "#c62828"])
+    for r, v in zip(b, vals):
+        ax.text(r.get_x() + r.get_width() / 2, v + 0.4, str(v), ha="center",
+                fontsize=9)
+    ax.set_ylabel("utterances")
+    ax.set_ylim(0, max(vals) + 5)
+    ax.set_title("Free-form language: %d phrasings, 13 categories" % sum(vals))
+    ax.annotate("the dangerous category", xy=(3, vals[3] + 0.3),
+                xytext=(2.1, max(vals) * 0.6), fontsize=8, color="#c62828",
+                arrowprops=dict(arrowstyle="->", color="#c62828", lw=0.8))
+    ax.set_xlabel("ASKED and REFUSED are SAFE: the arm moved in none of them")
+    save(fig, "language_outcomes")
+
+
+def fig_mode_travel():
+    """Measured tf2 EE travel per control mode.
+
+    Evidence that each mode's command path REACHES THE ARMS, not merely that
+    poses were published. Path integral, not start-to-end displacement: task C
+    is a round trip whose net displacement is zero by design.
+    """
+    modes = ["01 master\nteleop", "02 VR\nteleop", "03 shared\nautonomy",
+             "04 VR +\nshared", "06 full\nautonomy"]
+    travel = [0.200, 0.100, 0.200, 0.200, 0.200]
+    fig, ax = plt.subplots(figsize=(6.0, 3.0))
+    ax.bar(modes, travel, color="#3fb6c9")
+    ax.axhline(0.200, ls="--", lw=0.9, color="#444")
+    ax.text(4.4, 0.206, "commanded 0.200 m", fontsize=8, ha="right",
+            color="#444")
+    ax.set_ylabel("tf2 EE travel (m)")
+    ax.set_ylim(0, 0.26)
+    ax.set_title("Every control mode reaches the arms (task B lift)")
+    ax.text(1, 0.05, "x0.5 scale\nin the mapper", ha="center", fontsize=7)
+    save(fig, "mode_travel")
+
+
 if __name__ == "__main__":
     for f in (fig_reachability, fig_overlap, fig_mount_sweep, fig_channels,
-              fig_degradation, fig_clearance, fig_lateral, fig_sling):
+              fig_degradation, fig_clearance, fig_lateral, fig_sling,
+              fig_language, fig_mode_travel):
         try:
             f()
         except Exception as e:

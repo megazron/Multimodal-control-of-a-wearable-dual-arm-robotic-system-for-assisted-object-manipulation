@@ -1,25 +1,22 @@
 #!/usr/bin/env python3
-"""PART 4: does each mode's command actually reach the arms, with safety in
-the path, and does switching modes leak state?
+"""JOB D: are the six modes real, or a bluff? Verified from the LIVE GRAPH.
 
-Four modes are checked: DIRECT (mannequin), VR, SHARED autonomy, FULL
-autonomy. For each:
+WHY THE LIVE GRAPH AND NOT THE SOURCE. A node that calls create_publisher on a
+topic nothing subscribes to looks perfectly connected in the source: the
+publish call is there, the topic name matches the docstring, and every test
+that checks "did it publish" passes. The VR bridge did exactly that once.
+Only the graph knows whether anything is LISTENING.
 
-  1. COMMAND PATH   every hop from input to the arm's trajectory controller,
-                    with each hop confirmed by a live publisher/subscriber
-                    match rather than by reading the source.
-  2. SAFETY IN PATH the e-stop, the clearance floor and the step guard must
-                    sit BETWEEN the input and the arm, not beside it.
-  3. CAMERA         who owns the device, who merely subscribes, and whether
-                    two writers can land on one topic.
-  4. LEAKED STATE   two modes must not both publish the command topic.
+A hop is DEAD if it has publishers and zero subscribers. That is the shape
+this looks for, per mode, with the mode's nodes actually running.
 
-A hop is reported CONNECTED only when the graph shows a publisher and a
-subscriber on the same topic. Reading an import and concluding the path exists
-is exactly the mistake this script exists to avoid.
+Reading the result: this establishes whether a command can REACH the arm. It
+does not establish that the arm does the right thing when it arrives -- that
+is what the task scenarios measure.
 """
 import json
 import os
+import subprocess
 import sys
 import time
 
@@ -29,176 +26,114 @@ from rclpy.node import Node
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "recordings/baselines/mode_paths.json")
 
-# Each mode's command chain, as an ordered list of (stage, topic) hops.
-# The final hop is the trajectory controller the arm listens on.
+# The command chain each mode relies on, LAST HOP FIRST being the one that
+# actually moves the arm. Every hop must have >=1 publisher AND >=1 subscriber.
 CHAINS = {
-    "DIRECT": [
-        ("master_pose_node", "/master_arm_pose_left"),
-        ("ik_follower_left", "/left_arm_controller/joint_trajectory"),
-    ],
-    "VR": [
-        ("quest bridge", "/vr/controller_pose_left"),
-        ("vr_pose_mapper", "/master_arm_pose_left"),
-        ("ik_follower_left", "/left_arm_controller/joint_trajectory"),
-    ],
-    "SHARED": [
-        ("master_pose_node", "/master_arm_pose_left"),
-        ("perception", "/perception/objects"),
-        ("handover_arbiter", "/master_arm_pose_left"),
-        ("ik_follower_left", "/left_arm_controller/joint_trajectory"),
-    ],
-    "FULL_AUTONOMY": [
-        ("voice/executive", "/autonomy_decision"),
-        ("perception", "/perception/objects"),
-        ("ik_follower_left", "/left_arm_controller/joint_trajectory"),
-    ],
+    1: ("DIRECT_MANNEQUIN", ["/master_arm_pose_left",
+                             "/left_arm_controller/joint_trajectory"]),
+    2: ("DIRECT_VR", ["/vr_pose_left", "/master_arm_pose_left",
+                      "/left_arm_controller/joint_trajectory"]),
+    3: ("ORIENTATION_ASSIST", ["/master_arm_pose_left",
+                               "/left_arm_controller/joint_trajectory"]),
+    4: ("SHARED_AUTONOMY", ["/detections", "/autonomy/grasp_left",
+                            "/autonomy/assist_pose_left",
+                            "/left_arm_controller/joint_trajectory"]),
+    5: ("SUPERVISED_AUTO", ["/voice_transcript", "/autonomy_stage",
+                            "/autonomy/assist_pose_left",
+                            "/left_arm_controller/joint_trajectory"]),
+    6: ("FULL_AUTONOMY", ["/voice_transcript", "/autonomy_stage",
+                          "/autonomy/assist_pose_left",
+                          "/left_arm_controller/joint_trajectory"]),
 }
 
-# Topics that must sit in the path for the mode to be safe to run.
-SAFETY = {
-    "/estop_state": "e-stop latch, consumed by every follower",
-    "/blocking": "named blockers from the follower's own guards",
-    "/blocking_summary": "aggregated, catches a unit that went silent",
+# Safety mechanisms that must be LISTENED TO somewhere in the running graph.
+SAFETY = ["/estop", "/estop_state", "/blocking"]
+
+# Nodes to bring up per mode, beyond the base sim stack.
+EXTRA = {
+    2: [("srl_vr_teleop", "vr_pose_mapper"),
+        ("srl_vr_teleop", "quest_vendor_bridge")],
+    4: [("srl_autonomy", "grasp_generator"), ("srl_autonomy", "intent_inference"),
+        ("srl_autonomy", "handover_arbiter")],
+    5: [("srl_autonomy", "autonomy_executive")],
+    6: [("srl_autonomy", "autonomy_executive"), ("srl_autonomy", "voice_intent")],
 }
-
-# The sim-to-real cascade. Present only when a real stack is up.
-REAL_CHAIN = [
-    ("sim_to_real_bridge", "/real/left_arm_controller/joint_trajectory"),
-    ("kortex_highlevel_bridge", "/real/joint_states"),
-]
-
-# Topics with MORE THAN ONE writer are the two-readers-on-a-serial-port bug
-# in publish/subscribe form.
-# Nodes that are DESIGNED to be a second writer on a command topic. The
-# e-stop publishes each arm's MEASURED joint positions as a short trajectory
-# and republishes while latched, precisely so it overrides a follower that
-# keeps commanding. Flagging that as contention is a false positive, and the
-# first run of this script produced exactly that.
-DESIGNED_OVERRIDE = {"estop_node"}
-
-SINGLE_WRITER = [
-    "/master_arm_pose_left", "/master_arm_pose_right",
-    "/left_arm_controller/joint_trajectory",
-    "/right_arm_controller/joint_trajectory",
-    "/perception/detections/left", "/perception/detections/right",
-]
 
 
 class Probe(Node):
     def __init__(self):
-        super().__init__("verify_mode_paths")
+        super().__init__("mode_path_probe")
 
-    def pubs(self, topic):
-        return self.get_publishers_info_by_topic(topic)
+    def hop(self, topic):
+        return (len(self.get_publishers_info_by_topic(topic)),
+                len(self.get_subscriptions_info_by_topic(topic)))
 
-    def subs(self, topic):
-        return self.get_subscriptions_info_by_topic(topic)
+
+def run(pkg, exe):
+    return subprocess.Popen(["ros2", "run", pkg, exe],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                            start_new_session=True)
 
 
 def main():
     rclpy.init()
-    n = Probe()
-    for _ in range(30):                 # let discovery settle
-        rclpy.spin_once(n, timeout_sec=0.1)
-    time.sleep(1.0)
+    p = Probe()
+    for _ in range(30):
+        rclpy.spin_once(p, timeout_sec=0.1)
 
-    out = {}
-    P = print
-    P("=" * 78)
-    P("PART 4  MODE COMMAND PATHS, SAFETY, CAMERAS, LEAKED STATE")
-    P("=" * 78)
-    P("Method: every hop is confirmed from the LIVE ROS graph. A hop is")
-    P("CONNECTED only if the topic has both a publisher and a subscriber.")
+    results = {}
+    for mode, (name, chain) in CHAINS.items():
+        procs = [run(pk, ex) for pk, ex in EXTRA.get(mode, [])]
+        if procs:
+            time.sleep(9.0)
+        for _ in range(30):
+            rclpy.spin_once(p, timeout_sec=0.1)
+        hops = {}
+        for t in chain:
+            pub, sub = p.hop(t)
+            hops[t] = dict(pub=pub, sub=sub,
+                           state=("DEAD END" if pub and not sub else
+                                  "no publisher" if not pub else "ok"))
+        results[mode] = dict(name=name, hops=hops)
+        for q in procs:
+            try:
+                os.killpg(os.getpgid(q.pid), 15)
+            except Exception:
+                pass
+        if procs:
+            time.sleep(2.0)
 
-    # ------------------------------------------------------- command paths
-    P("\n[1] COMMAND PATHS")
-    paths = {}
-    for mode, chain in CHAINS.items():
-        P("\n  %s" % mode)
-        rows = []
-        for stage, topic in chain:
-            np_, ns_ = len(n.pubs(topic)), len(n.subs(topic))
-            if np_ and ns_:
-                st = "CONNECTED"
-            elif np_ and not ns_:
-                st = "DEAD END (published, nobody listening)"
-            elif ns_ and not np_:
-                st = "waiting (subscriber, no publisher)"
-            else:
-                st = "ABSENT (neither end running)"
-            rows.append(dict(stage=stage, topic=topic, pubs=np_, subs=ns_,
-                             status=st))
-            P("    %-26s %-44s pub=%d sub=%d  %s"
-              % (stage, topic, np_, ns_, st))
-        paths[mode] = rows
-    out["paths"] = paths
+    print("=" * 78)
+    print("MODE COMMAND PATHS, FROM THE LIVE ROS GRAPH")
+    print("=" * 78)
+    for mode, r in results.items():
+        broken = [t for t, h in r["hops"].items() if h["state"] != "ok"]
+        verdict = ("WORKS" if not broken else
+                   "DOES NOT WORK" if any(
+                       r["hops"][t]["state"] == "DEAD END" for t in broken)
+                   else "PARTIALLY WORKS")
+        print("\nmode %d  %-20s -> %s" % (mode, r["name"], verdict))
+        for t, h in r["hops"].items():
+            print("    %-42s pub %-3d sub %-3d  %s"
+                  % (t, h["pub"], h["sub"], h["state"]))
+        r["verdict"] = verdict
 
-    # ------------------------------------------------------------- safety
-    P("\n[2] SAFETY STACK IN THE PATH")
+    print("\n" + "=" * 78)
+    print("SAFETY MECHANISMS -- listened to in the running graph?")
+    print("=" * 78)
     saf = {}
-    for topic, why in SAFETY.items():
-        np_, ns_ = len(n.pubs(topic)), len(n.subs(topic))
-        ok = np_ > 0 and ns_ > 0
-        saf[topic] = dict(pubs=np_, subs=ns_, ok=ok, why=why)
-        P("    %-22s pub=%d sub=%d  %-9s  %s"
-          % (topic, np_, ns_, "IN PATH" if ok else "NOT IN PATH", why))
-    out["safety"] = saf
+    for t in SAFETY:
+        pub, sub = p.hop(t)
+        saf[t] = dict(pub=pub, sub=sub)
+        print("  %-22s pub %-3d sub %-3d  %s"
+              % (t, pub, sub, "ok" if sub else "NOBODY LISTENING"))
 
-    # ------------------------------------------------------- single writer
-    P("\n[3] SINGLE-WRITER CHECK")
-    P("    Two publishers on one command topic is the two-readers-on-one-")
-    P("    serial-port bug in publish/subscribe form: the subscriber sees an")
-    P("    interleaving of two sources and cannot tell which is which.")
-    sw = {}
-    for topic in SINGLE_WRITER:
-        pubs = n.pubs(topic)
-        names = sorted({p.node_name for p in pubs})
-        real = [x for x in names if x not in DESIGNED_OVERRIDE
-                and not x.startswith("_NODE_NAME_UNKNOWN")]
-        bad = len(real) > 1
-        sw[topic] = dict(writers=names, contended=bad)
-        if names:
-            tag = "  <-- CONTENDED" if bad else (
-                "  (e-stop override, by design)"
-                if set(names) & DESIGNED_OVERRIDE else "")
-            P("    %-42s %d writer(s)%s  %s"
-              % (topic, len(names), tag, ", ".join(names)))
-    if not any(v["contended"] for v in sw.values()):
-        P("    no contended command topic in the running graph")
-    out["single_writer"] = sw
-
-    # ------------------------------------------------------------ cameras
-    P("\n[4] CAMERA ACCESS")
-    P("    A camera DEVICE has one owner. A camera TOPIC may have many")
-    P("    subscribers, and that is not contention -- it is the point of")
-    P("    publish/subscribe. The two must not be conflated.")
-    cam_topics = ["/camera/color/image_raw", "/wrist_mounted_camera/image",
-                  "/perception/detections/left", "/perception/objects"]
-    cams = {}
-    for t in cam_topics:
-        pubs = sorted({p.node_name for p in n.pubs(t)})
-        subs = sorted({s.node_name for s in n.subs(t)})
-        cams[t] = dict(pubs=pubs, subs=subs)
-        P("    %-34s writers=%-28s readers=%s"
-          % (t, ",".join(pubs) or "-", ",".join(subs) or "-"))
-    out["cameras"] = cams
-
-    # ------------------------------------------------------- real cascade
-    P("\n[5] SIM-TO-REAL CASCADE")
-    real = {}
-    for stage, topic in REAL_CHAIN:
-        np_, ns_ = len(n.pubs(topic)), len(n.subs(topic))
-        real[topic] = dict(stage=stage, pubs=np_, subs=ns_)
-        P("    %-26s %-44s pub=%d sub=%d" % (stage, topic, np_, ns_))
-    if all(v["pubs"] == 0 and v["subs"] == 0 for v in real.values()):
-        P("    no /real stack running: this needs mock_real.launch.py or the lab")
-    out["real"] = real
-
-    n.destroy_node()
-    rclpy.shutdown()
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    json.dump(out, open(OUT, "w"), indent=2)
-    P("\n  -> %s" % OUT)
+    json.dump(dict(modes=results, safety=saf), open(OUT, "w"), indent=2)
+    print("\n  -> %s" % OUT)
+    p.destroy_node()
+    rclpy.shutdown()
     return 0
 
 

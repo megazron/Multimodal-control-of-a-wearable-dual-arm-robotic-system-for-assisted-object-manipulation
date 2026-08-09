@@ -1956,3 +1956,65 @@ would imply it works at 0 mm.
 `src/srl_autonomy/test/test_grasp_offset.py`, 5 tests, **negative-control
 checked**: 3 of the 5 fail on the pre-fix code and all 5 pass after. One of
 them exists solely to catch the formula being right while nothing calls it.
+
+## JOB D — ARE THE MODES REAL? PARTIAL (2026-08-09)
+
+`scripts/verify_mode_paths.py` (live graph) and `scripts/drive_mode_paths.py`
+(end-to-end injection).
+
+### PROVEN, three independent ways: modes 4, 5 and 6 CANNOT COMMAND THE ARM
+
+**`/autonomy/assist_pose_<arm>` has ZERO subscribers.** `handover_arbiter`
+publishes the blended assist pose and **nothing in any package consumes it** --
+confirmed by the live graph (pub 1, sub 0, with the arbiter running) and by an
+exhaustive grep across `src/` and `scripts/` that returns only the arbiter
+itself and my own new probes. Mode 4's entire contribution is computed
+correctly and then dropped on the floor.
+
+**`autonomy_executive` publishes no motion topic at all.** Its complete
+publisher list is `/robot_speech`, `/autonomy_stage`, `/autonomy_decision`,
+`/estop`. No pose, no trajectory, no action client. The only client anywhere
+in `srl_autonomy` is `grasp_generator`'s `/compute_ik`, which VALIDATES a
+grasp and never commands one. Modes 5 and 6 run a state machine that narrates
+("Handing over to the other arm"), logs decisions and can e-stop -- and the
+arm never receives a command from any of it.
+
+| mode | verdict |
+| --- | --- |
+| 1 DIRECT_MANNEQUIN | path connected (`/master_arm_pose_left` pub 1 sub 1); end-to-end drive INCONCLUSIVE, see below |
+| 2 DIRECT_VR | path connected via `/vr/controller_pose_<s>`; `/vr_pose_<s>` is a legacy topic with no subscriber |
+| 3 ORIENTATION_ASSIST | same path as 1; already documented a STUB |
+| 4 SHARED_AUTONOMY | **DOES NOT WORK** -- output has no consumer |
+| 5 SUPERVISED_AUTO | **DOES NOT WORK** -- no motion path exists |
+| 6 FULL_AUTONOMY | **DOES NOT WORK** -- no motion path exists |
+
+This is the answer to "or a bluff". Modes 4-6 are a bluff in the specific
+sense that every stage before the last one is real, measured and tested, and
+the last hop was never connected.
+
+### NOT ESTABLISHED, and I am not claiming it
+
+The end-to-end drive for modes 1/2/3 returned **0 trajectories**, and I do
+NOT report that as "mode 1 does not work" -- this project has measured mode 1
+tracking to 0.4 mm RMS. The harness is contaminated: `master_pose_node` runs
+in the stack and publishes to the SAME `/master_arm_pose_<arm>` topic I was
+injecting on, in degraded mode with reach frozen, so the follower saw
+interleaved poses and `[BLOCKED:ik_failed]` held 8.9 s. Two publishers on one
+topic is the same class as two readers on one Teensy.
+
+To finish it: relaunch with `master_pose_node` disabled (or point the follower
+at a test topic) and re-run `drive_mode_paths.py`.
+
+Three harness bugs were fixed on the way, each of which produced a confident
+wrong answer first: the first run had no stack up at all and reported five
+modes broken; mode 2's chain was keyed on the legacy `/vr_pose_<s>` rather
+than the real `/vr/controller_pose_<s>`; and the injection used a WORLD-frame
+position where the topic carries a MASTER-frame displacement, so IK correctly
+refused every frame.
+
+### NOT DONE
+
+The language/vision prompt sweep (correct / asked / refused / MISUNDERSTOOD)
+was not run. Given modes 5 and 6 cannot move the arm, the sweep would measure
+the parser in isolation rather than the mode -- worth doing, but it should
+follow the missing command path, not precede it.

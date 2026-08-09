@@ -1,178 +1,149 @@
 {
-  "paths": {
-    "DIRECT": [
-      {
-        "stage": "master_pose_node",
-        "topic": "/master_arm_pose_left",
-        "pubs": 0,
-        "subs": 2,
-        "status": "waiting (subscriber, no publisher)"
+  "modes": {
+    "1": {
+      "name": "DIRECT_MANNEQUIN",
+      "hops": {
+        "/master_arm_pose_left": {
+          "pub": 0,
+          "sub": 1,
+          "state": "no publisher"
+        },
+        "/left_arm_controller/joint_trajectory": {
+          "pub": 0,
+          "sub": 4,
+          "state": "no publisher"
+        }
       },
-      {
-        "stage": "ik_follower_left",
-        "topic": "/left_arm_controller/joint_trajectory",
-        "pubs": 2,
-        "subs": 3,
-        "status": "CONNECTED"
-      }
-    ],
-    "VR": [
-      {
-        "stage": "quest bridge",
-        "topic": "/vr/controller_pose_left",
-        "pubs": 0,
-        "subs": 0,
-        "status": "ABSENT (neither end running)"
+      "verdict": "PARTIALLY WORKS"
+    },
+    "2": {
+      "name": "DIRECT_VR",
+      "hops": {
+        "/vr_pose_left": {
+          "pub": 1,
+          "sub": 0,
+          "state": "DEAD END"
+        },
+        "/master_arm_pose_left": {
+          "pub": 1,
+          "sub": 1,
+          "state": "ok"
+        },
+        "/left_arm_controller/joint_trajectory": {
+          "pub": 0,
+          "sub": 4,
+          "state": "no publisher"
+        }
       },
-      {
-        "stage": "vr_pose_mapper",
-        "topic": "/master_arm_pose_left",
-        "pubs": 0,
-        "subs": 2,
-        "status": "waiting (subscriber, no publisher)"
+      "verdict": "DOES NOT WORK"
+    },
+    "3": {
+      "name": "ORIENTATION_ASSIST",
+      "hops": {
+        "/master_arm_pose_left": {
+          "pub": 0,
+          "sub": 1,
+          "state": "no publisher"
+        },
+        "/left_arm_controller/joint_trajectory": {
+          "pub": 0,
+          "sub": 4,
+          "state": "no publisher"
+        }
       },
-      {
-        "stage": "ik_follower_left",
-        "topic": "/left_arm_controller/joint_trajectory",
-        "pubs": 2,
-        "subs": 3,
-        "status": "CONNECTED"
-      }
-    ],
-    "SHARED": [
-      {
-        "stage": "master_pose_node",
-        "topic": "/master_arm_pose_left",
-        "pubs": 0,
-        "subs": 2,
-        "status": "waiting (subscriber, no publisher)"
+      "verdict": "PARTIALLY WORKS"
+    },
+    "4": {
+      "name": "SHARED_AUTONOMY",
+      "hops": {
+        "/detections": {
+          "pub": 0,
+          "sub": 0,
+          "state": "no publisher"
+        },
+        "/autonomy/grasp_left": {
+          "pub": 1,
+          "sub": 1,
+          "state": "ok"
+        },
+        "/autonomy/assist_pose_left": {
+          "pub": 1,
+          "sub": 0,
+          "state": "DEAD END"
+        },
+        "/left_arm_controller/joint_trajectory": {
+          "pub": 0,
+          "sub": 4,
+          "state": "no publisher"
+        }
       },
-      {
-        "stage": "perception",
-        "topic": "/perception/objects",
-        "pubs": 0,
-        "subs": 0,
-        "status": "ABSENT (neither end running)"
+      "verdict": "DOES NOT WORK"
+    },
+    "5": {
+      "name": "SUPERVISED_AUTO",
+      "hops": {
+        "/voice_transcript": {
+          "pub": 0,
+          "sub": 1,
+          "state": "no publisher"
+        },
+        "/autonomy_stage": {
+          "pub": 1,
+          "sub": 0,
+          "state": "DEAD END"
+        },
+        "/autonomy/assist_pose_left": {
+          "pub": 0,
+          "sub": 0,
+          "state": "no publisher"
+        },
+        "/left_arm_controller/joint_trajectory": {
+          "pub": 0,
+          "sub": 4,
+          "state": "no publisher"
+        }
       },
-      {
-        "stage": "handover_arbiter",
-        "topic": "/master_arm_pose_left",
-        "pubs": 0,
-        "subs": 2,
-        "status": "waiting (subscriber, no publisher)"
+      "verdict": "DOES NOT WORK"
+    },
+    "6": {
+      "name": "FULL_AUTONOMY",
+      "hops": {
+        "/voice_transcript": {
+          "pub": 0,
+          "sub": 1,
+          "state": "no publisher"
+        },
+        "/autonomy_stage": {
+          "pub": 1,
+          "sub": 0,
+          "state": "DEAD END"
+        },
+        "/autonomy/assist_pose_left": {
+          "pub": 0,
+          "sub": 0,
+          "state": "no publisher"
+        },
+        "/left_arm_controller/joint_trajectory": {
+          "pub": 0,
+          "sub": 4,
+          "state": "no publisher"
+        }
       },
-      {
-        "stage": "ik_follower_left",
-        "topic": "/left_arm_controller/joint_trajectory",
-        "pubs": 2,
-        "subs": 3,
-        "status": "CONNECTED"
-      }
-    ],
-    "FULL_AUTONOMY": [
-      {
-        "stage": "voice/executive",
-        "topic": "/autonomy_decision",
-        "pubs": 0,
-        "subs": 0,
-        "status": "ABSENT (neither end running)"
-      },
-      {
-        "stage": "perception",
-        "topic": "/perception/objects",
-        "pubs": 0,
-        "subs": 0,
-        "status": "ABSENT (neither end running)"
-      },
-      {
-        "stage": "ik_follower_left",
-        "topic": "/left_arm_controller/joint_trajectory",
-        "pubs": 2,
-        "subs": 3,
-        "status": "CONNECTED"
-      }
-    ]
+      "verdict": "DOES NOT WORK"
+    }
   },
   "safety": {
+    "/estop": {
+      "pub": 0,
+      "sub": 0
+    },
     "/estop_state": {
-      "pubs": 1,
-      "subs": 3,
-      "ok": true,
-      "why": "e-stop latch, consumed by every follower"
+      "pub": 0,
+      "sub": 0
     },
     "/blocking": {
-      "pubs": 1,
-      "subs": 0,
-      "ok": false,
-      "why": "named blockers from the follower's own guards"
-    },
-    "/blocking_summary": {
-      "pubs": 0,
-      "subs": 0,
-      "ok": false,
-      "why": "aggregated, catches a unit that went silent"
-    }
-  },
-  "single_writer": {
-    "/master_arm_pose_left": {
-      "writers": [],
-      "contended": false
-    },
-    "/master_arm_pose_right": {
-      "writers": [],
-      "contended": false
-    },
-    "/left_arm_controller/joint_trajectory": {
-      "writers": [
-        "estop_node",
-        "ik_follower_left"
-      ],
-      "contended": true
-    },
-    "/right_arm_controller/joint_trajectory": {
-      "writers": [
-        "_NODE_NAME_UNKNOWN_",
-        "estop_node"
-      ],
-      "contended": true
-    },
-    "/perception/detections/left": {
-      "writers": [],
-      "contended": false
-    },
-    "/perception/detections/right": {
-      "writers": [],
-      "contended": false
-    }
-  },
-  "cameras": {
-    "/camera/color/image_raw": {
-      "pubs": [],
-      "subs": []
-    },
-    "/wrist_mounted_camera/image": {
-      "pubs": [],
-      "subs": []
-    },
-    "/perception/detections/left": {
-      "pubs": [],
-      "subs": []
-    },
-    "/perception/objects": {
-      "pubs": [],
-      "subs": []
-    }
-  },
-  "real": {
-    "/real/left_arm_controller/joint_trajectory": {
-      "stage": "sim_to_real_bridge",
-      "pubs": 0,
-      "subs": 0
-    },
-    "/real/joint_states": {
-      "stage": "kortex_highlevel_bridge",
-      "pubs": 0,
-      "subs": 0
+      "pub": 0,
+      "sub": 0
     }
   }
 }

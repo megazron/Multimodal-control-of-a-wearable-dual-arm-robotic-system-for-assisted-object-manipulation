@@ -6,259 +6,263 @@ session needs only:
 > Read CLAUDE.md, NEXT_SESSION.md and docs/WORK_BRIEF.md. Resume from the first
 > incomplete part.
 
-Nothing else needs re-pasting.
+**Constraint carried from the brief:** context runs out on long briefs — it has
+every time. Finish each part before starting the next. If running low, STOP
+CLEANLY at a part boundary and say exactly where. A finished part plus an
+honest note beats a half-done system. **Sim and mock only — the user is not in
+the lab.**
 
 ---
 
 ## START HERE
 
-**First incomplete part: [PART 1](#part-1--clear-the-stale-shared-memory-and-confirm-autonomy-moves-the-arm) — IN PROGRESS.**
+**First incomplete part: PART 2 — FULL DIAGNOSIS.** Report before fixing.
 
-The root cause of "autonomy does not move the arm" **has been found** and is a
-real bug, not a discovery problem. It is not yet fixed. See Part 1's status
-block for the evidence and the next action.
-
----
-
-## How to use this file
-
-- Every part carries a **STATUS** line: `NOT STARTED` / `IN PROGRESS` / `DONE`.
-- When a part is finished, set its STATUS to `DONE` with the commit hash, **in
-  the same commit as the work itself**. The status and the code never diverge.
-- Update the START HERE pointer in the same commit.
-- Brief text under each part is the user's, **verbatim**. Do not paraphrase it,
-  do not "tidy" it, and do not delete it when the part is done — a completed
-  part's original wording is what lets a later session check whether the work
-  actually answered the question asked.
-- Findings, measurements and decisions go in `docs/NEXT_SESSION.md` as usual.
-  This file carries the *instruction* and the *status*, not the results.
-
-### Part index
-
-| part | title | status |
-| --- | --- | --- |
-| 1 | Clear the stale shared memory and confirm autonomy moves the arm | **IN PROGRESS** |
-| 2 | Language and vision sweep | NOT STARTED |
-| 3 | Gripper open on shutdown | NOT STARTED |
-| 4 | Degraded mode warning | NOT STARTED |
-| 5 | Task A | **TEXT NOT SUPPLIED** |
-| 6 | Task B | **TEXT NOT SUPPLIED** |
-| 7 | Task C | **TEXT NOT SUPPLIED** |
-| 8 | Dual-view GUI | **TEXT NOT SUPPLIED** |
+Part 1 is DONE (`6736ee7`): autonomy moves the arm, 1092 trajectories and
+0.0700 / 0.1204 m of real EE displacement, residual 0.0000 m.
 
 ---
 
-## Preamble (verbatim)
+## Part index
 
-```
-Fresh session. Read CLAUDE.md and NEXT_SESSION.md.
+| part | title | status | commit |
+| --- | --- | --- | --- |
+| 1 | Does autonomy move the arm? | **DONE — YES** | `6736ee7` |
+| 2 | Full diagnosis (report before fixing) | **NOT STARTED** | — |
+| 3 | Finish outstanding work (lang sweep, gripper, degraded warning, tasks A/B/C) | NOT STARTED | — |
+| 4 | Dual-view GUI, everything runs through it | NOT STARTED | — |
+| 5 | Re-record, driven from the GUI | NOT STARTED | — |
+| 6 | Graphs | NOT STARTED | — |
+| 7 | Report and commit / push | NOT STARTED | — |
 
-Start here, in this order. Commit after each.
-```
+Rules: set STATUS to DONE with the commit hash **in the same commit as the
+work**; update START HERE in the same commit; brief text under each part is the
+user's **verbatim** and is not deleted when the part completes — the original
+wording is what lets a later session check the work answered the question.
+Findings go in `docs/NEXT_SESSION.md`; this file carries instruction + status.
 
 ---
 
-## PART 1 — CLEAR THE STALE SHARED MEMORY AND CONFIRM AUTONOMY MOVES THE ARM
+## PART 1 — DOES AUTONOMY MOVE THE ARM?
 
-**STATUS: IN PROGRESS** — root cause found, fix not yet written. Commit: —
+**STATUS: DONE — YES.** Commit `6736ee7`. Full write-up in NEXT_SESSION.md.
+
+Root cause was a missing `import time` in `ik_follower_node.py`, killing the
+follower on the first autonomy pose. Discovery was also degraded (four stacks,
+188 SHM segments, hung daemon) but was **not** the cause. The verification
+probe was separately found to be measuring blocker *registration* rather than
+*assertion* and was fixed.
 
 ### Brief (verbatim)
 
 ```
-=== 1. CLEAR THE STALE SHARED MEMORY AND CONFIRM AUTONOMY MOVES THE ARM ===
+#########################################################################
+PART 1 - DOES AUTONOMY MOVE THE ARM? Everything depends on this.
+#########################################################################
+Three of four study modes are unusable until this is answered.
 Last session connected /autonomy/assist_pose_<arm> into ik_follower_node at
 request_ik - the same gate teleop uses, so the whole safety stack is in the
 path. Verified: subscriber present, pose reaches the follower, clearance floor
 fires when aimed inside the wearer.
 NOT verified: motion at a reachable target. Zero trajectories, with
 RTPS_TRANSPORT_SHM failures and a graph read showing sub 0 while blockers from
-that subscription were arriving. Discovery was degraded.
-So: stop everything, clear /dev/shm/fastrtps_*, relaunch, confirm both arms at
-home, and re-run scripts/verify_autonomy_command_path.py.
-Use the arm's own anchor orientation, never identity - identity is not
+that very subscription were arriving. Discovery was degraded.
+Stop everything, clear /dev/shm/fastrtps_*, relaunch, confirm both arms at
+home, re-run scripts/verify_autonomy_command_path.py.
+Use the arm's own anchor orientation, NEVER identity - identity is not
 neutral, it is a specific unreachable pose, and it has produced a false
-negative three times now.
+negative three times.
 Report whether autonomy actually moves the arm. If it still does not, that is
 a real bug, not a discovery problem - find it.
 ```
 
-### Progress so far
-
-Environment work, all done:
-
-- **Four concurrent stacks were running**, not one — 35 stack PIDs across four
-  `ros2 launch` trees, plus three orphaned `ros2 bag record` processes left
-  over from the 2026-08-08 verification sweep. Killed by explicit PID list
-  (SIGINT then SIGKILL), zero remaining.
-- **`/dev/shm` held 188 `fastrtps_*` entries**, oldest dated Aug 5. Note that
-  `rm /dev/shm/fastrtps_*` alone leaves **39 `sem.fastrtps_*` semaphores**
-  behind — the glob does not match them, and a count that only looks at
-  `fastrtps_*` reads as "39 still there" and invites a hunt for a live writer
-  that does not exist. Both patterns must be removed.
-- **The `ros2` daemon was hung**, not merely stale: `ros2 daemon stop` blocked
-  and died with `TimeoutError: [Errno 110] Connection timed out` after 120 s.
-  Already documented behaviour on this box; use `--no-daemon` for ground truth.
-- Relaunched a single clean stack, `gate:=false`.
-- **Both arms confirmed at home: max error 0.0000 rad on all 7 joints each.**
-
-### THE FINDING — `ik_follower_node` crashes on the first autonomy pose
-
-**`ik_follower_node.py` has no `import time`.** Its complete import block is
-`sys, os, math, home_positions, rclpy, …` — the module is never imported. The
-autonomy path added last session calls `time.monotonic()` twice:
-
-- line 713, in `on_autonomy_pose`
-- line 733, in `autonomy_is_driving`
-
-So the **first autonomy pose to arrive kills the left follower outright**:
-
-```
-File "…/ik_follower_node.py", line 713, in on_autonomy_pose
-    now = time.monotonic()
-NameError: name 'time' is not defined. Did you forget to import 'time'?
-[ERROR] [ik_follower_node-13]: process has died [pid 682827, exit code 1, …]
-```
-
-The followers are launched **without `respawn`** (only `master_pose_node` has
-it), so the node stays dead for the rest of the session.
-
-This fully explains "0 trajectories at a reachable target", and it is exactly
-what the brief anticipated: **a real bug, not a discovery problem.** Discovery
-was genuinely degraded too — four stacks and 188 SHM segments — but that was a
-second, independent fault, and fixing it did not change the result:
-the re-run on a clean single stack still reported `autonomy moves arm : False`.
-
-### Two consequences for what was previously reported as verified
-
-1. **The crash happens at line 713, before `self.autonomy_pose_t = now` at
-   line 720.** That assignment is the only thing that can make
-   `autonomy_is_driving()` return True. So `autonomy_has_control` can never be
-   asserted by the code path as written — which means last session's row
-   *"autonomy pose reaches the follower — yes, `autonomy_has_control` is
-   asserted, and only `on_pose` can set it"* cannot be right as stated, and
-   needs re-deriving after the fix.
-2. **`scripts/verify_autonomy_command_path.py` matches blocker names as
-   substrings of the `/blocking` payload.** If that payload enumerates
-   *registered* blockers rather than only *active* ones, then seeing
-   `clearance_floor` in it is not evidence the floor fired. The safety row (c)
-   in last session's table rests on that match and must be re-validated against
-   a known-good reference before it is believed — standing rule, CLAUDE.md.
-   **Do not report "the same floor applies to autonomy" as measured until
-   this is settled.**
-
-### Next actions, in order
-
-1. Add `import time` to `ik_follower_node.py`.
-2. Add a regression test that fails on the pre-fix code — an autonomy pose
-   delivered to the callback must not raise. A test that only checks the
-   subscription exists would have passed the whole time.
-3. Consider whether the followers should carry `respawn` like
-   `master_pose_node` does. A follower that dies silently and stays dead is the
-   same silent-stop class this project has paid for repeatedly. Decide
-   deliberately — respawn also masks crashes.
-4. Re-run `scripts/verify_autonomy_command_path.py` and report whether the arm
-   actually moves.
-5. Fix the probe's blocker detection if item 2 above confirms it matches
-   registrations, then re-establish the safety claim honestly.
-
 ---
 
-## PART 2 — LANGUAGE AND VISION SWEEP
+## PART 2 — FULL DIAGNOSIS. Report before fixing.
 
 **STATUS: NOT STARTED** — Commit: —
 
 ### Brief (verbatim)
 
 ```
-=== 2. LANGUAGE AND VISION SWEEP ===
-Never run. Wide phrasings including ones you did not design for: vague,
-relational, superlative, compound, misspelled, polite-with-filler, and objects
-that are not present. Report correct / asked / refused / MISUNDERSTOOD.
-Misunderstood separately and loudly - it is the dangerous category.
+#########################################################################
+PART 2 - FULL DIAGNOSIS. Report before fixing.
+#########################################################################
+Read every file. Report everything, then fix. Say what you judged not worth
+fixing and why.
+
+A. THE FIVE RECURRING BUG CLASSES
+ 1. silent blocking - a check that can only say no, with no recovery
+ 2. unreachable clear() - state cleared only where it cannot be reached
+ 3. wall-clock intervals - time.time() is not monotonic under WSL
+ 4. unprefixed resources colliding across two arms, INCLUDING C++ literals
+    invisible to any URDF check
+ 5. tests that construct the environment where the bug cannot occur
+
+B. THE FOUR INSTRUMENT-FAILURE MECHANISMS from instrument_validation.md
+ absence read as a value; the harness constructing the condition it tests;
+ state left from a previous run; order of operations inside the measurement.
+ Sixteen cases so far, nine caught only by an independently known quantity
+ and three by inspection. Where a measurement has no cross-check, add one.
+
+C. STALE REFERENCES - expect the most here
+ Paths, node names and topics moved through the six-package restructure, the
+ E-to-T renaming, the mode reorganisation and the task consolidation. The
+ failure is always silent: a button that runs nothing, a glob that installs
+ nothing, a script writing where nobody reads.
+ Verify every setup.py entry point resolves, every module is registered, and
+ every path a script writes is a path something reads.
+
+D. KNOWN SPECIFIC FAULTS
+ - every use of an identity quaternion as a "neutral" test orientation
+ - anything that can start a second stack
+ - /ik_status_<arm> publishing an empty data array, which blocks the
+   clearance readout and the safety measurement that depends on it
+ - stale /dev/shm/fastrtps_* segments degrading discovery - make clearing
+   them part of startup, not a thing to remember
+
+E. Any reported number not traceable to a validated measurement.
 ```
+
+**Head start from Part 1** (already found, fix in Part 2):
+- Bug class 5 instance: the autonomy probe's substring match — fixed.
+- Part 2D "stale SHM as startup" — confirmed necessary; `sem.fastrtps_*` must
+  be cleared too, the `fastrtps_*` glob misses them.
+- Followers carry no `respawn` while `master_pose_node` does; a follower that
+  dies stays dead. Deliberate decision needed, not a default.
 
 ---
 
-## PART 3 — GRIPPER OPEN ON SHUTDOWN
+## PART 3 — FINISH THE OUTSTANDING WORK
 
 **STATUS: NOT STARTED** — Commit: —
 
 ### Brief (verbatim)
 
 ```
-=== 3. GRIPPER OPEN ON SHUTDOWN ===
-On exit it stays part-closed and the next startup treats that as its open
-reference, so the whole travel range is wrong from then on.
- - open fully on clean shutdown AND on exception paths
- - on startup do not assume current position is open: command a full open and
-   confirm from joint states, or read the true limit from hardware
- - EXCEPT when latched on an object - a latched grip must not drop something.
-   Distinguish the cases and say how.
- - verify by killing mid-grasp and confirming the next start comes up correct
+#########################################################################
+PART 3 - FINISH THE OUTSTANDING WORK
+#########################################################################
+ 1. LANGUAGE AND VISION SWEEP, never run: vague, relational, superlative,
+    compound, misspelled, polite-with-filler, and objects not present. Report
+    correct / asked / refused / MISUNDERSTOOD - the last separately and
+    loudly, it is the dangerous category.
+ 2. GRIPPER OPEN ON SHUTDOWN. It stays part-closed on exit and the next
+    startup treats that as its open reference, so the whole travel range is
+    wrong from then on.
+    - open fully on clean shutdown AND on exception paths
+    - startup must not assume the current position is open: command a full
+      open and confirm from joint states, or read the true limit from hardware
+    - EXCEPT when latched on an object; a latched grip must not drop
+      something. Distinguish the cases and say how.
+    - verify by killing mid-grasp and confirming the next start is correct
+ 3. DEGRADED MODE WARNING. The pot repair is invisible to the software:
+    degraded_mode reads a stored channels_20260806.json saying 6/14 coherent,
+    so eight working channels are still frozen. Make the warning unmissable
+    and document check_channels.sh as the first action of every lab session.
+ 4. TASKS A, B and C fully specified, scenarios verified N=10 over the FULL
+    PATH, plus a session timeline that fits two hours.
 ```
 
 ---
 
-## PART 4 — DEGRADED MODE WARNING
+## PART 4 — DUAL-VIEW GUI, AND EVERYTHING RUNS THROUGH IT
 
 **STATUS: NOT STARTED** — Commit: —
 
 ### Brief (verbatim)
 
 ```
-=== 4. DEGRADED MODE WARNING ===
-The pot repair is invisible to the software - degraded_mode reads a stored
-channels_20260806.json saying 6/14 coherent, so eight working channels are
-still frozen. Put the warning where it cannot be missed, and make
-check_channels.sh the documented first action of every lab session.
+#########################################################################
+PART 4 - DUAL-VIEW GUI, AND EVERYTHING RUNS THROUGH IT
+#########################################################################
+Two RViz panels side by side - reparenting is proven at 31 fps.
+ LEFT: commanded, the sim arms driven by the active mode.
+ RIGHT: actual, the real arms from /real/joint_states and /real/tf.
+Divergence readout beneath: per-joint difference and EE distance, colour coded
+against the lag trip threshold. The lag is currently a number nobody can see.
+Both wrist cameras live, labelled. SUBSCRIBE to the image topic, never open
+the device. Show "no camera" explicitly, never a frozen last frame.
+Controls alongside: mode selection, precision/speed dial, clutch and
+force-engage, e-stop, per-arm scale, existing indicators.
+EVERY MODE AND EVERY TASK LAUNCHABLE FROM THE GUI, and every button must
+actually work - five experiment buttons once exited 2 immediately while
+appearing to launch. Click every one.
+Report frame time with both panels and both camera streams. 15 GB machine and
+two runs already OOM-killed, so if it degrades say so and propose the
+single-RViz fallback with commanded ghosted over actual.
 ```
 
 ---
 
-## Closing instruction (verbatim)
+## PART 5 — RE-RECORD, DRIVEN FROM THE GUI
+
+**STATUS: NOT STARTED** — Commit: —
+
+### Brief (verbatim)
 
 ```
-Stop there. Tasks A/B/C and the dual-view GUI are the session after - each has
-exhausted a context when bundled.
+#########################################################################
+PART 5 - RE-RECORD, DRIVEN FROM THE GUI
+#########################################################################
+The 87 existing clips are stale: old geometry, pre gripper fix, wrong task set.
+Re-record for the CURRENT three tasks and four modes, LAUNCHED THROUGH THE
+GUI, so the recording doubles as proof the GUI drives the system.
+ recordings/verification/<mode>/<task>/<scenario>/
+ one file per angle: front, back, left, right, iso, gripper (tight on fingers
+ and object), quad. Overlay on front only.
+ Xvfb on :99, never WSLg's :0 - x11grab there records black.
+ Resumable sweep, progress written after each clip.
+VALIDATE THE VERIFIER against frames you have visually confirmed BEFORE
+reporting any clip as failed. It has been miscalibrated twice - RViz shades
+markers, and HUD text was once counted as the object.
+Per clip: fingers open, close to the object's width, hold, open again;
+straight-line approach along a vector; attachment coinciding with the fingers
+reaching that width; no penetration.
 ```
 
 ---
 
-## PARTS 5–8 — TASK A, TASK B, TASK C, DUAL-VIEW GUI
+## PART 6 — GRAPHS
 
-**STATUS: TEXT NOT SUPPLIED.** Do not start these, and **do not reconstruct
-them from memory or from context** — no specification for them exists in this
-repo or in the conversation they came from.
+**STATUS: NOT STARTED** — Commit: —
 
-### What is actually known about them
+### Brief (verbatim)
 
-Only the single line quoted above: they exist, there are three lettered tasks
-plus a dual-view GUI, they follow Parts 1–4, and **each exhausts a context when
-bundled** — so they are one-per-session work, not a batch.
+```
+#########################################################################
+PART 6 - GRAPHS
+#########################################################################
+Publication quality, consistent style: reachability and isotropy per arm; the
+capability ladder with measured costs; grasp orientation requirement against
+what each mode can command; static hold drift; the precision/speed dial trade;
+per-mode command path latency; scene fingerprint accuracy; language sweep
+outcomes. Plus placeholders for every participant result, each captioned with
+the analysis script that will produce it.
+```
 
-### Discrepancy to resolve with the user
+---
 
-The instruction to write this file asked for **seven parts, verbatim**. What
-was actually supplied was **four fully-specified parts (1–4)** plus a one-line
-forward reference naming four more items (A, B, C, dual-view GUI) with no
-content — which is eight named items, not seven, and four of them have no text
-to be verbatim about.
+## PART 7 — REPORT AND COMMIT
 
-An earlier, interrupted message in the same session opened with *"Three
-blockers, then all three tasks specified in full"* and was cut off after its
-first line. The full specifications for A/B/C were most likely in that message
-and never arrived.
+**STATUS: NOT STARTED** — Commit: —
 
-**Ask for the text of Tasks A, B and C and the dual-view GUI before starting
-them.** Paste it into this file verbatim under these headings, set their
-statuses to `NOT STARTED`, and fix the part index. Writing a plausible
-specification instead would be inventing the requirement and then grading the
-work against the invention.
+### Brief (verbatim)
+
+```
+#########################################################################
+PART 7 - REPORT AND COMMIT
+#########################################################################
+Per part: what you built, what you measured, where results differed from
+expectation and what you did, and every number still unverified.
+Push to https://github.com/megazron/dococthefinal. Check file sizes first.
+```
 
 ---
 
 ## Session log
 
-| date | parts touched | commit | note |
+| date | parts | commit | note |
 | --- | --- | --- | --- |
-| 2026-08-09 | brief created; Part 1 in progress | — | four stacks and 188 SHM segments cleared; `import time` missing in `ik_follower_node` identified as the real cause of 0 trajectories |
+| 2026-08-09 | brief created | `c6c31fe` | superseded by the 7-part brief below |
+| 2026-08-09 | Part 1 DONE | `6736ee7` | missing `import time` killed the follower on the first autonomy pose; probe was measuring blocker registration not assertion |

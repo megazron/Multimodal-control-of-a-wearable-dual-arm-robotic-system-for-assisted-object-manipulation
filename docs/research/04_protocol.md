@@ -8,6 +8,7 @@
 >
 > | | |
 > | --- | --- |
+> | **`10_tasks_abc_and_two_hour_session.md`** | **CURRENT.** Tasks A/B/C, verified N=10 over the full path, and the 116-minute session. Supersedes the five-task set and the 165-minute session for the participant study. |
 > | `06_task_set_two_person.md` | the revised task set, **T8** and **T9**, T5 promoted to core, feasibility with numbers |
 > | `05_two_person_measures.md` | wearer, operator and dyadic measures; role counterbalancing |
 > | `07_session_order_two_person.md` | the 165-minute two-person session |

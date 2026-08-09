@@ -16,8 +16,8 @@ the lab.**
 
 ## START HERE
 
-**First incomplete part: PART 3 — FINISH THE OUTSTANDING WORK.**
-Start at 3.1, the language and vision sweep.
+**First incomplete part: PART 4 — DUAL-VIEW GUI.** It is a whole GUI and
+needs its own session; nothing in Parts 1-3 is left open for it.
 
 - Part 1 DONE (`6736ee7`): autonomy moves the arm — 1092 trajectories and
   0.0700 / 0.1204 m of real EE displacement, residual 0.0000 m. Root cause was
@@ -27,6 +27,10 @@ Start at 3.1, the language and vision sweep.
   "NOT FIXED, AND WHY" list before starting new work — five wall-clock
   intervals, four identity-quaternion drive sites, two audit blind spots and
   D2 (second-stack prevention) are diagnosed but open, each with a reason.
+- Part 3 DONE (this commit): 7 MISUNDERSTOOD utterances closed; the gripper no
+  longer inherits a leftover as its open reference; the pot repair can now
+  reach the runtime AT ALL (it could not); Tasks A/B/C verified N=10 over the
+  full path with 0 failures and a 116-minute session that a checker validates.
 
 **The stack is currently UP** (`teleop.launch.py gate:=false`) with the left
 arm parked mid-workspace from the dial probe. Re-home or relaunch before any
@@ -41,8 +45,8 @@ measurement that assumes the home pose — `measure_workspace.py` asserts on it,
 | --- | --- | --- | --- |
 | 1 | Does autonomy move the arm? | **DONE — YES** | `6736ee7` |
 | 2 | Full diagnosis (report before fixing) | **DONE** | `9e0dce4` |
-| 3 | Finish outstanding work (lang sweep, gripper, degraded warning, tasks A/B/C) | **NEXT** | — |
-| 4 | Dual-view GUI, everything runs through it | NOT STARTED | — |
+| 3 | Finish outstanding work (lang sweep, gripper, degraded warning, tasks A/B/C) | **DONE** | `0a6c4e4` |
+| 4 | Dual-view GUI, everything runs through it | **NEXT** | — |
 | 5 | Re-record, driven from the GUI | NOT STARTED | — |
 | 6 | Graphs | NOT STARTED | — |
 | 7 | Report and commit / push | NOT STARTED | — |
@@ -155,7 +159,32 @@ E. Any reported number not traceable to a validated measurement.
 
 ## PART 3 — FINISH THE OUTSTANDING WORK
 
-**STATUS: NOT STARTED** — Commit: —
+**STATUS: DONE** — Commit `0a6c4e4`. Full write-up in NEXT_SESSION.md.
+
+All four sub-items done. Headline per item:
+
+1. **Language sweep, 40 phrasings: 7 MISUNDERSTOOD found, all seven closed.**
+   Negation, relational reference, a second target and a second action — every
+   one a sentence where the grammar matched a real verb and a real noun and
+   discarded the word that reversed them. CORRECT did not fall (10 -> 10), so
+   nothing usable was traded for the safety. The harness now has a negative
+   control and refuses to print a zero it cannot justify.
+2. **Gripper.** Opens on clean AND exception paths, handles SIGTERM, and
+   never treats a leftover position as the open reference. A latch marker
+   written AT LATCH TIME (not at exit — `kill -9` runs no exit code) plus the
+   knuckle band together decide whether a grip was inherited. 16/16 by
+   actually SIGKILLing the node mid-grasp. Two real bugs found by running it.
+3. **Degraded mode.** The repair was invisible for a reason nobody had looked
+   at: the runtime read a hardcoded `channels_20260806.json` while the lab
+   writes `channels_<today>.json`. And the Job A warning had NEVER FIRED —
+   `NameError` on an undefined `baseline`, swallowed by a bare `except`.
+   Both fixed, warning moved inside the banner and repeated every 30 s,
+   `check_channels.sh` documented as the first action of every lab session in
+   four places.
+4. **Tasks A/B/C**, verified N=10 over densified full paths, 0 failures over
+   2743 IK calls with both arms at 0.0000 rad from home and three instrument
+   controls passing. Session: **116 min**, pack-on 36 min total / 9 min
+   continuous, all inside caps, checked by arithmetic rather than asserted.
 
 ### Brief (verbatim)
 

@@ -1,0 +1,190 @@
+{
+  "repeats": 10,
+  "step_m": 0.02,
+  "ik_calls": 2743,
+  "failures": 0,
+  "detail": {
+    "controls": {
+      "far_unreachable": true,
+      "inside_wearer_unreachable": true,
+      "declared_target_reachable": true
+    },
+    "A": {
+      "left": {
+        "targets": [
+          {
+            "p": [
+              0.3,
+              0.35,
+              1.05
+            ],
+            "ok": true
+          },
+          {
+            "p": [
+              0.3,
+              0.35,
+              1.25
+            ],
+            "ok": true
+          },
+          {
+            "p": [
+              0.45,
+              0.35,
+              1.15
+            ],
+            "ok": true
+          }
+        ],
+        "transit_failures": 0
+      },
+      "right": {
+        "targets": [
+          {
+            "p": [
+              -0.3,
+              0.35,
+              1.05
+            ],
+            "ok": true
+          },
+          {
+            "p": [
+              -0.3,
+              0.35,
+              1.25
+            ],
+            "ok": true
+          },
+          {
+            "p": [
+              -0.45,
+              0.35,
+              1.15
+            ],
+            "ok": true
+          }
+        ],
+        "transit_failures": 0
+      }
+    },
+    "B": {
+      "S1_short_lift": {
+        "waypoints": 4,
+        "bad": 0,
+        "ok": true
+      },
+      "S2_full_lift": {
+        "waypoints": 11,
+        "bad": 0,
+        "ok": true
+      },
+      "S3_detour": {
+        "waypoints": 10,
+        "bad": 0,
+        "ok": true
+      },
+      "object_factor": {
+        "sag_at_nominal_m": 0.10198,
+        "ball_diameter_m": 0.04,
+        "retained_at_nominal": true,
+        "s_max_m": 0.534,
+        "declared_fail_sep_m": 0.534,
+        "margin_mm": 34.0
+      }
+    },
+    "C": {
+      "left": {
+        "centre": [
+          0.35,
+          0.35,
+          1.15
+        ],
+        "amplitude_m": 0.08,
+        "shell_fail": 0,
+        "radial_fail": 0,
+        "failed_points": [],
+        "ok": true
+      },
+      "right": {
+        "centre": [
+          -0.35,
+          0.35,
+          1.15
+        ],
+        "amplitude_m": 0.08,
+        "shell_fail": 0,
+        "radial_fail": 0,
+        "failed_points": [],
+        "ok": true
+      }
+    },
+    "optional_pick_place": {
+      "left": [
+        {
+          "pick": [
+            0.32,
+            0.35,
+            1.15
+          ],
+          "approach_ok": true,
+          "place_ok": true,
+          "n_way": 15
+        },
+        {
+          "pick": [
+            0.38,
+            0.35,
+            1.15
+          ],
+          "approach_ok": true,
+          "place_ok": true,
+          "n_way": 15
+        },
+        {
+          "pick": [
+            0.44,
+            0.35,
+            1.15
+          ],
+          "approach_ok": true,
+          "place_ok": true,
+          "n_way": 15
+        }
+      ],
+      "right": [
+        {
+          "pick": [
+            -0.32,
+            0.35,
+            1.15
+          ],
+          "approach_ok": true,
+          "place_ok": true,
+          "n_way": 15
+        },
+        {
+          "pick": [
+            -0.38,
+            0.35,
+            1.15
+          ],
+          "approach_ok": true,
+          "place_ok": true,
+          "n_way": 15
+        },
+        {
+          "pick": [
+            -0.44,
+            0.35,
+            1.15
+          ],
+          "approach_ok": true,
+          "place_ok": true,
+          "n_way": 15
+        }
+      ]
+    }
+  }
+}

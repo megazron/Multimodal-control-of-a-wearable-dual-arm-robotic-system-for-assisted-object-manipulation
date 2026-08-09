@@ -1811,3 +1811,57 @@ the repair. A fresh capture is the only thing that closes it.
 **ALSO STANDING FROM JOB A:** degraded mode still reads the stored
 `channels_20260806.json` (6/14 coherent) and will still freeze eight working
 channels until `bash scripts/check_channels.sh` is run in the lab.
+
+## JOB B.2 — CAPABILITY DELTA, BEFORE AND AFTER (2026-08-09)
+
+`scripts/measure_capability_delta.py`. Exact arithmetic over `degraded_mode`
+and the master FK, no hardware needed.
+
+| | coherent | degraded | left radial extent | right radial extent |
+| --- | --- | --- | --- | --- |
+| BEFORE (stored baseline) | 6/14 | ENGAGES, freezes l_j23456 / r_j357 | **0.000 m** (0.272 only) | 0.139 m |
+| AFTER (all 14 repaired) | 14/14 | does not engage | **0.139 m** | 0.139 m |
+
+The left arm's commandable set goes from a **SURFACE back to a SHELL**: with
+j2 and j4 frozen the FK magnitude is a constant, so radius was not commandable
+at all and the radial fallback on j7 existed only to substitute for it. The
+right arm's frozen channels were all rolls, which carry no radial information,
+so its extent never changed -- which is why the repair is worth far more to
+the left arm than to the right.
+
+Validated against an independently established figure: this reproduces the
+documented left-collapse and the right's unchanged extent without being told
+either.
+
+### The instrument bug, again
+
+The first run reported **"extent unchanged, 0.139 -> 0.139 on both arms"** -- a
+clean null result, entirely manufactured. `decide()` returns
+`{arm: [joint index]}` and I had guessed a set of `(arm, index)` tuples, so
+the extraction silently produced `[]` and froze nothing in the BEFORE case.
+The tell was the output contradicting itself: degraded mode ENGAGES while
+freezing no channels.
+
+## JOB B — WHAT IS BLOCKED ON THE LAB, AND THE EXACT CAPTURE NEEDED
+
+Three of Job B's questions are fits to RECORDED FRAMES, and **every recording
+in this repository predates the repair**. Re-running them now would measure
+the broken pots and report the answer as the repaired capability:
+
+- **azimuth / lateral** (the 54.8 / 54.7 deg pairwise-angle residual; FK vs
+  gyro vs j1-alone). CLAUDE.md's own instruction was "do not re-try the hybrid
+  without first fixing the pot angle calibration" -- that precondition is now
+  met, but the re-test needs new data.
+- **the R0-R5 position ladder** against full 7-DOF FK.
+- **the smoothing re-tune** from freshly measured noise.
+
+**THE CAPTURE THAT UNBLOCKS ALL THREE** (one session):
+
+    bash scripts/check_channels.sh          # FIRST -- refreshes the baseline,
+                                            # without which degraded mode still
+                                            # freezes eight working channels
+    ros2 launch srl_teleop teleop.launch.py
+    bash run_teleop_capture.sh              # blocks A-F, ~35 min
+
+Block C (directional) and block E (repeatability) are the ones the azimuth
+question needs; block A alone is enough to refresh the channel baseline.

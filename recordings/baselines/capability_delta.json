@@ -1,0 +1,50 @@
+[
+  {
+    "label": "BEFORE (stored baseline)",
+    "coherent": 6,
+    "degraded": true,
+    "arms": {
+      "left": {
+        "frozen": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "reach_lo": 0.27199999999999996,
+        "reach_hi": 0.27199999999999996,
+        "extent": 0.0
+      },
+      "right": {
+        "frozen": [
+          2,
+          4,
+          6
+        ],
+        "reach_lo": 0.13280060240827224,
+        "reach_hi": 0.27199999999999996,
+        "extent": 0.13919939759172772
+      }
+    }
+  },
+  {
+    "label": "AFTER  (all 14 repaired)",
+    "coherent": 14,
+    "degraded": false,
+    "arms": {
+      "left": {
+        "frozen": [],
+        "reach_lo": 0.13280060240827224,
+        "reach_hi": 0.27199999999999996,
+        "extent": 0.13919939759172772
+      },
+      "right": {
+        "frozen": [],
+        "reach_lo": 0.13280060240827224,
+        "reach_hi": 0.27199999999999996,
+        "extent": 0.13919939759172772
+      }
+    }
+  }
+]

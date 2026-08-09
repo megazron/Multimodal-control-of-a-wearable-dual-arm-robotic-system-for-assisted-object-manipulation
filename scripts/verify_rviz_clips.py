@@ -22,6 +22,9 @@ watching from 87 clips to the ones that fail.
 """
 import glob
 import json
+import random
+import shutil
+import tempfile
 import os
 import subprocess
 import sys
@@ -205,7 +208,218 @@ def colour_hits(img, name):
     return int(below_hud(PALETTE[name](img)).sum())
 
 
+def verify_clip(mp4, task):
+    """Judge ONE clip. Returns a dict; `ok` is the verdict.
+
+    Split out of main() so the negative control can drive the SAME code the
+    real sweep uses. A self-test that exercises a parallel copy of the logic
+    proves nothing about the copy that runs.
+    """
+    dur = duration(mp4)
+    if dur < 2.0:
+        return dict(ok=False, why="clip only %.1f s long" % dur,
+                    duration_s=round(dur, 1))
+    F = frames(mp4, (0.30, 0.55, 0.80))
+    if len(F) < 2:
+        return dict(ok=False, why="could not extract frames",
+                    duration_s=round(dur, 1))
+    bright = float(np.mean([f.mean() for f in F]))
+    variety = int(np.mean([len(np.unique(f.reshape(-1, 3), axis=0))
+                           for f in F]))
+    changed = float(np.abs(F[0] - F[-1]).mean())
+    want = REQUIRED.get(task)
+    why = []
+    if want is None:
+        # A TASK THIS VERIFIER DOES NOT KNOW IS NOT A PASS. Before this, an
+        # unrecognised key made REQUIRED.get(task, []) return an empty list,
+        # the object loop ran zero times, `missing` was empty and the clip
+        # passed its object check WITHOUT ONE EVER HAPPENING -- the same
+        # 0-of-0 shape that reads exactly like a clean result.
+        why.append("unknown task %r -- no object requirement is defined, so "
+                   "nothing was checked" % task)
+        want = []
+    found = {k: max(colour_hits(f, k) for f in F) for k in want}
+    missing = [k for k, v in found.items() if v < floor_for(k)]
+    if bright < 8:
+        why.append("picture is black (mean %.1f)" % bright)
+    if variety < 500:
+        why.append("almost no colour variety (%d)" % variety)
+    # FROZEN, not merely still. T9's zero-sway scenario is a stationary arm
+    # holding a world-fixed point ON PURPOSE, and failing it for not moving
+    # would be failing the task for doing what it says. Only a genuinely
+    # frozen capture -- identical frames -- is an error.
+    if changed < 0.05:
+        why.append("capture is FROZEN (frame delta %.3f)" % changed)
+    if missing:
+        why.append("object not visible: %s" % ", ".join(missing))
+    return dict(ok=not why, why="; ".join(why), duration_s=round(dur, 1),
+                bright=round(bright, 1), variety=variety,
+                delta=round(changed, 2),
+                objects={k: int(v) for k, v in found.items()})
+
+
+# ===========================================================================
+#  THE NEGATIVE CONTROL
+# ===========================================================================
+# THIS VERIFIER HAS BEEN MISCALIBRATED TWICE, AND BOTH TIMES IT FAILED CLIPS
+# WHOSE OBJECTS WERE PLAINLY VISIBLE. RViz shades every surface, so a detector
+# matched against a requested colour finds nothing; and the HUD text is white
+# and orange-yellow, so it was counted AS the object -- 587 "ball" pixels on
+# one frame of which 529 were letters.
+#
+# Both of those are now permanent CONTROLS rather than comments. Before any
+# verdict is printed, the verifier is shown clips whose answers are known and
+# must get every one right. A verifier that cannot fail a broken clip cannot
+# pass a good one either: "0 clips failed" and "nothing was actually checked"
+# print identically, and this file has produced the second while reporting the
+# first.
+#
+# The clips are CONSTRUCTED, not rendered. Per the standing rule, synthetic
+# input is trustworthy only where the ground truth is built rather than drawn:
+# "there is a 200x200 patch of exactly this colour at exactly this position"
+# is arithmetic. Nothing here claims to model RViz -- the RENDERED colours it
+# uses were measured off real frames and are listed at the top of this file.
+BG = (45, 45, 48)                     # the RViz background, from the config
+BALL = (189, 165, 74)                 # rendered, not requested
+SKIN = (170, 130, 100)                # shaded mannequin skin: a WEAK tan hit
+HUD = (235, 235, 235)                 # the overlay text
+
+
+def _clip(path, painter, n=36, size=(1600, 1000), fps=12):
+    """Encode a clip from painted frames. Returns the mp4 path."""
+    from PIL import Image as I, ImageDraw
+    d = os.path.dirname(path)
+    os.makedirs(d, exist_ok=True)
+    frames_dir = os.path.join(d, "_src")
+    os.makedirs(frames_dir, exist_ok=True)
+    for i in range(n):
+        im = I.new("RGB", size, BG)
+        painter(ImageDraw.Draw(im), i, n, size)
+        im.save(os.path.join(frames_dir, "%04d.png" % i))
+    subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-framerate", str(fps),
+                    "-i", os.path.join(frames_dir, "%04d.png"),
+                    "-pix_fmt", "yuv420p", path], check=False)
+    shutil.rmtree(frames_dir, ignore_errors=True)
+    return path
+
+
+def _noise(dr, size):
+    """Enough colour variety to clear the `variety < 500` gate, so the
+    controls fail for the ONE reason each is built to test and not for an
+    unrelated one."""
+    rnd = random.Random(7)
+    for _ in range(900):
+        x, y = rnd.randrange(size[0]), rnd.randrange(size[1])
+        dr.rectangle([x, y, x + 3, y + 3],
+                     fill=(rnd.randrange(60, 210), rnd.randrange(60, 210),
+                           rnd.randrange(60, 210)))
+
+
+def _good(dr, i, n, size):
+    _noise(dr, size)
+    x = 300 + int(500.0 * i / n)                     # it MOVES
+    dr.ellipse([x, 620, x + 190, 810], fill=BALL)    # well below the HUD band
+
+
+def _absent(dr, i, n, size):
+    _noise(dr, size)
+    x = 300 + int(500.0 * i / n)
+    dr.ellipse([x, 620, x + 190, 810], fill=(90, 90, 95))   # grey, not the ball
+
+
+def _hud_only(dr, i, n, size):
+    """The object colour appears ONLY in the overlay band. A verifier that
+    does not mask the HUD reads this as a large, perfectly present object."""
+    _noise(dr, size)
+    dr.rectangle([40, 30, 1400, 150], fill=BALL)
+    dr.rectangle([40, 30, 1400, 60], fill=HUD)
+    x = 300 + int(500.0 * i / n)
+    dr.ellipse([x, 620, x + 60, 680], fill=(90, 90, 95))
+
+
+def _skin_only(dr, i, n, size):
+    """Wearer skin and no task object.
+
+    SIZED TO THE MEASURED FALSE POSITIVE, not to a round number. A real frame
+    containing the wearer and no object scores 54 tan / **7 yellow** pixels at
+    the verifier's own 600 px sample scale, against floors of 120 and 20. The
+    patch is therefore 10x10 at the 1600 px capture width, which is
+    100 * (600/1600)^2 = 14 px once rescaled -- a genuine hit, comfortably
+    below the floor.
+
+    That "genuine hit" matters: the control has to prove the FLOOR rejects
+    this, not that the detector is blind to it. My first attempt used a 46x46
+    patch (297 px scaled), which is not skin -- it is an object -- and the
+    verifier passed it correctly. The control was wrong, not the verifier.
+    """
+    _noise(dr, size)
+    x = 300 + int(500.0 * i / n)
+    dr.rectangle([x, 620, x + 10, 630], fill=SKIN)
+
+
+def _frozen(dr, i, n, size):
+    _noise(dr, size)
+    dr.ellipse([400, 620, 590, 810], fill=BALL)      # identical every frame
+
+
+def _black(dr, i, n, size):
+    dr.rectangle([0, 0, size[0], size[1]], fill=(0, 0, 0))
+
+
+CONTROLS = [
+    # (name, painter, task, must_pass, what it proves)
+    ("good_clip", _good, "t3_ball", True,
+     "an object that IS there passes"),
+    ("object_absent", _absent, "t3_ball", False,
+     "an object that is NOT there fails"),
+    ("hud_text_only", _hud_only, "t3_ball", False,
+     "HUD text is not counted as the object"),
+    ("wearer_skin_only", _skin_only, "t3_ball", False,
+     "the wearer's skin does not clear the object floor"),
+    ("frozen_capture", _frozen, "t3_ball", False,
+     "a frozen capture is caught"),
+    ("black_capture", _black, "t3_ball", False,
+     "a black capture is caught"),
+    ("unknown_task", _good, "no_such_task", False,
+     "an unrecognised task is NOT a silent pass"),
+]
+
+
+def self_test(verbose=True):
+    """Show the verifier clips whose answers are known. All must be right."""
+    tmp = tempfile.mkdtemp(prefix="clipctl_")
+    REQUIRED["t3_ball"] = ["ball_yellow"]
+    ok_all = True
+    if verbose:
+        print("VERIFIER SELF-TEST -- constructed clips with known answers")
+    try:
+        for name, painter, task, must_pass, why in CONTROLS:
+            mp4 = _clip(os.path.join(tmp, name, "rviz_front.mp4"), painter)
+            r = verify_clip(mp4, task)
+            good = (r["ok"] == must_pass)
+            ok_all &= good
+            if verbose:
+                print("  %-18s want %-4s got %-4s  %-4s  %s%s"
+                      % (name, "PASS" if must_pass else "FAIL",
+                         "PASS" if r["ok"] else "FAIL",
+                         "ok" if good else "BAD",
+                         why,
+                         "" if good else "   [verifier said: %s]"
+                         % (r.get("why") or "nothing")))
+    finally:
+        REQUIRED.pop("t3_ball", None)
+        shutil.rmtree(tmp, ignore_errors=True)
+    if verbose:
+        print("  -> %s\n" % ("ALL CONTROLS CORRECT" if ok_all
+                             else "CONTROLS FAILED"))
+    return ok_all
+
+
 def main():
+    if not self_test():
+        print("\nREFUSING TO REPORT. The verifier failed a control, so any "
+              "verdict it prints -- especially a pass -- means nothing.")
+        return 2
     rows = []
     # ONE MORE PATH LEVEL. The tree is now
     # recordings/verification/<mode>/<task>/<scenario>/<condition>, because
@@ -218,46 +432,20 @@ def main():
     for mp4 in mp4s:
         d = os.path.dirname(mp4)
         parts = os.path.relpath(d, OUT).split(os.sep)
-        task, scen, cond = parts[0], parts[1], parts[2]
-        dur = duration(mp4)
-        if dur < 2.0:
-            rows.append(dict(task=task, scenario=scen, condition=cond,
-                             ok=False, why="clip only %.1f s long" % dur))
-            continue
-        F = frames(mp4, (0.30, 0.55, 0.80))
-        if len(F) < 2:
-            rows.append(dict(task=task, scenario=scen, condition=cond,
-                             ok=False, why="could not extract frames"))
-            continue
-        bright = float(np.mean([f.mean() for f in F]))
-        variety = int(np.mean([len(np.unique(f.reshape(-1, 3), axis=0))
-                               for f in F]))
-        changed = float(np.abs(F[0] - F[-1]).mean())
-        found = {}
-        for want in REQUIRED.get(task, []):
-            found[want] = max(colour_hits(f, want) for f in F)
-        missing = [k for k, v in found.items() if v < floor_for(k)]
-        why = []
-        if bright < 8:
-            why.append("picture is black (mean %.1f)" % bright)
-        if variety < 500:
-            why.append("almost no colour variety (%d)" % variety)
-        # FROZEN, not merely still. T9's zero-sway scenario is a stationary
-        # arm holding a world-fixed point ON PURPOSE, and failing it for not
-        # moving would be failing the task for doing what it says. Only a
-        # genuinely frozen capture -- identical frames -- is an error.
-        if changed < 0.05:
-            why.append("capture is FROZEN (frame delta %.3f)" % changed)
-        if missing:
-            why.append("object not visible: %s" % ", ".join(missing))
-        rows.append(dict(task=task, scenario=scen, condition=cond,
-                         duration_s=round(dur, 1),
-                         ok=not why, why="; ".join(why), bright=round(bright, 1),
-                         variety=variety, delta=round(changed, 2),
-                         objects={k: int(v) for k, v in found.items()}))
-        print("  %-4s %-22s %-9s %s%s"
-              % (task, scen, cond, "OK  " if not why else "FAIL",
-                 "" if not why else "  <- " + "; ".join(why)))
+        # FOUR LEVELS GLOBBED, FOUR LEVELS PARSED. This read
+        # `task, scen, cond = parts[0], parts[1], parts[2]` against a tree that
+        # is <mode>/<task>/<scenario>/<condition>, so `task` was the MODE --
+        # "01_master_teleop" -- and REQUIRED.get(mode) returned an empty list.
+        # The object check then ran zero times and every clip passed it
+        # regardless of whether the object rendered at all. Caught by the
+        # negative control below, which is what it is for.
+        mode, task, scen, cond = parts[0], parts[1], parts[2], parts[3]
+        r = verify_clip(mp4, task)
+        r.update(mode=mode, task=task, scenario=scen, condition=cond)
+        rows.append(r)
+        print("  %-18s %-4s %-14s %-9s %s%s"
+              % (mode, task, scen, cond, "OK  " if r["ok"] else "FAIL",
+                 "" if r["ok"] else "  <- " + r["why"]))
 
     good = [r for r in rows if r["ok"]]
     print("\n  %d of %d clips pass every automatic check" % (len(good), len(rows)))

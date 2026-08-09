@@ -71,3 +71,8 @@ recordings/verification/t?/*/*/rviz_iso.mp4
 recordings/verification/t?/*/*/rviz_top.mp4
 recordings/verification/t?/*/*/rviz_side.mp4
 recordings/verification/t?/*/*/rviz_gripper.mp4
+
+# RViz's own per-view log files, written beside each clip during a sweep.
+# They are transient stderr, not evidence, and they churn on every run.
+recordings/verification/**/rviz.rviz.*
+recordings/verification/**/*.xvfb

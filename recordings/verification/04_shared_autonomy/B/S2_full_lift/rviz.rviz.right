@@ -1,6 +1,0 @@
-[37;1m2026-08-09 22:37:16.218 [31;1m[[37;1mRTPS_TRANSPORT_SHM[31;1m Error] [37mFailed init_port fastrtps_port7004: open_and_lock_file failed[34;1m -> Function [36mopen_port_internal[m
-[37;1m2026-08-09 22:37:16.224 [31;1m[[37;1mRTPS_TRANSPORT_SHM[31;1m Error] [37mFailed init_port fastrtps_port7011: open_and_lock_file failed[34;1m -> Function [36mopen_port_internal[m
-[37;1m2026-08-09 22:37:16.226 [31;1m[[37;1mRTPS_TRANSPORT_SHM[31;1m Error] [37mFailed init_port fastrtps_port7012: open_and_lock_file failed[34;1m -> Function [36mopen_port_internal[m
-[INFO] [1786311437.798855343] [rviz2]: Stereo is NOT SUPPORTED
-[INFO] [1786311437.799027011] [rviz2]: OpenGl version: 4.5 (GLSL 4.5)
-[INFO] [1786311437.986953181] [rviz2]: Stereo is NOT SUPPORTED

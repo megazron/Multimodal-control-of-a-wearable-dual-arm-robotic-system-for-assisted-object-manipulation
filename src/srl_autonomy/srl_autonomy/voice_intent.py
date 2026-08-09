@@ -27,6 +27,20 @@ three: a unique match, AMBIGUOUS with the candidates, or NO_MATCH. It never
 picks the first of several. Guessing which green object the operator meant is
 exactly the failure that a spoken confirmation is supposed to catch, and
 guessing silently defeats it.
+
+MEASURED, 2026-08-09 -- `scripts/sweep_language_vision.py`, 40 phrasings in
+13 categories, most of them written against the parser's STRUCTURE rather
+than alongside it:
+
+    before this pass   10 CORRECT   7 ASKED  16 REFUSED   7 MISUNDERSTOOD
+    after              10 CORRECT   6 ASKED  24 REFUSED   0 MISUNDERSTOOD
+
+("before" is the same 40 cases with `unrepresentable()` stubbed to None, so
+the two rows differ by the fix and by nothing else.)
+
+All seven dangerous outcomes were negation, relational reference, a second
+target, or a second action -- see `unrepresentable()` below. The CORRECT count
+did not fall, so nothing usable was traded away for them.
 """
 import re
 
@@ -43,6 +57,47 @@ NOUNS = ("cube", "block", "box", "ball", "sphere", "cylinder", "tool",
 
 DEICTIC = ("that", "this", "there", "over there", "it")
 
+# --------------------------------------------------------------------------
+# THE THREE WAYS A SENTENCE MEANS SOMETHING THE GRAMMAR CANNOT REPRESENT.
+#
+# Measured, 2026-08-09, over the 37-phrase language sweep: these three
+# accounted for ALL SEVEN MISUNDERSTOOD outcomes -- the robot confidently
+# grabbing an object the speaker had just told it not to touch, or silently
+# executing half a sentence. Every one of them shares a shape: the grammar
+# matched a verb and a noun that were really there, and DISCARDED the word
+# that reversed or qualified them.
+#
+# The fix is deliberately a REFUSAL, not an interpretation. Partial execution
+# of a two-part instruction is the dangerous outcome: the operator hears the
+# robot acknowledge and assumes the whole sentence landed.
+# --------------------------------------------------------------------------
+
+# 1. NEGATION. Only counts BEFORE the verb. "don't grab the cube" negates the
+#    command; "grab the blue cube but not the red one" is an exclusion clause
+#    on the target and is a perfectly good grab. Position is what tells them
+#    apart, so the check is positional rather than a bare keyword search.
+#    "don't" normalises to "don t", so the leading token is "don".
+NEGATION_WORDS = ("not", "never", "dont", "don", "cannot", "cant", "nor",
+                  "neither", "avoid", "refrain")
+
+# 2. SEQUENCE. Two actions in one utterance. Only the first is representable,
+#    and executing it alone is partial execution.
+SEQUENCE_WORDS = ("then", "afterwards", "afterward", "next")
+
+# 3. CONJUNCTION. Two targets in one utterance. "and" only -- "but" is an
+#    exclusion clause and must NOT be caught here.
+CONJUNCTION_WORDS = ("and", "plus", "also", "both")
+
+# 4. RELATIONAL reference names an ANCHOR and asks for something else. The
+#    single definition lives in `referring`, which measured the failure:
+#    grounding "the one behind the red block" by the words present returned
+#    the red block with full confidence. Imported rather than copied, because
+#    two lists of the same thing drift.
+try:
+    from .referring import RELATIONAL
+except ImportError:                                   # pragma: no cover
+    from referring import RELATIONAL
+
 VERB_PATTERNS = (
     # (verb, regex). Order matters: STOP is matched first, everywhere.
     ("stop", re.compile(r"\b(%s)\b" % "|".join(STOP_WORDS))),
@@ -56,6 +111,52 @@ VERB_PATTERNS = (
         r"|\blet\s+go\b|\brelease\b")),
     ("grab", re.compile(r"\b(grab|pick|take|get|grasp|fetch|lift)\b")),
 )
+
+# The literal trigger words of the patterns above, used only to locate WHERE
+# in the sentence the verb sits so negation can be scoped to it.
+VERB_TRIGGERS = frozenset(
+    "give hand pass transfer swap put set place drop release let "
+    "grab pick take get grasp fetch lift".split())
+
+
+def unrepresentable(body):
+    """Why this sentence cannot be executed as one command, or None.
+
+    Returns a reason string. Each branch refuses rather than truncating: the
+    caller turns it into `Intent(reason=...)`, which the executive speaks
+    aloud, so the operator learns the sentence did not land.
+    """
+    toks = body.split()
+
+    # RELATIONAL first: it is a property of the phrase, not of the verb.
+    rel = next((w for w in RELATIONAL if w in body), None)
+    if rel:
+        return ("relational reference (%r) -- I cannot pick something out by "
+                "where it is relative to another object" % rel)
+
+    verb_at = next((i for i, t in enumerate(toks) if t in VERB_TRIGGERS), None)
+
+    if verb_at is not None:
+        neg = next((t for t in toks[:verb_at] if t in NEGATION_WORDS), None)
+        if neg:
+            return "negated command (%r before the verb) -- I will not act" % neg
+
+    seq = next((t for t in toks if t in SEQUENCE_WORDS), None)
+    if seq:
+        return ("more than one action in one instruction (%r) -- say them one "
+                "at a time" % seq)
+
+    conj = next((t for t in toks if t in CONJUNCTION_WORDS), None)
+    if conj:
+        # A conjunction alone is harmless ("go on and grab it"). It is only a
+        # second TARGET when two different colours or two different nouns are
+        # named, which is what makes acting on one of them partial execution.
+        colours = {t for t in toks if t in COLOURS}
+        nouns = {t for t in toks if t in NOUNS}
+        if len(colours) > 1 or len(nouns) > 1:
+            return ("more than one target in one instruction (%r) -- say them "
+                    "one at a time" % conj)
+    return None
 
 
 class Intent:
@@ -152,6 +253,16 @@ def parse(text, wake=WAKE_DEFAULT, require_wake=True):
         return Intent(raw=raw, reason="no wake word (%r)" % wake)
     if not body:
         return Intent(raw=raw, reason="wake word only, no command")
+
+    # REFUSE BEFORE MATCHING, NOT AFTER. Every one of these sentences contains
+    # a perfectly good verb and a perfectly good noun; the danger is precisely
+    # that the grammar succeeds on them. Checking after the verb match would
+    # mean the refusal competes with a confident parse instead of pre-empting
+    # it. Note this sits AFTER the stop check above -- a halt is never refused
+    # for being ungrammatical.
+    why = unrepresentable(body)
+    if why:
+        return Intent(raw=raw, reason=why)
 
     for verb, rx in VERB_PATTERNS[1:]:
         if rx.search(body):

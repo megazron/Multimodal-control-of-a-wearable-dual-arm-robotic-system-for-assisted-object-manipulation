@@ -1,0 +1,600 @@
+{
+  "scene": [
+    {
+      "label": "red block",
+      "confidence": 0.94,
+      "position": [
+        -0.3,
+        0.4,
+        1.1
+      ]
+    },
+    {
+      "label": "red cube",
+      "confidence": 0.91,
+      "position": [
+        0.3,
+        0.4,
+        1.1
+      ]
+    },
+    {
+      "label": "blue cube",
+      "confidence": 0.93,
+      "position": [
+        0.05,
+        0.55,
+        1.1
+      ]
+    },
+    {
+      "label": "green ball",
+      "confidence": 0.88,
+      "position": [
+        -0.1,
+        0.35,
+        1.1
+      ]
+    }
+  ],
+  "totals": {
+    "CORRECT": 10,
+    "REFUSED": 24,
+    "ASKED": 6
+  },
+  "rows": [
+    {
+      "utterance": "hey doc oc grab the blue cube",
+      "category": "control",
+      "note": "canonical",
+      "intended_verb": "grab",
+      "intended_label": "blue cube",
+      "verdict": "CORRECT",
+      "resolved": "blue cube",
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "blue cube",
+        "status": "unique",
+        "would_grab": "blue cube"
+      }
+    },
+    {
+      "utterance": "hey doc oc pick up the green ball",
+      "category": "control",
+      "note": "canonical",
+      "intended_verb": "grab",
+      "intended_label": "green ball",
+      "verdict": "CORRECT",
+      "resolved": "green ball",
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "green ball",
+        "status": "unique",
+        "would_grab": "green ball"
+      }
+    },
+    {
+      "utterance": "um hey doc oc could you please uh grab the blue cube now",
+      "category": "polite-filler",
+      "note": "every filler word is stripped",
+      "intended_verb": "grab",
+      "intended_label": "blue cube",
+      "verdict": "CORRECT",
+      "resolved": "blue cube",
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "blue cube",
+        "status": "unique",
+        "would_grab": "blue cube"
+      }
+    },
+    {
+      "utterance": "hey doc oc so like maybe grab the green ball please",
+      "category": "polite-filler",
+      "note": "unlisted fillers 'so like maybe'",
+      "intended_verb": "grab",
+      "intended_label": "green ball",
+      "verdict": "CORRECT",
+      "resolved": "green ball",
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "green ball",
+        "status": "unique",
+        "would_grab": "green ball"
+      }
+    },
+    {
+      "utterance": "hey doc oc would you mind terribly grabbing the blue cube",
+      "category": "polite-filler",
+      "note": "gerund 'grabbing', not the bare verb",
+      "intended_verb": "grab",
+      "intended_label": "blue cube",
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "no known verb in 'would you mind terribly grabbing blue cube'"
+      }
+    },
+    {
+      "utterance": "hey doc oc don't grab the blue cube",
+      "category": "negation",
+      "note": "NEGATED command -- must not act",
+      "intended_verb": null,
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "negated command ('don' before the verb) -- I will not act"
+      }
+    },
+    {
+      "utterance": "hey doc oc do not pick up the red block",
+      "category": "negation",
+      "note": "NEGATED command -- must not act",
+      "intended_verb": null,
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "negated command ('not' before the verb) -- I will not act"
+      }
+    },
+    {
+      "utterance": "hey doc oc never grab the green ball",
+      "category": "negation",
+      "note": "NEGATED command -- must not act",
+      "intended_verb": null,
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "negated command ('never' before the verb) -- I will not act"
+      }
+    },
+    {
+      "utterance": "hey doc oc I don't want you to take the blue cube",
+      "category": "negation",
+      "note": "NEGATED command -- must not act",
+      "intended_verb": null,
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "negated command ('don' before the verb) -- I will not act"
+      }
+    },
+    {
+      "utterance": "hey doc oc grab the cube to the left of the red block",
+      "category": "relational",
+      "note": "relation ignored; 'red' belongs to the LANDMARK",
+      "intended_verb": "grab",
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "relational reference ('left of') -- I cannot pick something out by where it is relative to another object"
+      }
+    },
+    {
+      "utterance": "hey doc oc pick up the ball next to the blue cube",
+      "category": "relational",
+      "note": "only one ball, so it may resolve by luck",
+      "intended_verb": "grab",
+      "intended_label": "green ball",
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "relational reference ('next to') -- I cannot pick something out by where it is relative to another object"
+      }
+    },
+    {
+      "utterance": "hey doc oc take the object behind the red cube",
+      "category": "relational",
+      "note": "relation unrepresentable",
+      "intended_verb": "grab",
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "relational reference ('behind') -- I cannot pick something out by where it is relative to another object"
+      }
+    },
+    {
+      "utterance": "hey doc oc grab the one that isn't red",
+      "category": "relational",
+      "note": "negated attribute",
+      "intended_verb": "grab",
+      "intended_label": null,
+      "verdict": "ASKED",
+      "resolved": null,
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "red one",
+        "status": "ambiguous",
+        "candidates": [
+          "red block",
+          "red cube"
+        ]
+      }
+    },
+    {
+      "utterance": "hey doc oc grab the biggest cube",
+      "category": "superlative",
+      "note": "size not in the vocabulary; two cubes -> must ask",
+      "intended_verb": "grab",
+      "intended_label": null,
+      "verdict": "ASKED",
+      "resolved": null,
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "cube",
+        "status": "ambiguous",
+        "candidates": [
+          "red cube",
+          "blue cube"
+        ]
+      }
+    },
+    {
+      "utterance": "hey doc oc pick up the closest red thing",
+      "category": "superlative",
+      "note": "two red objects; 'closest' unhandled at parse",
+      "intended_verb": "grab",
+      "intended_label": null,
+      "verdict": "ASKED",
+      "resolved": null,
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "red thing",
+        "status": "ambiguous",
+        "candidates": [
+          "red block",
+          "red cube"
+        ]
+      }
+    },
+    {
+      "utterance": "hey doc oc take the leftmost object",
+      "category": "superlative",
+      "note": "no colour/noun to ground",
+      "intended_verb": "grab",
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "None object",
+        "status": "no_match"
+      }
+    },
+    {
+      "utterance": "hey doc oc grab the blue cube and the green ball",
+      "category": "compound",
+      "note": "TWO targets; acting on one silently is partial execution",
+      "intended_verb": "grab",
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "more than one target in one instruction ('and') -- say them one at a time"
+      }
+    },
+    {
+      "utterance": "hey doc oc pick up the red block then put it down",
+      "category": "compound",
+      "note": "sequence; only the first verb is representable",
+      "intended_verb": "grab",
+      "intended_label": "red block",
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "more than one action in one instruction ('then') -- say them one at a time"
+      }
+    },
+    {
+      "utterance": "hey doc oc grab the blue cube but not the red one",
+      "category": "compound",
+      "note": "exclusion clause",
+      "intended_verb": "grab",
+      "intended_label": "blue cube",
+      "verdict": "CORRECT",
+      "resolved": "blue cube",
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "blue cube",
+        "status": "unique",
+        "would_grab": "blue cube"
+      }
+    },
+    {
+      "utterance": "hey doc oc grabb the blue cube",
+      "category": "misspelled-verb",
+      "note": "doubled consonant in the VERB",
+      "intended_verb": "grab",
+      "intended_label": "blue cube",
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "no known verb in 'grabb blue cube'"
+      }
+    },
+    {
+      "utterance": "hey doc oc pik up the green ball",
+      "category": "misspelled-verb",
+      "note": "clipped VERB",
+      "intended_verb": "grab",
+      "intended_label": "green ball",
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "no known verb in 'pik up green ball'"
+      }
+    },
+    {
+      "utterance": "hey doc oc garb the blue cube",
+      "category": "misspelled-verb",
+      "note": "transposed VERB",
+      "intended_verb": "grab",
+      "intended_label": "blue cube",
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "no known verb in 'garb blue cube'"
+      }
+    },
+    {
+      "utterance": "hey doc oc grab the blu cube",
+      "category": "misspelled-noun",
+      "note": "misspelled COLOUR -- 'cube' still matches two objects, so ASK",
+      "intended_verb": "grab",
+      "intended_label": null,
+      "verdict": "ASKED",
+      "resolved": null,
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "cube",
+        "status": "ambiguous",
+        "candidates": [
+          "red cube",
+          "blue cube"
+        ]
+      }
+    },
+    {
+      "utterance": "hey doc oc pick up the green bal",
+      "category": "misspelled-noun",
+      "note": "misspelled NOUN -- 'green' alone still picks out one object",
+      "intended_verb": "grab",
+      "intended_label": "green ball",
+      "verdict": "CORRECT",
+      "resolved": "green ball",
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "green object",
+        "status": "unique",
+        "would_grab": "green ball"
+      }
+    },
+    {
+      "utterance": "hey doc oc take the gren ball",
+      "category": "misspelled-noun",
+      "note": "misspelled COLOUR, noun intact",
+      "intended_verb": "grab",
+      "intended_label": "green ball",
+      "verdict": "CORRECT",
+      "resolved": "green ball",
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "ball",
+        "status": "unique",
+        "would_grab": "green ball"
+      }
+    },
+    {
+      "utterance": "hey doc oc grab the yellow cube",
+      "category": "absent",
+      "note": "not in the scene -- must refuse",
+      "intended_verb": "grab",
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "yellow cube",
+        "status": "no_match"
+      }
+    },
+    {
+      "utterance": "hey doc oc pick up the purple bottle",
+      "category": "absent",
+      "note": "not in the scene -- must refuse",
+      "intended_verb": "grab",
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "purple bottle",
+        "status": "no_match"
+      }
+    },
+    {
+      "utterance": "hey doc oc take the screwdriver",
+      "category": "absent",
+      "note": "noun outside the vocabulary",
+      "intended_verb": "grab",
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "heard 'grab' but no target description"
+      }
+    },
+    {
+      "utterance": "hey doc oc grab that",
+      "category": "vague",
+      "note": "deictic, no pointing channel",
+      "intended_verb": "grab",
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "heard 'grab' but no target description"
+      }
+    },
+    {
+      "utterance": "hey doc oc pick up the thing over there",
+      "category": "vague",
+      "note": "deictic",
+      "intended_verb": "grab",
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "None thing",
+        "status": "no_match"
+      }
+    },
+    {
+      "utterance": "hey doc oc get me one of those",
+      "category": "vague",
+      "note": "deictic plural",
+      "intended_verb": "grab",
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "None one",
+        "status": "no_match"
+      }
+    },
+    {
+      "utterance": "hey doc oc grab the red one",
+      "category": "vague",
+      "note": "TWO red objects -- must ask, never pick",
+      "intended_verb": "grab",
+      "intended_label": null,
+      "verdict": "ASKED",
+      "resolved": null,
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "red one",
+        "status": "ambiguous",
+        "candidates": [
+          "red block",
+          "red cube"
+        ]
+      }
+    },
+    {
+      "utterance": "hey doc oc can you see the blue cube",
+      "category": "non-command",
+      "note": "a question, not an instruction",
+      "intended_verb": null,
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "no known verb in 'see blue cube'"
+      }
+    },
+    {
+      "utterance": "hey doc oc what colour is the cube",
+      "category": "non-command",
+      "note": "a question",
+      "intended_verb": null,
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "no known verb in 'what colour is cube'"
+      }
+    },
+    {
+      "utterance": "hey doc oc the blue cube is nice",
+      "category": "non-command",
+      "note": "a statement",
+      "intended_verb": null,
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "no known verb in 'blue cube is nice'"
+      }
+    },
+    {
+      "utterance": "just chatting about grabbing the blue cube",
+      "category": "non-command",
+      "note": "NO WAKE WORD -- must be silent",
+      "intended_verb": null,
+      "intended_label": null,
+      "verdict": "REFUSED",
+      "resolved": null,
+      "detail": {
+        "reason": "no wake word ('hey doc oc')"
+      }
+    },
+    {
+      "utterance": "hey doc oc grab the left cube",
+      "category": "arm-vs-spatial",
+      "note": "'left' means WHICH CUBE, not which arm",
+      "intended_verb": "grab",
+      "intended_label": null,
+      "verdict": "ASKED",
+      "resolved": null,
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "cube",
+        "status": "ambiguous",
+        "candidates": [
+          "red cube",
+          "blue cube"
+        ]
+      }
+    },
+    {
+      "utterance": "hey doc oc grab the blue cube with your left hand",
+      "category": "arm-vs-spatial",
+      "note": "'left' really does mean the arm here",
+      "intended_verb": "grab",
+      "intended_label": "blue cube",
+      "verdict": "CORRECT",
+      "resolved": "blue cube",
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "blue cube",
+        "status": "unique",
+        "would_grab": "blue cube"
+      }
+    },
+    {
+      "utterance": "stop",
+      "category": "stop",
+      "note": "must halt with no wake word",
+      "intended_verb": "stop",
+      "intended_label": null,
+      "verdict": "CORRECT",
+      "resolved": null,
+      "detail": {
+        "verb": "stop"
+      }
+    },
+    {
+      "utterance": "hey doc oc grab the blue cube before it stops rolling",
+      "category": "stop",
+      "note": "'stops' inside a grab command",
+      "intended_verb": "grab",
+      "intended_label": "blue cube",
+      "verdict": "CORRECT",
+      "resolved": "blue cube",
+      "detail": {
+        "verb": "grab",
+        "target_prompt": "blue cube",
+        "status": "unique",
+        "would_grab": "blue cube"
+      }
+    }
+  ]
+}

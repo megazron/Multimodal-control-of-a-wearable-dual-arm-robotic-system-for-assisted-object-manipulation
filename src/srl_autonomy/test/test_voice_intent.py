@@ -105,3 +105,79 @@ def test_question_names_the_choice():
     _, _, cands = vi.resolve_target("green cube", OBJS)
     q = vi.question_for("green cube", cands)
     assert "left" in q and "right" in q and "?" in q
+
+
+# ---------------------------------------------------------------------------
+# THE FOUR SENTENCE SHAPES THAT PRODUCED ALL SEVEN MISUNDERSTOOD OUTCOMES
+# in the 2026-08-09 language sweep. Each one parsed to a confident, wrong
+# command because the grammar matched a real verb and a real noun and threw
+# away the word that reversed or qualified them. Refusing is the fix; these
+# tests pin the refusal so it cannot be "simplified" back out.
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("utt", [
+    "hey doc oc don't grab the blue cube",
+    "hey doc oc do not pick up the red block",
+    "hey doc oc never grab the green ball",
+    "hey doc oc I don't want you to take the blue cube",
+])
+def test_negation_before_the_verb_refuses(utt):
+    i = vi.parse(utt)
+    assert not i.ok, "NEGATED command parsed as an action: %r" % i
+    assert "negat" in i.reason
+
+
+def test_negation_AFTER_the_verb_is_an_exclusion_clause_not_a_refusal():
+    """The positional rule is the whole point. 'grab X but not Y' is a good
+    grab; refusing it would trade a real capability for no safety at all."""
+    i = vi.parse("hey doc oc grab the blue cube but not the red one")
+    assert i.ok and i.verb == "grab"
+    assert i.target == "blue cube"
+
+
+def test_relational_reference_refuses():
+    i = vi.parse("hey doc oc grab the cube to the left of the red block")
+    assert not i.ok
+    assert "relational" in i.reason
+
+
+def test_sequence_refuses_rather_than_executing_half():
+    i = vi.parse("hey doc oc pick up the red block then put it down")
+    assert not i.ok
+    assert "one action" in i.reason
+
+
+def test_two_targets_refuse_rather_than_picking_one():
+    i = vi.parse("hey doc oc grab the blue cube and the green ball")
+    assert not i.ok
+    assert "one target" in i.reason
+
+
+def test_a_bare_conjunction_is_not_two_targets():
+    """'and' alone must not become a refusal -- only a second NAMED target."""
+    i = vi.parse("hey doc oc go ahead and grab the blue cube")
+    assert i.ok and i.target == "blue cube"
+
+
+def test_stop_is_never_refused_for_being_ungrammatical():
+    """The guard sits AFTER the stop check. A halt must survive any sentence,
+    including ones this module would otherwise refuse."""
+    for utt in ("don't move, stop",
+                "stop and then let go",
+                "stop next to the red block"):
+        assert vi.parse(utt).verb == "stop", utt
+
+
+def test_verbs_are_matched_EXACTLY_and_here_is_why():
+    """MEASURED HAZARD, not a style preference.
+
+    Fuzzy-matching the verb vocabulary at Damerau-Levenshtein 1 would make
+    'top' a STOP, 'crop' a DROP, and 'let'/'yet'/'net'/'bet' all a GET or a
+    SET. The verb decides the ACTION, so a near-miss there is the one failure
+    this module is built to prevent -- which is why a misspelled verb refuses
+    outright while a misspelled NOUN degrades to a question.
+    """
+    assert not vi.parse("hey doc oc grabb the blue cube").ok       # verb: refuse
+    assert not vi.parse("hey doc oc top").ok                       # NOT a stop
+    i = vi.parse("hey doc oc take the gren ball")                  # noun: open
+    assert i.ok and i.verb == "grab" and i.target == "ball"

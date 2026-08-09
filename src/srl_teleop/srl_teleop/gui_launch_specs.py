@@ -68,11 +68,11 @@ def dispatcher_tasks():
     except OSError:
         return set()
     ok = set()
-    for m in re.finditer(r"^\s*([a-z0-9|]+)\)\s*$|^\s*([a-z0-9|]+)\)\s*\n?\s*exec",
+    for m in re.finditer(r"^\s*([a-zA-Z0-9|]+)\)\s*$|^\s*([a-zA-Z0-9|]+)\)\s*\n?\s*exec",
                          src, re.M):
         grp = m.group(1) or m.group(2) or ""
         for t in grp.split("|"):
-            if re.fullmatch(r"[te]\d", t):
+            if re.fullmatch(r"[te]\d|[abc]", t):
                 ok.add(t)
     # The `eN) SCRIPT=...` form sits on one line and the regex above misses it.
     for m in re.finditer(r"^\s*(e\d)\)\s*SCRIPT=", src, re.M):
@@ -82,6 +82,8 @@ def dispatcher_tasks():
     # stderr and exits.
     for m in re.finditer(r"^\s*([te]\d)\)\s*\n?\s*echo[^\n]*>&2", src, re.M):
         ok.discard(m.group(1))
+    # The a|b|c branch lists both cases; only the lower-case form is a task.
+    ok -= {"A", "B", "C"}
     return ok
 
 
@@ -143,26 +145,35 @@ def task_specs():
                         needs_stack=True, note="scripted pilot run",
                         disabled_reason=why))
 
-    # TASKS A, B AND C: specified and VERIFIED, and deliberately not runnable.
+    # TASKS A, B AND C -- now LIVE, one button per (task, mode).
     #
-    # Part 3 built the specification and the N=10 full-path verification; it
-    # did not build a runner, exactly as the five-task set before it ("nothing
-    # runs this spec"). The tempting move is to point these buttons at t3/t6/t7,
-    # whose geometry is close. That would be WRONG and quietly so: the bimanual
-    # package still carries the superseded 300/310 mm span, so a button
-    # labelled "B coordinated carry" would run a 300 mm tray and log it under a
-    # 500 mm specification. A button that launches something DIFFERENT from
-    # what it claims is worse than one that refuses.
-    for k, lab in (("A", "A positioning"), ("B", "B coordinated carry"),
-                   ("C", "C dual pursuit")):
-        out.append(Spec("abc_%s" % k.lower(), lab, "task", [],
-                        needs_stack=True,
-                        note="specified and verified N=10; no runner yet",
-                        disabled_reason=(
-                            "Task %s has a verified SPEC but no runner. Do "
-                            "not wire this to t3/t6/t7: that package still "
-                            "uses the superseded 300/310 mm span and would "
-                            "log the wrong geometry under this name." % k)))
+    # They were disabled while they had a verified spec and no runner, with
+    # the reason on the button: pointing them at t3/t6/t7 would have run the
+    # superseded 300/310 mm span and logged it under a 500 mm name. That is no
+    # longer a risk, because run_abc.py reads experiments/abc/tasks.py -- the
+    # spec that was verified N=10 over the densified full path -- and the
+    # dispatcher routes a|b|c there and nowhere else.
+    #
+    # ONE BUTTON PER MODE, because the mode is the point. Each mode enters at
+    # the topic its own upstream publishes at, so a clip recorded under a mode
+    # name really did travel that mode's path.
+    for k, lab in (("a", "A positioning"), ("b", "B coordinated carry"),
+                   ("c", "C dual pursuit")):
+        for mode in ("01_master_teleop", "02_vr_teleop",
+                     "04_shared_autonomy", "06_full_autonomy"):
+            short = mode.split("_", 1)[1].replace("_", " ")
+            out.append(Spec(
+                "abc_%s_%s" % (k, mode[:2]),
+                "%s  [%s]" % (lab, short), "task",
+                _sh("run_experiment.sh", k, "--mode", mode,
+                    "--participant", "PILOT", "--scripted"),
+                needs_stack=True,
+                disabled_reason=(
+                    None if k in accepted else
+                    "run_experiment.sh does not accept %r -- this button "
+                    "would exit 2" % k),
+                note="enters at this mode's own command path; "
+                     "coordinates from the N=10-verified spec"))
     return out
 
 

@@ -19,7 +19,15 @@ usage() {
   cat >&2 <<EOF
 usage: $0 <task> [args]
 
-  CURRENT SET (bimanual)
+  CURRENT THREE-TASK SET (experiments/abc, verified N=10 full-path)
+    a     positioning              uncoupled control, attention contrast
+    b     coordinated carry        rigid AND compliant, 500 mm span
+    c     dual pursuit             simultaneity across the disjoint sets
+
+    args:  --mode 01_master_teleop|02_vr_teleop|04_shared_autonomy|06_full_autonomy
+           [--scenario S..] [--participant P01] [--scripted] [--dry-run]
+
+  SUPERSEDED BIMANUAL SET
     t3    rigid coupled carry        PRIMARY
     t6    compliant coupled carry    the contrast with T3
     t7    bimanual pursuit           cross-arm interference
@@ -45,6 +53,14 @@ TASK="${1:-}"; shift || true
 [ -z "$TASK" ] && usage
 
 case "$TASK" in
+  a|b|c|A|B|C)
+    # THE CURRENT THREE-TASK SET. Coordinates come from the VERIFIED spec in
+    # experiments/abc/tasks.py (N=10 over the densified full path, 0 failures),
+    # NOT from experiments/bimanual/, which still carries the superseded
+    # 300/310 mm span. Running B against that package would log a 300 mm tray
+    # under a 500 mm specification.
+    exec python3 "$(dirname "$0")/../src/srl_experiments/experiments/abc/run_abc.py" \
+        --task "$TASK" "$@" ;;
   t2|t3|t5|t6|t7|t8|t9)
     exec ros2 run srl_experiments run_bimanual.py --task "$TASK" "$@" ;;
   e1) SCRIPT=run_fitts.py ;;

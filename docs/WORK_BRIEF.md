@@ -16,10 +16,22 @@ the lab.**
 
 ## START HERE
 
-**First incomplete part: PART 2 — FULL DIAGNOSIS.** Report before fixing.
+**First incomplete part: PART 3 — FINISH THE OUTSTANDING WORK.**
+Start at 3.1, the language and vision sweep.
 
-Part 1 is DONE (`6736ee7`): autonomy moves the arm, 1092 trajectories and
-0.0700 / 0.1204 m of real EE displacement, residual 0.0000 m.
+- Part 1 DONE (`6736ee7`): autonomy moves the arm — 1092 trajectories and
+  0.0700 / 0.1204 m of real EE displacement, residual 0.0000 m. Root cause was
+  a missing `import time`.
+- Part 2 DONE (`9e0dce4`): full diagnosis. One bug wore three costumes; two
+  measuring instruments were lying. Job F re-measured honestly. Read Part 2's
+  "NOT FIXED, AND WHY" list before starting new work — five wall-clock
+  intervals, four identity-quaternion drive sites, two audit blind spots and
+  D2 (second-stack prevention) are diagnosed but open, each with a reason.
+
+**The stack is currently UP** (`teleop.launch.py gate:=false`) with the left
+arm parked mid-workspace from the dial probe. Re-home or relaunch before any
+measurement that assumes the home pose — `measure_workspace.py` asserts on it,
+`diagnose_front_reach.py` does not and should.
 
 ---
 
@@ -28,8 +40,8 @@ Part 1 is DONE (`6736ee7`): autonomy moves the arm, 1092 trajectories and
 | part | title | status | commit |
 | --- | --- | --- | --- |
 | 1 | Does autonomy move the arm? | **DONE — YES** | `6736ee7` |
-| 2 | Full diagnosis (report before fixing) | **NOT STARTED** | — |
-| 3 | Finish outstanding work (lang sweep, gripper, degraded warning, tasks A/B/C) | NOT STARTED | — |
+| 2 | Full diagnosis (report before fixing) | **DONE** | `9e0dce4` |
+| 3 | Finish outstanding work (lang sweep, gripper, degraded warning, tasks A/B/C) | **NEXT** | — |
 | 4 | Dual-view GUI, everything runs through it | NOT STARTED | — |
 | 5 | Re-record, driven from the GUI | NOT STARTED | — |
 | 6 | Graphs | NOT STARTED | — |
@@ -80,7 +92,15 @@ a real bug, not a discovery problem - find it.
 
 ## PART 2 — FULL DIAGNOSIS. Report before fixing.
 
-**STATUS: NOT STARTED** — Commit: —
+**STATUS: DONE.** Commit `9e0dce4`. Full report in NEXT_SESSION.md.
+
+Headline: Part 1's missing import killed the follower, and a dead node
+publishes nothing — so "autonomy does not move", "`/ik_status` publishes an
+empty array" (D3) and "the dial probe recorded zero samples" were **one fault**.
+Two instruments were separately found to be fabricating numbers. Job F's
+safety claim was retracted and then re-measured properly: 0.0857 m clearance,
+0 floor blocks, identical at both dial ends, with 0.1403 m of demonstrated
+motion behind it.
 
 ### Brief (verbatim)
 
@@ -266,3 +286,4 @@ Push to https://github.com/megazron/dococthefinal. Check file sizes first.
 | --- | --- | --- | --- |
 | 2026-08-09 | brief created | `c6c31fe` | superseded by the 7-part brief below |
 | 2026-08-09 | Part 1 DONE | `6736ee7` | missing `import time` killed the follower on the first autonomy pose; probe was measuring blocker registration not assertion |
+| 2026-08-09 | Part 2 DONE | `9e0dce4` | one bug wore three costumes; two instruments lying; Job F re-measured; SHM clearing moved into env.sh startup |

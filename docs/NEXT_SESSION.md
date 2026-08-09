@@ -1,3 +1,62 @@
+# JOB B DONE - workspace audit. REPORT ONLY, nothing fixed (2026-08-09)
+
+`scripts/audit_workspace.py` -- repeatable, 232 python files scanned. Each
+check exists because reading did NOT catch that bug in this project.
+
+## CLEAN: the five recurring bug classes are essentially gone
+
+    A  wall-clock used as an interval          0    the conversion held
+    B  block() with no clear() anywhere        0
+    D  can start a second stack                0
+    E1 entry point does not resolve            0
+    F1 referenced path does not exist          0
+    F2 task arg the runner rejects             0    (the class that made five
+                                                     GUI buttons do nothing)
+
+C  unprefixed resource in C++: **3, all VENDOR** -- `reactivate_gripper` in
+robotiq_driver and `reset_fault` twice in kortex_driver. All upstream files
+already addressed through `patches/`, so these are the patch TARGETS, not
+unpatched defects. Worth re-checking after any vendor bump.
+
+## OUTSTANDING, and NOT fixed because you asked for a report first
+
+**H  a check that can pass on NO DATA: 4.** The most serious class, because it
+is how a known-answer test passed on zero parsed rows.
+
+    scripts/verify_final5.py:67   good  = all(ok(arm, w) for w in path)
+    scripts/verify_final5.py:70   goodb = all(ok(arm, w) for w in place)
+    scripts/verify_scenarios.py:165  ok7 = all(centres.values())
+    scripts/verify_autonomy.py:117  ok_words = all(...)
+
+An empty `path` makes `good` True. **The five-task verification reporting
+"0 failures" would be indistinguishable from it having checked nothing.**
+That is the headline finding of this audit.
+
+**E2  module with main() not registered: 3.** Two are correct as they stand:
+`boundary_feedback_node` was deliberately withdrawn, and
+`kortex_highlevel_bridge` runs through its own venv interpreter via
+ExecuteProcess rather than as an entry point. **`analyse_sensing` looks like a
+genuine omission** -- it has a main() and nothing runs it.
+
+**G  defined and never called: 253.** Verified by sampling, not assumed: three
+picked at random (`holm`, `prim_distance`, `elapsed_columns_present`) each have
+**0 non-definition mentions anywhere**. `holm` is a multiple-comparison
+correction defined identically in five analysers and called in none, so every
+E-series analyser reports uncorrected p-values. That one is a RESULT-AFFECTING
+finding, not tidiness.
+
+## FOUR FALSE POSITIVES IN MY OWN AUDIT, found and fixed before reporting
+1. The audit scanned ITSELF; every check contains its own pattern as a string.
+2. Dead-code detection counted only `name(` calls, so a function in a dispatch
+   list read as dead. 293 -> 253 after counting mentions.
+3. A comment and a docstring example counted as "can start a second stack".
+4. A path quoted at the end of a sentence carried the full stop, so
+   `verify_scenarios.py.` read as missing.
+
+## JOB C: NOT STARTED
+
+---
+
 # JOB A DONE - recordings restructured by control mode (2026-08-09)
 
     recordings/verification/<mode>/<task>/<scenario>/<condition>/

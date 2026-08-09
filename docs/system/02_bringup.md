@@ -2,7 +2,39 @@
 
 Everything here assumes `source install/setup.bash`.
 
-## 0. Before anything
+## 0a. FIRST ACTION OF EVERY LAB SESSION — re-capture the channel baseline
+
+```bash
+bash scripts/check_channels.sh          # ~3 min, block A only, 14 sweeps
+```
+
+**Do this before anything else that involves the master arm, every session,
+whether or not anyone touched a soldering iron.**
+
+`master_pose_node` decides which channels to freeze from a **stored file**,
+not from live hardware. If that file is older than the wiring, the software
+freezes channels that now work and **nothing downstream disagrees** — the arm
+simply behaves as though the repair never happened, and the only symptom is
+motion that was already expected to be missing.
+
+The runtime reads the **newest** `recordings/baselines/channels_*.json`, which
+is the same file `check_channels.sh` diffs against. So making a repair take
+effect is exactly one command:
+
+```bash
+python3 src/srl_experiments/trajectory_capture/channel_report.py \
+    <csv> --save-baseline recordings/baselines/channels_$(date +%Y%m%d).json
+```
+
+(the script prints this line for you at the end). **Target: 12 or more of 14
+coherent**, which is where degraded mode stops engaging.
+
+If degraded mode engages, the startup banner carries a boxed warning naming
+the file and its age, and `master_pose_node` re-issues it every 30 s. Seeing
+that warning with a freshly captured baseline is fine; seeing it with a
+baseline older than your last repair means the repair is being discarded.
+
+## 0b. Before anything
 
 ```bash
 bash scripts/diagnostics.sh

@@ -483,7 +483,28 @@ shell running it, which killed the working shell three times in one session.
 
 ---
 
-## 1. REPAIR LEFT j2 AND j4. Nothing else on the master is worth soldering.
+## 1. RE-CAPTURE THE CHANNEL BASELINE -- FIRST, AND AGAIN AT THE END
+
+```bash
+bash scripts/check_channels.sh          # ~3 min, block A only
+```
+
+Do this BEFORE the soldering iron comes out, not only after. Two reasons: it
+is the reference every later repair is diffed against, and it is the only
+thing that makes a repair visible to the software at all.
+
+`master_pose_node` decides which channels to freeze from the NEWEST
+`recordings/baselines/channels_*.json`. Until 2026-08-09 it read a hardcoded
+`channels_20260806.json` instead, so a re-capture could not take effect at
+all -- every pot could be repaired, the script could confirm 14/14, and the
+runtime would go on freezing eight working channels for ever. That is fixed,
+and the runtime now selects the same file the script does (`ls -t`).
+
+Save the new reference at the end of the session; the script prints the exact
+command. **Target: 12 or more of 14 coherent**, where degraded mode stops
+engaging.
+
+## 2. REPAIR LEFT j2 AND j4. Nothing else on the master is worth soldering.
 
 **These two, and only these two.** Two independent routes agree, which is why
 this is stated flatly rather than as a suggestion:
@@ -503,7 +524,7 @@ Expected gain: the left arm moves from rung **SPH_RATE** (radius driven as a
 rate off the wrist, cost \SI{0.076}{\metre} mean) back to **SPHERICAL**
 (radius measured, cost \SI{0.000}{\metre}).
 
-## 2. Re-test AFTER EACH ATTEMPT, not once at the end
+## 3. Re-test AFTER EACH ATTEMPT, not once at the end
 
 ```bash
 bash scripts/check_channels.sh          # ~3 min, block A only
@@ -521,7 +542,7 @@ Watch for the verdict **INCOHERENT** specifically. A failing pot does not go
 quiet: it returns a wide spread of values that are not a trajectory, and range
 alone calls that healthy. That is how a broken channel keeps getting trusted.
 
-## 3. ONE 35-minute recapture, gate fix live
+## 4. ONE 35-minute recapture, gate fix live
 
 ```bash
 terminal 1:  bash scripts/run_teleop.sh gate:=false
@@ -543,7 +564,7 @@ This capture is what unblocks: the gyro-azimuth decision, any smoothing
 parameter, and the first real gain matrix with a **moving** master. Every
 tracking figure in the thesis was taken with the master at rest.
 
-## 4. Verify the cascade rate limit end to end
+## 5. Verify the cascade rate limit end to end
 
 `clamp_towards` now cascades `max_step` as well as `max_vel`. It is
 unit-tested and has **never been measured with a stack up**.
@@ -564,7 +585,7 @@ cascade was meant to remove.
 Record the actual numbers either way. This is a prediction with a clear
 falsifier, which is the only kind worth testing.
 
-## 5. Unblock VR: platform-tools on WINDOWS
+## 6. Unblock VR: platform-tools on WINDOWS
 
 ```
 https://dl.google.com/android/repository/platform-tools-latest-windows.zip
@@ -589,7 +610,7 @@ Then the whole connection is one command, which also supervises the tunnel:
 bash scripts/vr_connect.sh
 ```
 
-## 6. While you are there, two cheap measurements
+## 7. While you are there, two cheap measurements
 
 * **Read the right arm's home joint angles from hardware.** They have NEVER
   been read (`config/home_positions_right.txt` says so), and $P_{\text{HOME}}$

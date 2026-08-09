@@ -116,7 +116,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--capture", default=CAPTURE)
     ap.add_argument("--baseline",
-                    default="recordings/baselines/channels_20260806.json")
+                    default=dg.default_baseline_path(pkg_root=ROOT))
     a = ap.parse_args()
     base = dg.load_baseline(a.baseline)
     if not base:

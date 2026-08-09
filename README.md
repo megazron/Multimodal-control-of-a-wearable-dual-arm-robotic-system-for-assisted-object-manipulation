@@ -156,8 +156,17 @@ which is 13.9 ms at 72 Hz.
 
 7 of 14 master channels are **INCOHERENT** (over 5% of updates jumping >60°,
 faster than any hand). Degraded mode freezes them and runs on what is left.
-Baseline: `recordings/baselines/channels_20260806.json`. **Repairing `l_j2`
-and `l_j4` buys the most** — see `docs/NEXT_SESSION.md`.
+**Repairing `l_j2` and `l_j4` buys the most** — see `docs/NEXT_SESSION.md`.
+
+> **FIRST ACTION OF EVERY LAB SESSION:**
+> ```bash
+> bash scripts/check_channels.sh      # ~3 min
+> ```
+> Which channels are frozen is decided from the **newest**
+> `recordings/baselines/channels_*.json`, not from live hardware. A baseline
+> older than the wiring makes the software freeze channels that now work, and
+> the repair is silently discarded. Save a new one at the end of the run and
+> the next launch picks it up automatically.
 
 > **Every number in the protocols is IK feasibility in simulation.** Nothing
 > in the bimanual programme has been driven by a human through the master arm,

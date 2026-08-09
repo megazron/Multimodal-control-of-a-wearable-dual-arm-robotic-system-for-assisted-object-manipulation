@@ -35,6 +35,24 @@ button inside them. `console` refuses to start a second stack and says why:
 two `master_pose_node` instances split the serial stream and invalidated a
 full day of measurements.
 
+## FIRST ACTION OF EVERY LAB SESSION
+
+```
+bash scripts/check_channels.sh          # ~3 min, 14 sweeps, block A only
+```
+
+Which master channels are used and which are FROZEN is decided from the
+**newest** `recordings/baselines/channels_*.json` -- a file on disk, not live
+hardware. A baseline older than the wiring makes the software freeze channels
+that now work, and **nothing downstream disagrees**: the arm behaves exactly as
+it did before the repair. Target is **12 or more of 14 coherent**, where
+degraded mode stops engaging. Save the new reference at the end (the script
+prints the command) and the next launch picks it up automatically, because the
+runtime and the script now select the same file by mtime.
+
+When degraded mode engages, the startup banner carries a boxed warning naming
+the baseline file and its age, and it is re-issued every 30 s.
+
 
 Two Kinova Gen3 (7-DOF) arms on a backpack frame, teleoperated from a master
 mannequin arm instrumented with potentiometers and IMUs, read by a Teensy 4.1

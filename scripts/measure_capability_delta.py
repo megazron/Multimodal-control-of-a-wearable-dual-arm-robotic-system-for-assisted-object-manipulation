@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.join(ROOT, "src/srl_teleop"))
 from srl_teleop import degraded_mode as dg          # noqa: E402
 from srl_teleop import master_calibration as mc     # noqa: E402
 
-BASE = os.path.join(ROOT, "recordings/baselines/channels_20260806.json")
+BASE = dg.default_baseline_path(pkg_root=ROOT)   # NEWEST, not a fixed date
 OUT = os.path.join(ROOT, "recordings/baselines/capability_delta.json")
 
 

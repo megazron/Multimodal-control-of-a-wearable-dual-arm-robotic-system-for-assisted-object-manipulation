@@ -357,19 +357,16 @@ class MasterPoseNode(Node):
         if dmode not in ("auto", "on", "off"):
             raise ValueError("degraded_mode must be auto|on|off, got %r"
                              % dmode)
-        self.dg_baseline = dg.load_baseline(
-            str(self.get_parameter("channel_baseline").value))
+        self.dg_path = str(self.get_parameter("channel_baseline").value)
+        self.dg_baseline = dg.load_baseline(self.dg_path)
         self.dg_min = int(self.get_parameter("degraded_min_coherent").value)
-        # WARN LOUDLY IF THE BASELINE IS STALE. decide() reads a stored file,
-        # so repairing the hardware does not change its answer until the file
-        # is refreshed. Silently freezing eight repaired channels is exactly
-        # the failure this project keeps meeting.
-        try:
-            _stale = dg.staleness_warning(baseline)
-        except Exception:                                    # noqa: BLE001
-            _stale = None
-        if _stale:
-            self.get_logger().error("[CHANNELS] %s" % _stale)
+        # THE STALENESS WARNING IS NOW PART OF THE BANNER (see below) and is
+        # re-issued every 30 s by `nag_stale()`. It used to be a separate call
+        # here reading an undefined name `baseline`, wrapped in a bare
+        # `except Exception` -- so it raised NameError on EVERY run, was
+        # swallowed, and the mitigation never fired once. Verified in
+        # isolation, never at its call site: bug class 5 wearing a new coat.
+        self.dg_stale = dg.staleness_warning(self.dg_baseline, self.dg_path)
         self.degraded, self.frozen_idx, dg_reason = dg.decide(
             self.dg_baseline, dmode, self.dg_min)
         # Per-arm validation set: a frozen channel is constant, so checking
@@ -428,7 +425,8 @@ class MasterPoseNode(Node):
                     % (a, ch + 1, math.degrees(self.rf_dead), self.rf_rate,
                        self.rf_min, self.rf_max, ch + 1))
         for line in dg.banner(self.dg_baseline, self.degraded,
-                              self.frozen_idx, dg_reason, self.dg_min).split("\n"):
+                              self.frozen_idx, dg_reason, self.dg_min,
+                              self.dg_path).split("\n"):
             if self.degraded:
                 self.get_logger().warn(line)
             else:
@@ -615,6 +613,13 @@ class MasterPoseNode(Node):
             QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE,
                        durability=DurabilityPolicy.TRANSIENT_LOCAL))
         self.create_timer(1.0, self.publish_channel_state)
+        # NAG. A startup banner scrolls away, and on a launched stack it
+        # scrolls away under twenty other nodes' output within seconds. The
+        # operator who most needs this line is the one who walked up to a
+        # stack that was already running. 30 s is the same cadence the block
+        # monitor uses for a held blocker, and for the same reason: a
+        # condition that is still true deserves to still be saying so.
+        self.create_timer(30.0, self.nag_stale)
         self.create_service(Trigger, "/master_rebase", self.srv_rebase)
 
         self.raw_pubs = {
@@ -822,10 +827,21 @@ class MasterPoseNode(Node):
         self.get_logger().warn("[REF] %s" % resp.message)
         return resp
 
+    def nag_stale(self):
+        if self.degraded and self.dg_stale:
+            self.get_logger().error("[CHANNELS] %s" % self.dg_stale)
+
     def publish_channel_state(self):
         """One line per arm, latched, so a late subscriber still gets it."""
         bits = ["DEGRADED" if self.degraded else "FULL",
                 "%d/14 coherent" % dg.n_coherent(self.dg_baseline)]
+        # The baseline FILE goes on the wire too. Anything reading this topic
+        # -- console, launcher, preflight -- can then say WHICH file is
+        # freezing the channels without opening a log.
+        if self.degraded:
+            bits.append("baseline=%s%s" % (
+                os.path.basename(self.dg_path or "?"),
+                " STALE?" if self.dg_stale else ""))
         for a in self.arms:
             frz = self.frozen_idx.get(a, [])
             bits.append("%s: use j%s frozen j%s %s" % (

@@ -4,7 +4,7 @@
 Figures are regenerated from the JSON and CSV in recordings/, never retyped,
 so a change to the data changes the figure. Vector (PDF) output throughout.
 """
-import json, glob, os, math, csv
+import json, glob, os, math, csv, sys
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
@@ -100,7 +100,11 @@ def fig_mount_sweep():
 
 # ------------------------------------------------------------ channel health
 def fig_channels():
-    p = os.path.join(ROOT, "recordings/baselines/channels_20260806.json")
+    # NEWEST baseline, not a hardcoded date -- otherwise the thesis figure
+    # would keep showing 2026-08-06 health after the pots were repaired.
+    sys.path.insert(0, os.path.join(ROOT, "src/srl_teleop"))
+    from srl_teleop import degraded_mode as _dg
+    p = _dg.default_baseline_path(pkg_root=ROOT)
     if not os.path.exists(p):
         return
     d = json.load(open(p))

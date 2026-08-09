@@ -84,10 +84,45 @@ CHANNEL_ROLE = {
 SPHERICAL_POSITION_IDX = (0, 1, 2, 3)
 
 
-def default_baseline_path(pkg_root=None):
+BASELINE_GLOB = "channels_*.json"
+
+
+def baseline_dir(pkg_root=None):
     root = pkg_root or os.environ.get("SRL_WS", os.path.expanduser("~/kortex_ws"))
-    return os.path.join(root, "recordings", "baselines",
-                        "channels_20260806.json")
+    return os.path.join(root, "recordings", "baselines")
+
+
+def default_baseline_path(pkg_root=None):
+    """The NEWEST channel baseline, not a hardcoded filename.
+
+    THIS WAS THE BUG THAT MADE THE POT REPAIR INVISIBLE, and it was not the
+    warning being too quiet -- it was the runtime reading a different file
+    from the one the lab writes.
+
+    `check_channels.sh` ends by telling the operator to save the new reference
+    as `channels_$(date +%Y%m%d).json`, and it diffs against
+    `ls -t channels_*.json | head -1`. This function used to return the
+    literal string "channels_20260806.json". So a lab session could repair
+    every pot, re-capture, save `channels_20260812.json`, watch the script
+    confirm 14/14 -- and `master_pose_node` would go on reading the 08-06 file
+    and freezing eight working channels for ever. Nothing anywhere would
+    disagree out loud.
+
+    Two "which baseline is current" rules in one repository is the drift class
+    this project has met repeatedly. There is now one rule, and it is this
+    one; the shell script's `ls -t` selects the same file.
+    """
+    d = baseline_dir(pkg_root)
+    try:
+        cands = [os.path.join(d, f) for f in os.listdir(d)
+                 if f.startswith("channels_") and f.endswith(".json")]
+    except OSError:
+        cands = []
+    if not cands:
+        # Name the conventional path anyway, so the "no baseline" message can
+        # say WHERE it looked rather than just that it failed.
+        return os.path.join(d, "channels_20260806.json")
+    return max(cands, key=os.path.getmtime)
 
 
 def load_baseline(path):
@@ -131,17 +166,9 @@ def baseline_age_days(path=None):
     still says the arm is broken, so degraded mode still engages and still
     freezes eight working channels.
     """
-    import os
     import time
     if path is None:
-        here = os.path.dirname(os.path.abspath(__file__))
-        for up in range(2, 7):
-            cand = os.path.normpath(os.path.join(
-                here, *([".."] * up),
-                "recordings/baselines/channels_20260806.json"))
-            if os.path.exists(cand):
-                path = cand
-                break
+        path = default_baseline_path()
     if not path or not os.path.exists(path):
         return None
     return (time.time() - os.path.getmtime(path)) / 86400.0
@@ -166,13 +193,19 @@ def staleness_warning(baseline, path=None):
     n = n_coherent(baseline)
     if n >= 12:
         return None                     # nothing is being frozen
+    if path is None:
+        path = default_baseline_path()
     age = baseline_age_days(path)
     when = ("%.1f days old" % age) if age is not None else "unknown age"
-    return ("degraded mode is engaging on a STORED BASELINE (%s) that says "
-            "%d/%d coherent, NOT on live hardware. If the pots have been "
-            "repaired since it was captured, this is freezing working "
-            "channels. Refresh with scripts/check_channels.sh, or pass "
-            "degraded_mode:=off to override." % (when, n, TOTAL_CHANNELS))
+    return ("THE CHANNEL SET BELOW COMES FROM A FILE ON DISK, NOT FROM THIS "
+            "ARM. %s (%s) says %d/%d coherent, so %d channels are about to be "
+            "FROZEN. If any pot has been repaired since that file was "
+            "written, this is freezing a channel that works and NOTHING WILL "
+            "SAY SO. Re-capture: bash scripts/check_channels.sh  (~3 min, "
+            "FIRST ACTION OF EVERY LAB SESSION). Override: "
+            "degraded_mode:=off."
+            % (os.path.basename(path or "?"), when, n, TOTAL_CHANNELS,
+               TOTAL_CHANNELS - n))
 
 
 def decide(baseline, mode, min_coherent=12):
@@ -231,7 +264,20 @@ def position_capability(arm, frozen):
     return "; ".join(bits)
 
 
-def banner(baseline, active, exc, reason, min_coherent=12):
+def _wrap(text, width=68, indent="  "):
+    out, line = [], indent
+    for w in text.split():
+        if len(line) + len(w) + 1 > width and line.strip():
+            out.append(line)
+            line = indent + w
+        else:
+            line = (line + " " + w) if line.strip() else (indent + w)
+    if line.strip():
+        out.append(line)
+    return out
+
+
+def banner(baseline, active, exc, reason, min_coherent=12, path=None):
     """The startup block. Loud on purpose: which channels are driving the
     robot is the single most load-bearing fact about a run, and it has
     historically been discoverable only by reading a log for rejection
@@ -241,6 +287,15 @@ def banner(baseline, active, exc, reason, min_coherent=12):
          "MASTER CHANNEL SET -- %s"
          % ("DEGRADED MODE ACTIVE" if active else "full channel set"),
          reason, ""]
+    # THE STALENESS WARNING LIVES INSIDE THE BANNER, not beside it.
+    # It was previously a separate log call at a different point in startup,
+    # and that call raised NameError on every single run for days -- swallowed
+    # by a bare `except`, so the mitigation shipped, was verified in isolation,
+    # and never once fired. A warning that has to be remembered separately is
+    # a warning that can go missing separately.
+    stale = staleness_warning(baseline, path) if active else None
+    if stale:
+        L += ["!" * 72] + _wrap(stale) + ["!" * 72, ""]
     for a in ARMS:
         frozen = exc.get(a, [])
         use = [i for i in range(7) if i not in frozen]

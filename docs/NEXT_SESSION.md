@@ -1,3 +1,39 @@
+# C4 PART TWO (2026-08-09) - CAD render works; ONE RVIZ CLAIM WAS WRONG
+
+## CORRECTION to the previous C4 commit
+I wrote that the RViz capture recipe was "one command per view". **It is not.**
+`shoot.sh` takes yaw/pitch/distance arguments and IGNORES them: the camera
+pose comes from the `.rviz` config file, so every invocation produces the SAME
+view. Verified by md5 -- two "different" captures were byte-identical.
+
+Getting the other views needs a per-view `.rviz` config with the camera pose
+written into it, which is what `record_rviz.py:ensure_display()` already does
+and what `shoot.sh` should reuse. That is the fix; it was not attempted here.
+
+## CAD RENDERING WORKS, and it is vector
+`scripts/render_cad_figures.py` projects the B-rep through cadquery's SVG
+exporter: resolution-independent, no GL context, no display, no compositor.
+That last matters on this machine, where x11grab on a composited window
+records black.
+
+`potarm_iso.svg` is rendered and inspected. It shows the repeating joint
+module clearly -- three modules and the base -- which **visually corroborates
+the 79.0 mm module pitch measured in C2**.
+
+**It is SLOW.** Hidden-line projection over a 400-solid assembly takes several
+minutes per view, and the remaining views were still rendering. Zero-byte
+partial files are deleted rather than committed.
+
+## STILL TO DO
+* remaining CAD views (front/side/top for both parts) -- just run the script
+  and let it finish;
+* the annotated CAD figures: pot/IMU/FSR placement, link-length diagram,
+  exploded view, mount with bases. These need annotation on top of the
+  renders, like the RViz figure;
+* the other RViz stills, after fixing `shoot.sh` to write a per-view config.
+
+---
+
 # C5 DONE - the CAD is not the kinematic source (2026-08-09)
 
 83 pages, 0 errors, 0 undefined references.

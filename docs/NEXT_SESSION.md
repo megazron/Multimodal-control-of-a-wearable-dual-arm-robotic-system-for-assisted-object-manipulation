@@ -159,8 +159,24 @@ deliberately unbound. README section added.
 **BLOCKED ON: Android Platform-Tools, installed on the WINDOWS side.** Not
 present. Nothing in this path has run against a headset.
 
-## PARTS 8-9 - NOT STARTED
-8 new operator features,
+## PART 8 - operator aids: PARTIALLY DONE, this commit
+Six candidates evaluated in `docs/system/08_operator_aids.md`; four rejected
+with rig-specific reasons (FSR conflicts with the gripper twice; the IMU is
+the primary direction sensor and one unit spikes 72 deg/s while stationary;
+snap-to-object would make the DIRECT baseline not a baseline).
+
+BUILT: `boundary_feedback_node` -- predicts the workspace wall ahead along the
+direction of travel and names which wall it is. **Live verification did NOT
+complete**: /compute_ik was not being served when the test ran. The node
+correctly published nothing rather than inventing a boundary, but that is not
+evidence it works. FIRST JOB NEXT: one run against a healthy stack to measure
+how far the warning leads the wall.
+
+NOT BUILT: the wrist camera relay. Evaluated as the second-best candidate and
+still is; it is a subscriber and a widget.
+
+## PART 9 - NOT STARTED
+
 6 GUI with embedded RViz, 7 VR setup + README, 8 new operator features,
 9 re-record + self-audit. Each is a session's work; they were not begun
 rather than begun badly.

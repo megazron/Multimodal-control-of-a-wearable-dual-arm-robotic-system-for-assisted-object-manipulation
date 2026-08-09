@@ -44,6 +44,7 @@ setup(
             'pointing_direction_node = srl_teleop.pointing_direction_node:main',
             'channel_manager = srl_teleop.channel_manager:main',
             'capability_node = srl_teleop.capability_node:main',
+            'boundary_feedback_node = srl_teleop.boundary_feedback_node:main',
             'gui = srl_teleop.gui_shim:main',
             # --- following ---
             'ik_follower_node = srl_teleop.ik_follower_node:main',

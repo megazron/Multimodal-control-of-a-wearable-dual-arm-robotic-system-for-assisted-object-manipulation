@@ -1,3 +1,59 @@
+# C2 FINISHED (2026-08-09)
+
+## Library: cadquery, not pythonocc-core
+**pythonocc-core is not on PyPI at all** -- it ships through conda, and this
+workspace has no conda. `cadquery` bundles OCP, a binding to the SAME
+OpenCascade kernel, and installs with pip. Identical kernel, different
+packaging. For overall bounding extents no kernel is needed at all: STEP is
+text and `scripts/measure_cad_step.py` does it with a regex.
+
+## Parts and dimensions
+
+    PotArm.step      75 solids, 15 structural   extent 113.6 x  94.3 x 363.2 mm
+    backpack.step   418 solids                  extent 161.2 x 176.6 x  69.5 mm
+    total solid volume, arm: 60.1 cm^3
+
+**MASS NOT REPORTED.** The STEP carries no density. Volume times an assumed
+density is an invented number.
+
+## LINK LENGTHS: THE CAD AGREES WITH THE FK, to 1.2%
+
+The arm decomposes into a REPEATING JOINT MODULE. Filtering to structural
+solids (>= 2000 mm^3, so the ~400 screws and pins are excluded), the large
+25.0 x 40.0 x 45.5 mm bodies sit at z = 49.8, 128.8, 207.8 mm:
+
+    CAD joint-module pitch      79.0, 79.0 mm      (perfectly regular)
+    FK roll+bend pair sums      80, 80, 79 mm      (43+37, 43+37, 43+36)
+    difference                  -1.0 mm per pair, -2.0 mm over two
+
+**This validates the measured FK link lengths against the designed geometry
+for the first time.** The seven FK values were measured off the built arm and
+had never been checked against the CAD. They agree to 1.2%.
+
+**What it does NOT do**: separate 43 from 37 within a pair. Centre-to-centre
+spacing gives the PAIR pitch, not the individual links, so the alternating
+roll/bend split remains measured-only.
+
+The earlier 91.2 mm "difference" (CAD 363.2 vs FK 272.0) is now explained and
+was correctly withheld: the arm's Z extent includes the base boss and the tip
+fixture, neither of which is a kinematic link.
+
+## THE MOUNT ANGLE: NOT AVAILABLE, and this is the honest answer
+
+`backpack.step` is 418 solids and **nothing in the STEP labels which are the
+arm mounting faces.** With no label there is no placement to read, so the URDF
+rpy (71.5, -13.3, 86.4 deg, solved analytically and never checked against the
+bracket) CANNOT be verified from this file.
+
+Picking solids by size and deriving an angle from them would be a guess
+dressed as a measurement. **The mount check remains open** -- it needs either
+a named/coloured mounting face in the CAD, or a physical measurement of the
+bracket in the lab.
+
+## STILL TO DO: C3, C4, C5
+
+---
+
 # JOB C: C1 DONE, C2 STARTED, C3/C4/C5 NOT STARTED (2026-08-09)
 
 ## C1 /mnt/c: WORKS. No action needed.

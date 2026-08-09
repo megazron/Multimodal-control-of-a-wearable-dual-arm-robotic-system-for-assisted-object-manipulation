@@ -16,27 +16,30 @@ the lab.**
 
 ## START HERE
 
-**First incomplete part: PART 6 — GRAPHS.**
+**CLIPS ARE RECORDED.** Five modes x three tasks, 15 clips, 7 angles + quad
+each, captions burnt into the front view and the quad. Pushed after every mode.
 
-Part 5 is DONE. 12 clips recorded through the GUI, 3 tasks x 4 modes, 8 files
-each; 50 of 51 clips in the tree pass every automatic pixel criterion, and the
-one failure was caught, re-recorded and now passes.
+| mode | tasks | verified |
+| --- | --- | --- |
+| 06_full_autonomy | A B C | 3/3 |
+| 01_master_teleop | A B C | 3/3 |
+| 03_shared_autonomy | A B C | 3/3 |
+| 02_vr_teleop | A B C | 3/3 |
+| 04_vr_shared | A B C | 3/3 |
 
-The GUI was also rebuilt as a dark HUD with a master-arm kinematic schematic
-(`scripts/srl_hud.py`). Frame time median 2.26 ms, p95 9.14, max 16.66 against
-a 100 ms budget, n=300.
+Plus `06_full_autonomy/LANGUAGE/language_sweep.mp4` -- 40 phrasings, 2m21s,
+CORRECT 10 / ASKED 6 / REFUSED 24 / MISUNDERSTOOD 0.
 
-Two things worth carrying forward:
+Verifier: 65 of 66 clips pass every pixel criterion; the single failure is an
+OLD clip from the superseded study-taskset sweep, not one of the 15.
+`recordings/verification/INDEX.md` is generated and lists all of them.
 
-* **`master:=false`** on `teleop.launch.py` — a stack driven by a scripted
-  operator has no master node, and without it master_pose_node is a second
-  publisher on `/master_arm_pose_*` and the sweep's isolation check correctly
-  refuses to record.
-* **The A/B/C clips carry NO task objects.** The sweep drives the arms through
-  each mode's command path and does not run the scene publisher, so they are
-  judged on brightness, colour variety and motion, as f1 and f5 are. They
-  evidence that the mode moved the arms; the object-in-frame criterion is not
-  met by them and must not be claimed.
+**THE ONE OUTSTANDING ITEM: GUI TUTORIAL CLIPS.** Screen recordings of the GUI
+being used -- launching a mode, running a task, reading the divergence, the
+precision dial, e-stop and clear -- narrated by on-screen captions. Everything
+they need exists: the GUI runs under Xvfb :99, `burn_caption()` in
+`record_abc_sweep.py` composites captions, and `verify_gui_buttons.py` already
+drives every control programmatically.
 
 --- | --- | --- |
 | 01_master_teleop | **0.2000 / 0.2000 m** | `/master_arm_pose_<arm>` |

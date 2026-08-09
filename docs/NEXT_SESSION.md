@@ -1,3 +1,36 @@
+# ITEM 2 - WRIST CAMERA RELAY: LOGIC MEASURED, GUI WIDGET UNCONFIRMED
+
+## Measured and working
+`srl_teleop/camera_relay.py` holds the staleness rule, shared by the GUI and
+the VR publisher so the two cannot drift apart. Against a synthetic 15 Hz
+camera on both arms:
+
+    measured rate      14.2 Hz  (reported from ARRIVALS, not configured)
+    transport latency  median 2.7 / 3.1 ms, p95 7.6 ms  (header stamp -> receipt)
+    after the source stops:  live -> NO SIGNAL, paint disabled
+
+**It degrades visibly by construction**: past `stale_after_s` the widget is
+told NOT to paint at all, so a frozen frame can never be shown as live. That
+is the failure class this project keeps meeting (frozen /real/joint_states
+reading as "holding", the dead pot reading as "steady").
+
+`camera_vr_publisher` relays the same streams as JPEG on
+`/vr_camera_<arm>/compressed` with state on `/vr_camera_state`, rate-capped,
+and publishes NO FRAME when the channel is not live.
+
+## NOT CONFIRMED: the GUI widget renders
+The widget is written and the module compiles, but every screenshot attempt
+captured the reparented RViz window covering the GUI instead of the panel.
+**Do not report the GUI camera panel as working until a screenshot shows it.**
+Suggested: launch with RViz embedding disabled, or capture the GUI's own
+window id with `xwininfo` rather than the whole display.
+
+Also fixed on the way: `srl_gui.py` referenced `cap` and `cr` with NO IMPORT
+AT ALL. It survived only because the branch dereferencing `cap` never ran with
+no data. It would have crashed the moment a capability message arrived.
+
+---
+
 # ITEM 1 COMPLETE - 2026-08-09 overnight run
 
 ## ALL 38 CLIPS RE-RECORDED, 39/39 PASS THE VALIDATED VERIFIER

@@ -52,10 +52,17 @@ import time
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Bool, Float64MultiArray, String
-from sensor_msgs.msg import JointState
+from sensor_msgs.msg import Image, JointState
+
+# The package lives in src/, and this tool runs from scripts/, so make the
+# workspace's own modules importable whether or not install/ is sourced.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(_HERE), "src/srl_teleop"))
+from srl_teleop import camera_relay as cr                    # noqa: E402
+from srl_teleop import capability as cap                     # noqa: E402
 
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QColor, QFont, QPalette, QWindow
+from PyQt5.QtGui import QColor, QFont, QImage, QPalette, QPixmap, QWindow
 from PyQt5.QtWidgets import (QApplication, QGridLayout, QGroupBox, QHBoxLayout,
                              QLabel, QMainWindow, QPushButton, QVBoxLayout,
                              QWidget)
@@ -118,6 +125,29 @@ class Bus(Node):
                                  lambda m: self._set("vr", m.data), 10)
         self.create_subscription(JointState, "/joint_states",
                                  lambda m: self._set("js", len(m.name)), 10)
+        # ONE MORE SUBSCRIBER, NEVER A SECOND DEVICE OWNER. The vendor vision
+        # driver owns the camera; this sits beside the detector on its topic.
+        # depth=1 and best-effort: a viewer wants the NEWEST frame, and a
+        # reliable queue would deliver a backlog of old ones after any hiccup,
+        # which is precisely the stale view this relay exists to prevent.
+        from rclpy.qos import qos_profile_sensor_data
+        self.cam = {a: cr.ChannelState() for a in ARMS}
+        self.cam_img = {a: None for a in ARMS}
+        for a in ARMS:
+            for topic in ("/%s_wrist_camera/image_raw" % a,
+                          "/wrist_mounted_camera/%s/image" % a):
+                self.create_subscription(
+                    Image, topic,
+                    (lambda m, arm=a: self._on_image(arm, m)),
+                    qos_profile_sensor_data)
+
+    def _on_image(self, arm, msg):
+        self.cam[arm].on_frame(msg.width, msg.height, msg.encoding)
+        # Keep the RAW buffer and convert on the GUI thread only when it will
+        # actually be painted. Converting here would spend ROS-thread time on
+        # frames the GUI is about to discard as stale.
+        self.cam_img[arm] = (msg.width, msg.height, msg.encoding,
+                             bytes(msg.data), msg.step)
 
     def _set(self, k, v):
         self._d[k] = (v, time.monotonic())
@@ -128,6 +158,10 @@ class Bus(Node):
         s = {k: v for k, v in self._d.items()}
         s["t"] = time.monotonic()
         s["topics"] = {t for t, _ in self.get_topic_names_and_types()}
+        s["cam"] = {a: (self.cam[a].caption(), self.cam[a].state(),
+                        self.cam[a].show_image(), self.cam[a].hz())
+                    for a in ARMS}
+        s["cam_img"] = dict(self.cam_img)
         self.snap = s
 
     def submit(self, fn):
@@ -203,6 +237,30 @@ class Gui(QMainWindow):
                 gl.addWidget(w, i // 2, i % 2)
             left.addWidget(g)
         left.addStretch(1)
+
+        # ---- wrist cameras, both arms, labelled
+        campanel = QGroupBox("Wrist cameras")
+        campanel.setFont(helvetica(11, True))
+        cl = QHBoxLayout(campanel)
+        self.cam_lbl, self.cam_cap = {}, {}
+        for a in ARMS:
+            col = QVBoxLayout()
+            name = QLabel(a.upper())
+            name.setFont(helvetica(10, True))
+            name.setAlignment(Qt.AlignCenter)
+            img = QLabel()
+            img.setMinimumSize(260, 195)
+            img.setAlignment(Qt.AlignCenter)
+            img.setStyleSheet("background:#111;color:#bbb;border:1px solid #999")
+            cap = QLabel()
+            cap.setFont(helvetica(9))
+            cap.setAlignment(Qt.AlignCenter)
+            col.addWidget(name)
+            col.addWidget(img)
+            col.addWidget(cap)
+            cl.addLayout(col)
+            self.cam_lbl[a], self.cam_cap[a] = img, cap
+        left.addWidget(campanel)
 
         self.viz_host = QWidget()
         self.viz_host.setMinimumSize(720, 520)
@@ -439,6 +497,43 @@ class Gui(QMainWindow):
                     C_UNKNOWN if pct is None else
                     (C_OK if pct > 90 else C_WARN if pct > 60 else C_BAD),
                     "%d attempts" % att)
+
+        # ---- wrist cameras
+        cams = s.get("cam", {})
+        imgs = s.get("cam_img", {})
+        for a in ARMS:
+            cap, st, show, hz = cams.get(a, ("no data", "absent", False, 0.0))
+            col = {"live": C_OK, "stale": C_WARN,
+                   "dead": C_BAD, "absent": C_UNKNOWN}.get(st, C_UNKNOWN)
+            self.cam_cap[a].setText(cap)
+            self.cam_cap[a].setStyleSheet("color:%s" % col)
+            if not show:
+                # NEVER PAINT A STALE FRAME. A frozen picture of a workspace
+                # cannot be told from a live picture of a workspace that is
+                # not moving, and under time pressure a dimmed frame is read
+                # as a frame. The panel goes to text instead.
+                self.cam_lbl[a].setPixmap(QPixmap())
+                self.cam_lbl[a].setText(
+                    {"absent": "NO CAMERA", "dead": "NO SIGNAL",
+                     "stale": "STALE"}.get(st, "NO SIGNAL"))
+                self.cam_lbl[a].setStyleSheet(
+                    "background:#111;color:%s;border:1px solid %s" % (col, col))
+                continue
+            raw = imgs.get(a)
+            if raw is None:
+                continue
+            w, h, enc, buf, step = raw
+            fmt = {"rgb8": QImage.Format_RGB888,
+                   "bgr8": QImage.Format_BGR888,
+                   "mono8": QImage.Format_Grayscale8}.get(enc)
+            if fmt is None:
+                self.cam_lbl[a].setText("unsupported encoding %s" % enc)
+                continue
+            qi = QImage(buf, w, h, step, fmt)
+            self.cam_lbl[a].setPixmap(QPixmap.fromImage(qi).scaled(
+                self.cam_lbl[a].width(), self.cam_lbl[a].height(),
+                Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            self.cam_lbl[a].setStyleSheet("background:#111;border:1px solid #999")
 
         # ---- banner
         if es:

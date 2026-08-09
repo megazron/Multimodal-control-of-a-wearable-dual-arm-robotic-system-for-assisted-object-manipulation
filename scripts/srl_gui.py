@@ -219,26 +219,11 @@ class Gui(QMainWindow):
 
         left = QVBoxLayout()
         body.addLayout(left, 0)
-        self.ind = {}
-        for title, keys in (
-            ("Master", ("capability_left", "capability_right",
-                        "channels")),
-            ("Scene", ("fingerprint", "camera_left", "camera_right")),
-            ("Mode", ("mode", "autonomy", "intent")),
-            ("Target", ("reachable", "clearance_left", "clearance_right")),
-            ("Safety", ("estop", "blockers", "ik_left", "ik_right")),
-        ):
-            g = QGroupBox(title)
-            g.setFont(helvetica(11, True))
-            gl = QGridLayout(g)
-            for i, k in enumerate(keys):
-                w = Ind(k.replace("_", " "))
-                self.ind[k] = w
-                gl.addWidget(w, i // 2, i % 2)
-            left.addWidget(g)
-        left.addStretch(1)
-
-        # ---- wrist cameras, both arms, labelled
+        # THE CAMERAS GO FIRST. For a remote operator this is the only view
+        # of the workspace at all: every other panel describes the ROBOT, and
+        # the arms are on somebody else's back. Placed last it fell below the
+        # fold on a 950 px display, which for the single most important panel
+        # is a real defect rather than a cosmetic one.
         campanel = QGroupBox("Wrist cameras")
         campanel.setFont(helvetica(11, True))
         cl = QHBoxLayout(campanel)
@@ -261,6 +246,26 @@ class Gui(QMainWindow):
             cl.addLayout(col)
             self.cam_lbl[a], self.cam_cap[a] = img, cap
         left.addWidget(campanel)
+
+        self.ind = {}
+        for title, keys in (
+            ("Master", ("capability_left", "capability_right",
+                        "channels")),
+            ("Scene", ("fingerprint", "detector_left", "detector_right")),
+            ("Mode", ("mode", "autonomy", "intent")),
+            ("Target", ("reachable", "clearance_left", "clearance_right")),
+            ("Safety", ("estop", "blockers", "ik_left", "ik_right")),
+        ):
+            g = QGroupBox(title)
+            g.setFont(helvetica(11, True))
+            gl = QGridLayout(g)
+            for i, k in enumerate(keys):
+                w = Ind(k.replace("_", " "))
+                self.ind[k] = w
+                gl.addWidget(w, i // 2, i % 2)
+            left.addWidget(g)
+        left.addStretch(1)
+
 
         self.viz_host = QWidget()
         self.viz_host.setMinimumSize(720, 520)
@@ -296,6 +301,13 @@ class Gui(QMainWindow):
 
     # ------------------------------------------------------------- rviz
     def start_rviz(self):
+        # --no-rviz exists for capture and for headless checks. The embedded
+        # RViz is a separate top-level X window until it is reparented, and
+        # during that window it covers the host -- which defeated every
+        # screenshot attempt at the camera panel.
+        if "--no-rviz" in sys.argv:
+            self.viz_msg.setText("RViz embedding disabled (--no-rviz)")
+            return
         cfg = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "src/srl_experiments/config/verification_capture.rviz")
@@ -420,10 +432,10 @@ class Gui(QMainWindow):
         for a in ARMS:
             t = "/perception/detections/%s" % a
             if t not in topics:
-                self.ind["camera_%s" % a].set("absent", C_UNKNOWN,
-                                              "no detector on this arm")
+                self.ind["detector_%s" % a].set("absent", C_UNKNOWN,
+                                                "no detector publishing")
             else:
-                self.ind["camera_%s" % a].set("present", C_OK, t)
+                self.ind["detector_%s" % a].set("present", C_OK, t)
 
         # ---- mode / autonomy / intent
         vr = val("vr")

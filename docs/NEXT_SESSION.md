@@ -192,12 +192,23 @@ reading as "holding", the dead pot reading as "steady").
 `/vr_camera_<arm>/compressed` with state on `/vr_camera_state`, rate-capped,
 and publishes NO FRAME when the channel is not live.
 
-## NOT CONFIRMED: the GUI widget renders
-The widget is written and the module compiles, but every screenshot attempt
-captured the reparented RViz window covering the GUI instead of the panel.
-**Do not report the GUI camera panel as working until a screenshot shows it.**
-Suggested: launch with RViz embedding disabled, or capture the GUI's own
-window id with `xwininfo` rather than the whole display.
+## CONFIRMED FROM PIXELS (2026-08-09)
+Both states screenshotted and kept in `docs/img/`:
+
+* **live**: both feeds painting, labelled LEFT / RIGHT, captions
+  `live 13.8 Hz 320x240` in green -- `gui_cameras_live.png`
+* **source stopped**: both panels black with **NO SIGNAL** in red and
+  `last frame 5.9 s ago` -- `gui_cameras_no_signal.png`
+
+The capture failed before because the embedded RViz is a separate top-level X
+window until it is reparented, and during that window it covers the host.
+`--no-rviz` exists for capture and headless checks.
+
+Two defects fixed on the way: the panel was LAST in the column and fell below
+the fold on a 950 px display, which for a remote operator's only view of the
+workspace is a real defect rather than a cosmetic one; and two different
+things were both called "camera" and disagreed on screen -- one tracks the
+IMAGE topic, the other the DETECTOR topic. The second is now "detector".
 
 Also fixed on the way: `srl_gui.py` referenced `cap` and `cr` with NO IMPORT
 AT ALL. It survived only because the branch dereferencing `cap` never ran with

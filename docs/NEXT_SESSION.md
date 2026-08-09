@@ -1865,3 +1865,94 @@ the broken pots and report the answer as the repaired capability:
 
 Block C (directional) and block E (repeatability) are the ones the azimuth
 question needs; block A alone is enough to refresh the channel baseline.
+
+## JOB C — THE GRIPPER PENETRATES OBJECTS (2026-08-09)
+
+`scripts/measure_grasp_penetration.py`, live `/compute_ik`, geometry from TF.
+
+### The fault, and the number
+
+`grasp_library.candidates()` returned `position = p.copy()` -- the bare object
+CENTROID -- and `grasp_generator` commanded `<arm>_end_effector_link` there.
+But the fingertips sit **0.1118 m along the tool's +z** (measured from TF,
+both arms agreeing to 4 dp) and the grasp quaternion aims that axis **straight
+down**. So the tool reached the centroid and the fingers were a full finger-
+length below it, through the object and into the table.
+
+| object | size_z | penetration BEFORE | AFTER |
+| --- | --- | --- | --- |
+| flat_plate | 0.012 | **+105.8 mm** | -5.0 mm |
+| wide_block | 0.035 | +94.3 mm | -5.0 mm |
+| small_cube | 0.040 | +91.8 mm | -5.0 mm |
+| cylinder | 0.080 | +71.8 mm | -5.0 mm |
+| tall_box | 0.090 | +66.8 mm | -5.0 mm |
+| narrow_rod | 0.120 | +51.8 mm | -5.0 mm |
+
+Positive = fingertip that far BELOW the underside. **Every object in the
+catalogue, without exception.** The gripper never closed on anything.
+
+**FIX:** `grasp_offset()` raises the tool by `FINGERTIP_REACH_M - size_z/2 +
+pad` -- the object's half-height plus a 5 mm pad, offset by the finger length
+that made the correction necessary. Derived, not tuned; a taller object needs
+LESS offset, which is the sign check. The measurement script now reads the
+LIBRARY's output rather than recomputing the formula, so it is a real
+regression rather than the script agreeing with itself.
+
+### Why IK did not refuse -- THREE separate things, not one
+
+| probe | accepted |
+| --- | --- |
+| centroid pose, object NOT in the planning scene | **100.0%** |
+| centroid pose, object IS in the planning scene | 0.0% |
+| corrected pose, object present | 0.0% |
+| corrected pose, object ABSENT (control) | 100.0% |
+| pre-grasp standoff, object ABSENT (control) | **0.0%** |
+
+1. **Collision-aware IK WOULD have caught it. The object is never in the
+   scene.** `grasp_generator` sets `avoid_collisions=True`, but nothing in the
+   autonomy path publishes a CollisionObject -- `world_model` and
+   `grasp_generator` publish none at all, only `scripted_pick_place` and the
+   experiment scene do. The check ran against a world where the object does
+   not exist and passed 100%. This is the project's own "a marker is
+   decoration" failure one layer up.
+2. **Adding the object to the scene is NOT sufficient on its own.** The
+   CORRECTED grasp is reachable with no object (100%) and refused with one
+   (0%), because the fingers envelop the object -- which is what a grasp IS.
+   Collision-aware IK cannot tell a grasp from a crash. The target must be
+   excluded from the gripper's ACM, or attached, or only the standoff
+   validated with collisions on.
+3. **The pre-grasp standoff is UNREACHABLE, and that is reach not collision** --
+   0% with the object ABSENT. The offset raises the whole approach by ~0.10 m
+   and pushes the standoff out of the arm's volume at z=1.15. **Objects must
+   be placed lower to pay for the correction.** This is a protocol change, not
+   a code one, and it is the one Job C finding that costs something.
+
+Without the object-absent controls, findings 2 and 3 would both have been
+reported as "collision refused it". A 0% means nothing until the same pose has
+been tried with the object removed.
+
+### Position tolerance the design assumes
+
+| object | lateral | vertical |
+| --- | --- | --- |
+| narrow_rod | +/-32.5 mm | +/-65.0 mm |
+| tall_box | +/-25.0 mm | +/-50.0 mm |
+| small_cube | +/-22.5 mm | +/-25.0 mm |
+| wide_block | +/-22.5 mm | +/-22.5 mm |
+| cylinder | +/-20.0 mm | +/-45.0 mm |
+
+**At +/-10 mm and at +/-20 mm of real-world object error, every graspable
+object still fits between the pads.** Lateral is the binding axis and the
+tightest is the cylinder at +/-20.0 mm, so **20 mm is the placement precision
+the lab needs**, and 10 mm carries margin on every object.
+
+`flat_plate` is EXCLUDED, not a tolerance failure: its 90 mm minor extent
+exceeds the 85 mm stroke, so it is ungraspable at 0 mm error and is already
+refused upstream by `is_graspable()`. Reporting it as "misses at +/-10 mm"
+would imply it works at 0 mm.
+
+### Regression
+
+`src/srl_autonomy/test/test_grasp_offset.py`, 5 tests, **negative-control
+checked**: 3 of the 5 fail on the pre-fix code and all 5 pass after. One of
+them exists solely to catch the formula being right while nothing calls it.

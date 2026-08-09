@@ -21,6 +21,35 @@ import numpy as np
 GRIPPER_MAX_WIDTH_M = 0.085
 GRIPPER_SAFE_WIDTH_M = 0.075          # leave clearance for pose error
 
+# HOW FAR THE FINGERTIPS REACH along the tool's +z from end_effector_link.
+# MEASURED from TF on the live model (both arms agree to 4 dp), not taken from
+# a datasheet: scripts/measure_grasp_penetration.py reads
+# <arm>_robotiq_85_{left,right}_finger_tip_link and averages them.
+#
+# THIS CONSTANT IS WHY GRASPS PENETRATED. The grasp quaternion aims the tool's
+# +z straight DOWN, so commanding end_effector_link to an object's centroid
+# put the fingertips 111.8 mm BELOW that centroid -- through the object and
+# into the table under it. The gripper never closed on anything.
+FINGERTIP_REACH_M = 0.1118
+# Clearance left between the fingertip and the object's underside.
+GRASP_PAD_M = 0.005
+
+
+def grasp_offset(object_id, pad=GRASP_PAD_M):
+    """How far ABOVE the centroid to put the tool for a top-down grasp.
+
+    Derived rather than tuned. With the tool at centroid + d, the fingertip
+    lands at centroid + d - FINGERTIP_REACH_M, and we want it `pad` above the
+    object's underside at centroid - size_z/2:
+
+        d = FINGERTIP_REACH_M - size_z/2 + pad
+
+    i.e. the object's half-height plus a pad, offset by the finger length that
+    made the correction necessary. A taller object needs LESS offset, which is
+    the sanity check on the sign.
+    """
+    return FINGERTIP_REACH_M - describe(object_id)["size"][2] / 2.0 + pad
+
 # Object catalogue, keyed by the AprilTag id the object carries.
 #   size      (x, y, z) extents in the object's own frame, metres
 #   grasp     "top_down" (the only style implemented)
@@ -100,7 +129,10 @@ def candidates(object_id, position, yaw_object=0.0, n_yaw=8):
     """
     spec = describe(object_id)
     sx, sy, _ = spec["size"]
-    p = np.asarray(position, float)
+    # OFFSET ALONG THE RETREAT DIRECTION. This used to be `p = position`, the
+    # bare centroid, which drove the fingers through the object every time.
+    p = np.asarray(position, float) + np.array([0.0, 0.0,
+                                                grasp_offset(object_id)])
 
     # Minor horizontal axis in the object frame, rotated into world by the
     # object's own yaw. Fingers close ALONG this direction.
@@ -129,7 +161,14 @@ def candidates(object_id, position, yaw_object=0.0, n_yaw=8):
 
 
 def pregrasp(grasp):
-    """Standoff pose: same orientation, `approach` metres above the object."""
+    """Standoff pose: same orientation, `approach` metres above the grasp.
+
+    NOTE the standoff now stacks on top of the grasp offset, so a standoff
+    that was reachable from the centroid may not be from the corrected pose.
+    Measured: for an object at z=1.15 the corrected grasp is reachable (100%)
+    while the standoff 0.10 m above it is NOT (0%). That is a real constraint
+    on where objects may be placed, not a defect in this function.
+    """
     p = grasp["position"].copy()
     p[2] += grasp["approach"]
     return dict(grasp, position=p)

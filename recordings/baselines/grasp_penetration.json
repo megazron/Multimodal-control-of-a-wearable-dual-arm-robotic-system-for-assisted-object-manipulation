@@ -1,0 +1,65 @@
+{
+  "tip_offset_m": {
+    "left": 0.11179109720757728,
+    "right": 0.11179109720757728
+  },
+  "pad_m": 0.005,
+  "objects": {
+    "tag_0": {
+      "name": "small_cube",
+      "size_z": 0.04,
+      "before_penetration_m": 0.09179109720757728,
+      "offset_m": 0.0968,
+      "after_penetration_m": -0.005008902792422717,
+      "lateral_tolerance_m": 0.022500000000000003,
+      "vertical_tolerance_m": 0.025
+    },
+    "tag_1": {
+      "name": "tall_box",
+      "size_z": 0.09,
+      "before_penetration_m": 0.06679109720757728,
+      "offset_m": 0.0718,
+      "after_penetration_m": -0.00500890279242272,
+      "lateral_tolerance_m": 0.025,
+      "vertical_tolerance_m": 0.049999999999999996
+    },
+    "tag_2": {
+      "name": "wide_block",
+      "size_z": 0.035,
+      "before_penetration_m": 0.09429109720757728,
+      "offset_m": 0.0993,
+      "after_penetration_m": -0.00500890279242272,
+      "lateral_tolerance_m": 0.022500000000000003,
+      "vertical_tolerance_m": 0.022500000000000003
+    },
+    "tag_3": {
+      "name": "cylinder",
+      "size_z": 0.08,
+      "before_penetration_m": 0.07179109720757729,
+      "offset_m": 0.07680000000000001,
+      "after_penetration_m": -0.005008902792422727,
+      "lateral_tolerance_m": 0.020000000000000004,
+      "vertical_tolerance_m": 0.045
+    },
+    "tag_4": {
+      "name": "flat_plate",
+      "size_z": 0.012,
+      "before_penetration_m": 0.10579109720757728,
+      "offset_m": 0.1108,
+      "after_penetration_m": -0.005008902792422715,
+      "ungraspable": true
+    },
+    "tag_5": {
+      "name": "narrow_rod",
+      "size_z": 0.12,
+      "before_penetration_m": 0.05179109720757728,
+      "offset_m": 0.056799999999999996,
+      "after_penetration_m": -0.005008902792422713,
+      "lateral_tolerance_m": 0.0325,
+      "vertical_tolerance_m": 0.065
+    }
+  },
+  "ik_absent_pct": 100.0,
+  "ik_present_pct": 0.0,
+  "ik_corrected_pct": 0.0
+}

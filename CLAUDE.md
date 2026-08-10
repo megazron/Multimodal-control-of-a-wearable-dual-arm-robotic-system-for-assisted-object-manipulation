@@ -27,20 +27,46 @@ reader following this file ran a GUI that received nothing, reported the new
 panels as missing, and was right.
 
     gui         Qt5. Master-arm and robot schematics, divergence, both camera
-                feeds, 41 launch buttons, indicator self-test, RViz with the
-                commanded arm ghosted over the actual one. Frame time median
-                2.26 ms, p95 9.14, max 16.66 against a 100 ms budget (n=300).
+                feeds, 25 launch buttons, indicator self-test, RViz with the
+                commanded arm ghosted over the actual one, and Charts /
+                Session / Event-log tabs. Frame time median 2.26 ms, p95 9.14,
+                max 16.66 against a 100 ms budget (n=300).
     teleop_gui  curses, no display needed. The SSH fallback and nothing more.
-    console     Dear PyGui. SUPERSEDED -- kept because it still holds Charts,
-                Pilot and the session-order runner, which are being ported.
-                Do not start new work in it.
+    console     Dear PyGui. SUPERSEDED and fully absorbed -- its Charts, its
+                session/trial view and its event log are now tabs in `gui`.
+                Nothing is left in it that `gui` does not have. Do not start
+                new work in it.
     launcher    tkinter. SUPERSEDED by gui.
+
+**25 buttons, not 41.** The GUI used to offer three generations of task set at
+once -- t1-t9 (300/310 mm span), e1-e6 (the superseded E-series) and a/b/c --
+so a button labelled "T3 rigid carry" ran a 300 mm tray against a 500 mm
+current spec. The old sets are archived under
+`src/srl_experiments/experiments/_archive/` with a README naming what
+superseded them, `run_experiment.sh` refuses `t*`/`e*` BY NAME rather than
+silently, and the task buttons are now exactly 3 tasks x 5 modes = 15.
 
 
 Everything else -- every mode, experiment, calibration and diagnostic -- is a
-button inside them. `console` refuses to start a second stack and says why:
+button inside them. `gui` refuses to start a second stack and says why:
 two `master_pose_node` instances split the serial stream and invalidated a
 full day of measurements.
+
+## CURRENT COUNTS -- the one place with live numbers
+
+**The historical log below quotes counts that were true on their date.** Do
+not read "36 unit tests pass" from a 2026-08-05 section as a statement about
+today; that is what the date is for. This block is the only one that claims to
+be current, and it is re-measured whenever it is touched.
+
+| | measured 2026-08-10 | command |
+| --- | --- | --- |
+| unit tests | **347 pass, 2 fail, 1 skipped** | `python3 -m pytest -q src/*/test` |
+| the 2 failures | `test_flake8`, `test_pep257` -- **pre-existing**, the package uses double quotes against the ROS style default | |
+| executables | teleop 42, experiments 24, vr_teleop 9, autonomy 7, perception 6, vr_autonomy 2 | `ros2 pkg executables <pkg>` |
+| GUI launch specs | **25** (15 task = 3 x 5 modes, plus modes and diagnostics) | `verify_gui_buttons.py` -- 46 checks |
+| RViz render ceiling | **16.0 fps** llvmpipe, 16.3 d3d12, at 800x500 | `measure_render_rate.py` |
+| clip delivered rate | **5.41 fps** over 11.3 s (was 1.29 over 28.4 s) | `measure_capture_rate.py` |
 
 ## FIRST ACTION OF EVERY LAB SESSION
 

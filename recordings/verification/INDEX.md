@@ -28,30 +28,30 @@ paste that into Explorer's address bar, or from a WSL shell run `explorer.exe .`
 
 | mode | task | scenario | angles | s | recorded | verified |
 | --- | --- | --- | --- | --- | --- | --- |
-| 01_master_teleop | A | S1_single_arm | 7/7 | 37 | yes | yes |
+| 01_master_teleop | A | S1_single_arm | 7/7 | 11 | yes | yes |
 | 01_master_teleop | A | S3_both | 7/7 | 36 | -- | yes |
-| 01_master_teleop | B | S1_bimanual | 7/7 | 29 | yes | yes |
+| 01_master_teleop | B | S1_bimanual | 7/7 | 29 | -- | yes |
 | 01_master_teleop | B | S2_full_lift | 7/7 | 32 | -- | yes |
 | 01_master_teleop | C | S1_both_slow | 7/7 | 39 | -- | yes |
-| 01_master_teleop | C | S1_present_probe | 7/7 | 31 | yes | yes |
-| 02_vr_teleop | A | S1_single_arm | 7/7 | 48 | yes | yes |
+| 01_master_teleop | C | S1_present_probe | 7/7 | 31 | -- | yes |
+| 02_vr_teleop | A | S1_single_arm | 7/7 | 48 | -- | yes |
 | 02_vr_teleop | A | S3_both | 7/7 | 41 | -- | yes |
-| 02_vr_teleop | B | S1_bimanual | 7/7 | 39 | yes | yes |
+| 02_vr_teleop | B | S1_bimanual | 7/7 | 39 | -- | yes |
 | 02_vr_teleop | B | S2_full_lift | 7/7 | 39 | -- | yes |
 | 02_vr_teleop | C | S1_both_slow | 7/7 | 49 | -- | yes |
-| 02_vr_teleop | C | S1_present_probe | 7/7 | 43 | yes | yes |
-| 03_shared_autonomy | A | S1_single_arm | 7/7 | 36 | yes | yes |
-| 03_shared_autonomy | B | S1_bimanual | 7/7 | 29 | yes | yes |
-| 03_shared_autonomy | C | S1_present_probe | 7/7 | 31 | yes | yes |
-| 04_vr_shared | A | S1_single_arm | 7/7 | 39 | yes | yes |
-| 04_vr_shared | B | S1_bimanual | 7/7 | 30 | yes | yes |
-| 04_vr_shared | C | S1_present_probe | 7/7 | 32 | yes | yes |
-| 06_full_autonomy | A | S1_single_arm | 7/7 | 41 | yes | yes |
+| 02_vr_teleop | C | S1_present_probe | 7/7 | 43 | -- | yes |
+| 03_shared_autonomy | A | S1_single_arm | 7/7 | 36 | -- | yes |
+| 03_shared_autonomy | B | S1_bimanual | 7/7 | 29 | -- | yes |
+| 03_shared_autonomy | C | S1_present_probe | 7/7 | 31 | -- | yes |
+| 04_vr_shared | A | S1_single_arm | 7/7 | 39 | -- | yes |
+| 04_vr_shared | B | S1_bimanual | 7/7 | 30 | -- | yes |
+| 04_vr_shared | C | S1_present_probe | 7/7 | 32 | -- | yes |
+| 06_full_autonomy | A | S1_single_arm | 7/7 | 41 | -- | yes |
 | 06_full_autonomy | A | S3_both | 7/7 | 33 | -- | yes |
-| 06_full_autonomy | B | S1_bimanual | 7/7 | 31 | yes | yes |
+| 06_full_autonomy | B | S1_bimanual | 7/7 | 31 | -- | yes |
 | 06_full_autonomy | B | S2_full_lift | 7/7 | 32 | -- | yes |
 | 06_full_autonomy | C | S1_both_slow | 7/7 | 42 | -- | yes |
-| 06_full_autonomy | C | S1_present_probe | 7/7 | 34 | yes | yes |
+| 06_full_autonomy | C | S1_present_probe | 7/7 | 34 | -- | yes |
 
 ## What each task should show
 
@@ -70,7 +70,9 @@ paste that into Explorer's address bar, or from a WSL shell run `explorer.exe .`
 
 ## Read this before drawing conclusions
 
-- **The clips carry no task objects.** The sweep drives the arms through each mode's own command path; it does not run the scene publisher, so no tray, ball, block or multimeter is in frame. Clips are judged on brightness, colour variety and motion. They evidence that the mode moved the arms; an object-in-frame criterion is not met by them and is not claimed.
+- **The clips DO carry task objects, and the grasp is real.** The sweep starts `scripts/clip_scene.py` per task, which publishes the bench, the bin and one graspable object, and ATTACHES that object to the gripper only once the fingers actually reach the object's width (`knuckle >= 0.90 * grip_for(width_mm)`) -- not merely once the gripper enters a holding band, which would snap the object to the hand while the fingers were still visibly open. Release leaves the object where it was put rather than snapping it back, so a successful place and a failed one do not look alike. Each clip's `scene_events.json` records the GRASPED and RELEASED times, the knuckle angle against the angle required, and how far the object travelled WHILE HELD.
+- **Capture starts on first arm motion, not at launch.** Measured on the clips this replaced: a 28.4 s recording whose arm moved only during seconds 16-26, so 56% of the file was node startup and DDS discovery with nothing changing on screen, and 82% of frame pairs were bit-identical. Gating the grab on `/joint_states` leaving its reference took the same task and mode from 28.4 s to 11.3 s and the delivered rate from 1.29 to 5.41 fps. If motion is never detected the grab starts anyway after 45 s, so a mode that FAILS to move is still recorded and can be seen to have failed.
+- **The frame rate in the container is not the delivered rate.** x11grab writes its requested rate whatever the source managed, duplicating pixels when RViz has not repainted. Requested is 15 fps, set just under a measured 16.0 fps render ceiling (`scripts/measure_render_rate.py`; the WSL d3d12 GPU path gives 16.3, so the GL driver is not the limit). Judge a clip by frames that CHANGE, never by the header.
 - **Task C is the present-and-probe motion, not a multimeter.** There is no multimeter model in this repository. The caveat is burnt into every C clip's caption.
 - **One mode owned the graph at a time.** The sweep tears down the previous mode's publishers and counts publishers on the follower's input topic against a number predicted in advance, refusing to record if they disagree. Without it every mode after the first records a stationary arm and the set looks plausible and is worthless.
 - **The captions are on the FRONT view and the quad only.** The other five angles are deliberately clean.

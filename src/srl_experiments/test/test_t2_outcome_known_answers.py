@@ -23,7 +23,7 @@ import sys
 import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-BIM = os.path.join(os.path.dirname(HERE), "experiments", "bimanual")
+BIM = os.path.join(os.path.dirname(HERE), "experiments", "_archive", "bimanual")
 sys.path.insert(0, BIM)
 
 import t2_metrics as t2m                                     # noqa: E402

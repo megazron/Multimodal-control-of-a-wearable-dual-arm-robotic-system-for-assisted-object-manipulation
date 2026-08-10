@@ -8,9 +8,9 @@ import numpy as np
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..",
-                                "experiments", "bimanual", "t7_pursuit"))
+                                "experiments", "_archive", "bimanual", "t7_pursuit"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..",
-                                "experiments", "bimanual"))
+                                "experiments", "_archive", "bimanual"))
 import targets as tg          # noqa: E402
 import coupled_metrics as cm  # noqa: E402
 

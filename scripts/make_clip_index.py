@@ -178,12 +178,34 @@ def main():
 
     A("## Read this before drawing conclusions")
     A("")
-    A("- **The clips carry no task objects.** The sweep drives the arms "
-      "through each mode's own command path; it does not run the scene "
-      "publisher, so no tray, ball, block or multimeter is in frame. Clips "
-      "are judged on brightness, colour variety and motion. They evidence "
-      "that the mode moved the arms; an object-in-frame criterion is not met "
-      "by them and is not claimed.")
+    A("- **The clips DO carry task objects, and the grasp is real.** The "
+      "sweep starts `scripts/clip_scene.py` per task, which publishes the "
+      "bench, the bin and one graspable object, and ATTACHES that object to "
+      "the gripper only once the fingers actually reach the object's width "
+      "(`knuckle >= 0.90 * grip_for(width_mm)`) -- not merely once the "
+      "gripper enters a holding band, which would snap the object to the "
+      "hand while the fingers were still visibly open. Release leaves the "
+      "object where it was put rather than snapping it back, so a successful "
+      "place and a failed one do not look alike. Each clip's "
+      "`scene_events.json` records the GRASPED and RELEASED times, the "
+      "knuckle angle against the angle required, and how far the object "
+      "travelled WHILE HELD.")
+    A("- **Capture starts on first arm motion, not at launch.** Measured on "
+      "the clips this replaced: a 28.4 s recording whose arm moved only "
+      "during seconds 16-26, so 56% of the file was node startup and DDS "
+      "discovery with nothing changing on screen, and 82% of frame pairs "
+      "were bit-identical. Gating the grab on `/joint_states` leaving its "
+      "reference took the same task and mode from 28.4 s to 11.3 s and the "
+      "delivered rate from 1.29 to 5.41 fps. If motion is never detected the "
+      "grab starts anyway after 45 s, so a mode that FAILS to move is still "
+      "recorded and can be seen to have failed.")
+    A("- **The frame rate in the container is not the delivered rate.** "
+      "x11grab writes its requested rate whatever the source managed, "
+      "duplicating pixels when RViz has not repainted. Requested is 15 fps, "
+      "set just under a measured 16.0 fps render ceiling "
+      "(`scripts/measure_render_rate.py`; the WSL d3d12 GPU path gives 16.3, "
+      "so the GL driver is not the limit). Judge a clip by frames that "
+      "CHANGE, never by the header.")
     A("- **Task C is the present-and-probe motion, not a multimeter.** There "
       "is no multimeter model in this repository. The caveat is burnt into "
       "every C clip's caption.")

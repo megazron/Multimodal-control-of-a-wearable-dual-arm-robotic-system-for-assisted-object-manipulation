@@ -1,0 +1,152 @@
+{
+  "rows": [
+    {
+      "bin": [
+        0.35,
+        0.35,
+        1.02
+      ],
+      "lateral_m": 0.03,
+      "waypoints": 23,
+      "ok": true
+    },
+    {
+      "bin": [
+        0.38,
+        0.35,
+        1.02
+      ],
+      "lateral_m": 0.06,
+      "waypoints": 24,
+      "ok": true
+    },
+    {
+      "bin": [
+        0.41,
+        0.35,
+        1.02
+      ],
+      "lateral_m": 0.09,
+      "waypoints": 25,
+      "ok": true
+    },
+    {
+      "bin": [
+        0.44,
+        0.35,
+        1.02
+      ],
+      "lateral_m": 0.12,
+      "waypoints": 26,
+      "ok": true
+    },
+    {
+      "bin": [
+        0.47,
+        0.35,
+        1.02
+      ],
+      "lateral_m": 0.15,
+      "waypoints": 27,
+      "ok": true
+    },
+    {
+      "bin": [
+        0.5,
+        0.35,
+        1.02
+      ],
+      "lateral_m": 0.18,
+      "waypoints": 28,
+      "ok": true
+    },
+    {
+      "bin": [
+        0.53,
+        0.35,
+        1.02
+      ],
+      "lateral_m": 0.21,
+      "waypoints": 29,
+      "ok": true
+    },
+    {
+      "bin": [
+        0.56,
+        0.35,
+        1.02
+      ],
+      "lateral_m": 0.24,
+      "waypoints": 31,
+      "ok": true
+    },
+    {
+      "bin": [
+        0.59,
+        0.35,
+        1.02
+      ],
+      "lateral_m": 0.27,
+      "waypoints": 32,
+      "ok": true
+    },
+    {
+      "bin": [
+        0.62,
+        0.35,
+        1.02
+      ],
+      "lateral_m": 0.3,
+      "waypoints": 33,
+      "ok": true
+    },
+    {
+      "bin": [
+        0.65,
+        0.35,
+        1.02
+      ],
+      "lateral_m": 0.33,
+      "waypoints": 35,
+      "ok": true
+    },
+    {
+      "bin": [
+        0.68,
+        0.35,
+        1.02
+      ],
+      "lateral_m": 0.36,
+      "waypoints": 36,
+      "ok": true
+    },
+    {
+      "bin": [
+        0.71,
+        0.35,
+        1.02
+      ],
+      "lateral_m": 0.39,
+      "waypoints": 38,
+      "ok": false
+    }
+  ],
+  "repeats": 10,
+  "ik_calls": 3863,
+  "min_lateral_required": 0.25,
+  "chosen": {
+    "bin": [
+      0.65,
+      0.35,
+      1.02
+    ],
+    "lateral_m": 0.33,
+    "waypoints": 35,
+    "ok": true
+  },
+  "boundary": [
+    0.71,
+    0.35,
+    1.02
+  ]
+}

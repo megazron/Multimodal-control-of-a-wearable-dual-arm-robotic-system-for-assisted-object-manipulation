@@ -456,6 +456,7 @@ def run_one(app, gui, task, mode, out_dir, graph=None,
                 break
             time.sleep(0.1)
         gate = gate or "timeout"
+        grab_t0 = time.time()
         grabs = start_grabs()
 
     while proc.poll() is None and time.monotonic() - t0 < 300:
@@ -467,7 +468,7 @@ def run_one(app, gui, task, mode, out_dir, graph=None,
         return False, "timed out after 300 s"
     # THE RUNNER EXITS NON-ZERO IF NO ARM MOVED. That is the whole reason the
     # clip can be trusted: a stationary arm is not recorded as a success.
-    return rc == 0, ("run exited %s" % rc), grabs, gate
+    return rc == 0, ("run exited %s" % rc), grabs, gate, grab_t0
 
 
 def main():
@@ -538,17 +539,55 @@ def main():
                 rr.ensure_display(os.path.join(out_dir, "rviz"),
                                   gripper_arm=grip_arm)
                 time.sleep(a.settle_s)
-                good, msg, grabs, gate = run_one(
+                good, msg, grabs, gate, grab_t0 = run_one(
                     app, gui, task, mode, out_dir, graph=graph,
                     start_grabs=lambda: rr.start_grabs(out_dir,
                                                       grip_arm))
                 log("      capture gated on %s" % gate)
                 time.sleep(1.0)
                 rr.stop_grabs(grabs)
+                grab_t1 = time.time()
                 try:
                     os.killpg(os.getpgid(scene_p.pid), 15)
                 except Exception:                             # noqa: BLE001
                     pass
+
+                # DID THE GRASP HAPPEN INSIDE THE VIDEO?
+                #
+                # PER TASK, because the tasks differ: A closes at waypoint 5
+                # of a short path, B is already holding at waypoint 1 after a
+                # long approach, C grips from waypoint 0 and never lets go.
+                # One global window cannot suit all three, and the failure is
+                # silent -- B/S1 logged GRASPED at t=44.1 s inside a 29.1 s
+                # clip, so the single most important instant in the clip
+                # happened after the recording stopped, and every automatic
+                # check still passed it.
+                #
+                # This compares WALL CLOCKS, which is why clip_scene now
+                # stamps one on every event: the scene node's own t=0 and the
+                # ffmpeg start had no common time base before.
+                try:
+                    ev = json.load(open(os.path.join(out_dir,
+                                                     "scene_events.json")))
+                    gr = [e for e in ev.get("events", [])
+                          if e.get("ev") == "GRASPED" and e.get("wall")]
+                    if gr:
+                        off = gr[0]["wall"] - grab_t0
+                        span = grab_t1 - grab_t0
+                        if not (0.0 <= off <= span):
+                            good = False
+                            msg += ("; GRASP OUTSIDE THE CLIP: at %+.1f s of "
+                                    "a %.1f s window" % (off, span))
+                        else:
+                            log("      grasp at %+.1f s of %.1f s"
+                                % (off, span))
+                    elif CT.TASKS[task].get("width_mm"):
+                        good = False
+                        msg += "; NO GRASP RECORDED at all"
+                except FileNotFoundError:
+                    good = False
+                    msg += "; no scene_events.json -- the scene never ran"
+
                 # CAPTION ON THE FRONT VIEW ONLY -- the other six stay clean,
                 # and the quad is built AFTER so the tile carries it too.
                 import textwrap as _tw

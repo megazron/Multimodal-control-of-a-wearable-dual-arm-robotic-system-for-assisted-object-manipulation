@@ -426,6 +426,66 @@ CONTROLS = [
 ]
 
 
+def check_angles(d):
+    """Every angle in a clip directory must contain a moving picture.
+
+    SPLIT OUT SO A CONTROL CAN DRIVE IT. The black-capture control below used
+    to build only rviz_front.mp4 and call verify_clip() directly, so it proved
+    the FRONT view's blackness check worked and said nothing about the other
+    seven files -- which is exactly where the failure was. Seven gripper views
+    were black for 34 s each and the tool reported 24 of 24 passing, with a
+    green self-test underneath it the whole time. A control that exercises a
+    different code path from the one that runs is not a control.
+    """
+    dark = []
+    for ang in ANGLES:
+        f = os.path.join(d, "rviz_%s.mp4" % ang)
+        if not os.path.exists(f):
+            continue
+        st = angle_stats(f)
+        if st is None:
+            dark.append("%s: unreadable" % ang)
+            continue
+        b, ch = st
+        if b < 8:
+            dark.append("%s BLACK (mean %.1f)" % (ang, b))
+        elif ch < 0.02:
+            dark.append("%s FROZEN (delta %.3f)" % (ang, ch))
+    return dark
+
+
+def angle_self_test(verbose=True):
+    """A clip whose FRONT is perfect and whose GRIPPER is black must FAIL.
+
+    This is the exact shape of the seven clips that shipped. It is a separate
+    control from the ones above because it is a property of the DIRECTORY, not
+    of a single file, and main() refuses to report unless it passes.
+    """
+    tmp = tempfile.mkdtemp(prefix="anglectl_")
+    d = os.path.join(tmp, "clip")
+    os.makedirs(d, exist_ok=True)
+    try:
+        _clip(os.path.join(d, "rviz_front.mp4"), _good)
+        _clip(os.path.join(d, "rviz_gripper.mp4"), _black)
+        dark = check_angles(d)
+        caught = any("gripper BLACK" in x for x in dark)
+        # And the converse: an all-good directory must NOT be flagged, or the
+        # check would fail everything and still look vigilant.
+        d2 = os.path.join(tmp, "clip_ok")
+        os.makedirs(d2, exist_ok=True)
+        _clip(os.path.join(d2, "rviz_front.mp4"), _good)
+        _clip(os.path.join(d2, "rviz_gripper.mp4"), _good)
+        clean = not check_angles(d2)
+        if verbose:
+            print("  %-34s %s" % ("black gripper is CAUGHT",
+                                  "PASS" if caught else "FAIL"))
+            print("  %-34s %s" % ("all-good clip is not flagged",
+                                  "PASS" if clean else "FAIL"))
+        return caught and clean
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def self_test(verbose=True):
     """Show the verifier clips whose answers are known. All must be right."""
     tmp = tempfile.mkdtemp(prefix="clipctl_")
@@ -461,6 +521,14 @@ def main():
         print("\nREFUSING TO REPORT. The verifier failed a control, so any "
               "verdict it prints -- especially a pass -- means nothing.")
         return 2
+    print("PER-ANGLE SELF-TEST -- a clip whose gripper view is black")
+    if not angle_self_test():
+        print("\nREFUSING TO REPORT. The per-angle check cannot catch a "
+              "deliberately black gripper view. That is the exact failure "
+              "that let seven black clips pass while this tool reported "
+              "24 of 24.")
+        return 2
+    print()
     rows = []
     # ONE MORE PATH LEVEL. The tree is now
     # recordings/verification/<mode>/<task>/<scenario>/<condition>, because
@@ -519,20 +587,7 @@ def main():
         # stays on the front view, because the other cameras deliberately
         # frame the arm rather than the scene and a missing object there is
         # framing, not a fault.
-        dark = []
-        for ang in ANGLES:
-            f = os.path.join(d, "rviz_%s.mp4" % ang)
-            if not os.path.exists(f):
-                continue
-            st = angle_stats(f)
-            if st is None:
-                dark.append("%s: unreadable" % ang)
-                continue
-            b, ch = st
-            if b < 8:
-                dark.append("%s BLACK (mean %.1f)" % (ang, b))
-            elif ch < 0.02:
-                dark.append("%s FROZEN (delta %.3f)" % (ang, ch))
+        dark = check_angles(d)
         if dark:
             r["ok"] = False
             r["why"] = "; ".join([r["why"]] + dark).strip("; ")

@@ -29,6 +29,7 @@ import argparse
 import math
 import os
 import sys
+import time
 
 import rclpy
 from rclpy.node import Node
@@ -143,8 +144,10 @@ class Scene(Node):
             i += 1
 
         # ---- furniture, common to every task ----------------------------
-        add(Marker.CUBE, [0.0, Y + 0.02, 0.92], (1.30, 0.46, 0.03), TAN)
-        for sx in (-0.55, 0.55):
+        # 1.70 m wide, widened from 1.30 so task A's bin sits ON the bench
+        # at x = 0.62. Scenery only -- no verified coordinate depends on it.
+        add(Marker.CUBE, [0.0, Y + 0.02, 0.92], (1.70, 0.46, 0.03), TAN)
+        for sx in (-0.75, 0.75):
             add(Marker.CUBE, [sx, Y + 0.02, 0.78], (0.05, 0.05, 0.26), DARK)
         # the bin / container that task A places into
         add(Marker.CUBE, [CT.A_BIN[0], CT.A_BIN[1], CT.A_BIN[2] - 0.03],
@@ -166,9 +169,16 @@ class Scene(Node):
             g = self._grip(arm)
             if self.t0 is None:
                 self.t0 = self.get_clock().now().nanoseconds * 1e-9
+                self.t0_wall = time.time()
             now = self.get_clock().now().nanoseconds * 1e-9 - self.t0
             if on and not it["held"]:
-                self.events.append(dict(t=round(now, 2), ev="GRASPED",
+                # WALL TIME ON EVERY EVENT. Without it there is no common
+                # clock between this node and the ffmpeg grab, and B/S1
+                # recorded a GRASPED at t=44.1 s inside a 29.1 s clip -- the
+                # grasp happened after the video ended and nothing noticed,
+                # because the two timestamps were never comparable.
+                self.events.append(dict(t=round(now, 2), wall=time.time(),
+                                        ev="GRASPED",
                                         item=name, arm=arm,
                                         knuckle=round(k or -1, 4),
                                         needed=round(0.90 * rr.grip_for(
@@ -189,7 +199,8 @@ class Scene(Node):
                 # RELEASED: left where it was put, never snapped back.
                 it["held"] = False
                 it["last_held"] = None
-                self.events.append(dict(t=round(now, 2), ev="RELEASED",
+                self.events.append(dict(t=round(now, 2), wall=time.time(),
+                                        ev="RELEASED",
                                         item=name, arm=arm,
                                         carried_m=round(it.get("carried", 0.0), 4),
                                         at=[round(v, 4) for v in it["pos"]]))
@@ -220,7 +231,8 @@ def main():
                                     carried_m=round(it.get("carried", 0.0), 4),
                                     final=[round(v, 4) for v in it["pos"]],
                                     still_held=bool(it["held"])))
-            json.dump(dict(task=n.task, events=n.events, items=summary),
+            json.dump(dict(task=n.task, events=n.events, items=summary,
+                           t0_wall=getattr(n, "t0_wall", None)),
                       open(n.out, "w"), indent=2)
         raise KeyboardInterrupt
 

@@ -1,7 +1,7 @@
 {
   "repeats": 10,
   "step_m": 0.02,
-  "ik_calls": 2743,
+  "ik_calls": 3523,
   "failures": 0,
   "detail": {
     "controls": {
@@ -185,6 +185,52 @@
           "n_way": 15
         }
       ]
+    },
+    "clip_tasks": {
+      "a": {
+        "left": {
+          "distinct": 27,
+          "waypoints": 53,
+          "bad": 0,
+          "ok": true
+        },
+        "right": {
+          "distinct": 1,
+          "waypoints": 1,
+          "bad": 0,
+          "ok": true
+        }
+      },
+      "b": {
+        "left": {
+          "distinct": 1,
+          "waypoints": 1,
+          "bad": 0,
+          "ok": true
+        },
+        "right": {
+          "distinct": 7,
+          "waypoints": 13,
+          "bad": 0,
+          "ok": true
+        }
+      },
+      "c": {
+        "left": {
+          "distinct": 1,
+          "waypoints": 1,
+          "bad": 0,
+          "ok": true
+        },
+        "right": {
+          "distinct": 5,
+          "waypoints": 9,
+          "bad": 0,
+          "ok": true
+        }
+      },
+      "a_lateral_m": 0.3,
+      "a_vertical_m": 0.13
     }
   }
 }

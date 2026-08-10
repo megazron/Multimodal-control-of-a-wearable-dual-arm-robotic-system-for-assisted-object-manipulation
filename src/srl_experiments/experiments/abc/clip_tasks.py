@@ -67,7 +67,29 @@ def _hold(pt, n):
 # Single arm. The other arm holds its start pose so the clip shows ONE arm
 # working, which is the point of the task.
 A_PICK = [0.32, Y, 1.15]
-A_BIN = [0.30, Y, 1.02]
+# THE BIN IS 0.30 m LATERALLY FROM THE PICK, and that is the whole point.
+#
+# It used to be [0.30, Y, 1.02] -- 0.132 m from the pick of which 0.130 m was
+# VERTICAL, so the block started hovering directly above the bin and the
+# "place" lowered it 130 mm straight down. That is a gripper descending, not a
+# pick-and-place, and no viewer would read it as one.
+#
+# 0.62 comes from `scripts/sweep_task_a_bin.py`, which walks the bin outward
+# and verifies the WHOLE densified path at N=10 for each candidate:
+#
+#     x = 0.35 .. 0.68   PASS      (lateral 0.030 .. 0.360 m)
+#     x = 0.71            fail     <- the IK boundary, 3863 calls
+#
+# So IK is NOT the binding constraint here: the BENCH is. At 1.30 m wide it
+# spanned x = +/-0.65, and a 0.16 m bin centred at 0.62 hangs over the edge.
+# The bench is scenery and carries no verified coordinate, so it was widened
+# to 1.70 m rather than compressing the task to x = 0.57, where the lateral
+# travel would land exactly on the 0.25 m requirement with no margin.
+#
+# 0.62 leaves 0.06 m of IK margin against the last passing candidate and
+# 0.23 m of bench. Feasibility on this rig falls off a cliff rather than
+# degrading, so the margin is the defence and N only located the edge.
+A_BIN = [0.62, Y, 1.02]
 A_STANDOFF = 0.10
 
 

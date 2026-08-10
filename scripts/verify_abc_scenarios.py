@@ -44,6 +44,8 @@ sys.path.insert(0, os.path.join(ROOT, "src/srl_experiments/experiments/abc"))
 from verify_task_scenes import Solver, HOME_TOL_RAD          # noqa: E402
 from audit_scenario_reachability import densify              # noqa: E402
 import tasks as T                                            # noqa: E402
+import clip_tasks as CT                                      # noqa: E402
+import math                                                  # noqa: E402
 
 STEP = 0.02
 OUT = os.path.join(ROOT, "recordings/baselines/abc_verification.json")
@@ -268,6 +270,50 @@ def main():
     # the run on an optional demonstration would block the three tasks that
     # are not optional.
     out["optional_pick_place"] = td
+
+    # ------------------------------------------------- THE CLIP TASK PATHS
+    # THE RECORDING SET IS A DIFFERENT SPEC AND WAS NEVER VERIFIED HERE.
+    # tasks.py is the participant protocol; clip_tasks.py is what the sweep
+    # actually drives, and its coordinates were only ever checked by eye. That
+    # is how task A shipped with a bin 0.132 m from the pick of which 0.130 m
+    # was VERTICAL -- verified geometry running the wrong task. These paths
+    # now get the same full-path N treatment as the protocol's own.
+    print("\nCLIP TASKS  the paths the recording sweep actually drives")
+    tcl = {}
+    for key in ("a", "b", "c"):
+        wp = CT.TASKS[key]["build"]()
+        per = {}
+        for arm, pts in wp.items():
+            # Collapse the held repeats: a static hold re-rolls the same pose
+            # once per waypoint, which turns a 60/60 pose into a random
+            # failure somewhere along the path. Verify each DISTINCT pose.
+            seen, uniq = set(), []
+            for p in pts:
+                k = tuple(round(v, 4) for v in p)
+                if k not in seen:
+                    seen.add(k)
+                    uniq.append(list(p))
+            dense = require_path(densify(uniq, step) if len(uniq) > 1 else uniq,
+                                 "clip %s/%s" % (key, arm))
+            bad = [w for w in dense if not ok(arm, w)]
+            per[arm] = dict(distinct=len(uniq), waypoints=len(dense),
+                            bad=len(bad), ok=not bad)
+            fails += len(bad)
+            print("   %s %-5s %2d distinct -> %3d waypoints   %s"
+                  % (key.upper(), arm, len(uniq), len(dense),
+                     "VERIFIED" if not bad else "%d FAIL" % len(bad)))
+        tcl[key] = per
+    # Task A's transport must be a CARRY. Verified as arithmetic on the
+    # declared coordinates, not by eye.
+    lat = math.hypot(CT.A_BIN[0] - CT.A_PICK[0], CT.A_BIN[1] - CT.A_PICK[1])
+    tcl["a_lateral_m"] = round(lat, 4)
+    tcl["a_vertical_m"] = round(abs(CT.A_BIN[2] - CT.A_PICK[2]), 4)
+    print("   A transport: %.3f m lateral, %.3f m vertical  %s"
+          % (lat, abs(CT.A_BIN[2] - CT.A_PICK[2]),
+             "CARRY" if lat >= 0.25 else "FAIL -- a drop, not a carry"))
+    if lat < 0.25:
+        fails += 1
+    out["clip_tasks"] = tcl
 
     payload = dict(repeats=N, step_m=step, ik_calls=calls["n"],
                    failures=fails, detail=out)

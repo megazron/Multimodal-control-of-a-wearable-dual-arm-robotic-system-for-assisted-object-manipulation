@@ -76,8 +76,25 @@ class Solver(Node):
         return ["%s_joint_%d" % (arm, i) for i in range(1, 8)]
 
     def home_ok(self, arm):
+        """Worst per-joint offset from home, and which joint.
+
+        RAISES if no joint data has arrived. `self.js.get(k, 0.0)` filled the
+        vector with zeros when the subscription had not yet delivered, and
+        all-zeros happens to sit 2.89 rad from this home -- so "the topic is
+        silent" was reported, in the same number and the same units, as "the
+        arms are parked in the wrong place". Callers refuse on that number,
+        so a startup race looked exactly like an operator error and the
+        instructed fix (re-home the arms) could never work.
+        """
         import home_positions as hp
         tgt = hp.load_home_radians(arm)
+        missing = [k for k in self.names(arm) if k not in self.js]
+        if missing:
+            raise RuntimeError(
+                "no /joint_states for %s (%d of 7 joints missing, e.g. %s). "
+                "This is ABSENT DATA, not a pose -- spin until the topic "
+                "delivers before asking where the arm is."
+                % (arm, len(missing), missing[0]))
         cur = [self.js.get(k, 0.0) for k in self.names(arm)]
         off = [abs((cur[i] - tgt[i] + math.pi) % (2 * math.pi) - math.pi)
                for i in range(7)]

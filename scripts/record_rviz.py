@@ -82,14 +82,27 @@ RVIZ_CFG = os.path.join(ROOT, "src/srl_experiments/config/verification_capture.r
 # four passes that might diverge. One angle hides things: the front view
 # flattens reach depth, the top view is where a coordination error is obvious,
 # and only a tight gripper view answers "did it actually grab it".
+# FRAMED ON THE WORKSPACE, NOT ON THE WEARER.
+#
+# Every distance here was 2.10-2.40 m, which fits the whole 1.8 m mannequin in
+# frame and leaves the actual task -- a 0.87 x 0.28 m volume around
+# (0.15, 0.35, 1.16) -- occupying roughly 5% of the picture. On a 800x500 clip
+# that is a few dozen pixels of gripper, and no viewer can tell a grasp from a
+# near miss. The distances below frame the workspace with margin for the arms
+# above it; the wearer's torso and head stay visible for context but no longer
+# set the scale.
+#
+# The focal point follows the task volume, whose x centre moved when task A's
+# bin went outboard to 0.62 (see clip_tasks.A_BIN).
+_FOCUS = (0.15, 0.35, 1.16)
 VIEWS = {
-    #  name       display  yaw      pitch  dist  focal(x,y,z)         hud
-    "front":   (":91", 1.5708, 0.32, 2.25, (0.0, 0.26, 1.16), True),
-    "back":    (":95", -1.5708, 0.30, 2.25, (0.0, 0.10, 1.20), False),
-    "left":    (":92", 0.0000, 0.20, 2.10, (0.0, 0.30, 1.15), False),
-    "right":   (":96", 3.1416, 0.20, 2.10, (0.0, 0.30, 1.15), False),
-    "iso":     (":97", 0.9000, 0.45, 2.40, (0.0, 0.26, 1.16), False),
-    "top":     (":93", 1.5708, 1.40, 2.30, (0.0, 0.30, 1.15), False),
+    #  name       display  yaw      pitch  dist  focal(x,y,z)   hud
+    "front":   (":91", 1.5708, 0.28, 1.35, _FOCUS, True),
+    "back":    (":95", -1.5708, 0.26, 1.35, _FOCUS, False),
+    "left":    (":92", 0.0000, 0.18, 1.30, _FOCUS, False),
+    "right":   (":96", 3.1416, 0.18, 1.30, _FOCUS, False),
+    "iso":     (":97", 0.9000, 0.40, 1.45, _FOCUS, False),
+    "top":     (":93", 1.5708, 1.35, 1.40, _FOCUS, False),
     # ONE DISPLAY PER ARM, and neither is ever killed. See ensure_display().
     "gripper": (":94", 1.5708, 0.25, 0.40, (0.0, 0.0, 0.0), False),
     "gripper_right": (":98", 1.5708, 0.25, 0.40, (0.0, 0.0, 0.0), False),

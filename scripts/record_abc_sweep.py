@@ -373,6 +373,63 @@ class Graph:
             pass
 
 
+def foreign_description():
+    """PIDs of robot_state_publishers that are NOT part of a launched stack.
+
+    A STRAY ONE POISONS EVERY CLIP IN THE SWEEP, SILENTLY. Measured 2026-08-10:
+    a robot_state_publisher left over from CAD-figure work owned
+    /robot_description; that URDF carries no ros2_control tag, so the stack's
+    ros2_control_node threw "no 'ros2_control' tag found in the URDF" and died
+    at startup. With no controller manager, /joint_states fell back to a
+    publisher emitting all zeros -- and EVERY ROBOT JOINT READ 0.000, which is
+    a plausible number in a plausible place. Nothing downstream disagreed.
+
+    Run the sweep in that state and it produces fifteen clips of an arm at a
+    posture it was never commanded to, all of which render, all of which pass
+    a colour check. This is a PRECONDITION, checked once before the sweep and
+    again before every mode, not a step to remember.
+
+    A launched publisher is handed the description through --params-file; a
+    hand-started one is handed a URDF path. That difference needs no
+    bookkeeping to stay true.
+    """
+    out = []
+    for pid, cmd in procscan.find("robot_state_publisher"):
+        if "--params-file" in cmd:
+            continue
+        if ".urdf" in cmd or ".xacro" in cmd:
+            out.append(pid)
+    return out
+
+
+def preconditions():
+    """Everything that must be true before a single frame is worth recording.
+
+    Returns (ok, [messages]). Each check is one this project has been bitten
+    by, and each names its own recovery.
+    """
+    msgs = []
+    stray = foreign_description()
+    if stray:
+        msgs.append(
+            "a robot_state_publisher outside the stack owns "
+            "/robot_description (pid %s) -- ros2_control_node will die with "
+            "\"no 'ros2_control' tag\" and every joint will read 0.000. "
+            "kill %s"
+            % (", ".join(str(x) for x in stray),
+               " ".join(str(x) for x in stray)))
+    n_master = procscan.count("lib/srl_teleop/master_pose_node")
+    if n_master > 1:
+        msgs.append("%d master_pose_node instances -- two readers split the "
+                    "serial stream. Kill all but one." % n_master)
+    n_mg = procscan.count("lib/moveit_ros_move_group/move_group")
+    if n_mg == 0:
+        msgs.append("no move_group -- nothing will answer /compute_ik")
+    elif n_mg > 1:
+        msgs.append("%d move_group instances -- two planning scenes" % n_mg)
+    return (not msgs), msgs
+
+
 def isolate(mode, graph, started):
     """Make `mode` the only source. Returns (ok, message).
 
@@ -540,12 +597,31 @@ def main():
     cap = Caption(graph.n)
     cap.set([])
     time.sleep(1.0)
+    ok, why = preconditions()
+    for m in why:
+        log("   PRECONDITION FAILED: %s" % m)
+    if not ok:
+        log("REFUSING TO RECORD. A sweep run in this state produces clips "
+            "that render, pass the verifier and show the wrong thing.")
+        return 2
+    log("   preconditions: one move_group, no stray /robot_description owner")
+
     started = {}
     app, gui = build_gui()
     done = failed = skipped = 0
     try:
         for mode in modes:
             log("\n== MODE %s" % mode)
+            # RE-CHECKED PER MODE. A stray can appear mid-sweep -- the one
+            # that caused this check was started by a sibling session while
+            # other work was running.
+            pok, pwhy = preconditions()
+            if not pok:
+                for m in pwhy:
+                    log("   PRECONDITION FAILED: %s" % m)
+                log("   ABORTING THIS MODE.")
+                failed += len(tasks)
+                continue
             ok, why = isolate(mode, graph, started)
             log("   %s" % why)
             if not ok:

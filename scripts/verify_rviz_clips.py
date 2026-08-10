@@ -617,6 +617,7 @@ def main():
         for r in bad:
             print("    %s/%s/%s -- %s"
                   % (r["task"], r["scenario"], r["condition"], r["why"]))
+    os.makedirs(OUT, exist_ok=True)
     json.dump(rows, open(os.path.join(OUT, "rviz_verification.json"), "w"),
               indent=2)
     return 0 if not bad else 1

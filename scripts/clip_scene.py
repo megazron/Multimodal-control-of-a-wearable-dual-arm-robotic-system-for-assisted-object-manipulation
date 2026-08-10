@@ -50,6 +50,13 @@ Y = CT.Y
 SEP = CT.SEP
 KN = "%s_robotiq_85_left_knuckle_joint"
 
+# How close the finger PADS must be to an object for a closure to count as
+# grasping THAT object. 0.03 m: the binding capture half-window in the set is
+# 17.5 mm (the 50 mm multimeter) and the block's is 22.5 mm, so 30 mm is
+# outside every real capture window while still tolerating the few millimetres
+# of tracking error between the commanded pose and tf2.
+GRASP_NEAR_M = 0.03
+
 # rgba, measured RENDERED colours are what the verifier keys on, so these are
 # chosen to sit inside its existing detector bands rather than near them.
 TAN = (0.78, 0.66, 0.42, 1.0)        # tray  -> _tan
@@ -386,8 +393,29 @@ class Scene(Node):
         for name, it in self.items.items():
             arm = it["arm"]
             k = self.knuck.get(arm)
-            on = rr.holding(k, it["width_mm"])
             g = self._grip(arm)
+            # PROXIMITY IS PART OF "GRASPED", AND IT WAS MISSING.
+            #
+            # The test was the knuckle alone, so ANY closure anywhere counted
+            # as grasping this object. Measured on the 2026-08-10 re-record:
+            # task A logged GRASPED at t=1.21 s with knuckle 0.5176 while the
+            # arm was still at home and the block was 0.5 m away, then a
+            # RELEASED that carried nothing, and the REAL grasp 29 s later was
+            # reported as "23.8 s outside the clip". The event was true about
+            # the fingers and false about the object.
+            #
+            # record_rviz.py already gates its own attachment on `near_pick`
+            # for exactly this reason; clip_scene, which writes the file the
+            # sweep judges completion from, did not. Two descriptions of one
+            # grasp, and the authoritative one was the weaker.
+            #
+            # GRASP_NEAR_M is the capture half-window rounded up: 22.5 mm for
+            # the 40 mm block is the distance at which the fingers close BESIDE
+            # the object rather than on it, so beyond that a closure cannot be
+            # a grasp of this item whatever the knuckle says.
+            near = (g is not None
+                    and math.dist(g, it["pos"]) <= GRASP_NEAR_M)
+            on = rr.holding(k, it["width_mm"]) and (it["held"] or near)
             if self.t0 is None:
                 self.t0 = self.get_clock().now().nanoseconds * 1e-9
                 self.t0_wall = time.time()

@@ -110,7 +110,25 @@ def holding(knuckle, width_mm=None):
     if knuckle is None or knuckle != knuckle:
         return False
     if width_mm is not None:
-        return knuckle >= GRIP_REACHED_FRAC * grip_for(width_mm)
+        # BOTH ENDS. The lower bound says the fingers reached the object's
+        # width; the UPPER bound says they did not sail past it and close on
+        # air. This branch had only the lower bound, and that is a real bug
+        # with a measured consequence: `mock_components` boots the knuckle at
+        # 0.7929 rad, so at scene start every object in the set read as
+        # GRASPED -- 0.7929 clears the 40 mm block's 0.3812 threshold easily.
+        # Task A's first clip of the 2026-08-10 re-record logged GRASPED at
+        # t=0.0 with the arm still at home, then a RELEASED that carried
+        # 0.000 m, and the real grasp 56 s later was reported as "51.3 s
+        # outside the clip". The no-width branch below always had both bounds;
+        # only this one lost the upper. CLAUDE.md records the same failure
+        # from the original pilot ("the mock gripper boots at 0.79 rad --
+        # already past any closed threshold"), so this is a regression of a
+        # known bug, not a new one.
+        #
+        # Safe for every object in the set: the narrowest (20 mm) needs
+        # 0.5506, well under FREE_AIR_RAD.
+        return (GRIP_REACHED_FRAC * grip_for(width_mm) <= knuckle
+                < FREE_AIR_RAD)
     return OPEN_RAD <= knuckle < FREE_AIR_RAD
 
 # One marker per arm, in the user's runtime dir so it does not survive a

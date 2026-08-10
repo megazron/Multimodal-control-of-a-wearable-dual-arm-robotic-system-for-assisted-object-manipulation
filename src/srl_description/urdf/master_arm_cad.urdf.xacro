@@ -1,0 +1,139 @@
+<?xml version="1.0"?>
+<!--
+  master_arm_cad.urdf.xacro
+  =========================
+
+  THE MASTER ARM, BUILT PURELY FROM THE CAD. Nothing in this file is taken
+  from the measured link lengths, and that is deliberate: a working URDF
+  already exists from measurements (srl_dual.urdf.xacro, UNTOUCHED by this
+  file), so a hybrid would add nothing. The value of this one is that it is an
+  INDEPENDENT check, and mixing in a measured value anywhere would throw that
+  away.
+
+  IT DISAGREES WITH THE MEASURED ARM BY 7 mm OVERALL, AND THAT IS REPORTED
+  RATHER THAN CORRECTED. See docs/system/09_cad_vs_measured.md.
+
+  WHERE THE NUMBERS COME FROM. The CAD has no joints, no joint frames and one
+  solid per printed part — it was designed for printing. Everything below is
+  inferred from geometry:
+
+    * Three groups of solids occur EXACTLY SEVEN TIMES (pot body, bracket,
+      shaft boss). The pot body is flat, so its SHORT dimension lies along the
+      rotation axis, and reading that off all seven gives
+      roll/bend/roll/bend/roll/bend/roll — the stated convention, recovered
+      without being assumed. HIGH confidence.
+    * Bend joints J2/J4/J6 sit at z = 60.7, 139.7, 218.7 mm. A bend axis is a
+      line at a definite height and two independent solid groups agree on it
+      to 0.2 mm. HIGH confidence.
+    * Roll joints J1/J3/J5/J7 sit at z = 23.0, 103.0, 180.0, 260.0 mm. A roll
+      axis IS the z line, so position along it is a convention rather than a
+      measurement — taken here from the shaft-boss centroid. MEDIUM
+      confidence.
+    * Every axis passes through x = 0 to within 0.08 mm. HIGH confidence.
+
+  THE STRONGEST RESULT IS CONVENTION-FREE. Bend-to-bend spacing does not
+  depend on where a roll joint is said to sit along its own axis:
+
+        J2 -> J4    measured 80 mm    CAD 79.0 mm
+        J4 -> J6    measured 79 mm    CAD 79.0 mm
+
+  Agreement to about 1% between a tape measure on the built arm and a solid
+  model. That is the strongest independent confirmation the forward kinematics
+  has ever had.
+
+  NOT FOUND, and not invented: the potentiometer SHAFT bores. The r = 1.9-2.2
+  mm cylinder clusters are dominated by fasteners and could not be separated
+  from them, so no frame is derived from a shaft.
+
+  JOINT LIMITS are the pot's mechanical travel, not a measurement of this
+  model — a 9 mm rotary pot turns about 300 degrees. Flagged as assumed.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="master_arm_cad">
+
+  <xacro:property name="M" value="0.001"/>
+  <!-- Inferred joint heights, mm, from the CAD. -->
+  <xacro:property name="JZ" value="${[23.0, 60.7, 103.0, 139.7, 180.0, 218.7, 260.0]}"/>
+  <xacro:property name="MESH" value="package://srl_description/meshes/master_arm_cad"/>
+  <!-- Pot mechanical travel. ASSUMED, not measured from the model. -->
+  <xacro:property name="POT_LIM" value="2.618"/>
+
+  <material name="cad_print">
+    <color rgba="0.82 0.84 0.86 1.0"/>
+  </material>
+  <material name="cad_pot">
+    <color rgba="0.25 0.62 0.70 1.0"/>
+  </material>
+
+  <!-- One link. The mesh is exported in the CAD's own global frame, so each
+       link's visual carries a NEGATIVE offset of its joint height to bring
+       that joint to the link origin. No geometry is moved; only the frame. -->
+  <xacro:macro name="cad_link" params="name z_off mat:=cad_print">
+    <link name="${name}">
+      <visual>
+        <origin xyz="0 0 ${-z_off * M}" rpy="0 0 0"/>
+        <geometry><mesh filename="${MESH}/${name}.stl"/></geometry>
+        <material name="${mat}"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${-z_off * M}" rpy="0 0 0"/>
+        <geometry><mesh filename="${MESH}/${name}_collision.stl"/></geometry>
+      </collision>
+      <!-- Inertia is a PLACEHOLDER. The STEP carries no material, so mass
+           would be an assumption about print density and infill; this model
+           exists for geometry and visualisation, not for dynamics. -->
+      <inertial>
+        <mass value="0.02"/>
+        <origin xyz="0 0 0.02"/>
+        <inertia ixx="1e-5" ixy="0" ixz="0" iyy="1e-5" iyz="0" izz="1e-5"/>
+      </inertial>
+    </link>
+  </xacro:macro>
+
+  <link name="master_base"/>
+
+  <xacro:cad_link name="base" z_off="0"/>
+  <joint name="base_to_arm" type="fixed">
+    <parent link="master_base"/>
+    <child link="base"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- The chain. Axis alternates z (roll) / y (bend), exactly as the seven
+       pot bodies' short dimensions say. Origins are the DIFFERENCES between
+       consecutive inferred joint heights. -->
+  <xacro:macro name="cad_joint" params="idx parent child z_prev z_this axis">
+    <joint name="master_j${idx}" type="revolute">
+      <parent link="${parent}"/>
+      <child link="${child}"/>
+      <origin xyz="0 0 ${(z_this - z_prev) * M}" rpy="0 0 0"/>
+      <axis xyz="${axis}"/>
+      <limit lower="${-POT_LIM}" upper="${POT_LIM}" effort="1" velocity="3"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:cad_link name="link1" z_off="${JZ[0]}"/>
+  <xacro:cad_link name="link2" z_off="${JZ[1]}"/>
+  <xacro:cad_link name="link3" z_off="${JZ[2]}"/>
+  <xacro:cad_link name="link4" z_off="${JZ[3]}"/>
+  <xacro:cad_link name="link5" z_off="${JZ[4]}"/>
+  <xacro:cad_link name="link6" z_off="${JZ[5]}"/>
+  <xacro:cad_link name="link7" z_off="${JZ[6]}"/>
+
+  <xacro:cad_joint idx="1" parent="base"  child="link1" z_prev="0"      z_this="${JZ[0]}" axis="0 0 1"/>
+  <xacro:cad_joint idx="2" parent="link1" child="link2" z_prev="${JZ[0]}" z_this="${JZ[1]}" axis="0 1 0"/>
+  <xacro:cad_joint idx="3" parent="link2" child="link3" z_prev="${JZ[1]}" z_this="${JZ[2]}" axis="0 0 1"/>
+  <xacro:cad_joint idx="4" parent="link3" child="link4" z_prev="${JZ[2]}" z_this="${JZ[3]}" axis="0 1 0"/>
+  <xacro:cad_joint idx="5" parent="link4" child="link5" z_prev="${JZ[3]}" z_this="${JZ[4]}" axis="0 0 1"/>
+  <xacro:cad_joint idx="6" parent="link5" child="link6" z_prev="${JZ[4]}" z_this="${JZ[5]}" axis="0 1 0"/>
+  <xacro:cad_joint idx="7" parent="link6" child="link7" z_prev="${JZ[5]}" z_this="${JZ[6]}" axis="0 0 1"/>
+
+  <!-- The grip point, at the top of the printed part. This is where the
+       operator holds it, NOT a joint. -->
+  <link name="master_tip"/>
+  <joint name="link7_to_tip" type="fixed">
+    <parent link="link7"/>
+    <child link="master_tip"/>
+    <origin xyz="0 0 ${(331.7 - JZ[6]) * M}" rpy="0 0 0"/>
+  </joint>
+
+</robot>

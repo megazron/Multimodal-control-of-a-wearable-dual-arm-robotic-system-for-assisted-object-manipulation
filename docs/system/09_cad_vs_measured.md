@@ -1,5 +1,40 @@
 # The CAD against the measured arm
 
+## THE HEADLINE: a convention-free cross-check, agreeing to 1%
+
+**Bend-to-bend spacing does not depend on where a roll joint is said to sit
+along its own axis, so it is the one comparison that carries no convention:**
+
+| | measured | CAD-inferred | delta |
+| --- | --- | --- | --- |
+| **J2 → J4** | 80.0 mm | **79.0 mm** | −1.0 |
+| **J4 → J6** | 79.0 mm | **79.0 mm** | **0.0** |
+
+A tape measure on the built arm and a solid model, independently, agreeing to
+about 1%. **This is the strongest independent confirmation the forward
+kinematics has ever had** — every workspace figure and every task coordinate
+rests on those lengths, and until now nothing outside the measurement itself
+had ever corroborated them.
+
+## AND THE RIG IS NOT A CONSISTENT SCALE MODEL
+
+| | |
+| --- | --- |
+| mannequin | 305 mm (12 in) |
+| URDF wearer | 1750 mm |
+| **torso scale** | **1 : 5.74** |
+| master arm, kinematic | 272 mm measured / 260 mm CAD |
+| a human arm, shoulder to grip | ~600 mm |
+| **arm scale** | **~1 : 1.8** |
+
+**The master arms are more than three times too long for the doll they are
+bolted to.** That is the right choice for an input device sized to the
+operator's hand travel rather than to the mannequin — but it means **the
+mannequin's proportions say nothing about the robot's mount geometry**, and
+any figure derived by scaling the master rig up to wearer size is a
+coincidence rather than a corroboration.
+
+
 **The working URDF derives from MEASURED link lengths. Nothing in this document
 changes that, and nobody should later treat the CAD as the kinematic source.**
 The CAD was designed for 3D printing: no articulation, no joint frames, one

@@ -35,6 +35,17 @@ class Preflight(Node):
         self.guard = None
         self.estop = None
         self.objects = None
+        # THE WEARER IS PART OF THE ROBOT MODEL, not a world object, so it is
+        # checked through TF. Named links, because a wrong name reads exactly
+        # like a missing link: an earlier version of this audit looked for
+        # `human_torso` and concluded the wearer was absent. It is `torso`.
+        self._tf_buf = None
+        try:
+            import tf2_ros
+            self._tf_buf = tf2_ros.Buffer()
+            self._tf_lis = tf2_ros.TransformListener(self._tf_buf, self)
+        except Exception:                                       # noqa: BLE001
+            pass
         self.create_subscription(JointState, '/joint_states',
                                  lambda m: self.js_t.append(time.monotonic()), 50)
         self.create_subscription(String, '/blocking',
@@ -57,6 +68,34 @@ def check(name, ok, detail, fatal=True):
     mark = 'PASS' if ok else ('FAIL' if fatal else 'WARN')
     print('  [%-4s] %-26s %s' % (mark, name, detail))
     return (ok or not fatal)
+
+
+WEARER_LINKS = ('torso', 'head', 'hips', 'left_leg', 'right_leg',
+                'human_left_upper_arm', 'human_right_upper_arm')
+
+
+def world_objects(node, timeout_s=6.0):
+    """How many collision objects move_group actually holds.
+
+    Asked of move_group, not of whoever published: "I sent it" and "it is
+    there" have already differed once in this project, and a single publish
+    to /planning_scene at startup loses the race with subscription matching.
+    """
+    try:
+        from moveit_msgs.srv import GetPlanningScene
+        from moveit_msgs.msg import PlanningSceneComponents
+        cli = node.create_client(GetPlanningScene, '/get_planning_scene')
+        if not cli.wait_for_service(timeout_sec=timeout_s):
+            return 0, 'no /get_planning_scene (is move_group up?)'
+        req = GetPlanningScene.Request()
+        req.components.components = PlanningSceneComponents.WORLD_OBJECT_NAMES
+        fut = cli.call_async(req)
+        rclpy.spin_until_future_complete(node, fut, timeout_sec=timeout_s)
+        if not fut.done() or fut.result() is None:
+            return 0, 'move_group did not answer'
+        return len(fut.result().scene.world.collision_objects), ''
+    except Exception as e:                                      # noqa: BLE001
+        return 0, str(e)[:60]
 
 
 def main():
@@ -134,6 +173,39 @@ def main():
                     'latched' if n.estop else ('clear' if n.estop is not None
                                                else 'no /estop_state'))
         ok &= check('e-stop not latched', n.estop is not True, 'ok')
+
+    # --- THE PLANNING SCENE MUST NOT BE EMPTY.
+    #
+    # move_group returned "collision objects: NONE" for the entire life of the
+    # clip set, because clip_scene published Markers to /task_objects and
+    # nothing to /planning_scene. Every path was planned through a world with
+    # no furniture in it, and nothing anywhere said so -- an empty world is
+    # silent, and it looks exactly like a world where nothing is in the way.
+    #
+    # The WEARER is a different matter and was never missing: torso, head,
+    # hips, legs and both arms are links of the robot model, present in TF,
+    # with only 14 mount-adjacent pairs excluded in the ACM. Wearer clearance
+    # figures stand; WORLD-object figures were the optimistic ones.
+    wearer_missing = []
+    if n._tf_buf is not None:
+        import rclpy.time as _rt
+        for link in WEARER_LINKS:
+            try:
+                n._tf_buf.lookup_transform('world', link, _rt.Time())
+            except Exception:                                   # noqa: BLE001
+                wearer_missing.append(link)
+    n.wearer_ok = (n._tf_buf is not None and not wearer_missing)
+    scene_n, scene_why = world_objects(n)
+    ok &= check('planning scene populated', scene_n > 0,
+                ('%d collision objects' % scene_n) if scene_n > 0
+                else 'EMPTY WORLD -- %s' % scene_why,
+                fatal=a.participant)
+    ok &= check('wearer in the model', n.wearer_ok,
+                'torso/head/hips/legs in TF' if n.wearer_ok
+                else 'MISSING FROM TF: %s -- every clearance number is '
+                     'meaningless and the floor cannot fire'
+                     % ', '.join(wearer_missing or ['no tf2']),
+                fatal=True)
 
     # --- disk. A session that fills the disk loses the session.
     free = shutil.disk_usage(os.path.expanduser('~')).free / 1e9

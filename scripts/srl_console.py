@@ -1495,12 +1495,28 @@ class Console:
                                  else "no transform", ik_txt))
                 c = d[5]
                 dpg.set_value("r_clr_%s" % a, max(0.0, min(1.0, c / 0.5)))
-                zone = ("HARD FLOOR" if c < 0.05 else
-                        "tangential" if c < 0.15 else
-                        "null-space" if c < 0.25 else "clear")
+                # THREE HONEST STAGES, NOT FIVE CLAIMED ONES.
+                #
+                # This used to label the bands "tangential" and "null-space",
+                # which named avoidance strategies that DO NOT EXIST in this
+                # code. Nothing computes a tangential velocity and nothing
+                # projects a correction into the null space. What is actually
+                # implemented, and all that is implemented, is:
+                #
+                #   1. collision-aware IK       (avoid_collisions=True)
+                #   2. redundancy re-seeding    (6 samples on joint_3)
+                #   3. the hard clearance floor (hold and publish nothing)
+                #
+                # A display label that names a stage which was never written
+                # is worse than a plain number: it tells the operator a
+                # mitigation is running when nothing is.
+                zone = ("HARD FLOOR -- holding" if c < 0.05 else
+                        "close" if c < 0.15 else
+                        "margin" if c < 0.25 else "clear")
                 dpg.set_value("r_clrtxt_%s" % a,
-                              "%.3f m   [%s]   floor 0.05 | tang 0.15 | "
-                              "null 0.25" % (c, zone))
+                              "%.3f m   [%s]   floor 0.05 | stages: "
+                              "collision-aware IK, 6 redundancy re-seeds, "
+                              "hard floor" % (c, zone))
                 dpg.configure_item("r_clrtxt_%s" % a,
                                    color=(BAD if c < 0.05 else
                                           WARN if c < 0.15 else GOOD))

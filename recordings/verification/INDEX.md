@@ -30,28 +30,28 @@ paste that into Explorer's address bar, or from a WSL shell run `explorer.exe .`
 | --- | --- | --- | --- | --- | --- | --- |
 | 01_master_teleop | A | S1_single_arm | 7/7 | 37 | yes | yes |
 | 01_master_teleop | A | S3_both | 7/7 | 36 | -- | yes |
-| 01_master_teleop | B | S1_bimanual | 7/7 | 28 | yes | yes |
+| 01_master_teleop | B | S1_bimanual | 7/7 | 29 | yes | yes |
 | 01_master_teleop | B | S2_full_lift | 7/7 | 32 | -- | yes |
 | 01_master_teleop | C | S1_both_slow | 7/7 | 39 | -- | yes |
-| 01_master_teleop | C | S1_present_probe | 7/7 | 30 | yes | yes |
-| 02_vr_teleop | A | S1_single_arm | 7/7 | 46 | yes | yes |
+| 01_master_teleop | C | S1_present_probe | 7/7 | 31 | yes | yes |
+| 02_vr_teleop | A | S1_single_arm | 7/7 | 48 | yes | yes |
 | 02_vr_teleop | A | S3_both | 7/7 | 41 | -- | yes |
 | 02_vr_teleop | B | S1_bimanual | 7/7 | 39 | yes | yes |
 | 02_vr_teleop | B | S2_full_lift | 7/7 | 39 | -- | yes |
 | 02_vr_teleop | C | S1_both_slow | 7/7 | 49 | -- | yes |
-| 02_vr_teleop | C | S1_present_probe | 7/7 | 41 | yes | yes |
+| 02_vr_teleop | C | S1_present_probe | 7/7 | 43 | yes | yes |
 | 03_shared_autonomy | A | S1_single_arm | 7/7 | 36 | yes | yes |
-| 03_shared_autonomy | B | S1_bimanual | 7/7 | 27 | yes | yes |
+| 03_shared_autonomy | B | S1_bimanual | 7/7 | 29 | yes | yes |
 | 03_shared_autonomy | C | S1_present_probe | 7/7 | 31 | yes | yes |
-| 04_vr_shared | A | S1_single_arm | 7/7 | 37 | yes | yes |
-| 04_vr_shared | B | S1_bimanual | 7/7 | 27 | yes | yes |
-| 04_vr_shared | C | S1_present_probe | 7/7 | 31 | yes | yes |
-| 06_full_autonomy | A | S1_single_arm | 7/7 | 38 | yes | yes |
+| 04_vr_shared | A | S1_single_arm | 7/7 | 39 | yes | yes |
+| 04_vr_shared | B | S1_bimanual | 7/7 | 30 | yes | yes |
+| 04_vr_shared | C | S1_present_probe | 7/7 | 32 | yes | yes |
+| 06_full_autonomy | A | S1_single_arm | 7/7 | 41 | yes | yes |
 | 06_full_autonomy | A | S3_both | 7/7 | 33 | -- | yes |
-| 06_full_autonomy | B | S1_bimanual | 7/7 | 30 | yes | yes |
+| 06_full_autonomy | B | S1_bimanual | 7/7 | 31 | yes | yes |
 | 06_full_autonomy | B | S2_full_lift | 7/7 | 32 | -- | yes |
 | 06_full_autonomy | C | S1_both_slow | 7/7 | 42 | -- | yes |
-| 06_full_autonomy | C | S1_present_probe | 7/7 | 32 | yes | yes |
+| 06_full_autonomy | C | S1_present_probe | 7/7 | 34 | yes | yes |
 
 ## What each task should show
 
@@ -66,7 +66,7 @@ paste that into Explorer's address bar, or from a WSL shell run `explorer.exe .`
 **Task C -- multimeter** (`S1_present_probe`)
 
 - expected: LEFT presents the body and holds it steady. RIGHT brings the probe down 0.11 m, holds contact, retracts.
-- **caveat: NO MULTIMETER IS IN THE SCENE. This is the present-and-probe MOTION on verified coordinates; the instrument is not modelled in this repository.**
+- **caveat: The multimeter is a DUMMY BODY -- a coloured box of the right size, not an instrument model. It is grasped, carried and presented for real.**
 
 ## Read this before drawing conclusions
 

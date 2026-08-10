@@ -57,6 +57,7 @@ and has reported success it had not earned.
 """
 import argparse
 import json
+import math
 import os
 import re
 import subprocess
@@ -1654,8 +1655,14 @@ class Gui(QMainWindow):
         self._refresh_divergence(s)
         self._refresh_cameras(s)
 
-        # ---- banner
-        if es:
+        # ---- banner. A narration override wins: the tutorial recorder drives
+        # the banner as its caption track, and refresh() runs at 10 Hz, so
+        # without this the narration is overwritten before a frame is
+        # captured -- the caption was invisible in the first take.
+        if getattr(self, "_narration", None):
+            self.banner.setText(self._narration[0])
+            self.banner.setStyleSheet(self._narration[1])
+        elif es:
             # THE ONLY SLAB IN THE INTERFACE. Reserved for the one state that
             # must interrupt whatever the operator was reading.
             self.banner.setText("E-STOP LATCHED")

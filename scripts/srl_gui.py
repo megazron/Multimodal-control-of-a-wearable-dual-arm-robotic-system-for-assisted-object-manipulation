@@ -1553,6 +1553,25 @@ class Gui(QMainWindow):
             fails.append("no /dev/ttyACM* -- the Teensy is not attached")
         if spec.needs_real and "/real/joint_states" not in topics:
             fails.append("no /real/joint_states -- the real stack is not up")
+        # A FOREIGN /robot_description PUBLISHER IS AS FATAL AS A SECOND STACK,
+        # and nothing was watching for it. A bare robot_state_publisher left
+        # over from figure work (the CAD master arm, which has no ros2_control
+        # tag) won the topic; the stack's ros2_control_node read it, threw
+        # "no 'ros2_control' tag found in the URDF" and DIED at startup. The
+        # visible symptom was every robot joint reading 0.000 -- a plausible
+        # posture, published by a fallback joint_state_publisher, with the
+        # controller manager gone. Cost 15 minutes here and would cost a day
+        # in the lab, because nothing downstream disagrees.
+        if spec.starts_stack:
+            stray = _foreign_description()
+            if stray:
+                fails.append(
+                    "a robot_state_publisher outside this stack owns "
+                    "/robot_description (pid %s) -- it will kill "
+                    "ros2_control_node with \"no 'ros2_control' tag\" and "
+                    "every joint will read 0.000. kill %s"
+                    % (", ".join(str(x) for x in stray),
+                       " ".join(str(x) for x in stray)))
         return fails
 
     def on_stop_jobs(self):
@@ -2095,6 +2114,24 @@ class Gui(QMainWindow):
 def _scratch():
     d = os.environ.get("SRL_SCRATCH") or "/tmp"
     return d
+
+
+
+def _foreign_description():
+    """PIDs of robot_state_publishers that are NOT part of a launched stack.
+
+    A launched one carries --params-file (the launch writes the description
+    into a parameter file); a hand-started one is given a URDF path on the
+    command line. That difference is what distinguishes the stack's own
+    publisher from a stray, and it needs no bookkeeping to stay true.
+    """
+    out = []
+    for pid, cmd in procscan.find("robot_state_publisher"):
+        if "--params-file" in cmd:
+            continue
+        if ".urdf" in cmd or ".xacro" in cmd:
+            out.append(pid)
+    return out
 
 
 def _stack_pids():

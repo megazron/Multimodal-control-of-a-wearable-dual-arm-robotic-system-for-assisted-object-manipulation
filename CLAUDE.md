@@ -29,8 +29,12 @@ panels as missing, and was right.
     gui         Qt5. Master-arm and robot schematics, divergence, both camera
                 feeds, 25 launch buttons, indicator self-test, RViz with the
                 commanded arm ghosted over the actual one, and Charts /
-                Session / Event-log tabs. Frame time median 2.26 ms, p95 9.14,
-                max 16.66 against a 100 ms budget (n=300).
+                Session / Event-log tabs, and the holographic master-arm and
+                robot schematics. Frame time with a full sim stack running,
+                measured after the panel settled: median **2.80 ms**, p95
+                **9.57**, max 27.57, against a 100 ms budget (n=300). The
+                schematics cost ~0.5 ms of median over the pre-Part-4 figure
+                (2.26 / 9.14 / 16.66).
     teleop_gui  curses, no display needed. The SSH fallback and nothing more.
     console     Dear PyGui. SUPERSEDED and fully absorbed -- its Charts, its
                 session/trial view and its event log are now tabs in `gui`.
@@ -4709,3 +4713,77 @@ instrument against clips I had already looked at:**
 | `rviz.mp4` | **real screen capture.** What you would see at the machine. Watch this |
 | `clip.mp4` | TF-rendered 3-D + front view. Ugly, but drawn from exactly the samples that produced `summary.json`, so picture and numbers cannot disagree |
 
+
+---
+
+# PART 4 — THE HOLOGRAPHIC ARM PANEL (2026-08-10)
+
+Both master arms and both robot arms as kinematic diagrams rather than tables.
+Previous HUD kept at `archive/scripts/srl_hud_20260810_pre_holographic.py`.
+
+**Master arm.** Seven nodes in the real J1 roll / J2 bend chain, drawn at the
+arm's TRUE bend angles with a uniform scale-to-fit, so the picture is the
+posture and not a fixed row of boxes. Roll joints are rings carrying a
+rotating index mark; bend joints are hinges. Live angle and **time since the
+last DISTINCT value** sit under each node — the second number is the one that
+matters, because this rig's characteristic failure is data that arrives on
+time and never changes. IMU is a gravity dial with the 1 ± 0.15 g gate drawn
+as a dotted annulus; FSR is a bar with the 250 deadband and the 1200/400
+latch marked.
+
+**Robot arm.** Seven joints with their LIMITS drawn and the position shown
+within the range, wrap counts on the four continuous joints, aperture against
+the object width, and clearance as a margin against the 0.12 m floor rather
+than a bare number.
+
+**Three-state discipline throughout, by SHAPE as well as colour** so it
+survives greyscale: UNKNOWN draws DASHED, healthy draws solid, abnormal gets
+the only glow on the panel. Same rule as `readiness.py` — not-checked can
+never render as healthy.
+
+## It found the seam risk on its own
+
+With the sim at home the panel put **left J5 in red at a stop**, unprompted.
+That is the documented hazard: left joint_5 sits at −165.90°, **14.10°
+(0.246 rad) from the ±180 seam**, inside the 0.3 rad margin used elsewhere.
+The number was already in this file; nothing had ever *shown* it.
+
+## Frame time, measured with a full sim stack running
+
+    median 2.80 ms   p95 9.57   max 27.57   n=300   budget 100 ms
+
+against 2.26 / 9.14 / 16.66 before Part 4 — about 0.5 ms of median for the
+two schematics.
+
+## A STRAY robot_state_publisher KILLS THE STACK, AND LOOKS LIKE A POSTURE
+
+Every robot joint read **0.000** — a plausible number, in a plausible place,
+on a panel that had just been rewritten. It was not the panel and not the
+arms. A `robot_state_publisher` left over from the CAD-arm figure work, 59
+minutes old and in nobody's process group, owned `/robot_description`. The
+CAD master-arm URDF has no `ros2_control` tag, so the stack's
+`ros2_control_node` read it, threw
+
+    what():  no 'ros2_control' tag found in the URDF
+
+and **died at startup**. With no controller manager, `/joint_states` came
+from a fallback publisher at all zeros. Nothing downstream disagreed.
+
+This is the second-stack failure in a new costume, and the one-stack guard did
+not cover it: that guard counts `master_pose_node`, and a bare
+`robot_state_publisher` is not one. `_foreign_description()` in
+`scripts/srl_gui.py` now refuses to start a stack while one exists, naming the
+PIDs and the kill line. It distinguishes a stray from the stack's own by
+`--params-file`: a launched publisher is handed the description through a
+parameter file, a hand-started one is handed a URDF path. That difference
+needs no bookkeeping to stay true.
+
+**Verified by making one**, in its own session, and watching the guard go
+empty → non-empty → empty. On its first live run it immediately caught a
+SECOND real stray I had orphaned: `p.kill()` on a `ros2 run` wrapper kills the
+wrapper and leaves the executable behind. Kill the process GROUP.
+
+`procscan.find()` excludes this process's whole group by design, so a stray
+started as a CHILD of the test is invisible to it — the first version of this
+test therefore reported "not detected" against working code. Launch it with
+`start_new_session=True`, as a real stray is.

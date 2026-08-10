@@ -199,235 +199,181 @@ class MasterArmSchematic(Card):
                    "ring = roll   hinge = bend   halo = abnormal")
 
     def _arm(self, p, arm, y0, h):
-        """The chain drawn in its ACTUAL POSTURE.
-
-        THE JOINTS MOVE. A bend joint turns the outgoing link by its measured
-        angle and a roll joint spins an index mark on its ring, so the master
-        arm's pose is legible at a glance rather than being seven numbers to
-        read and integrate mentally. A straight row of boxes cannot show that
-        the operator is holding the arm folded.
-
-        Bends are drawn at TRUE angle, not scaled -- a scaled posture is a
-        lie that looks like a measurement. The step is short enough that
-        +/-90 deg stays inside the row; beyond that the chain is clamped to
-        the row and the clamp is drawn as a caret so it cannot be mistaken
-        for the real pose.
-
-        UNKNOWN DIFFERS BY SHAPE, NOT ONLY COLOUR: an unknown joint is drawn
-        DASHED. Colour alone fails a colour-blind operator and fails again in
-        a greyscale figure, and this panel's whole job is telling states
-        apart. Same discipline as readiness.py.
-        """
-        import math
         d = self.snap.get(arm) or {}
         joints = d.get("joints") or []
-        SIDE = 196.0
-        x0, cy = 68.0, y0 + h * 0.50
+        SIDE = 196.0                 # fixed sidebar; the chain takes the rest
+        x0 = 68.0
         x1 = max(x0 + 60.0, self.width() - SIDE - 22.0)
+        cy = y0 + h * 0.50
         step = (x1 - x0) / 6.0
-        lo, hi = y0 + 26, y0 + h - 26
 
         p.setFont(sans(9, True))
         p.setPen(_c(TEXT))
         p.drawText(QRectF(10, cy - 9, 56, 18), Qt.AlignLeft | Qt.AlignVCenter,
                    arm.upper())
 
-        # ---- walk the chain, turning at every bend ----------------------
-        # SCALED TO FIT, NOT CLAMPED. The first version clipped any joint
-        # that left the row, which bends the drawn pose away from the real
-        # one -- a posture display that lies about the posture. Walking the
-        # chain at unit length first and then applying ONE uniform scale
-        # keeps every angle exactly right and only changes the size.
-        raw, heading = [(0.0, 0.0)], 0.0
-        for k in range(7):
-            j = joints[k] if k < len(joints) else {}
-            ang = j.get("deg")
-            if self.KIND[k] == self.BEND and ang is not None:
-                heading += math.radians(max(-90.0, min(90.0, float(ang))))
-            if k < 6:
-                px, py = raw[-1]
-                raw.append((px + math.cos(heading), py + math.sin(heading)))
-        xs = [q[0] for q in raw]
-        ys = [q[1] for q in raw]
-        spanx = max(1e-6, max(xs) - min(xs))
-        spany = max(1e-6, max(ys) - min(ys))
-        sc = min((x1 - x0) / spanx, (hi - lo) / spany if spany > 0.01 else 1e9)
-        # FIT WINS. A minimum-size floor here overrode the fit and the chain
-        # ran into the row below -- a legibility guard that breaks the layout
-        # is not a guard. Floor only against a degenerate zero.
-        sc = max(4.0, min(sc, step))
-        ox = x0 - min(xs) * sc
-        oy = cy - (min(ys) + max(ys)) / 2.0 * sc
-        pts = [(ox + q[0] * sc, oy + q[1] * sc) for q in raw]
-        clamped = []
-
-        for k in range(len(pts) - 1):
+        # the link line, drawn segment by segment so a frozen segment reads
+        # as a broken chain rather than a coloured dot on a solid one
+        for k in range(6):
             a = joints[k] if k < len(joints) else {}
             b = joints[k + 1] if k + 1 < len(joints) else {}
-            ca = HEALTH.get(a.get("health", "UNKNOWN"), HEALTH["UNKNOWN"])[0]
-            cb = HEALTH.get(b.get("health", "UNKNOWN"), HEALTH["UNKNOWN"])[0]
-            g = QLinearGradient(pts[k][0], pts[k][1],
-                                pts[k + 1][0], pts[k + 1][1])
-            g.setColorAt(0.0, _c(ca, 150))
-            g.setColorAt(1.0, _c(cb, 150))
-            p.setPen(QPen(QBrush(g), 1.6))
-            p.drawLine(QPointF(*pts[k]), QPointF(*pts[k + 1]))
+            col = HEALTH.get(a.get("health", "UNKNOWN"), HEALTH["UNKNOWN"])[0]
+            col2 = HEALTH.get(b.get("health", "UNKNOWN"), HEALTH["UNKNOWN"])[0]
+            grad = QLinearGradient(x0 + k * step, cy, x0 + (k + 1) * step, cy)
+            grad.setColorAt(0.0, _c(col, 150))
+            grad.setColorAt(1.0, _c(col2, 150))
+            p.setPen(QPen(QBrush(grad), 1.6))
+            p.drawLine(QPointF(x0 + k * step, cy), QPointF(x0 + (k + 1) * step, cy))
 
         for k in range(7):
             j = joints[k] if k < len(joints) else {}
             health = j.get("health", "UNKNOWN")
             col, glow = HEALTH.get(health, HEALTH["UNKNOWN"])
-            unknown = health == "UNKNOWN"
-            x, yy = pts[min(k, len(pts) - 1)]
-            ang = j.get("deg")
-            if glow > 0:
-                glow_dot(p, x, yy, 6.0, col, glow)
-            pen = QPen(_c(col), 1.3)
-            if unknown:
-                pen.setStyle(Qt.DashLine)      # SHAPE, not just colour
-            p.setPen(pen)
-
-            if self.KIND[k] == self.ROLL:
+            x = x0 + k * step
+            kind = self.KIND[k]
+            if kind == self.ROLL:
+                if glow > 0:
+                    glow_dot(p, x, cy, 6.0, col, glow)
+                p.setPen(QPen(_c(col), 1.3))
                 p.setBrush(Qt.NoBrush)
-                p.drawEllipse(QPointF(x, yy), 8.5, 8.5)
-                p.drawEllipse(QPointF(x, yy), 3.0, 3.0)
-                # THE INDEX MARK ROTATES WITH THE POT.
-                if ang is not None:
-                    a = math.radians(float(ang))
-                    p.setPen(QPen(_c(col), 2.0))
-                    p.drawLine(QPointF(x + 3.4 * math.cos(a),
-                                       yy + 3.4 * math.sin(a)),
-                               QPointF(x + 8.2 * math.cos(a),
-                                       yy + 8.2 * math.sin(a)))
+                p.drawEllipse(QPointF(x, cy), 8.5, 8.5)
+                p.drawEllipse(QPointF(x, cy), 3.0, 3.0)
             else:
+                if glow > 0:
+                    glow_dot(p, x, cy, 6.0, col, glow)
+                p.setPen(QPen(_c(col), 1.6))
                 p.setBrush(QBrush(_c(BG)))
-                r = QRectF(x - 7.0, yy - 9.5, 14.0, 19.0)
-                p.drawRect(r)
+                path = QPainterPath()
+                path.moveTo(x - 7.0, cy - 9.5)
+                path.lineTo(x + 7.0, cy - 9.5)
+                path.lineTo(x + 7.0, cy + 9.5)
+                path.lineTo(x - 7.0, cy + 9.5)
+                path.closeSubpath()
+                p.drawPath(path)
                 p.setPen(QPen(_c(col), 1.1))
-                p.drawLine(QPointF(x - 7.0, yy), QPointF(x + 7.0, yy))
+                p.drawLine(QPointF(x - 7.0, cy), QPointF(x + 7.0, cy))
 
+            # FROZEN gets a strike-through: the channel exists, is healthy,
+            # and is not being used. That distinction is the one that hid a
+            # whole repair behind a stale baseline file.
             if health == "FROZEN":
                 p.setPen(QPen(_c(UNKNOWN), 1.2, Qt.DashLine))
-                p.drawLine(QPointF(x - 9, yy - 9), QPointF(x + 9, yy + 9))
+                p.drawLine(QPointF(x - 9, cy - 9), QPointF(x + 9, cy + 9))
 
             p.setFont(mono(7))
             p.setPen(_c(MUTED))
-            p.drawText(QRectF(x - 16, yy - 30, 32, 10), Qt.AlignHCenter,
+            p.drawText(QRectF(x - 16, cy - 30, 32, 10), Qt.AlignHCenter,
                        "J%d" % (k + 1))
+            ang = j.get("deg")
             p.setFont(mono(9))
             p.setPen(_c(TEXT if ang is not None else MUTED))
-            p.drawText(QRectF(x - 24, yy + 13, 48, 12), Qt.AlignHCenter,
+            p.drawText(QRectF(x - 24, cy + 15, 48, 12), Qt.AlignHCenter,
                        "--" if ang is None else "%+.0f" % ang)
             age = j.get("age_s")
             p.setFont(mono(7))
             stale = (age is not None and age > 2.0)
             p.setPen(_c(BAD if stale else MUTED))
-            p.drawText(QRectF(x - 24, yy + 24, 48, 10), Qt.AlignHCenter,
-                       "--" if age is None else "%.1fs" % age)
+            p.drawText(QRectF(x - 24, cy + 27, 48, 10), Qt.AlignHCenter,
+                       "--" if age is None else
+                       ("%.1fs" % age if age < 100 else ">99s"))
 
-        p.setFont(mono(6))
-        p.setPen(_c(MUTED))
-        p.drawText(QRectF(x1 - 210, y0 + 2, 210, 9), Qt.AlignRight,
-                   "TRUE bend angles, uniform scale %.0f%%"
-                   % (100.0 * sc / step))
+        self._sidebar(p, d, x1 + 22, cy - 66, h)
 
-        self._sidebar(p, arm, d, self.width() - SIDE - 8, y0, h)
+    def _sidebar(self, p, d, x, y, h):
+        """IMU gate, FSR thresholds, buttons and the capability rung.
 
-    # ------------------------------------------------------- IMU and FSR
-    def _sidebar(self, p, arm, d, x, y0, h):
-        """The IMU as a gravity DIAL and the FSR as a bar with its thresholds.
-
-        Both were text before. A number cannot show you that |a| has drifted
-        to the edge of the gate, or that a grip is sitting just under the
-        latch -- the thresholds have to be ON the instrument.
+        Clamped into this arm's own half: the block is ~150 px tall and ran
+        over the next arm's IMU row when the card was capped, which put two
+        arms' numbers on one line -- the one thing a status panel may never
+        do.
         """
-        import math
-        w = 186.0
-        # ---- IMU: gravity vector, with the 1 +/- 0.15 g gate DRAWN --------
-        cx, cy, R = x + 32, y0 + 44, 22.0
+        y = max(y, 0.0)
+        w = max(120.0, self.width() - x - 12)
         p.setFont(mono(7))
-        p.setPen(_c(MUTED))
-        p.drawText(QRectF(x, y0 + 4, w, 10), Qt.AlignLeft, "IMU  gravity")
-        acc = d.get("accel")
-        mag = d.get("accel_g")
-        gate_ok = (mag is not None and 0.85 <= mag <= 1.15)
-        # the gate as an annulus: inside it is the only place |a| may sit
-        p.setBrush(Qt.NoBrush)
-        p.setPen(QPen(_c(ACCENT_DIM), 1.0, Qt.DotLine))
-        p.drawEllipse(QPointF(cx, cy), R * 0.85, R * 0.85)
-        p.drawEllipse(QPointF(cx, cy), R * 1.15, R * 1.15)
-        p.setPen(QPen(_c(LINE), 1.0))
-        p.drawEllipse(QPointF(cx, cy), R, R)
-        if acc and len(acc) >= 3 and mag:
-            # project the measured vector into the panel: x right, z down
-            ax, ay, az = acc[0], acc[1], acc[2]
-            n = math.sqrt(ax * ax + ay * ay + az * az) or 1.0
-            ex, ey = ax / n, -az / n
-            col = ACCENT if gate_ok else BAD
-            if not gate_ok:
-                glow_dot(p, cx + ex * R * mag, cy + ey * R * mag, 5, col, .8)
-            p.setPen(QPen(_c(col), 2.0))
-            p.drawLine(QPointF(cx, cy),
-                       QPointF(cx + ex * R * min(mag, 1.4),
-                               cy + ey * R * min(mag, 1.4)))
-            p.setFont(mono(8))
-            p.setPen(_c(col))
-            p.drawText(QRectF(x + 62, cy - 14, 120, 12), Qt.AlignLeft,
-                       "%.2f g %s" % (mag, "" if gate_ok else "OUT OF GATE"))
-            p.setFont(mono(7))
-            p.setPen(_c(MUTED))
-            p.drawText(QRectF(x + 62, cy - 1, 120, 10), Qt.AlignLeft,
-                       "gate 1.00 +/- 0.15")
-        else:
-            p.setPen(QPen(_c(UNKNOWN), 1.4, Qt.DashLine))
-            p.drawLine(QPointF(cx - 8, cy - 8), QPointF(cx + 8, cy + 8))
-            p.setFont(mono(8))
-            p.setPen(_c(UNKNOWN))
-            p.drawText(QRectF(x + 62, cy - 8, 120, 12), Qt.AlignLeft,
-                       "NO IMU DATA")
 
-        # ---- FSR: bar with the 250 deadband and the 1200/400 latch --------
-        by = y0 + h - 30
+        # ---- IMU: the 1 +/- 0.15 g gate DRAWN, with the live magnitude on it
+        g = d.get("accel_g")
+        lo, hi = 0.85, 1.15
+        bx, bw = x, max(60.0, w - 8)
+        p.setPen(_c(MUTED))
+        p.drawText(QRectF(x, y, w, 10), Qt.AlignLeft, "IMU |a|")
+        by = y + 12
+        p.setPen(QPen(_c(LINE), 1))
+        p.drawLine(QPointF(bx, by + 4), QPointF(bx + bw, by + 4))
+        # the gate band
+        def gx(v):
+            return bx + bw * min(1.0, max(0.0, (v - 0.5) / 1.0))
+        p.setPen(Qt.NoPen)
+        p.setBrush(QBrush(_c(ACCENT_DIM, 90)))
+        p.drawRect(QRectF(gx(lo), by, gx(hi) - gx(lo), 9))
+        if g is not None:
+            inside = lo <= g <= hi
+            col = ACCENT if inside else BAD
+            if not inside:
+                glow_dot(p, gx(g), by + 4, 2.6, col, 0.8)
+            p.setPen(QPen(_c(col), 1.6))
+            p.drawLine(QPointF(gx(g), by - 3), QPointF(gx(g), by + 11))
+        p.setFont(mono(7))
+        p.setPen(_c(TEXT if g is not None else MUTED))
+        p.drawText(QRectF(x, by + 12, w, 10), Qt.AlignLeft,
+                   "--" if g is None else "%.3f g  gate %s"
+                   % (g, "OPEN" if lo <= g <= hi else "SHUT"))
+        gy = d.get("gyro_dps")
+        p.setPen(_c(MUTED))
+        p.drawText(QRectF(x, by + 22, w, 10), Qt.AlignLeft,
+                   "gyro --" if gy is None else "gyro %6.1f d/s" % gy)
+
+        # ---- FSR with the deadband and latch thresholds marked
+        fy = by + 36
+        p.setPen(_c(MUTED))
+        p.drawText(QRectF(x, fy, w, 10), Qt.AlignLeft, "FSR")
+        raw = d.get("fsr")
+        fb = fy + 12
+        full = 3603.0
+        p.setPen(QPen(_c(LINE), 1))
+        p.drawLine(QPointF(bx, fb + 4), QPointF(bx + bw, fb + 4))
+        for val, lab, col in ((250, "db", MUTED), (400, "rel", ACCENT_DIM),
+                              (1200, "latch", ACCENT)):
+            fx = bx + bw * min(1.0, val / full)
+            p.setPen(QPen(_c(col), 1, Qt.DotLine))
+            p.drawLine(QPointF(fx, fb - 2), QPointF(fx, fb + 10))
+        if raw is not None:
+            fx = bx + bw * min(1.0, raw / full)
+            latched = d.get("latched")
+            col = ACCENT if not latched else WARN
+            if latched:
+                glow_dot(p, fx, fb + 4, 2.4, col, 0.5)
+            p.setPen(QPen(_c(col), 1.8))
+            p.drawLine(QPointF(fx, fb - 3), QPointF(fx, fb + 11))
+        p.setFont(mono(7))
+        p.setPen(_c(TEXT if raw is not None else MUTED))
+        p.drawText(QRectF(x, fb + 12, w, 10), Qt.AlignLeft,
+                   "--" if raw is None else "%4.0f  %s"
+                   % (raw, "LATCHED" if d.get("latched") else "open"))
+
+        # ---- clutch + button
+        cy2 = fb + 24
+        cl = d.get("clutch")
+        col = MUTED if cl is None else (ACCENT if cl else WARN)
+        p.setPen(_c(col))
+        p.drawText(QRectF(x, cy2, w, 10), Qt.AlignLeft,
+                   "clutch %s" % ("--" if cl is None
+                                  else ("ENGAGED" if cl else "released")))
+        btn = d.get("button")
+        p.setPen(_c(ACCENT if btn else MUTED))
+        p.drawText(QRectF(x, cy2 + 10, w, 10), Qt.AlignLeft,
+                   "button %s" % ("DOWN" if btn else "up"))
+
+        # ---- capability rung and what the next repair would buy
+        p.setFont(mono(7, True))
+        rung = d.get("rung")
+        p.setPen(_c(TEXT if rung else UNKNOWN))
+        p.drawText(QRectF(x, cy2 + 22, w, 10), Qt.AlignLeft,
+                   "rung %s" % (rung or "--"))
         p.setFont(mono(7))
         p.setPen(_c(MUTED))
-        p.drawText(QRectF(x, by - 12, w, 10), Qt.AlignLeft, "FSR  grip")
-        bw, bh, full = w - 8, 9.0, 4095.0
-        p.setPen(QPen(_c(LINE), 1.0))
-        p.setBrush(Qt.NoBrush)
-        p.drawRect(QRectF(x, by, bw, bh))
-        raw = d.get("fsr")
-        # STAGGERED CAPTIONS. 250 and 400 are 3.7% of full scale apart, so
-        # at this width their labels drew on top of each other and read as
-        # one smudged word.
-        for i, (val, lab, col) in enumerate(((250, "dead", MUTED),
-                                             (400, "open", WARN),
-                                             (1200, "latch", ACCENT))):
-            fx = x + bw * (val / full)
-            p.setPen(QPen(_c(col), 1.0, Qt.DotLine))
-            p.drawLine(QPointF(fx, by - 3), QPointF(fx, by + bh + 3))
-            p.setFont(mono(6))
-            p.setPen(_c(col))
-            row = by + bh + 3 + (8 if i == 1 else 0)
-            p.drawText(QRectF(fx - 16, row, 32, 9), Qt.AlignHCenter, lab)
-        if raw is None:
-            p.setPen(QPen(_c(UNKNOWN), 1.2, Qt.DashLine))
-            p.drawLine(QPointF(x, by + bh / 2), QPointF(x + bw, by + bh / 2))
-            p.setFont(mono(7))
-            p.setPen(_c(UNKNOWN))
-            p.drawText(QRectF(x + bw - 60, by - 12, 60, 10), Qt.AlignRight,
-                       "NO FSR")
-        else:
-            frac = max(0.0, min(1.0, float(raw) / full))
-            latched = float(raw) >= 1200
-            col = ACCENT if latched else (TEXT if float(raw) > 250 else MUTED)
-            p.setBrush(QBrush(_c(col, 190)))
-            p.setPen(Qt.NoPen)
-            p.drawRect(QRectF(x + 1, by + 1, max(1.0, (bw - 2) * frac),
-                              bh - 2))
-            p.setFont(mono(7))
-            p.setPen(_c(col))
-            p.drawText(QRectF(x + bw - 76, by - 12, 76, 10), Qt.AlignRight,
-                       "%4d%s" % (int(raw), "  LATCHED" if latched else ""))
+        p.drawText(QRectF(x, cy2 + 31, w, 26), Qt.AlignLeft | Qt.TextWordWrap,
+                   d.get("regain") or "")
 
 
 class RobotSchematic(Card):
@@ -477,21 +423,10 @@ class RobotSchematic(Card):
             j = joints[k] if k < len(joints) else {}
             x = x0 + k * step
             w = step * 0.62
-            frac = j.get("frac")            # 0..1 position within the limits
-            # UNKNOWN BY SHAPE, NOT ONLY COLOUR. An empty solid-outlined bar
-            # and a bar whose joint is simply mid-range look identical at a
-            # glance; a DASHED outline cannot be mistaken for a measured one,
-            # and it survives greyscale. Same discipline as readiness.py and
-            # the master-arm panel.
-            p.setPen(QPen(_c(LINE if frac is not None else UNKNOWN), 1,
-                          Qt.SolidLine if frac is not None else Qt.DashLine))
+            p.setPen(QPen(_c(LINE), 1))
             p.setBrush(Qt.NoBrush)
             p.drawRect(QRectF(x, cy, w, bar_h))
-            if frac is None:
-                p.setFont(mono(6))
-                p.setPen(_c(UNKNOWN))
-                p.drawText(QRectF(x - 4, cy + bar_h / 2 - 5, w + 8, 10),
-                           Qt.AlignHCenter, "--")
+            frac = j.get("frac")            # 0..1 position within the limits
             if frac is not None:
                 near = abs(frac - 0.5) > 0.44        # within 6% of a stop
                 col = BAD if near else ACCENT
@@ -522,7 +457,6 @@ class RobotSchematic(Card):
         p.setPen(_c(MUTED))
         p.drawText(QRectF(x, y, w, 10), Qt.AlignLeft, "aperture")
         by = y + 12
-        p.setBrush(Qt.NoBrush)
         p.setPen(QPen(_c(LINE), 1))
         p.drawRect(QRectF(x, by, w - 6, 9))
         if need is not None:
@@ -544,12 +478,6 @@ class RobotSchematic(Card):
         p.setPen(_c(MUTED))
         p.drawText(QRectF(x, cy2, w, 10), Qt.AlignLeft, "clearance")
         cb = cy2 + 12
-        # RESET THE BRUSH. QPainter carries it across calls, so the aperture
-        # fill above was still set and this OUTLINE drew as a full teal bar --
-        # a clearance of 0.5 m painted beside a "--" that correctly said the
-        # value was unknown. A filled bar is a measurement; it must not be
-        # possible to paint one without a number behind it.
-        p.setBrush(Qt.NoBrush)
         p.setPen(QPen(_c(LINE), 1))
         p.drawRect(QRectF(x, cb, w - 6, 9))
         fx = x + (w - 6) * min(1.0, floor / 0.5)

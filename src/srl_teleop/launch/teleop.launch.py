@@ -273,9 +273,27 @@ def generate_launch_description():
                      "lag_trip_rad": LaunchConfiguration("lag_trip_rad")}],
         condition=IfCondition(LaunchConfiguration("gate")))
 
+    # RECOVERY MANAGER. Owns fault paths (b)-(e) -- Teensy reconnect, Kortex
+    # session loss, camera/zero-detection abort, network dropout -- each
+    # verified by fault injection and, until now, NEVER LAUNCHED BY ANYTHING.
+    # It was installed, documented and inert: a recovery layer that is not
+    # running is indistinguishable from one that is, right up until a fault.
+    #
+    # `expect_real_stack` and `freeze_on_master_loss` keep their False
+    # defaults, so on a sim stack the session and link paths fire only on an
+    # explicit connected:false / up:false and never on the silence of a
+    # subsystem that simply is not present. The trial is marked INVALID either
+    # way -- that is data integrity and is not optional.
+    recovery = Node(
+        package="srl_teleop", executable="recovery_manager",
+        name="recovery_manager", output="screen", emulate_tty=True,
+        parameters=[{"arms": ["left", "right"],
+                     "serial_port": LaunchConfiguration("serial_port"),
+                     "expect_real_stack": LaunchConfiguration("real_arms")}])
+
     delayed = TimerAction(period=LaunchConfiguration("startup_delay"),
                           actions=[master, *followers, monitor, dash, estop,
-                                   grippers, selftest, gate])
+                                   grippers, recovery, selftest, gate])
 
     return LaunchDescription(args + [
         _mount_guard(),moveit, delayed, real_stack])

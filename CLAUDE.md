@@ -8,27 +8,34 @@ Source the workspace first (every terminal):
 source /opt/ros/jazzy/setup.bash && source ~/kortex_ws/install/setup.bash
 ```
 
-Three GUIs. Use the first one unless you have a reason not to.
+## WHICH GUI TO RUN
 
 ```
-ros2 run srl_teleop console       # Dear PyGui dashboard  -- PRIMARY
-ros2 run srl_teleop launcher      # tkinter launcher      -- simple launch + status
-ros2 run srl_teleop teleop_gui    # terminal console      -- SSH / no display
+ros2 run srl_teleop gui           # Qt operations GUI  <-- RUN THIS
+ros2 run srl_teleop teleop_gui    # curses            <-- only over SSH / no display
 ```
 
-Direct equivalents, if the workspace is not sourced:
+Not sourced? `python3 ~/kortex_ws/scripts/srl_gui.py`
 
-```
-python3 ~/kortex_ws/scripts/srl_console.py
-python3 ~/kortex_ws/scripts/srl_launcher.py
-```
+**`gui` IS PRIMARY. `console` IS NOT, AND SAYING OTHERWISE COST WEEKS.** This
+file named `console` as primary from 2026-08-08 to 2026-08-10 while every
+piece of GUI work went into `srl_gui.py` -- the master-arm schematic, the
+robot schematic, the commanded-vs-actual divergence readout, the real-robot
+view, the dark HUD, the A/B/C task buttons and the indicator self-test. None
+of it is in `console`, which has not been touched since the restructure. A
+reader following this file ran a GUI that received nothing, reported the new
+panels as missing, and was right.
 
-**Which one.** `console` is the real instrument: live plots, the pipeline
-view, per-channel staleness, and the [WHY IS NOTHING MOVING?] button. Measured
-frame time under full load is 0.01 ms median / 4.85 ms max against a 33 ms
-budget. `launcher` is the same launch buttons in tkinter with no plotting.
-`teleop_gui` is curses and needs no display, so it is the one that works over
-SSH.
+    gui         Qt5. Master-arm and robot schematics, divergence, both camera
+                feeds, 41 launch buttons, indicator self-test, RViz with the
+                commanded arm ghosted over the actual one. Frame time median
+                2.26 ms, p95 9.14, max 16.66 against a 100 ms budget (n=300).
+    teleop_gui  curses, no display needed. The SSH fallback and nothing more.
+    console     Dear PyGui. SUPERSEDED -- kept because it still holds Charts,
+                Pilot and the session-order runner, which are being ported.
+                Do not start new work in it.
+    launcher    tkinter. SUPERSEDED by gui.
+
 
 Everything else -- every mode, experiment, calibration and diagnostic -- is a
 button inside them. `console` refuses to start a second stack and says why:

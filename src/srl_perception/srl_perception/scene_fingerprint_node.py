@@ -48,7 +48,11 @@ class SceneFingerprintNode(Node):
     def __init__(self):
         super().__init__("scene_fingerprint_node")
         self.declare_parameter("store_path", DEFAULT_STORE)
-        self.declare_parameter("pos_tol_m", 0.015)
+        # PREVIOUS SETTING: 0.015. Tightened to 0.010 on 2026-08-10 because
+        # the grasp's capture window is 17.5 mm on the widest object, so a
+        # 15 mm tolerance could pass an object that then cannot be picked up.
+        # See scene_fingerprint.compare() for the false-changed rates.
+        self.declare_parameter("pos_tol_m", 0.010)
         self.declare_parameter("gate_m", 0.25)
         self.declare_parameter("sweep_settle_s", 0.8)
         self.declare_parameter("min_views", 2)

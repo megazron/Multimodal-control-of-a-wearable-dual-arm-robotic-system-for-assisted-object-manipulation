@@ -1,3 +1,30 @@
+# LAB PLACEMENT REQUIREMENT: +/- 10 mm
+
+**Every object must be placed within 10 mm of its registered position.**
+
+THE LIMIT IS THE GRIPPER'S CAPTURE WINDOW, NOT IK. Measured: every grasp pose
+survives +/-20 mm of displacement in IK terms -- all six axis directions, N=10,
+with the furniture in the planning scene. What fails is the fingers closing
+beside the object. Capture half-windows, from the measured jaw map:
+
+    40 mm block        22.5 mm
+    45 mm part         20.0 mm
+    50 mm multimeter   17.5 mm   <- the binding one
+
+At 20 mm the block is still caught, the part sits exactly on its limit, and
+the multimeter is MISSED. So the requirement is set by the widest object,
+not by the arm, and it is 10 mm.
+
+`pos_tol` in the fingerprint store was tightened 15 mm -> 10 mm to match
+(2026-08-10). At 15 mm an object could be declared UNCHANGED and then not be
+grasped -- the tolerance was looser than the thing it protects. Tightening is
+free on the AprilTag path (0.00% false-changed at both) and requires it: the
+colour/shape fallback was already 77% false-changed at 15 mm. To hold
+false-changed under 1% at 10 mm a detector needs sigma <= 2 mm; AprilTag
+measures 0.74 mm at 0.35 m.
+
+---
+
 # SCENE CALIBRATION -- WHAT TO RUN, IN WHAT ORDER (added 2026-08-10)
 
 **Before any data-collection session. Sim-verified; the arm-driving step of

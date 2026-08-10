@@ -121,7 +121,35 @@ class Fingerprint:
                            d.get("stamp"), d.get("sweep_s"), d.get("note", ""))
 
 
-def compare(stored, observed, pos_tol=0.015, gate=0.25, rot_tol_deg=15.0):
+# PREVIOUS SETTING: pos_tol = 0.015 (15 mm), until 2026-08-10.
+#
+# CHANGED TO 10 mm because the GRASP does not survive 15 mm. Measured capture
+# half-windows are 22.5 mm (40 mm block), 20.0 mm (45 mm part) and 17.5 mm
+# (50 mm multimeter), so at 15 mm of real error an object could be declared
+# UNCHANGED here and then not be grasped -- the tolerance was looser than the
+# thing it protects. The limit is CAPTURE, not IK: every grasp pose survives
+# +/-20 mm of displacement in IK terms.
+#
+# FALSE-CHANGED RATE (unmoved object declared MOVED), 20000 trials through
+# this same compare(), noise on BOTH the stored pose and the observation:
+#
+#     detector                    tol 15 mm    tol 10 mm
+#     AprilTag,     sigma 0.8 mm     0.00%        0.00%
+#     sigma 1.5 mm                   0.00%        0.01%
+#     sigma 2.0 mm                   0.00%        0.53%
+#     sigma 2.5 mm                   0.06%        4.63%
+#     sigma 3.0 mm                   0.56%       13.14%
+#     colour/shape, sigma 10 mm     76.83%       92.03%
+#
+# So tightening to 10 mm is FREE on the AprilTag path and impossible on the
+# colour/shape path -- which was already 77% false-changed at 15 mm, i.e.
+# already unusable for this decision and not made unusable by the change.
+#
+# THE NOISE BUDGET THIS IMPLIES: to hold false-changed under 1% at 10 mm the
+# detector needs sigma <= 2 mm. AprilTag at 0.35 m measures 0.74 mm and
+# clears it comfortably; nothing else in the project has been measured on
+# real images at all.
+def compare(stored, observed, pos_tol=0.010, gate=0.25, rot_tol_deg=15.0):
     """Diff two scenes.
 
     pos_tol   below this, an object counts as unmoved. Set from the detector's

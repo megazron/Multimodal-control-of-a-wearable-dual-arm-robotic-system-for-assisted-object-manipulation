@@ -95,6 +95,23 @@ class Scene(Node):
         # graspable: name -> dict(arm, width_mm, pos, size, colour, held,
         #                          placed)
         self.items = self._items(task)
+        # OFFSET FROM THE WRIST TO THE FINGER PADS, resolved once from live TF.
+        #
+        # Every declared coordinate in clip_tasks is an END-EFFECTOR pose --
+        # that is what the follower is commanded to and what was verified at
+        # N=10. The fingers are 0.1118 m further along the tool axis, so an
+        # object drawn AT the declared pick sits 0.1118 m from where the hand
+        # actually closes, and a bin drawn at the declared place receives the
+        # block 0.1118 m away from itself. Measured on the first attempt:
+        # released at (0.604, 0.447, 1.142) against a bin at (0.62, 0.35,
+        # 1.02) -- the block was left hanging in mid-air beside the bin.
+        #
+        # Shifting the OBJECTS by that offset keeps every verified coordinate
+        # untouched and makes the picture agree with the physics. One offset
+        # for the whole run is right because orientation_mode is `fixed`: the
+        # wrist holds the anchor orientation throughout, so the tool axis does
+        # not change during a clip.
+        self.pad_off = None
         self.create_timer(0.1, self.tick)
 
     # ------------------------------------------------------------ layout
@@ -121,17 +138,61 @@ class Scene(Node):
             if n in m.name:
                 self.knuck[a] = float(m.position[m.name.index(n)])
 
+    # Distance from end_effector_link to the centre of the finger PADS, along
+    # the tool approach axis (+z in the EE frame). A Robotiq 2F-85's fingers
+    # close about here; the wrist is 111.8 mm behind it.
+    PAD_DEPTH_M = 0.1118
+
     def _grip(self, arm):
+        """Where the finger PADS are, in world -- not where the wrist is.
+
+        The object used to be pinned 45 mm below the end effector in WORLD z,
+        which put it under the wrist and above the open fingers: on the
+        close-up view the block hovered at the gripper's base rather than
+        between the pads, and it stayed 45 mm below the wrist however the
+        wrist was rotated. The offset has to ride the TOOL AXIS, or a grasp
+        with the hand tilted renders the object off to one side of it.
+        """
         try:
             t = self.buf.lookup_transform(
                 "world", "%s_end_effector_link" % arm, rclpy.time.Time())
         except Exception:                                     # noqa: BLE001
             return None
         v = t.transform.translation
-        return [v.x, v.y, v.z]
+        q = t.transform.rotation
+        # Rotate (0, 0, PAD_DEPTH) by q -- the approach axis in world.
+        x, y, z, w = q.x, q.y, q.z, q.w
+        d = self.PAD_DEPTH_M
+        ax = 2.0 * (x * z + w * y) * d
+        ay = 2.0 * (y * z - w * x) * d
+        az = (1.0 - 2.0 * (x * x + y * y)) * d
+        return [v.x + ax, v.y + ay, v.z + az]
 
     # ------------------------------------------------------------- frame
+    def _pad_offset(self, arm):
+        """Wrist -> finger-pad vector in world, from the live anchor pose."""
+        try:
+            t = self.buf.lookup_transform(
+                "world", "%s_end_effector_link" % arm, rclpy.time.Time())
+        except Exception:                                     # noqa: BLE001
+            return None
+        q = t.transform.rotation
+        x, y, z, w = q.x, q.y, q.z, q.w
+        d = self.PAD_DEPTH_M
+        return [2.0 * (x * z + w * y) * d,
+                2.0 * (y * z - w * x) * d,
+                (1.0 - 2.0 * (x * x + y * y)) * d]
+
     def tick(self):
+        if self.pad_off is None:
+            arm = next(iter(self.items.values()))["arm"]
+            off = self._pad_offset(arm)
+            if off is None:
+                return          # no TF yet -- draw nothing rather than draw
+                                # the scene in the wrong place
+            self.pad_off = off
+            for it in self.items.values():
+                it["pos"] = [it["pos"][i] + off[i] for i in range(3)]
         A = MarkerArray()
         d = Marker()
         d.action = Marker.DELETEALL
@@ -149,12 +210,14 @@ class Scene(Node):
         add(Marker.CUBE, [0.0, Y + 0.02, 0.92], (1.70, 0.46, 0.03), TAN)
         for sx in (-0.75, 0.75):
             add(Marker.CUBE, [sx, Y + 0.02, 0.78], (0.05, 0.05, 0.26), DARK)
-        # the bin / container that task A places into
-        add(Marker.CUBE, [CT.A_BIN[0], CT.A_BIN[1], CT.A_BIN[2] - 0.03],
+        # The bin, shifted by the same wrist->pad offset as the objects, so
+        # a block released with the EE at A_BIN lands INSIDE it.
+        po = self.pad_off or [0.0, 0.0, 0.0]
+        binc = [CT.A_BIN[i] + po[i] for i in range(3)]
+        add(Marker.CUBE, [binc[0], binc[1], binc[2] - 0.03],
             (0.16, 0.16, 0.02), TEAL)
         for dx, dy in ((0.08, 0), (-0.08, 0), (0, 0.08), (0, -0.08)):
-            add(Marker.CUBE,
-                [CT.A_BIN[0] + dx, CT.A_BIN[1] + dy, CT.A_BIN[2] + 0.01],
+            add(Marker.CUBE, [binc[0] + dx, binc[1] + dy, binc[2] + 0.01],
                 (0.02 if dx else 0.16, 0.16 if dx else 0.02, 0.07), TEAL)
         # the circuit box task C probes
         add(Marker.CUBE, [-SEP / 2.0, Y, 1.09], (0.17, 0.11, 0.05), GREEN)
@@ -188,12 +251,11 @@ class Scene(Node):
             if on and g is not None:
                 prev = it.get("last_held")
                 if prev is not None:
-                    it["carried"] = it.get("carried", 0.0) + math.dist(
-                        prev, [g[0], g[1], g[2] - 0.045])
-                it["last_held"] = [g[0], g[1], g[2] - 0.045]
-                # ATTACHED: the object rides the gripper, offset just below
-                # the finger tips so it does not float inside the hand.
-                it["pos"] = [g[0], g[1], g[2] - 0.045]
+                    it["carried"] = it.get("carried", 0.0) + math.dist(prev, g)
+                it["last_held"] = list(g)
+                # ATTACHED at the finger PADS -- _grip() already returns that
+                # point, offset along the tool axis rather than in world z.
+                it["pos"] = list(g)
                 it["held"] = True
             elif it["held"] and not on:
                 # RELEASED: left where it was put, never snapped back.
@@ -232,7 +294,12 @@ def main():
                                     final=[round(v, 4) for v in it["pos"]],
                                     still_held=bool(it["held"])))
             json.dump(dict(task=n.task, events=n.events, items=summary,
-                           t0_wall=getattr(n, "t0_wall", None)),
+                           t0_wall=getattr(n, "t0_wall", None),
+                           # The wrist->pad offset the whole scene was shifted
+                           # by, so a consumer comparing against a declared
+                           # EE-frame target can apply the same shift instead
+                           # of re-deriving it.
+                           pad_off=getattr(n, "pad_off", None)),
                       open(n.out, "w"), indent=2)
         raise KeyboardInterrupt
 

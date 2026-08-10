@@ -97,8 +97,18 @@ def task_a():
     pre = [A_PICK[0], A_PICK[1], A_PICK[2] + A_STANDOFF]
     lift = [A_PICK[0], A_PICK[1], A_PICK[2] + 0.14]
     over = [A_BIN[0], A_BIN[1], A_BIN[2] + 0.16]
+    # 30 held waypoints at the bin, not 4. The gripper opens on a WAYPOINT
+    # INDEX while the arm arrives on its own schedule, so a mode that lags the
+    # waypoint stream releases before it gets there. Measured: under VR teleop
+    # the block was let go at (0.453, 0.445, 1.226) against a bin at
+    # (0.603, 0.445, 1.077) -- 0.15 m short and 0.15 m high, dropped in mid
+    # air -- while every other mode placed the block at 0 mm from target.
+    # 14 waypoints (2.1 s) was not enough: VR still missed by 0.189 m, and its
+    # clips run 27-35 s against 13-16 s for every other mode, so the lag is a
+    # property of the extra hop through vr_pose_mapper rather than noise.
+    # 30 waypoints is 4.5 s of dwell at the bin.
     left = _dense([pre, A_PICK]) + _hold(A_PICK, 6) + \
-        _dense([A_PICK, lift, over, A_BIN]) + _hold(A_BIN, 4)
+        _dense([A_PICK, lift, over, A_BIN]) + _hold(A_BIN, 30)
     return {"left": left, "right": _hold([-0.32, Y, 1.15], len(left))}
 
 
@@ -167,6 +177,10 @@ TASKS = {
               # carry -> open over the bin
               grip=lambda n: _sched(n, "left", 5, n - 4, 40),
               width_mm=40,
+              # Where the object must END UP, as an EE-frame coordinate. The
+              # scene shifts objects to the finger pads, so the check adds the
+              # same offset -- see record_abc_sweep.
+              place_target=A_BIN,
               expect="LEFT arm descends 0.10 m to the pick, closes, lifts "
                      "0.14 m, carries to the bin and releases. RIGHT arm "
                      "holds still throughout.",

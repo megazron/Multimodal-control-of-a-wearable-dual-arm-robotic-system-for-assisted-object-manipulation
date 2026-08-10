@@ -104,8 +104,12 @@ VIEWS = {
     "iso":     (":97", 0.9000, 0.40, 1.45, _FOCUS, False),
     "top":     (":93", 1.5708, 1.35, 1.40, _FOCUS, False),
     # ONE DISPLAY PER ARM, and neither is ever killed. See ensure_display().
-    "gripper": (":94", 1.5708, 0.25, 0.40, (0.0, 0.0, 0.0), False),
-    "gripper_right": (":98", 1.5708, 0.25, 0.40, (0.0, 0.0, 0.0), False),
+    # 0.60 m, not 0.40. At 0.40 the camera sits INSIDE task A's bin once the
+    # hand descends into it, so the place -- half the point of a pick and
+    # place -- was a teal wall. 0.60 still renders the fingers large enough to
+    # read a grasp while keeping the bin in frame rather than around the lens.
+    "gripper": (":94", 1.5708, 0.25, 0.60, (0.0, 0.0, 0.0), False),
+    "gripper_right": (":98", 1.5708, 0.25, 0.60, (0.0, 0.0, 0.0), False),
 }
 # The gripper camera is bolted to a LINK, so it needs one RViz per arm. Which
 # display the clip is grabbed from depends on the task's active arm.

@@ -43,6 +43,7 @@ one per view, so the motion runs ONCE and all seven angles see the same run.
 """
 import argparse
 import json
+import math
 import os
 import subprocess
 import sys
@@ -78,7 +79,27 @@ MODES = {
         note="the runner itself is the only publisher"),
     "02_vr_teleop": dict(
         needs=[("vr_pose_mapper",
-                ["ros2", "run", "srl_vr_teleop", "vr_pose_mapper"])],
+                # SCALE 1.0 FOR RECORDING, not the shipped 0.5.
+                #
+                # vr_pose_mapper defaults to scale 0.5 on purpose -- a VR play
+                # space is much larger than the robot's workspace, so an
+                # operator's half-metre reach should not demand a half-metre
+                # of robot. But the sweep does not feed it an operator: it
+                # feeds it the task's own ROBOT-FRAME waypoints on
+                # /vr/controller_pose_*, which the mapper then halves.
+                #
+                # Measured, and it is exactly a half: task A's block was
+                # carried 0.308 m instead of 0.594 m and released 0.150 m
+                # short in x and 0.115 m high, at 0.189 m from the bin -- the
+                # SAME 0.189 m on two separate runs, which is what ruled out
+                # lag and pointed at a constant factor. 04_vr_shared, which
+                # uses the same VR transport but lets autonomy own the pose,
+                # placed at 0 mm -- so the transport was never at fault.
+                #
+                # This is a property of the harness, not of the robot, and
+                # 0.5 remains right for a real operator.
+                ["ros2", "run", "srl_vr_teleop", "vr_pose_mapper",
+                 "--ros-args", "-p", "scale:=1.0"])],
         follower_topic="/master_arm_pose_%s", expect_pubs=1,
         note="the MAPPER is the only publisher; the runner drives it "
              "upstream on /vr/controller_pose_*"),
@@ -93,7 +114,27 @@ MODES = {
         note="the arbiter's topic; the master is present but not commanding"),
     "04_vr_shared": dict(
         needs=[("vr_pose_mapper",
-                ["ros2", "run", "srl_vr_teleop", "vr_pose_mapper"])],
+                # SCALE 1.0 FOR RECORDING, not the shipped 0.5.
+                #
+                # vr_pose_mapper defaults to scale 0.5 on purpose -- a VR play
+                # space is much larger than the robot's workspace, so an
+                # operator's half-metre reach should not demand a half-metre
+                # of robot. But the sweep does not feed it an operator: it
+                # feeds it the task's own ROBOT-FRAME waypoints on
+                # /vr/controller_pose_*, which the mapper then halves.
+                #
+                # Measured, and it is exactly a half: task A's block was
+                # carried 0.308 m instead of 0.594 m and released 0.150 m
+                # short in x and 0.115 m high, at 0.189 m from the bin -- the
+                # SAME 0.189 m on two separate runs, which is what ruled out
+                # lag and pointed at a constant factor. 04_vr_shared, which
+                # uses the same VR transport but lets autonomy own the pose,
+                # placed at 0 mm -- so the transport was never at fault.
+                #
+                # This is a property of the harness, not of the robot, and
+                # 0.5 remains right for a real operator.
+                ["ros2", "run", "srl_vr_teleop", "vr_pose_mapper",
+                 "--ros-args", "-p", "scale:=1.0"])],
         follower_topic="/autonomy/assist_pose_%s", expect_pubs=1,
         vr_present=True,
         note="the VR transport is UP and autonomy owns the pose"),
@@ -599,6 +640,28 @@ def main():
                     elif CT.TASKS[task].get("width_mm"):
                         good = False
                         msg += "; NO GRASP RECORDED at all"
+
+                    # AND WAS IT PUT WHERE IT WAS MEANT TO GO?
+                    #
+                    # A grasp inside the window is not a completed task. Under
+                    # VR teleop the arm lagged the waypoint stream, the
+                    # gripper opened on schedule anyway, and the block was
+                    # dropped 0.15 m short and 0.15 m above the bin -- a clip
+                    # of a failed place that passed every check, because
+                    # nothing compared the release point to the target.
+                    tgt = CT.TASKS[task].get("place_target")
+                    itm = (ev.get("items") or [None])[0]
+                    po = ev.get("pad_off") or [0.0, 0.0, 0.0]
+                    if tgt and itm:
+                        # Same wrist->pad shift the scene applied, so the
+                        # comparison is like for like.
+                        tgt = [tgt[i] + po[i] for i in range(3)]
+                        d = math.dist(itm["final"], tgt)
+                        if d > 0.12:
+                            good = False
+                            msg += ("; PLACED %.3f m FROM TARGET" % d)
+                        else:
+                            log("      placed %.0f mm from target" % (d * 1000))
                 except FileNotFoundError:
                     good = False
                     msg += "; no scene_events.json -- the scene never ran"

@@ -28,30 +28,15 @@ paste that into Explorer's address bar, or from a WSL shell run `explorer.exe .`
 
 | mode | task | scenario | angles | s | recorded | verified |
 | --- | --- | --- | --- | --- | --- | --- |
-| 01_master_teleop | A | S1_single_arm | 7/7 | 11 | yes | yes |
-| 01_master_teleop | A | S3_both | 7/7 | 36 | -- | yes |
-| 01_master_teleop | B | S1_bimanual | 7/7 | 29 | -- | yes |
-| 01_master_teleop | B | S2_full_lift | 7/7 | 32 | -- | yes |
-| 01_master_teleop | C | S1_both_slow | 7/7 | 39 | -- | yes |
-| 01_master_teleop | C | S1_present_probe | 7/7 | 31 | -- | yes |
-| 02_vr_teleop | A | S1_single_arm | 7/7 | 48 | -- | yes |
-| 02_vr_teleop | A | S3_both | 7/7 | 41 | -- | yes |
-| 02_vr_teleop | B | S1_bimanual | 7/7 | 39 | -- | yes |
-| 02_vr_teleop | B | S2_full_lift | 7/7 | 39 | -- | yes |
-| 02_vr_teleop | C | S1_both_slow | 7/7 | 49 | -- | yes |
-| 02_vr_teleop | C | S1_present_probe | 7/7 | 43 | -- | yes |
-| 03_shared_autonomy | A | S1_single_arm | 7/7 | 36 | -- | yes |
-| 03_shared_autonomy | B | S1_bimanual | 7/7 | 29 | -- | yes |
-| 03_shared_autonomy | C | S1_present_probe | 7/7 | 31 | -- | yes |
-| 04_vr_shared | A | S1_single_arm | 7/7 | 39 | -- | yes |
-| 04_vr_shared | B | S1_bimanual | 7/7 | 30 | -- | yes |
-| 04_vr_shared | C | S1_present_probe | 7/7 | 32 | -- | yes |
-| 06_full_autonomy | A | S1_single_arm | 7/7 | 41 | -- | yes |
-| 06_full_autonomy | A | S3_both | 7/7 | 33 | -- | yes |
-| 06_full_autonomy | B | S1_bimanual | 7/7 | 31 | -- | yes |
-| 06_full_autonomy | B | S2_full_lift | 7/7 | 32 | -- | yes |
-| 06_full_autonomy | C | S1_both_slow | 7/7 | 42 | -- | yes |
-| 06_full_autonomy | C | S1_present_probe | 7/7 | 34 | -- | yes |
+| 01_master_teleop | A | S1_single_arm | 7/7 | 13 | -- | yes |
+| 01_master_teleop | B | S1_bimanual | 7/7 | 9 | -- | yes |
+| 01_master_teleop | C | S1_present_probe | 7/7 | 10 | -- | yes |
+| 02_vr_teleop | A | S1_single_arm | 7/7 | 24 | -- | yes |
+| 02_vr_teleop | B | S1_bimanual | 7/7 | 32 | -- | **NO** back FROZEN (delta 0.014); left FROZEN ( |
+| 02_vr_teleop | C | S1_present_probe | 7/7 | 30 | -- | yes |
+| 03_shared_autonomy | A | S1_single_arm | 7/7 | 11 | yes | yes |
+| 03_shared_autonomy | B | S1_bimanual | 7/7 | 9 | yes | yes |
+| 03_shared_autonomy | C | S1_present_probe | 6/7 (missing quad) | 11 | -- | yes |
 
 ## What each task should show
 

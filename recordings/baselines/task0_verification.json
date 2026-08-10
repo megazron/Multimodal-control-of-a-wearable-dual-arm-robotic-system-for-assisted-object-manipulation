@@ -1,0 +1,167 @@
+{
+  "repeats": 10,
+  "step_m": 0.02,
+  "ik_calls": 984,
+  "failures": 0,
+  "detail": {
+    "controls": {
+      "far_unreachable": true,
+      "inside_wearer_unreachable": true,
+      "sphere_A_reachable": true,
+      "x025_still_infeasible": true
+    },
+    "furniture_in_scene": true,
+    "targets": {
+      "left": {
+        "A": [
+          0.35,
+          0.35,
+          1.36
+        ],
+        "B": [
+          0.3,
+          0.35,
+          1.37
+        ],
+        "C": [
+          0.5,
+          0.35,
+          1.42
+        ],
+        "D": [
+          0.375,
+          0.35,
+          1.43
+        ]
+      },
+      "right": {
+        "A": [
+          -0.35,
+          0.35,
+          1.36
+        ],
+        "B": [
+          -0.3,
+          0.35,
+          1.37
+        ],
+        "C": [
+          -0.5,
+          0.35,
+          1.42
+        ],
+        "D": [
+          -0.375,
+          0.35,
+          1.43
+        ]
+      }
+    },
+    "target_width_m": 0.03,
+    "spheres": {
+      "left": {
+        "A": true,
+        "B": true,
+        "C": true,
+        "D": true
+      },
+      "right": {
+        "A": true,
+        "B": true,
+        "C": true,
+        "D": true
+      }
+    },
+    "transits": {
+      "left": {
+        "A-B": {
+          "waypoints": 4,
+          "failures": 0,
+          "amplitude_m": 0.051,
+          "fitts_id": 1.433
+        },
+        "A-C": {
+          "waypoints": 10,
+          "failures": 0,
+          "amplitude_m": 0.1616,
+          "fitts_id": 2.675
+        },
+        "A-D": {
+          "waypoints": 5,
+          "failures": 0,
+          "amplitude_m": 0.0743,
+          "fitts_id": 1.798
+        },
+        "B-C": {
+          "waypoints": 12,
+          "failures": 0,
+          "amplitude_m": 0.2062,
+          "fitts_id": 2.977
+        },
+        "B-D": {
+          "waypoints": 6,
+          "failures": 0,
+          "amplitude_m": 0.096,
+          "fitts_id": 2.071
+        },
+        "C-D": {
+          "waypoints": 8,
+          "failures": 0,
+          "amplitude_m": 0.1254,
+          "fitts_id": 2.373
+        }
+      },
+      "right": {
+        "A-B": {
+          "waypoints": 4,
+          "failures": 0,
+          "amplitude_m": 0.051,
+          "fitts_id": 1.433
+        },
+        "A-C": {
+          "waypoints": 10,
+          "failures": 0,
+          "amplitude_m": 0.1616,
+          "fitts_id": 2.675
+        },
+        "A-D": {
+          "waypoints": 5,
+          "failures": 0,
+          "amplitude_m": 0.0743,
+          "fitts_id": 1.798
+        },
+        "B-C": {
+          "waypoints": 12,
+          "failures": 0,
+          "amplitude_m": 0.2062,
+          "fitts_id": 2.977
+        },
+        "B-D": {
+          "waypoints": 6,
+          "failures": 0,
+          "amplitude_m": 0.096,
+          "fitts_id": 2.071
+        },
+        "C-D": {
+          "waypoints": 8,
+          "failures": 0,
+          "amplitude_m": 0.1254,
+          "fitts_id": 2.373
+        }
+      }
+    },
+    "design": {
+      "ids": [
+        1.433,
+        1.798,
+        2.071,
+        2.373,
+        2.675,
+        2.977
+      ],
+      "id_span_bits": 1.544,
+      "id_gap_unevenness": 0.068,
+      "mirror_residual_m": 0.0
+    }
+  }
+}

@@ -1,0 +1,182 @@
+<?xml version="1.0"?>
+<!--
+  GATE RIG - one Gen3 7-DOF + Robotiq 2F-85, hung UPSIDE DOWN from a fixed
+  post above a bench.
+
+  WHY THIS SHAPE, and not the real srl_dual:
+    The gate asks ONE question - can this gripper close on a 40 mm cube in
+    Gazebo and hold it without jitter?  Everything that is not contact is a
+    confound, so:
+      * base rotated rpy=(pi,0,0) with all arm joints at 0 puts the gripper
+        approach axis straight DOWN.  A top-down grasp with no IK call at all,
+        and a posture that cannot drift into a different branch.
+      * the LIFT is a FOLD: joint_2 = +a, joint_4 = -2a, joint_6 = +a.  With
+        the three roll joints at zero the three bend axes are parallel, so the
+        tool orientation is the SUM of the bends - and that sum is zero for
+        every a.  The hand rises and translates while staying exactly vertical,
+        which is the disturbance a grasp has to survive, with no orientation
+        change to confound it.
+      * joint_1 is the shoulder roll, coaxial with the (inverted) base, so
+        rotating it swings the held object without moving the approach axis by
+        a single degree.  Second disturbance, free.
+    The arm, the gripper, its meshes, its mimic chain and its inertias are the
+    real ones from the shipped description.  Only the mount is synthetic.
+
+  WHY THE BASE IS FIXED TO THE WORLD, and not on a prismatic gantry:
+    Measured, not chosen.  The first version lifted with a prismatic joint to
+    the world, which is cleaner.  bullet-featherstone - the ONLY engine in
+    this install that supports the gripper's mimic constraints - refuses it:
+      "Link [gantry] ... connected to the world by Joint [gantry_z] with a [5]
+       joint type, but only Fixed (3) is supported"
+    and then fails to build the WHOLE kinematic tree, not just that joint.
+-->
+<robot name="gate_arm" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- Chosen so the fingertip pads land at the bench working height; see
+       gate.py, which measures the pads rather than trusting this number. -->
+  <xacro:arg name="post_z" default="2.076"/>
+
+  <link name="world"/>
+
+  <link name="post">
+    <inertial>
+      <mass value="5.0"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.05" iyy="0.05" izz="0.05" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <geometry><box size="0.12 0.12 0.04"/></geometry>
+      <material name="grey"><color rgba="0.4 0.4 0.45 1"/></material>
+    </visual>
+  </link>
+
+  <joint name="post_fixed" type="fixed">
+    <parent link="world"/>
+    <child link="post"/>
+    <origin xyz="0 0 $(arg post_z)" rpy="0 0 0"/>
+  </joint>
+
+  <link name="arm_mount"/>
+  <joint name="arm_mount_joint" type="fixed">
+    <parent link="post"/>
+    <child link="arm_mount"/>
+    <origin xyz="0 0 -0.02" rpy="3.14159265358979 0 0"/>
+  </joint>
+
+  <xacro:include filename="$(find kortex_description)/arms/gen3/7dof/urdf/gen3_macro.xacro"/>
+  <xacro:load_arm
+      parent="arm_mount"
+      prefix=""
+      dof="7"
+      vision="false"
+      robot_ip="127.0.0.1"
+      use_fake_hardware="true"
+      gripper="robotiq_2f_85"
+      gripper_joint_name="robotiq_85_left_knuckle_joint"
+      use_internal_bus_gripper_comm="false"
+      initial_positions="${dict(joint_1=0,joint_2=0,joint_3=0,joint_4=0,joint_5=0,joint_6=0,joint_7=0)}">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:load_arm>
+
+  <xacro:include filename="$(find kortex_description)/grippers/robotiq_2f_85/urdf/robotiq_2f_85_macro.xacro"/>
+  <xacro:load_gripper
+      parent="end_effector_link"
+      prefix=""
+      use_fake_hardware="true"
+      moveit_active="false"/>
+
+  <!-- ==================================================================
+       Command path.  gz's own JointPositionController, NOT ros2_control.
+       The gate is a physics question; every layer between the setpoint and
+       the joint is a place for the answer to come out wrong for a reason
+       that is not physics.  If the gate passes, wiring ros2_control on top
+       is a separate and much smaller question.
+       ================================================================== -->
+  <!-- TWO traps, both paid for by a run that measured nothing.
+
+       1. THE COMMAND TOPIC IS NOT <topic>.  gz-sim's JointPositionController
+          takes <sub_topic>, and with neither it subscribes to
+          /model/<model>/joint/<joint>/0/cmd_pos.  A <topic> element is
+          silently ignored - no warning, no error - so every setpoint went to
+          a topic with no subscriber.  The gripper still appeared to track a
+          closing sweep: the fingers were drooping under gravity, at about
+          the rate the sweep was stepping.  A monotone curve that is not the
+          thing you commanded is the worst kind of false positive.
+
+       2. initial_position is NOT decoration.  gz topic -p is a one-shot publish
+       from a process that exits immediately, so a setpoint sent before the
+       plugin's subscription is discovered is simply LOST - and a lost hold
+       command looks exactly like a joint that will not hold.  Measured: with
+       the setpoints sent only over the topic, the pads swung +/-67 mm in x
+       at zero command, which is the arm free-spinning about joint_1.  The
+       resting setpoint therefore lives in the description, where it cannot
+       be dropped. -->
+  <xacro:macro name="jpos" params="joint p d i:=0 imax:=0 q0:=0">
+    <gazebo>
+      <plugin filename="gz-sim-joint-position-controller-system"
+              name="gz::sim::systems::JointPositionController">
+        <joint_name>${joint}</joint_name>
+        <initial_position>${q0}</initial_position>
+        <p_gain>${p}</p_gain>
+        <d_gain>${d}</d_gain>
+        <i_gain>${i}</i_gain>
+        <i_max>${imax}</i_max>
+        <i_min>-${imax}</i_min>
+      </plugin>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:jpos joint="joint_1" p="600" d="60" i="60" imax="40"/>
+  <xacro:jpos joint="joint_2" p="900" d="90" i="90" imax="60"/>
+  <xacro:jpos joint="joint_3" p="600" d="60" i="60" imax="40"/>
+  <xacro:jpos joint="joint_4" p="900" d="90" i="90" imax="60"/>
+  <xacro:jpos joint="joint_5" p="300" d="30" i="30" imax="20"/>
+  <xacro:jpos joint="joint_6" p="600" d="60" i="60" imax="40"/>
+  <xacro:jpos joint="joint_7" p="150" d="15" i="15" imax="10"/>
+
+  <!-- THE GRIPPER LINKAGE, AND THE COMPROMISE IT FORCED.
+       The 2F-85 is a parallel gripper only because four follower joints
+       MIMIC the driven knuckle.  Neither engine here can do both halves of
+       what that needs:
+
+         dartsim              controls this arm perfectly (holds every joint
+                              to 0.002 rad) but exports NO mimic support at
+                              all - it says so at load: "the chosen physics
+                              engine does not support mimic constraints, so
+                              no constraint will be created", and the four
+                              followers then droop under gravity.
+         bullet-featherstone  DOES enforce mimic (SetJointMimicConstraint is
+                              in its symbol table) but the same position
+                              controllers barely move this arm: at the gains
+                              dartsim holds with, joint_4 and joint_6 end at
+                              their limits, and the values are IDENTICAL with
+                              and without commands.  Raising the gains 50x
+                              fixes the bends and destabilises the rolls,
+                              which have no gravity load: worst |q| goes
+                              0.21 -> 0.43 -> 0.86 rad at 50x, 200x, 600x.
+
+       So the coupling is done in SOFTWARE on dartsim: one position
+       controller per finger joint, driven together with the multipliers
+       taken from the URDF's own <mimic> tags.  THIS IS NOT THE SAME THING as
+       a constraint.  A constraint is enforced by the solver and cannot be
+       violated; six controllers can each be pushed off their setpoint by
+       contact, independently.  Any grip-force number from this rig inherits
+       that, and it is the first thing to re-check if a result looks too good.
+  -->
+  <xacro:jpos joint="robotiq_85_left_knuckle_joint"        p="100" d="2" i="20" imax="15"/>
+  <xacro:jpos joint="robotiq_85_right_knuckle_joint"       p="100" d="2" i="20" imax="15"/>
+  <xacro:jpos joint="robotiq_85_left_inner_knuckle_joint"  p="60"  d="1" i="12" imax="10"/>
+  <xacro:jpos joint="robotiq_85_right_inner_knuckle_joint" p="60"  d="1" i="12" imax="10"/>
+  <xacro:jpos joint="robotiq_85_left_finger_tip_joint"     p="60"  d="1" i="12" imax="10"/>
+  <xacro:jpos joint="robotiq_85_right_finger_tip_joint"    p="60"  d="1" i="12" imax="10"/>
+
+  <!-- Joint state out, so joint tracking error is measurable and a sagging
+       arm can never be mistaken for a slipping grasp.  Default topic
+       (/world/gate/model/gate_arm/joint_state) for the same reason as above:
+       an unsupported <topic> is dropped in silence. -->
+  <gazebo>
+    <plugin filename="gz-sim-joint-state-publisher-system"
+            name="gz::sim::systems::JointStatePublisher"/>
+  </gazebo>
+
+</robot>

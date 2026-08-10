@@ -39,6 +39,21 @@ the pose:
     lighting-sensitive in a way geometry is not.
 ```
 
+**TUNE THE PROMPTS FIRST -- it is the largest single effect measured.**
+Wording alone changed confident detections per frame by 3x on real images,
+against 7.1 objects actually visible:
+
+    specific phrases ("hole puncher")      2.1 / frame
+    generic single nouns ("box", "can")    6.4 / frame   <- DEFAULT
+    one phrase for the scene               1.0 / frame
+
+The system defaults to GENERIC SINGLE NOUNS, one per expected object class.
+Prefer recall and filter afterwards: over-detection is handled by the
+confidence threshold, the fingerprint's association gate and the depth
+segmentation, while a missed detection cannot be recovered. Before the 810
+frames, spend ten minutes trying 3-4 wordings per object and keep the best --
+the wording that suits "can" may not suit "multimeter".
+
 **A detection rate under 95% is a stop.** It does not matter how good the
 fit is: the fit only runs on frames where something was detected.
 

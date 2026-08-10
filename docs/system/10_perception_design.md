@@ -146,8 +146,41 @@ visible objects per frame:
 **Three times the confident detections from wording alone**, and the generic
 set lands at 6.4 against 7.1 objects actually visible. The 9% figure therefore
 measures a poor prompt set at least as much as it measures YOLO-World.
-**Prompt selection is a first-class design item**, it is cheap to tune, and it
-belongs in the lab procedure.
+
+### Prompt wording is a DESIGN PARAMETER, not an implementation detail
+
+It has a bigger measured effect than any other knob in the perception stack —
+3× — and it costs nothing to change, so it is specified here rather than left
+to whoever writes the node.
+
+**The system uses GENERIC SINGLE NOUNS by default** (`"can"`, `"box"`,
+`"bottle"`, `"tool"`), and the reasons are:
+
+1. **It is what measures best**, by a factor of three, and the yield lands
+   closest to the true object count (6.4 against 7.1).
+2. **It matches how the detector was trained.** YOLO-World is grounded on
+   web image–caption pairs, where objects are named plainly. "ape figurine"
+   and "hole puncher" are description-like phrases that occur rarely as
+   captions; "can" and "drill" occur constantly.
+3. **Precision is not needed here, and asking for it costs recall.** The
+   architecture only requires the box to point at the right *region* — the
+   known-dimension fit tolerates 50% contamination — so a loose, high-recall
+   prompt is strictly the right trade. A specific prompt buys discrimination
+   the pipeline does not need and pays for it in missed detections.
+
+**The failure mode of a generic prompt is over-detection**, not under: 23.6
+raw detections per frame against 7.1 objects. That is handled downstream and
+cheaply — by confidence threshold, by the scene fingerprint's association
+gate, and by the depth segmentation — whereas a missed detection cannot be
+recovered at all. **Prefer recall; filter afterwards.**
+
+**One generic prompt for the whole scene ("object on a table") is the worst of
+both** at 1.0/frame, so the plural matters: one noun per expected object
+class, not one phrase for the scene.
+
+This is a tunable and it should be re-measured in the lab on the real objects,
+because the wording that works for `"can"` may not be the wording that works
+for `"multimeter"`. The procedure is in `NEXT_SESSION.md`.
 
 ## 2. Measuring the detector itself — the part not answerable here
 

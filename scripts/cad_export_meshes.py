@@ -102,7 +102,18 @@ def write_stl(shapes, path, deflection):
         fh.write(b"\0" * 80)
         fh.write(struct.pack("<I", len(tris)))
         for a, b, c in tris:
-            fh.write(struct.pack("<3f", 0.0, 0.0, 0.0))
+            # REAL FACE NORMALS, not zeros. A zero normal is legal STL and
+            # most tools recompute from the winding -- Ogre (RViz) does not,
+            # and rendered the whole arm matte black. Cross product of the
+            # two edges, normalised.
+            ux, uy, uz = b.X() - a.X(), b.Y() - a.Y(), b.Z() - a.Z()
+            vx, vy, vz = c.X() - a.X(), c.Y() - a.Y(), c.Z() - a.Z()
+            nx, ny, nz = (uy * vz - uz * vy, uz * vx - ux * vz,
+                          ux * vy - uy * vx)
+            m = (nx * nx + ny * ny + nz * nz) ** 0.5
+            if m > 0:
+                nx, ny, nz = nx / m, ny / m, nz / m
+            fh.write(struct.pack("<3f", nx, ny, nz))
             for p in (a, b, c):
                 # mm -> m
                 fh.write(struct.pack("<3f", p.X() / 1000.0,

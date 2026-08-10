@@ -343,6 +343,28 @@ class Graph:
         return any(abs(cur[k] - v) > tol_rad
                    for k, v in ref.items() if k in cur and "joint_" in k)
 
+    def pub_nodes(self, topic):
+        """WHICH nodes publish `topic`, not how many.
+
+        A COUNT RACES AND A NAME DOES NOT. `master_pose_node` carries
+        respawn=True and, with no Teensy attached, dies on PortNotFound and
+        comes back every ~5 s -- so a raw count of /master_arm_pose_left is 0
+        or 1 depending on where in that cycle the check lands. Mode
+        01_master_teleop passed its "expect 0 idle publishers" check only
+        because the node happened to be down; mode 02_vr_teleop failed with
+        "2 publishers, expected 1" for no reason but timing. The predicate was
+        measuring the respawn phase, not the isolation.
+
+        The question the sweep actually needs answered is "is any OTHER source
+        driving this topic", which is about identity, so ask by identity.
+        """
+        out = set()
+        for _ in range(6):
+            for info in self.n.get_publishers_info_by_topic(topic):
+                out.add(info.node_name)
+            time.sleep(0.35)
+        return out
+
     def pubs(self, topic):
         """Publisher count, WITHOUT spinning.
 
@@ -450,7 +472,13 @@ def isolate(mode, graph, started):
             started.pop(pat, None)
     if killed:
         log("   torn down: %s" % ", ".join(killed))
-        time.sleep(2.0)
+        # THE GRAPH CACHE OUTLIVES THE PROCESS. Measured: a publisher SIGKILLed
+        # 3 s earlier was still named by get_publishers_info_by_topic, so a
+        # 2 s settle refused a mode that was in fact isolated. The refusal is
+        # the safe direction -- a stale entry can only cause a false NO, never
+        # a false YES -- but it costs a whole mode, so wait long enough for the
+        # RMW to reap it rather than accept the flakiness.
+        time.sleep(8.0)
 
     for name, argv in spec["needs"]:
         pat = "lib/srl_vr_teleop/%s" % name if "vr" in name else name
@@ -466,18 +494,29 @@ def isolate(mode, graph, started):
     # THE COUNT. Before the runner starts, the follower's input topic should
     # carry ONLY this mode's upstream -- 0 for the modes whose upstream IS the
     # runner, 1 for VR where the mapper publishes it.
-    expect_idle = 1 if mode == "02_vr_teleop" else 0
+    # BY NAME. The set of nodes allowed to publish the follower's input while
+    # the mode is IDLE -- before the runner starts. `master_pose_node` is
+    # tolerated because it is part of every launched stack and, with no Teensy,
+    # publishes NOTHING: it dies on PortNotFound and respawns. Tolerating it by
+    # name is honest; tolerating it by loosening a count would also tolerate a
+    # leftover mapper, which is the exact failure this check exists to catch.
+    allowed = {"master_pose_node"}
+    if spec["needs"]:
+        allowed |= {n[0] for n in spec["needs"]}
     bad = []
     for arm in ("left", "right"):
         topic = spec["follower_topic"] % arm
-        n = graph.pubs(topic)
-        if n != expect_idle:
-            bad.append("%s has %d publisher(s), expected %d before the run"
-                       % (topic, n, expect_idle))
+        names = graph.pub_nodes(topic)
+        extra = {x for x in names if x not in allowed}
+        if extra:
+            bad.append("%s is published by %s, which this mode does not own "
+                       "(allowed: %s)"
+                       % (topic, ", ".join(sorted(extra)),
+                          ", ".join(sorted(allowed))))
     if bad:
         return False, "; ".join(bad)
-    return True, ("isolated: %s idle publishers as predicted (%s)"
-                  % (expect_idle, spec["note"]))
+    return True, ("isolated: no unowned publisher on the follower input (%s)"
+                  % spec["note"])
 
 
 # ===========================================================================

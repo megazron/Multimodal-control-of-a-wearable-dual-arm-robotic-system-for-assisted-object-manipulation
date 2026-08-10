@@ -1,8 +1,8 @@
 {
-  "03_shared_autonomy/a/S1_single_arm": {
+  "02_vr_teleop/a/S1_single_arm": {
     "ok": true,
     "msg": "run exited 0",
-    "mode": "03_shared_autonomy",
+    "mode": "02_vr_teleop",
     "task": "a",
     "scenario": "S1_single_arm",
     "quad": true,
@@ -16,12 +16,12 @@
       "rviz_right.mp4",
       "rviz_top.mp4"
     ],
-    "dir": "recordings/verification/03_shared_autonomy/A/S1_single_arm"
+    "dir": "recordings/verification/02_vr_teleop/A/S1_single_arm"
   },
-  "03_shared_autonomy/b/S1_bimanual": {
-    "ok": true,
-    "msg": "run exited 0",
-    "mode": "03_shared_autonomy",
+  "02_vr_teleop/b/S1_bimanual": {
+    "ok": false,
+    "msg": "run exited 0; NO GRASP RECORDED at all",
+    "mode": "02_vr_teleop",
     "task": "b",
     "scenario": "S1_bimanual",
     "quad": true,
@@ -35,12 +35,12 @@
       "rviz_right.mp4",
       "rviz_top.mp4"
     ],
-    "dir": "recordings/verification/03_shared_autonomy/B/S1_bimanual"
+    "dir": "recordings/verification/02_vr_teleop/B/S1_bimanual"
   },
-  "03_shared_autonomy/c/S1_present_probe": {
-    "ok": true,
-    "msg": "run exited 0",
-    "mode": "03_shared_autonomy",
+  "02_vr_teleop/c/S1_present_probe": {
+    "ok": false,
+    "msg": "run exited 1; NO GRASP RECORDED at all",
+    "mode": "02_vr_teleop",
     "task": "c",
     "scenario": "S1_present_probe",
     "quad": true,
@@ -54,6 +54,6 @@
       "rviz_right.mp4",
       "rviz_top.mp4"
     ],
-    "dir": "recordings/verification/03_shared_autonomy/C/S1_present_probe"
+    "dir": "recordings/verification/02_vr_teleop/C/S1_present_probe"
   }
 }

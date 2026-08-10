@@ -76,3 +76,4 @@ recordings/verification/t?/*/*/rviz_gripper.mp4
 # They are transient stderr, not evidence, and they churn on every run.
 recordings/verification/**/rviz.rviz.*
 recordings/verification/**/*.xvfb
+.cad_venv/

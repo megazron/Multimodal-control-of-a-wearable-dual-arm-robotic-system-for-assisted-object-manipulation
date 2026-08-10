@@ -1,0 +1,216 @@
+{
+  "sensor": {
+    "f_px": 512.0,
+    "baseline_m": 0.05,
+    "sigma_disp_px": 0.15,
+    "depth_bias_frac": 0.004
+  },
+  "per_pixel_sigma_mm": {
+    "0.1": 0.059,
+    "0.15": 0.132,
+    "0.2": 0.234,
+    "0.25": 0.366,
+    "0.35": 0.718,
+    "0.5": 1.465
+  },
+  "rows": [
+    {
+      "obj": "40 mm block",
+      "range_m": 0.1,
+      "contamination": 0.0,
+      "naive_mm": 14.22,
+      "fit_mm": 1.19
+    },
+    {
+      "obj": "40 mm block",
+      "range_m": 0.15,
+      "contamination": 0.0,
+      "naive_mm": 14.03,
+      "fit_mm": 1.12
+    },
+    {
+      "obj": "40 mm block",
+      "range_m": 0.2,
+      "contamination": 0.0,
+      "naive_mm": 13.84,
+      "fit_mm": 1.07
+    },
+    {
+      "obj": "40 mm block",
+      "range_m": 0.25,
+      "contamination": 0.0,
+      "naive_mm": 13.64,
+      "fit_mm": 1.07
+    },
+    {
+      "obj": "40 mm block",
+      "range_m": 0.35,
+      "contamination": 0.0,
+      "naive_mm": 13.27,
+      "fit_mm": 1.16
+    },
+    {
+      "obj": "40 mm block",
+      "range_m": 0.5,
+      "contamination": 0.0,
+      "naive_mm": 12.71,
+      "fit_mm": 1.48
+    },
+    {
+      "obj": "45 mm part",
+      "range_m": 0.1,
+      "contamination": 0.0,
+      "naive_mm": 17.71,
+      "fit_mm": 1.99
+    },
+    {
+      "obj": "45 mm part",
+      "range_m": 0.15,
+      "contamination": 0.0,
+      "naive_mm": 17.52,
+      "fit_mm": 1.88
+    },
+    {
+      "obj": "45 mm part",
+      "range_m": 0.2,
+      "contamination": 0.0,
+      "naive_mm": 17.32,
+      "fit_mm": 1.8
+    },
+    {
+      "obj": "45 mm part",
+      "range_m": 0.25,
+      "contamination": 0.0,
+      "naive_mm": 17.14,
+      "fit_mm": 1.77
+    },
+    {
+      "obj": "45 mm part",
+      "range_m": 0.35,
+      "contamination": 0.0,
+      "naive_mm": 16.77,
+      "fit_mm": 1.79
+    },
+    {
+      "obj": "45 mm part",
+      "range_m": 0.5,
+      "contamination": 0.0,
+      "naive_mm": 16.18,
+      "fit_mm": 2.06
+    },
+    {
+      "obj": "50 mm multimeter",
+      "range_m": 0.1,
+      "contamination": 0.0,
+      "naive_mm": 45.61,
+      "fit_mm": 8.23
+    },
+    {
+      "obj": "50 mm multimeter",
+      "range_m": 0.15,
+      "contamination": 0.0,
+      "naive_mm": 45.4,
+      "fit_mm": 8.1
+    },
+    {
+      "obj": "50 mm multimeter",
+      "range_m": 0.2,
+      "contamination": 0.0,
+      "naive_mm": 45.2,
+      "fit_mm": 8.03
+    },
+    {
+      "obj": "50 mm multimeter",
+      "range_m": 0.25,
+      "contamination": 0.0,
+      "naive_mm": 45.01,
+      "fit_mm": 7.97
+    },
+    {
+      "obj": "50 mm multimeter",
+      "range_m": 0.35,
+      "contamination": 0.0,
+      "naive_mm": 44.62,
+      "fit_mm": 8.01
+    },
+    {
+      "obj": "50 mm multimeter",
+      "range_m": 0.5,
+      "contamination": 0.0,
+      "naive_mm": 44.04,
+      "fit_mm": 8.15
+    },
+    {
+      "obj": "40 mm block",
+      "range_m": 0.35,
+      "contamination": 0.0,
+      "fit_mm": 1.15
+    },
+    {
+      "obj": "40 mm block",
+      "range_m": 0.35,
+      "contamination": 0.1,
+      "fit_mm": 1.14
+    },
+    {
+      "obj": "40 mm block",
+      "range_m": 0.35,
+      "contamination": 0.25,
+      "fit_mm": 1.1
+    },
+    {
+      "obj": "40 mm block",
+      "range_m": 0.35,
+      "contamination": 0.5,
+      "fit_mm": 1.04
+    },
+    {
+      "obj": "45 mm part",
+      "range_m": 0.35,
+      "contamination": 0.0,
+      "fit_mm": 1.78
+    },
+    {
+      "obj": "45 mm part",
+      "range_m": 0.35,
+      "contamination": 0.1,
+      "fit_mm": 1.76
+    },
+    {
+      "obj": "45 mm part",
+      "range_m": 0.35,
+      "contamination": 0.25,
+      "fit_mm": 1.69
+    },
+    {
+      "obj": "45 mm part",
+      "range_m": 0.35,
+      "contamination": 0.5,
+      "fit_mm": 1.58
+    },
+    {
+      "obj": "50 mm multimeter",
+      "range_m": 0.35,
+      "contamination": 0.0,
+      "fit_mm": 7.94
+    },
+    {
+      "obj": "50 mm multimeter",
+      "range_m": 0.35,
+      "contamination": 0.1,
+      "fit_mm": 7.85
+    },
+    {
+      "obj": "50 mm multimeter",
+      "range_m": 0.35,
+      "contamination": 0.25,
+      "fit_mm": 7.54
+    },
+    {
+      "obj": "50 mm multimeter",
+      "range_m": 0.35,
+      "contamination": 0.5,
+      "fit_mm": 6.98
+    }
+  ]
+}

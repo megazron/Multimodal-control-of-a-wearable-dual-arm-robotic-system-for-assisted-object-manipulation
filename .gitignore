@@ -77,3 +77,4 @@ recordings/verification/t?/*/*/rviz_gripper.mp4
 recordings/verification/**/rviz.rviz.*
 recordings/verification/**/*.xvfb
 .cad_venv/
+datasets/

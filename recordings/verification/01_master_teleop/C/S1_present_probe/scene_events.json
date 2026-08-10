@@ -3,10 +3,11 @@
   "events": [
     {
       "t": 23.5,
+      "wall": 1786332169.0507004,
       "ev": "GRASPED",
       "item": "multimeter",
       "arm": "left",
-      "knuckle": 0.3063,
+      "knuckle": 0.3026,
       "needed": 0.2965,
       "at": [
         0.25,
@@ -20,7 +21,7 @@
       "item": "multimeter",
       "arm": "left",
       "width_mm": 50,
-      "carried_m": 0.0015,
+      "carried_m": 0.0,
       "final": [
         0.25,
         0.35,
@@ -28,5 +29,6 @@
       ],
       "still_held": true
     }
-  ]
+  ],
+  "t0_wall": 1786332145.550828
 }

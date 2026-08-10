@@ -547,10 +547,25 @@ def main():
                 time.sleep(1.0)
                 rr.stop_grabs(grabs)
                 grab_t1 = time.time()
+                # SIGTERM, THEN WAIT FOR IT TO ACTUALLY WRITE.
+                # clip_scene dumps scene_events.json from its SIGTERM handler,
+                # and the first version read the file immediately after
+                # sending the signal -- so every clip reported "the scene
+                # never ran" while the scene had run perfectly and was still
+                # writing. Signalling a process is not the same as it having
+                # finished, and the failure looked exactly like the real
+                # fault it was added to detect.
                 try:
                     os.killpg(os.getpgid(scene_p.pid), 15)
                 except Exception:                             # noqa: BLE001
                     pass
+                try:
+                    scene_p.wait(timeout=15)
+                except Exception:                             # noqa: BLE001
+                    try:
+                        os.killpg(os.getpgid(scene_p.pid), 9)
+                    except Exception:                         # noqa: BLE001
+                        pass
 
                 # DID THE GRASP HAPPEN INSIDE THE VIDEO?
                 #

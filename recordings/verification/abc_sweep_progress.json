@@ -17,5 +17,43 @@
       "rviz_top.mp4"
     ],
     "dir": "recordings/verification/01_master_teleop/A/S1_single_arm"
+  },
+  "01_master_teleop/b/S1_bimanual": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "01_master_teleop",
+    "task": "b",
+    "scenario": "S1_bimanual",
+    "quad": true,
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/01_master_teleop/B/S1_bimanual"
+  },
+  "01_master_teleop/c/S1_present_probe": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "01_master_teleop",
+    "task": "c",
+    "scenario": "S1_present_probe",
+    "quad": true,
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/01_master_teleop/C/S1_present_probe"
   }
 }

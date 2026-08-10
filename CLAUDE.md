@@ -67,6 +67,8 @@ be current, and it is re-measured whenever it is touched.
 | GUI launch specs | **25** (15 task = 3 x 5 modes, plus modes and diagnostics) | `verify_gui_buttons.py` -- 46 checks |
 | RViz render ceiling | **16.0 fps** llvmpipe, 16.3 d3d12, at 800x500 | `measure_render_rate.py` |
 | clip delivered rate | **5.41 fps** over 11.3 s (was 1.29 over 28.4 s) | `measure_capture_rate.py` |
+| verification clips | **15** = 3 tasks x 5 modes, 8 angles each | `record_abc_sweep.py` |
+| clip object placement | **0 mm from target** in all 5 modes (task A) | `scene_events.json` per clip |
 
 ## FIRST ACTION OF EVERY LAB SESSION
 

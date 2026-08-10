@@ -607,6 +607,12 @@ class ReadyPanel(Card):
     def paintEvent(self, ev):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing, True)
+        # CLIP TO OUR OWN RECT. This panel paints at fixed offsets, so in a
+        # short layout its rows ran past the bottom and drew over the
+        # participant field, the three buttons and the session log beneath it
+        # -- a readiness display that obscures the controls it sits above is
+        # worse than no display. A widget must never paint outside itself.
+        p.setClipRect(self.rect())
         self.paint_frame(p)
         x0, y = 14, 42
         w = self.width() - 28

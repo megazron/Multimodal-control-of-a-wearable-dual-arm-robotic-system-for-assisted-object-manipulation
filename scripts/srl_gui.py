@@ -932,10 +932,19 @@ class Gui(QMainWindow):
         tabs.addTab(se, "Session")
 
         # ---------------------------------------------------- READY TO RUN
-        rd = QWidget()
-        rv = QVBoxLayout(rd)
+        # SCROLLABLE. The right column is short and the readiness panel needs
+        # ~300 px; without a scroll area the layout compresses it and the
+        # controls below get squeezed to nothing. Scrolling is the honest
+        # answer to "more content than height".
+        rd_inner = QWidget()
+        rv = QVBoxLayout(rd_inner)
         self.ready_panel = ReadyPanel()
-        rv.addWidget(self.ready_panel, 3)
+        self.ready_panel.setMinimumHeight(300)
+        rv.addWidget(self.ready_panel)
+        rd = QScrollArea()
+        rd.setWidget(rd_inner)
+        rd.setWidgetResizable(True)
+        rd.setStyleSheet("border:none")
 
         self.sess_lbl = QLabel("no session")
         self.sess_lbl.setFont(mono(9))
@@ -2250,9 +2259,22 @@ def main(argv=None):
     ap.add_argument("--single-rviz", action="store_true",
                     help="deprecated alias; the ghosted single panel is now "
                          "the default")
+    ap.add_argument("--tab", default=None,
+                    help="select a tab by name at startup, e.g. --tab ready")
     ap.add_argument("--self-test-exit", action="store_true",
                     help="run the indicator self-test and exit with its result")
     args, rest = ap.parse_known_args(argv if argv is not None else sys.argv[1:])
+    # AN UNKNOWN FLAG MUST NOT PASS SILENTLY. parse_known_args is here so ROS
+    # can have its --ros-args, but it also swallowed `--tab ready` without a
+    # word: the flag did nothing, said nothing, and the capture kept showing
+    # the wrong tab while a stale GUI was still running. That is the same
+    # silent-acceptance class as the volatile QoS and the misplaced RViz key.
+    unknown = [r for r in rest
+               if r.startswith("-") and not r.startswith("--ros-arg")]
+    if unknown:
+        ap.error("unrecognised argument(s): %s\n"
+                 "(ROS arguments after --ros-args are still accepted)"
+                 % " ".join(unknown))
 
     rclpy.init(args=None)
     bus = Bus()

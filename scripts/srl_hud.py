@@ -575,3 +575,120 @@ class Strip(Card):
                 p.setPen(_c(col))
                 p.drawText(QRectF(x0 + w + 4, y0 + dy, 54, 10), Qt.AlignLeft,
                            "%s %.3f" % (k[0].upper(), self.hist[k][-1][1]))
+
+
+# ====================================================================== #
+#  READY TO RUN — the go/no-go indicator                                  #
+# ====================================================================== #
+class ReadyPanel(Card):
+    """One large answer: can a session start now?
+
+    THREE STATES, AND THEY DIFFER IN SHAPE AS WELL AS COLOUR. `ok` is a
+    filled pip, `fail` is a filled pip with a glow, `unknown` is a HOLLOW
+    RING. That is deliberate: colour alone fails for a colour-blind operator
+    and fails again in a greyscale screenshot, and the whole reason this panel
+    exists is that "not checked" has repeatedly been mistaken for "healthy" in
+    this project. A hollow ring cannot be mistaken for a filled dot.
+
+    GLOW IS RESERVED FOR THE ABNORMAL. A ready system is drawn almost
+    entirely in the accent with no glow anywhere; if everything glowed,
+    nothing would read as urgent.
+    """
+
+    def __init__(self, parent=None):
+        super().__init__("READY TO RUN")
+        self.data = None
+        self.setMinimumHeight(300)
+
+    def set_data(self, d):
+        self.data = d
+        self.update()
+
+    def paintEvent(self, ev):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing, True)
+        self.paint_frame(p)
+        x0, y = 14, 42
+        w = self.width() - 28
+        d = self.data
+
+        if not d:
+            p.setFont(sans(12))
+            p.setPen(_c(UNKNOWN))
+            p.drawText(x0, y + 24, "NO READINESS REPORT")
+            p.setFont(sans(9))
+            p.setPen(_c(MUTED))
+            p.drawText(x0, y + 46,
+                       "session_manager is not publishing /session/ready.")
+            p.drawText(x0, y + 62,
+                       "This is NOT the same as 'ready' — nothing is known.")
+            p.end()
+            return
+
+        ready = bool(d.get("ready"))
+        nf, nu = d.get("n_fail", 0), d.get("n_unknown", 0)
+
+        # ---- the verdict slab ------------------------------------------
+        h = 54
+        if ready:
+            p.fillRect(x0, y, w, h, _c(ACCENT, 34))
+            p.setPen(QPen(_c(ACCENT), 1))
+        else:
+            # a blocked start is the one thing allowed to shout
+            p.fillRect(x0, y, w, h, _c(BAD if nf else UNKNOWN, 40))
+            p.setPen(QPen(_c(BAD if nf else UNKNOWN), 1))
+        p.drawRect(x0, y, w, h)
+        p.setFont(sans(20, True))
+        p.setPen(_c(ACCENT if ready else (BAD if nf else UNKNOWN)))
+        p.drawText(x0 + 14, y + 36, "READY" if ready else "NOT READY")
+        p.setFont(mono(10))
+        p.setPen(_c(TEXT))
+        if not ready:
+            bits = []
+            if nf:
+                bits.append("%d failing" % nf)
+            if nu:
+                bits.append("%d NOT CHECKED" % nu)
+            p.drawText(x0 + 230, y + 36, "   ".join(bits))
+        y += h + 14
+
+        # ---- the nine checks -------------------------------------------
+        order = ("channels", "cameras", "estop", "homed", "scene", "disk",
+                 "one_stack", "recovery", "command_path")
+        checks = d.get("checks", {})
+        p.setFont(mono(9))
+        for name in order:
+            c = checks.get(name)
+            if not c:
+                continue
+            st = c.get("state", "unknown")
+            col = {"ok": ACCENT, "fail": BAD}.get(st, UNKNOWN)
+            cx, cy = x0 + 8, y + 5
+            if st == "unknown":
+                # HOLLOW RING — distinguishable without colour
+                p.setBrush(Qt.NoBrush)
+                p.setPen(QPen(_c(col), 1.6))
+                p.drawEllipse(cx - 5, cy - 5, 10, 10)
+            else:
+                if st == "fail":
+                    g = QRadialGradient(cx, cy, 12)
+                    g.setColorAt(0.0, _c(col, 150))
+                    g.setColorAt(1.0, _c(col, 0))
+                    p.setBrush(QBrush(g))
+                    p.setPen(Qt.NoPen)
+                    p.drawEllipse(cx - 12, cy - 12, 24, 24)
+                p.setBrush(QBrush(_c(col)))
+                p.setPen(Qt.NoPen)
+                p.drawEllipse(cx - 4, cy - 4, 8, 8)
+            p.setPen(_c(TEXT if st != "unknown" else MUTED))
+            p.drawText(x0 + 24, y + 9, c.get("label", name)[:26])
+            p.setPen(_c(col if st != "ok" else MUTED))
+            p.drawText(x0 + 230, y + 9, str(c.get("detail", ""))[:50])
+            y += 19
+
+        p.setFont(sans(8))
+        p.setPen(_c(MUTED))
+        p.drawText(x0, y + 14,
+                   "hollow ring = NOT CHECKED. It blocks exactly as a failure "
+                   "does, and never reads as healthy.")
+        p.end()

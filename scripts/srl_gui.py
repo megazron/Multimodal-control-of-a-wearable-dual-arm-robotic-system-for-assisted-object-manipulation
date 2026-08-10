@@ -88,6 +88,7 @@ from PyQt5.QtWidgets import (QApplication, QCheckBox, QGridLayout,  # noqa: E402
                              QGroupBox, QHBoxLayout, QLabel, QMainWindow,
                              QPushButton, QScrollArea, QSizePolicy, QSlider,
                              QSplitter, QTabWidget, QTextEdit,
+                             QLineEdit,
                              QVBoxLayout, QWidget)
 
 ARMS = ("left", "right")
@@ -99,7 +100,7 @@ ARMS = ("left", "right")
 # argument -- the short version is that a film-prop interface can afford to
 # glow everywhere because nothing on it has to be diagnosed, and this one
 # cannot. ISA-101 survives the aesthetic unchanged.
-from srl_hud import (ACCENT, BAD, BG, LINE, MUTED, PANEL, TEXT,   # noqa: E402
+from srl_hud import (ReadyPanel, ACCENT, BAD, BG, LINE, MUTED, PANEL, TEXT,   # noqa: E402
                      UNKNOWN, WARN, MasterArmSchematic, RobotSchematic,
                      Strip, mono, sans)
 
@@ -236,7 +237,10 @@ class Bus(Node):
                      ("/vr_state", "vr"),
                      ("/gripper_reference", "grip"),
                      ("/recovery_state", "recovery"),
-                     ("/trial_state", "trial")):
+                     ("/trial_state", "trial"),
+                     # Part 6: the go/no-go verdict and the live session.
+                     ("/session/ready", "ready"),
+                     ("/session/state", "sess")):
             self.create_subscription(String, t,
                                      lambda m, k=k: self._set(k, m.data), 10)
         self.create_subscription(
@@ -927,6 +931,69 @@ class Gui(QMainWindow):
         sv.addStretch(1)
         tabs.addTab(se, "Session")
 
+        # ---------------------------------------------------- READY TO RUN
+        rd = QWidget()
+        rv = QVBoxLayout(rd)
+        self.ready_panel = ReadyPanel()
+        rv.addWidget(self.ready_panel, 3)
+
+        self.sess_lbl = QLabel("no session")
+        self.sess_lbl.setFont(mono(9))
+        self.sess_lbl.setWordWrap(True)
+        self.sess_lbl.setStyleSheet("color:%s" % C_MUTED)
+        rv.addWidget(self.sess_lbl)
+
+        # START / RESUME
+        top = QHBoxLayout()
+        self.pid = QLineEdit("P01")
+        self.pid.setFont(mono(9))
+        self.pid.setMaximumWidth(90)
+        top.addWidget(QLabel("participant"))
+        top.addWidget(self.pid)
+        b = QPushButton("START SESSION")
+        b.setFont(helvetica(9, True))
+        b.clicked.connect(self._session_start)
+        top.addWidget(b)
+        b = QPushButton("RESUME SESSION")
+        b.setFont(helvetica(9))
+        b.clicked.connect(self._session_resume)
+        top.addWidget(b)
+        top.addStretch(1)
+        rv.addLayout(top)
+
+        # THE THREE RECOVERIES. One click, no diagnosis.
+        row = QHBoxLayout()
+        for lab, svc, col in (("REDO THIS TRIAL", "redo", C_WARN),
+                              ("SKIP AND CONTINUE", "skip", C_WARN),
+                              ("ABORT SESSION", "abort", C_BAD)):
+            bb = QPushButton(lab)
+            bb.setFont(helvetica(9, True))
+            bb.setStyleSheet("color:%s" % col)
+            bb.clicked.connect(lambda _, x=svc: self._session_srv(x))
+            row.addWidget(bb)
+        rv.addLayout(row)
+
+        self.sess_log = QTextEdit()
+        self.sess_log.setReadOnly(True)
+        self.sess_log.setFont(mono(8))
+        self.sess_log.setStyleSheet("color:%s;border:none" % C_MUTED)
+        self.sess_log.setMaximumHeight(150)
+        rv.addWidget(QLabel("SESSION LOG — readable while it is happening"))
+        rv.addWidget(self.sess_log)
+        tabs.addTab(rd, "Ready / Session")
+        # AFTER the window is up, not during construction: something later in
+        # __init__ resets the current index, so selecting here silently did
+        # nothing and the capture kept showing Charts.
+        self._tabs = tabs
+        want = getattr(self.args, "tab", None)
+        if want:
+            def _pick():
+                for i in range(self._tabs.count()):
+                    if want.lower() in self._tabs.tabText(i).lower():
+                        self._tabs.setCurrentIndex(i)
+                        return
+            QTimer.singleShot(900, _pick)
+
         self.eventlog = QTextEdit()
         self.eventlog.setReadOnly(True)
         self.eventlog.setFont(mono(8))
@@ -1049,6 +1116,69 @@ class Gui(QMainWindow):
         self.frame_lbl.setFont(helvetica(10))
         bar.addWidget(self.frame_lbl)
         return bar
+
+    # ------------------------------------------------------- session (Part 6)
+    def _session_pub(self, topic, data):
+        """Fire and forget. The GUI NEVER blocks on the session manager: a
+        wait_for_service against a node that has died is exactly how the
+        e-stop once took 4 s to fire."""
+        try:
+            from std_msgs.msg import String as _S
+            pub = self.bus.create_publisher(_S, topic, 4)
+            pub.publish(_S(data=str(data)))
+            self.log("-> %s %s" % (topic, data))
+        except Exception as e:                                   # noqa: BLE001
+            self.log("session publish failed: %s" % e, bad=True)
+
+    def _session_start(self):
+        """Consent FIRST. The session manager refuses to start without it, so
+        this walks the checklist rather than pretending it is a formality."""
+        from srl_experiments.session import CONSENT_STEPS
+        from PyQt5.QtWidgets import QMessageBox
+        for step in CONSENT_STEPS:
+            r = QMessageBox.question(
+                self, "Consent checkpoint",
+                "%s\n\nConfirmed?" % step,
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if r != QMessageBox.Yes:
+                self.log("session NOT started: consent step declined (%s)"
+                         % step, bad=True)
+                return
+        self._session_pub("/session/begin", self.pid.text().strip() or "P00")
+        for step in CONSENT_STEPS:
+            self._session_pub("/session/consent", step)
+        self.log("session start requested for %s" % self.pid.text())
+
+    def _session_resume(self):
+        from srl_experiments.session import Session
+        from PyQt5.QtWidgets import QMessageBox
+        found = Session.resumable()
+        if not found:
+            QMessageBox.information(self, "Resume",
+                                    "No interrupted session found.")
+            return
+        s = found[0]
+        r = QMessageBox.question(
+            self, "Resume session",
+            "Resume %s (%s)?\n%d of %d trials done."
+            % (s.participant, s.sid, s.done_count, len(s.plan)),
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+        if r == QMessageBox.Yes:
+            self._session_pub("/session/begin", "resume:%s" % s.path)
+
+    def _session_srv(self, name):
+        """REDO / SKIP / ABORT. One click, no diagnosis required."""
+        try:
+            from std_srvs.srv import Trigger
+            cli = self.bus.create_client(Trigger, "/session/%s" % name)
+            if not cli.service_is_ready():
+                self.log("/session/%s not available — is session_manager "
+                         "running?" % name, bad=True)
+                return
+            cli.call_async(Trigger.Request())
+            self.log("session: %s" % name.upper())
+        except Exception as e:                                   # noqa: BLE001
+            self.log("session %s failed: %s" % (name, e), bad=True)
 
     # ---------------------------------------------------------------- rviz
     def start_rviz(self):
@@ -1508,10 +1638,60 @@ class Gui(QMainWindow):
         return True
 
     # ------------------------------------------------------------- refresh
+    def _refresh_session(self, s):
+        """READY TO RUN and the live session state.
+
+        The panel is handed the raw dict; when there is none it renders NO
+        READINESS REPORT rather than anything green -- an absent verdict is
+        not a pass, which is the whole point of the tri-state.
+        """
+        import json as _j
+        try:
+            self.ready_panel.set_data(_j.loads(s["ready"])
+                                      if isinstance(s.get("ready"), str)
+                                      else s.get("ready"))
+        except Exception:                                        # noqa: BLE001
+            self.ready_panel.set_data(None)
+        try:
+            d = _j.loads(s["sess"]) if isinstance(s.get("sess"), str) \
+                else s.get("sess")
+        except Exception:                                        # noqa: BLE001
+            d = None
+        if not d:
+            self.sess_lbl.setText("no session manager "
+                                  "(ros2 run srl_experiments session_manager)")
+            return
+        t = d.get("trial")
+        if t:
+            el = d.get("elapsed") or 0.0
+            self.sess_lbl.setText(
+                "%s   %s   block %s   trial %d/%d   attempt %d   "
+                "elapsed %5.1f s   mode %s   task %s"
+                % (d.get("participant"), d.get("state"), t.get("block"),
+                   (t.get("index") or 0) + 1, d.get("total", 0),
+                   t.get("attempt", 1), el, t.get("mode"), t.get("task")))
+        else:
+            self.sess_lbl.setText("%s   %s   %d/%d trials done"
+                                  % (d.get("participant"), d.get("state"),
+                                     d.get("done", 0), d.get("total", 0)))
+        lines = []
+        for e in (d.get("log") or [])[-24:]:
+            mark = {"bad": "!!", "warn": " *", "good": " +"}.get(
+                e.get("level"), "  ")
+            lines.append("%s %s" % (mark, e.get("text", "")))
+        self.sess_log.setPlainText("\n".join(lines))
+        self.sess_log.verticalScrollBar().setValue(
+            self.sess_log.verticalScrollBar().maximum())
+
     def refresh(self):
         t0 = time.perf_counter()
         s = self.bus.snap
         now = s.get("t", time.monotonic())
+        try:
+            self._refresh_session({k: (s.get(k) or [None])[0]
+                                   for k in ("ready", "sess")})
+        except Exception as e:                                   # noqa: BLE001
+            self.log("session panel: %s" % e, bad=True)
 
         def val(key, default=None):
             v = s.get(key)

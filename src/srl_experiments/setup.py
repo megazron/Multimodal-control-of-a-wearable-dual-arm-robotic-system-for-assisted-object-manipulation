@@ -15,7 +15,13 @@ package_name = 'srl_experiments'
 # failed while looking like an installation problem.
 EXP_SCRIPTS = sorted(
     glob('experiments/*/run_*.py') + glob('experiments/*/analyse_*.py')
-    + glob('experiments/*/*/run_*.py') + glob('experiments/*/*/analyse_*.py'))
+    + glob('experiments/*/*/run_*.py') + glob('experiments/*/*/analyse_*.py')
+    # THREE levels now, because the superseded sets live under
+    # experiments/_archive/<set>/<task>/. They are ARCHIVED, NOT DELETED --
+    # CLAUDE.md cites several of them by name -- so they must still install,
+    # and a stale two-level glob broke the whole package build after the move.
+    + glob('experiments/_archive/*/*/run_*.py')
+    + glob('experiments/_archive/*/*/analyse_*.py'))
 
 data_files = [
     ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
@@ -25,7 +31,8 @@ data_files = [
 ]
 # protocol.md, config.yaml and scenarios/ travel with the package so a run is
 # reproducible from the install tree alone.
-for d in sorted(glob('experiments/*/') + glob('experiments/*/*/')):
+for d in sorted(glob('experiments/*/') + glob('experiments/*/*/')
+                + glob('experiments/_archive/*/*/')):
     rel = d.rstrip('/')[len('experiments/'):]
     files = [f for f in glob(d + '*') if f.endswith(('.md', '.yaml'))]
     if files:
@@ -53,6 +60,7 @@ setup(
             'scene_spawner = srl_experiments.scene_spawner:main',
             'task_scene = srl_experiments.task_scene:main',
             'scripted_operator = srl_experiments.scripted_operator:main',
+            'session_manager = srl_experiments.session_manager:main',
         ],
     },
 )

@@ -1,3 +1,55 @@
+# DETECTOR ACCURACY -- THE LAB MEASUREMENT (added 2026-08-10)
+
+**This is the only route that measures OUR objects in OUR lighting. Everything
+else -- constructed clouds, public datasets -- measures something adjacent.**
+
+WHAT IS ALREADY KNOWN, so you are not re-measuring it:
+
+  * The POSE accuracy is NOT the detector's job. Fitting the object's KNOWN
+    DIMENSIONS to the cropped depth gives 1.2 mm (40 mm block), 1.8 mm (45 mm
+    part), 8.0 mm (50 mm multimeter) against a constructed cloud, and it is
+    insensitive to a sloppy detection box (1.0-1.2 mm at 0-50% contamination).
+  * Taking the CENTROID of the visible points instead is wrong by 13-45 mm.
+    Do not do that, and do not let a library do it for you.
+  * Range barely matters: 1.2 mm at 0.10 m and at 0.35 m. A close-range look
+    is NOT justified by depth precision.
+
+SO WHAT THE LAB SESSION MUST MEASURE IS THE DETECTION RATE AND THE BOX, not
+the pose:
+
+```
+1.  Mark 9 positions on the bench with a rule: 3 x 3, 100 mm spacing,
+    centred on the task band. Record each position to +/-1 mm.
+2.  For each object (40 mm block, 45 mm part, 50 mm multimeter) and each
+    position:
+      ros2 run srl_perception vlm_object_locator          # detector running
+      ros2 topic echo /perception/objects --once          # one detection
+    Capture the RGB and the depth frame alongside, so the run can be redone
+    offline without re-occupying the lab.
+3.  30 frames per (object, position) -- 9 x 3 x 30 = 810 frames. At 5 s each
+    that is about 70 minutes including handling.
+4.  Report, per object:
+      DETECTION RATE      fraction of frames with a detection at all
+                          <95% BLOCKS A PARTICIPANT SESSION
+      BOX IoU             against a hand-labelled box on 30 sampled frames
+      POSE ERROR          known-dimension fit vs the marked position, RMS
+      SIGMA               the std of that error -- this is the number the
+                          scene fingerprint needs at <= 2 mm
+5.  Repeat the whole thing under the session's actual lighting. Detection is
+    lighting-sensitive in a way geometry is not.
+```
+
+**A detection rate under 95% is a stop.** It does not matter how good the
+fit is: the fit only runs on frames where something was detected.
+
+**If the rate is good but sigma is above 2 mm**, the fingerprint's
+"has the scene changed" decision is what fails, not the grasp. In that case
+fall back to (b) -- objects at marked positions, vision confirming presence
+only -- and state in the write-up that goal poses are known a priori, because
+that weakens the intent-inference claim and must not be left implicit.
+
+---
+
 # LAB PLACEMENT REQUIREMENT: +/- 10 mm
 
 **Every object must be placed within 10 mm of its registered position.**

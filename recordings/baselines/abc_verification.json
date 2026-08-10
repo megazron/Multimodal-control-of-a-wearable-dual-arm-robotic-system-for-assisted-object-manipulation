@@ -91,6 +91,7 @@
         "retained_at_nominal": true,
         "s_max_m": 0.534,
         "declared_fail_sep_m": 0.534,
+        "status": "ARCHIVED reference, not a live condition",
         "margin_mm": 34.0
       }
     },

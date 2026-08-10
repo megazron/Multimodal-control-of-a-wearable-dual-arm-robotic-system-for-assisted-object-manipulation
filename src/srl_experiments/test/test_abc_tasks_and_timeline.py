@@ -61,7 +61,8 @@ def test_the_failure_threshold_is_INSIDE_the_reachable_band():
     """A sling that cannot fail measures nothing. s_max must be beyond the
     nominal span but close enough that a real coordination error reaches it."""
     s_max = 2 * math.sqrt((T.SLING_L / 2) ** 2 - (2 * T.BALL_R) ** 2)
-    assert s_max == pytest.approx(T.TASK_B["fail_sep_m"], abs=5e-4)
+    assert s_max == pytest.approx(T.ARCHIVED_COMPLIANT["fail_sep_m"],
+                                  abs=5e-4)
     assert T.TRAY_SEP < s_max
     assert (s_max - T.TRAY_SEP) == pytest.approx(0.034, abs=1e-3)
 

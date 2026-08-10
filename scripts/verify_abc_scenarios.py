@@ -198,8 +198,8 @@ def main():
     out["A"] = ta
 
     # ---------------------------------------------------------------- B
-    print("\nTASK B  coordinated carry -- both grippers, whole path, %.0f mm span"
-          % (T.TRAY_SEP * 1000))
+    print("\nTASK B  T3 coordinated carry (rigid) -- both grippers, whole "
+          "path, %.0f mm span" % (T.TRAY_SEP * 1000))
     tb = {}
     for name, path in T.TASK_B["paths"].items():
         dense = require_path(densify(path, step), "B path %s" % name)
@@ -209,9 +209,13 @@ def main():
         print("   %-16s %2d waypoints   %s"
               % (name, len(dense),
                  "VERIFIED" if not bad else "%d FAIL" % len(bad)))
-    # The rigid and compliant objects share these paths exactly, so one
-    # verification covers both. What differs is the FAILURE THRESHOLD, and
-    # that is arithmetic on the same geometry -- checked below, not on the arm.
+    # The compliant object was REMOVED from this task on 2026-08-11 (T3
+    # replaces the merged Task B; see _archive/task_b_rigid_and_compliant/).
+    # Its arithmetic is still checked, from tasks.ARCHIVED_COMPLIANT, for one
+    # reason: the RIGID tilt threshold of 6.8 deg is stated against the sling
+    # threshold, so if that number silently drifts the tilt criterion loses
+    # the thing that makes it look non-arbitrary.  This is a reference check,
+    # NOT a verification of a live condition, and it is labelled as such.
     sag = ((T.SLING_L / 2.0) ** 2 - (T.TRAY_SEP / 2.0) ** 2) ** 0.5
     s_max = 2.0 * ((T.SLING_L / 2.0) ** 2 - (2 * T.BALL_R) ** 2) ** 0.5
     tb["object_factor"] = dict(
@@ -219,20 +223,21 @@ def main():
         ball_diameter_m=2 * T.BALL_R,
         retained_at_nominal=bool(sag >= 2 * T.BALL_R),
         s_max_m=round(s_max, 4),
-        declared_fail_sep_m=T.TASK_B["fail_sep_m"],
+        declared_fail_sep_m=T.ARCHIVED_COMPLIANT["fail_sep_m"],
+        status="ARCHIVED reference, not a live condition",
         margin_mm=round(1000 * (s_max - T.TRAY_SEP), 1),
     )
-    print("   rigid/compliant share the paths; only the threshold differs:")
+    print("   ARCHIVED compliant reference (not a live condition):")
     print("     sag at %.0f mm span = %.1f mm vs a %.0f mm ball -> %s"
           % (T.TRAY_SEP * 1000, sag * 1000, 2000 * T.BALL_R,
              "RETAINED" if sag >= 2 * T.BALL_R else "ALREADY DROPPED"))
     print("     s_max = %.1f mm, declared %.1f mm, margin %.1f mm"
-          % (s_max * 1000, T.TASK_B["fail_sep_m"] * 1000,
+          % (s_max * 1000, T.ARCHIVED_COMPLIANT["fail_sep_m"] * 1000,
              1000 * (s_max - T.TRAY_SEP)))
     if sag < 2 * T.BALL_R:
         fails += 1
         print("     FAIL: the ball is gone before the trial starts")
-    if abs(s_max - T.TASK_B["fail_sep_m"]) > 5e-4:
+    if abs(s_max - T.ARCHIVED_COMPLIANT["fail_sep_m"]) > 5e-4:
         fails += 1
         print("     FAIL: declared fail_sep_m disagrees with the geometry")
     # The threshold must be INSIDE the reachable band, or the task cannot fail.

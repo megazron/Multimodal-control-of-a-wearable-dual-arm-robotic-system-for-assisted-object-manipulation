@@ -119,26 +119,38 @@ TASK_A = dict(
 )
 
 # --------------------------------------------------------------------------
-# TASK B -- COORDINATED CARRY, rigid AND compliant
+# TASK B -- T3 COORDINATED CARRY (rigid only)
 # --------------------------------------------------------------------------
+# T3 REPLACES THE MERGED TASK B (2026-08-11).  The slot keeps the key "B"
+# because that key is the dispatcher's, the GUI's and run_experiment.sh's --
+# renaming it is exactly the "button labelled T3 runs something else" failure
+# the archive README exists to prevent.  The CONTENT is T3 and only T3.
+#
+# What was removed: the COMPLIANT (sling) half.  The merged task ran the same
+# three paths twice, once with a rigid tray and once with a 540 mm sling, as
+# a within-task factor -- 18 trial slots where T3 alone is 9.  The contrast
+# was real and is not being called worthless; it is being spent elsewhere.
+# The superseded spec is kept verbatim, with the arithmetic that supported
+# it, at experiments/_archive/task_b_rigid_and_compliant/.
+#
+# WHICH T3 THIS IS, because there are two and only one is usable.  The
+# archived bimanual T3 declares its grips at |x| = 0.155 on a 310 mm span --
+# INSIDE the 0.25 m dead band between the disjoint reachable sets, where it
+# failed 10 of 25 waypoints.  Reviving those coordinates would reinstate a
+# regression this repository already documents.  So what is reinstated is
+# T3's MECHANISM -- two grippers on one rigid body, a loose ball making the
+# coordination error visible -- at the CURRENT verified 500 mm geometry.
+#
 # A coupled object is held at two points TRAY_SEP apart, one gripper on each
-# end. It SPANS the dead band between the reachable sets, which is exactly why
-# it needs both arms: no single arm can hold a body at two separated points,
-# and no amount of time changes that.
+# end.  It SPANS the dead band, which is exactly why it needs both arms: no
+# single arm can hold a body at two separated points, and no amount of time
+# changes that.
 #
-# THE OBJECT IS A WITHIN-TASK FACTOR, not a second task. Rigid coupling
-# transmits coordination error instantly and proportionally; compliant
-# coupling absorbs it and then fails abruptly. Running both against the SAME
-# paths, in the same block, with the same grip separation, is what turns that
-# into a contrast rather than two unrelated numbers.
-#
-#   RIGID     failure is TILT. Over 500 mm, 20 mm of height difference is
-#             2.3 deg (visible wobble) and 60 mm is 6.8 deg, at which the ball
-#             rolls off. Rescaled from the superseded 310 mm span, where the
-#             same millimetres read 3.7 and 11.0 deg -- the ANGLE is the
-#             criterion, so it MUST be recomputed whenever the span changes.
-#   COMPLIANT failure is SEPARATION. sag(s) = sqrt((L/2)^2 - (s/2)^2), and the
-#             ball is retained while sag >= 2r, so s_max = 534.0 mm.
+# FAILURE IS TILT.  Over 500 mm, 20 mm of height difference is 2.3 deg
+# (visible wobble) and 60 mm is 6.8 deg, at which the ball rolls off.
+# Rescaled from the superseded 310 mm span, where the same millimetres read
+# 3.7 and 11.0 deg -- the ANGLE is the criterion, so it MUST be recomputed
+# whenever the span changes.
 #
 # TRANSPORT IS VERTICAL, and that is a measured constraint, not a preference:
 # the feasible band is only 0.35-0.40 m deep in y, so a fore-aft carry leaves
@@ -146,19 +158,19 @@ TASK_A = dict(
 # the grips and the vertical lift).
 TASK_B = dict(
     key="B",
-    name="coordinated_carry",
-    role="physical coupling through a shared object; rigid vs compliant",
+    name="t3_coordinated_carry",
+    supersedes="coordinated_carry (rigid AND compliant); the merged spec is "
+               "kept at experiments/_archive/task_b_rigid_and_compliant/",
+    role="physical coupling through a shared rigid body",
     bimanual="YES, route (a) -- a body held at two points 500 mm apart spans "
              "the dead band between the disjoint reachable sets.",
     arms_used="both, simultaneously",
-    object_factor=("rigid", "compliant"),
     objects=dict(
         tray=dict(size=(TRAY_SEP + 0.06, 0.26, 0.02), grip_sep=TRAY_SEP,
-                  colour="tan", mass_g=180),
-        sling=dict(length=SLING_L, grip_sep=TRAY_SEP, colour="brown"),
+                  colour="tan", mass_g=180, lip_mm=8),
         ball=dict(radius=BALL_R, colour="yellow", mass_g=15),
     ),
-    # Identical paths for both objects. All vertical; see the note above.
+    # All vertical; see the note above.
     paths=dict(
         S1_short_lift=[[0.0, Y, 1.15], [0.0, Y, 1.20]],
         S2_full_lift=[[0.0, Y, 1.10], [0.0, Y, 1.30]],
@@ -166,12 +178,21 @@ TASK_B = dict(
                    [0.0, 0.38, 1.25], [0.0, Y, 1.30]],
     ),
     grip_sep=TRAY_SEP,
-    fail_tilt_deg=6.8,               # rigid:    60 mm over 500 mm
-    fail_sep_m=0.5340,               # compliant: sag == 2r
+    fail_tilt_deg=6.8,               # 60 mm over 500 mm
     repeats=3,
     metrics=("tilt_rms_deg", "tilt_max_deg", "time_above_fail_tilt_s",
-             "sep_err_rms_mm", "sep_err_max_mm", "min_sag_mm",
              "height_diff_rms_mm", "path_efficiency", "object_retained"),
+)
+
+# The compliant half, kept as ARITHMETIC rather than as a task, because the
+# sling threshold is still the reference the rigid tilt threshold is read
+# against and deleting it would strand that comparison.
+#   sag(s) = sqrt((L/2)^2 - (s/2)^2); the ball is retained while sag >= 2r,
+#   so with L = 0.540 and r = 0.020, s_max = 0.5340 m.
+ARCHIVED_COMPLIANT = dict(
+    sling_length_m=SLING_L, ball_radius_m=BALL_R, grip_sep_m=TRAY_SEP,
+    fail_sep_m=0.5340,
+    where="experiments/_archive/task_b_rigid_and_compliant/",
 )
 
 # --------------------------------------------------------------------------
@@ -268,10 +289,10 @@ def why_this_task(task):
             "the only uncoupled measure, the only one that survives every "
             "master degradation, and the reference the other two are read "
             "against",
-        "coordinated_carry":
-            "the only task where the two arms are PHYSICALLY coupled, and "
-            "the rigid/compliant factor is the one contrast in the set that "
-            "changes the FORM of the failure rather than its size",
+        "t3_coordinated_carry":
+            "the only task where the two arms are PHYSICALLY coupled -- a "
+            "rigid body held at two points 500 mm apart, which no single arm "
+            "can do and no amount of time can substitute for",
         "dual_pursuit":
             "the only task that requires simultaneity rather than coupling, "
             "and the only source of b_cross",

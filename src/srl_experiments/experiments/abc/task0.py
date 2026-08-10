@@ -64,6 +64,22 @@ CONDITIONS DIFFER BY WHAT IS VISIBLE, AND THAT IS DELIBERATE
 That asymmetry means the two are NOT a like-for-like pointing comparison, and
 any comparison between them carries a selection cost on the autonomy side.
 Stated here so it cannot be quietly dropped from the analysis.
+
+OPEN: TASK 0 AND TASK A OVERLAP, AND SOMEBODY MUST DECIDE
+---------------------------------------------------------
+Both are Fitts pointing tasks, and their designs CONTRADICT each other: Task A
+varies W at fixed amplitudes, Task 0 fixes W and varies amplitude, and the
+paragraph above says why the second is the better of the two.  Running both
+puts two incompatible Fitts characterisations in one session and spends
+13 minutes doing it.
+
+This is NOT decided here, because it is a protocol decision and not a
+geometric one.  It is flagged rather than resolved so the choice is visible:
+either Task 0 REPLACES Task A -- which frees 15 min and removes the
+contradiction -- or both run and the write-up must say which regression is the
+headline and why the other exists.  The session timeline currently carries
+BOTH, and lands at exactly 120 min against a 120 min cap, so the decision is
+also what buys back the only slack in the session.
 """
 
 import itertools

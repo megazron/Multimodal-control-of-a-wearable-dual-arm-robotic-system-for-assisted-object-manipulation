@@ -53,13 +53,15 @@ BLOCKS = [
     (7,  "baselines: EDA fitted, Borg baseline, proprioceptive drift", False),
     (8,  "SAFETY BRIEF + STOP DRILL -- the wearer presses twice", False),
     (6,  "familiarisation, both modes, no data", False),
+    (5,  "MODE 1 / TASK 0 sphere pointing        [BENCH]", False),
     (8,  "MODE 1 / TASK A positioning            [BENCH]", False),
-    (9,  "MODE 1 / TASK B coordinated carry      [WORN]", True),
+    (6,  "MODE 1 / TASK B T3 coordinated carry   [WORN]", True),
     (5,  "questionnaires + pack off + Borg", False),
     (9,  "MODE 1 / TASK C dual pursuit           [WORN]", True),
     (6,  "BREAK, pack off, NASA-TLX + trust", False),
+    (5,  "MODE 2 / TASK 0 sphere pointing        [BENCH]", False),
     (7,  "MODE 2 / TASK A positioning            [BENCH]", False),
-    (9,  "MODE 2 / TASK B coordinated carry      [WORN]", True),
+    (6,  "MODE 2 / TASK B T3 coordinated carry   [WORN]", True),
     (5,  "questionnaires + pack off + Borg", False),
     (9,  "MODE 2 / TASK C dual pursuit           [WORN]", True),
     (6,  "final Borg, proprioceptive drift re-test, NASA-TLX + trust", False),
@@ -75,8 +77,14 @@ TRIAL_BUDGET = {
     # A "both" trial is ONE slot -- the two arms run simultaneously -- so
     # slots, not arm-trials, is the right unit for wall-clock.
     "TASK A": (54, 6, 60),
-    # 3 paths x 2 objects (rigid, compliant) x 3 repeats
-    "TASK B": (18, 30, 60),
+    # T3, rigid only: 3 paths x 3 repeats.  The compliant half was removed on
+    # 2026-08-11 and took 9 slots with it -- see
+    # _archive/task_b_rigid_and_compliant/README.md.
+    "TASK B": (9, 30, 60),
+    # 6 sphere PAIRS x 3 conditions (left/right/both) x 2 repeats.  The pairs
+    # are the conditions: four spheres buy six amplitudes, and a movement in
+    # Task 0 is always sphere-to-sphere.
+    "TASK 0": (36, 6, 60),
     # 4 speed conditions + 2 single-arm baselines, x 2 repeats, 30 s trials
     "TASK C": (12, 45, 60),
 }

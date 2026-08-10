@@ -74,9 +74,11 @@ def _m(ns, i, typ, xyz, scale, col, frame="world"):
 
 def furniture_ids():
     """Names of every collision object this scene owns."""
+    import clip_tasks as _ct
+    w = _ct.A_BIN_D / 2.0
     return ["bench", "circuit_box", "bin_floor"] + [
         "bin_wall_%+.0f_%+.0f" % (dx * 100, dy * 100)
-        for dx, dy in ((0.08, 0.0), (-0.08, 0.0), (0.0, 0.08), (0.0, -0.08))]
+        for dx, dy in ((w, 0.0), (-w, 0.0), (0.0, w), (0.0, -w))]
 
 
 def remove_furniture(node, timeout_s=10.0):
@@ -267,11 +269,14 @@ class Scene(Node):
         # than onto a solid block of the same size.
         bx, by = CT.A_BIN_OBJ[0], CT.A_BIN_OBJ[1]
         bz = CT.BENCH_TOP + CT.A_BIN_H / 2.0
-        box("bin_floor", [bx, by, CT.BENCH_TOP + 0.01], [0.16, 0.16, 0.02])
-        for dx, dy in ((0.08, 0.0), (-0.08, 0.0), (0.0, 0.08), (0.0, -0.08)):
+        w = CT.A_BIN_D / 2.0
+        box("bin_floor", [bx, by, CT.BENCH_TOP + 0.01],
+            [CT.A_BIN_D, CT.A_BIN_D, 0.02])
+        for dx, dy in ((w, 0.0), (-w, 0.0), (0.0, w), (0.0, -w)):
             box("bin_wall_%+.0f_%+.0f" % (dx * 100, dy * 100),
                 [bx + dx, by + dy, bz],
-                [0.02 if dx else 0.16, 0.16 if dx else 0.02, CT.A_BIN_H])
+                [0.02 if dx else CT.A_BIN_D,
+                 CT.A_BIN_D if dx else 0.02, CT.A_BIN_H])
         return out
 
     def _publish_scene(self):
@@ -366,13 +371,14 @@ class Scene(Node):
                 (0.05, 0.05, CT.BENCH_TOP - CT.BENCH_THICK), DARK)
         # the bin task A places into: floor plus four walls, on the bench
         bx, by = CT.A_BIN_OBJ[0], CT.A_BIN_OBJ[1]
-        add(Marker.CUBE, [bx, by, CT.BENCH_TOP + 0.01], (0.16, 0.16, 0.02),
-            TEAL)
-        for dx, dy in ((0.08, 0), (-0.08, 0), (0, 0.08), (0, -0.08)):
+        w = CT.A_BIN_D / 2.0
+        add(Marker.CUBE, [bx, by, CT.BENCH_TOP + 0.01],
+            (CT.A_BIN_D, CT.A_BIN_D, 0.02), TEAL)
+        for dx, dy in ((w, 0), (-w, 0), (0, w), (0, -w)):
             add(Marker.CUBE,
                 [bx + dx, by + dy, CT.BENCH_TOP + CT.A_BIN_H / 2.0],
-                (0.02 if dx else 0.16, 0.16 if dx else 0.02, CT.A_BIN_H),
-                TEAL)
+                (0.02 if dx else CT.A_BIN_D,
+                 CT.A_BIN_D if dx else 0.02, CT.A_BIN_H), TEAL)
         # the circuit box task C probes and task B places onto
         add(Marker.CUBE, CT.BOX_OBJ, (0.17, CT.BOX_D, CT.BOX_H), GREEN)
 

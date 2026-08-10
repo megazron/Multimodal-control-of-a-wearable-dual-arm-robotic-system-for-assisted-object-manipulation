@@ -99,6 +99,29 @@ BENCH_FAR_Y = 0.63
 BENCH_HALF_X = 0.85
 BENCH_THICK = 0.04
 
+# HOW FAR EVERY OBJECT PROJECTS PAST THE EDGE. This is the parameter that
+# actually varies gripper-to-bench clearance, and finding that out took a
+# broken sweep: the first version swept BENCH_NEAR_Y, but on_bench() places
+# objects at BENCH_NEAR_Y + depth/2, so moving the edge moved every object
+# with it and the wrist-to-edge geometry was INVARIANT. The score sat at
+# exactly 40 failures for every edge from 0.10 to 0.26 m -- the parameter had
+# been cancelled out of the quantity being scored. Swept properly, failures
+# fall 40 -> 31 and plateau at 0.06; 0.08 sits past the knee.
+OVERHANG = 0.08
+
+# WHERE AN IDLE ARM WAITS. In front of the bench edge and above the bench
+# top, so an arm that is not working is not standing in the furniture. The
+# idle holds used to sit at the study band y = 0.35, which is behind the edge,
+# and each one failed on its own every run.
+def park(x):
+    return [x, round(BENCH_NEAR_Y - 0.12, 4), round(BENCH_TOP + 0.18, 4)]
+
+
+# Clearance the transit keeps above the bench top. The hand must dip below
+# the top to reach an object resting on it -- that is what the overhang is
+# for -- but it has no business down there while merely travelling.
+TRANSIT_Z = 0.10
+
 # Wrist -> finger-pad offset along the tool axis, in world, at the anchor
 # orientation. `orientation_mode` is `fixed` so this is constant for a run.
 # Measured from TF: the tips sit +0.098 m along the tool axis, 0.1194 m away.
@@ -131,7 +154,7 @@ def on_bench(x, depth_m, height_m, surface_z=None):
     the bench is exactly where the wrist needs to be.
     """
     z = (BENCH_TOP if surface_z is None else surface_z) + height_m / 2.0
-    return [x, round(BENCH_NEAR_Y + depth_m / 2.0, 4), round(z, 4)]
+    return [x, round(BENCH_NEAR_Y + depth_m / 2.0 - OVERHANG, 4), round(z, 4)]
 
 
 # ---------------------------------------------------------------- TASK A
@@ -169,18 +192,34 @@ A_PICK = ee_for(A_BLOCK_OBJ)
 # degrading, so the margin is the defence and N only located the edge.
 # The bin is not a small cube, so it goes to the bench EDGE, and its base
 # rests on the bench. The block is released just above the rim.
-A_BIN_H, A_BIN_D = 0.07, 0.16
+# 0.26 m across, not 0.16. The gripper comes in tilted 30.7 deg from
+# horizontal, so its body sweeps a wider footprint than the jaws; at 0.16 m
+# it clipped the rim on every release once the bin walls were real collision
+# objects rather than markers.
+A_BIN_H, A_BIN_D = 0.07, 0.26
 A_BIN_OBJ = on_bench(0.62, A_BIN_D, A_BIN_H)        # the bin itself
 # Release the block just above the rim, over the bin's centre.
-A_BIN = ee_for([A_BIN_OBJ[0], A_BIN_OBJ[1],
-                BENCH_TOP + A_BIN_H + A_BLOCK / 2.0 + 0.01])
+# Release ABOVE the rim, not inside the bin. The block drops the last few
+# centimetres, which is what happens physically anyway, and the gripper never
+# has to fit between the walls.
+# RELEASE OVER THE BIN'S NEAR EDGE, NOT ITS CENTRE. Over the centre the
+# wrist lands at y = 0.20 against a near wall at 0.165 -- inside the bin's
+# own footprint -- so the gripper body clipped the rim for the whole final
+# approach. All twelve of task A's remaining failures were exactly those
+# waypoints, from x = 0.487 to 0.637 at z = 1.202. Dropping over the near
+# edge puts the wrist ahead of the wall in free space.
+A_BIN = ee_for([A_BIN_OBJ[0],
+                round(A_BIN_OBJ[1] - A_BIN_D / 2.0 + 0.03, 4),
+                BENCH_TOP + A_BIN_H + A_BLOCK / 2.0 + 0.07])
 A_STANDOFF = 0.10
 
 
 def task_a():
     pre = [A_PICK[0], A_PICK[1], A_PICK[2] + A_STANDOFF]
-    lift = [A_PICK[0], A_PICK[1], A_PICK[2] + 0.14]
-    over = [A_BIN[0], A_BIN[1], A_BIN[2] + 0.16]
+    # Lift clear of the bench BEFORE travelling, and cross at that height.
+    hi = round(BENCH_TOP + TRANSIT_Z, 4)
+    lift = [A_PICK[0], A_PICK[1], hi]
+    over = [A_BIN[0], A_BIN[1], max(A_BIN[2], hi)]
     # 30 held waypoints at the bin, not 4. The gripper opens on a WAYPOINT
     # INDEX while the arm arrives on its own schedule, so a mode that lags the
     # waypoint stream releases before it gets there. Measured: under VR teleop
@@ -193,7 +232,7 @@ def task_a():
     # 30 waypoints is 4.5 s of dwell at the bin.
     left = _dense([pre, A_PICK]) + _hold(A_PICK, 6) + \
         _dense([A_PICK, lift, over, A_BIN]) + _hold(A_BIN, 30)
-    return {"left": left, "right": _hold([-0.32, Y, 1.15], len(left))}
+    return {"left": left, "right": _hold(park(-0.32), len(left))}
 
 
 # ---------------------------------------------------------------- TASK B
@@ -215,13 +254,23 @@ BOX_X = -0.35
 B_HOLD = ee_for(on_bench(SEP / 2.0, B_PART, B_PART))
 B_START = ee_for(on_bench(-0.60, B_PART, B_PART))
 BOX_OBJ = on_bench(BOX_X, BOX_D, BOX_H)             # the circuit box
-B_PLACE = ee_for([BOX_OBJ[0], BOX_OBJ[1],
-                  BENCH_TOP + BOX_H + B_PART / 2.0])
+# SAME NEAR-EDGE RULE AS THE BIN. Targeting an object's CENTRE puts the wrist
+# inside that object's own footprint -- the wrist trails the pads by 95 mm --
+# so the gripper body clips the near face on the way in. Both of task B's and
+# both of task C's remaining failures were exactly that.
+BOX_NEAR_Y = round(BOX_OBJ[1] - BOX_D / 2.0 + 0.02, 4)
+# Released just clear of the box top for the same reason as the bin.
+B_PLACE = ee_for([BOX_OBJ[0], BOX_NEAR_Y,
+                  BENCH_TOP + BOX_H + B_PART / 2.0 + 0.04])
 
 
 def task_b():
-    right = _dense([B_START, B_PLACE]) + _hold(B_PLACE, 8)
-    return {"left": _hold(B_HOLD, len(right)), "right": right}
+    hi = round(BENCH_TOP + TRANSIT_Z, 4)
+    up = [B_START[0], B_START[1], hi]
+    over = [B_PLACE[0], B_PLACE[1], hi]
+    right = _hold(B_START, 4) + _dense([B_START, up, over, B_PLACE]) + \
+        _hold(B_PLACE, 8)
+    return {"left": _hold(park(0.32), len(right)), "right": right}
 
 
 # ---------------------------------------------------------------- TASK C
@@ -231,13 +280,15 @@ C_MM_SIZE = (0.05, 0.09, 0.13)
 C_MM_OBJ = on_bench(0.35, C_MM_SIZE[1], C_MM_SIZE[2])
 C_PRESENT = ee_for(C_MM_OBJ)
 # The probe touches the top of the circuit box.
-C_PROBE_ON = ee_for([BOX_OBJ[0], BOX_OBJ[1], BENCH_TOP + BOX_H + 0.02])
+C_PROBE_ON = ee_for([BOX_OBJ[0], BOX_NEAR_Y, BENCH_TOP + BOX_H + 0.06])
 C_PROBE_UP = [C_PROBE_ON[0], C_PROBE_ON[1], round(C_PROBE_ON[2] + 0.11, 4)]
 
 
 def task_c():
-    right = _dense([C_PROBE_UP, C_PROBE_ON]) + _hold(C_PROBE_ON, 10) + \
-        _dense([C_PROBE_ON, C_PROBE_UP])
+    hi = round(BENCH_TOP + TRANSIT_Z, 4)
+    up = [C_PROBE_ON[0], C_PROBE_ON[1], max(C_PROBE_UP[2], hi)]
+    right = _dense([up, C_PROBE_ON]) + _hold(C_PROBE_ON, 10) + \
+        _dense([C_PROBE_ON, up])
     left = _hold(C_PRESENT, len(right))
     return {"left": left, "right": right}
 

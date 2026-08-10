@@ -30,7 +30,16 @@ Visualization Manager:
       Description Source: Topic
       Description Topic:
         Depth: 5
-        Durability Policy: Volatile
+        # TRANSIENT LOCAL, NOT VOLATILE. robot_state_publisher latches
+        # /robot_description: it publishes ONE message at startup and never
+        # again. A Volatile subscriber that arrives afterwards never receives
+        # it, so RViz renders an empty scene -- and it is ORDER DEPENDENT,
+        # which is why it looked intermittent: RViz started before the stack
+        # was already subscribed and worked, RViz started after showed
+        # nothing. The MarkerArray display twenty lines below already asked
+        # for Transient Local, so the hazard was known for /task_objects and
+        # missed for the robot.
+        Durability Policy: Transient Local
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /robot_description

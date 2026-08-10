@@ -16,13 +16,17 @@ Visualization Manager:
       Enabled: true
       Description Source: Topic
       Description Topic:
+        Depth: 5
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
         Value: /robot_description
       Visual Enabled: true
       Collision Enabled: false
       Value: true
     - Class: rviz_default_plugins/TF
       Name: TF
-      Enabled: true
+      Enabled: false
       Marker Scale: 0.05
       Show Axes: true
       Show Names: true
@@ -31,7 +35,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 0.62
+      Distance: 0.55
       Focal Point: {X: 0, Y: 0, Z: 0.16}
       Pitch: 0.22
       Yaw: 0.9

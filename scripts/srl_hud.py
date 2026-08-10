@@ -67,16 +67,51 @@ HEALTH = {
 }
 
 
+# ---------------------------------------------------------------- type
+# HELVETICA, ALIASED. It is licensed and not installed; Liberation Sans is
+# metric-compatible, so text laid out for Helvetica keeps its line breaks and
+# column widths. ~/.config/fontconfig/fonts.conf states the alias explicitly
+# rather than leaning on fontconfig's implicit metric rule, so `fc-match
+# Helvetica` is a check that can fail on a machine without it.
+#
+# VERIFIED AT BOTH LAYERS, because fontconfig resolving is not evidence Qt
+# resolves:
+#     fc-match Helvetica            -> LiberationSans-Regular.ttf
+#     QFontInfo(QFont("Helvetica")) -> "Liberation Sans"
+#
+# "Helvetica is not resolving" turned out to be that NOTHING EVER ASKED FOR
+# IT: this module requested "DejaVu Sans" and "DejaVu Sans Mono" throughout.
+# The request is now Helvetica, and it resolves.
+SANS = "Helvetica"
+# Numerics are fixed-width so a changing value does not shift the digits
+# beside it. Liberation Mono is the metric-compatible monospace partner.
+MONO = "Liberation Mono"
+
+# Live scale, driven by the GUI's own control. 1.0 is the base size, chosen
+# to be readable at arm's length on a 1920x1080 panel.
+SCALE = {"k": 1.0}
+
+
+def set_scale(k):
+    """Set the global type scale. Clamped: below 0.7 the labels stop being
+    readable at arm's length, above 1.8 the panels overflow."""
+    SCALE["k"] = max(0.7, min(1.8, float(k)))
+    return SCALE["k"]
+
+
 def mono(size=11, bold=False):
-    f = QFont("DejaVu Sans Mono", size)
+    f = QFont(MONO, max(6, int(round(size * SCALE["k"]))))
     f.setBold(bold)
     f.setStyleHint(QFont.Monospace)
+    # Fixed advance width, so 0.199 -> 0.200 does not move anything.
+    f.setFixedPitch(True)
     return f
 
 
 def sans(size=11, bold=False):
-    f = QFont("DejaVu Sans", size)
+    f = QFont(SANS, max(6, int(round(size * SCALE["k"]))))
     f.setBold(bold)
+    f.setStyleHint(QFont.Helvetica)
     return f
 
 

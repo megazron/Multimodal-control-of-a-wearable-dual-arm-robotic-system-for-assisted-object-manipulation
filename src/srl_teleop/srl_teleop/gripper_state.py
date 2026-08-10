@@ -63,6 +63,56 @@ CLOSED_RAD = 0.80          # commanded full close; the mechanical limit
 
 OPEN, HOLDING, FREE_AIR, UNKNOWN = "open", "holding", "free_air", "unknown"
 
+# THE COMMAND TO OPEN, which is NOT the threshold that classifies "open".
+# Kept as a separate name because conflating them is how the copies drifted:
+# vr_gripper_node called 0.0 "OPEN_RAD" and record_rviz called 0.05
+# "GRIP_OPEN", while OPEN_RAD here is 0.10 and decides what counts as open.
+# A command and a threshold that share a name will be substituted for one
+# another eventually.
+CMD_OPEN_RAD = 0.0
+
+# The knuckle's own mechanical stop, reached only when the hand closes on
+# NOTHING. Above FREE_AIR_RAD by construction -- asserted below, because the
+# gap between them is the entire margin that makes "closed on nothing"
+# distinguishable from "closed on something".
+MECH_LIMIT_RAD = 0.80
+assert CMD_OPEN_RAD < OPEN_RAD < FREE_AIR_RAD <= MECH_LIMIT_RAD
+
+
+def grip_for(width_mm):
+    """Knuckle angle that closes on an object of this width.
+
+    Robotiq 2F-85: 85 mm stroke across roughly 0 -> 0.8 rad of driven knuckle,
+    so closing on a w-mm object leaves the knuckle short of full closure. This
+    is THE definition -- `record_rviz`, `clip_tasks` and the clip scene all
+    import it. It existed as three separate copies, and a drifted grasp
+    threshold silently reclassifies every trial in a study.
+    """
+    return max(0.12, min(0.70, 0.8 * (1.0 - float(width_mm) / 85.0)))
+
+
+# Fraction of grip_for() at which the fingers are accepted as being ON the
+# object. Absorbs the mock's first-order tracking lag without accepting a
+# gripper that has barely moved.
+GRIP_REACHED_FRAC = 0.90
+
+
+def holding(knuckle, width_mm=None):
+    """True only when the fingers are closed ON SOMETHING.
+
+    With `width_mm` given, the test is that the fingers have actually reached
+    the object's own width rather than merely left the open position. Without
+    it the band alone attached a marker the instant the knuckle passed
+    OPEN_RAD, so a 40 mm block (which needs 0.42) jumped to the gripper while
+    the fingers were still visibly open -- the object appeared grasped before
+    it was touched.
+    """
+    if knuckle is None or knuckle != knuckle:
+        return False
+    if width_mm is not None:
+        return knuckle >= GRIP_REACHED_FRAC * grip_for(width_mm)
+    return OPEN_RAD <= knuckle < FREE_AIR_RAD
+
 # One marker per arm, in the user's runtime dir so it does not survive a
 # reboot -- a grip cannot outlive the machine, and a marker that does would be
 # a latch nobody can clear.

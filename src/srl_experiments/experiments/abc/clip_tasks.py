@@ -40,6 +40,8 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import tasks as T                                            # noqa: E402
+sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "srl_teleop"))
+from srl_teleop import gripper_state as _gs                  # noqa: E402
 
 Y = T.Y                       # 0.35, the only fore/aft band both arms work in
 SEP = T.TRAY_SEP              # 0.500, verified clear of the dead band
@@ -104,14 +106,14 @@ def task_c():
     return {"left": left, "right": right}
 
 
-def grip_for(width_mm):
-    """Knuckle angle that closes on an object of this width. Same map as
-    record_rviz.grip_for, restated here so this module has no dependency on
-    the recorder, and asserted equal by the sweep."""
-    return max(0.12, min(0.70, 0.8 * (1.0 - float(width_mm) / 85.0)))
-
-
-OPEN = 0.0
+# THE ONE DEFINITION, imported. This was a third copy of the same map -- kept
+# "so this module has no dependency on the recorder", which was the right
+# instinct pointed at the wrong owner: the dependency belongs on srl_teleop,
+# which depends on nothing in-repo, not on a script under scripts/. Three
+# copies of the threshold that decides whether a grasp happened is three
+# chances for a study's trials to be reclassified by a typo.
+grip_for = _gs.grip_for
+OPEN = _gs.CMD_OPEN_RAD
 
 
 def _sched(n, arm, close_at, open_at, width_mm):

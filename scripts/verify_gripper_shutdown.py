@@ -64,7 +64,13 @@ GRASP_RAW = 2500.0
 # a real limit of the three-state test, recorded rather than designed around.
 FULL_RAW = 3700.0
 OBJECT_RAD = 0.42          # a 40 mm block: the fingers stop here
-FREE_AIR_RAD = 0.80        # nothing in the hand: travels to its own limit
+# THE RIG'S MECHANICAL STOP, not the classification threshold. This was called
+# MECH_LIMIT_RAD and set to 0.80 while gripper_state.MECH_LIMIT_RAD is 0.74 -- the
+# same name for two different quantities, six hundredths apart, in the two
+# files that decide whether a hand is holding something. Renamed to what it
+# is, imported from the owner, and the ordering
+# CMD_OPEN < OPEN < FREE_AIR <= MECH_LIMIT asserted at import time there.
+MECH_LIMIT_RAD = gs.MECH_LIMIT_RAD
 
 
 class Rig(Node):
@@ -217,7 +223,7 @@ def case_kill_while_holding(rig):
 def case_kill_on_nothing(rig):
     print("\n-- CASE 2: SIGKILL with the hand closed on NOTHING (stale marker)")
     gs.clear_latched(ARM)
-    rig.stop_at, rig.pos, rig.raw = FREE_AIR_RAD, 0.0, REST_RAW
+    rig.stop_at, rig.pos, rig.raw = MECH_LIMIT_RAD, 0.0, REST_RAW
     p = start_node()
     spin(rig, 4.0)
     rig.raw = FULL_RAW
@@ -244,7 +250,7 @@ def case_kill_on_nothing(rig):
 def case_clean_shutdown(rig):
     print("\n-- CASE 3: clean SIGINT / SIGTERM, NOT latched -> must open")
     gs.clear_latched(ARM)
-    rig.stop_at, rig.pos, rig.raw = FREE_AIR_RAD, 0.0, REST_RAW
+    rig.stop_at, rig.pos, rig.raw = MECH_LIMIT_RAD, 0.0, REST_RAW
     p = start_node()
     spin(rig, 4.0)
     rig.raw = 900.0                    # past the 250 deadband, under the 1200 latch
@@ -285,7 +291,7 @@ def main():
     print("=" * 78)
     print("object stop %.2f rad (%s)   free air %.2f rad (%s)"
           % (OBJECT_RAD, gs.classify(OBJECT_RAD),
-             FREE_AIR_RAD, gs.classify(FREE_AIR_RAD)))
+             MECH_LIMIT_RAD, gs.classify(MECH_LIMIT_RAD)))
     try:
         case_kill_while_holding(rig)
         case_kill_on_nothing(rig)

@@ -61,7 +61,7 @@ be current, and it is re-measured whenever it is touched.
 
 | | measured 2026-08-10 | command |
 | --- | --- | --- |
-| unit tests | **347 pass, 2 fail, 1 skipped** | `python3 -m pytest -q src/*/test` |
+| unit tests | **353 pass, 2 fail, 1 skipped** | `python3 -m pytest -q src/*/test` |
 | the 2 failures | `test_flake8`, `test_pep257` -- **pre-existing**, the package uses double quotes against the ROS style default | |
 | executables | teleop 42, experiments 24, vr_teleop 9, autonomy 7, perception 6, vr_autonomy 2 | `ros2 pkg executables <pkg>` |
 | GUI launch specs | **25** (15 task = 3 x 5 modes, plus modes and diagnostics) | `verify_gui_buttons.py` -- 46 checks |

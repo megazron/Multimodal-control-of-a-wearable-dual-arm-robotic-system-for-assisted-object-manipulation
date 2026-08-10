@@ -27,7 +27,14 @@ from sensor_msgs.msg import Joy
 from std_msgs.msg import String
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
-OPEN_RAD, CLOSED_RAD = 0.0, 0.80
+from srl_teleop import gripper_state as _gs
+
+# FROM THE OWNER, not restated. These were literals here (0.0, 0.80) while
+# srl_teleop.gripper_state calls 0.10 "OPEN_RAD" -- this file's 0.0 is the
+# COMMAND to open, which is a different quantity from the threshold that
+# classifies a hand as open. Both now come from the one module that defines
+# them, under names that say which is which.
+OPEN_RAD, CLOSED_RAD = _gs.CMD_OPEN_RAD, _gs.CLOSED_RAD
 
 
 class VrGripper(Node):

@@ -60,6 +60,7 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))), "src/srl_teleop"))
 from srl_teleop import procscan                              # noqa: E402
+from srl_teleop import gripper_state as _gs                  # noqa: E402
 import numpy as np
 import rclpy
 import rclpy.time
@@ -112,41 +113,28 @@ TILT_FAIL_DEG = 11.3
 # knuckle at 0.793 rad -- fully closed on nothing -- so every clip showed a
 # shut hand throughout, and the "grasp" existed only in the marker layer. A
 # pick rendered with a closed gripper is not a pick.
-GRIP_OPEN = 0.05
-# Robotiq 2F-85: 85 mm stroke across roughly 0 -> 0.8 rad of driven knuckle,
-# so closing on a w-mm object leaves the knuckle short of full closure.
-# bimanual_metrics calls 0.10..0.74 "holding" and >= 0.74 "free air" -- closed
-# on NOTHING -- so an object grasp must land inside that band, which is what
-# makes the marker gate meaningful rather than decorative.
-def grip_for(width_mm):
-    return max(0.12, min(0.70, 0.8 * (1.0 - float(width_mm) / 85.0)))
-
-
-GRIP_HOLD_MIN, GRIP_FREE_AIR = 0.10, 0.74
+# THE GRIPPER WAS NEVER COMMANDED. mock_components boots the Robotiq driven
+# knuckle at 0.793 rad -- fully closed on nothing -- so every clip showed a
+# shut hand throughout, and the "grasp" existed only in the marker layer. A
+# pick rendered with a closed gripper is not a pick.
+#
+# EVERY CONSTANT AND BOTH FUNCTIONS BELOW COME FROM srl_teleop.gripper_state.
+# They used to be restated here and again in clip_tasks.py -- three copies of
+# the same thresholds, in the three places that decide whether a grasp
+# happened. A drifted grasp threshold silently reclassifies every trial in a
+# study, and the copies were already disagreeing: this file called 0.05
+# "GRIP_OPEN" while gripper_state calls 0.10 "OPEN_RAD", one a command and
+# one a classification bound.
+GRIP_OPEN = _gs.CMD_OPEN_RAD
+GRIP_HOLD_MIN, GRIP_FREE_AIR = _gs.OPEN_RAD, _gs.FREE_AIR_RAD
+grip_for = _gs.grip_for
+holding = _gs.holding
 
 # Fraction of the transit at which the plan hands the gripper back to the
 # schedule so it can open and PLACE. These match the thresholds already inside
 # grip_schedule(), so the release stays defined in exactly one place; the hold
 # above only stops the object being dropped BEFORE it.
 RELEASE_FRAC = {"t2": 0.80, "t5": 0.86}
-
-
-def holding(knuckle, width_mm=None):
-    """True only when the fingers are closed ON SOMETHING.
-
-    With `width_mm` given, the test is that the fingers have actually reached
-    the object's own width rather than merely left the open position. Without
-    it the band alone attached the marker the instant the knuckle passed 0.10,
-    so a 40 mm block (which needs 0.42) jumped to the gripper while the
-    fingers were still visibly open -- the object appeared to be grasped
-    before it was touched. 0.90 of the target absorbs the mock's first-order
-    tracking lag without accepting a gripper that has barely moved.
-    """
-    if knuckle is None or knuckle != knuckle:
-        return False
-    if width_mm is not None:
-        return knuckle >= 0.90 * grip_for(width_mm)
-    return GRIP_HOLD_MIN <= knuckle < GRIP_FREE_AIR
 
 
 KNUCKLE = "%s_robotiq_85_left_knuckle_joint"

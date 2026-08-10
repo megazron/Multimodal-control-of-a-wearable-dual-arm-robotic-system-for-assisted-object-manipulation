@@ -1,3 +1,65 @@
+# RE-RECORD 2026-08-10 — STOPPED AT 3.5 OF 5 MODES, AND WHY
+
+Old clips moved to `archive/recordings/verification_20260810/` with
+`GEOMETRY_NOTE.md`. New clips in `recordings/verification/<mode>/<TASK>/<scen>/`,
+8 angles each, against the verified geometry.
+
+| mode | A | B | C |
+| --- | --- | --- | --- |
+| 06_full_autonomy | OK, placed 0 mm | OK | OK |
+| 01_master_teleop | OK, placed 0 mm | OK | OK |
+| 03_shared_autonomy | OK, placed 0 mm | OK | OK |
+| 02_vr_teleop | OK, placed 0 mm | **FAIL** no grasp | **FAIL** no grasp, exit 1 |
+| 04_vr_shared | **NOT RUN** | | |
+
+Stack evidence over the recorded runs: **54 of 54 IK windows at 100%**, mount
+guard PASS at **0.1610 m** worst clearance (floor 0.15), **0 clearance-floor
+blocks**. The one block was a 0.38 s `flip_reject` that self-cleared.
+
+## THE OPEN ITEM — VR grasps, and the two possibilities
+
+Task A grasps and places at 0 mm on the VR path, so the transport works. B and
+C do not grasp at all. From the frames, B's right arm travels to the part and
+stops beside it; the part never moves.
+
+**Not yet separable, and this decides the fix:**
+
+  (a) the VR path lands the pads **more than 30 mm** from the object, so
+      `clip_scene`'s new proximity gate correctly refuses to call it a grasp; or
+  (b) **30 mm is too tight** for this path's tracking error.
+
+**The measurement that settles it: log the pad-to-object distance at closest
+approach.** `clip_scene._grip(arm)` already computes the pad position in world
+and `it["pos"]` is the object, so it is a `math.dist` and one field in the
+event dump. Do that before touching either the gate or the mapper — changing
+one on a guess is how a threshold gets tuned to hide a real offset.
+
+C is a THIRD failure (exit 1 — the runner itself errored) and C uses the LEFT
+arm, the arm task A grasped with successfully, so "the right arm's VR mapping"
+does not explain both.
+
+## Two grasp bugs the re-record found, both fixed
+
+1. `gripper_state.holding(knuckle, width_mm)` had **only a lower bound** — the
+   no-width branch bounds both ends, the width branch had lost the upper. A
+   gripper closed on nothing (the mock boots at 0.7929 rad) satisfied it for
+   every object, so task A logged GRASPED at t=0.0 with the arm at home.
+   A regression of a failure CLAUDE.md already records from the pilot.
+2. `clip_scene` had **no proximity test at all** — any closure anywhere counted
+   as grasping the object. `record_rviz` gates on `near_pick`; the file the
+   sweep judges completion from did not.
+
+## Preconditions are enforced now, not remembered
+
+`preconditions()` refuses to record, and re-checks before every mode, on: a
+stray `robot_state_publisher` owning `/robot_description`, more than one
+`master_pose_node`, and zero or duplicate `move_group`.
+
+The isolation check asks WHICH nodes publish, not how many — a count was
+measuring `master_pose_node`'s respawn cycle, not isolation.
+
+---
+
 # DETECTOR ACCURACY -- THE LAB MEASUREMENT (added 2026-08-10)
 
 **This is the only route that measures OUR objects in OUR lighting. Everything

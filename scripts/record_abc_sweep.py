@@ -540,7 +540,8 @@ def main():
                 time.sleep(a.settle_s)
                 good, msg, grabs, gate = run_one(
                     app, gui, task, mode, out_dir, graph=graph,
-                    start_grabs=lambda: rr.start_grabs(out_dir))
+                    start_grabs=lambda: rr.start_grabs(out_dir,
+                                                      grip_arm))
                 log("      capture gated on %s" % gate)
                 time.sleep(1.0)
                 rr.stop_grabs(grabs)

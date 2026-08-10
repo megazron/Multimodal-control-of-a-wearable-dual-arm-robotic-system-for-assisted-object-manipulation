@@ -51,6 +51,7 @@ screen is the number from that frame and cannot drift out of sync with it.
 import argparse
 import json
 import math
+import signal
 import os
 import shutil
 import subprocess
@@ -89,8 +90,13 @@ VIEWS = {
     "right":   (":96", 3.1416, 0.20, 2.10, (0.0, 0.30, 1.15), False),
     "iso":     (":97", 0.9000, 0.45, 2.40, (0.0, 0.26, 1.16), False),
     "top":     (":93", 1.5708, 1.40, 2.30, (0.0, 0.30, 1.15), False),
+    # ONE DISPLAY PER ARM, and neither is ever killed. See ensure_display().
     "gripper": (":94", 1.5708, 0.25, 0.40, (0.0, 0.0, 0.0), False),
+    "gripper_right": (":98", 1.5708, 0.25, 0.40, (0.0, 0.0, 0.0), False),
 }
+# The gripper camera is bolted to a LINK, so it needs one RViz per arm. Which
+# display the clip is grabbed from depends on the task's active arm.
+GRIP_DISPLAY = {"left": ":94", "right": ":98"}
 # The quad is a quick-review tile, not all seven: front | left / top | gripper
 QUAD = ("front", "left", "top", "gripper")
 VW, VH = 800, 500          # per view; the 2x2 tile is 1600x1000
@@ -622,6 +628,32 @@ Window Geometry:
     return p
 
 
+def _display_renders(disp, thresh=8.0):
+    """Does this X display actually contain a picture?
+
+    Mean grey of one grabbed frame. The threshold is far below any real RViz
+    frame (measured 62-101) and far above an empty root window (0.04).
+    """
+    f = os.path.join(SCRATCH, "renderchk_%s.png" % disp.lstrip(":"))
+    r = subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-f", "x11grab",
+                        "-video_size", "%dx%d" % (VW, VH),
+                        "-i", "%s.0" % disp, "-frames:v", "1", f],
+                       capture_output=True)
+    if r.returncode != 0 or not os.path.exists(f):
+        return False
+    try:
+        import numpy as _np
+        from PIL import Image as _Image
+        return float(_np.asarray(_Image.open(f).convert("L")).mean()) > thresh
+    except Exception:                                          # noqa: BLE001
+        return False
+
+
+def _re_escape(pat):
+    import re as _re
+    return _re.escape(pat)
+
+
 def _running(pat):
     """Is a process matching `pat` alive, EXCLUDING this one and its shell?
 
@@ -639,12 +671,32 @@ _GRIP_ARM = {"cur": None}
 
 
 def ensure_display(log, gripper_arm="left"):
-    """Four Xvfb displays, each with its own RViz. Idempotent.
+    """One Xvfb per view, each with its own RViz. Idempotent, and NOTHING IS
+    EVER KILLED.
 
-    The gripper camera follows a LINK (Target Frame = <arm>_end_effector_link)
-    so it tracks the hand rather than a fixed point. That frame is baked into
-    the config, so this restarts only that one view when the active arm
-    changes -- which is rare, because the sweep is grouped by task.
+    THE GRIPPER CAMERA IS BOLTED TO A LINK (Target Frame =
+    <arm>_end_effector_link), so it needs a different config per arm. The
+    previous version kept ONE display for it and, when the active arm changed,
+    pkill'd the instance bound to the other arm and started a replacement.
+
+    That produced SEVEN ENTIRELY BLACK CLIPS -- 34 s each, mean brightness 1.0
+    of 255 -- and the black ones were exactly the clips where no replacement
+    RViz was started. Reproduced directly by alternating the arm four times
+    and grabbing the display each time:
+
+        step 0  arm=left    brightness 99.00   left_rviz=True  right_rviz=False
+        step 1  arm=right   brightness 98.92   left_rviz=True  right_rviz=True
+        step 2  arm=left    brightness  0.04   left_rviz=True  right_rviz=True
+        step 3  arm=right   brightness  0.04   left_rviz=True  right_rviz=True
+
+    The pkill does not take: at step 1 BOTH instances are alive on the same
+    display, so two RViz windows fight over it, and from step 2 the display
+    renders nothing at all. The sweep runs a(left), b(right), c(left) per
+    mode, so it crossed that transition twice in every mode.
+
+    A kill-and-restart on a shared display is the whole bug. Each arm now owns
+    its own display and its own RViz, both started once and left alone, so
+    there is no transition to get wrong.
     """
     for name, (disp, *_rest) in VIEWS.items():
         if not _running("Xvfb %s" % disp):
@@ -655,15 +707,10 @@ def ensure_display(log, gripper_arm="left"):
     time.sleep(3)
     started = False
     for name, (disp, *_rest) in VIEWS.items():
-        cfg = write_cfg(name, gripper_arm)
-        if name == "gripper":
-            # stop any gripper RViz bound to the OTHER arm
-            other = write_cfg("gripper", "right" if gripper_arm == "left"
-                              else "left")
-            if _running("rviz2 -d %s" % other):
-                subprocess.run(["pkill", "-f", "rviz2 -d %s" % other],
-                               capture_output=True)
-                time.sleep(1.5)
+        # Each gripper view is permanently bound to its own arm and display.
+        arm = ("right" if name == "gripper_right" else
+               "left" if name == "gripper" else gripper_arm)
+        cfg = write_cfg("gripper" if name.startswith("gripper") else name, arm)
         if not _running("rviz2 -d %s" % cfg):
             env = dict(os.environ, DISPLAY=disp, LIBGL_ALWAYS_SOFTWARE="1",
                        GALLIUM_DRIVER="llvmpipe", QT_QPA_PLATFORM="xcb")
@@ -675,13 +722,62 @@ def ensure_display(log, gripper_arm="left"):
     if started:
         time.sleep(20)
 
-
-def start_grabs(out_dir):
-    """One ffmpeg per view, started together so the four are synchronised."""
-    procs = {}
+    # A PROCESS BEING ALIVE IS NOT EVIDENCE IT IS RENDERING.
+    #
+    # This is what actually produced the black clips, and it survived the
+    # per-arm-display fix until it was measured. `pkill -f` sends SIGTERM;
+    # RViz catches it, tears its render window down, and LINGERS. The old
+    # instance then still matched `_running("rviz2 -d <cfg>")`, so the check
+    # said "already running", no replacement was started, and the display
+    # stayed black for the rest of the session. Found by listing processes
+    # against display brightness: gripper_left alive, Xvfb :94 alive, frame
+    # mean 0.04 of 255.
+    #
+    # The only trustworthy liveness test for a renderer is a PIXEL. Grab one;
+    # if the display is dark, kill that instance BY PID with SIGKILL -- not by
+    # name, and not politely -- and start a fresh one. Refuse rather than
+    # record a black view: a black clip that reaches the tree is indis-
+    # tinguishable from a clip of a stationary arm.
     for name, (disp, *_rest) in VIEWS.items():
-        path = os.path.join(out_dir, "rviz_%s.mp4" % name)
-        procs[name] = subprocess.Popen(
+        arm = ("right" if name == "gripper_right" else
+               "left" if name == "gripper" else gripper_arm)
+        cfg = write_cfg("gripper" if name.startswith("gripper") else name, arm)
+        for attempt in range(3):
+            if _display_renders(disp):
+                break
+            for pid, _c in procscan.find(_re_escape("rviz2 -d %s" % cfg)):
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except OSError:
+                    pass
+            time.sleep(2)
+            env = dict(os.environ, DISPLAY=disp, LIBGL_ALWAYS_SOFTWARE="1",
+                       GALLIUM_DRIVER="llvmpipe", QT_QPA_PLATFORM="xcb")
+            subprocess.Popen(["rviz2", "-d", cfg], env=env,
+                             stdout=open(log + ".rviz." + name, "a"),
+                             stderr=subprocess.STDOUT, start_new_session=True)
+            time.sleep(22)
+        else:
+            raise RuntimeError(
+                "%s (%s) will not render after 3 restarts -- refusing to "
+                "record a black view" % (name, disp))
+
+
+def start_grabs(out_dir, gripper_arm="left"):
+    """One ffmpeg per view, started together so the four are synchronised.
+
+    `gripper_arm` selects WHICH gripper display is grabbed. Both exist and
+    both render continuously; only the active arm's is written, and it is
+    written as rviz_gripper.mp4 so the output tree is unchanged.
+    """
+    procs = {}
+    want_grip = "gripper_right" if gripper_arm == "right" else "gripper"
+    for name, (disp, *_rest) in VIEWS.items():
+        if name.startswith("gripper") and name != want_grip:
+            continue
+        out_name = "gripper" if name.startswith("gripper") else name
+        path = os.path.join(out_dir, "rviz_%s.mp4" % out_name)
+        procs[out_name] = subprocess.Popen(
             [FFMPEG, "-y", "-loglevel", "error", "-f", "x11grab",
              # 15 fps, SET FROM A MEASUREMENT, not chosen.
              # `scripts/measure_render_rate.py` drives a real robot through

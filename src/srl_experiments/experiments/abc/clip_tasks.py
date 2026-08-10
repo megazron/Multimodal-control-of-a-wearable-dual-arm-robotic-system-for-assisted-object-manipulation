@@ -287,8 +287,27 @@ def task_b():
 
 # ---------------------------------------------------------------- TASK C
 # Two-handed instrument motion: left presents, right probes and holds contact.
-C_MM_MM = 50
-C_MM_SIZE = (0.05, 0.09, 0.13)
+# RESPEC'D 2026-08-10: 50 x 90 x 130 -> 30 x 70 x 45 mm.
+#
+# The multimeter bound the object set THREE ways at once -- 8.0 mm pose error,
+# a 17.5 mm capture half-window, and the only object failing the scene
+# fingerprint's sigma <= 2 mm. Sweeping both available dimensions shows the
+# three constraints pull on DIFFERENT ones, so only changing both fixes it:
+#
+#   candidate            pose err   capture   sigma<=2
+#   50 x 90 x 130 (old)    8.0 mm    17.5 mm     no
+#   35 x 90 x 130          7.9 mm    25.0 mm     no      <- narrow only: pose
+#                                                           is unchanged
+#   50 x 90 x  60          2.2 mm    17.5 mm     no      <- shallow only:
+#                                                           capture unchanged
+#   30 x 70 x  45          1.7 mm    27.5 mm     YES     <- all three
+#
+# WIDTH sets the capture window ((85 - w)/2); DEPTH conditions the
+# known-dimension fit, because a deep object is seen from one face and the
+# hidden extent has to be inferred. 30 x 70 x 45 is a compact pocket DMM and
+# costs nothing but a reprint.
+C_MM_MM = 30
+C_MM_SIZE = (0.03, 0.07, 0.045)
 C_MM_OBJ = on_bench(0.35, C_MM_SIZE[1], C_MM_SIZE[2])
 C_PRESENT = ee_for(C_MM_OBJ)
 # The probe touches the top of the circuit box.
@@ -370,11 +389,13 @@ TASKS = {
               # LEFT grips the multimeter for the whole task and never lets
               # go -- presenting it IS the task. RIGHT stays open: the probe
               # is the gripper itself.
-              grip=lambda n: _sched(n, "left", 0, n, 50),
-              width_mm=50,
+              grip=lambda n: _sched(n, "left", 0, n, C_MM_MM),
+              width_mm=C_MM_MM,
               expect="LEFT presents the body and holds it steady. RIGHT "
                      "brings the probe down 0.11 m, holds contact, retracts.",
               caveat="The multimeter is a DUMMY BODY -- a coloured box of "
                      "the right size, not an instrument model. It is grasped, "
-                     "carried and presented for real."),
+                     "carried and presented for real. Respec'd to "
+                     "30 x 70 x 45 mm: it bound the object set three ways at "
+                     "once and both dimensions had to change."),
 }

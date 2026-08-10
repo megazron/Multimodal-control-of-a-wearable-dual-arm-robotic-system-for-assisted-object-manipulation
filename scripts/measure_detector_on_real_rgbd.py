@@ -144,8 +144,12 @@ def main():
                 gbox = (gx, gy, gx + gw, gy + gh)
                 want = PROMPT[oid]
                 cands = [d for d in dets if d[0] == want]
-                best = max((iou(gbox, d[1]), d[1]) for d in cands) \
-                    if cands else (0.0, None)
+                # key=, not a bare max over tuples: on an IoU tie Python
+                # falls through to comparing the numpy boxes and raises
+                # "truth value of an array ... is ambiguous".
+                best = (max(((iou(gbox, d[1]), d[1]) for d in cands),
+                            key=lambda t: t[0])
+                        if cands else (0.0, None))
                 rec = dict(scene=sc, im=int(key), obj=oid, prompt=want,
                            detected=bool(best[1] is not None and best[0] > 0.1),
                            iou=round(float(best[0]), 3))

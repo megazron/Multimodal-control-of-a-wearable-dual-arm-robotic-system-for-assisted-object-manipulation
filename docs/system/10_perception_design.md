@@ -94,6 +94,61 @@ The consequence is the important part: **the detector does not need to be
 precise, only to point at the right region.** That is a far weaker requirement
 than 2 mm.
 
+## 1b. The real-RGB-D check: LM-O
+
+Run against LM-O (LineMOD-Occluded) — real RGB-D, ground-truth 6D poses, real
+sensor noise, deliberate occlusion. 60 frames, 432 object instances, detector
+given nothing but an open-vocabulary prompt.
+
+| | |
+| --- | --- |
+| detection rate | **9.0%** (39/432) |
+| median box IoU **when detected** | **0.91** |
+| known-fit pose error | median **11.3 mm**, p90 33.8, 44% within 10 mm |
+| excluding 3 gross outliers (>100 mm) | median **10.7 mm**, mean 13.5 |
+
+**Does this revise the 1.2–8.0 mm? Not directly, and here is why the
+comparison is weak in both directions.** Two confounds both push the real
+number up:
+
+1. **Range.** LM-O's median object range is **0.93 m** against our 0.35 m —
+   2.7×, and stereo depth noise goes as z², so **7× the noise**.
+2. **Shape.** The estimator fits a **box of known dimensions**. LM-O's objects
+   are an ape, a duck, a cat, a drill. **Our objects are boxes.** Fitting a box
+   to a duck is not the case we ship.
+
+Per object, where anything was detected at all:
+
+| object | instances | detected | median IoU | median fit error |
+| --- | --- | --- | --- | --- |
+| duck | 60 | 17 | 0.91 | **6.3 mm** |
+| watering can | 60 | 19 | 0.91 | 12.8 mm |
+| cat | 48 | 3 | 0.92 | 314.6 mm (3 gross failures) |
+| ape, drill, egg carton, glue, hole punch | 274 | **0** | — | — |
+
+The best real cases run **1.0–7.1 mm**, which is consistent with the
+constructed figures. So: **the constructed 1.2–8.0 mm is not refuted, and it is
+not confirmed either.** It remains the best available estimate for our geometry,
+and the lab measurement is what settles it.
+
+### The detection rate is a PROMPT result, not a detector result
+
+9% looked alarming until the instrument was checked. Holding everything else
+fixed and varying only the wording, over 25 frames with 7.1 ground-truth
+visible objects per frame:
+
+| prompt set | detections/frame | confident (>0.1)/frame |
+| --- | --- | --- |
+| specific ("ape figurine", "hole puncher") | 8.0 | **2.1** |
+| generic nouns ("toy", "can", "drill", "box") | 23.6 | **6.4** |
+| one generic prompt ("object on a table") | 1.2 | 1.0 |
+
+**Three times the confident detections from wording alone**, and the generic
+set lands at 6.4 against 7.1 objects actually visible. The 9% figure therefore
+measures a poor prompt set at least as much as it measures YOLO-World.
+**Prompt selection is a first-class design item**, it is cheap to tune, and it
+belongs in the lab procedure.
+
 ## 2. Measuring the detector itself — the part not answerable here
 
 Three routes were considered.

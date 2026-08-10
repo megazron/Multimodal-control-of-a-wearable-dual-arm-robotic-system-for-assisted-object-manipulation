@@ -191,7 +191,7 @@ class Scene(Node):
                                  pos=list(CT.B_START),
                                  size=(0.045, 0.045, 0.05), col=ORANGE,
                                  held=False)}
-        return {"multimeter": dict(arm="left", width_mm=50,
+        return {"multimeter": dict(arm="left", width_mm=CT.C_MM_MM,
                                    pos=list(CT.C_PRESENT),
                                    size=CT.C_MM_SIZE, col=YELLOW,
                                    held=False)}

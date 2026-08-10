@@ -1,0 +1,3500 @@
+{
+  "rows": [
+    {
+      "scene": "000002",
+      "im": 0,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 0,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.055
+    },
+    {
+      "scene": "000002",
+      "im": 0,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 0,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 0,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 0,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 0,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 0,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 1,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 1,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 1,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 1,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 1,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 1,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 1,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 2,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 2,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 2,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 2,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 2,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 2,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 2,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 2,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 3,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 3,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 3,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 3,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 3,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 3,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 3,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 4,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 4,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 4,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 4,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 4,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 4,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 4,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 4,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 5,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 5,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 5,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 5,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 5,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 5,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 5,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 5,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 6,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 6,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 6,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 6,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 6,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 6,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 6,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 6,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 7,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 7,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 7,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 7,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 7,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 7,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 7,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 7,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 8,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 8,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 8,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 8,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 8,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 8,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 8,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 8,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 9,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 9,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 9,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 9,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 9,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 9,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 9,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 9,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 10,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 10,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 10,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 10,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 10,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 10,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 10,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 10,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 11,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 11,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 11,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 11,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 11,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 11,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 11,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 11,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 12,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 12,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 12,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 12,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 12,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 12,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 12,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 12,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 13,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 13,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 13,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": true,
+      "iou": 0.886,
+      "fit_err_mm": 276.1
+    },
+    {
+      "scene": "000002",
+      "im": 13,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 13,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 13,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 13,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 13,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 14,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 14,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 14,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": true,
+      "iou": 0.92,
+      "fit_err_mm": 314.6
+    },
+    {
+      "scene": "000002",
+      "im": 14,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 14,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 14,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 14,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 14,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 15,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 15,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.073
+    },
+    {
+      "scene": "000002",
+      "im": 15,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": true,
+      "iou": 0.945,
+      "fit_err_mm": 350.1
+    },
+    {
+      "scene": "000002",
+      "im": 15,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 15,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": true,
+      "iou": 0.923,
+      "fit_err_mm": 4.1
+    },
+    {
+      "scene": "000002",
+      "im": 15,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 15,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 15,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 16,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 16,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 16,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 16,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 16,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": true,
+      "iou": 0.907,
+      "fit_err_mm": 2.9
+    },
+    {
+      "scene": "000002",
+      "im": 16,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 16,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 17,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 17,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 17,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 17,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 17,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": true,
+      "iou": 0.913,
+      "fit_err_mm": 6.8
+    },
+    {
+      "scene": "000002",
+      "im": 17,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 17,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 17,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 18,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.913,
+      "fit_err_mm": 11.3
+    },
+    {
+      "scene": "000002",
+      "im": 18,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 18,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": true,
+      "iou": 0.921,
+      "fit_err_mm": 5.0
+    },
+    {
+      "scene": "000002",
+      "im": 18,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 18,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 19,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.912,
+      "fit_err_mm": 15.4
+    },
+    {
+      "scene": "000002",
+      "im": 19,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 19,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": true,
+      "iou": 0.906,
+      "fit_err_mm": 6.3
+    },
+    {
+      "scene": "000002",
+      "im": 19,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 19,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 20,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 20,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.909,
+      "fit_err_mm": 9.8
+    },
+    {
+      "scene": "000002",
+      "im": 20,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 20,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": true,
+      "iou": 0.901,
+      "fit_err_mm": 4.8
+    },
+    {
+      "scene": "000002",
+      "im": 20,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 20,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 21,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.9,
+      "fit_err_mm": 5.9
+    },
+    {
+      "scene": "000002",
+      "im": 21,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 21,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": true,
+      "iou": 0.912,
+      "fit_err_mm": 4.3
+    },
+    {
+      "scene": "000002",
+      "im": 21,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 21,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 22,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.908,
+      "fit_err_mm": 10.3
+    },
+    {
+      "scene": "000002",
+      "im": 22,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 22,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": true,
+      "iou": 0.931,
+      "fit_err_mm": 4.0
+    },
+    {
+      "scene": "000002",
+      "im": 22,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 22,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 23,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.886,
+      "fit_err_mm": 12.8
+    },
+    {
+      "scene": "000002",
+      "im": 23,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 23,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": true,
+      "iou": 0.962,
+      "fit_err_mm": 1.0
+    },
+    {
+      "scene": "000002",
+      "im": 23,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 23,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 24,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.9,
+      "fit_err_mm": 7.8
+    },
+    {
+      "scene": "000002",
+      "im": 24,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 24,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": true,
+      "iou": 0.918,
+      "fit_err_mm": 3.6
+    },
+    {
+      "scene": "000002",
+      "im": 24,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 24,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 25,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.938,
+      "fit_err_mm": 11.6
+    },
+    {
+      "scene": "000002",
+      "im": 25,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 25,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": true,
+      "iou": 0.911,
+      "fit_err_mm": 8.9
+    },
+    {
+      "scene": "000002",
+      "im": 25,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 25,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 25,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 26,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 26,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 26,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 26,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": true,
+      "iou": 0.888,
+      "fit_err_mm": 11.0
+    },
+    {
+      "scene": "000002",
+      "im": 26,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 26,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 26,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 27,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 27,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.917,
+      "fit_err_mm": 26.5
+    },
+    {
+      "scene": "000002",
+      "im": 27,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 27,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": true,
+      "iou": 0.88,
+      "fit_err_mm": 9.5
+    },
+    {
+      "scene": "000002",
+      "im": 27,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 27,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 27,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 28,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 28,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.913,
+      "fit_err_mm": 27.7
+    },
+    {
+      "scene": "000002",
+      "im": 28,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 28,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 28,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 28,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 28,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 28,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 29,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 29,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 29,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 29,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 29,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": true,
+      "iou": 0.866,
+      "fit_err_mm": 11.8
+    },
+    {
+      "scene": "000002",
+      "im": 29,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 29,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 29,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 30,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 30,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 30,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 30,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 30,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 30,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 30,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 30,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 31,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 31,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 31,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 31,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 31,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 31,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 31,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 31,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 32,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 32,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 32,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 32,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 32,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 32,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 32,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 33,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 33,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 33,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 33,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 33,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 33,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 33,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 34,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 34,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 34,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 34,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 34,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 34,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 34,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 35,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 35,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 35,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 35,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 35,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 35,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 35,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 35,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 36,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 36,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 36,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 36,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 36,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 36,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 36,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 37,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 37,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 37,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 37,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 37,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 37,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 37,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 38,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 38,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 38,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 38,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 38,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 38,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 38,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 39,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 39,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 39,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 39,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 39,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 39,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 39,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 40,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 40,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 40,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 40,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 40,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 40,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 40,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 41,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 41,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 41,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 41,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 41,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 41,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 41,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 42,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 42,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 42,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 42,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 42,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 42,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 42,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 43,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 43,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 43,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 43,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 43,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 43,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 43,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 44,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 44,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 44,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 44,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 44,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 44,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 44,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 44,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 45,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.866,
+      "fit_err_mm": 31.5
+    },
+    {
+      "scene": "000002",
+      "im": 45,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 45,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 45,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": true,
+      "iou": 0.77,
+      "fit_err_mm": 20.1
+    },
+    {
+      "scene": "000002",
+      "im": 45,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 45,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 45,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 46,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.866,
+      "fit_err_mm": 34.0
+    },
+    {
+      "scene": "000002",
+      "im": 46,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 46,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 46,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 46,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 46,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 46,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 47,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 47,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 47,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 47,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 47,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 47,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 47,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 48,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.88,
+      "fit_err_mm": 21.7
+    },
+    {
+      "scene": "000002",
+      "im": 48,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 48,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 48,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 48,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 48,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 49,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.883,
+      "fit_err_mm": 18.6
+    },
+    {
+      "scene": "000002",
+      "im": 49,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 49,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 49,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 49,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 49,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 50,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.839,
+      "fit_err_mm": 33.7
+    },
+    {
+      "scene": "000002",
+      "im": 50,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 50,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 50,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 50,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 50,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 50,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 51,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 51,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 51,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 51,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 51,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 51,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 51,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 51,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 52,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 52,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 52,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 52,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 52,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 52,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 52,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 52,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 53,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 53,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 53,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 53,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 53,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 53,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 53,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 53,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 54,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 54,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.894,
+      "fit_err_mm": 21.4
+    },
+    {
+      "scene": "000002",
+      "im": 54,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 54,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 54,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": true,
+      "iou": 0.847,
+      "fit_err_mm": 21.4
+    },
+    {
+      "scene": "000002",
+      "im": 54,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 54,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 54,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 55,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 55,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 55,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 55,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 55,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 55,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 55,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 56,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 56,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 56,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 56,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 56,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 56,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 56,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 56,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 57,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 57,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.945,
+      "fit_err_mm": 9.2
+    },
+    {
+      "scene": "000002",
+      "im": 57,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 57,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 57,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 57,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 57,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 58,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 58,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.916,
+      "fit_err_mm": 12.0
+    },
+    {
+      "scene": "000002",
+      "im": 58,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 58,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 58,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 58,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 58,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 58,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 59,
+      "obj": 1,
+      "prompt": "ape figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 59,
+      "obj": 5,
+      "prompt": "watering can",
+      "detected": true,
+      "iou": 0.91,
+      "fit_err_mm": 7.1
+    },
+    {
+      "scene": "000002",
+      "im": 59,
+      "obj": 6,
+      "prompt": "cat figurine",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 59,
+      "obj": 8,
+      "prompt": "power drill",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 59,
+      "obj": 9,
+      "prompt": "duck figurine",
+      "detected": true,
+      "iou": 0.843,
+      "fit_err_mm": 32.7
+    },
+    {
+      "scene": "000002",
+      "im": 59,
+      "obj": 10,
+      "prompt": "egg carton",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 59,
+      "obj": 11,
+      "prompt": "glue bottle",
+      "detected": false,
+      "iou": 0.0
+    },
+    {
+      "scene": "000002",
+      "im": 59,
+      "obj": 12,
+      "prompt": "hole puncher",
+      "detected": false,
+      "iou": 0.0
+    }
+  ],
+  "frames": 60
+}

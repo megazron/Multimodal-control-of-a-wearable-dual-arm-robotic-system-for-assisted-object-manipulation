@@ -260,8 +260,20 @@ BOX_OBJ = on_bench(BOX_X, BOX_D, BOX_H)             # the circuit box
 # both of task C's remaining failures were exactly that.
 BOX_NEAR_Y = round(BOX_OBJ[1] - BOX_D / 2.0 + 0.02, 4)
 # Released just clear of the box top for the same reason as the bin.
+# 0.08 m of standoff above the box, not 0.04. MEASURED: the two right-arm
+# box poses were the only ones under the project's 20 mm margin rule, both at
+# 10 mm, tight in +y and -z. Sweeping the two available levers:
+#
+#     overhang 0.08 standoff 0.04 -> 10 mm     overhang 0.14 standoff 0.04 -> 10 mm
+#     overhang 0.08 standoff 0.08 -> 50 mm     overhang 0.14 standoff 0.08 -> 20 mm
+#     overhang 0.20 -> the pose FAILS at any standoff
+#
+# So the standoff is the lever and the overhang is not; more overhang makes it
+# worse. 0.08 takes the right arm from 10 mm to 50 mm, clearing the bar with
+# room, and no task has to move arms or be cut.
+BOX_STANDOFF = 0.08
 B_PLACE = ee_for([BOX_OBJ[0], BOX_NEAR_Y,
-                  BENCH_TOP + BOX_H + B_PART / 2.0 + 0.04])
+                  BENCH_TOP + BOX_H + B_PART / 2.0 + BOX_STANDOFF])
 
 
 def task_b():
@@ -280,7 +292,8 @@ C_MM_SIZE = (0.05, 0.09, 0.13)
 C_MM_OBJ = on_bench(0.35, C_MM_SIZE[1], C_MM_SIZE[2])
 C_PRESENT = ee_for(C_MM_OBJ)
 # The probe touches the top of the circuit box.
-C_PROBE_ON = ee_for([BOX_OBJ[0], BOX_NEAR_Y, BENCH_TOP + BOX_H + 0.06])
+C_PROBE_ON = ee_for([BOX_OBJ[0], BOX_NEAR_Y,
+                     BENCH_TOP + BOX_H + BOX_STANDOFF])
 C_PROBE_UP = [C_PROBE_ON[0], C_PROBE_ON[1], round(C_PROBE_ON[2] + 0.11, 4)]
 
 

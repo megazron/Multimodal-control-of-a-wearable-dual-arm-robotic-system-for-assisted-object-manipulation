@@ -1,7 +1,7 @@
 {
   "repeats": 10,
   "step_m": 0.02,
-  "ik_calls": 3603,
+  "ik_calls": 3573,
   "failures": 0,
   "detail": {
     "controls": {
@@ -209,8 +209,8 @@
           "ok": true
         },
         "right": {
-          "distinct": 17,
-          "waypoints": 33,
+          "distinct": 16,
+          "waypoints": 30,
           "bad": 0,
           "ok": true
         }

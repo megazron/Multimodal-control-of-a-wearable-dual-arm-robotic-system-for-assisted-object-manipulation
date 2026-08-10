@@ -413,9 +413,31 @@ class Scene(Node):
             # the 40 mm block is the distance at which the fingers close BESIDE
             # the object rather than on it, so beyond that a closure cannot be
             # a grasp of this item whatever the knuckle says.
-            near = (g is not None
-                    and math.dist(g, it["pos"]) <= GRASP_NEAR_M)
-            on = rr.holding(k, it["width_mm"]) and (it["held"] or near)
+            closed = rr.holding(k, it["width_mm"])
+            d = math.dist(g, it["pos"]) if g is not None else None
+            # CLOSEST APPROACH, LOGGED WHETHER OR NOT IT BECAME A GRASP.
+            #
+            # Without this a refused grasp is unattributable: "no grasp" is
+            # equally consistent with the path landing short and with the gate
+            # being too tight, and the only way to tell is the distance the
+            # gate was applied to. VR task B recorded NO GRASP AT ALL while its
+            # arm visibly travelled to the part and stopped beside it, and
+            # nothing in the dump could say by how much it missed.
+            #
+            # TWO numbers, because one does not separate the cases:
+            #   min_pad_obj_m         did the pads EVER get near the object
+            #   min_pad_obj_closed_m  where were they WHEN THE FINGERS CLOSED
+            # A path that lands short has both large. A gate that is too tight
+            # has the closed distance just over GRASP_NEAR_M. A gripper that
+            # never closes has the second one absent entirely.
+            if d is not None:
+                if d < it.get("min_d", 1e9):
+                    it["min_d"] = d
+                    it["min_d_knuckle"] = k
+                if closed and d < it.get("min_d_closed", 1e9):
+                    it["min_d_closed"] = d
+            near = d is not None and d <= GRASP_NEAR_M
+            on = closed and (it["held"] or near)
             if self.t0 is None:
                 self.t0 = self.get_clock().now().nanoseconds * 1e-9
                 self.t0_wall = time.time()
@@ -486,7 +508,22 @@ def main():
                                     width_mm=it["width_mm"],
                                     carried_m=round(it.get("carried", 0.0), 4),
                                     final=[round(v, 4) for v in it["pos"]],
-                                    still_held=bool(it["held"])))
+                                    still_held=bool(it["held"]),
+                                    # THE DIAGNOSTIC PAIR. See the comment at
+                                    # the grasp test: these are what make a
+                                    # refused grasp attributable instead of
+                                    # merely absent.
+                                    min_pad_obj_m=(
+                                        round(it["min_d"], 4)
+                                        if "min_d" in it else None),
+                                    min_pad_obj_knuckle=(
+                                        round(it["min_d_knuckle"], 4)
+                                        if it.get("min_d_knuckle") is not None
+                                        else None),
+                                    min_pad_obj_closed_m=(
+                                        round(it["min_d_closed"], 4)
+                                        if "min_d_closed" in it else None),
+                                    grasp_near_m=GRASP_NEAR_M))
             json.dump(dict(task=n.task, events=n.events, items=summary,
                            t0_wall=getattr(n, "t0_wall", None),
                            # The wrist->pad offset the whole scene was shifted

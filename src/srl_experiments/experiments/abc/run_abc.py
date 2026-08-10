@@ -464,6 +464,34 @@ def main(argv=None):
     # arm move" for every path shape, which is what the guard is actually for.
     track = {arm: [start[arm]] for arm in ARMS}
 
+    # THE GRIP IS GATED ON ARRIVAL, NOT ON WAYPOINT INDEX.
+    #
+    # It used to be `grip_sched[arm][k]`, published alongside the pose for
+    # waypoint k -- which ASSUMES the arm is already at waypoint k. Under a
+    # transport that lags, it is not, and the fingers close somewhere along
+    # the way.
+    #
+    # MEASURED, and this is the whole reason clip_scene now logs closest
+    # approach. VR task B: the pads reached the part EXACTLY
+    # (min_pad_obj 0.000 m) but the knuckle was 0.0 -- fully OPEN -- at that
+    # instant, and when the fingers did close they were 0.339 m away, about
+    # one segment behind. So the VR path does not land short: it arrives late
+    # relative to a schedule that never asked where the arm was. The
+    # index-driven schedule worked on the direct paths only because their lag
+    # happened to be smaller than a waypoint dwell.
+    #
+    # Gating on arrival also makes every mode MORE faithful, not just VR: an
+    # operator closes their hand when they see the object between the fingers,
+    # not after a fixed number of steps. ARRIVE_TOL_M is the capture window --
+    # the same quantity the grasp gate uses -- so "arrived" means "close
+    # enough that closing here is a grasp".
+    ARRIVE_TOL_M = 0.03
+    PAD_OFF = CT.PAD_OFFSET
+    grip_obj = spec.get("grip_obj")
+    held_grip = {arm: 0.0 for arm in ARMS}
+    pend = {arm: None for arm in ARMS}      # (value, waypoint) awaiting arrival
+    late = {arm: 0 for arm in ARMS}
+
     n_sent = 0
     for k in range(len(wp["left"])):
         # RE-SEND THE SAME TARGET AT 20 Hz FOR THE WHOLE HOLD, rather than
@@ -478,9 +506,43 @@ def main(argv=None):
         for _ in range(steps):
             n.hold_grip()
             for arm in ARMS:
-                n.send(arm, wp[arm][min(k, len(wp[arm]) - 1)])
+                tgt = wp[arm][min(k, len(wp[arm]) - 1)]
+                n.send(arm, tgt)
                 if grip_sched is not None:
-                    n.grip(arm, grip_sched[arm][min(k, len(grip_sched[arm]) - 1)])
+                    want = grip_sched[arm][min(k, len(grip_sched[arm]) - 1)]
+                    # A CHANGE IS PENDING AGAINST THE WAYPOINT IT WAS ASKED
+                    # FOR, not against whatever is current now.
+                    #
+                    # The first version compared the arm against the CURRENT
+                    # waypoint, which is only reachable during the ticks that
+                    # waypoint is being commanded. Under lag the arm arrives
+                    # later -- while a LATER waypoint is current -- so the
+                    # test was never true and the hand never closed at all
+                    # (measured: min_pad_obj 0.000 m with the knuckle at 0.0
+                    # and no close anywhere in the run). Right diagnosis,
+                    # wrong gate: "close when you get to where you were told
+                    # to close" needs the target remembered, not resampled.
+                    if want != held_grip[arm] and pend[arm] is None:
+                        pend[arm] = want
+                    if pend[arm] is not None:
+                        # AGAINST THE OBJECT, IN WORLD -- not against the
+                        # waypoint. VR sends CONTROLLER-frame poses that the
+                        # mapper transforms, so comparing the arm's world EE
+                        # against a commanded waypoint compares two different
+                        # frames and is never small: the gate never fired and
+                        # the hand never closed at all. The object is the one
+                        # thing both frames agree about.
+                        here = n.ee(arm)
+                        pads = (None if here is None else
+                                [here[i] + PAD_OFF[i] for i in range(3)])
+                        if (pads is not None and grip_obj is not None
+                                and math.dist(pads, grip_obj)
+                                <= ARRIVE_TOL_M):
+                            held_grip[arm] = pend[arm]
+                            pend[arm] = None
+                        else:
+                            late[arm] += 1
+                    n.grip(arm, held_grip[arm])
             n.spin(0.05)
         for arm in ARMS:
             pt = n.ee(arm)
@@ -488,6 +550,14 @@ def main(argv=None):
                 track[arm].append(pt)
         n_sent += len(ARMS)
     n.spin(1.5)
+
+    if grip_sched is not None and any(late.values()):
+        # NOT A WARNING TO IGNORE. This counts the 50 ms ticks on which the
+        # schedule asked for a grip change the arm had not earned yet. A large
+        # number means this transport lags, which is worth knowing even when
+        # the gate saved the run.
+        print("[GRIP] deferred %s ticks waiting for arrival (left/right)"
+              % "/".join(str(late[a]) for a in ARMS), flush=True)
 
     end = {arm: n.ee(arm) for arm in ARMS}
     travel, net = {}, {}

@@ -364,6 +364,13 @@ TASKS = {
               # carry -> open over the bin
               grip=lambda n: _sched(n, "left", 5, n - 4, 40),
               width_mm=40,
+              # WHERE THE FINGERS MUST BE FOR THE CLOSE TO BE A GRASP, in
+              # OBJECT coordinates. The runner gates the close on the PADS
+              # reaching this, not on a waypoint index -- see run_abc. A
+              # waypoint index is only a proxy for "the arm is there", and it
+              # is a false one on any transport whose commands are not in the
+              # world frame (VR sends controller-frame poses).
+              grip_obj=A_BLOCK_OBJ,
               # Where the object must END UP, as an EE-frame coordinate. The
               # scene shifts objects to the finger pads, so the check adds the
               # same offset -- see record_abc_sweep.
@@ -379,6 +386,7 @@ TASKS = {
               # placement; LEFT stays open, holding the work steady.
               grip=lambda n: _sched(n, "right", 1, n - 5, 45),
               width_mm=45,
+              grip_obj=on_bench(-0.60, B_PART, B_PART),
               expect="LEFT arm HOLDS the work still at x=+0.25. RIGHT arm "
                      "brings the part down 0.15 m and places it. Both arms "
                      "engaged at once.",
@@ -391,6 +399,7 @@ TASKS = {
               # is the gripper itself.
               grip=lambda n: _sched(n, "left", 0, n, C_MM_MM),
               width_mm=C_MM_MM,
+              grip_obj=C_MM_OBJ,
               expect="LEFT presents the body and holds it steady. RIGHT "
                      "brings the probe down 0.11 m, holds contact, retracts.",
               caveat="The multimeter is a DUMMY BODY -- a coloured box of "

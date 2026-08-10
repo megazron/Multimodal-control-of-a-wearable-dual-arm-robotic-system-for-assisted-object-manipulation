@@ -1,26 +1,7 @@
 {
-  "02_vr_teleop/a/S1_single_arm": {
+  "02_vr_teleop/b/S1_bimanual": {
     "ok": true,
     "msg": "run exited 0",
-    "mode": "02_vr_teleop",
-    "task": "a",
-    "scenario": "S1_single_arm",
-    "quad": true,
-    "files": [
-      "rviz_back.mp4",
-      "rviz_front.mp4",
-      "rviz_gripper.mp4",
-      "rviz_iso.mp4",
-      "rviz_left.mp4",
-      "rviz_quad.mp4",
-      "rviz_right.mp4",
-      "rviz_top.mp4"
-    ],
-    "dir": "recordings/verification/02_vr_teleop/A/S1_single_arm"
-  },
-  "02_vr_teleop/b/S1_bimanual": {
-    "ok": false,
-    "msg": "run exited 0; NO GRASP RECORDED at all",
     "mode": "02_vr_teleop",
     "task": "b",
     "scenario": "S1_bimanual",
@@ -39,7 +20,7 @@
   },
   "02_vr_teleop/c/S1_present_probe": {
     "ok": false,
-    "msg": "run exited 1; NO GRASP RECORDED at all",
+    "msg": "run exited 0; NO GRASP RECORDED at all",
     "mode": "02_vr_teleop",
     "task": "c",
     "scenario": "S1_present_probe",

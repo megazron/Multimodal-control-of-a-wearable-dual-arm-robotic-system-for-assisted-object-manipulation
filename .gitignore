@@ -78,3 +78,26 @@ recordings/verification/**/rviz.rviz.*
 recordings/verification/**/*.xvfb
 .cad_venv/
 datasets/
+
+# ------------------------------------------ ARCHIVED verification recordings
+# archive/recordings/verification_<date>/ is the SUPERSEDED sweep, moved under
+# the standing never-delete rule. Moving it silently took it OUT of the rules
+# above -- which is how a directory of bags nearly landed in a commit -- so
+# those rules are MIRRORED here rather than replaced by a blanket ignore.
+#
+# WHY THE CLIPS STAY TRACKED. A rename adds no new blob: git stores by content
+# hash, so re-pointing 612 already-tracked mp4 costs the repository nothing.
+# Ignoring them instead would leave the archive on MY disk only, and a
+# collaborator cloning the repo would find a GEOMETRY_NOTE.md citing evidence
+# that is not there. That is deletion with extra steps.
+archive/recordings/*/*/*/*/bag/
+archive/recordings/*/t?/*/*/rviz_front.mp4
+archive/recordings/*/t?/*/*/rviz_back.mp4
+archive/recordings/*/t?/*/*/rviz_left.mp4
+archive/recordings/*/t?/*/*/rviz_right.mp4
+archive/recordings/*/t?/*/*/rviz_iso.mp4
+archive/recordings/*/t?/*/*/rviz_top.mp4
+archive/recordings/*/t?/*/*/rviz_side.mp4
+archive/recordings/*/t?/*/*/rviz_gripper.mp4
+archive/recordings/**/rviz.rviz.*
+archive/recordings/**/*.xvfb

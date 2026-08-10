@@ -476,6 +476,8 @@ def main():
     ap.add_argument("--only", default=None, help="one mode key")
     ap.add_argument("--tasks", default="abc")
     ap.add_argument("--settle-s", type=float, default=3.0)
+    ap.add_argument("--no-verify", action="store_true",
+                    help="record only; skip the verifiers")
     a = ap.parse_args()
 
     modes = [a.only] if a.only else list(MODE_ORDER)
@@ -586,6 +588,40 @@ def main():
     log("\n" + "=" * 74)
     log("%d recorded, %d failed, %d skipped   -> %s"
         % (done, failed, skipped, PROGRESS))
+
+    # VERIFY WHAT WAS JUST RECORDED, HERE, NOT AS A DOCUMENTED NEXT STEP.
+    #
+    # verify_grasp_quality, verify_object_attachment and verify_gripper_motion
+    # were each written to answer a question the pixel check cannot -- do the
+    # fingers open and close at the right moments, does the OBJECT travel with
+    # the gripper rather than the gripper waving at a stationary prop, and is
+    # the wrist doing anything -- and NOTHING CALLED ANY OF THEM. Three tools
+    # built for exactly this sweep, none of them wired to it, so every clip
+    # shipped judged only on brightness and motion. A verifier nobody runs is
+    # documentation.
+    #
+    # Failures do NOT unrecord the clips: the recording is the expensive part
+    # and a clip that fails verification is evidence of the failure. The exit
+    # code carries it instead, so a caller cannot treat a bad sweep as a good
+    # one.
+    if not a.no_verify:
+        log("\n" + "=" * 74)
+        log("VERIFYING")
+        vfail = []
+        for name in ("verify_rviz_clips", "verify_gripper_motion",
+                     "verify_object_attachment", "verify_grasp_quality"):
+            r = subprocess.run([sys.executable,
+                                os.path.join(WS, "scripts", "%s.py" % name)],
+                               capture_output=True, text=True)
+            tail = [ln for ln in (r.stdout or "").strip().splitlines()
+                    if ln.strip()][-1:] or ["(no output)"]
+            log("   %-26s exit %d   %s" % (name, r.returncode, tail[0][:90]))
+            if r.returncode != 0:
+                vfail.append(name)
+        if vfail:
+            log("   VERIFICATION FAILED: %s" % ", ".join(vfail))
+            failed += len(vfail)
+
     return 0 if failed == 0 else 1
 
 

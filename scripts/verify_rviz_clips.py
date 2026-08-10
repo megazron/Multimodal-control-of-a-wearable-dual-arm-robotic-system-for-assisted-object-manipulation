@@ -34,6 +34,34 @@ from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "recordings/verification")
+
+# The seven camera angles the sweep writes beside rviz_front.mp4. Every one is
+# checked for a picture; see the note in main() on why only the front is
+# checked for objects.
+ANGLES = ("front", "back", "left", "right", "iso", "top", "gripper", "quad")
+
+
+def angle_stats(mp4):
+    """Mean brightness and frame-to-frame change, in ONE ffmpeg call.
+
+    The first version reused frames(), which seeks and spawns ffmpeg once per
+    sample point: 24 clips x 8 angles x 3 points = 576 invocations, and the
+    tool went from a minute to over fifteen and was killed. Decoding the whole
+    clip once at 96x60 grey is far cheaper than seeking into it three times,
+    and it sees every frame rather than three of them -- which matters here,
+    because the failure being looked for is a clip that is black THROUGHOUT.
+    """
+    r = subprocess.run(
+        [FFMPEG, "-loglevel", "error", "-i", mp4, "-vf",
+         "scale=96:60,format=gray", "-f", "rawvideo", "-"],
+        capture_output=True, timeout=120)
+    n = 96 * 60
+    buf = r.stdout
+    if len(buf) < 2 * n:
+        return None
+    F = np.frombuffer(buf[:len(buf) // n * n],
+                      dtype=np.uint8).reshape(-1, 60, 96).astype(np.int16)
+    return float(F.mean()), float(np.abs(np.diff(F, axis=0)).mean())
 FFMPEG = os.path.expanduser("~/.local/bin/ffmpeg")
 TMP = "/tmp/claude-1000/-home-gausms-kortex-ws/3732aa29-5a7e-4c8e-b77e-379233bdc9c9/scratchpad/vfy"
 
@@ -476,6 +504,40 @@ def main():
         mode, task, scen, cond = parts[0], parts[1], parts[2], parts[3]
         task = task.lower()
         r = verify_clip(mp4, task)
+
+        # EVERY ANGLE, NOT JUST THE FRONT.
+        #
+        # This tool globbed rviz_front.mp4 and opened nothing else, so "24 of
+        # 24 clips pass" meant 24 FRONT VIEWS passed -- while SEVEN gripper
+        # views were entirely black (mean 1.0 of 255, zero changing frames,
+        # 34 s of nothing) and one of them was the tight shot of the pick, the
+        # single most informative angle in the set. A per-clip verdict that
+        # silently covers one of eight files is the 0-of-0 failure again:
+        # nothing was checked, and it read as a pass.
+        #
+        # Only the cheap picture checks run per angle. The object-colour check
+        # stays on the front view, because the other cameras deliberately
+        # frame the arm rather than the scene and a missing object there is
+        # framing, not a fault.
+        dark = []
+        for ang in ANGLES:
+            f = os.path.join(d, "rviz_%s.mp4" % ang)
+            if not os.path.exists(f):
+                continue
+            st = angle_stats(f)
+            if st is None:
+                dark.append("%s: unreadable" % ang)
+                continue
+            b, ch = st
+            if b < 8:
+                dark.append("%s BLACK (mean %.1f)" % (ang, b))
+            elif ch < 0.02:
+                dark.append("%s FROZEN (delta %.3f)" % (ang, ch))
+        if dark:
+            r["ok"] = False
+            r["why"] = "; ".join([r["why"]] + dark).strip("; ")
+        r["angles_bad"] = dark
+
         r.update(mode=mode, task=task, scenario=scen, condition=cond)
         rows.append(r)
         print("  %-18s %-4s %-14s %-9s %s%s"

@@ -311,7 +311,16 @@ def main(argv=None):
     ap.add_argument("--participant", default="PILOT")
     ap.add_argument("--scripted", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--hold-s", type=float, default=0.45,
+    # 0.15 s, LOWERED FROM 0.45 BECAUSE IT WAS THE BINDING LIMIT ON THE CLIPS.
+    # At 0.45 s the commanded pose advanced ~2.2 times a second, the arm
+    # reached each waypoint and then sat still for the rest of the hold, and
+    # the recorded video changed 0.6-1.3 times a second -- well under the 16
+    # fps RViz can actually render here. The video looked like a slideshow and
+    # raising the capture rate could not have helped, because there was
+    # nothing new to capture. 0.15 s is still three 20 Hz publishes per
+    # waypoint, so the topic never goes quiet for longer than 0.15 s and
+    # vr_pose_mapper's 0.20 s tracking watchdog still cannot fire.
+    ap.add_argument("--hold-s", type=float, default=0.15,
                     help="seconds per waypoint; the follower is asynchronous "
                          "so this sets how fast the target leads the arm")
     ap.add_argument("--min-travel-m", type=float, default=0.01)

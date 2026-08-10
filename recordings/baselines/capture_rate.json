@@ -1,0 +1,45 @@
+{
+  "rows": [
+    {
+      "requested": 12,
+      "wall_s": 8.18,
+      "stored": 96,
+      "distinct": 9,
+      "delivered_fps": 1.12,
+      "dup_pct": 90.6,
+      "size_kb": 65
+    },
+    {
+      "requested": 24,
+      "wall_s": 8.1,
+      "stored": 192,
+      "distinct": 0,
+      "delivered_fps": 0.0,
+      "dup_pct": 100.0,
+      "size_kb": 95
+    },
+    {
+      "requested": 30,
+      "wall_s": 8.09,
+      "stored": 240,
+      "distinct": 6,
+      "delivered_fps": 0.75,
+      "dup_pct": 97.5,
+      "size_kb": 36
+    },
+    {
+      "requested": 60,
+      "wall_s": 8.06,
+      "stored": 480,
+      "distinct": 6,
+      "delivered_fps": 0.75,
+      "dup_pct": 98.8,
+      "size_kb": 62
+    }
+  ],
+  "static_distinct": 0,
+  "static_fps": 0.0,
+  "control_valid": true,
+  "size": "800x500",
+  "seconds": 8.0
+}

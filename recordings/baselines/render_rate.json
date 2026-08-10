@@ -1,0 +1,28 @@
+{
+  "rows": [
+    {
+      "driver": "llvmpipe (shipped)",
+      "ok": true,
+      "stored": 297,
+      "distinct": 160,
+      "render_fps": 16.0
+    },
+    {
+      "driver": "d3d12 (WSL GPU)",
+      "ok": true,
+      "stored": 300,
+      "distinct": 163,
+      "render_fps": 16.3
+    },
+    {
+      "driver": "zink (GL on Vulkan)",
+      "ok": false,
+      "why": "rviz2 did not start under this driver"
+    }
+  ],
+  "size": "800x500",
+  "requested": 30,
+  "seconds": 10.0,
+  "static_fps": 0.0,
+  "control_valid": true
+}

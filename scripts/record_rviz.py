@@ -695,7 +695,17 @@ def start_grabs(out_dir):
         path = os.path.join(out_dir, "rviz_%s.mp4" % name)
         procs[name] = subprocess.Popen(
             [FFMPEG, "-y", "-loglevel", "error", "-f", "x11grab",
-             "-video_size", "%dx%d" % (VW, VH), "-framerate", "12",
+             # 15 fps, SET FROM A MEASUREMENT, not chosen.
+             # `scripts/measure_render_rate.py` drives a real robot through
+             # RViz on this display and counts frames that DIFFER from their
+             # predecessor: llvmpipe delivers 16.0 fps at 800x500 and the WSL
+             # d3d12 GPU path delivers 16.3, i.e. the GL driver is not the
+             # limit and does not need changing. Asking for more than the
+             # source can render does not make a smoother video -- x11grab
+             # simply grabs the same pixels again, which is why every clip on
+             # disk reported its requested 12 fps while delivering 0.6-1.3
+             # distinct fps. 15 sits just under the measured ceiling.
+             "-video_size", "%dx%d" % (VW, VH), "-framerate", "15",
              "-i", "%s.0" % disp, "-c:v", "libx264", "-preset", "ultrafast",
              "-pix_fmt", "yuv420p", path],
             stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,

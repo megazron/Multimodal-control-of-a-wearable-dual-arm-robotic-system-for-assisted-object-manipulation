@@ -265,6 +265,42 @@ class Graph:
         if not rclpy.ok():
             rclpy.init()
         self.n = Node("abc_sweep_graph")
+        from rclpy.executors import SingleThreadedExecutor
+        from sensor_msgs.msg import JointState
+        self._js = None
+        # A PRIVATE EXECUTOR, not the global one. `rclpy.spin_once(node)` does
+        # NOT build a throwaway executor -- it uses rclpy's GLOBAL executor,
+        # which the GUI's Bus is already spinning on another thread, so the
+        # first call raised "Executor is already spinning" and took the sweep
+        # down with a core dump. Same collision that killed grasp_generator at
+        # startup. Own the executor, add the node to it, spin only it.
+        self._ex = SingleThreadedExecutor()
+        self.n.create_subscription(JointState, "/joint_states",
+                                   self._on_js, 10)
+        self._ex.add_node(self.n)
+
+    def _on_js(self, m):
+        self._js = {n: p for n, p in zip(m.name, m.position)}
+
+    def joints(self, timeout_s=2.0):
+        """Latest arm joint vector, or None. Spun on a private executor.
+
+        Spun on this class's PRIVATE executor -- see __init__.
+        """
+        end = time.monotonic() + timeout_s
+        while time.monotonic() < end:
+            self._ex.spin_once(timeout_sec=0.05)
+            if self._js:
+                return dict(self._js)
+        return None
+
+    def moved(self, ref, tol_rad=0.01):
+        """Has any arm joint left `ref` by more than tol?"""
+        cur = self.joints(0.4)
+        if not cur or not ref:
+            return False
+        return any(abs(cur[k] - v) > tol_rad
+                   for k, v in ref.items() if k in cur and "joint_" in k)
 
     def pubs(self, topic):
         """Publisher count, WITHOUT spinning.
@@ -286,6 +322,10 @@ class Graph:
         return best
 
     def close(self):
+        try:
+            self._ex.remove_node(self.n)
+        except Exception:                                     # noqa: BLE001
+            pass
         try:
             self.n.destroy_node()
         except Exception:                                     # noqa: BLE001
@@ -365,21 +405,59 @@ def build_gui():
     return app, g
 
 
-def run_one(app, gui, task, mode, out_dir):
+def run_one(app, gui, task, mode, out_dir, graph=None,
+            start_grabs=None, motion_wait_s=45.0):
     """Press the GUI button for (task, mode) and wait for it to finish."""
-    key = "abc_%s_%s" % (task, mode[:2])
+    # THE WHOLE MODE NAME, not its first two characters. Cutting the key to
+    # two characters is what let 03_shared_autonomy and the legacy alias
+    # 04_shared_autonomy collide on one key; the specs are now keyed by the
+    # full mode and this must match or every lookup returns None.
+    key = "abc_%s_%s" % (task, mode)
     spec = next((s for s in gui.specs if s.key == key), None)
     if spec is None:
         return False, "no GUI spec %r" % key
     if not spec.enabled:
         return False, "GUI button disabled: %s" % spec.disabled_reason
     before = len(gui.jobs)
+    ref = graph.joints(3.0) if graph is not None else None
     gui.on_launch(spec)
     app.processEvents()
     if len(gui.jobs) == before:
         return False, "the GUI refused to launch it (see its log)"
     label, proc = gui.jobs[-1]
     t0 = time.monotonic()
+
+    # START THE CAPTURE WHEN THE ARM STARTS MOVING, not when the run starts.
+    #
+    # Measured on the clips this replaces: a 28.4 s clip in which the arm moved
+    # only during seconds 16-26. The first sixteen seconds -- 56% of the
+    # recording -- were node startup, DDS discovery, the EE lookup and the
+    # approach to the task start, during which nothing on screen changed. That
+    # dead lead-in is what made the clips look like slideshows: across the
+    # whole file 82% of frame pairs were bit-identical and the delivered rate
+    # averaged 1.3 fps, while DURING THE MOTION it was 5-9 fps. Neither a
+    # higher capture rate nor a faster waypoint rate could fix that, because
+    # the problem was recording a stationary picture for half the clip.
+    #
+    # /trial_state is NOT the gate: run_abc publishes state="running" before it
+    # drives the arm anywhere, so it fires in the dead zone. The arm's own
+    # joints are the only signal that means what is wanted here.
+    #
+    # The timeout fallback is deliberate: if motion is never detected the grab
+    # starts anyway, so a mode that fails to move is still RECORDED and can be
+    # seen to have failed. A gate that can discard evidence of a failure is
+    # worse than a slow clip.
+    grabs, gate = None, None
+    if start_grabs is not None:
+        while proc.poll() is None and time.monotonic() - t0 < motion_wait_s:
+            app.processEvents()
+            if graph is not None and graph.moved(ref):
+                gate = "motion"
+                break
+            time.sleep(0.1)
+        gate = gate or "timeout"
+        grabs = start_grabs()
+
     while proc.poll() is None and time.monotonic() - t0 < 300:
         app.processEvents()
         time.sleep(0.25)
@@ -389,7 +467,7 @@ def run_one(app, gui, task, mode, out_dir):
         return False, "timed out after 300 s"
     # THE RUNNER EXITS NON-ZERO IF NO ARM MOVED. That is the whole reason the
     # clip can be trusted: a stationary arm is not recorded as a success.
-    return rc == 0, ("run exited %s" % rc)
+    return rc == 0, ("run exited %s" % rc), grabs, gate
 
 
 def main():
@@ -458,9 +536,10 @@ def main():
                 rr.ensure_display(os.path.join(out_dir, "rviz"),
                                   gripper_arm=grip_arm)
                 time.sleep(a.settle_s)
-                grabs = rr.start_grabs(out_dir)
-                time.sleep(1.0)
-                good, msg = run_one(app, gui, task, mode, out_dir)
+                good, msg, grabs, gate = run_one(
+                    app, gui, task, mode, out_dir, graph=graph,
+                    start_grabs=lambda: rr.start_grabs(out_dir))
+                log("      capture gated on %s" % gate)
                 time.sleep(1.0)
                 rr.stop_grabs(grabs)
                 try:

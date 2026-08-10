@@ -40,8 +40,8 @@ paste that into Explorer's address bar, or from a WSL shell run `explorer.exe .`
 | 04_vr_shared | A | S1_single_arm | 7/7 | 11 | yes | yes |
 | 04_vr_shared | B | S1_bimanual | 7/7 | 9 | yes | yes |
 | 04_vr_shared | C | S1_present_probe | 7/7 | 10 | yes | yes |
-| 06_full_autonomy | A | S1_single_arm | 7/7 | 13 | -- | **NO** front FROZEN (delta 0.012) |
-| 06_full_autonomy | B | S1_bimanual | 7/7 | 9 | -- | **NO** iso FROZEN (delta 0.011) |
+| 06_full_autonomy | A | S1_single_arm | 7/7 | 13 | -- | yes |
+| 06_full_autonomy | B | S1_bimanual | 7/7 | 9 | -- | yes |
 | 06_full_autonomy | C | S1_present_probe | 7/7 | 10 | -- | yes |
 
 ## What each task should show

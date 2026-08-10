@@ -45,68 +45,56 @@
     "condition": "direct"
   },
   {
-    "ok": false,
-    "why": "left FROZEN (delta 0.011); right FROZEN (delta 0.002)",
+    "ok": true,
+    "why": "",
     "duration_s": 9.9,
     "bright": 88.2,
     "variety": 5303,
     "delta": 1.13,
     "objects": {},
-    "angles_bad": [
-      "left FROZEN (delta 0.011)",
-      "right FROZEN (delta 0.002)"
-    ],
+    "angles_bad": [],
     "mode": "00_unclassified_scripted_playback",
     "task": "f1",
     "scenario": "S1_left_only",
     "condition": "shared"
   },
   {
-    "ok": false,
-    "why": "gripper FROZEN (delta 0.002); quad FROZEN (delta 0.015)",
+    "ok": true,
+    "why": "",
     "duration_s": 9.8,
     "bright": 88.2,
     "variety": 5366,
     "delta": 1.0,
     "objects": {},
-    "angles_bad": [
-      "gripper FROZEN (delta 0.002)",
-      "quad FROZEN (delta 0.015)"
-    ],
+    "angles_bad": [],
     "mode": "00_unclassified_scripted_playback",
     "task": "f1",
     "scenario": "S2_right_only",
     "condition": "assisted"
   },
   {
-    "ok": false,
-    "why": "gripper FROZEN (delta 0.007); quad FROZEN (delta 0.016)",
+    "ok": true,
+    "why": "",
     "duration_s": 9.4,
     "bright": 88.2,
     "variety": 5363,
     "delta": 1.02,
     "objects": {},
-    "angles_bad": [
-      "gripper FROZEN (delta 0.007)",
-      "quad FROZEN (delta 0.016)"
-    ],
+    "angles_bad": [],
     "mode": "00_unclassified_scripted_playback",
     "task": "f1",
     "scenario": "S2_right_only",
     "condition": "direct"
   },
   {
-    "ok": false,
-    "why": "gripper FROZEN (delta 0.002); quad FROZEN (delta 0.014)",
+    "ok": true,
+    "why": "",
     "duration_s": 9.3,
     "bright": 88.2,
     "variety": 5293,
     "delta": 0.99,
     "objects": {},
-    "angles_bad": [
-      "gripper FROZEN (delta 0.002)",
-      "quad FROZEN (delta 0.014)"
-    ],
+    "angles_bad": [],
     "mode": "00_unclassified_scripted_playback",
     "task": "f1",
     "scenario": "S2_right_only",
@@ -807,32 +795,28 @@
     "condition": "-"
   },
   {
-    "ok": false,
-    "why": "front FROZEN (delta 0.012)",
+    "ok": true,
+    "why": "",
     "duration_s": 12.7,
     "bright": 66.8,
     "variety": 8950,
     "delta": 1.94,
     "objects": {},
-    "angles_bad": [
-      "front FROZEN (delta 0.012)"
-    ],
+    "angles_bad": [],
     "mode": "06_full_autonomy",
     "task": "a",
     "scenario": "S1_single_arm",
     "condition": "-"
   },
   {
-    "ok": false,
-    "why": "iso FROZEN (delta 0.011)",
+    "ok": true,
+    "why": "",
     "duration_s": 9.2,
     "bright": 66.6,
     "variety": 9400,
     "delta": 1.19,
     "objects": {},
-    "angles_bad": [
-      "iso FROZEN (delta 0.011)"
-    ],
+    "angles_bad": [],
     "mode": "06_full_autonomy",
     "task": "b",
     "scenario": "S1_bimanual",

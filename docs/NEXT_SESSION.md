@@ -1,3 +1,58 @@
+# SCENE CALIBRATION -- WHAT TO RUN, IN WHAT ORDER (added 2026-08-10)
+
+**Before any data-collection session. Sim-verified; the arm-driving step of
+the sweep does not exist yet, so today this is a partly manual procedure and
+step 4 is where it stops being automatic.**
+
+```
+1.  bash scripts/check_channels.sh          # ~3 min. FIRST, ALWAYS.
+                                            # 12+/14 coherent or degraded mode
+                                            # engages and the master is unusable
+2.  bash scripts/run_teleop.sh gate:=false  # one stack, and only one
+3.  ros2 run srl_teleop preflight --participant
+                                            # FAILS on: empty planning scene,
+                                            # wearer missing from TF, blockers
+                                            # active or EXPIRED, e-stop latched
+4.  python3 scripts/clip_scene.py --task <a|b|c>
+                                            # applies the bench/bin/box and
+                                            # CONFIRMS them in move_group:
+                                            # "7 collision objects applied,
+                                            #  7 confirmed"
+                                            # If it says fewer, STOP -- the arm
+                                            # will plan through the furniture.
+5.  ros2 run srl_perception scene_fingerprint_node
+    ros2 topic echo /scene/state --once     # unchanged -> calibration skipped
+                                            # moved     -> only that object is
+                                            #              re-registered
+    # THE ARMS DO NOT SWEEP THEMSELVES YET. Until they do, put each object in
+    # view of a wrist camera by hand, or drive the arms with the GUI, before
+    # trusting the fingerprint.
+6.  ros2 service call /scene/resweep std_srvs/srv/Trigger
+                                            # after moving anything on purpose
+7.  python3 scripts/verify_abc_scenarios.py --repeats 10
+                                            # 0 failures with the furniture in
+8.  python3 scripts/measure_task_margin.py  # every pose >= 20 mm of margin
+```
+
+**The tolerance you are calibrating to: +/-10 mm, not +/-20 mm.** At 20 mm the
+40 mm block is still caught but the 50 mm multimeter is not -- 20 mm is outside
+its 17.5 mm capture half-window and the fingers close beside it. IK is fine at
+either; capture is what breaks. See `docs/system/08_scene_calibration.md`.
+
+**`pos_tol` in the fingerprint store is 15 mm, which is LOOSER than the grasp
+survives on the multimeter.** An object can be declared UNCHANGED at 15 mm and
+then not be grasped. Tighten it to 10 mm, or narrow that object -- but the real
+detector's noise floor has to be measured first, because a tolerance below
+2 x pose_noise_sd cannot be separated from noise.
+
+**Detection rate is still UNMEASURED and under 95% blocks a participant
+session.** The synthetic renderer is out of the detector's distribution (0-4%
+on our primitives; 0.89-0.91 on a real photograph). Either put AprilTags on the
+objects -- measured 0.74 mm at 0.35 m, comfortably inside +/-10 mm -- or
+measure detection on real camera frames before scheduling anyone.
+
+---
+
 # PART 4 DONE (2026-08-09) -- the divergence is visible, the two panels are not
 
 Commit `95adcf4`.

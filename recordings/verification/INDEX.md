@@ -32,11 +32,17 @@ paste that into Explorer's address bar, or from a WSL shell run `explorer.exe .`
 | 01_master_teleop | B | S1_bimanual | 7/7 | 9 | -- | yes |
 | 01_master_teleop | C | S1_present_probe | 7/7 | 10 | -- | yes |
 | 02_vr_teleop | A | S1_single_arm | 7/7 | 24 | -- | yes |
-| 02_vr_teleop | B | S1_bimanual | 7/7 | 32 | -- | **NO** back FROZEN (delta 0.014); left FROZEN ( |
-| 02_vr_teleop | C | S1_present_probe | 7/7 | 30 | -- | yes |
-| 03_shared_autonomy | A | S1_single_arm | 7/7 | 11 | yes | yes |
-| 03_shared_autonomy | B | S1_bimanual | 7/7 | 9 | yes | yes |
-| 03_shared_autonomy | C | S1_present_probe | 6/7 (missing quad) | 11 | -- | yes |
+| 02_vr_teleop | B | S1_bimanual | 7/7 | 31 | -- | yes |
+| 02_vr_teleop | C | S1_present_probe | 7/7 | 27 | -- | yes |
+| 03_shared_autonomy | A | S1_single_arm | 7/7 | 11 | -- | yes |
+| 03_shared_autonomy | B | S1_bimanual | 7/7 | 9 | -- | yes |
+| 03_shared_autonomy | C | S1_present_probe | 7/7 | 11 | -- | yes |
+| 04_vr_shared | A | S1_single_arm | 7/7 | 11 | yes | yes |
+| 04_vr_shared | B | S1_bimanual | 7/7 | 9 | yes | yes |
+| 04_vr_shared | C | S1_present_probe | 7/7 | 10 | yes | yes |
+| 06_full_autonomy | A | S1_single_arm | 7/7 | 13 | -- | **NO** front FROZEN (delta 0.012) |
+| 06_full_autonomy | B | S1_bimanual | 7/7 | 9 | -- | **NO** iso FROZEN (delta 0.011) |
+| 06_full_autonomy | C | S1_present_probe | 7/7 | 10 | -- | yes |
 
 ## What each task should show
 

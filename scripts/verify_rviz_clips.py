@@ -61,7 +61,17 @@ def angle_stats(mp4):
         return None
     F = np.frombuffer(buf[:len(buf) // n * n],
                       dtype=np.uint8).reshape(-1, 60, 96).astype(np.int16)
-    return float(F.mean()), float(np.abs(np.diff(F, axis=0)).mean())
+    # MAX frame-to-frame change, not the mean over every frame and pixel.
+    #
+    # The mean is diluted by dwell: task A holds 4.5 s at the bin so the arm
+    # can arrive, and a small arm moving in a mostly-static frame produced a
+    # whole-clip mean of 0.011-0.012 against a 0.02 floor -- two clips that
+    # visibly move were failed as FROZEN. The question the check asks is "did
+    # ANYTHING ever happen", and the max answers it: a genuinely frozen
+    # capture scores 0 no matter how long it runs, while one moving moment is
+    # enough to clear the floor.
+    d = np.abs(np.diff(F, axis=0))
+    return float(F.mean()), float(d.mean(axis=(1, 2)).max() if len(d) else 0.0)
 FFMPEG = os.path.expanduser("~/.local/bin/ffmpeg")
 TMP = "/tmp/claude-1000/-home-gausms-kortex-ws/3732aa29-5a7e-4c8e-b77e-379233bdc9c9/scratchpad/vfy"
 

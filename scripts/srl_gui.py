@@ -87,7 +87,8 @@ from PyQt5.QtGui import (QColor, QFont, QImage, QPalette,    # noqa: E402
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QGridLayout,  # noqa: E402
                              QGroupBox, QHBoxLayout, QLabel, QMainWindow,
                              QPushButton, QScrollArea, QSizePolicy, QSlider,
-                             QSplitter, QVBoxLayout, QWidget)
+                             QSplitter, QTabWidget, QTextEdit,
+                             QVBoxLayout, QWidget)
 
 ARMS = ("left", "right")
 
@@ -100,7 +101,7 @@ ARMS = ("left", "right")
 # cannot. ISA-101 survives the aesthetic unchanged.
 from srl_hud import (ACCENT, BAD, BG, LINE, MUTED, PANEL, TEXT,   # noqa: E402
                      UNKNOWN, WARN, MasterArmSchematic, RobotSchematic,
-                     mono, sans)
+                     Strip, mono, sans)
 
 C_BG = BG
 C_TEXT = TEXT
@@ -234,7 +235,8 @@ class Bus(Node):
                      ("/autonomy_decision", "autonomy"),
                      ("/vr_state", "vr"),
                      ("/gripper_reference", "grip"),
-                     ("/recovery_state", "recovery")):
+                     ("/recovery_state", "recovery"),
+                     ("/trial_state", "trial")):
             self.create_subscription(String, t,
                                      lambda m, k=k: self._set(k, m.data), 10)
         self.create_subscription(
@@ -397,7 +399,7 @@ class Bus(Node):
         s["lag_trip_src"] = self.lag_trip_src
         s["master_schema"] = self._master_schema()
         s["robot_schema"] = self._robot_schema()
-        s["log"] = list(self.log[-6:])
+        s["log"] = list(self.log[-200:])
         self.snap = s
 
     # ------------------------------------------------------- schematics
@@ -880,19 +882,80 @@ class Gui(QMainWindow):
         v.addWidget(self.robot_schema, 0)
         # The action log moves here, into the space the caps free, where it
         # sits directly under the panels whose controls generate it.
-        self.eventlog = QLabel()
+        # PORTED FROM THE CONSOLE. srl_gui became primary while `console`
+        # still held four things it never had: rolling Charts, the Pilot
+        # runner, the Experiments session controls, and the full Event log.
+        # Naming a primary without moving those would have left the same split
+        # in place under a different name.
+        tabs = QTabWidget()
+        tabs.setFont(helvetica(9))
+        tabs.setMaximumHeight(268)
+
+        ch = QWidget()
+        cv = QVBoxLayout(ch)
+        cv.setContentsMargins(4, 4, 4, 4)
+        cv.setSpacing(4)
+        self.strips = {
+            "ee_z": Strip("end-effector height", "m"),
+            "clearance": Strip("clearance to wearer", "m", floor=0.12),
+            "lag": Strip("sim -> real divergence", "rad", floor=0.5),
+        }
+        for st in self.strips.values():
+            cv.addWidget(st)
+        tabs.addTab(ch, "Charts")
+
+        se = QWidget()
+        sv = QVBoxLayout(se)
+        self.trial_lbl = QLabel("no /trial_state")
+        self.trial_lbl.setFont(mono(9))
+        self.trial_lbl.setWordWrap(True)
+        sv.addWidget(QLabel("TRIAL STATE"))
+        sv.addWidget(self.trial_lbl)
+        row = QHBoxLayout()
+        for lab, argv in (
+                ("Pilot (offline)", [sys.executable,
+                                     os.path.join(_WS, "scripts",
+                                                  "pilot_bimanual.py")]),
+                ("Session order", [os.path.join(_WS, "scripts",
+                                                "run_experiment.sh"), "a",
+                                   "--taskset", "clip", "--scripted"])):
+            b = QPushButton(lab)
+            b.setFont(helvetica(9))
+            b.clicked.connect(lambda _, a=argv, l=lab: self._run_raw(l, a))
+            row.addWidget(b)
+        sv.addLayout(row)
+        sv.addStretch(1)
+        tabs.addTab(se, "Session")
+
+        self.eventlog = QTextEdit()
+        self.eventlog.setReadOnly(True)
         self.eventlog.setFont(mono(8))
-        self.eventlog.setWordWrap(True)
-        self.eventlog.setAlignment(Qt.AlignTop)
-        self.eventlog.setStyleSheet("color:%s" % C_MUTED)
-        lg = QGroupBox("recent actions")
-        lg.setFont(helvetica(8, True))
-        lv = QVBoxLayout(lg)
-        lv.addWidget(self.eventlog)
-        lg.setMaximumHeight(132)
-        v.addWidget(lg, 0)
+        self.eventlog.setStyleSheet("color:%s;border:none" % C_MUTED)
+        tabs.addTab(self.eventlog, "Event log")
+
+        v.addWidget(tabs, 0)
         v.addStretch(1)
         return w
+
+    def _run_raw(self, label, argv):
+        """Launch something that is not a manifest Spec (the ported console
+        buttons). Same refusal-and-log discipline as on_launch."""
+        try:
+            p = subprocess.Popen(argv, start_new_session=True,
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
+        except Exception as e:                                # noqa: BLE001
+            self.bus.note("LAUNCH FAILED %s: %r" % (label, e), bad=True)
+            return
+        self.jobs.append((label, p))
+        self.bus.note("launched %s (pid %d)" % (label, p.pid))
+        QTimer.singleShot(2500, lambda: self._check_job_raw(label, p))
+
+    def _check_job_raw(self, label, p):
+        rc = p.poll()
+        if rc is not None and rc != 0:
+            self.bus.note("%s EXITED %d within 2.5 s -- it did not run"
+                          % (label, rc), bad=True)
 
     def _right_column(self):
         w = QWidget()
@@ -1680,10 +1743,29 @@ class Gui(QMainWindow):
                 "color:%s;padding:5px;letter-spacing:4px;"
                 "border-bottom:1px solid %s" % (C_MUTED, LINE))
 
-        self.eventlog.setText("<br>".join(
-            "<span style='color:%s'>%s %s</span>"
-            % (C_BAD if bad else C_MUTED, ts, txt)
-            for ts, txt, bad in reversed(s.get("log", []))))
+        # charts
+        t = time.monotonic()
+        ee = {a: self.bus.ee("sim", a) for a in ARMS}
+        self.strips["ee_z"].push(t, ee["left"][2] if ee["left"] else None,
+                                 ee["right"][2] if ee["right"] else None)
+        clr = {}
+        for a in ARMS:
+            v = val("ik_%s" % a)
+            clr[a] = (v[5] if v and len(v) > 5 and v[5] >= 0 else None)
+        self.strips["clearance"].push(t, clr["left"], clr["right"])
+        dv_ = s.get("div", {})
+        self.strips["lag"].push(
+            t,
+            dv_.get("left").max_rad if (dv_.get("left") and dv_["left"].measured) else None,
+            dv_.get("right").max_rad if (dv_.get("right") and dv_["right"].measured) else None)
+        tr = val("trial")
+        self.trial_lbl.setText(str(tr)[:300] if tr else "no /trial_state")
+
+        self.eventlog.setPlainText("\n".join(
+            "%s %s%s" % (ts, "! " if bad else "  ", txt)
+            for ts, txt, bad in s.get("log", [])[-200:]))
+        self.eventlog.verticalScrollBar().setValue(
+            self.eventlog.verticalScrollBar().maximum())
 
         dt = (time.perf_counter() - t0) * 1000.0
         self._ft.append(dt)

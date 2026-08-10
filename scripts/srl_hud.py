@@ -460,3 +460,83 @@ class RobotSchematic(Card):
         p.drawText(QRectF(x, cb + 12, w, 10), Qt.AlignLeft,
                    "--" if (clr is None or clr < 0) else
                    "%.3f m  floor %.2f" % (clr, floor))
+
+
+class Strip(Card):
+    """A rolling time-series strip, one line per arm. The console's Charts.
+
+    FOUR SERIES, chosen because each is a quantity you cannot judge from an
+    instantaneous number: EE height (is it drifting?), clearance (is it
+    closing?), and sim-to-real lag (is it diverging?). A single sample of any
+    of those answers nothing; the shape over sixty seconds answers it at a
+    glance, which is the whole reason the console had plots and the rewrite
+    should not have dropped them.
+    """
+
+    WINDOW_S = 60.0
+
+    def __init__(self, title, unit, floor=None):
+        super().__init__(title)
+        self.unit = unit
+        self.floor = floor
+        self.hist = {"left": [], "right": []}
+        self.setMinimumHeight(74)
+
+    def push(self, t, left, right):
+        for k, v in (("left", left), ("right", right)):
+            if v is None:
+                continue
+            h = self.hist[k]
+            h.append((t, float(v)))
+            cut = t - self.WINDOW_S
+            while h and h[0][0] < cut:
+                h.pop(0)
+        self.update()
+
+    def paintEvent(self, _e):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing, True)
+        self.paint_frame(p)
+        x0, y0 = 44.0, self.TITLE_H + 10.0
+        w = self.width() - x0 - 58.0
+        h = max(18.0, self.height() - y0 - 12.0)
+        pts = [v for k in self.hist for _, v in self.hist[k]]
+        if not pts:
+            p.setFont(mono(8))
+            p.setPen(_c(UNKNOWN))
+            p.drawText(QRectF(x0, y0, w, h), Qt.AlignCenter,
+                       "no data -- not a flat line")
+            return
+        lo, hi = min(pts), max(pts)
+        if self.floor is not None:
+            lo, hi = min(lo, self.floor * 0.8), max(hi, self.floor * 1.2)
+        if hi - lo < 1e-6:
+            lo, hi = lo - 0.01, hi + 0.01
+        t1 = max(t for k in self.hist for t, _ in self.hist[k])
+
+        def px(t):
+            return x0 + w * (1.0 - min(1.0, (t1 - t) / self.WINDOW_S))
+
+        def py(v):
+            return y0 + h * (1.0 - (v - lo) / (hi - lo))
+
+        if self.floor is not None:
+            p.setPen(QPen(_c(BAD), 1, Qt.DashLine))
+            p.drawLine(QPointF(x0, py(self.floor)), QPointF(x0 + w, py(self.floor)))
+        for k, col in (("left", ACCENT), ("right", WARN)):
+            hst = self.hist[k]
+            if len(hst) < 2:
+                continue
+            p.setPen(QPen(_c(col), 1.3))
+            for i in range(1, len(hst)):
+                p.drawLine(QPointF(px(hst[i - 1][0]), py(hst[i - 1][1])),
+                           QPointF(px(hst[i][0]), py(hst[i][1])))
+        p.setFont(mono(7))
+        p.setPen(_c(MUTED))
+        p.drawText(QRectF(2, y0 - 5, x0 - 6, 10), Qt.AlignRight, "%.2f" % hi)
+        p.drawText(QRectF(2, y0 + h - 6, x0 - 6, 10), Qt.AlignRight, "%.2f" % lo)
+        for k, col, dy in (("left", ACCENT, 0), ("right", WARN, 10)):
+            if self.hist[k]:
+                p.setPen(_c(col))
+                p.drawText(QRectF(x0 + w + 4, y0 + dy, 54, 10), Qt.AlignLeft,
+                           "%s %.3f" % (k[0].upper(), self.hist[k][-1][1]))

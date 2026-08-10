@@ -68,21 +68,21 @@ def dispatcher_tasks():
     except OSError:
         return set()
     ok = set()
-    for m in re.finditer(r"^\s*([a-zA-Z0-9|]+)\)\s*$|^\s*([a-zA-Z0-9|]+)\)\s*\n?\s*exec",
-                         src, re.M):
-        grp = m.group(1) or m.group(2) or ""
+    # Parse each `case` branch and keep ONLY the ones that actually dispatch.
+    # A branch that echoes to stderr and exits is a REFUSAL -- the archived
+    # t*/e* sets live in one such branch -- and treating a refusal as an
+    # accepted task is how the button list drifted from the dispatcher in the
+    # first place.
+    for m in re.finditer(r"^\s*([A-Za-z0-9|]+)\)\s*\n(.*?)(?=^\s*[A-Za-z0-9|*-]+\)|^esac)",
+                         src, re.M | re.S):
+        grp, body = m.group(1), m.group(2)
+        if ">&2" in body and "exit" in body and "exec" not in body:
+            continue                      # a refusal, not a task
+        if "exec" not in body and "SCRIPT=" not in body:
+            continue
         for t in grp.split("|"):
             if re.fullmatch(r"[te]\d|[abc]", t):
                 ok.add(t)
-    # The `eN) SCRIPT=...` form sits on one line and the regex above misses it.
-    for m in re.finditer(r"^\s*(e\d)\)\s*SCRIPT=", src, re.M):
-        ok.add(m.group(1))
-    # Tasks the dispatcher explicitly REFUSES (t1 subsumed, t4 blocked) are
-    # matched by the same pattern, so drop anything whose branch echoes to
-    # stderr and exits.
-    for m in re.finditer(r"^\s*([te]\d)\)\s*\n?\s*echo[^\n]*>&2", src, re.M):
-        ok.discard(m.group(1))
-    # The a|b|c branch lists both cases; only the lower-case form is a task.
     ok -= {"A", "B", "C"}
     return ok
 
@@ -125,26 +125,17 @@ def task_specs():
     """One button per task the dispatcher accepts, plus the A/B/C row."""
     accepted = dispatcher_tasks()
     out = []
-    labels = {
-        "t2": "T2 hold and fill", "t3": "T3 rigid carry",
-        "t5": "T5 handover to wearer", "t6": "T6 compliant carry",
-        "t7": "T7 bimanual pursuit", "t8": "T8 wearer-assisted reach",
-        "t9": "T9 reach under wearer motion",
-        "e1": "E1 Fitts", "e2": "E2 autonomy level",
-        "e3": "E3 divided attention", "e4": "E4 DOF recovery",
-        "e5": "E5 intent inference", "e6": "E6 VR vs mannequin",
-    }
-    for k in sorted(labels):
-        lab = labels[k]
-        why = None if k in accepted else (
-            "run_experiment.sh does not accept %r -- this button would exit 2"
-            % k)
-        out.append(Spec(k, lab, "task",
-                        _sh("run_experiment.sh", k, "--participant", "PILOT",
-                            "--scripted"),
-                        needs_stack=True, note="scripted pilot run",
-                        disabled_reason=why))
-
+    # ONE GENERATION OF TASK SET, NOT THREE.
+    #
+    # The GUI offered t2-t9 (the bimanual set, 300 mm span), e1-e6 (the
+    # superseded E-series) AND a/b/c at once -- 41 buttons spanning three
+    # generations, two of which log geometry that no longer matches the spec.
+    # A button labelled "T3 rigid carry" runs a 300 mm tray; the current
+    # specification is 500 mm. Offering both is how a result gets filed under
+    # the wrong geometry.
+    #
+    # The old sets are not deleted -- their data and protocols are archived
+    # under experiments/_archive/ -- they are simply no longer LAUNCHABLE.
     # TASKS A, B AND C -- now LIVE, one button per (task, mode).
     #
     # They were disabled while they had a verified spec and no runner, with
@@ -159,12 +150,21 @@ def task_specs():
     # name really did travel that mode's path.
     for k, lab in (("a", "A positioning"), ("b", "B coordinated carry"),
                    ("c", "C dual pursuit")):
+        # THE FIVE CLIP-TREE MODES, AND ONLY THOSE. `run_abc.MODES` also
+        # carries `04_shared_autonomy`, a legacy ALIAS of 03 -- same topic,
+        # same command path. Listing both put two buttons on the screen with
+        # different labels, the same behaviour and, because the key was cut
+        # from the mode's first two characters, THE SAME KEY. The GUI showed
+        # six buttons per task against five modes and one of them was
+        # unreachable by key. Keys are now cut from the whole mode name and
+        # asserted unique below, so a repeat is a startup failure rather than
+        # a duplicate button nobody notices.
         for mode in ("01_master_teleop", "02_vr_teleop",
                      "03_shared_autonomy", "04_vr_shared",
-                     "04_shared_autonomy", "06_full_autonomy"):
+                     "06_full_autonomy"):
             short = mode.split("_", 1)[1].replace("_", " ")
             out.append(Spec(
-                "abc_%s_%s" % (k, mode[:2]),
+                "abc_%s_%s" % (k, mode),
                 "%s  [%s]" % (lab, short), "task",
                 _sh("run_experiment.sh", k, "--mode", mode, "--taskset",
                     "clip", "--participant", "PILOT", "--scripted"),
@@ -175,6 +175,17 @@ def task_specs():
                     "would exit 2" % k),
                 note="enters at this mode's own command path; "
                      "coordinates from the N=10-verified spec"))
+    keys = [sp.key for sp in out]
+    dupes = sorted({x for x in keys if keys.count(x) > 1})
+    if dupes:
+        raise AssertionError(
+            "duplicate launch keys %s -- two buttons would dispatch as one"
+            % dupes)
+    labels = [sp.label for sp in out]
+    dl = sorted({x for x in labels if labels.count(x) > 1})
+    if dl:
+        raise AssertionError("duplicate button labels %s" % dl)
+
     return out
 
 

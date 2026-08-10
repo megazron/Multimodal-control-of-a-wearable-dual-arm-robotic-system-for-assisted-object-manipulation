@@ -17,34 +17,22 @@ source "$(dirname "$0")/env.sh"
 
 usage() {
   cat >&2 <<EOF
-usage: $0 <task> [args]
+usage: $0 <a|b|c> [args]
 
-  CURRENT THREE-TASK SET (experiments/abc, verified N=10 full-path)
-    a     positioning              uncoupled control, attention contrast
-    b     coordinated carry        rigid AND compliant, 500 mm span
-    c     dual pursuit             simultaneity across the disjoint sets
+  THE TASK SET. One generation, not three.
+    a   pick and place        single arm
+    b   hold and place        bimanual
+    c   multimeter            present and probe
 
-    args:  --mode 01_master_teleop|02_vr_teleop|04_shared_autonomy|06_full_autonomy
-           [--scenario S..] [--participant P01] [--scripted] [--dry-run]
+    args:  --mode 01_master_teleop|02_vr_teleop|03_shared_autonomy|
+                  04_vr_shared|06_full_autonomy
+           [--taskset study|clip] [--scenario S..] [--participant P01]
+           [--scripted] [--dry-run]
 
-  SUPERSEDED BIMANUAL SET
-    t3    rigid coupled carry        PRIMARY
-    t6    compliant coupled carry    the contrast with T3
-    t7    bimanual pursuit           cross-arm interference
-    t5    handover to the wearer
-    t2    hold and fill              4 verified scenarios; outcome instrumented
-    t8    wearer-assisted reach      TWO-PERSON: neither can do it alone
-    t9    reach under wearer motion  TWO-PERSON: sway is the IV (<=100 mm)
-
-    common args:  --participant P01 [--condition direct|assisted|shared]
-                  [--scenario S1..S4] [--scripted] [--dry-run]
-
-  LEGACY SET (superseded protocols, still runnable)
-    e1 e2 e3 e4 e5 e6
-
-examples:
-    $0 t3 --participant P01 --condition direct --scenario S1
-    $0 t7 --participant P01 --dry-run
+  The bimanual (t2-t9), five-task and E-series (e1-e6) sets are ARCHIVED under
+  src/srl_experiments/experiments/_archive/. They carried a 300/310 mm span
+  against the current 500 mm, so a trial run from them produces a plausible
+  number against the wrong criterion. The data is kept; the launch path is not.
 EOF
   exit 2
 }
@@ -54,27 +42,16 @@ TASK="${1:-}"; shift || true
 
 case "$TASK" in
   a|b|c|A|B|C)
-    # THE CURRENT THREE-TASK SET. Coordinates come from the VERIFIED spec in
-    # experiments/abc/tasks.py (N=10 over the densified full path, 0 failures),
-    # NOT from experiments/bimanual/, which still carries the superseded
-    # 300/310 mm span. Running B against that package would log a 300 mm tray
-    # under a 500 mm specification.
+    # THE CURRENT THREE-TASK SET, and the only one. Coordinates come from
+    # experiments/abc/ (verified N=10 over the densified full path).
     exec python3 "$(dirname "$0")/../src/srl_experiments/experiments/abc/run_abc.py" \
         --task "$TASK" "$@" ;;
-  t2|t3|t5|t6|t7|t8|t9)
-    exec ros2 run srl_experiments run_bimanual.py --task "$TASK" "$@" ;;
-  e1) SCRIPT=run_fitts.py ;;
-  e2) SCRIPT=run_autonomy_level.py ;;
-  e3) SCRIPT=run_divided_attention.py ;;
-  e4) SCRIPT=run_dof_recovery.py ;;
-  e5) SCRIPT=run_intent_inference.py ;;
-  e6) SCRIPT=run_vr_vs_mannequin.py ;;
-  t1) echo "t1 is SUBSUMED BY t7 (bimanual pursuit). Run: $0 t7 ..." >&2
-      exit 2 ;;
-  t4) echo "t4 is GEOMETRICALLY BLOCKED: 0 of 16 transfer points are" >&2
-      echo "reachable by both arms. Not a wrist-orientation problem; it" >&2
-      echo "needs the right arm re-parked in hardware." >&2
-      exit 2 ;;
+  t1|t2|t3|t4|t5|t6|t7|t8|t9|e1|e2|e3|e4|e5|e6)
+    echo "$TASK is ARCHIVED. It used the superseded 300/310 mm span; the" >&2
+    echo "current spec is 500 mm and the tilt threshold rescales with it." >&2
+    echo "Data kept at src/srl_experiments/experiments/_archive/." >&2
+    echo "Run: $0 a|b|c --mode <mode> --taskset clip" >&2
+    exit 2 ;;
   -h|--help) usage ;;
   *) echo "unknown task: $TASK" >&2; usage ;;
 esac

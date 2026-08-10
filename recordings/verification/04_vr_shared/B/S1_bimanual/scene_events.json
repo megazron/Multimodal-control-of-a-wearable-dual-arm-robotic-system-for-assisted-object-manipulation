@@ -1,0 +1,44 @@
+{
+  "task": "b",
+  "events": [
+    {
+      "t": 22.8,
+      "ev": "GRASPED",
+      "item": "part",
+      "arm": "right",
+      "knuckle": 0.345,
+      "needed": 0.3388,
+      "at": [
+        -0.25,
+        0.35,
+        1.26
+      ]
+    },
+    {
+      "t": 27.1,
+      "ev": "RELEASED",
+      "item": "part",
+      "arm": "right",
+      "carried_m": 0.1251,
+      "at": [
+        -0.25,
+        0.35,
+        1.085
+      ]
+    }
+  ],
+  "items": [
+    {
+      "item": "part",
+      "arm": "right",
+      "width_mm": 45,
+      "carried_m": 0.1251,
+      "final": [
+        -0.25,
+        0.35,
+        1.085
+      ],
+      "still_held": false
+    }
+  ]
+}

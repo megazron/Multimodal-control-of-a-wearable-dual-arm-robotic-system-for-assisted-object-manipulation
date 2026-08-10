@@ -45,6 +45,27 @@ from verify_task_scenes import Solver, HOME_TOL_RAD          # noqa: E402
 from audit_scenario_reachability import densify              # noqa: E402
 import tasks as T                                            # noqa: E402
 import clip_tasks as CT                                      # noqa: E402
+from moveit_msgs.msg import PlanningScene                    # noqa: E402
+from moveit_msgs.srv import ApplyPlanningScene               # noqa: E402
+
+
+def Scene_furniture(node):
+    """The clip furniture, built by clip_scene so there is one definition."""
+    import clip_scene as CS
+    tmp = CS.Scene.__new__(CS.Scene)
+    return CS.Scene._collision_furniture(tmp)
+
+
+def _apply(node, ps, timeout_s=12.0):
+    cli = node.create_client(ApplyPlanningScene, "/apply_planning_scene")
+    if not cli.wait_for_service(timeout_sec=timeout_s):
+        return False
+    fut = cli.call_async(ApplyPlanningScene.Request(scene=ps))
+    import time as _t
+    end = _t.time() + timeout_s
+    while _t.time() < end and not fut.done():
+        rclpy.spin_once(node, timeout_sec=0.05)
+    return bool(fut.done())
 import math                                                  # noqa: E402
 
 STEP = 0.02
@@ -278,7 +299,26 @@ def main():
     # is how task A shipped with a bin 0.132 m from the pick of which 0.130 m
     # was VERTICAL -- verified geometry running the wrong task. These paths
     # now get the same full-path N treatment as the protocol's own.
+    # THE CLIP BENCH GOES IN HERE AND COMES OUT AFTER.
+    #
+    # The study tasks above are free-space motions verified without furniture;
+    # the clip tasks run on a bench that is a real collision object. Verifying
+    # one against the other's scene is meaningless in both directions, and
+    # leaving the bench loaded made this script fail its OWN instrument
+    # control ("a declared Task A target -> UNREACHABLE") -- which is the
+    # control working, not a geometry problem.
+    import clip_scene as CS
+    ps = PlanningScene()
+    ps.is_diff = True
+    ps.world.collision_objects = Scene_furniture(n)
+    applied = _apply(n, ps)
     print("\nCLIP TASKS  the paths the recording sweep actually drives")
+    print("   bench + bin + box applied to the planning scene: %s" % applied)
+    if not applied:
+        print("   REFUSING: without the bench these paths are checked against "
+              "nothing, and a hollow bench is what hid the wrist being "
+              "inside it.")
+        fails += 1
     tcl = {}
     for key in ("a", "b", "c"):
         wp = CT.TASKS[key]["build"]()
@@ -314,6 +354,7 @@ def main():
     if lat < 0.25:
         fails += 1
     out["clip_tasks"] = tcl
+    CS.remove_furniture(n)
 
     payload = dict(repeats=N, step_m=step, ik_calls=calls["n"],
                    failures=fails, detail=out)

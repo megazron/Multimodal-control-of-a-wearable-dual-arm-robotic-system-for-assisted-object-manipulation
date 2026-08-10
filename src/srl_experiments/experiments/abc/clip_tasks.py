@@ -63,10 +63,88 @@ def _hold(pt, n):
     return [list(pt) for _ in range(n)]
 
 
+
+# ---------------------------------------------------------- THE WORK SURFACE
+# OBJECTS MUST REST ON SOMETHING, AND THAT SOMETHING MUST BE IN THE PLANNING
+# SCENE.
+#
+# Two separate defects, both measured:
+#
+#  1. Everything floated. The bench top was at z = 0.935 while the objects sat
+#     at their EE task coordinates, so measured base heights were 1.042 to
+#     1.292 -- between 0.107 m and 0.357 m of clear air under every object.
+#     They were markers at coordinates, not things on a surface.
+#
+#  2. The bench was DECORATION. clip_scene published a MarkerArray to
+#     /task_objects and nothing at all to /planning_scene, so `avoid_collisions`
+#     could not see it and the arm swept straight through a bench that looked
+#     solid on screen. CLAUDE.md already records this exact failure for the
+#     earlier task_scene work -- "rehearsing against decoration teaches a
+#     motion that will collide on the real rig" -- and the clip scene had
+#     regressed it.
+#
+# THE BENCH IS AT CHEST HEIGHT, NOT TABLE HEIGHT, and that is not a choice.
+# These arms cannot work a table: measured 16.7% IK at z = 0.75 against 77.8%
+# at chest height, and the log's own conclusion is "the tray needs a stand,
+# not a table". The surface is therefore placed under the objects rather than
+# the objects dropped onto a table they cannot reach.
+BENCH_TOP = 1.10
+# 0.245, MEASURED. The gripper reaches up into the object from in front, so
+# its body ends up BELOW the bench top -- free space only ahead of the edge.
+# Swept against the real collision bench: at 0.275 the bin release and both
+# box poses are blocked, at 0.245 only the box poses are, and those turned
+# out to be an x problem rather than an edge problem (below).
+BENCH_NEAR_Y = 0.245         # the edge the hand approaches from
+BENCH_FAR_Y = 0.63
+BENCH_HALF_X = 0.85
+BENCH_THICK = 0.04
+
+# Wrist -> finger-pad offset along the tool axis, in world, at the anchor
+# orientation. `orientation_mode` is `fixed` so this is constant for a run.
+# Measured from TF: the tips sit +0.098 m along the tool axis, 0.1194 m away.
+PAD_OFFSET = [-0.0171, 0.0946, 0.0572]
+
+
+def ee_for(obj_xyz):
+    """WRIST pose that puts the finger pads -- and so the object -- HERE.
+
+    DECLARE WHERE THE OBJECT IS, DERIVE WHERE THE WRIST GOES. Getting this
+    backwards is what put the wrist inside the bench: the task coordinates
+    are EE poses, the pads are +0.095 m forward and +0.057 m up of the wrist,
+    so a wrist at the object's own y sits 95 mm too far into the bench and
+    37 mm below its top. With the bench a real collision object, the pick
+    pose was correctly REFUSED -- the geometry had been wrong all along and
+    a hollow bench had been hiding it.
+    """
+    return [round(obj_xyz[i] - PAD_OFFSET[i], 4) for i in range(3)]
+
+
+def on_bench(x, depth_m, height_m, surface_z=None):
+    """Object centre resting on a surface with its NEAR FACE at the edge.
+
+    THE EDGE IS WHAT MAKES THE APPROACH POSSIBLE. The pinned wrist's tool
+    axis is (-0.153, +0.846, +0.511) in world -- measured, not assumed --
+    120.8 deg from straight down and 30.7 deg ABOVE horizontal. So the hand
+    comes in from the near side, BELOW the object, and reaches up into it.
+    The wrist therefore ends up in front of the bench edge and below the
+    bench top, which is free space only at the edge. Anywhere further back
+    the bench is exactly where the wrist needs to be.
+    """
+    z = (BENCH_TOP if surface_z is None else surface_z) + height_m / 2.0
+    return [x, round(BENCH_NEAR_Y + depth_m / 2.0, 4), round(z, 4)]
+
+
 # ---------------------------------------------------------------- TASK A
 # Single arm. The other arm holds its start pose so the clip shows ONE arm
 # working, which is the point of the task.
-A_PICK = [0.32, Y, 1.15]
+# The 40 mm block is a SMALL CUBE and stays where it is in x/y -- the brief
+# keeps the cubes put. Only its height is derived, so it rests on the bench.
+A_BLOCK_MM = 40
+A_BLOCK = 0.040
+# The block is a small cube: it keeps its x, and rests on the bench with its
+# near face at the edge so the hand can come in under it.
+A_BLOCK_OBJ = on_bench(0.32, A_BLOCK, A_BLOCK)
+A_PICK = ee_for(A_BLOCK_OBJ)
 # THE BIN IS 0.30 m LATERALLY FROM THE PICK, and that is the whole point.
 #
 # It used to be [0.30, Y, 1.02] -- 0.132 m from the pick of which 0.130 m was
@@ -89,7 +167,13 @@ A_PICK = [0.32, Y, 1.15]
 # 0.62 leaves 0.06 m of IK margin against the last passing candidate and
 # 0.23 m of bench. Feasibility on this rig falls off a cliff rather than
 # degrading, so the margin is the defence and N only located the edge.
-A_BIN = [0.62, Y, 1.02]
+# The bin is not a small cube, so it goes to the bench EDGE, and its base
+# rests on the bench. The block is released just above the rim.
+A_BIN_H, A_BIN_D = 0.07, 0.16
+A_BIN_OBJ = on_bench(0.62, A_BIN_D, A_BIN_H)        # the bin itself
+# Release the block just above the rim, over the bin's centre.
+A_BIN = ee_for([A_BIN_OBJ[0], A_BIN_OBJ[1],
+                BENCH_TOP + A_BIN_H + A_BLOCK / 2.0 + 0.01])
 A_STANDOFF = 0.10
 
 
@@ -114,9 +198,25 @@ def task_a():
 
 # ---------------------------------------------------------------- TASK B
 # Bimanual. LEFT holds the work still; RIGHT brings a part to it and places.
-B_HOLD = [SEP / 2.0, Y, 1.15]
-B_START = [-SEP / 2.0, Y, 1.28]
-B_PLACE = [-SEP / 2.0, Y, 1.13]
+B_PART_MM = 45
+B_PART = 0.050
+BOX_H, BOX_D = 0.05, 0.11
+BOX_OBJ = None                                      # set below
+# SURFACE TO SURFACE. The part STARTS resting on the bench and is placed on
+# top of the circuit box, so it is supported at both ends of the motion
+# instead of beginning in mid-air.
+# THE CIRCUIT BOX IS AT x = -0.35, NOT -0.25, AND THAT IS THE WEARER'S DOING.
+# Sweeping x against the real scene: -0.20 and -0.25 are BLOCKED (the arm
+# crosses toward the centreline and meets the torso), -0.30 and outboard are
+# clear. Raising the box did nothing at any height from 0.05 to 0.20 m, which
+# is what ruled out the box's own top surface as the blocker. -0.35 keeps
+# 50 mm of margin past the boundary.
+BOX_X = -0.35
+B_HOLD = ee_for(on_bench(SEP / 2.0, B_PART, B_PART))
+B_START = ee_for(on_bench(-0.60, B_PART, B_PART))
+BOX_OBJ = on_bench(BOX_X, BOX_D, BOX_H)             # the circuit box
+B_PLACE = ee_for([BOX_OBJ[0], BOX_OBJ[1],
+                  BENCH_TOP + BOX_H + B_PART / 2.0])
 
 
 def task_b():
@@ -126,9 +226,13 @@ def task_b():
 
 # ---------------------------------------------------------------- TASK C
 # Two-handed instrument motion: left presents, right probes and holds contact.
-C_PRESENT = [SEP / 2.0, Y, 1.18]
-C_PROBE_UP = [-SEP / 2.0, Y, 1.30]
-C_PROBE_ON = [-SEP / 2.0, Y, 1.19]
+C_MM_MM = 50
+C_MM_SIZE = (0.05, 0.09, 0.13)
+C_MM_OBJ = on_bench(0.35, C_MM_SIZE[1], C_MM_SIZE[2])
+C_PRESENT = ee_for(C_MM_OBJ)
+# The probe touches the top of the circuit box.
+C_PROBE_ON = ee_for([BOX_OBJ[0], BOX_OBJ[1], BENCH_TOP + BOX_H + 0.02])
+C_PROBE_UP = [C_PROBE_ON[0], C_PROBE_ON[1], round(C_PROBE_ON[2] + 0.11, 4)]
 
 
 def task_c():

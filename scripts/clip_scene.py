@@ -34,7 +34,10 @@ import time
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile
+from moveit_msgs.msg import CollisionObject, PlanningScene
+from moveit_msgs.srv import ApplyPlanningScene, GetPlanningScene
 from sensor_msgs.msg import JointState
+from shape_msgs.msg import SolidPrimitive
 from visualization_msgs.msg import Marker, MarkerArray
 
 WS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -69,6 +72,42 @@ def _m(ns, i, typ, xyz, scale, col, frame="world"):
     return m
 
 
+def furniture_ids():
+    """Names of every collision object this scene owns."""
+    return ["bench", "circuit_box", "bin_floor"] + [
+        "bin_wall_%+.0f_%+.0f" % (dx * 100, dy * 100)
+        for dx, dy in ((0.08, 0.0), (-0.08, 0.0), (0.0, 0.08), (0.0, -0.08))]
+
+
+def remove_furniture(node, timeout_s=10.0):
+    """Take the clip furniture back out of the planning scene.
+
+    THE BENCH MUST NOT LEAK. It is CLIP-scene furniture: the study tasks --
+    positioning, coordinated carry, dual pursuit -- are free-space motions
+    that were verified without it, and leaving it loaded blocks them. The
+    first run after adding the bench failed verify_abc_scenarios' own
+    instrument control ("a declared Task A target -> UNREACHABLE"), which is
+    exactly what should happen and exactly why the control exists.
+    """
+    from moveit_msgs.srv import ApplyPlanningScene
+    cli = node.create_client(ApplyPlanningScene, "/apply_planning_scene")
+    if not cli.wait_for_service(timeout_sec=timeout_s):
+        return False
+    ps = PlanningScene()
+    ps.is_diff = True
+    for name in furniture_ids():
+        co = CollisionObject()
+        co.header.frame_id = "world"
+        co.id = name
+        co.operation = CollisionObject.REMOVE
+        ps.world.collision_objects.append(co)
+    fut = cli.call_async(ApplyPlanningScene.Request(scene=ps))
+    end = time.time() + timeout_s
+    while time.time() < end and not fut.done():
+        rclpy.spin_once(node, timeout_sec=0.05)
+    return fut.done()
+
+
 class Scene(Node):
     """Static furniture plus one graspable object per arm, per task."""
 
@@ -86,6 +125,31 @@ class Scene(Node):
         self.t0 = None
         qos = QoSProfile(depth=4, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.pub = self.create_publisher(MarkerArray, "/task_objects", qos)
+        # THE SCENE MUST EXIST TO THE PLANNER, NOT JUST TO THE EYE.
+        #
+        # A Marker is decoration: `avoid_collisions=True` cannot see one, so
+        # the arm swept straight through a bench that looked solid on screen.
+        # This project already paid for that lesson once, in task_scene.py --
+        # "rehearsing against decoration teaches a motion that will collide on
+        # the real rig" -- and the clip scene had regressed it, publishing a
+        # MarkerArray and nothing else. The furniture now goes to
+        # /planning_scene as CollisionObjects as well.
+        # THE SERVICE, NOT THE TOPIC.
+        #
+        # Publishing a PlanningScene to /planning_scene once at startup put
+        # NOTHING in move_group: asked for its world object names it returned
+        # NONE, while the bench looked correct on screen. A single publish
+        # loses the race with subscription matching, and the topic route gives
+        # no acknowledgement that it landed. /apply_planning_scene is
+        # synchronous and returns success, and _verify_scene() then reads the
+        # names BACK out of move_group -- because "I sent it" and "it is
+        # there" have already differed once here.
+        self.scene = self.create_publisher(PlanningScene, "/planning_scene", 4)
+        self.apply = self.create_client(ApplyPlanningScene,
+                                        "/apply_planning_scene")
+        self.getscene = self.create_client(GetPlanningScene,
+                                           "/get_planning_scene")
+        self._scene_sent = False
         self.knuck = {}
         self.create_subscription(JointState, "/joint_states", self._js, 20)
         import tf2_ros
@@ -122,14 +186,12 @@ class Scene(Node):
                                   col=ORANGE, held=False)}
         if task == "b":
             return {"part": dict(arm="right", width_mm=45,
-                                 pos=[CT.B_START[0], CT.B_START[1],
-                                      CT.B_START[2] - 0.02],
+                                 pos=list(CT.B_START),
                                  size=(0.045, 0.045, 0.05), col=ORANGE,
                                  held=False)}
         return {"multimeter": dict(arm="left", width_mm=50,
-                                   pos=[CT.C_PRESENT[0], CT.C_PRESENT[1],
-                                        CT.C_PRESENT[2] - 0.02],
-                                   size=(0.05, 0.09, 0.13), col=YELLOW,
+                                   pos=list(CT.C_PRESENT),
+                                   size=CT.C_MM_SIZE, col=YELLOW,
                                    held=False)}
 
     def _js(self, m):
@@ -169,6 +231,92 @@ class Scene(Node):
         return [v.x + ax, v.y + ay, v.z + az]
 
     # ------------------------------------------------------------- frame
+    def _collision_furniture(self):
+        """Bench, bin walls and circuit box as real CollisionObjects.
+
+        The graspable object is deliberately NOT included: it is attached to
+        the gripper as the hand closes, and a collision object sitting where
+        the fingers must go would make every grasp pose infeasible. Its
+        support is what has to be solid, not the thing being picked up.
+        """
+        out = []
+
+        def box(name, xyz, size):
+            co = CollisionObject()
+            co.header.frame_id = "world"
+            co.id = name
+            pr = SolidPrimitive()
+            pr.type = SolidPrimitive.BOX
+            pr.dimensions = [float(v) for v in size]
+            co.primitives.append(pr)
+            from geometry_msgs.msg import Pose
+            ps = Pose()
+            ps.position.x, ps.position.y, ps.position.z = [float(v)
+                                                           for v in xyz]
+            ps.orientation.w = 1.0
+            co.primitive_poses.append(ps)
+            co.operation = CollisionObject.ADD
+            out.append(co)
+
+        yc = (CT.BENCH_NEAR_Y + CT.BENCH_FAR_Y) / 2.0
+        yd = CT.BENCH_FAR_Y - CT.BENCH_NEAR_Y
+        box("bench", [0.0, yc, CT.BENCH_TOP - CT.BENCH_THICK / 2.0],
+            [2 * CT.BENCH_HALF_X, yd, CT.BENCH_THICK])
+        box("circuit_box", CT.BOX_OBJ, [0.17, CT.BOX_D, CT.BOX_H])
+        # The bin as four walls, so the block can be released INTO it rather
+        # than onto a solid block of the same size.
+        bx, by = CT.A_BIN_OBJ[0], CT.A_BIN_OBJ[1]
+        bz = CT.BENCH_TOP + CT.A_BIN_H / 2.0
+        box("bin_floor", [bx, by, CT.BENCH_TOP + 0.01], [0.16, 0.16, 0.02])
+        for dx, dy in ((0.08, 0.0), (-0.08, 0.0), (0.0, 0.08), (0.0, -0.08)):
+            box("bin_wall_%+.0f_%+.0f" % (dx * 100, dy * 100),
+                [bx + dx, by + dy, bz],
+                [0.02 if dx else 0.16, 0.16 if dx else 0.02, CT.A_BIN_H])
+        return out
+
+    def _publish_scene(self):
+        objs = self._collision_furniture()
+        ps = PlanningScene()
+        ps.is_diff = True
+        ps.world.collision_objects = objs
+        # Topic as well, for any consumer that only watches it (RViz).
+        self.scene.publish(ps)
+        if not self.apply.wait_for_service(timeout_sec=10.0):
+            self.get_logger().error(
+                "[SCENE] /apply_planning_scene is not available -- the bench "
+                "will be DECORATION and the arm will sweep through it")
+            return False
+        fut = self.apply.call_async(ApplyPlanningScene.Request(scene=ps))
+        end = time.time() + 10.0
+        while time.time() < end and not fut.done():
+            rclpy.spin_once(self, timeout_sec=0.05)
+        got = self._verify_scene([o.id for o in objs])
+        self.get_logger().info(
+            "[SCENE] %d collision objects applied, %d confirmed in move_group"
+            % (len(objs), len(got)))
+        return len(got) == len(objs)
+
+    def _verify_scene(self, want):
+        """Read the world object names BACK from move_group."""
+        from moveit_msgs.msg import PlanningSceneComponents
+        if not self.getscene.wait_for_service(timeout_sec=8.0):
+            return []
+        req = GetPlanningScene.Request()
+        req.components.components = PlanningSceneComponents.WORLD_OBJECT_NAMES
+        fut = self.getscene.call_async(req)
+        end = time.time() + 10.0
+        while time.time() < end and not fut.done():
+            rclpy.spin_once(self, timeout_sec=0.05)
+        if not fut.done() or fut.result() is None:
+            return []
+        have = {o.id for o in fut.result().scene.world.collision_objects}
+        missing = [w for w in want if w not in have]
+        if missing:
+            self.get_logger().error(
+                "[SCENE] NOT IN move_group: %s -- these are decoration"
+                % ", ".join(missing))
+        return [w for w in want if w in have]
+
     def _pad_offset(self, arm):
         """Wrist -> finger-pad vector in world, from the live anchor pose."""
         try:
@@ -193,6 +341,7 @@ class Scene(Node):
             self.pad_off = off
             for it in self.items.values():
                 it["pos"] = [it["pos"][i] + off[i] for i in range(3)]
+
         A = MarkerArray()
         d = Marker()
         d.action = Marker.DELETEALL
@@ -204,25 +353,28 @@ class Scene(Node):
             A.markers.append(_m(ns, i, typ, xyz, scale, col))
             i += 1
 
-        # ---- furniture, common to every task ----------------------------
-        # 1.70 m wide, widened from 1.30 so task A's bin sits ON the bench
-        # at x = 0.62. Scenery only -- no verified coordinate depends on it.
-        add(Marker.CUBE, [0.0, Y + 0.02, 0.92], (1.70, 0.46, 0.03), TAN)
+        # ---- furniture, common to every task ---------------------------
+        # DRAWN FROM THE SAME CONSTANTS AS THE COLLISION OBJECTS, so the
+        # picture and the planner cannot disagree. Two descriptions of one
+        # bench is how a scene comes to look solid and behave hollow.
+        yc = (CT.BENCH_NEAR_Y + CT.BENCH_FAR_Y) / 2.0
+        yd = CT.BENCH_FAR_Y - CT.BENCH_NEAR_Y
+        add(Marker.CUBE, [0.0, yc, CT.BENCH_TOP - CT.BENCH_THICK / 2.0],
+            (2 * CT.BENCH_HALF_X, yd, CT.BENCH_THICK), TAN)
         for sx in (-0.75, 0.75):
-            add(Marker.CUBE, [sx, Y + 0.02, 0.78], (0.05, 0.05, 0.26), DARK)
-        # The bin, shifted by the same wrist->pad offset as the objects, so
-        # a block released with the EE at A_BIN lands INSIDE it.
-        po = self.pad_off or [0.0, 0.0, 0.0]
-        binc = [CT.A_BIN[i] + po[i] for i in range(3)]
-        add(Marker.CUBE, [binc[0], binc[1], binc[2] - 0.03],
-            (0.16, 0.16, 0.02), TEAL)
+            add(Marker.CUBE, [sx, yc, (CT.BENCH_TOP - CT.BENCH_THICK) / 2.0],
+                (0.05, 0.05, CT.BENCH_TOP - CT.BENCH_THICK), DARK)
+        # the bin task A places into: floor plus four walls, on the bench
+        bx, by = CT.A_BIN_OBJ[0], CT.A_BIN_OBJ[1]
+        add(Marker.CUBE, [bx, by, CT.BENCH_TOP + 0.01], (0.16, 0.16, 0.02),
+            TEAL)
         for dx, dy in ((0.08, 0), (-0.08, 0), (0, 0.08), (0, -0.08)):
-            add(Marker.CUBE, [binc[0] + dx, binc[1] + dy, binc[2] + 0.01],
-                (0.02 if dx else 0.16, 0.16 if dx else 0.02, 0.07), TEAL)
-        # the circuit box task C probes
-        add(Marker.CUBE, [-SEP / 2.0, Y, 1.09], (0.17, 0.11, 0.05), GREEN)
-        # a spare tray on the bench, so the scene reads as a workspace
-        add(Marker.CUBE, [0.0, Y - 0.13, 0.95], (0.34, 0.16, 0.012), TAN)
+            add(Marker.CUBE,
+                [bx + dx, by + dy, CT.BENCH_TOP + CT.A_BIN_H / 2.0],
+                (0.02 if dx else 0.16, 0.16 if dx else 0.02, CT.A_BIN_H),
+                TEAL)
+        # the circuit box task C probes and task B places onto
+        add(Marker.CUBE, CT.BOX_OBJ, (0.17, CT.BOX_D, CT.BOX_H), GREEN)
 
         # ---- the graspable object --------------------------------------
         for name, it in self.items.items():
@@ -281,6 +433,14 @@ def main():
     a = ap.parse_args()
     rclpy.init()
     n = Scene(a.task, a.out)
+    # APPLY THE COLLISION SCENE BEFORE THE EXECUTOR STARTS.
+    #
+    # It was applied from inside the 10 Hz tick, which spins to wait on the
+    # service response -- inside a callback the executor is already running,
+    # so it raised "Executor is already spinning" and killed the node. The
+    # furniture is static and needs no TF, so it belongs here, where a manual
+    # spin loop is the only one running.
+    n._publish_scene()
     import json
     import signal
 
@@ -301,6 +461,10 @@ def main():
                            # of re-deriving it.
                            pad_off=getattr(n, "pad_off", None)),
                       open(n.out, "w"), indent=2)
+        try:
+            remove_furniture(n)
+        except Exception:                                      # noqa: BLE001
+            pass
         raise KeyboardInterrupt
 
     signal.signal(signal.SIGTERM, dump)

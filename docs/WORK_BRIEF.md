@@ -16,11 +16,35 @@ the lab.**
 
 ## START HERE
 
-**CLIPS ARE RECORDED.** Five modes x three tasks, 15 clips, 7 angles + quad
-each, captions burnt into the front view and the quad. Pushed after every mode.
+**CLIPS RE-RECORDED WITH OBJECTS. 15 of 15 show the task COMPLETING.**
 
-| mode | tasks | verified |
-| --- | --- | --- |
+Objects are in the scene (table, teal bin, orange block, green circuit box,
+tray, multimeter dummy) and are ATTACHED to the gripper only when the fingers
+actually reach the object's width, then released where they are put. Each clip
+writes `scene_events.json`, so completion is measured rather than judged:
+
+| mode | A block | B part | C multimeter |
+| --- | --- | --- | --- |
+| 01_master_teleop | 0.412 m, released | 0.125 m, released | grasped, held |
+| 02_vr_teleop | **0.206 m** | **0.062 m** | grasped, held |
+| 03_shared_autonomy | 0.412 m | 0.125 m | grasped, held |
+| 04_vr_shared | 0.412 m | 0.125 m | grasped, held |
+| 06_full_autonomy | 0.412 m | 0.124 m | grasped, held |
+
+VR carries exactly HALF because the mapper's scale is 0.5 -- the object
+inherits it, which is stronger evidence the VR path is real than arm motion
+alone. Task C holding rather than carrying IS the task.
+
+Six GUI tutorials in `recordings/verification/GUI_TUTORIALS/`, narrated, with
+real clicks.
+
+**KNOWN LEFTOVER:** `recordings/verification/04_shared_autonomy/` is from the
+SUPERSEDED study-taskset sweep (scenarios S2_full_lift etc.) and is not one of
+the 15. Its B clip is the single verifier failure (frozen capture). Delete the
+directory or re-record it under the current naming; it is stale, not broken
+evidence.
+
+--- | --- | --- |
 | 06_full_autonomy | A B C | 3/3 |
 | 01_master_teleop | A B C | 3/3 |
 | 03_shared_autonomy | A B C | 3/3 |

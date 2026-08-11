@@ -1,0 +1,128 @@
+{
+  "task": "t3",
+  "events": [
+    {
+      "t": 42.0,
+      "wall": 1786475194.6813753,
+      "ev": "GRASPED",
+      "item": "circuit_box",
+      "arm": "right",
+      "knuckle": 0.2999,
+      "needed": 0.2965,
+      "at": [
+        -0.494,
+        0.1749,
+        1.1099
+      ]
+    },
+    {
+      "t": 42.7,
+      "wall": 1786475195.381682,
+      "ev": "GRASPED",
+      "item": "multimeter",
+      "arm": "left",
+      "knuckle": 0.4685,
+      "needed": 0.4659,
+      "at": [
+        0.34,
+        0.1899,
+        1.1225
+      ]
+    },
+    {
+      "t": 47.3,
+      "wall": 1786475199.9855394,
+      "ev": "RELEASED",
+      "item": "multimeter",
+      "arm": "left",
+      "carried_m": 0.1602,
+      "at": [
+        0.34,
+        0.1899,
+        1.1225
+      ]
+    },
+    {
+      "t": 47.6,
+      "wall": 1786475200.2813497,
+      "ev": "RELEASED",
+      "item": "circuit_box",
+      "arm": "right",
+      "carried_m": 0.1601,
+      "at": [
+        -0.494,
+        0.1749,
+        1.1099
+      ]
+    }
+  ],
+  "items": [
+    {
+      "item": "circuit_box",
+      "arm": "right",
+      "width_mm": 50,
+      "carried_m": 0.1601,
+      "final": [
+        -0.494,
+        0.1749,
+        1.1099
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0,
+      "min_pad_obj_knuckle": 0.3294,
+      "min_pad_obj_closed_m": 0.0,
+      "grasp_near_m": 0.03
+    },
+    {
+      "item": "multimeter",
+      "arm": "left",
+      "width_mm": 30,
+      "carried_m": 0.1602,
+      "final": [
+        0.34,
+        0.1899,
+        1.1225
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0,
+      "min_pad_obj_knuckle": 0.5176,
+      "min_pad_obj_closed_m": 0.0,
+      "grasp_near_m": 0.03
+    }
+  ],
+  "fixtures": [
+    "P1",
+    "P2",
+    "P3",
+    "P4"
+  ],
+  "furniture": [
+    "bench"
+  ],
+  "ee_travel_m": {
+    "left": 0.9093,
+    "right": 1.016
+  },
+  "ee_net_m": {
+    "left": 0.6018,
+    "right": 0.5802
+  },
+  "t0_wall": 1786475152.6806393,
+  "pad_off": [
+    0.02892327548033127,
+    0.09946790066185993,
+    0.04205735219211061
+  ],
+  "pad_off_by_arm": {
+    "left": [
+      -0.017069731205314406,
+      0.09453845547709643,
+      0.05718692781207405
+    ],
+    "right": [
+      0.02892327548033127,
+      0.09946790066185993,
+      0.04205735219211061
+    ]
+  }
+}

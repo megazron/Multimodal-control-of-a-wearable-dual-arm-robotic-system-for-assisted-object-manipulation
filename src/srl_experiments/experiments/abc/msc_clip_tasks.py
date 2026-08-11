@@ -136,7 +136,16 @@ def t1():
         plane_obj = [px, py, T1_Z]
         add(_dense([[pick[0], pick[1], pick[2] + STANDOFF], pick]),
             CT.OPEN, cube_obj)
-        add(_hold(pick, 4), g, cube_obj)            # close ON the cube
+        # EIGHT, NOT FOUR. The close is gated on ARRIVAL, and the arm's lag
+        # accumulates along the sequence: measured under MASTER_TELEOP, cubes
+        # 0-2 closed with the pads 8.5-8.8 mm from the cube and the FOURTH
+        # closed at 33.7 mm -- 3.7 mm outside the 30 mm capture window, so the
+        # last cube was never picked up and the clip showed three of four
+        # placements. The gate was right; the schedule ran out of waypoints
+        # before the arm got there. This is the same lengthening T3 needed and
+        # for the same reason, and it has to be in the TASK, identical across
+        # modes, or the mode comparison is contaminated by the clip.
+        add(_hold(pick, 8), g, cube_obj)            # close ON the cube
         add(_dense([pick, [pick[0], pick[1], pick[2] + LIFT]]), g, cube_obj)
         add(_dense([[pick[0], pick[1], pick[2] + LIFT],
                     [place[0], place[1], place[2] + LIFT], place]),

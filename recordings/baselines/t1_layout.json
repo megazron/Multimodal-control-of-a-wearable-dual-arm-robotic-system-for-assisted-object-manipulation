@@ -1,0 +1,26 @@
+{
+  "bench_near_y": 0.245,
+  "cube_m": 0.04,
+  "pitch_m": 0.06,
+  "plane": [
+    0.11,
+    0.08
+  ],
+  "plane_clear_m": 0.088,
+  "repeats": 10,
+  "fixed": {
+    "cells": 0,
+    "extent_mm": null,
+    "verdict": "IMPOSSIBLE -- only 0 usable cells, and six items are required"
+  },
+  "topdown": {
+    "cells": 18,
+    "extent_mm": [
+      160,
+      20
+    ],
+    "combinations_tried": 18564,
+    "verdict": "DOES NOT FIT -- 18564 combinations of 6 cells searched, none satisfies the spacing"
+  },
+  "ik_calls": 1243
+}

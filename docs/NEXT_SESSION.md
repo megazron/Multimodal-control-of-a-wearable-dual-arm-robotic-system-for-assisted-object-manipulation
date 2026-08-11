@@ -3395,72 +3395,82 @@ segment a live participant holds is worse than leaving it.
 
 ---
 
-## RESUME POINT (2026-08-11) — mode 06 re-recorded and STILL FAILS 4/4
+## RESUME POINT (2026-08-11) — mode 06 NOT recorded; the sweep was measuring a broken graph
 
-The four defect fixes are committed (24e013a) and are, as far as the scene is
-concerned, correct: `scene_events.json` now records `fixtures`, T0 lists its
-six spheres `L1 L2 L3 R1 R2 R3`, and T2 lists its `ball`. The subject check
-(`subjects_present()` in `verify_rviz_clips.py`) is written and its control
-fails as required.
+Two things happened this session. The first is settled and fixed. The second
+blocks the recording and is where to start.
 
-**But the re-record did not pass, and it failed in a NEW way. Mode 06 is not
-citable and nothing from this run may be quoted.**
+### 1. THE FOUR MODE-06 DEFECTS ARE FIXED (24e013a) — but never yet exercised
 
-    t0/D3_three_targets   capture gated on timeout   run exited 1
-    t1/S1_left_arm        capture gated on timeout   run exited 1; NO GRASP
-    t2/S2_full_lift       capture gated on timeout   run exited 1
-    t3/S1_measure_cycle   capture gated on timeout   run exited 1
-    0 recorded, 4 failed, 0 skipped
+Furniture publishes unconditionally; T0 draws its six spheres at the SAMPLED
+study positions labelled L1-L3/R1-R3; T2 draws its ball on the tray; T1's
+items are placed with `ee_for()` and T3's grip width is 50 mm not 110.
+`scene_events.json` now records `fixtures`, and `subjects_present()` in
+`verify_rviz_clips.py` asserts each task's subject is present, with a control
+that fails.
 
-### READ THE SYMPTOM CORRECTLY BEFORE TOUCHING ANYTHING
+**None of that has been tested against a working stack.** Do not treat these
+as verified.
 
-`capture gated on timeout` on ALL FOUR means `graph.moved(ref)` never fired:
-**the arm did not move**. `run exited 1` is the runner's own refusal for the
-same reason ("no arm moved at least 0.010 m") — that refusal is working, and
-it is the only reason four clips of a stationary arm were not filed as
-results.
+### 2. kill_stack() WAS BLIND, AND THAT IS WHAT FAILED THE RE-RECORD (f92297e)
 
-So this is NOT the grasp defect any more. The grasp numbers confirm it:
+`stack_pids()` compared `ps -o comm` against full node names. **comm truncates
+at 15 characters**, so `robot_state_publisher` (21), `ros2_control_node` (17)
+and `ik_follower_node` (16) could never match. Only move_group, rviz2 and
+spawner were ever killed; everything else leaked from every session, and
+teardown reported success because the same blind predicate defined "clean".
 
-| | previous run | this run |
-|---|---|---|
-| T1 cube_0 `min_pad_obj_m` | 0.0957 | **0.4234** |
-| T2 tray `min_pad_obj_m` | (grasped) | **0.6895** |
+Measured: the old detector saw **0**, the fixed one saw **66** live stack
+processes and **10** leaked `ros2 launch` parents, with no move_group, no /tf
+publisher, and 153 stale `/dev/shm/fastrtps_*` segments.
 
-The pad got FURTHER away, not closer. A pad that ends 42-69 cm from its object
-is not a mis-aimed grasp, it is an arm that never travelled. Do not re-tune
-`ee_for()` against these numbers — they are measuring the stationary arm, not
-the frame convention.
+That is the graph the 06 sweep recorded. All four tasks reported "capture
+gated on timeout" and the runner said **"NO TF -- cannot tell whether it
+moved"**. So the four FAILs were about the graph, not the scene, and the
+0.4234 m pad distance in the previous resume point was measured on an arm with
+no TF. **Disregard it.** Both halves of the fix are in and verified
+(66 + 10 -> 0 + 0, 0 survived SIGKILL): match the installed executable PATH,
+and kill the launch PARENT first because teleop.launch.py sets respawn=True.
 
-### WHAT THE STACK SAID
+### 3. THE BLOCKER: the stack now fails its own readiness probe, REPRODUCIBLY
 
-    probe: READY joint_state_msgs=507 arm_joints=14 ik=True followers=2
+Two consecutive clean runs, 280 s each:
 
-So the stack was up, both followers were running and /compute_ik was
-answering. The arm was commanded and did not go. The two candidates, in order:
+    probe: TIMEOUT joint_state_msgs=0 arm_joints=0 ik=True followers=0
 
-1. **The furniture is now published for T0 when it never was before.** The
-   empty-items guard used to return before the furniture; removing it is
-   correct for the picture, but the bench and bin also exist as REAL
-   CollisionObjects (`_scene_objects`, clip_scene.py:304). If the arm is now
-   being asked to reach a sphere through a bench that only appeared in this
-   run, every IK call fails and the follower publishes nothing. **Check
-   `/compute_ik` error codes and the follower's `ik_failed` blocker first.**
-   This explains T0 exactly and does not explain T1-T3.
-2. **Something common to all four.** T1/T2/T3 already had non-empty items, so
-   the furniture change cannot be their cause. Find the shared reason before
-   fixing either — a fix aimed at T0 alone will leave three tasks broken and
-   look like progress.
+**The stack itself is healthy.** `log/sim_session.log` shows every controller
+loaded, configured and activated -- `joint_state_broadcaster` included -- both
+`ik_follower_node`s alive, and nothing dying until the probe's own timeout
+teardown SIGINTs them (exit code -2 throughout, which is that teardown, not a
+crash). So the nodes are publishing and a NEW PROCESS CANNOT SEE THEM.
 
-### THE NEXT ACTION, precisely
+Corroborated outside the probe: `ros2 node list --no-daemon` timed out
+entirely from a fresh shell while the stack was up, and Fast DDS logged
+`Failed init_port fastrtps_port7002: open_and_lock_file failed`. /dev/shm is
+NOT full (12K used, 6 entries), so it is not exhaustion.
 
-Do NOT re-record. Run ONE task with the stack up and watch the follower:
+`ik=True` with `joint_state_msgs=0` is the tell: the probe discovered
+move_group's service and nothing from ros2_control. That is a PARTIAL
+discovery, which CLAUDE.md already records as the stale-shm signature --
+"services appear for one client and not another, and wait_for_service times
+out on a service get_service_names_and_types() can see".
 
-    python3 scripts/sim_session.py --stack teleop --keep-up -- \
-      python3 scripts/record_abc_sweep.py --taskset msc --only 06_full_autonomy
+**START HERE, and do not re-record until it is answered:**
 
-then, while it is up, `ros2 topic echo /blocking_summary` and
-`ros2 topic echo /ik_status_left`. The named blocker will say which of the two
-it is. This project's standing rule applies with full force here: **a
-surprising failure is evidence about the instrument until the instrument has
-been cleared**, and the instrument this time is the scene I just changed.
+1. `ros2 daemon stop && ros2 daemon start`, then `ros2 node list --no-daemon`
+   with a stack up. The daemon is not in the probe's path but it is in the
+   sweep's.
+2. If discovery is still partial, force the transport:
+   `export RMW_FASTRTPS_USE_QOS_FROM_XML=0` and try a UDP-only Fast DDS
+   profile. The SHM transport is the component logging the error, and this
+   box has just had 153 of its segments deleted underneath running
+   participants.
+3. `scripts/env.sh` is the single source of environment truth and pins
+   `ROS_DOMAIN_ID=0` while unsetting `ROS_LOCALHOST_ONLY`. Confirm the probe's
+   `bash -lc` really picks it up -- it sources setup.bash, not env.sh.
+
+**Only when the probe reports READY may the 06 re-record be attempted**, and
+only then do the four scene fixes get their first real test. The standing rule
+applies to this whole session: the failure was in the instrument twice over --
+first the leaked graph, then the teardown that could not see it.
+

@@ -99,3 +99,41 @@ is why tilt was never shipped.
 
 Until then the 42 % is a property of the shipped system and should be reported
 as one.
+
+---
+
+## T0 IS THE CONTROL FOR THIS RESULT, NOT MERELY THE BASELINE
+
+Worth stating explicitly in the write-up, because it changes how strong the
+claim is.
+
+The prediction here is **directional and mechanism-named**: VR beats the
+master on right-arm grasping, and it does so *because the pinned wrist cannot
+select the grasp yaw*. A prediction of that form carries an obligation the
+looser version does not — it says where the effect must be **absent**.
+
+**T0 has no grasp.** No object, no gripper closure, no yaw to select. If the
+mechanism is yaw selection, then:
+
+| | prediction |
+| --- | --- |
+| T1 / T3, right arm, MASTER_TELEOP vs VR_TELEOP | **a gap**, and the largest one in the study |
+| **T0, either arm, MASTER_TELEOP vs VR_TELEOP** | **no gap attributable to yaw** |
+
+If VR beats the master on T0 as well, the mechanism is *not* yaw selection —
+it is something general to the input device (rate, dead channels, 6-DOF
+positioning, operator confidence) and the 42 % figure is then a symptom rather
+than the cause. **That outcome would falsify the mechanism while leaving the
+performance difference intact**, which is exactly what a control is for.
+
+So T0 is doing two jobs and they should be reported separately:
+
+* **baseline instrument** — the task that runs in every mode, needs no
+  grasping, and survives every degradation of the master;
+* **control for the yaw mechanism** — the condition under which the predicted
+  effect must vanish.
+
+A prediction that specifies where an effect should be absent is far stronger
+than one that only says where it should appear, and this one is testable
+within the existing matrix at no extra cost: T0 is already run on both arms in
+all five modes, twice per participant.

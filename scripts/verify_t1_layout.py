@@ -55,6 +55,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repeats", type=int, default=10)
     ap.add_argument("--quick", type=int, default=3)
+    ap.add_argument("--rail-y", type=float, default=None,
+                    help="front edge of a cantilevered support lip, in y. "
+                         "None = no rail, the bench edge does the work.")
+    ap.add_argument("--rail-t", type=float, default=0.015,
+                    help="rail thickness in z; its TOP is the bench top, so "
+                         "the space beneath it stays free for the fingers")
     a = ap.parse_args()
 
     rclpy.init()
@@ -79,7 +85,38 @@ def main():
     tmp = CS.Scene.__new__(CS.Scene)
     ps = PlanningScene()
     ps.is_diff = True
-    ps.world.collision_objects = CS.Scene._collision_furniture(tmp)
+    objs = CS.Scene._collision_furniture(tmp)
+    if a.rail_y is not None:
+        # A LIP CANTILEVERED FORWARD FROM THE BENCH EDGE.  Its TOP is flush
+        # with the bench top so an object resting on it is at the same height
+        # as one on the bench, and it is thin in z so the space BENEATH it
+        # stays free -- which is the whole point, because the pinned approach
+        # enters from the near side 30.7 deg above horizontal and the fingers
+        # pass UNDER the object.  A shelf standing on the floor would fill
+        # exactly that space.
+        from moveit_msgs.msg import CollisionObject
+        from shape_msgs.msg import SolidPrimitive
+        from geometry_msgs.msg import Pose
+        depth = CT.BENCH_NEAR_Y - a.rail_y
+        co = CollisionObject()
+        co.header.frame_id = "world"
+        co.id = "support_rail"
+        pr = SolidPrimitive()
+        pr.type = SolidPrimitive.BOX
+        pr.dimensions = [1.4, float(depth), float(a.rail_t)]
+        co.primitives.append(pr)
+        pose = Pose()
+        pose.position.x = 0.0
+        pose.position.y = float(a.rail_y + depth / 2.0)
+        pose.position.z = float(CT.BENCH_TOP - a.rail_t / 2.0)
+        pose.orientation.w = 1.0
+        co.primitive_poses.append(pose)
+        co.operation = CollisionObject.ADD
+        objs.append(co)
+        print("RAIL  edge y=%.3f, depth %.3f m, thickness %.3f m, "
+              "top flush with the bench at z=%.3f"
+              % (a.rail_y, depth, a.rail_t, CT.BENCH_TOP))
+    ps.world.collision_objects = objs
     cli = n.create_client(ApplyPlanningScene, "/apply_planning_scene")
     cli.wait_for_service(timeout_sec=15.0)
     import time as _t
@@ -135,12 +172,20 @@ def main():
     # ---- the feasible cells ------------------------------------------
     xs = [round(0.24 + 0.02 * i, 3) for i in range(14)]      # 0.24 .. 0.50
     ys = [round(0.13 + 0.02 * i, 3) for i in range(12)]      # 0.13 .. 0.35
-    res = {"bench_near_y": CT.BENCH_NEAR_Y, "cube_m": CUBE_M,
+    res = {"bench_near_y": CT.BENCH_NEAR_Y, "rail_y": a.rail_y,
+           "rail_t": a.rail_t, "support_edge": None, "cube_m": CUBE_M,
            "pitch_m": PITCH_M, "plane": list(PLANE),
            "plane_clear_m": round(PLANE_CLEAR_M, 4), "repeats": a.repeats}
+    res["support_edge"] = support_edge
+
+    support_edge = CT.BENCH_NEAR_Y if a.rail_y is None else a.rail_y
 
     def supported(y):
-        return (y - CUBE_M / 2.0) >= CT.BENCH_NEAR_Y
+        """Resting on something.  With a rail the support edge moves forward;
+        the object still has to OVERHANG it, because support has to come from
+        BEHIND -- there is nowhere else it can come from when the fingers
+        occupy the space underneath."""
+        return (y - CUBE_M / 2.0) >= support_edge
 
     for pol, q in (("fixed", anchor), ("topdown", topdown)):
         cells = []
@@ -210,6 +255,45 @@ def main():
             for p in found["planes"]:
                 print("      plane x=%.3f y=%.3f" % tuple(p))
         res[pol] = entry
+
+    # ---- DOES THE RAIL DISTURB ANYTHING ELSE? ------------------------
+    # Asserting "it is out of the way" is not evidence.  T0's spheres, T2's
+    # carry band and T3's own objects are re-checked WITH the rail in the
+    # scene, because the rail sits exactly where a near-side approach passes.
+    print("\nREGRESSION with the rail in scene")
+    reg = {}
+    sys.path.insert(0, os.path.join(ROOT, "src/srl_experiments"))
+    import task0 as T0M
+    bad = 0
+    for label, p in sorted({**T0M.TARGETS_LEFT}.items()):
+        if not ok("left", p, anchor, a.quick):
+            bad += 1
+    for label, p in sorted({**T0M.TARGETS_RIGHT}.items()):
+        if not ok("right", p, n.ee_quat("right"), a.quick):
+            bad += 1
+    reg["T0_spheres_unreachable"] = bad
+    print("   T0 spheres (8)                    %d unreachable" % bad)
+
+    import tasks as TSK
+    tb = 0
+    for name, path in TSK.TASK_B["paths"].items():
+        for p in densify(path, 0.02):
+            for arm, s in (("left", +0.5), ("right", -0.5)):
+                q2 = anchor if arm == "left" else n.ee_quat("right")
+                if not ok(arm, [p[0] + s * TSK.TRAY_SEP, p[1], p[2]], q2,
+                          1):
+                    tb += 1
+    reg["T2_carry_waypoint_failures"] = tb
+    print("   T2 carry waypoints, both arms      %d failures" % tb)
+
+    t3 = 0
+    for nm, obj in (("circuit_box", CT.BOX_OBJ), ("multimeter", CT.C_MM_OBJ)):
+        if not ok("left", CT.ee_for(obj), anchor, a.quick):
+            t3 += 1
+            print("   T3 %s LEFT unreachable" % nm)
+    reg["T3_object_failures_left"] = t3
+    print("   T3 objects (2, left arm)           %d unreachable" % t3)
+    res["regression"] = reg
 
     CS.remove_furniture(n)
     res["ik_calls"] = calls["n"]

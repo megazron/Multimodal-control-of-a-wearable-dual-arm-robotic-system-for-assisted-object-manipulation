@@ -243,3 +243,41 @@ fit once the edge moves to 0.190 or forward.
 
 Option 3 costs nothing the study needs and removes the matrix hole; option 1
 keeps the arm contrast at the price of a bench move. **Not decided here.**
+
+---
+
+# THE GENERAL CONSTRAINT — why support must come from BEHIND (2026-08-11)
+
+**Record this once, because it explains the T1 layout result and it will
+explain the next surprise too.**
+
+The pinned wrist's tool axis is measured at **(−0.153, +0.846, +0.511)** in
+world: 120.8° from straight down, and **30.7° ABOVE horizontal**. So under
+`orientation_mode: fixed` — which is every teleoperated mode, because nothing
+in the master measures the wrist — the hand enters **from the near side and
+from BELOW**, and the fingers close **underneath the object and lift into it**.
+
+Three consequences follow, and none of them is negotiable by software:
+
+1. **The object must OVERHANG its support.** The space directly beneath an
+   object is where the fingers go. An object sitting flush on a surface has no
+   room for the approach.
+2. **Support must therefore come from BEHIND** — from a surface whose *edge*
+   is behind the object's centre. That is the only direction left once the
+   front, the underside and the approach cone are excluded.
+3. **A shelf cannot help.** The instinctive fix for "the object is floating"
+   is to put something under it. That is precisely the volume the fingers
+   need, so a shelf converts an unsupported object into an unreachable one.
+   Only a *cantilevered* support — one with free space beneath its own
+   overhang — can do both jobs at once.
+
+This is why `on_bench()` carries `OVERHANG = 0.08` and why the bench EDGE, not
+the bench, is the load-bearing parameter. It is also why the T1 layout fails:
+the overhang is doing exactly what it should, and it is simply larger than a
+40 mm cube, so the cube ends up entirely in front of the edge with nothing
+under it.
+
+**The test to apply to any future support geometry:** is there free space in
+the cone 30.7° above horizontal, entering from the near side, beneath the
+object? If not, the pinned modes cannot grasp it, however reachable the pose
+looks.

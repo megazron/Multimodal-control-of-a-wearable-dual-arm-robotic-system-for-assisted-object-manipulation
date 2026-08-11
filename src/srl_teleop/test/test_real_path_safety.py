@@ -143,3 +143,75 @@ def test_the_estop_halt_still_does_not_block():
         "every e-stop by the full timeout on every sim and mock stack"
     assert code.count("call_async") >= 2, \
         "the halt no longer sends asynchronously"
+
+
+# ------------------------------------------------- the unprefixed-name class
+#
+# THIS CLASS HAS NOW APPEARED SIX TIMES AND EACH INSTANCE WAS FOUND
+# SEPARATELY: the reactivate_gripper GPIO, the Robotiq COM port, tcp/twist.*
+# and reset_fault/* as C++ literals, reactivate_gripper again in the driver,
+# and the emergency halt. Finding them one at a time is the actual defect; this
+# is the sweep, as a test.
+#
+# THE RULE, and it is not "prefix everything": a SERVICE is a 1:1 rendezvous,
+# so two registrations of one name from two per-arm nodes is undefined and the
+# call reaches an arbitrary one. A TOPIC may legitimately be shared -- /estop
+# has many publishers by design -- provided the payload names the arm and the
+# consumer's policy is "any arm counts".
+PER_ARM_NODES = {
+    "kortex_highlevel_bridge.py": ["/real/session_recover", "/real/emergency_halt"],
+    "sim_to_real_bridge.py": ["/bridge_enable", "/bridge_disable"],
+    "real_homing_node.py": ["/home_arm", "/home_abort"],
+}
+
+
+def test_no_service_on_a_per_arm_node_is_unprefixed():
+    """Every service a per-arm node registers must carry the arm in its name."""
+    for fname, names in PER_ARM_NODES.items():
+        s = _read(fname)
+        for base in names:
+            assert '"%s"' % base not in s, (
+                "%s registers %s WITHOUT the arm. Two of these nodes run "
+                "under arm:=both, so this is two registrations of one service "
+                "name and the call reaches an arbitrary arm."
+                % (fname, base))
+            assert '"%s_%%s"' % base in s, (
+                "%s no longer registers %s_<arm>" % (fname, base))
+
+
+def test_every_service_created_by_a_per_arm_node_is_per_arm():
+    """The sweep itself, so a NEW service cannot be added unprefixed.
+
+    Finding these one at a time is what made this a six-time class. Any
+    create_service on a per-arm node whose name is a bare literal fails here.
+    """
+    bad = []
+    for fname in PER_ARM_NODES:
+        s = _read(fname)
+        for m in re.finditer(r'create_service\(\s*\w+,\s*("([^"]+)")', s):
+            literal, name = m.group(1), m.group(2)
+            if "%s" not in name and "{" not in name:
+                bad.append("%s: %s" % (fname, name))
+    assert not bad, (
+        "these services are registered by a PER-ARM node under a fixed name, "
+        "so two nodes would register the same one: %s" % ", ".join(bad))
+
+
+def test_the_shared_session_topic_is_read_per_arm():
+    """/real/session_state is ONE topic with a publisher per arm.
+
+    Keeping it shared is fine -- the payload names the arm -- but the consumer
+    stored the last message WHOLE, so a healthy arm's heartbeat overwrote a
+    lost arm's report about twenty times a second and a real session loss
+    flickered instead of latching.
+    """
+    s = _read("recovery_manager.py")
+    assert "self.session_by_arm" in s, \
+        "recovery_manager no longer keeps session state per arm -- one arm's " \
+        "heartbeat will overwrite the other's fault"
+    assert "recover_cli_by_arm" in s, \
+        "recovery_manager no longer has a per-arm recover client"
+    body = s.split("def _recover_session", 1)[1].split("\n    def ", 1)[0]
+    assert "for a in ready" in body, \
+        "recovery no longer calls every disconnected arm -- recovering one " \
+        "of two lost sessions is not recovery"

@@ -168,8 +168,14 @@ class SimToRealBridge(Node):
         self.tf_listener = TransformListener(self.tf_buf, self)
         self.clearance = ClearanceModel()
 
-        self.create_service(Trigger, "/bridge_enable", self.srv_enable)
-        self.create_service(Trigger, "/bridge_disable", self.srv_disable)
+        # PER ARM. One bridge node runs per arm, so an unprefixed name is two
+        # registrations of one service -- and "disable the bridge" reaching
+        # only one arm, non-deterministically, leaves the other still driving
+        # a real robot. Sixth instance of this class in this project.
+        self.create_service(Trigger, "/bridge_enable_%s" % self.arm,
+                            self.srv_enable)
+        self.create_service(Trigger, "/bridge_disable_%s" % self.arm,
+                            self.srv_disable)
 
         self.create_timer(1.0 / self.rate, self.tick)
         self.create_timer(0.5, self.heartbeat)

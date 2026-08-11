@@ -78,12 +78,20 @@ cleanup() {
   warn "=== STOPPING ==="
 
   # 1. Disable the bridge FIRST so nothing new is commanded while we tear down.
+  #
+  # BOTH ARMS, BY NAME. These services are per arm now -- one bridge and one
+  # homing node run per arm, so the old unprefixed /bridge_disable was two
+  # registrations of one name and the call reached an arbitrary one of them.
+  # Tearing down while the other arm is still driving a real robot is the
+  # failure this loop now cannot have.
   if command -v ros2 >/dev/null 2>&1; then
-    timeout 8 ros2 service call /bridge_disable std_srvs/srv/Trigger {} \
-      >/dev/null 2>&1 && say "  bridge disabled"
-    # 2. Abort homing if it is still running; leaves the arm where it stands.
-    timeout 8 ros2 service call /home_abort std_srvs/srv/Trigger {} \
-      >/dev/null 2>&1 && say "  homing aborted"
+    for A in left right; do
+      timeout 8 ros2 service call "/bridge_disable_${A}" std_srvs/srv/Trigger {} \
+        >/dev/null 2>&1 && say "  bridge disabled (${A})"
+      # 2. Abort homing if it is still running; leaves the arm where it stands.
+      timeout 8 ros2 service call "/home_abort_${A}" std_srvs/srv/Trigger {} \
+        >/dev/null 2>&1 && say "  homing aborted (${A})"
+    done
   fi
 
   # 3. Now close the driver. SIGINT to the whole child process group so the

@@ -181,7 +181,12 @@ class KortexHighLevelBridge(Node):
         # than absent and is therefore useless as a liveness signal.
         self.session_pub = self.create_publisher(String, "/real/session_state", 10)
         self.create_timer(0.5, self._publish_session_state)
-        self.create_service(Trigger, "/real/session_recover", self._srv_recover)
+        # PER ARM, for the same reason the halt is. `arm:=both` runs two of
+        # these nodes and a service name is a 1:1 rendezvous: two registrations
+        # of one name is undefined, and "recover the session" reaching an
+        # arbitrary one of two arms is the failure mode you would least like.
+        self.create_service(Trigger, "/real/session_recover_%s" % self.arm,
+                            self._srv_recover)
         # THE DRIVER-LEVEL HALT, on the path that actually runs. See _srv_halt.
         #
         # PER ARM IN THE NAME. `arm:=both` runs two of these nodes, and an

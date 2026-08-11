@@ -131,7 +131,12 @@ class RecoveryManager(Node):
         self.create_subscription(String, "/arm_link_status", self._on_link, 10)
         self.create_subscription(String, "/perception/objects_info",
                                  self._on_objects, 10)
-        self.recover_cli = self.create_client(Trigger, "/real/session_recover")
+        self.session_by_arm = {}
+        # ONE CLIENT PER ARM: the service is per arm now, and recovery that
+        # reaches only one of two lost sessions is not recovery.
+        self.recover_cli_by_arm = {
+            a: self.create_client(Trigger, "/real/session_recover_%s" % a)
+            for a in ("left", "right")}
         self.create_service(Trigger, "/recovery/ready", self._srv_ready)
         self.create_timer(0.2, self._tick)
         self.get_logger().info(
@@ -155,6 +160,42 @@ class RecoveryManager(Node):
             pass
 
     def _on_session(self, m):
+        """PER ARM, and the old version had a real bug rather than a tidiness
+        problem.
+
+        `/real/session_state` is ONE topic with a publisher per arm, and this
+        stored the last message whole: `self.session = json.loads(...)`. So a
+        healthy arm's next heartbeat OVERWROTE a lost arm's report, roughly
+        20 times a second. A genuine session loss on one arm was visible only
+        in the gaps between the other arm's messages -- it would flicker, and
+        the freeze it should trigger would flicker with it.
+
+        The payload already names the arm, so keeping the states keyed by arm
+        costs nothing, and "any arm disconnected counts" matches the policy
+        this file already applies to link loss: one arm live and one frozen on
+        a wearer is worse than both frozen and cannot be told apart by looking.
+        """
+        try:
+            got = json.loads(m.data)
+        except ValueError:
+            return
+        arm = got.get("arm")
+        if arm:
+            self.session_by_arm[arm] = got
+            # The aggregate the rest of this node reads: disconnected if ANY
+            # arm reports disconnected, and the error text names which.
+            bad = [a for a, v in sorted(self.session_by_arm.items())
+                   if not v.get("connected", True)]
+            self.session = dict(
+                arm=",".join(bad) if bad else ",".join(
+                    sorted(self.session_by_arm)),
+                connected=not bad,
+                error="; ".join(
+                    "%s: %s" % (a, self.session_by_arm[a].get("error", ""))
+                    for a in bad),
+                recoveries=sum(v.get("recoveries", 0)
+                               for v in self.session_by_arm.values()))
+            return
         try:
             self.session = json.loads(m.data)
         except ValueError:
@@ -280,13 +321,28 @@ class RecoveryManager(Node):
         f = self.faults.get("kortex_session_lost")
         if f is None or f.get("requested"):
             return
-        if not self.recover_cli.service_is_ready():
+        # RECOVER EVERY ARM THAT REPORTS DISCONNECTED, not "the" session.
+        # With one service per arm there is no longer a single client to call,
+        # and recovering one of two lost sessions is not recovery.
+        lost = [a for a, v in sorted(self.session_by_arm.items())
+                if not v.get("connected", True)] or ["left", "right"]
+        ready = [a for a in lost
+                 if self.recover_cli_by_arm[a].service_is_ready()]
+        if not ready:
             self.get_logger().error(
-                "[kortex_session_lost] /real/session_recover is NOT available. "
-                "Recovery needs the bridge process alive to close the old "
-                "session cleanly; the arm permits exactly one session, so a "
-                "leaked one blocks every later connect. Start the bridge.")
+                "[kortex_session_lost] /real/session_recover_<arm> is NOT "
+                "available for %s. Recovery needs the bridge process alive to "
+                "close the old session cleanly; the arm permits exactly one "
+                "session, so a leaked one blocks every later connect. Start "
+                "the bridge." % ", ".join(lost))
             return
+        missing = [a for a in lost if a not in ready]
+        if missing:
+            self.get_logger().error(
+                "[kortex_session_lost] recovering %s but NOT %s -- no service "
+                "for those. A partial recovery is not a recovery and this "
+                "line is the only place it says so."
+                % (", ".join(ready), ", ".join(missing)))
         f["requested"] = True
         self.get_logger().warn(
             "[kortex_session_lost] requesting in-process recovery: zero "
@@ -294,7 +350,8 @@ class RecoveryManager(Node):
             "hardware component is NOT deactivated, because deactivating "
             "tears down the router and on_activate then fails with "
             "'Router is not active'.")
-        self.recover_cli.call_async(Trigger.Request())
+        for a in ready:
+            self.recover_cli_by_arm[a].call_async(Trigger.Request())
 
     # ----------------------------------------------------- (e) arm network
     def _check_link(self):

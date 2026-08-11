@@ -214,8 +214,12 @@ class RealHoming(Node):
              math.degrees(self.deadband), math.degrees(self.exit_deadband),
              math.degrees(self.tol), self.settle_s))
 
-        self.create_service(Trigger, "/home_arm", self.srv_home)
-        self.create_service(Trigger, "/home_abort", self.srv_abort)
+        # PER ARM, same class again: one homing node per arm, and "abort
+        # homing" that reaches an arbitrary one of two moving arms is worse
+        # than no abort at all.
+        self.create_service(Trigger, "/home_arm_%s" % self.arm, self.srv_home)
+        self.create_service(Trigger, "/home_abort_%s" % self.arm,
+                            self.srv_abort)
         self.create_timer(0.2, self.publish_status)
 
         if bool(self.get_parameter("auto_home").value):

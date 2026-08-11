@@ -1,67 +1,68 @@
-# RESUME POINT — clip paths VERIFIED. Sweep wiring part-done. NO CLIP RECORDED.
+# RESUME POINT — wiring DONE. Mode 06 recorded 32 files and ALL FOUR FAILED.
 
-## ITEM 1 IS DONE
+## THE STATE, PLAINLY
+
+**No mode is complete.** `recordings/verification/06_full_autonomy/` holds 32
+mp4s (4 tasks x 8 angles) and **every task failed the sweep's own check**:
+
+    FAIL  run exited 1; no scene_events.json -- the scene never ran
+
+`find recordings/verification -name scene_events.json` returns **0**. The
+clips render, but nothing has confirmed an object was ever in them, so none
+of them may be cited. Do not treat the 32 files as a recorded mode.
+
+## DIAGNOSE THIS FIRST
+
+`clip_scene.py --task t1` never wrote its events file. Two candidates, and
+they are distinguishable:
+
+  1. **`run_abc.py` exited 1** — the sweep says so ("run exited 1"). Check the
+     GUI job log for the launched button; the runner may be failing before
+     the scene matters, in which case the scene not running is a SYMPTOM.
+  2. **the scene itself failed** — my `_items()` tables import
+     `msc_clip_tasks` and `task3` *inside* the function. If that import
+     raises inside the node, the timer callback dies quietly.
+
+Run it directly and read the error:
 
 ```
-python3 scripts/sim_session.py -- python3 scripts/verify_msc_tasks.py --repeats 10
+python3 scripts/sim_session.py -- \
+  "timeout 45 python3 scripts/clip_scene.py --task t1 --out /tmp/se.json; echo X=$?"
 ```
 
-**103 distinct clip waypoints, N=10, both arms, bench in scene, 0 failures.**
-5264 IK calls. All four controls correct, including the must-fail one (a pose
-inside the bench slab comes back unreachable).
+**Note for t0 specifically:** T0 has NO objects, so `_items()` returns `{}`
+and `tick()` returns early by design — which means it will *never* write a
+scene_events.json. The sweep must not require one for a task with no objects,
+or T0 can never pass. That is a sweep fix, not a scene fix.
 
-    t0  L 9 distinct 0 fail    R 8 distinct 0 fail
-    t1  L 61 distinct 0 fail   R 1 distinct 0 fail
-    t2  L 4 distinct 0 fail    R 4 distinct 0 fail
-    t3  L 8 distinct 0 fail    R 8 distinct 0 fail
+## WHAT IS DONE AND PUSHED
 
-**The first run of this was a VACUOUS PASS.** It printed "4234 IK calls,
-TOTAL FAILURES: 0" with no CLIP PATHS section at all — the edit adding the
-section had never landed, so it was the old spec-only check wearing the new
-name. It was caught by the IK-call count being identical to the previous run,
-not by the output looking wrong. The section now RAISES when 0 clip waypoints
-are tested. If you ever see 4234 again, the section has fallen out.
+  * **wiring complete**: `run_experiment.sh` m0-m3, `run_abc.py --taskset
+    msc`, 20 GUI specs `msc_<m0-m3>_<mode>`, `record_abc_sweep.py --taskset`.
+    All four dry-run correctly: m0 25 waypoints, m1 113, m2 14, m3 38.
+  * **clip paths verified**: 103 distinct waypoints, N=10, both arms, bench in
+    scene, 0 failures, 5264 IK calls.
+  * **the MSc names collide with an archived refusal.** run_experiment.sh
+    refuses t1..t9 BY NAME as the 300/310 mm set. The MSc tasks are therefore
+    keyed **m0-m3** in the dispatcher and displayed T0-T3. Do not "tidy" this.
 
-`scripts/sim_session.py` fixed the chaining: launch, wait, run, tear down in
-ONE process, waiting on a node RECEIVING arm joint states and /compute_ik
-answering — not on a marker printed by another process — and timing out
-loudly instead of hanging.
+## BUGS FIXED THIS SESSION, all found by running
 
-## WHERE THE SWEEP STANDS — this is what to finish
+  * the GUI key was built from the taskset key (`msc_t0_...`) and matched no
+    button; it now uses the dispatcher key (`msc_m0_...`).
+  * `run_one`'s four error paths returned a 2-tuple where the caller unpacks
+    5, so the FIRST real failure surfaced as `ValueError: not enough values to
+    unpack` with the actual reason nowhere on screen.
+  * `gui_launch_specs`' accepted-key whitelist was `[te]\d|[abc]` and silently
+    disabled all 20 MSc buttons with a message that was WRONG.
+  * `sim_session.kill_stack()` counted ZOMBIES as survivors and refused to
+    start on a machine that was clean.
 
-DONE:
-  * `msc_clip_tasks.py` — clip paths for t0/t1/t2/t3, verified above
-  * `clip_scene.py` — item tables for ALL FOUR MSc tasks, with the empty-items
-    guard T0 needs (T0 has no objects; without the guard `tick()` raises
-    StopIteration, and a placeholder object would show an object in the one
-    task whose point is that there is none). BLUE added for T1's colour pair.
+## STILL NOT DONE
 
-NOT DONE, and both are small and specific:
-  1. `record_abc_sweep.py` line ~65 builds SCENARIO from `CT.TASKS` and
-     line ~621 filters `tasks = [t for t in TASKS if t in a.tasks]`. It needs
-     a `--taskset msc|abc` switch that swaps the module (`msc_clip_tasks` vs
-     `clip_tasks`) and the task list. Do NOT fork the sweep.
-  2. The runner invoked at line ~689 (`clip_scene.py --task <task>`) is fine —
-     the tables are in. But whatever drives the ARMS for a task key must
-     accept t0/t1/t2/t3; check `run_abc.py`'s `choices` and its path builder
-     before the first mode.
-
-Then: 4 tasks x 5 modes x 8 angles, Xvfb :99, motion-gated start, isolation via
-`conflicting_modes()`, procscan, foreign-description check, captions burnt in.
-Push after each mode; confirm with `git ls-remote origin -h refs/heads/main`.
-
-MODE_ORDER is already most-self-sufficient-first so a session that dies
-part-way leaves the operator-free modes on the remote:
-06_full_autonomy, 01_master_teleop, 03_shared_autonomy, 02_vr_teleop,
-04_vr_shared.
-
-## PART 3 — the verifier's known blind spots
-
-  * it once globbed only `rviz_front` and **seven black gripper views passed**
-  * **HUD text counts as the object** unless the top 24% is ignored (587
-    "ball" pixels, 529 of them letters)
-  * thresholds must be calibrated on RENDERED colour; RViz shades everything
-  * it must catch its constructed broken clips BEFORE printing anything
+  * part 3 (re-verify by looking) — nothing to look at yet
+  * part 4 (the report)
+  * modes 01, 02, 03, 04 — not attempted
 
 # RESUME POINT — 2026-08-11 (third session)
 

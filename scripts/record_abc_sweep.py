@@ -559,25 +559,42 @@ def build_gui():
     return app, g
 
 
+def _fail(why):
+    """Every exit from run_one must have the SAME ARITY as the success path.
+
+    The error paths returned a 2-tuple while the caller unpacks 5, so the
+    FIRST real failure -- a missing GUI spec -- surfaced as
+    `ValueError: not enough values to unpack (expected 5, got 2)` with the
+    actual reason nowhere on screen. A failure path that cannot report is
+    worse than no failure path.
+    """
+    return False, why, None, None, None
+
+
 def run_one(app, gui, task, mode, out_dir, graph=None,
-            start_grabs=None, motion_wait_s=45.0, prefix="abc"):
+            start_grabs=None, motion_wait_s=45.0, prefix="abc", gui_key=None):
     """Press the GUI button for (task, mode) and wait for it to finish."""
     # THE WHOLE MODE NAME, not its first two characters. Cutting the key to
     # two characters is what let 03_shared_autonomy and the legacy alias
     # 04_shared_autonomy collide on one key; the specs are now keyed by the
     # full mode and this must match or every lookup returns None.
-    key = "%s_%s_%s" % (prefix, task, mode)
+    # THE GUI KEY USES THE DISPATCHER KEY, NOT THE TASKSET KEY. For the MSc
+    # set those differ -- msc_clip_tasks calls them t0-t3, the dispatcher and
+    # therefore the buttons call them m0-m3, because t1..t9 are refused by
+    # name as the archived set. Building the key from the taskset key gave
+    # `msc_t0_...`, which matches no button.
+    key = "%s_%s_%s" % (prefix, gui_key or task, mode)
     spec = next((s for s in gui.specs if s.key == key), None)
     if spec is None:
-        return False, "no GUI spec %r" % key
+        return _fail("no GUI spec %r" % key)
     if not spec.enabled:
-        return False, "GUI button disabled: %s" % spec.disabled_reason
+        return _fail("GUI button disabled: %s" % spec.disabled_reason)
     before = len(gui.jobs)
     ref = graph.joints(3.0) if graph is not None else None
     gui.on_launch(spec)
     app.processEvents()
     if len(gui.jobs) == before:
-        return False, "the GUI refused to launch it (see its log)"
+        return _fail("the GUI refused to launch it (see its log)")
     label, proc = gui.jobs[-1]
     t0 = time.monotonic()
 
@@ -619,7 +636,7 @@ def run_one(app, gui, task, mode, out_dir, graph=None,
     rc = proc.poll()
     if rc is None:
         proc.kill()
-        return False, "timed out after 300 s"
+        return _fail("timed out after 300 s")
     # THE RUNNER EXITS NON-ZERO IF NO ARM MOVED. That is the whole reason the
     # clip can be trusted: a stationary arm is not recorded as a success.
     return rc == 0, ("run exited %s" % rc), grabs, gate, grab_t0
@@ -731,7 +748,7 @@ def main():
                     app, gui, task, mode, out_dir, graph=graph,
                     start_grabs=lambda: rr.start_grabs(out_dir,
                                                       grip_arm),
-                    prefix=ts["prefix"])
+                    prefix=ts["prefix"], gui_key=ts["arg"](task))
                 log("      capture gated on %s" % gate)
                 time.sleep(1.0)
                 rr.stop_grabs(grabs)

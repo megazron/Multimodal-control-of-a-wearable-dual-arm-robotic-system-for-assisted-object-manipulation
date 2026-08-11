@@ -1,0 +1,42 @@
+[
+  {
+    "ok": false,
+    "why": "clip only 1.3 s long",
+    "duration_s": 1.3,
+    "angles_bad": [],
+    "mode": "06_full_autonomy",
+    "task": "t0",
+    "scenario": "D3_three_targets",
+    "condition": "-"
+  },
+  {
+    "ok": false,
+    "why": "clip only 1.3 s long",
+    "duration_s": 1.3,
+    "angles_bad": [],
+    "mode": "06_full_autonomy",
+    "task": "t1",
+    "scenario": "S1_left_arm",
+    "condition": "-"
+  },
+  {
+    "ok": false,
+    "why": "clip only 1.2 s long",
+    "duration_s": 1.2,
+    "angles_bad": [],
+    "mode": "06_full_autonomy",
+    "task": "t2",
+    "scenario": "S2_full_lift",
+    "condition": "-"
+  },
+  {
+    "ok": false,
+    "why": "clip only 1.3 s long",
+    "duration_s": 1.3,
+    "angles_bad": [],
+    "mode": "06_full_autonomy",
+    "task": "t3",
+    "scenario": "S1_measure_cycle",
+    "condition": "-"
+  }
+]

@@ -56,12 +56,25 @@ def clear_shm():
 
 
 def stack_pids():
-    out = subprocess.run(["ps", "-eo", "pid,comm"], capture_output=True,
+    """Live stack processes. ZOMBIES DO NOT COUNT.
+
+    A process that has been SIGKILLed but not yet reaped still appears in ps
+    with STAT Z, and counting it made kill_stack() report "8 processes
+    survived SIGKILL" moments before they all vanished -- so the session
+    helper refused to start on a machine that was in fact clean. A refusal
+    that fires on a transient is worse than no refusal, because the next
+    person disables it.
+    """
+    out = subprocess.run(["ps", "-eo", "pid,stat,comm"], capture_output=True,
                          text=True).stdout.splitlines()
     want = {"move_group", "rviz2", "ros2_control_node",
             "robot_state_publisher", "spawner"}
-    return [int(l.split()[0]) for l in out[1:]
-            if l.split() and l.split()[-1] in want]
+    pids = []
+    for line in out[1:]:
+        f = line.split()
+        if len(f) >= 3 and f[-1] in want and not f[1].startswith("Z"):
+            pids.append(int(f[0]))
+    return pids
 
 
 def kill_stack(sig=signal.SIGINT, grace=4.0):
@@ -76,7 +89,11 @@ def kill_stack(sig=signal.SIGINT, grace=4.0):
             os.kill(p, signal.SIGKILL)
         except OSError:
             pass
-    time.sleep(1.5)
+    # Give the kernel a moment to reap before deciding anything survived.
+    for _ in range(6):
+        time.sleep(0.75)
+        if not stack_pids():
+            break
     return stack_pids()
 
 

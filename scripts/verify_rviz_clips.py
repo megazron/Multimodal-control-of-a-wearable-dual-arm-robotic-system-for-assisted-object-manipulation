@@ -625,3 +625,71 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+# ---------------------------------------------------------------- subject
+# THE TASK'S SUBJECT MUST BE IN THE FRAME.
+#
+# Two mode-06 clips passed EVERY check here while missing the thing the task
+# is about: T0 showed both arms reaching for nothing -- no spheres, no bench --
+# and T2 showed a tray with no ball on it. Every existing check was satisfied,
+# because each asks "did something move / is it bright enough / is an object
+# somewhere", and none asks "is the SUBJECT there".
+SUBJECTS = {
+    "t0": ("L1", "L2", "L3", "R1", "R2", "R3"),
+    "t1": ("cube_0", "cube_1", "cube_2", "cube_3"),
+    "t2": ("tray", "ball"),
+    "t3": ("circuit_box", "multimeter"),
+}
+
+
+def subjects_present(clip_dir, task, events=None):
+    """(ok, missing, detail) -- are the task's declared subjects recorded?
+
+    Reads scene_events.json, which is the scene's OWN account of what it drew
+    and attached. A subject absent from it was never in the picture either.
+
+    NOT a pixel check: colour detection already exists and is per-object, and
+    duplicating it here would give two answers to one question. What this adds
+    is COMPLETENESS -- the pixel checks can only speak about objects they were
+    told to look for.
+    """
+    want = SUBJECTS.get(task)
+    if want is None:
+        return False, [], "no subject list declared for task %r" % task
+    if events is None:
+        f = os.path.join(clip_dir, "scene_events.json")
+        if not os.path.exists(f):
+            return False, list(want), "no scene_events.json"
+        try:
+            events = json.load(open(f))
+        except Exception as e:
+            return False, list(want), "unreadable scene_events.json: %s" % e
+    have = {i.get("item") for i in events.get("items", [])}
+    have |= set(events.get("fixtures", []))
+    missing = [w for w in want if w not in have]
+    return (not missing), missing, "have=%s" % sorted(have)
+
+
+def subject_control(verbose=True):
+    """NEGATIVE CONTROL: a clip with furniture drawn and the SUBJECT suppressed
+    must be caught, and a complete one must not be flagged.
+
+    This is the exact shape of the two clips that shipped: the scene ran, the
+    file was written, objects were listed -- and the task's own subject was not
+    among them.
+    """
+    ok_full, miss_full, _ = subjects_present(
+        "", "t2", events={"items": [{"item": "tray"}, {"item": "ball"}]})
+    ok_part, miss_part, _ = subjects_present(
+        "", "t2", events={"items": [{"item": "tray"}]})     # the shipped bug
+    ok_t0, miss_t0, _ = subjects_present(
+        "", "t0", events={"items": [], "fixtures": []})     # drew nothing
+    caught = (not ok_part) and ("ball" in miss_part) and (not ok_t0)
+    clean = ok_full and not miss_full
+    if verbose:
+        print("  %-34s %s" % ("tray without its BALL is caught",
+                              "PASS" if caught else "FAIL"))
+        print("  %-34s %s" % ("a complete subject list passes",
+                              "PASS" if clean else "FAIL"))
+    return caught and clean

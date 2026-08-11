@@ -217,9 +217,12 @@ TASKS = {
         # single-arm schedule here would show the meter being carried by an
         # open hand.
         grip=lambda n: {
-            "right": _sched(n, "right", 4, n - 5, 110)["right"],
+            # 50 mm, not 110: the box is 110 mm deep and the 2F-85 spans 85,
+            # so 110 is not a grip this hand can make. It takes the box across
+            # its 50 mm height.
+            "right": _sched(n, "right", 4, n - 5, 50)["right"],
             "left": _sched(n, "left", 12, n - 8, 30)["left"]},
-        width_mm=110,
+        width_mm=50,
         grip_obj=T3M.BOX_OBJ,
         place_target=ee_for(T3M.BOX_PRESENT),
         expect="RIGHT arm picks up the circuit box and holds it raised while "

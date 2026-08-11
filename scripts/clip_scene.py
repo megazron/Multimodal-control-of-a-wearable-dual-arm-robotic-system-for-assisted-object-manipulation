@@ -224,9 +224,16 @@ class Scene(Node):
             # rest are shown so the colour-matching task is legible.
             out = {}
             for i, (cx, cy) in enumerate(MCT.T1_CUBES):
+                # ee_for(), NOT the object position. _items() positions are
+                # WRIST poses: tick() adds pad_off to recover where the object
+                # actually sits, exactly as the a/b/c tables do (their pos is
+                # A_PICK = ee_for(A_BLOCK_OBJ)). Passing the OBJECT position
+                # here displaced every MSc item by |PAD_OFFSET| -- measured as
+                # T1's min_pad_obj_m of 0.0957 m against a 0.03 m gate, so the
+                # fingers closed at the right MOMENT 96 mm from the cube.
                 out["cube_%d" % i] = dict(
                     arm="left", width_mm=40,
-                    pos=[cx, cy, MCT.T1_Z], size=(0.04,) * 3,
+                    pos=CT.ee_for([cx, cy, MCT.T1_Z]), size=(0.04,) * 3,
                     col=(BLUE if i in (0, 2) else GREEN), held=False,
                     graspable=(i == 0))
             return out
@@ -235,16 +242,22 @@ class Scene(Node):
             # single wide object because that is what it is -- drawing two
             # would show the coupling task as two independent objects.
             return {"tray": dict(arm="left", width_mm=30,
-                                 pos=[0.0, CT.Y, 1.32],
+                                 pos=CT.ee_for([0.0, CT.Y, 1.32]),
                                  size=(0.56, 0.26, 0.02), col=ORANGE,
                                  held=True)}
         if task == "t3":
-            return {"circuit_box": dict(arm="right", width_mm=110,
-                                        pos=list(T3M.BOX_OBJ),
+            # WIDTH 50, NOT 110. The box is 170 x 110 x 50 mm and the 2F-85
+            # spans 85 mm, so 110 is not a grip the hand can make at all --
+            # grip_for(110) never produced a closable target and the knuckle
+            # stayed at 0.0 for the whole run (min_pad_obj_closed_m: None).
+            # 50 mm is the box's HEIGHT: the gripper takes it across the
+            # thickness, which is the only dimension that fits.
+            return {"circuit_box": dict(arm="right", width_mm=50,
+                                        pos=CT.ee_for(T3M.BOX_OBJ),
                                         size=T3M.BOX_SIZE, col=GREEN,
                                         held=False),
                     "multimeter": dict(arm="left", width_mm=30,
-                                       pos=list(T3M.METER_OBJ),
+                                       pos=CT.ee_for(T3M.METER_OBJ),
                                        size=T3M.METER_SIZE, col=YELLOW,
                                        held=False)}
         raise KeyError("clip_scene has no item table for task %r -- refusing "
@@ -391,13 +404,17 @@ class Scene(Node):
                 (1.0 - 2.0 * (x * x + y * y)) * d]
 
     def tick(self):
-        if not self.items:
-            # T0 HAS NO OBJECTS. A task with nothing to grasp must draw
-            # nothing -- not a placeholder, which would show an object in the
-            # one task whose whole point is that there isn't one. Without this
-            # guard the line below raises StopIteration on an empty dict.
-            return
-        if self.pad_off is None:
+        # THE FURNITURE IS PUBLISHED UNCONDITIONALLY. Only the GRASPABLE items
+        # are gated on self.items.
+        #
+        # The first version returned here when items was empty, to avoid
+        # `next(iter(...))` raising StopIteration on a task with no objects.
+        # It suppressed the WHOLE SCENE: the T0 clip rendered the arms waving
+        # in an empty void -- no spheres, no bench, no bin -- and passed every
+        # automatic check, because "the arm moved" was all anything measured.
+        # A task with nothing to GRASP still has a bench to stand on and
+        # targets to reach.
+        if self.items and self.pad_off is None:
             arm = next(iter(self.items.values()))["arm"]
             off = self._pad_offset(arm)
             if off is None:
@@ -441,6 +458,60 @@ class Scene(Node):
                  CT.A_BIN_D if dx else 0.02, CT.A_BIN_H), TEAL)
         # the circuit box task C probes and task B places onto
         add(Marker.CUBE, CT.BOX_OBJ, (0.17, CT.BOX_D, CT.BOX_H), GREEN)
+
+        # ---- PER-TASK SCENE FIXTURES: the task's SUBJECT ----------------
+        # Things the task is ABOUT that are not grasped. They belong here, not
+        # in _items(), because _items() is the attach/detach machinery -- an
+        # entry there follows the gripper. A T0 sphere must be visible and
+        # must NOT move with the hand.
+        #
+        # This section exists because two clips passed every automatic check
+        # with their subject missing: T0 showed arms reaching for nothing, and
+        # T2 showed a tray with no ball to fall off it.
+        self.fixtures = getattr(self, "fixtures", [])
+        if self.task == "t0":
+            # The SAMPLED study set at the clip's fixed seed -- not the
+            # A/B/C/D calibration constants, which is a different set at
+            # different coordinates.
+            import msc_clip_tasks as _MCT
+            import task0 as _T0
+            tgt, _meta = _T0.sample_trial(_MCT.T0_CLIP_SEED)
+            for label in ("L1", "L2", "L3", "R1", "R2", "R3"):
+                p3 = tgt[label]
+                add(Marker.SPHERE, list(p3),
+                    (2 * _T0.TARGET_R_M,) * 3,
+                    BLUE if label.startswith("L") else GREEN, ns="targets")
+                # The LABEL, so a viewer can tell L2 from L3 rather than
+                # trusting that the arm went to the right one.
+                lab = Marker()
+                lab.header.frame_id = "world"
+                lab.ns, lab.id = "target_labels", i
+                lab.type = Marker.TEXT_VIEW_FACING
+                lab.action = Marker.ADD
+                lab.text = label
+                lab.pose.position.x = float(p3[0])
+                lab.pose.position.y = float(p3[1])
+                lab.pose.position.z = float(p3[2]) + 0.045
+                lab.pose.orientation.w = 1.0
+                lab.scale.z = 0.045
+                (lab.color.r, lab.color.g,
+                 lab.color.b, lab.color.a) = (1.0, 1.0, 1.0, 1.0)
+                A.markers.append(lab)
+                i += 1
+                if label not in self.fixtures:
+                    self.fixtures.append(label)
+        elif self.task == "t2":
+            # THE BALL. It is the failure indicator: the tray tilting past
+            # 6.8 deg rolls it off, and without it a tilt has no visible
+            # consequence at all. Drawn ON the tray and carried WITH it, so a
+            # level carry keeps it and a tilted one does not.
+            tray = self.items.get("tray")
+            if tray is not None:
+                bp = list(tray["pos"])
+                bp[2] += tray["size"][2] / 2.0 + 0.020
+                add(Marker.SPHERE, bp, (0.040,) * 3, YELLOW, ns="ball")
+                if "ball" not in self.fixtures:
+                    self.fixtures.append("ball")
 
         # ---- the graspable object --------------------------------------
         for name, it in self.items.items():
@@ -578,6 +649,12 @@ def main():
                                         if "min_d_closed" in it else None),
                                     grasp_near_m=GRASP_NEAR_M))
             json.dump(dict(task=n.task, events=n.events, items=summary,
+                           # WHAT THE SCENE DREW that is not a graspable item.
+                           # The task's SUBJECT can be a fixture -- T0's
+                           # spheres, T2's ball -- and a check that reads only
+                           # `items` cannot tell a missing subject from a task
+                           # that never had one.
+                           fixtures=sorted(getattr(n, "fixtures", [])),
                            t0_wall=getattr(n, "t0_wall", None),
                            # The wrist->pad offset the whole scene was shifted
                            # by, so a consumer comparing against a declared

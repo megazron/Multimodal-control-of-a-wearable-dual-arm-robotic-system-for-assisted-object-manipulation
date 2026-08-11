@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  UDP-ONLY FAST DDS PROFILE. The shared-memory transport is disabled here on
+  purpose, and this is the evidence that justified it.
+
+  Symptom, five runs across three environment configurations: a separately
+  started process could not talk to the stack, while the stack's own nodes
+  talked to each other perfectly (fsr_gripper_node read /joint_states without
+  trouble). Every readiness probe reported
+
+      joint_state_msgs=0  arm_joints=0  ik=True  followers=0
+
+  Counting could not distinguish the possible causes, so the probe was made to
+  print the LISTS instead. That settled it in one run:
+
+      probe sees 1 nodes: ['sim_ready_probe']
+      probe sees 81 topics
+      /joint_states       publishers=1 subscribers=7  PRESENT in topic list
+      /tf                 publishers=1 subscribers=6  PRESENT in topic list
+      /robot_description  publishers=1 subscribers=1  PRESENT in topic list
+
+  DISCOVERY IS FINE. The probe found all 81 topics and counted the publishers
+  and subscribers correctly -- it knew exactly who was there. What never
+  arrived was DATA: zero samples on a topic with one publisher and seven
+  subscribers already matched.
+
+  Matched endpoints plus zero delivery is the shared-memory data path failing
+  while discovery (UDP multicast) succeeds. Fast DDS said so directly in the
+  launch log:
+
+      RTPS_TRANSPORT_SHM Error] Failed init_port fastrtps_port7002:
+      open_and_lock_file failed
+
+  CLAUDE.md already records this class -- "stale /dev/shm/fastrtps_* segments
+  ... discovery goes intermittent: services appear for one client and not
+  another" -- and prescribes clearing them with the stack stopped. That was
+  done repeatedly this session (up to 153 segments at a time) and did not fix
+  it, so the SHM transport is removed from the data path rather than repaired.
+
+  Everything in this project runs on one machine, so UDP over loopback loses
+  nothing but the shared-memory fast path, which is not usable here anyway.
+
+  APPLIES TO BOTH SIDES. It is exported from sim_session.py's SRC, which is
+  the single shell prelude used for both the launch and the probe. Setting it
+  on only one side would leave them on different transports, which is the very
+  failure this file exists to remove.
+-->
+<dds xmlns="http://www.eprosima.com">
+  <profiles>
+    <transport_descriptors>
+      <transport_descriptor>
+        <transport_id>udp_only_transport</transport_id>
+        <type>UDPv4</type>
+      </transport_descriptor>
+    </transport_descriptors>
+
+    <participant profile_name="udp_only_participant" is_default_profile="true">
+      <rtps>
+        <userTransports>
+          <transport_id>udp_only_transport</transport_id>
+        </userTransports>
+        <!-- Without this the built-in SHM transport is added back alongside
+             ours, and the broken path returns. -->
+        <useBuiltinTransports>false</useBuiltinTransports>
+      </rtps>
+    </participant>
+  </profiles>
+</dds>

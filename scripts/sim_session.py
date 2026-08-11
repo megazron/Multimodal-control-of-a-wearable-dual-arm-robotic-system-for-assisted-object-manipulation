@@ -80,7 +80,15 @@ WS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET and RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 # while a `bash -lc` shell has all three unset. It is just not what is
 # isolating the probe.
-SRC = "source /opt/ros/jazzy/setup.bash && source %s/install/setup.bash" % WS
+# THE UDP-ONLY PROFILE IS EXPORTED HERE BECAUSE THIS IS THE ONE PRELUDE BOTH
+# THE LAUNCH AND THE PROBE USE. See config/fastdds_udp_only.xml for the
+# evidence: discovery was working (81 topics, /joint_states with publishers=1
+# and subscribers=7 already matched) while ZERO samples were delivered, which
+# is the shared-memory data path failing under a healthy discovery path.
+# Setting it on one side only would put the two on different transports.
+SRC = ("source /opt/ros/jazzy/setup.bash && source %s/install/setup.bash "
+       "&& export FASTRTPS_DEFAULT_PROFILES_FILE=%s/config/fastdds_udp_only.xml"
+       % (WS, WS))
 
 
 def clear_shm():
@@ -262,6 +270,25 @@ while time.time() < deadline:
         ready = True
         break
 _nm = [x[0] for x in n.get_node_names_and_namespaces()]
+# ON TIMEOUT, PRINT THE LISTS, NOT THE COUNTS.
+#
+# Five runs across three environment configurations all reported the same
+# three numbers -- joint_state_msgs=0, arm_joints=0, followers=0, with
+# ik=True -- and those numbers cannot tell "this process sees only
+# move_group" from "it sees everything and /joint_states has no publisher".
+# Those are different faults with different fixes, and counting could never
+# separate them. The lists can.
+if not ready:
+    print("   probe sees %d nodes: %s" % (len(_nm), sorted(_nm)))
+    _tp = n.get_topic_names_and_types()
+    print("   probe sees %d topics" % len(_tp))
+    for _t in ("/joint_states", "/tf", "/robot_description"):
+        _pub = n.count_publishers(_t)
+        _sub = n.count_subscribers(_t)
+        print("   %-20s publishers=%d subscribers=%d %s"
+              % (_t, _pub, _sub,
+                 "PRESENT in topic list" if any(x[0] == _t for x in _tp)
+                 else "ABSENT from topic list"))
 print("READY" if ready else "TIMEOUT",
       "joint_state_msgs=%d arm_joints=%d ik=%s followers=%d"
       % (got["js"],
@@ -286,7 +313,7 @@ def wait_ready(timeout_s, need_followers=False):
                             % (SRC, p, timeout_s, int(need_followers))],
                            capture_output=True, text=True,
                            timeout=timeout_s + 60)
-        print("   probe: %s" % (r.stdout.strip() or r.stderr.strip()[:200]))
+        print("   probe: %s" % (r.stdout.strip() or r.stderr.strip()[:400]))
         return r.returncode == 0
     except subprocess.TimeoutExpired:
         print("   probe: TIMEOUT (the probe itself did not return)")

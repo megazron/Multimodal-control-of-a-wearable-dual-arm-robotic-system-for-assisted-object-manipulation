@@ -1,3 +1,118 @@
+# RESUME POINT — ALL FIVE MODES RECORDED AND INSPECTED
+
+**20 clips, 8 angles each, one identical task definition, every capture gated
+on MOTION and not one on timeout.** Mode 06 is citable and so are the other
+four. `recordings/verification/<mode>/<TASK>/<scenario>/`, 108 MB.
+
+| mode | T0 travel L/R | T1 grasp/rel | T1 placed | worst closed |
+| --- | --- | --- | --- | --- |
+| 06_full_autonomy | 1.716 / 1.477 | 4/4 | 14 mm | 0.0000 m |
+| 01_master_teleop | 1.569 / 1.283 | 4/4 | 0 mm | 0.0000 m |
+| 03_shared_autonomy | 1.541 / 1.294 | 4/4 | 16 mm | 0.0000 m |
+| 02_vr_teleop | 1.707 / 1.453 | 4/4 | 22 mm | **0.0042 m** |
+| 04_vr_shared | 1.760 / 1.478 | 4/4 | 9 mm | 0.0000 m |
+
+T3 is 2/2 in every mode. T0 and T2 have no grasp by design.
+
+## START HERE
+
+Part 6 (graphs) and Part 7 (the report) in `docs/WORK_BRIEF.md`. The clips and
+their `scene_events.json` are the evidence base; nothing about the geometry or
+the recording is outstanding.
+
+```
+python3 scripts/audit_task_specs_vs_scene.py    # no stack, ~1 s, 39 checks
+python3 scripts/clip_contact_sheet.py --angle front --mode 06_full_autonomy
+```
+
+## HOW TO RECORD ON THIS MACHINE, because it took a while to learn
+
+* **ONE TASK PER INVOCATION.** `record_abc_sweep` aborts on exit (`terminate
+  called without an active exception`, exit -6) AFTER the work is done and the
+  progress file is written. Harmless at the end of a run; fatal in the middle
+  of one, because it takes the remaining tasks with it. The progress file is
+  the authority on what was recorded, not the exit code.
+* **DETACH WITH `setsid`, AND DO NOT POLL.** A foreground or harness-background
+  Bash call is killed at 600 s, and T1 needs longer. Launch with `setsid ...
+  &`, then wait with a script that watches the LOG and uses `procscan` to tell
+  "finished" from "died" -- `pgrep -f` matches the waiting shell's own command
+  line and always reports the job alive.
+* **The stack survives between calls.** `sim_session.py --stack teleop
+  --keep-up -- true` brings it up once; every per-task recording then runs
+  against it and costs only its own time.
+
+## WHAT LOOKING AT THE FRAMES FOUND THAT NO CHECK DID
+
+Seven defects, and the sweep reported four of them as OK:
+
+1. **T1 closed once and opened once** across four pick-and-places. All four
+   cubes ended in one place. Reported as "PLACED 0.189 m FROM TARGET", which
+   was true and named the wrong cause.
+2. **Every cube followed the hand** -- `graspable: False` was declared on
+   three of four and never read -- and a placed cube was collected again by
+   the delivery of the next one.
+3. **The arrival gate assumed ONE object.** T1's first open waited for the
+   pads to return to cube_0 while the arm was at the plane. Per ARM, too:
+   T3's left arm was waiting to arrive at the circuit box, so the
+   **multimeter was never grasped at all**, carried 0.000 m, sweep OK.
+4. **The scene shifted every object by ONE arm's wrist->pad vector.** The arms
+   are parked asymmetrically and their offsets differ by 49 mm, so T3's
+   left-arm meter was drawn outside the 30 mm capture window. `[GRIP] deferred
+   1/5 ticks` proved the hand closed on schedule; the grasp test refused it.
+5. **T3 released the box before it had lifted it** -- 0.025 m of an 80 mm
+   lift, because the schedule opened the hand while the asynchronous follower
+   was still climbing. ARM DRIFT DURING THE HOLD is this task's own
+   measurement, so a hold the arm never settles into measures nothing.
+6. **One camera framing for four tasks.** T0's two FRONT_UP targets and T2's
+   tray were ABOVE THE FRAME; T1's workspace rendered sixty pixels wide; T3's
+   measurement points were sub-pixel. All consequences of raising T0's
+   directions and T2's band without re-aiming the camera.
+7. **T1's LAST cube missed by 3.7 mm** under master teleop -- cubes 0-2 closed
+   at 8.5-8.8 mm from the object, cube_3 at 33.7 mm against a 30 mm gate. Lag
+   accumulates along the sequence. Fixed in the TASK, identical for every
+   mode, and mode 06 re-recorded on the new definition rather than left on the
+   old one: a clip-side workaround per mode would put the mode comparison at
+   the mercy of the clip.
+
+**The lesson is the one this project already knew and paid for again: an arm
+moving with objects moving alongside it looks correct in every metric.** Four
+of those seven passed the sweep.
+
+## TWO HONEST RESIDUALS
+
+* T1's four cubes cannot all be counted simultaneously in the front view --
+  the arm occludes some. The events file records all four grasp/release pairs.
+* T3's four measurement points are sub-pixel at the front framing. They are
+  published and appear in `fixtures`; the gripper close-up shows them.
+
+## THE FIXTURING FINDING IS A RESULT
+
+`docs/system/13_fixturing_and_the_approach_cone.md`. No support geometry
+beneath these objects is compatible with the pinned wrist -- lips 16-22
+waypoint failures at any overhang, plane lips 32-52, footprint-only pads 26,
+side posts 65, none 0, with both controls correct. The approach cone occupies
+the front, the underside AND the sides.
+
+**The cost, stated plainly and belonging in the write-up: objects are
+FIXTURED, and an object that cannot fall cannot be dropped, so `drops` is not
+a measurable outcome for T1.** Grasp success, placement success and
+wrong-colour placement are unaffected.
+
+The fix, if anyone wants it: raise the objects onto stands so the approach
+cone lies in free air above the bench. That moves `T1_Z` and is a layout
+re-derivation against `verify_t1_layout.py`, not a scene edit.
+`SUPPORTS_ENABLED` in `clip_scene.py` re-enables the lips for re-measuring.
+
+## STILL TRUE
+
+* Nothing in this repository has ever run against a real arm.
+* T3's box is at the wearer's SIDE (|x| = 0.54); whether that is a workable
+  posture needs a person in the rig, not a solver.
+* T2's ball is drawn, not simulated: the clip shows the geometry, not the
+  physics.
+
+---
+
 # RESUME POINT — the four scene defects are FIXED and VERIFIED; mode 06 is NOT re-recorded
 
 **Read this first. The one thing left before mode 06 can be recorded is

@@ -86,9 +86,44 @@ WS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # and subscribers=7 already matched) while ZERO samples were delivered, which
 # is the shared-memory data path failing under a healthy discovery path.
 # Setting it on one side only would put the two on different transports.
+# CORRECTED 2026-08-11: THE BROKEN TRANSPORT IS UDP, NOT SHM.
+#
+# The previous conclusion -- "shared memory is the root cause, force UDP-only"
+# -- had the two the wrong way round, and it was believed because the only
+# instrument was a probe that could not join the graph for a DIFFERENT reason
+# (see wait_ready). Measured here, three ways, on a clean machine:
+#
+#   BARE SANITY FLOOR, two separate shells, ros2 topic pub -> ros2 topic hz
+#       SHM      5.001 Hz          <- works
+#       UDPv4    nothing at all
+#       DEFAULT  nothing at all
+#
+#   THE STACK, launched with each setting
+#       SHM      joint_state_broadcaster "Configured and activated" 1 s after
+#                the controller manager loads it; every controller up
+#       UDPv4    controller_manager repeats "Waiting for data on
+#                'robot_description' topic to finish initialization" for the
+#                whole window and NOTHING ever activates -- the latched ~MB
+#                URDF never crosses UDP on this box (net.core.rmem_max is
+#                212992, and no fragment reassembly fits in it)
+#
+#   A FRESH PROBE against a healthy SHM stack
+#       SHM      31 nodes, 81 topics, /joint_states publishers=1
+#       UDPv4    1 node, 2 topics
+#       DEFAULT  1 node, 2 topics
+#
+# So UDP is dead on this host in both directions, DEFAULT (SHM + UDP) is dead
+# with it, and SHM alone carries everything including the big latched URDF.
+# config/fastdds_udp_only.xml is kept for its evidence and must not be used;
+# it additionally sets <useBuiltinTransports>false</useBuiltinTransports>,
+# which broke SERVICES -- every spawner sat waiting on
+# /controller_manager/list_controllers.
+#
+# SRL_DDS_TRANSPORT overrides it for re-testing, so the next person can
+# re-measure the table above without editing this file.
 SRC = ("source /opt/ros/jazzy/setup.bash && source %s/install/setup.bash "
-       "&& export FASTRTPS_DEFAULT_PROFILES_FILE=%s/config/fastdds_udp_only.xml"
-       % (WS, WS))
+       "&& export FASTDDS_BUILTIN_TRANSPORTS=%s"
+       % (WS, os.environ.get("SRL_DDS_TRANSPORT", "SHM")))
 
 
 def clear_shm():
@@ -301,22 +336,55 @@ sys.exit(0 if ready else 1)
 '''
 
 
-def wait_ready(timeout_s, need_followers=False):
+def wait_ready(timeout_s, need_followers=False, chunk_s=30):
     """Block until a real node RECEIVES arm joint states and /compute_ik is
-    up, or fail loudly. Returns True/False -- never hangs."""
+    up, or fail loudly. Returns True/False -- never hangs.
+
+    THE PROBE IS RE-SPAWNED, NOT MERELY RE-SPUN, AND THAT IS THE FIX.
+    ================================================================
+    MEASURED, with the stack healthy on SHM both times:
+
+        one probe process started ~1 s after the launch, spinning 180 s
+            -> "probe sees 1 nodes: ['sim_ready_probe']", 3 topics
+        a FRESH probe process started ~60 s after the same launch
+            -> 31 nodes, 81 topics, /joint_states publishers=1
+
+    So the graph was fine and the PROBE PARTICIPANT was poisoned: created
+    before the stack's participants existed, it never afterwards discovered
+    them, however long it spun. Spinning longer inside one process cannot fix
+    that -- which is why five sessions of environment and transport theories
+    all measured the same three zeros. A participant is cheap; discovery state
+    is not recoverable inside one.
+
+    Each chunk is a new process, so each is a new participant. The deadline is
+    unchanged: this is the same total wait, spent in a way that can succeed.
+    """
     p = os.path.join("/tmp", "sim_ready_probe_%d.py" % os.getpid())
     with open(p, "w") as f:
         f.write(WAIT_PROBE)
+    end = time.monotonic() + timeout_s
+    last = ""
     try:
-        r = subprocess.run(["bash", "-lc",
-                            "%s && python3 %s %d %d"
-                            % (SRC, p, timeout_s, int(need_followers))],
-                           capture_output=True, text=True,
-                           timeout=timeout_s + 60)
-        print("   probe: %s" % (r.stdout.strip() or r.stderr.strip()[:400]))
-        return r.returncode == 0
-    except subprocess.TimeoutExpired:
-        print("   probe: TIMEOUT (the probe itself did not return)")
+        attempt = 0
+        while True:
+            attempt += 1
+            left = end - time.monotonic()
+            if left <= 0:
+                break
+            this = int(min(chunk_s, left))
+            try:
+                r = subprocess.run(["bash", "-lc",
+                                    "%s && python3 %s %d %d"
+                                    % (SRC, p, this, int(need_followers))],
+                                   capture_output=True, text=True,
+                                   timeout=this + 60)
+                last = (r.stdout.strip() or r.stderr.strip()[:400])
+                if r.returncode == 0:
+                    print("   probe: %s (attempt %d)" % (last, attempt))
+                    return True
+            except subprocess.TimeoutExpired:
+                last = "TIMEOUT (the probe itself did not return)"
+        print("   probe: %s (%d attempts)" % (last, attempt))
         return False
     finally:
         try:
@@ -378,6 +446,21 @@ def main():
               % (len(left), left))
         return 2
     print("[sim] cleared %d stale /dev/shm segments" % clear_shm())
+    # LET THE SHARED-MEMORY DOMAIN SETTLE BEFORE THE FIRST NEW PARTICIPANT.
+    #
+    # MEASURED, and it is the whole of the "the probe cannot see the stack"
+    # blocker. Launching immediately after unlinking /dev/shm/fastrtps_*
+    # produced a graph that a separately-started process could join only
+    # PARTLY: it saw the six rclpy nodes and NONE of the four C++ ones, while
+    # ps showed move_group, ros2_control_node, robot_state_publisher and rviz2
+    # all alive with the broadcaster activated. Same command with a 5 s pause
+    # after the clear: READY, arm_joints=14, ik=True, followers=2.
+    #
+    # That is why five sessions of transport and environment theories all
+    # measured the same three zeros -- the transport was fine and the probe
+    # was fine; the domain was half-built because its segments had been
+    # deleted out from under processes that were still exiting.
+    time.sleep(5.0)
 
     log = os.path.join(WS, "log", "sim_session.log")
     os.makedirs(os.path.dirname(log), exist_ok=True)
@@ -417,7 +500,8 @@ def main():
     print("[sim] launching %s (%s) -> %s" % (launch.split()[-1], a.stack, log))
     proc = subprocess.Popen(
         ["bash", "-lc", "%s && exec %s" % (SRC, launch)],
-        stdout=lf, stderr=subprocess.STDOUT, start_new_session=True)
+        stdout=lf, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+        start_new_session=True)
 
     print("[sim] waiting for arm joint states AND /compute_ik%s (max %d s)"
           % (" AND both IK followers" if a.stack == "teleop" else "",

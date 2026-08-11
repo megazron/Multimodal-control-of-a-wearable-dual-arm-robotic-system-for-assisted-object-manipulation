@@ -1,0 +1,21 @@
+{
+  "04_vr_shared/t3/S1_measure_cycle": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "04_vr_shared",
+    "task": "t3",
+    "scenario": "S1_measure_cycle",
+    "quad": true,
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/04_vr_shared/T3/S1_measure_cycle"
+  }
+}

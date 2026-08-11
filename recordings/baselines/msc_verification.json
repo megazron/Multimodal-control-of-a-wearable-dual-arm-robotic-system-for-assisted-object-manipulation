@@ -9,21 +9,13 @@
   "furniture_per_task": {
     "t0": [],
     "t1": [
-      "bench",
-      "lip_cube_0",
-      "lip_cube_1",
-      "lip_cube_2",
-      "lip_cube_3",
-      "lip_plane_0",
-      "lip_plane_1"
+      "bench"
     ],
     "t2": [
       "bench"
     ],
     "t3": [
-      "bench",
-      "lip_circuit_box",
-      "lip_multimeter"
+      "bench"
     ]
   },
   "T0": {
@@ -47,7 +39,7 @@
         0.23
       ],
       "waypoints": 13,
-      "failures": 12
+      "failures": 0
     },
     "cube_1": {
       "xy": [
@@ -55,7 +47,7 @@
         0.23
       ],
       "waypoints": 13,
-      "failures": 12
+      "failures": 0
     },
     "cube_2": {
       "xy": [
@@ -63,7 +55,7 @@
         0.17
       ],
       "waypoints": 13,
-      "failures": 8
+      "failures": 0
     },
     "cube_3": {
       "xy": [
@@ -71,7 +63,7 @@
         0.23
       ],
       "waypoints": 13,
-      "failures": 12
+      "failures": 0
     },
     "plane_0": {
       "xy": [
@@ -79,7 +71,7 @@
         0.13
       ],
       "waypoints": 13,
-      "failures": 4
+      "failures": 0
     },
     "plane_1": {
       "xy": [
@@ -87,47 +79,47 @@
         0.13
       ],
       "waypoints": 13,
-      "failures": 4
+      "failures": 0
     },
-    "transport_failures": 16
+    "transport_failures": 0
   },
   "T2": {
     "S1_short_lift": {
-      "waypoints": 4,
+      "waypoints": 6,
       "failures": 0
     },
     "S2_full_lift": {
-      "waypoints": 5,
+      "waypoints": 16,
       "failures": 0
     },
     "S3_detour": {
-      "waypoints": 8,
+      "waypoints": 18,
       "failures": 0
     },
     "band_z": [
       1.32,
-      1.4
+      1.6
     ]
   },
   "T3": {
-    "right_-0.540_0.170_1.125": false,
+    "right_-0.540_0.170_1.125": true,
     "right_-0.540_0.170_1.205": true,
-    "left_0.340_0.190_1.123": false,
+    "left_0.340_0.190_1.123": true,
     "left_0.340_0.190_1.202": true,
-    "circuit_box_pick_failures": 4,
-    "multimeter_pick_failures": 2,
+    "circuit_box_pick_failures": 0,
+    "multimeter_pick_failures": 0,
     "min_expected_repositioning_requests": 2
   },
   "clip_paths": {
     "t0": {
       "left": {
-        "waypoints": 25,
-        "distinct": 9,
-        "failures": 0
+        "waypoints": 62,
+        "distinct": 27,
+        "failures": 2
       },
       "right": {
-        "waypoints": 25,
-        "distinct": 8,
+        "waypoints": 62,
+        "distinct": 27,
         "failures": 0
       }
     },
@@ -135,7 +127,7 @@
       "left": {
         "waypoints": 113,
         "distinct": 61,
-        "failures": 31
+        "failures": 0
       },
       "right": {
         "waypoints": 113,
@@ -145,13 +137,13 @@
     },
     "t2": {
       "left": {
-        "waypoints": 14,
-        "distinct": 4,
+        "waypoints": 21,
+        "distinct": 11,
         "failures": 0
       },
       "right": {
-        "waypoints": 14,
-        "distinct": 4,
+        "waypoints": 21,
+        "distinct": 11,
         "failures": 0
       }
     },
@@ -159,16 +151,16 @@
       "left": {
         "waypoints": 38,
         "distinct": 8,
-        "failures": 1
+        "failures": 0
       },
       "right": {
         "waypoints": 38,
         "distinct": 8,
-        "failures": 3
+        "failures": 0
       }
     }
   },
-  "clip_waypoints_tested": 103,
-  "ik_calls": 4265,
-  "failures": 111
+  "clip_waypoints_tested": 154,
+  "ik_calls": 6217,
+  "failures": 2
 }

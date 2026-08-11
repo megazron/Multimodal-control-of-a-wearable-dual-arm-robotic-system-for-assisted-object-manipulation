@@ -181,48 +181,134 @@ class RegionExhausted(RuntimeError):
     """
 
 
-def sample_targets(arm, seed, n=TARGETS_PER_ARM, band=BAND,
-                   min_sep=MIN_SEPARATION_M, validate=None, max_draws=400):
-    """Draw n sphere positions for one arm, reproducibly from `seed`.
+# ==========================================================================
+# THE THREE DIRECTIONS (2026-08-11) -- THIS REPLACES THE SINGLE BAND
+# ==========================================================================
+# BAND above is bench-derived and it should never have set the STUDY targets.
+# It is the largest rectangle both arms can work with the BENCH IN THE SCENE,
+# 200 x 80 mm, and T0 has no bench: it is reaching only -- no objects, no
+# grasp, nothing to rest on a surface -- so it was carrying another task's
+# furniture and, with it, another task's limits. Sampled at the clip seed, its
+# three targets landed 76 mm apart: an arm twitching between three points a
+# hand's breadth apart, and 0.219 m of commanded travel for the whole task.
+#
+# So the targets are now THREE DISTINCT DIRECTIONS per arm, re-derived in
+# T0's own scene (free space) by scripts/choose_t0_directions.py:
+#
+#     FRONT_UP     in front of the wearer, ABOVE the shoulder line. The
+#                  shoulder line is z = 1.46 -- the top of the 0.36 x 0.22 x
+#                  0.48 torso box centred at (0, 0, 1.22) in
+#                  human_backpack.xacro, not a round number.
+#     FRONT_OUT    directly in front at CHEST height (1.22), as far from the
+#                  body as the arm reaches. The chest front face is y = +0.11,
+#                  so y = 0.46 is a third of a metre clear of it.
+#     FRONT_DOWN   in front, BELOW chest height.
+#
+# HOW THEY WERE CHOSEN, and it is the project's own rule: a 40 mm grid swept
+# at 3 repeats, then only cells whose SIX +/-20 mm neighbours also solve --
+# feasibility on this rig falls off a cliff rather than degrading, so N
+# locates the boundary and MARGIN is what keeps you off it -- then the extreme
+# cell in each direction's own axis. Controls: 1.6 m out unreachable, a pose
+# inside the wearer unreachable, a known-good T0 pose reachable.
+#
+#     arm    direction     cells    chosen                    N=10 over every
+#                          feasible                           densified transit
+#     left   FRONT_UP      352      (+0.240, 0.440, 1.620)    0 pose failures,
+#     left   FRONT_OUT     173      (+0.280, 0.460, 1.260)    0 of 158
+#     left   FRONT_DOWN    262      (+0.320, 0.280, 0.920)    transit failures
+#     right  FRONT_UP      356      (-0.240, 0.440, 1.620)
+#     right  FRONT_OUT     188      (-0.280, 0.460, 1.220)
+#     right  FRONT_DOWN    300      (-0.360, 0.320, 0.920)
+#
+# Separations: left 0.363 / 0.723 / 0.387 m, right 0.403 / 0.720 / 0.341 m --
+# every pair at least 0.34 m apart, against 0.076 m before.
+DIRECTIONS = ("FRONT_UP", "FRONT_OUT", "FRONT_DOWN")
+LABEL_DIRECTION = {"L1": "FRONT_UP", "L2": "FRONT_OUT", "L3": "FRONT_DOWN",
+                   "R1": "FRONT_UP", "R2": "FRONT_OUT", "R3": "FRONT_DOWN"}
+DIRECTION_CENTRE = {
+    "left": {"FRONT_UP": [0.2400, 0.4400, 1.6200],
+             "FRONT_OUT": [0.2800, 0.4600, 1.2600],
+             "FRONT_DOWN": [0.3200, 0.2800, 0.9800]},
+    "right": {"FRONT_UP": [-0.2400, 0.4400, 1.6200],
+              "FRONT_OUT": [-0.2800, 0.4600, 1.2200],
+              "FRONT_DOWN": [-0.3600, 0.3200, 0.9800]},
+}
+# Randomisation is kept -- the study instrument is a randomised set and a
+# fixed one would let a participant learn the positions -- but it now happens
+# INSIDE each direction's own verified cell rather than across one small band.
+# FRONT_DOWN IS HELD 60 mm ABOVE THE CELL THE SEARCH CHOSE (0.920 -> 0.980),
+# for the reason the search cannot see. It maximises depth, so it returns the
+# LOWEST cell that still holds a 20 mm margin -- and the clip does not visit
+# the cell, it flies a straight line to it, densified at 30 mm rather than the
+# 20 mm the transits were verified at. Different sample points on the same
+# line: 2 of 27 distinct clip waypoints failed at N=10 while every one of the
+# 158 transit waypoints passed. 0.980 is still 240 mm below chest height and
+# leaves every pair of directions at least 0.28 m apart.
+#
+# 10 mm, NOT 15. The margin test is per AXIS -- each chosen cell holds at
+# +/-20 mm on all six -- but a jitter box is sampled on all three axes AT
+# ONCE, so its corner is sqrt(3) x the half-width away: 15 mm gives 26 mm,
+# which is outside the verified 20 mm and duly produced 1 unreachable pose in
+# 120 sampled. 10 mm puts the corner at 17.3 mm; 5 mm puts it at 8.7 mm, which
+# is where it is now, because the jitter also moves the straight line the clip
+# flies BETWEEN targets and that line is what the last two failures were on.
+# The failure was arithmetic, not bad luck, and the sampler is not the place
+# to find out.
+JITTER_M = 0.005
 
-    SAMPLES ONLY FROM THE MEASURED BAND.  `band` is the rectangle both arms
-    were verified over with the bench in the planning scene -- it is not a
-    nominal box and must not be widened without re-running
-    scripts/survey_task0_band.py.
+
+def sample_targets(arm, seed, n=TARGETS_PER_ARM, band=None,
+                   min_sep=MIN_SEPARATION_M, validate=None, max_draws=400):
+    """One sphere per DIRECTION for one arm, reproducibly from `seed`.
+
+    SAMPLES ONLY INSIDE THE MEASURED CELLS.  `DIRECTION_CENTRE` holds the cell
+    chosen for each direction and `JITTER_M` is the half-width of the box
+    drawn from; both come from scripts/choose_t0_directions.py against a live
+    solver in T0's own (empty) scene, and neither may be widened without
+    re-running it.
 
     `validate(arm, xyz) -> bool` is the second gate: even inside a verified
-    region every draw is re-checked, because the region was verified on a
-    grid and a sampled point falls between grid cells.  When no validator is
-    supplied the caller is trusting the region alone, which is right for a
-    dry run and wrong for a participant session.
+    region every draw is re-checked, because the region was verified on a grid
+    and a sampled point falls between grid cells.  When no validator is
+    supplied the caller is trusting the region alone, which is right for a dry
+    run and wrong for a participant session.
 
     Reproducibility is the contract: same seed and same arm gives the same
     targets, for ever, which is what makes a trial replayable.
+
+    It still RAISES rather than returning fewer targets, or relaxing the
+    separation, or falling back to a fixed set -- a trial that quietly ran
+    with two targets would be scored as a difficulty-3 trial and would be
+    neither.
     """
     import random
     rng = random.Random("%s|%s|%d" % (arm, seed, n))
-    sgn = 1.0 if arm == "left" else -1.0
-    out, draws, rejected = [], 0, {"separation": 0, "validator": 0}
-    while len(out) < n:
-        draws += 1
-        if draws > max_draws:
+    centres = DIRECTION_CENTRE[arm]
+    dirs = list(DIRECTIONS)[:n]
+    out, rejected = [], {"separation": 0, "validator": 0}
+    for d in dirs:
+        c = centres[d]
+        for attempt in range(max_draws):
+            p = [round(c[k] + rng.uniform(-JITTER_M, JITTER_M), 4)
+                 for k in range(3)]
+            if any(math.dist(p, q) < min_sep for q in out):
+                rejected["separation"] += 1
+                continue
+            if validate is not None and not validate(arm, p):
+                rejected["validator"] += 1
+                continue
+            out.append(p)
+            break
+        else:
             raise RegionExhausted(
-                "could not place %d targets for %s in %r after %d draws "
-                "(rejected: %s).  The region is too small for the "
-                "separation, or the validator is refusing it -- do not "
-                "relax either silently."
-                % (n, arm, band, max_draws, rejected))
-        p = [round(sgn * rng.uniform(*band["x"]), 4),
-             band["y"],
-             round(rng.uniform(*band["z"]), 4)]
-        if any(math.dist(p, q) < min_sep for q in out):
-            rejected["separation"] += 1
-            continue
-        if validate is not None and not validate(arm, p):
-            rejected["validator"] += 1
-            continue
-        out.append(p)
-    return dict(zip(LABELS[arm], out)), {"draws": draws, "rejected": rejected}
+                "could not place %s for %s within %.0f mm of %r after %d "
+                "draws (rejected: %s).  Do not relax the jitter or the "
+                "separation silently -- re-run "
+                "scripts/choose_t0_directions.py."
+                % (d, arm, JITTER_M * 1000, c, max_draws, rejected))
+    return (dict(zip(LABELS[arm], out)),
+            {"draws": len(out), "rejected": rejected,
+             "directions": dirs})
 
 
 def sample_trial(seed, validate=None, **kw):

@@ -50,7 +50,8 @@ from std_msgs.msg import Float64MultiArray, String
 from std_srvs.srv import Trigger
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from srl_teleop import master_calibration as mc
-from srl_teleop.serial_port import find_port, claim_exclusive
+from srl_teleop.serial_port import (find_port, claim_exclusive,
+                                    PortNotFound, candidates)
 from srl_teleop import degraded_mode as dg
 import tf_transformations  # quaternion helpers (roll,pitch,yaw -> quaternion)
 import re as _re
@@ -1470,15 +1471,80 @@ class MasterPoseNode(Node):
             self.status_pubs[a].publish(st)
 
 
+# A MISSING TEENSY IS A NORMAL CONDITION IN SIM, NOT AN EMERGENCY.
+#
+# Until 2026-08-11 a construction that raised PortNotFound propagated out of
+# main(), the process exited 1, and teleop.launch.py's respawn=True started it
+# again 5 s later -- for ever. MEASURED IN ONE LAUNCH: 1726 deaths, 18 MB of
+# log, each respawn re-scanning every serial candidate.
+#
+# THE COST WAS NOT THE LOG. The storm starved the controller manager -- "Read
+# time: 21011 us" against a 10000 us budget, 15 missed cycles -- and
+# joint_state_broadcaster's spawner then timed out on
+# /controller_manager/list_controllers three times and DIED. With no
+# broadcaster there is no /joint_states at all, so both IK followers sat in
+# "Waiting for /joint_states" and the whole stack looked half-up for a reason
+# that named neither the master arm nor the serial port. That indirection --
+# a missing USB device presenting as a starved real-time loop -- is the kind
+# that costs a session.
+#
+# The node now RETRIES WITH BACKOFF UP TO A CAP and then parks in a loud,
+# named DORMANT state instead of exiting. Parking rather than exiting is what
+# removes the storm; retrying first is what preserves the behaviour the lab
+# actually wants, which is that a board attached after launch gets picked up.
+RETRY_DELAYS_S = (2, 5, 10, 20, 30, 60)
+
+
 def main(args=None):
     rclpy.init(args=args)
-    node = MasterPoseNode()
+    node = None
     try:
-        rclpy.spin(node)
+        for attempt, delay in enumerate(RETRY_DELAYS_S + (None,), start=1):
+            try:
+                node = MasterPoseNode()
+                break
+            except PortNotFound as e:
+                # WHICH KIND OF ABSENCE, because they need different actions.
+                # No candidate device at all is "nothing is plugged in" -- a
+                # normal sim condition. A candidate that exists but never
+                # produced a k1j1 frame is a board that is present and NOT
+                # WORKING, which is a fault worth chasing.
+                present = candidates()
+                kind = ("NO DEVICE PRESENT -- nothing to talk to"
+                        if not present else
+                        "DEVICE PRESENT BUT NOT ANSWERING: %s -- it enumerated "
+                        "and produced no master frame" % ", ".join(present))
+                lg = rclpy.logging.get_logger("master_pose_node")
+                if delay is None:
+                    lg.error(
+                        "MASTER ARM DORMANT after %d attempts. %s\n"
+                        "  This is NOT a crash and the node will NOT exit -- "
+                        "exiting here made launch respawn it 1726 times in "
+                        "one run and starved the controller manager until "
+                        "joint_state_broadcaster died.\n"
+                        "  Nothing will be published on /master_arm_pose_*. "
+                        "Every mode that does not use the master arm is "
+                        "unaffected.\n"
+                        "  To recover: attach the board and relaunch, or run "
+                        "with master:=false to leave this node out entirely.\n"
+                        "  %s" % (attempt, kind, e))
+                    break
+                lg.warn("master arm not found (attempt %d, %s); retrying in "
+                        "%d s" % (attempt, kind, delay))
+                time.sleep(delay)
+        if node is not None:
+            rclpy.spin(node)
+        else:
+            # PARK. A node that exits is respawned; a node that spins doing
+            # nothing is visible in the graph, costs nothing, and lets the
+            # rest of the stack come up.
+            park = rclpy.create_node("master_pose_node_dormant")
+            rclpy.spin(park)
     except KeyboardInterrupt:
         pass
     finally:
-        node.destroy_node()
+        if node is not None:
+            node.destroy_node()
         rclpy.shutdown()
 
 

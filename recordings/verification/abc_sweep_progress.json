@@ -1,7 +1,7 @@
 {
   "06_full_autonomy/t0/D3_three_targets": {
-    "ok": false,
-    "msg": "run exited 0; no scene_events.json -- the scene never ran",
+    "ok": true,
+    "msg": "run exited 0",
     "mode": "06_full_autonomy",
     "task": "t0",
     "scenario": "D3_three_targets",
@@ -17,62 +17,5 @@
       "rviz_top.mp4"
     ],
     "dir": "recordings/verification/06_full_autonomy/T0/D3_three_targets"
-  },
-  "06_full_autonomy/t1/S1_left_arm": {
-    "ok": false,
-    "msg": "run exited 0; no scene_events.json -- the scene never ran",
-    "mode": "06_full_autonomy",
-    "task": "t1",
-    "scenario": "S1_left_arm",
-    "quad": true,
-    "files": [
-      "rviz_back.mp4",
-      "rviz_front.mp4",
-      "rviz_gripper.mp4",
-      "rviz_iso.mp4",
-      "rviz_left.mp4",
-      "rviz_quad.mp4",
-      "rviz_right.mp4",
-      "rviz_top.mp4"
-    ],
-    "dir": "recordings/verification/06_full_autonomy/T1/S1_left_arm"
-  },
-  "06_full_autonomy/t2/S2_full_lift": {
-    "ok": false,
-    "msg": "run exited 0; no scene_events.json -- the scene never ran",
-    "mode": "06_full_autonomy",
-    "task": "t2",
-    "scenario": "S2_full_lift",
-    "quad": true,
-    "files": [
-      "rviz_back.mp4",
-      "rviz_front.mp4",
-      "rviz_gripper.mp4",
-      "rviz_iso.mp4",
-      "rviz_left.mp4",
-      "rviz_quad.mp4",
-      "rviz_right.mp4",
-      "rviz_top.mp4"
-    ],
-    "dir": "recordings/verification/06_full_autonomy/T2/S2_full_lift"
-  },
-  "06_full_autonomy/t3/S1_measure_cycle": {
-    "ok": false,
-    "msg": "run exited 0; no scene_events.json -- the scene never ran",
-    "mode": "06_full_autonomy",
-    "task": "t3",
-    "scenario": "S1_measure_cycle",
-    "quad": true,
-    "files": [
-      "rviz_back.mp4",
-      "rviz_front.mp4",
-      "rviz_gripper.mp4",
-      "rviz_iso.mp4",
-      "rviz_left.mp4",
-      "rviz_quad.mp4",
-      "rviz_right.mp4",
-      "rviz_top.mp4"
-    ],
-    "dir": "recordings/verification/06_full_autonomy/T3/S1_measure_cycle"
   }
 }

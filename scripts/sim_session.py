@@ -167,6 +167,34 @@ def wait_ready(timeout_s, need_followers=False):
             pass
 
 
+def respawn_storm(log_path, limit=8):
+    """Nodes that have died more than `limit` times, as {node: deaths}.
+
+    A GUARD FOR AN INDIRECTION THAT COST A SESSION. master_pose_node died 1726
+    times in one launch because a missing Teensy raised PortNotFound and
+    launch respawned it; the SYMPTOM was a starved controller manager and a
+    dead joint_state_broadcaster, so the visible failure named neither the
+    master arm nor the serial port. A count of deaths per node makes the cause
+    say its own name.
+
+    The source is fixed too -- the node now parks in a DORMANT state rather
+    than exiting -- but this stays, because the next node to do it will not be
+    that one.
+    """
+    import collections
+    import re as _re
+    deaths = collections.Counter()
+    try:
+        with open(log_path, "r", errors="ignore") as f:
+            for line in f:
+                m = _re.search(r"\[([\w.-]+)-\d+\]: process has died", line)
+                if m:
+                    deaths[m.group(1)] += 1
+    except OSError:
+        return {}
+    return {k: v for k, v in deaths.items() if v > limit}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ready-timeout", type=int, default=180)
@@ -243,6 +271,17 @@ def main():
         kill_stack()
         lf.close()
         return 3
+    storm = respawn_storm(log)
+    if storm:
+        print("[sim] REFUSING: respawn storm -- %s. A node dying repeatedly "
+              "starves the controller manager, and the failure then shows up "
+              "somewhere else entirely. Fix the node or leave it out of the "
+              "launch."
+              % ", ".join("%s died %d times" % (k, v)
+                          for k, v in sorted(storm.items())))
+        kill_stack()
+        lf.close()
+        return 5
     print("[sim] ready")
 
     rc = 1

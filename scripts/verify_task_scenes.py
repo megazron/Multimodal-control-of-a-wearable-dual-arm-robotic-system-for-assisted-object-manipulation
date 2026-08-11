@@ -109,6 +109,16 @@ class Solver(Node):
             return None
 
     def solve(self, arm, xyz, quat, avoid=True, tries=7):
+        """True if a collision-free IK solution exists.
+
+        Thin wrapper over solve_joints() so there is ONE request-building
+        implementation.  Callers that need the joint vector -- e.g. anything
+        computing trajectory DURATION, where time_from_start comes from the
+        largest joint delta -- use solve_joints() directly.
+        """
+        return self.solve_joints(arm, xyz, quat, avoid, tries) is not None
+
+    def solve_joints(self, arm, xyz, quat, avoid=True, tries=7):
         seed = [self.js.get(k, 0.0) for k in self.names(arm)]
         for k in range(tries):
             s2 = list(seed)
@@ -137,8 +147,8 @@ class Solver(Node):
                 rclpy.spin_once(self, timeout_sec=0.002)
             res = fut.result()
             if res is not None and res.error_code.val == 1:
-                return True
-        return False
+                return list(res.solution.joint_state.position)
+        return None
 
     def solve_yaw_free(self, arm, xyz, quat, avoid=True):
         for yaw in np.linspace(-math.pi, math.pi, 8, endpoint=False):

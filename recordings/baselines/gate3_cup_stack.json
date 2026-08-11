@@ -1,0 +1,71 @@
+{
+  "solo_reachable": {
+    "anchor_left": 198,
+    "anchor_right": 236,
+    "topdown_left": 209,
+    "topdown_right": 188
+  },
+  "xs": [
+    -0.6,
+    -0.56,
+    -0.52,
+    -0.48,
+    -0.44,
+    -0.4,
+    -0.36,
+    -0.32,
+    -0.28,
+    -0.24,
+    -0.2,
+    -0.16,
+    -0.12,
+    -0.08,
+    -0.04,
+    0.0,
+    0.04,
+    0.08,
+    0.12,
+    0.16,
+    0.2,
+    0.24,
+    0.28,
+    0.32,
+    0.36,
+    0.4,
+    0.44,
+    0.48,
+    0.52,
+    0.56,
+    0.6
+  ],
+  "ys": [
+    0.13,
+    0.17,
+    0.21,
+    0.25,
+    0.29
+  ],
+  "zs": [
+    1.06,
+    1.1,
+    1.14,
+    1.18,
+    1.22,
+    1.26,
+    1.3,
+    1.34
+  ],
+  "repeats": 3,
+  "bench_in_scene": true,
+  "stacks_tested": 6975,
+  "stack_hits": 0,
+  "examples": [],
+  "verdict": "IMPOSSIBLE -- no cup-over-cup pair anywhere in the swept volume, at any tested dz or orientation policy",
+  "gate2_right_own_band": {
+    "fixed": 5,
+    "topdown": 12,
+    "yaw_free": 11,
+    "of": 12
+  },
+  "ik_calls": 6683
+}

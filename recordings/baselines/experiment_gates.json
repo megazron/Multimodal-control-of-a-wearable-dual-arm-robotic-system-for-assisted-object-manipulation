@@ -1,0 +1,110 @@
+{
+  "bench_in_scene": true,
+  "repeats": 10,
+  "caps": {
+    "real (shipped, 0.15)": 0.15,
+    "sim default (0.6)": 0.6,
+    "brief's assumption (0.05)": 0.05,
+    "candidate 0.30": 0.3
+  },
+  "controls": {
+    "far_unreachable": true,
+    "known_good_reachable": true
+  },
+  "gate1": {
+    "T1 pick-and-place (Task A clip path)": {
+      "waypoints": 41,
+      "real (shipped, 0.15)": 11.2,
+      "joint_travel_rad": 5.22,
+      "unsolved_waypoints": 0,
+      "sim default (0.6)": 2.9,
+      "brief's assumption (0.05)": 36.0,
+      "candidate 0.30": 5.7
+    },
+    "T2/B carry S1_short_lift": {
+      "waypoints": 4,
+      "real (shipped, 0.15)": 0.0,
+      "joint_travel_rad": 0.0,
+      "sim default (0.6)": 0.0,
+      "brief's assumption (0.05)": 0.0,
+      "candidate 0.30": 0.0
+    },
+    "T2/B carry S2_full_lift": {
+      "waypoints": 11,
+      "real (shipped, 0.15)": 2.1,
+      "joint_travel_rad": 1.18,
+      "sim default (0.6)": 0.7,
+      "brief's assumption (0.05)": 8.1,
+      "candidate 0.30": 1.4
+    },
+    "T2/B carry S3_detour": {
+      "waypoints": 10,
+      "real (shipped, 0.15)": 2.8,
+      "joint_travel_rad": 1.33,
+      "sim default (0.6)": 0.7,
+      "brief's assumption (0.05)": 11.2,
+      "candidate 0.30": 1.5
+    }
+  },
+  "gate2": {
+    "left": {
+      "fixed": {
+        "ok": 13,
+        "of": 15,
+        "pct": 86.7
+      },
+      "tilt": {
+        "ok": 15,
+        "of": 15,
+        "pct": 100.0
+      },
+      "yaw_free": {
+        "ok": 15,
+        "of": 15,
+        "pct": 100.0
+      },
+      "topdown": {
+        "ok": 15,
+        "of": 15,
+        "pct": 100.0
+      }
+    },
+    "right": {
+      "fixed": {
+        "ok": 0,
+        "of": 15,
+        "pct": 0.0
+      },
+      "tilt": {
+        "ok": 4,
+        "of": 15,
+        "pct": 26.7
+      },
+      "yaw_free": {
+        "ok": 5,
+        "of": 15,
+        "pct": 33.3
+      },
+      "topdown": {
+        "ok": 8,
+        "of": 15,
+        "pct": 53.3
+      }
+    }
+  },
+  "gate3": {
+    "dz_tested": [
+      0.1,
+      0.15,
+      0.2
+    ],
+    "hits": [],
+    "pairs_tested": 756,
+    "solo_reachable_in_band": {
+      "left": 0,
+      "right": 1
+    },
+    "verdict": "INVALID -- control failed"
+  },
+  "ik_calls": 2532
+}

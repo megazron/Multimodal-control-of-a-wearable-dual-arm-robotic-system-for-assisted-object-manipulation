@@ -174,10 +174,42 @@ def main():
         rclpy.shutdown()
         return 5
 
+    # THE FURNITURE GOES IN BEFORE THE STUDY TASKS, NOT ONLY BEFORE THE CLIPS.
+    # Until 2026-08-11 this script verified A/B/C in FREE SPACE and applied the
+    # bench only for the clip tasks. It therefore reported 0 failures for a
+    # Task B carry path whose first two grip poses are geometrically INSIDE the
+    # bench slab, while a check with the bench present reported 21. The bench
+    # is real; the free-space check was the broken one.
+    ps0 = PlanningScene()
+    ps0.is_diff = True
+    ps0.world.collision_objects = Scene_furniture(n)
+    if not _apply(n, ps0):
+        print("\n  REFUSING: the furniture did not apply. Verifying a bench "
+              "task in free space is the failure this check exists to stop.")
+        n.destroy_node()
+        rclpy.shutdown()
+        return 7
+    print("   furniture applied for the STUDY tasks too: yes")
+
+    # A CONTROL THAT MUST FAIL. A pose deliberately inside the bench slab has
+    # to come back unreachable, or the furniture is decoration and every zero
+    # below is worthless. This is the check that would have caught the
+    # free-space bug on the day it was introduced.
+    ctl_bench = ok("left", [0.30, 0.40, 1.08], k=1)
+    print("   a pose INSIDE the bench slab (0.30,0.40,1.08) -> %s  "
+          "(want unreachable)" % ("REACHABLE" if ctl_bench else "unreachable"))
+    if ctl_bench:
+        print("\n  REFUSING TO REPORT: a pose inside the bench solved, so the "
+              "bench is not in the scene and no count here means anything.")
+        n.destroy_node()
+        rclpy.shutdown()
+        return 8
+
     out, fails = {}, 0
     out["controls"] = dict(far_unreachable=not ctl_far,
                            inside_wearer_unreachable=not ctl_in,
-                           declared_target_reachable=bool(ctl_good))
+                           declared_target_reachable=bool(ctl_good),
+                           inside_bench_unreachable=not ctl_bench)
 
     # ---------------------------------------------------------------- A
     print("\nTASK A  positioning -- targets, and the transit BETWEEN them")
@@ -306,7 +338,8 @@ def main():
     # now get the same full-path N treatment as the protocol's own.
     # THE CLIP BENCH GOES IN HERE AND COMES OUT AFTER.
     #
-    # The study tasks above are free-space motions verified without furniture;
+    # (The furniture is already applied, above -- re-applying is harmless.)
+    # The study tasks above are NO LONGER free-space motions;
     # the clip tasks run on a bench that is a real collision object. Verifying
     # one against the other's scene is meaningless in both directions, and
     # leaving the bench loaded made this script fail its OWN instrument

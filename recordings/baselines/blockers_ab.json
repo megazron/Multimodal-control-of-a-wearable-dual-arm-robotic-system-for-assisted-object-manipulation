@@ -1,0 +1,173 @@
+{
+  "repeats": 10,
+  "bench": {
+    "top": 1.1,
+    "thick": 0.04,
+    "near_y": 0.245,
+    "far_y": 0.63,
+    "half_x": 0.85
+  },
+  "A_grips_inside_bench": 2,
+  "A_examples": [
+    {
+      "path": "S2_full_lift",
+      "grip": [
+        -0.25,
+        0.35,
+        1.1
+      ]
+    },
+    {
+      "path": "S2_full_lift",
+      "grip": [
+        0.25,
+        0.35,
+        1.1
+      ]
+    }
+  ],
+  "A_per_path": {
+    "S1_short_lift": {
+      "waypoints": 4,
+      "failures": 4,
+      "failed_z": [
+        1.15,
+        1.167,
+        1.183,
+        1.2
+      ]
+    },
+    "S2_full_lift": {
+      "waypoints": 11,
+      "failures": 9,
+      "failed_z": [
+        1.1,
+        1.12,
+        1.14,
+        1.16,
+        1.18,
+        1.2,
+        1.22,
+        1.24,
+        1.26
+      ]
+    },
+    "S3_detour": {
+      "waypoints": 10,
+      "failures": 8,
+      "failed_z": [
+        1.15,
+        1.167,
+        1.183,
+        1.2,
+        1.217,
+        1.233,
+        1.25,
+        1.267
+      ]
+    }
+  },
+  "A_total_failures": 21,
+  "A_total_waypoints": 25,
+  "A_band": {
+    "1.1": false,
+    "1.12": false,
+    "1.14": false,
+    "1.16": false,
+    "1.18": false,
+    "1.2": false,
+    "1.22": false,
+    "1.24": false,
+    "1.26": false,
+    "1.28": true,
+    "1.3": true,
+    "1.32": true,
+    "1.34": true,
+    "1.36": true,
+    "1.38": true,
+    "1.4": true
+  },
+  "A_lowest_clear_z": 1.28,
+  "A_band_y038": {
+    "1.1": false,
+    "1.12": false,
+    "1.14": false,
+    "1.16": false,
+    "1.18": false,
+    "1.2": false,
+    "1.22": false,
+    "1.24": false,
+    "1.26": false,
+    "1.28": false,
+    "1.3": true,
+    "1.32": true,
+    "1.34": true,
+    "1.36": true,
+    "1.38": true,
+    "1.4": true
+  },
+  "A_lowest_clear_z_y038": 1.3,
+  "B_candidates": {
+    "centre (the WRONG pose, kept as the control)": {
+      "ee": [
+        -0.3329,
+        0.1254,
+        1.0678
+      ],
+      "fixed": [],
+      "topdown": [
+        "right"
+      ]
+    },
+    "near-edge, box mid-height": {
+      "ee": [
+        -0.3329,
+        0.0904,
+        1.0678
+      ],
+      "fixed": [],
+      "topdown": [
+        "right"
+      ]
+    },
+    "near-edge, box top": {
+      "ee": [
+        -0.3329,
+        0.0904,
+        1.0928
+      ],
+      "fixed": [],
+      "topdown": [
+        "right"
+      ]
+    },
+    "B_PLACE (what task_b actually commands)": {
+      "ee": [
+        -0.3329,
+        0.0904,
+        1.1978
+      ],
+      "fixed": [
+        "right"
+      ],
+      "topdown": [
+        "right"
+      ]
+    },
+    "C_PROBE_ON (what task_c actually commands)": {
+      "ee": [
+        -0.3329,
+        0.0904,
+        1.1728
+      ],
+      "fixed": [
+        "right"
+      ],
+      "topdown": [
+        "right"
+      ]
+    }
+  },
+  "B_near_edge_reachable_fixed": true,
+  "ik_calls": 402
+}

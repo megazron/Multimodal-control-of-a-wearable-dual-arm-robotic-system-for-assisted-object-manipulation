@@ -1,0 +1,104 @@
+{
+  "controls": {
+    "far": true,
+    "wearer": true,
+    "bench": true,
+    "known_good": true
+  },
+  "repeats": 10,
+  "bench_in_scene": true,
+  "T0": {
+    "left": {
+      "sphere_failures": 0,
+      "transit_failures": 0
+    },
+    "right": {
+      "sphere_failures": 0,
+      "transit_failures": 0
+    },
+    "sampled": {
+      "checked": 120,
+      "unreachable": 0
+    }
+  },
+  "T1": {
+    "cube_0": {
+      "xy": [
+        0.28,
+        0.23
+      ],
+      "waypoints": 13,
+      "failures": 0
+    },
+    "cube_1": {
+      "xy": [
+        0.34,
+        0.23
+      ],
+      "waypoints": 13,
+      "failures": 0
+    },
+    "cube_2": {
+      "xy": [
+        0.38,
+        0.17
+      ],
+      "waypoints": 13,
+      "failures": 0
+    },
+    "cube_3": {
+      "xy": [
+        0.4,
+        0.23
+      ],
+      "waypoints": 13,
+      "failures": 0
+    },
+    "plane_0": {
+      "xy": [
+        0.3,
+        0.13
+      ],
+      "waypoints": 13,
+      "failures": 0
+    },
+    "plane_1": {
+      "xy": [
+        0.46,
+        0.13
+      ],
+      "waypoints": 13,
+      "failures": 0
+    },
+    "transport_failures": 0
+  },
+  "T2": {
+    "S1_short_lift": {
+      "waypoints": 4,
+      "failures": 0
+    },
+    "S2_full_lift": {
+      "waypoints": 5,
+      "failures": 0
+    },
+    "S3_detour": {
+      "waypoints": 8,
+      "failures": 0
+    },
+    "band_z": [
+      1.32,
+      1.4
+    ]
+  },
+  "T3": {
+    "right_-0.540_0.170_1.125": true,
+    "right_-0.540_0.170_1.205": true,
+    "left_0.340_0.190_1.123": true,
+    "left_0.340_0.190_1.202": true,
+    "circuit_box_pick_failures": 0,
+    "multimeter_pick_failures": 0,
+    "min_expected_repositioning_requests": 2
+  },
+  "ik_calls": 4234,
+  "failures": 0
+}

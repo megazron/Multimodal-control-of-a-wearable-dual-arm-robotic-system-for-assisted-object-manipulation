@@ -162,6 +162,24 @@ TASK_B = dict(
     supersedes="coordinated_carry (rigid AND compliant); the merged spec is "
                "kept at experiments/_archive/task_b_rigid_and_compliant/",
     role="physical coupling through a shared rigid body",
+    # WHY COUPLING AND NOT TRANSFER, in one measured number.  The smallest
+    # distance between an end-effector pose the LEFT arm can reach and one the
+    # RIGHT arm can reach is 0.200 m, over 1488 poses per arm per orientation
+    # with the bench in scene and all four solo controls non-zero.  A cube
+    # crossing between two container rims needs about 0.115 m (75 mm container
+    # + 40 mm cube).  Transfer fails by a factor of 1.7, and that one number
+    # settles rim-to-rim, tilted and stacked together, because every transfer
+    # geometry needs the grippers NEAR each other.
+    #
+    # The 500 mm span is therefore not a workaround for that result -- it is
+    # the same geometry used the other way round.  Each grip sits at
+    # |x| = 0.25, OUTSIDE the dead band, so the object SPANS the gap instead
+    # of asking the two arms to meet inside it.  Remove one arm and the task
+    # is impossible rather than slower, which is the stronger claim: under
+    # simultaneity a participant working sequentially merely degrades, and
+    # contaminates the dependent variable with strategy.
+    why_not_transfer="min inter-arm EE separation 0.200 m vs 0.115 m needed; "
+                     "see docs/research/13_two_arm_transfer_is_not_achievable.md",
     bimanual="YES, route (a) -- a body held at two points 500 mm apart spans "
              "the dead band between the disjoint reachable sets.",
     arms_used="both, simultaneously",
@@ -170,18 +188,51 @@ TASK_B = dict(
                   colour="tan", mass_g=180, lip_mm=8),
         ball=dict(radius=BALL_R, colour="yellow", mass_g=15),
     ),
-    # All vertical; see the note above.
+    # RE-SPECIFIED 2026-08-11.  THE OLD BAND WAS INSIDE THE BENCH.
+    #
+    # The declared band was z 1.10-1.30 and it had never been checked against
+    # the bench it is carried over: verify_abc_scenarios verifies the STUDY
+    # tasks in FREE SPACE and applies the furniture only to the clip tasks.
+    # Two checks therefore disagreed -- 0 failures against 21 -- and the free-
+    # space one was the broken one.  Settled three ways:
+    #
+    #   ARITHMETIC     two declared grip poses, S2's start at (+/-0.25, 0.35,
+    #                  1.10), lie INSIDE the slab (z 1.06-1.10, y 0.245-0.63).
+    #                  No solver involved, so it cannot be a solver artefact.
+    #   PER WAYPOINT   N=10, both arm assignments, bench in scene:
+    #                  S1 4/4 fail, S2 9/11 fail, S3 8/10 fail = 21, exactly
+    #                  the number the regression block reported.
+    #   CLEAR BAND     feasible from z = 1.28 at y = 0.35, and from z = 1.30
+    #                  at y = 0.38, up to at least 1.40.
+    #
+    # So the band moves to 1.32-1.40, holding 20 mm inside the lowest clear z
+    # at each y -- this project's rule that N finds the boundary and MARGIN is
+    # what keeps you off it.  The tilt threshold is unaffected: 6.8 deg is
+    # 60 mm over the 500 mm SPAN and does not depend on height.
     paths=dict(
-        S1_short_lift=[[0.0, Y, 1.15], [0.0, Y, 1.20]],
-        S2_full_lift=[[0.0, Y, 1.10], [0.0, Y, 1.30]],
-        S3_detour=[[0.0, Y, 1.15], [0.0, 0.38, 1.20],
-                   [0.0, 0.38, 1.25], [0.0, Y, 1.30]],
+        S1_short_lift=[[0.0, Y, 1.32], [0.0, Y, 1.37]],
+        S2_full_lift=[[0.0, Y, 1.32], [0.0, Y, 1.40]],
+        S3_detour=[[0.0, Y, 1.32], [0.0, 0.38, 1.35],
+                   [0.0, 0.38, 1.38], [0.0, Y, 1.40]],
     ),
+    band_z=(1.32, 1.40),
+    band_rationale="lowest clear z measured 1.28 (y=0.35) / 1.30 (y=0.38) "
+                   "with the bench in scene; +20 mm margin",
     grip_sep=TRAY_SEP,
     fail_tilt_deg=6.8,               # 60 mm over 500 mm
     repeats=3,
     metrics=("tilt_rms_deg", "tilt_max_deg", "time_above_fail_tilt_s",
-             "height_diff_rms_mm", "path_efficiency", "object_retained"),
+             "height_diff_rms_mm", "height_diff_max_mm",
+             "sep_err_rms_mm", "sep_err_max_mm",
+             "path_efficiency", "object_retained", "corrective_movements",
+             "collisions", "near_collisions"),
+    # TILT AND SEPARATION ARE LOGGED CONTINUOUSLY, not scored pass/fail at the
+    # end.  The continuous trace IS the measurement: a carry that ends level
+    # having been 9 deg out in the middle is not a successful carry, and a
+    # single end-state sample cannot tell the two apart.  The sample rate is
+    # the trial logger's, and `tilt_max_deg` comes from the trace rather than
+    # from the endpoint.
+    log_continuously=("tilt_deg", "sep_err_mm", "height_diff_mm"),
 )
 
 # The compliant half, kept as ARITHMETIC rather than as a task, because the

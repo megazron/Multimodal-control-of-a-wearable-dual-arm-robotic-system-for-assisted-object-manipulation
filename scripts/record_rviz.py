@@ -95,6 +95,37 @@ RVIZ_CFG = os.path.join(ROOT, "src/srl_experiments/config/verification_capture.r
 # The focal point follows the task volume, whose x centre moved when task A's
 # bin went outboard to 0.62 (see clip_tasks.A_BIN).
 _FOCUS = (0.15, 0.35, 1.16)
+
+# ONE FRAMING DOES NOT FIT FOUR TASKS, and the clips proved it.
+#
+# Everything below was read off the contact sheets of the 2026-08-11 mode-06
+# recording, not reasoned about:
+#
+#   T0  the two FRONT_UP targets sit at z = 1.62 and were ABOVE THE FRAME. The
+#       clip showed both arms reaching up out of shot toward spheres a viewer
+#       could not see, which is the same "arms reaching for nothing" the
+#       subject check was added to catch, arriving through the camera instead.
+#   T1  the whole workspace -- four cubes and two coloured planes inside
+#       0.18 x 0.10 m -- rendered about sixty pixels wide. Four cubes could
+#       not be told from two, and which plane a cube landed on was
+#       unreadable, so the colour-matching outcome the task exists to score
+#       could not be scored from the picture.
+#   T2  the carry now runs to z = 1.60 and THE TRAY LEFT THE TOP OF THE FRAME
+#       partway through the lift. The last third of the clip is two arms
+#       holding something out of shot.
+#   T3  the four measurement points are 14 mm spheres and came out sub-pixel.
+#
+# Every one of those is a consequence of raising the geometry -- T0's
+# directions and T2's band -- without re-aiming the camera at it. The FRONT
+# view is the one that carries the caption and the one a reader looks at, so
+# it follows the task. Every other angle stays global, because the
+# wearer-clearance question they answer is the same in every task.
+TASK_FOCUS = {
+    "t0": ((0.00, 0.35, 1.28), 1.95),
+    "t1": ((0.34, 0.22, 1.19), 1.15),
+    "t2": ((0.00, 0.35, 1.46), 1.55),
+    "t3": ((-0.10, 0.19, 1.18), 1.70),
+}
 VIEWS = {
     #  name       display  yaw      pitch  dist  focal(x,y,z)   hud
     "front":   (":91", 1.5708, 0.28, 1.35, _FOCUS, True),
@@ -554,10 +585,13 @@ class Scene:
 CFG_DIR = os.path.join(SCRATCH, "rvizcfg")
 
 
-def write_cfg(name, arm="left"):
+def write_cfg(name, arm="left", task=None):
     """One RViz config per view. The HUD lives on its own topic so only the
     FRONT view shows it -- four copies of the same text is clutter."""
     yaw, pitch, dist, focal, hud = VIEWS[name][1:]
+    # THE FRONT VIEW FOLLOWS THE TASK. See TASK_FOCUS.
+    if name == "front" and task in TASK_FOCUS:
+        focal, dist = TASK_FOCUS[task]
     tgt = "%s_end_effector_link" % arm if name == "gripper" else "world"
     disp = ["""    - Class: rviz_default_plugins/Grid
       Name: Grid
@@ -639,7 +673,13 @@ Window Geometry:
     # with the camera still bolted to the left hand. Caught because the
     # pixel check saw no finger motion on T5 while the joint trace showed a
     # clean open-close-open.
-    fn = ("gripper_%s" % arm) if name == "gripper" else name
+    # PER-TASK FILENAME for the front view, for the same reason the gripper
+    # view is per-arm: the running-instance check keys on the config PATH, so
+    # one shared front.rviz would match an RViz already framed for a different
+    # task and the re-aim would silently never happen.
+    fn = (("gripper_%s" % arm) if name == "gripper" else
+          ("front_%s" % task) if (name == "front" and task in TASK_FOCUS)
+          else name)
     p = os.path.join(CFG_DIR, "%s.rviz" % fn)
     open(p, "w").write(txt)
     return p
@@ -687,7 +727,7 @@ def _running(pat):
 _GRIP_ARM = {"cur": None}
 
 
-def ensure_display(log, gripper_arm="left"):
+def ensure_display(log, gripper_arm="left", task=None):
     """One Xvfb per view, each with its own RViz. Idempotent, and NOTHING IS
     EVER KILLED.
 
@@ -727,7 +767,8 @@ def ensure_display(log, gripper_arm="left"):
         # Each gripper view is permanently bound to its own arm and display.
         arm = ("right" if name == "gripper_right" else
                "left" if name == "gripper" else gripper_arm)
-        cfg = write_cfg("gripper" if name.startswith("gripper") else name, arm)
+        cfg = write_cfg("gripper" if name.startswith("gripper") else name,
+                        arm, task)
         if not _running("rviz2 -d %s" % cfg):
             env = dict(os.environ, DISPLAY=disp, LIBGL_ALWAYS_SOFTWARE="1",
                        GALLIUM_DRIVER="llvmpipe", QT_QPA_PLATFORM="xcb")
@@ -758,7 +799,8 @@ def ensure_display(log, gripper_arm="left"):
     for name, (disp, *_rest) in VIEWS.items():
         arm = ("right" if name == "gripper_right" else
                "left" if name == "gripper" else gripper_arm)
-        cfg = write_cfg("gripper" if name.startswith("gripper") else name, arm)
+        cfg = write_cfg("gripper" if name.startswith("gripper") else name,
+                        arm, task)
         for attempt in range(3):
             if _display_renders(disp):
                 break

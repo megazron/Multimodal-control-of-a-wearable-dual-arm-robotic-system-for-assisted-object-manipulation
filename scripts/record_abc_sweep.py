@@ -788,8 +788,13 @@ def _main_body():
                 grip_arm = ("right"
                             if len(set(_g["right"])) > len(set(_g["left"]))
                             else "left")
+                # THE FRONT CAMERA FOLLOWS THE TASK. Four tasks that occupy
+                # four different volumes cannot share one framing: measured on
+                # the 2026-08-11 clips, T0's two highest targets and T2's tray
+                # were both ABOVE the frame and T1's whole workspace was about
+                # sixty pixels wide. See record_rviz.TASK_FOCUS.
                 rr.ensure_display(os.path.join(out_dir, "rviz"),
-                                  gripper_arm=grip_arm)
+                                  gripper_arm=grip_arm, task=task)
                 time.sleep(a.settle_s)
                 good, msg, grabs, gate, grab_t0 = run_one(
                     app, gui, task, mode, out_dir, graph=graph,

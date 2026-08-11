@@ -501,8 +501,21 @@ def main(argv=None):
     ARRIVE_TOL_M = 0.03
     PAD_OFF = CT.PAD_OFFSET
     grip_obj = spec.get("grip_obj")
+    # PER-WAYPOINT OBJECT, when the task has more than one.
+    #
+    # The gate below holds a grip change pending until the pads reach the
+    # object -- correct, and written when every task had exactly one. T1 has
+    # four cubes and two planes: its first OPEN sat waiting for the pads to
+    # return to cube_0 while the arm was at the plane, so the hand never
+    # opened, every later cube was collected on the way past, and all four
+    # finished in one place still held. `grip_at` lets a task say which object
+    # each waypoint is about; tasks that do not declare one are unaffected.
+    grip_at = spec.get("grip_at")
+    if callable(grip_at):
+        grip_at = grip_at(len(wp["left"]))
     held_grip = {arm: 0.0 for arm in ARMS}
-    pend = {arm: None for arm in ARMS}      # (value, waypoint) awaiting arrival
+    pend = {arm: None for arm in ARMS}      # value awaiting arrival
+    pend_obj = {arm: None for arm in ARMS}  # the object it must arrive AT
     late = {arm: 0 for arm in ARMS}
 
     n_sent = 0
@@ -536,7 +549,22 @@ def main(argv=None):
                     # wrong gate: "close when you get to where you were told
                     # to close" needs the target remembered, not resampled.
                     if want != held_grip[arm] and pend[arm] is None:
+                        # REMEMBER THE OBJECT THE CHANGE WAS ASKED AGAINST,
+                        # for the same reason the value is remembered: under
+                        # lag the arm arrives while a LATER waypoint is
+                        # current, and resampling would test against the wrong
+                        # object as well as the wrong pose.
                         pend[arm] = want
+                        # A LIST applies to both arms; a DICT gives each arm
+                        # its own object, which T3 needs -- its left arm holds
+                        # the meter and its right the box, and one shared
+                        # target left the meter ungrasped for the whole clip.
+                        if isinstance(grip_at, dict):
+                            _seq = grip_at.get(arm)
+                        else:
+                            _seq = grip_at
+                        pend_obj[arm] = (_seq[min(k, len(_seq) - 1)]
+                                         if _seq else grip_obj)
                     if pend[arm] is not None:
                         # AGAINST THE OBJECT, IN WORLD -- not against the
                         # waypoint. VR sends CONTROLLER-frame poses that the
@@ -548,11 +576,12 @@ def main(argv=None):
                         here = n.ee(arm)
                         pads = (None if here is None else
                                 [here[i] + PAD_OFF[i] for i in range(3)])
-                        if (pads is not None and grip_obj is not None
-                                and math.dist(pads, grip_obj)
-                                <= ARRIVE_TOL_M):
+                        obj = pend_obj[arm] or grip_obj
+                        if (pads is not None and obj is not None
+                                and math.dist(pads, obj) <= ARRIVE_TOL_M):
                             held_grip[arm] = pend[arm]
                             pend[arm] = None
+                            pend_obj[arm] = None
                         else:
                             late[arm] += 1
                     n.grip(arm, held_grip[arm])

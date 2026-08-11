@@ -431,7 +431,11 @@ class Scene(Node):
                     arm="left", width_mm=40,
                     pos=CT.ee_for([cx, cy, MCT.T1_Z]), size=(0.04,) * 3,
                     col=(BLUE if i in (0, 2) else GREEN), held=False,
-                    graspable=(i == 0))
+                    # ALL FOUR are picked, one after another: T1's schedule is
+                    # four closes and four opens. The flag stays because
+                    # tick() now honours it, and a future fixtured item will
+                    # need it.
+                    graspable=True)
             return out
         if task == "t2":
             # NO `items` ENTRY. The tray is ONE body held at TWO points, and
@@ -620,15 +624,34 @@ class Scene(Node):
         # automatic check, because "the arm moved" was all anything measured.
         # A task with nothing to GRASP still has a bench to stand on and
         # targets to reach.
+        # ONE OFFSET PER ARM, NOT ONE PER SCENE.
+        #
+        # The wrist->pad vector is the anchor orientation rotated into world,
+        # and the two arms are parked asymmetrically, so their offsets differ:
+        # measured, left (-0.0171, +0.0945, +0.0572) against right (+0.0289,
+        # +0.0995, +0.0421) -- 49 mm apart. The whole scene used to be shifted
+        # by whichever arm owned the FIRST item, so in T3 the multimeter, a
+        # LEFT-arm object, was drawn 49 mm from where the left hand closes --
+        # outside the 30 mm capture window. The gripper closed exactly on
+        # schedule (`[GRIP] deferred 1/5 ticks`), the grasp test refused it,
+        # and the clip showed an open hand passing an untouched meter with
+        # carried_m 0.000 and no GRASPED event at all.
         if self.items and self.pad_off is None:
-            arm = next(iter(self.items.values()))["arm"]
-            off = self._pad_offset(arm)
-            if off is None:
+            arms = {it["arm"] for it in self.items.values()}
+            offs = {a: self._pad_offset(a) for a in arms}
+            if any(v is None for v in offs.values()):
                 return          # no TF yet -- draw nothing rather than draw
                                 # the scene in the wrong place
-            self.pad_off = off
+            self.pad_off_by_arm = offs
+            # The scalar `pad_off` is kept for consumers that compare ONE
+            # declared EE-frame target against the scene: record_abc_sweep
+            # shifts `place_target` by it. It is the offset of the arm that
+            # owns the FIRST item, which is the arm place_target belongs to in
+            # every task that declares one.
+            self.pad_off = offs[next(iter(self.items.values()))["arm"]]
             for it in self.items.values():
-                it["pos"] = [it["pos"][i] + off[i] for i in range(3)]
+                o = offs[it["arm"]]
+                it["pos"] = [it["pos"][i] + o[i] for i in range(3)]
 
         # ---- HOW FAR DID THE ARM ACTUALLY GO -----------------------------
         # The path integral of each end effector over the life of this node,
@@ -839,6 +862,21 @@ class Scene(Node):
             # the 40 mm block is the distance at which the fingers close BESIDE
             # the object rather than on it, so beyond that a closure cannot be
             # a grasp of this item whatever the knuckle says.
+            # A FIXTURE IS DRAWN AND NEVER FOLLOWS THE HAND.
+            #
+            # `graspable: False` was declared on three of T1's four cubes and
+            # never read, so every cube the hand closed near came with it.
+            # Measured on the first mode-06 re-record: four GRASPED events and
+            # all four cubes ending at the same point.
+            #
+            # AND A PLACED OBJECT STAYS PLACED. Two blue cubes go to the same
+            # blue plane, so the hand arrives at plane 0 a second time with
+            # cube_2 while cube_0 is already sitting there -- closed, and well
+            # inside GRASP_NEAR_M of it. Without this the placed cube is
+            # silently picked up again by the delivery of the next one.
+            if it.get("graspable") is False or it.get("placed"):
+                add(Marker.CUBE, it["pos"], it["size"], it["col"], ns="item")
+                continue
             closed = rr.holding(k, it["width_mm"])
             d = math.dist(g, it["pos"]) if g is not None else None
             # CLOSEST APPROACH, LOGGED WHETHER OR NOT IT BECAME A GRASP.
@@ -894,6 +932,7 @@ class Scene(Node):
             elif it["held"] and not on:
                 # RELEASED: left where it was put, never snapped back.
                 it["held"] = False
+                it["placed"] = True
                 it["last_held"] = None
                 self.events.append(dict(t=round(now, 2), wall=time.time(),
                                         ev="RELEASED",
@@ -977,7 +1016,8 @@ def main():
                            # by, so a consumer comparing against a declared
                            # EE-frame target can apply the same shift instead
                            # of re-deriving it.
-                           pad_off=getattr(n, "pad_off", None)),
+                           pad_off=getattr(n, "pad_off", None),
+                           pad_off_by_arm=getattr(n, "pad_off_by_arm", None)),
                       open(n.out, "w"), indent=2)
         try:
             remove_furniture(n)

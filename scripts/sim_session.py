@@ -38,6 +38,48 @@ import sys
 import time
 
 WS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# EVERY SHELL THIS FILE OPENS MUST SOURCE env.sh, INCLUDING THE PROBE'S.
+#
+# CLAUDE.md names scripts/env.sh the single source of environment truth: it
+# pins ROS_DOMAIN_ID=0, RMW_IMPLEMENTATION=rmw_fastrtps_cpp and
+# ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET, and it actively unsets any inherited
+# ROS_LOCALHOST_ONLY. teleop.launch.py applies the same settings IN-PROCESS,
+# so a launched stack always has them.
+#
+# This SRC used to source setup.bash only, so the readiness probe ran with a
+# bare login environment and none of them set. MEASURED, with a healthy stack
+# up:
+#
+#     /proc/<move_group>/environ : ROS_DOMAIN_ID=0
+#                                  ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET
+#                                  RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+#     bash -lc (the probe)       : all three UNSET
+#
+# The result is a graph the stack can see and a separately-started process
+# cannot: three consecutive probes reported joint_state_msgs=0 with ik=True,
+# while fsr_gripper_node INSIDE the stack was reading /joint_states happily.
+# It also made `ros2 node list --no-daemon` time out from a fresh shell, which
+# reads as "nothing is running" -- the exact misdiagnosis CLAUDE.md warns
+# about, arriving by a different route than the stale daemon.
+#
+# SOURCING env.sh HERE WAS TRIED AND MADE IT WORSE. MEASURED, NOT REASONED:
+# with env.sh sourced the probe went from
+#
+#     probe: TIMEOUT joint_state_msgs=0 arm_joints=0 ik=True  followers=0
+# to
+#     probe: TIMEOUT joint_state_msgs=0 arm_joints=0 ik=False followers=0
+#
+# i.e. it stopped seeing even /compute_ik. So the missing variables are NOT the
+# cause, however well the theory fitted, and pinning them is not the fix. The
+# change is reverted rather than left in the path on the strength of an
+# argument -- an unvalidated "fix" in a readiness probe is how a broken graph
+# gets certified.
+#
+# The environment difference is real and still worth recording for whoever
+# picks this up: a launched node has ROS_DOMAIN_ID=0,
+# ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET and RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+# while a `bash -lc` shell has all three unset. It is just not what is
+# isolating the probe.
 SRC = "source /opt/ros/jazzy/setup.bash && source %s/install/setup.bash" % WS
 
 

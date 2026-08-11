@@ -3482,13 +3482,37 @@ reads the login profile**, so whatever domain or localhost setting the profile
 carries is what the probe uses -- while the launch has pinned itself to
 domain 0 in-process. A domain mismatch produces exactly this signature.
 
-**START HERE:**
+**THE ENVIRONMENT THEORY WAS TESTED AND IS WRONG.** The difference is real --
+a launched node carries `ROS_DOMAIN_ID=0`,
+`ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET` and
+`RMW_IMPLEMENTATION=rmw_fastrtps_cpp` while a `bash -lc` shell has all three
+unset -- but sourcing `scripts/env.sh` in `wait_ready()` made the probe
+*worse*, not better:
 
-0. **Compare the two environments directly.** With a stack up, print
-   `ROS_DOMAIN_ID`, `ROS_LOCALHOST_ONLY` and `RMW_IMPLEMENTATION` from (a) a
-   `bash -lc` shell and (b) `/proc/<move_group pid>/environ`. If they differ,
-   that is the bug and the fix is one line: source `scripts/env.sh` in
-   `wait_ready()` and in the sweep's own shell.
+    without env.sh   joint_state_msgs=0  ik=True
+    with    env.sh   joint_state_msgs=0  ik=False
+
+It stopped seeing even /compute_ik. The change is REVERTED; do not re-apply it
+on the strength of the theory, and note the measurement before spending time
+there again.
+
+**START HERE, with the theory now excluded:**
+
+0. The isolation is between PROCESS GROUPS, and both remaining candidates are
+   below the RMW. Try, in order:
+   a. `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp` for BOTH the launch and the
+      probe. Fast DDS is the component that logged
+      `Failed init_port fastrtps_port7002: open_and_lock_file failed`, and a
+      different RMW answers in one run whether the SHM transport is the fault.
+   b. Disable SHM and force UDP in Fast DDS (an XML profile with only the
+      UDPv4 transport, exported via `FASTRTPS_DEFAULT_PROFILES_FILE` to both
+      sides). If discovery returns, the SHM segment purge is implicated and
+      the real fix is to stop deleting segments underneath live participants.
+1. Sanity floor: with NO ROS stack at all, run `ros2 topic list` in one shell
+   and `ros2 topic pub` in another. If two bare shells cannot see each other,
+   the fault is the machine, not this repo, and `wsl --shutdown` from Windows
+   is the next step (CLAUDE.md records that /mnt/c and the 9p transport have
+   needed it before).
 
 **THEN, only if the environments match:**
 

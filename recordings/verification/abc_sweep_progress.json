@@ -1,8 +1,8 @@
 {
-  "02_vr_teleop/t3/S1_measure_cycle": {
+  "04_vr_shared/t3/S1_measure_cycle": {
     "ok": true,
     "msg": "run exited 0",
-    "mode": "02_vr_teleop",
+    "mode": "04_vr_shared",
     "task": "t3",
     "scenario": "S1_measure_cycle",
     "quad": true,
@@ -16,6 +16,6 @@
       "rviz_right.mp4",
       "rviz_top.mp4"
     ],
-    "dir": "recordings/verification/02_vr_teleop/T3/S1_measure_cycle"
+    "dir": "recordings/verification/04_vr_shared/T3/S1_measure_cycle"
   }
 }

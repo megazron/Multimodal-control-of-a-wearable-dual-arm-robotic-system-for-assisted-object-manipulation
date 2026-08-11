@@ -1,3 +1,119 @@
+# RESUME POINT — 2026-08-11 (second session), MSc experiment build
+
+**Parts 3 and 4 are DONE, committed and pushed (`23c3a25`). Part 5 —
+recording — is NOT STARTED.** Nothing is half-built: no capture script has
+been modified, no clip archived.
+
+## WHERE TO PICK UP: PART 5, THE RECORDING SWEEP
+
+    part 5  record 4 tasks x 5 modes, 7 angles + quad     <-- START HERE
+    part 6  re-verify the recordings BY LOOKING
+    part 7  the report
+
+### What part 5 has to do, and everything already known about it
+
+1. **ARCHIVE FIRST**, with a geometry note. `recordings/verification/` holds
+   the 15 clips of the A/B/C set. They are recorded against **the old T2 band
+   (z 1.10-1.30), which is now known to be inside the bench**, so they are
+   superseded geometry, not merely old. Move them to
+   `archive/recordings/verification_20260811/` with a `GEOMETRY_NOTE.md`
+   saying exactly that.
+2. **Xvfb :99, never WSLg's :0.** `x11grab` on `:0` records BLACK -- measured,
+   mean pixel value 0.0 with RViz plainly visible, because WSLg composites in
+   Wayland and the pixels never reach the X root window. Xvfb has no
+   compositor. `LIBGL_ALWAYS_SOFTWARE=1` is required; llvmpipe reports GL 4.5.
+3. **`scripts/record_abc_sweep.py` is the existing sweep** (3 tasks x 5
+   modes). It needs a 4th task and re-pointing at the MSc set. EXTEND it --
+   do not write a second sweep.
+4. **ONE MODE OWNS THE GRAPH AT A TIME.** Measured: after a VR run, modes
+   01/04/06 all recorded 0.0000 m of travel until `vr_pose_mapper` was killed.
+   `mode_adapters.conflicting_modes()` now encodes which pairs collide; use it
+   rather than remembering.
+5. **Preconditions, enforced not remembered**: stray `robot_state_publisher`
+   owning `/robot_description` (a CAD URDF with no ros2_control tag kills the
+   whole stack and every joint reads a plausible 0.000), more than one
+   `master_pose_node`, zero or duplicate `move_group`. `procscan` and
+   `preconditions()` already do this.
+6. **Motion-gated capture start**, captions burnt in: mode, task, scenario,
+   expected, result. `burn_caption()` in `record_abc_sweep.py` exists.
+
+### Part 6 -- what the verifier must do, and its known blind spots
+
+* It must **catch its constructed broken clips before printing anything**.
+* It must check **EVERY angle**. It once globbed only `rviz_front` and seven
+  black gripper views passed.
+* Then **extract frames and look**: object between the finger pads, arm clear
+  of the wearer, nothing through the bench, gripper opening and closing at the
+  right moments, motion continuous, object visibly placed.
+* Detection thresholds must be calibrated on **RENDERED** colour, not the RGB
+  set on the marker -- RViz shades everything. And the **HUD text is detected
+  as the object** unless the top 24% of the frame is ignored (measured: 587
+  "ball" pixels of which 529 were letters).
+
+## WHAT PARTS 3 AND 4 SETTLED
+
+### Blocker A -- the free-space check was broken, and hid more than T2
+
+Three independent lines, bench in scene:
+
+  * ARITHMETIC: two declared T2 grip poses lie INSIDE the bench slab.
+  * PER WAYPOINT, N=10, both assignments: 4+9+8 = **21 failures**, exactly
+    what the regression block reported.
+  * CLEAR BAND: feasible from z=1.28 (y=0.35) and z=1.30 (y=0.38).
+
+**T2 re-spec'd to z 1.32-1.40** (+20 mm margin). Tilt threshold unaffected --
+6.8 deg is 60 mm over the SPAN, not the height.
+
+`verify_abc_scenarios` now applies furniture to the STUDY tasks and carries a
+**control that must fail**: a pose inside the bench slab must be unreachable.
+
+**IT ALSO EXPOSED TWO LEGACY FAILURES, recorded and NOT fixed:** with the
+bench in, the legacy **Task A** scores 1/3 and 0/3 targets with 59 transit
+failures (its targets at z=1.05 are under the slab) and **Task C** 5/26 and
+0/26 shell directions (its shell reaches z=1.07). Those belong to the A/B/C
+set the MSc four supersede. If anyone revives them, that is the first thing to
+fix.
+
+### Blocker B -- my check was wrong, and the right answer moved the box
+
+Asked at the near-edge pose, both arms, N=10: the pinned wrist can PLACE ONTO
+and PROBE the box at x=-0.35 but cannot HOLD it. A sweep of 156 hold poses
+found 37 a pinned wrist can reach, **all right-arm, all |x| >= 0.51**.
+
+**Box moved to (-0.540, 0.170), held by the RIGHT arm; meter presented by the
+LEFT at (0.340, 0.190).** The wearer's shoulder is ~0.41 m away -- inside a
+seated reach, but at their SIDE. **Whether that is a workable working posture
+is an experimenter judgement and must be checked with a person before the
+first session.** If it is not, the finding is that no position satisfies both
+the pinned-wrist reach and a natural posture, which is a platform result.
+
+## VERIFIED STATE OF THE FOUR MSc TASKS
+
+`python3 scripts/verify_msc_tasks.py --repeats 10` -- N=10, full densified
+paths, bench in scene, both arm assignments, refuses on tested==0 and on any
+failed control:
+
+    T0  0 sphere failures, 0 transit failures, 120 sampled poses 0 unreachable
+    T1  6 items 0 failures, 8 transports 0 failures
+    T2  S1/S2/S3 all 0 failures
+    T3  box 13 waypoints 0, meter 13 waypoints 0
+    4234 IK calls, TOTAL FAILURES 0, all four controls correct
+
+BUILT: `task_actions.py`, `mode_adapters.py` (+ the 7-test mode-independence
+proof), `task0.py`, `task3.py`, T1's layout, T2's re-spec. 128 tests pass.
+
+## STILL UNVERIFIED, NAMED
+
+* **No clip has been recorded against any of this geometry.** Every existing
+  clip predates the T2 re-spec and the T3 box move.
+* T3's wearer posture (above) -- a judgement, not a measurement.
+* Legacy Task A and Task C fail with the bench in scene.
+* Nothing in this repository has ever run against a real arm.
+* Every figure is IK feasibility in simulation against a mock that echoes
+  commands. Mock and physics figures must never share a column.
+
+---
+
 # RESUME POINT — 2026-08-11, MSc experiment build
 
 **Stopped at a clean boundary: parts 1 and 2 of the build brief are DONE and

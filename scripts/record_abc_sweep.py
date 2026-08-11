@@ -45,6 +45,7 @@ import argparse
 import json
 import math
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -466,6 +467,16 @@ def preconditions():
         msgs.append("no move_group -- nothing will answer /compute_ik")
     elif n_mg > 1:
         msgs.append("%d move_group instances -- two planning scenes" % n_mg)
+
+    # STALE DISPLAY STATE. Xvfb refuses a display whose /tmp/.X<n>-lock
+    # exists, so a sweep started on top of dead servers renders BLACK on
+    # displays that were never created -- and the verifier's own blind spot
+    # then lets those clips through. Measured after one failed mode: 8
+    # orphaned servers and 8 stale locks, and the leak compounds at 8 per
+    # mode. Refuse, and NAME them, rather than quietly reusing what is there.
+    for what, detail in rr.stale_displays():
+        msgs.append("%s: %s -- kill by PID and remove the lock" % (what, detail))
+
     return (not msgs), msgs
 
 
@@ -642,7 +653,43 @@ def run_one(app, gui, task, mode, out_dir, graph=None,
     return rc == 0, ("run exited %s" % rc), grabs, gate, grab_t0
 
 
+def _install_teardown():
+    """Teardown on EVERY exit, including a signal.
+
+    A `finally:` covers exceptions and returns but not SIGTERM/SIGINT, and the
+    way this sweep actually ends when a session runs out of time is a signal.
+    A teardown only ever exercised on the happy path is not a teardown.
+    """
+    def _bye(signum, _frame):
+        print("\n[sweep] signal %d -- tearing displays down before exit"
+              % signum)
+        try:
+            rr.teardown_displays()
+        finally:
+            os._exit(130)
+    for s in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+        try:
+            signal.signal(s, _bye)
+        except (ValueError, OSError):
+            pass
+
+
 def main():
+    """Wrapper whose ONLY job is that teardown cannot be skipped.
+
+    `finally` covers the exception and early-return paths; _install_teardown()
+    covers signals. Between them there is no exit from a sweep that leaves an
+    Xvfb alive -- which is what the previous version did on every failure, and
+    every run so far HAS failed.
+    """
+    _install_teardown()
+    try:
+        return _main_body()
+    finally:
+        rr.teardown_displays()
+
+
+def _main_body():
     ap = argparse.ArgumentParser()
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--only", default=None, help="one mode key")

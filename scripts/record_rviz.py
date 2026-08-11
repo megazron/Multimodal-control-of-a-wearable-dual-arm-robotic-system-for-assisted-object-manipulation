@@ -1306,3 +1306,71 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+# ---------------------------------------------------------------- teardown
+def teardown_displays(verbose=True):
+    """Kill every Xvfb and RViz this module started, and clear their locks.
+
+    WHY THIS IS SEPARATE FROM ensure_display's "NOTHING IS EVER KILLED".
+    That rule is about the middle of a sweep: killing and restarting an Xvfb
+    that two RViz instances share is what produced seven entirely black clips.
+    It says nothing about the END of a sweep, and until now nothing cleaned up
+    there -- so a run that failed left one Xvfb per view alive, holding its
+    display number.
+
+    THE LEAK IS SELF-WORSENING, which is why it gets a real teardown rather
+    than a note. Xvfb refuses a display whose /tmp/.X<n>-lock exists, so eight
+    orphans per mode across five modes is forty held display numbers, and the
+    failure that produces is a recording that renders BLACK on a display that
+    was never created. Measured after one failed mode: 8 orphaned servers and
+    8 stale locks.
+
+    Kills BY PID. `pkill -f` has killed the shell running it three times in
+    this project, because the pattern matches that shell's own command line.
+    """
+    killed, locks = [], []
+    for name, (disp, *_rest) in VIEWS.items():
+        for pat in ("Xvfb %s" % disp, "rviz2.*%s" % disp.lstrip(":")):
+            try:
+                out = subprocess.run(["pgrep", "-f", pat], capture_output=True,
+                                     text=True).stdout.split()
+            except OSError:
+                out = []
+            for pid in out:
+                try:
+                    os.kill(int(pid), signal.SIGKILL)
+                    killed.append((name, disp, int(pid)))
+                except (OSError, ValueError):
+                    pass
+    time.sleep(1.0)
+    for name, (disp, *_rest) in VIEWS.items():
+        n = disp.lstrip(":")
+        for path in ("/tmp/.X%s-lock" % n, "/tmp/.X11-unix/X%s" % n):
+            if os.path.exists(path):
+                try:
+                    os.unlink(path)
+                    locks.append(path)
+                except OSError:
+                    pass
+    if verbose:
+        print("[rviz] teardown: killed %d process(es), removed %d lock(s)"
+              % (len(killed), len(locks)))
+    return killed, locks
+
+
+def stale_displays():
+    """Anything of ours still alive or still holding a lock, as (what, detail).
+
+    A PRECONDITION, not a cleanup: a sweep that starts on top of forty dead
+    servers renders black and passes, so it must refuse and NAME them rather
+    than quietly reuse whatever is there.
+    """
+    bad = []
+    for name, (disp, *_rest) in VIEWS.items():
+        n = disp.lstrip(":")
+        if _running("Xvfb %s" % disp):
+            bad.append(("live Xvfb", "%s (%s)" % (disp, name)))
+        if os.path.exists("/tmp/.X%s-lock" % n):
+            bad.append(("stale lock", "/tmp/.X%s-lock" % n))
+    return bad

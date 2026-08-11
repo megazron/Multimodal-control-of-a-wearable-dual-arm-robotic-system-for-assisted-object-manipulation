@@ -336,7 +336,17 @@ def main(argv=None):
         # through the sweep and the GUI -- see run_experiment.sh for why the
         # dispatcher key cannot be t0-t3.
         import msc_clip_tasks as MCT
-        spec = MCT.TASKS["t" + key[1]]
+        # m0-m3 -> t0-t3, and m1s2 -> t1s2 for T1 stage 2. The mapping is
+        # explicit rather than `"t" + key[1]`, which silently mapped m1s2 to
+        # t1 -- the same key as stage 1 -- so a stage 2 request would have
+        # run stage 1 and reported success under the wrong name.
+        _MSC_KEY = {"M0": "t0", "M1": "t1", "M1S2": "t1s2",
+                    "M2": "t2", "M3": "t3"}
+        if key not in _MSC_KEY:
+            raise SystemExit(
+                "unknown msc task key %r -- expected one of %s"
+                % (key, ", ".join(sorted(_MSC_KEY))))
+        spec = MCT.TASKS[_MSC_KEY[key]]
         scen = a.scenario or spec["scenario"]
         wp = spec["build"]()
         grip_sched = spec["grip"](len(wp["left"]))

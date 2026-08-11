@@ -1,0 +1,28 @@
+{
+  "seeds": {
+    "0": {
+      "tested": 50,
+      "failures": 0
+    },
+    "1": {
+      "tested": 51,
+      "failures": 0
+    },
+    "2": {
+      "tested": 42,
+      "failures": 0
+    },
+    "3": {
+      "tested": 54,
+      "failures": 0
+    },
+    "4": {
+      "tested": 56,
+      "failures": 0
+    }
+  },
+  "repeats": 10,
+  "ik_calls": 2530,
+  "failures": 0,
+  "control_far_unreachable": true
+}

@@ -25,6 +25,7 @@ together, so an arm that is idle HOLDS its start pose rather than being
 absent -- an absent arm reads as a crashed one in the clip.
 """
 
+import math
 import os
 import sys
 
@@ -291,6 +292,200 @@ def t3():
     return {"left": _pad(ll, n), "right": _pad(r, n)}
 
 
+
+# --------------------------------------------------------------------------
+# T1 STAGE 2 -- BOTH ARMS AT ONCE, RANDOM POSITIONS. A DIFFERENT KIND.
+# --------------------------------------------------------------------------
+# STAGE 1 (above) is one arm, fixed layout. Stage 2 is both arms working
+# SEPARATE cubes SIMULTANEOUSLY, at positions drawn from the surveyed region.
+#
+# THIS IS A THIRD KIND OF BIMANUAL AND THE WRITE-UP MUST NOT MERGE IT WITH THE
+# OTHER TWO. The project already distinguishes:
+#
+#   T2   PHYSICAL COUPLING. One rigid body held at two points 500 mm apart.
+#        Neither arm's pose is free given the other's -- a height difference
+#        at one grip IS a tilt at the other. Remove an arm and the task is
+#        IMPOSSIBLE, not slower. Tilt and separation are JOINT metrics: no
+#        single arm can produce them.
+#   T3   BIMANUAL BY ROLE. Two objects, two places, two jobs. Neither arm's
+#        pose constrains the other's. One arm could do both sequentially --
+#        slower and more awkward, but possible.
+#
+# Stage 2 is SIMULTANEITY: the same job, twice, at the same time. Neither arm
+# constrains the other geometrically -- their reachable sets are disjoint, so
+# they physically cannot interfere -- and one arm COULD do all of it
+# sequentially. What it costs is ATTENTION, and that is the whole measurement:
+# it is T3's independence with the roles made identical, so any difference
+# from two single-arm stages is divided attention and not task difficulty.
+#
+# Removing an arm here HALVES THE WORK RATE. It does not make the task
+# impossible (T2) and does not merely make it awkward (T3).
+#
+# POSITIONS COME ONLY FROM THE SURVEYED CELLS, and only from their CENTRES.
+# recordings/baselines/work_surface_region.json holds every (x, y) that
+# actually solved, and a cell centre is a point that was TESTED -- jittering
+# inside a cell would be sampling between grid points that were not. The
+# survey is the only thing standing between "random" and "unreachable", so it
+# is used exactly as measured.
+STAGE2_MIN_SEP_M = 0.12          # two cubes closer than this read as one pile
+
+
+class RegionUnavailable(RuntimeError):
+    """The surveyed region file is missing or empty.
+
+    RAISES rather than falling back to a hardcoded box. A fallback would be a
+    guess wearing the survey's name, and the entire point of stage 2 is that
+    the positions are drawn from something measured.
+    """
+
+
+def _region(path=None):
+    """The surveyed cells, per arm, as [(x, y)]."""
+    import json
+    import os as _os
+    p = path or _os.path.join(
+        _os.path.dirname(_os.path.abspath(__file__)),
+        "..", "..", "..", "..", "recordings", "baselines",
+        "work_surface_region.json")
+    p = _os.path.normpath(p)
+    if not _os.path.exists(p):
+        raise RegionUnavailable(
+            "no surveyed region at %s -- run scripts/survey_work_surface.py. "
+            "Stage 2 will not invent a region: 'random positions' that were "
+            "never solved for is how a trial fails on the day." % p)
+    d = json.load(open(p))
+    # THE REGION MUST BE A FULL-PATH REGION, and this refusal is the whole
+    # lesson of the first stage-2 verification. Sampling from a region
+    # surveyed at the GRASP POSE ALONE looked right and was not: seed 1 gave
+    # 5 waypoint failures out of 51 while four other seeds gave 0, because the
+    # pick path also climbs to a 0.10 m standoff above the cell and descends
+    # from it, and those poses were never tested. A cell that can be reached
+    # is not a cell that can be worked.
+    if not d.get("full_path"):
+        raise RegionUnavailable(
+            "%s was surveyed with the GRASP POSE ONLY (full_path=false). "
+            "Stage 2 samples positions that must survive the whole pick path "
+            "-- standoff, descend, lift -- and a grasp-pose region silently "
+            "includes cells that fail it. Re-run: "
+            "scripts/survey_work_surface.py --full-path" % p)
+    cells = {a: [tuple(c) for c in d["cells"].get(a, [])]
+             for a in ("left", "right")}
+    for a, c in cells.items():
+        if not c:
+            raise RegionUnavailable(
+                "the survey has NO reachable cell for the %s arm" % a)
+    return cells, d
+
+
+def stage2_targets(seed, n_per_arm=2, cells=None, min_sep=STAGE2_MIN_SEP_M,
+                   max_draws=500):
+    """n cubes per arm, drawn from the surveyed cells, reproducibly.
+
+    Same contract as task0's sampler and for the same reason: same seed gives
+    the same layout for ever, which is what makes a trial replayable. It
+    RAISES rather than returning fewer or quietly relaxing the separation.
+    """
+    import random
+    if cells is None:
+        cells, _ = _region()
+    rng = random.Random("t1s2|%s|%d" % (seed, n_per_arm))
+    out = {}
+    for arm in ("left", "right"):
+        pool = list(cells[arm])
+        got, draws = [], 0
+        while len(got) < n_per_arm:
+            draws += 1
+            if draws > max_draws:
+                raise RegionUnavailable(
+                    "could not place %d cubes for the %s arm in %d surveyed "
+                    "cells at %.0f mm separation after %d draws. The region "
+                    "is too small for the separation -- do not relax either "
+                    "silently." % (n_per_arm, arm, len(pool),
+                                   min_sep * 1000, max_draws))
+            x, y = pool[rng.randrange(len(pool))]
+            p = [round(x, 4), round(y, 4), T1_Z]
+            if any(math.dist(p, q) < min_sep for q in got):
+                continue
+            got.append(p)
+        out[arm] = got
+    return out
+
+
+def t1_stage2(seed=0, n_per_arm=2):
+    """Both arms pick and place their own cubes AT THE SAME TIME.
+
+    The two arms are stepped together from one waypoint list each, so the
+    clip shows genuine simultaneity rather than one arm waiting.
+    """
+    tgt = stage2_targets(seed, n_per_arm)
+    paths, grips, ats = {}, {}, {}
+    g = CT.grip_for(40)
+    for ai, arm in enumerate(("left", "right")):
+        seq, grip, at = [], [], []
+
+        def add(pts, state, obj, _s=seq, _g=grip, _a=at):
+            _s.extend(pts)
+            _g.extend([state] * len(pts))
+            _a.extend([list(obj)] * len(pts))
+
+        sgn = 1.0 if arm == "left" else -1.0
+        for i, cube in enumerate(tgt[arm]):
+            pick = ee_for(cube)
+            # Each arm places onto ITS OWN side of the marked region, at the
+            # outboard end, so a placement is never in the other arm's cells.
+            px = sgn * (max(abs(c[0]) for c in tgt[arm]) + 0.0)
+            place_obj = [round(px, 4),
+                         round(min(c[1] for c in tgt[arm]), 4), T1_Z]
+            place = ee_for(place_obj)
+            add(_dense([[pick[0], pick[1], pick[2] + STANDOFF], pick]),
+                CT.OPEN, cube)
+            add(_hold(pick, 8), g, cube)
+            add(_dense([pick, [pick[0], pick[1], pick[2] + LIFT]]), g, cube)
+            add(_dense([[pick[0], pick[1], pick[2] + LIFT],
+                        [place[0], place[1], place[2] + LIFT], place]),
+                g, place_obj)
+            add(_hold(place, 2), g, place_obj)
+            add(_hold(place, 3), CT.OPEN, place_obj)
+            add(_dense([place, [place[0], place[1], place[2] + STANDOFF]]),
+                CT.OPEN, place_obj)
+        paths[arm], grips[arm], ats[arm] = seq, grip, at
+
+    # BOTH ARMS GET A LIST OF THE SAME LENGTH -- the recorder steps them
+    # together, and an arm that runs out is an arm that looks crashed.
+    n = max(len(paths["left"]), len(paths["right"]))
+    for arm in ("left", "right"):
+        paths[arm] = _pad(paths[arm], n)
+        grips[arm] = grips[arm] + [CT.OPEN] * (n - len(grips[arm]))
+        ats[arm] = ats[arm] + [ats[arm][-1]] * (n - len(ats[arm]))
+    _T1S2["grip"], _T1S2["at"], _T1S2["targets"] = grips, ats, tgt
+    return paths
+
+
+_T1S2 = {}
+
+
+def t1s2_grip(n):
+    if not _T1S2:
+        t1_stage2()
+    g = _T1S2["grip"]
+    if len(g["left"]) == n:
+        return {a: list(v) for a, v in g.items()}
+    step = len(g["left"]) / float(n)
+    return {a: [v[min(len(v) - 1, int(i * step))] for i in range(n)]
+            for a, v in g.items()}
+
+
+def t1s2_grip_at(n):
+    if not _T1S2:
+        t1_stage2()
+    a = _T1S2["at"]
+    if len(a["left"]) == n:
+        return {k: [list(p) for p in v] for k, v in a.items()}
+    step = len(a["left"]) / float(n)
+    return {k: [list(v[min(len(v) - 1, int(i * step))]) for i in range(n)]
+            for k, v in a.items()}
+
+
 TASKS = {
     "t0": dict(
         name="target reaching",
@@ -326,6 +521,23 @@ TASKS = {
         caveat="Objects are FIXTURED, not resting (option 4): a cube that "
                "cannot fall cannot be dropped, so `drops` is not a "
                "measurable outcome in this task."),
+    "t1s2": dict(
+        name="pick and place, both arms at once",
+        scenario="S2_both_arms_random",
+        build=t1_stage2,
+        grip=lambda n: t1s2_grip(n),
+        grip_at=lambda n: t1s2_grip_at(n),
+        width_mm=40,
+        grip_obj=None,
+        place_target=None,
+        expect="BOTH arms pick and place their own cubes AT THE SAME TIME, "
+               "from positions drawn at random from the surveyed reachable "
+               "region. Two cubes per arm, never in the other arm's cells.",
+        caveat="SIMULTANEITY, and a third kind of bimanual: the same job "
+               "twice at once. T2 is physical COUPLING (remove an arm and it "
+               "is impossible); T3 is bimanual BY ROLE (remove an arm and it "
+               "is slower); here removing an arm HALVES THE WORK RATE. The "
+               "cost measured is divided attention, not task difficulty."),
     "t2": dict(
         name="coordinated carry",
         scenario="S2_full_lift",
@@ -383,7 +595,7 @@ TASKS = {
                "two arms. T2 is the coupling task."),
 }
 
-ORDER = ("t0", "t1", "t2", "t3")
+ORDER = ("t0", "t1", "t1s2", "t2", "t3")
 
 
 if __name__ == "__main__":

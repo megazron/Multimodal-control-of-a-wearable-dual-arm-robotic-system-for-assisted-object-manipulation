@@ -182,6 +182,19 @@ class KortexHighLevelBridge(Node):
         self.session_pub = self.create_publisher(String, "/real/session_state", 10)
         self.create_timer(0.5, self._publish_session_state)
         self.create_service(Trigger, "/real/session_recover", self._srv_recover)
+        # THE DRIVER-LEVEL HALT, on the path that actually runs. See _srv_halt.
+        #
+        # PER ARM IN THE NAME. `arm:=both` runs two of these nodes, and an
+        # unprefixed service name means the second registers the same name as
+        # the first -- the unprefixed-resource collision this project has now
+        # been bitten by five times, most recently with `reactivate_gripper`
+        # exported identically by both grippers. A halt that reaches only one
+        # arm, non-deterministically, is the worst possible version of this.
+        #
+        # NOTE, not fixed here because it is not this change's to make:
+        # /real/session_recover above has the SAME latent collision.
+        self.create_service(Trigger, "/real/emergency_halt_%s" % self.arm,
+                            self._srv_halt)
         self._grip_target = None       # normalised 0..1, None = never commanded
         self._grip_sent = None
         self._grip_fail = 0
@@ -502,6 +515,47 @@ class KortexHighLevelBridge(Node):
         self._ss = None
         self._rt = None
         self._tr = None
+
+    def _srv_halt(self, req, res):
+        """Zero speeds and Stop() the arm NOW, on the existing session.
+
+        THIS IS THE SECOND LAYER, and until now it did not exist on this path.
+        estop_node's halt_real_driver() deactivates ros2_control controllers
+        and sets the Kortex hardware component inactive -- correct for the
+        CASCADE stack and a complete no-op for the high-level bridge, which
+        has neither. So on a real high-level run the driver-level halt did
+        nothing at all, and reported it only as "UNAVAILABLE" in a line nobody
+        reads.
+
+        The distinction this restores is worth stating plainly: the
+        /estop_state subscription stops us COMMANDING; this stops the ARM.
+        They differ exactly when the control loop is wedged, which is the case
+        a second layer exists for.
+
+        Never opens a session and never closes one -- the arm permits exactly
+        one, and a halt that leaked it would make recovery need a relaunch,
+        which a participant session cannot absorb.
+        """
+        with self._lock:
+            self._estopped = True
+        done, failed = [], []
+        # BOTH ARE ATTEMPTED even if the first raises: a failed zero must not
+        # skip the Stop().
+        for what, fn in (("zero speeds",
+                          lambda: self._send_speeds_rad([0.0] * NJ)),
+                         ("Stop()", lambda: self.base.Stop())):
+            try:
+                fn()
+                done.append(what)
+            except Exception as e:                            # noqa: BLE001
+                failed.append("%s: %r" % (what, e))
+        msg = "halted: %s" % (", ".join(done) or "nothing")
+        if failed:
+            msg += " -- FAILED: %s" % "; ".join(failed)
+        self.get_logger().error("[E-STOP REAL] %s" % msg)
+        res.success = not failed
+        res.message = msg
+        return res
 
     def _srv_recover(self, req, res):
         """Recover the session IN PROCESS. Never a relaunch.

@@ -241,6 +241,11 @@ class IKFollowerNode(Node):
         self.sim_max_step = self.max_step
         self.sim_max_vel = self.max_vel          # remembered, restored on exit
         self.cascade_active = False
+        # WHICH ARM THE CLEARANCE FIGURE IS ABOUT: "sim", "real" or "none".
+        # Published in /ik_status so it cannot be lost between here and a
+        # reader, and logged on every change.
+        self._clear_src = "sim"
+        self._clear_src_said = None
         # Per-arm: a follower must only listen to ITS OWN bridge.
         self.create_subscription(Bool, "/cascade_active_%s" % self.arm,
                                  self.on_cascade, 10)
@@ -477,7 +482,14 @@ class IKFollowerNode(Node):
                      1.0 if self.cascade_active else 0.0,
                      # [10] EFFECTIVE max_step. max_vel alone never told the
                      # truth about how fast this follower moves.
-                     float(self.max_step)])
+                     float(self.max_step),
+                     # [11] WHICH ARM FIELD [5] IS ABOUT: 0 sim, 1 real,
+                     # -1 unknown. A clearance number without its source is
+                     # exactly the defect this field exists to close -- under
+                     # the cascade the sim leads the real arm by the bridge
+                     # delay, so "sim" and "real" are different questions and
+                     # a reader must not have to guess which was answered.
+                     {"sim": 0.0, "real": 1.0}.get(self._clear_src, -1.0)])
         self.status_pub.publish(m)
 
     def log_stats(self):
@@ -611,29 +623,72 @@ class IKFollowerNode(Node):
             max(range(7), key=lambda i: abs(deltas[i])), deltas)
         self.home_gate_ok = bool(m.data[22])
 
-    def measure_clearance(self):
-        """Smallest distance from the arm's distal links to the wearer.
-
-        Uses TF, so it reflects where the robot ACTUALLY is rather than where
-        it was asked to go. Returns inf when TF is unavailable, and the caller
-        treats inf as 'unknown, do not block' -- an interlock that fires on
-        missing data would make the arm undriveable every time TF hiccups.
-        """
+    def _clearance_from(self, prefix):
+        """Distal-link points relative to the wearer, from ONE frame tree."""
         pts = {}
         for part in ("torso", "head", "hips"):
             got = []
             for link in DISTAL_LINKS:
                 try:
                     t = self.tf_buf.lookup_transform(
-                        part, f"{self.arm}_{link}",
+                        prefix + part, f"{prefix}{self.arm}_{link}",
                         rclpy.time.Time()).transform.translation
                     got.append((t.x, t.y, t.z))
                 except Exception:
                     continue
             if got:
                 pts[part] = got
+        return pts
+
+    def measure_clearance(self):
+        """Smallest distance from the arm's distal links to the wearer.
+
+        Returns (distance, part, SOURCE) and the source is the point of this
+        function's existence.
+
+        IT USED TO MEASURE THE WRONG ARM AND SAY NOTHING. The lookup was
+        `f"{self.arm}_{link}"` -- unprefixed, which is the SIM tree -- while
+        the real arm publishes under `real_*` (mock_real.launch.py and
+        real_arms.launch.py both run robot_state_publisher with
+        frame_prefix="real_"). With the cascade running, the sim leads the real
+        arm by the bridge delay, 1.0 s by default. So every clearance figure
+        reported during a real run described a pose the arm had not reached
+        yet, under a name that reads as a measurement of the arm. A number that
+        is silently about something else is worse than no number: this one
+        would have been quoted as "0.12 m from the wearer" while the arm was
+        somewhere else entirely.
+        
+        WHEN THE CASCADE IS ACTIVE THE REAL TREE IS THE ONLY ANSWER, and if it
+        is not there the answer is UNKNOWN -- never a quiet fall back to the
+        sim tree, which is the bug wearing a different hat. Unknown still does
+        not block, for the reason it never did: an interlock that fires on
+        missing data makes the arm undriveable every time TF hiccups. It is
+        loud instead, and the source travels with the number all the way into
+        /ik_status so a consumer cannot lose it either.
+        """
+        want_real = bool(self.cascade_active)
+        pts = self._clearance_from("real_" if want_real else "")
         if not pts:
+            if want_real:
+                self._clear_src = "none"
+                if self._clear_src_said != "none":
+                    self.get_logger().error(
+                        "[CLEARANCE] cascade is ACTIVE and no real_* TF is "
+                        "available -- clearance is UNKNOWN for the REAL arm. "
+                        "Not falling back to the sim tree: that number would "
+                        "describe a pose %.1f s ahead of the arm."
+                        % 1.0)
+                    self._clear_src_said = "none"
+            else:
+                self._clear_src = "none"
             return float("inf"), None
+        self._clear_src = "real" if want_real else "sim"
+        if self._clear_src != self._clear_src_said:
+            self.get_logger().info(
+                "[CLEARANCE] measuring the %s arm (%s frames)"
+                % (self._clear_src.upper(),
+                   "real_*" if want_real else "unprefixed"))
+            self._clear_src_said = self._clear_src
         pad = REAL_ROBOT_PAD_M if self.real_robot else 0.0
         return self.clearance_model.clearance(pts, pad)
 

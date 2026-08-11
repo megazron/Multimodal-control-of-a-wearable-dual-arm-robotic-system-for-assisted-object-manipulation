@@ -12,6 +12,7 @@ Every one of those is a property of the sampler, so they are asserted here.
 import os
 import sys
 
+import math
 import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -33,22 +34,54 @@ def test_same_seed_reproduces_the_trial_exactly():
         "different seeds produced the same trial -- the seed is not wired in")
 
 
-def test_every_sample_is_inside_the_verified_band():
-    """The band is measured with the bench in the planning scene. A sample
-    outside it has never been verified reachable by anything."""
-    lo_x, hi_x = T0.BAND["x"]
-    lo_z, hi_z = T0.BAND["z"]
+def test_every_sample_is_inside_its_verified_DIRECTION_CELL():
+    """Every draw stays inside the cell its direction was measured in.
+
+    RE-AIMED 2026-08-11, and the old version of this test is the reason it is
+    worth saying why. It checked `T0.BAND` -- the single 200 x 80 mm rectangle
+    the targets used to be drawn from -- which was correct until the targets
+    became three distinct DIRECTIONS per arm, each with its own measured cell
+    (scripts/choose_t0_directions.py). It then failed on a perfectly good
+    sample, L1 at x = 0.2392 against a band starting at 0.30, because FRONT_UP
+    is simply not in that rectangle and was never meant to be.
+
+    The property worth pinning is unchanged in spirit: a sample outside the
+    region that was verified reachable has never been verified by anything.
+    Only the region changed, from one band to three cells per arm.
+    """
     n = 0
     for seed in range(200):
         t, _ = T0.sample_trial(seed)
         for label, p in t.items():
             n += 1
-            assert lo_x - 1e-9 <= abs(p[0]) <= hi_x + 1e-9, (label, p)
-            assert p[1] == T0.BAND["y"], (label, p)
-            assert lo_z - 1e-9 <= p[2] <= hi_z + 1e-9, (label, p)
+            arm = "left" if label.startswith("L") else "right"
+            centre = T0.DIRECTION_CENTRE[arm][T0.LABEL_DIRECTION[label]]
+            for k, axis in enumerate("xyz"):
+                assert abs(p[k] - centre[k]) <= T0.JITTER_M + 1e-9, (
+                    "%s %s=%.4f is %.1f mm from the cell centre %.4f, "
+                    "outside the %.0f mm jitter"
+                    % (label, axis, p[k], 1000 * abs(p[k] - centre[k]),
+                       centre[k], 1000 * T0.JITTER_M))
             assert (p[0] > 0) == label.startswith("L"), (
                 "%s is on the wrong side: %s" % (label, p))
     assert n == 200 * 6, "checked %d poses, expected 1200" % n
+
+
+def test_the_jitter_box_CORNER_stays_inside_the_verified_margin():
+    """The margin test is per AXIS; the jitter box is sampled on all three.
+
+    Its corner is sqrt(3) x the half-width from the centre, so a jitter equal
+    to the margin is already outside it. Measured: 15 mm of jitter put the
+    corner at 26 mm against a 20 mm margin and produced 1 unreachable pose in
+    120 sampled. This is that arithmetic, pinned.
+    """
+    margin = 0.020        # every chosen cell held +/-20 mm on all six axes
+    corner = T0.JITTER_M * math.sqrt(3)
+    assert corner <= margin + 1e-9, (
+        "jitter %.0f mm gives a box corner %.1f mm from the centre, outside "
+        "the %.0f mm the cell was verified to" % (1000 * T0.JITTER_M,
+                                                  1000 * corner,
+                                                  1000 * margin))
 
 
 def test_separation_is_always_honoured():
@@ -63,10 +96,16 @@ def test_separation_is_always_honoured():
 
 
 def test_it_REFUSES_rather_than_returning_fewer_targets():
-    """The guard that found the real conflict: three spheres at 80 mm do not
-    fit the 200 x 80 mm band reliably. It must raise, not return two."""
+    """It must raise, not return two.
+
+    RE-AIMED with the direction change. The old separation that could not be
+    met was 0.25 m inside one 200 x 80 mm band; the three direction cells are
+    now 0.29-0.72 m apart, so 0.25 m is trivially satisfiable and no longer
+    tests anything. A separation larger than the widest pair still cannot be
+    met, and that is what the refusal is for.
+    """
     with pytest.raises(T0.RegionExhausted):
-        T0.sample_targets("left", 0, n=3, min_sep=0.25, max_draws=200)
+        T0.sample_targets("left", 0, n=3, min_sep=1.50, max_draws=200)
 
 
 def test_a_refusing_validator_is_never_silently_ignored():

@@ -126,6 +126,12 @@ class EStop(Node):
             self.create_subscription(
                 PoseStamped, f"/master_arm_pose_{a}", self._on_pose_factory(a), 20)
 
+        # ONE CLIENT PER ARM for the bridge's own halt. Created here, beside
+        # the controller-manager clients, so both layers are set up in one
+        # place and neither can be forgotten when the other is edited.
+        self._halt_cli = {a: self.create_client(
+            Trigger, "/real/emergency_halt_%s" % a)
+            for a in ("left", "right")}
         cm = self.get_parameter("real_cm").value
         self.sw_cli = self.create_client(SwitchController, cm + "/switch_controller")
         self.hw_cli = self.create_client(
@@ -292,6 +298,34 @@ class EStop(Node):
                 done.append("hardware '%s' -> inactive sent" % c)
         else:
             done.append("set_hardware_component_state UNAVAILABLE")
+        # THE HIGH-LEVEL BRIDGE, which is the path a real run actually uses.
+        #
+        # Everything above targets /real/controller_manager -- the ros2_control
+        # CASCADE -- and the supported real path is kortex_highlevel_bridge,
+        # which has no controller manager and no hardware component. So on a
+        # real high-level run every branch above logged "UNAVAILABLE" and the
+        # driver-level halt did nothing, while the arm still stopped for a
+        # different reason (the bridge's own /estop_state subscription). A
+        # second layer that silently does nothing is worse than none, because
+        # it reads as defence in depth.
+        for arm in ("left", "right"):
+            cli = self._halt_cli.get(arm)
+            if cli is not None and cli.service_is_ready():
+                cli.call_async(Trigger.Request())
+                done.append("bridge %s /real/emergency_halt_%s sent"
+                            % (arm, arm))
+            else:
+                done.append("bridge %s emergency_halt UNAVAILABLE" % arm)
+
+        # AND IF NOTHING WAS REACHABLE, SAY SO ONCE, LOUDLY. Four "UNAVAILABLE"
+        # lines are a list; "no driver-level halt exists on this stack" is a
+        # fact about the safety layer, and it is the one a reader needs.
+        if all("UNAVAILABLE" in d for d in done):
+            self.get_logger().error(
+                "[E-STOP REAL] NO DRIVER-LEVEL HALT WAS REACHABLE. The arms "
+                "stop only because every commander subscribes to "
+                "/estop_state; there is no second layer on this stack. On a "
+                "SIM or MOCK run that is expected. On a real run it is not.")
         for d in done:
             self.get_logger().error("[E-STOP REAL] %s" % d)
         return done

@@ -1,1 +1,64 @@
-[]
+[
+  {
+    "ok": false,
+    "why": "unknown task 't0' -- no object requirement is defined, so nothing was checked",
+    "duration_s": 14.9,
+    "bright": 63.1,
+    "variety": 10128,
+    "delta": 3.39,
+    "objects": {},
+    "angles_bad": [],
+    "mode": "06_full_autonomy",
+    "task": "t0",
+    "scenario": "D3_three_targets",
+    "condition": "-"
+  },
+  {
+    "ok": false,
+    "why": "unknown task 't1' -- no object requirement is defined, so nothing was checked",
+    "duration_s": 31.7,
+    "bright": 66.0,
+    "variety": 12297,
+    "delta": 1.62,
+    "objects": {},
+    "angles_bad": [],
+    "mode": "06_full_autonomy",
+    "task": "t1",
+    "scenario": "S1_left_arm",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 11.3,
+    "bright": 65.0,
+    "variety": 11806,
+    "delta": 2.4,
+    "objects": {
+      "container_teal": 2100,
+      "block_orange": 1344
+    },
+    "angles_bad": [],
+    "mode": "06_full_autonomy",
+    "task": "t2",
+    "scenario": "S2_full_lift",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 13.3,
+    "bright": 66.8,
+    "variety": 11697,
+    "delta": 0.2,
+    "objects": {
+      "tray_tan": 6483,
+      "ball_yellow": 6359
+    },
+    "angles_bad": [],
+    "mode": "06_full_autonomy",
+    "task": "t3",
+    "scenario": "S1_measure_cycle",
+    "condition": "-"
+  }
+]

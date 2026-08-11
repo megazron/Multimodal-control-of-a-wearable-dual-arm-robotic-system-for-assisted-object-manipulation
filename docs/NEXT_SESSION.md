@@ -1,82 +1,60 @@
-# RESUME POINT — recording still blocked on /joint_states. ONE CHECK AWAY.
+# RESUME POINT — mode 06 RECORDED (2 of 4 pass automatically), and LOOKING found more
 
-## THE BLOCKER, now diagnosed to one contradiction
+## THE HEADLINE: NONE OF THE FOUR CLIPS IS ACTUALLY CORRECT YET
 
-`sim_session.py --stack teleop` refuses to record because the probe measures:
+The sweep passed T0 and T2 and failed T1 and T3. **Then I extracted frames and
+looked, and both "passing" clips are wrong too** — which is the entire reason
+item 4 exists.
 
-    probe: TIMEOUT joint_state_msgs=0 arm_joints=0 ik=True followers=1/2
+| task | sweep | what I SEE in the frames |
+| --- | --- | --- |
+| T0 | OK | **NO SPHERES AND NO BENCH.** Both arms move and reach out, caption correct, arms clear of the wearer — but the targets the task is *about* are not drawn, and neither is the furniture. A viewer cannot tell whether the arm reached L2. |
+| T1 | FAIL | `NO GRASP RECORDED at all; PLACED 0.206 m FROM TARGET` |
+| T2 | OK | Both grippers hold the orange tray, spanning between them at chest height, level, clear of the bench — this one looks like the task. **But there is NO BALL on the tray**, and the ball is the failure indicator (tilt past 6.8 deg drops it). `scene_events.json` confirms only one item, "tray". |
+| T3 | FAIL | `NO GRASP RECORDED at all` (it did report "placed 99 mm from target") |
 
-**Root cause chain, established from the launch log:**
+## THE FOUR DEFECTS, and three are mine
 
-1. `joint_state_broadcaster`'s spawner FAILED — three attempts, each timing
-   out after 10 s on `/controller_manager/list_controllers`, then
-   `process has died ... exit code 1`. **With no broadcaster there is no
-   `/joint_states` at all**, which is exactly what the probe measures and what
-   both followers report ("Waiting for /joint_states").
-2. It timed out because the controller manager was starved:
-   `Read time: 21011 us` against a 10000 us budget, 15 missed cycles.
-3. It was starved by a **`master_pose_node` RESPAWN STORM** — with no Teensy
-   it raises PortNotFound and exits 1, `teleop.launch.py` gives it
-   `respawn=True`, and it died **1726 times in one launch**, each re-scanning
-   the serial ports. The log reached 18 MB.
+1. **T0 draws nothing at all — MY BUG.** I gave `clip_scene.tick()` an
+   early `return` when `self.items` is empty, so T0 suppresses the FURNITURE
+   too, not just the objects. Fix: return early only from the OBJECT drawing,
+   never before the bench.
+2. **T0's spheres are never drawn.** Its `_items()` returns `{}` because the
+   spheres are not graspable. But they are TARGETS and must be visible.
+   Add them as non-graspable markers (a `graspable: False` flag already
+   exists in the T1 table for the same idea).
+3. **T2 has no ball.** `_items()` declares only the tray. The ball is what
+   makes tilt legible; without it the clip cannot show the failure mode the
+   task is built on.
+4. **T1 and T3 never grasp.** The sweep gates a grasp on the PADS reaching
+   `grip_obj` within 0.03 m while closed, not on a waypoint index. So either
+   the `_sched()` close index does not coincide with the descent, or
+   `grip_obj` is not where the pads arrive. Diagnose with the per-frame pad
+   position, not by shifting the index until it passes.
 
-## THE ONE CONTRADICTION TO RESOLVE FIRST — it is small
+## WHAT IS NOW WORKING (do not re-litigate)
 
-`master:=false` was added to the launch and **the node started anyway**.
+  * **the stack comes up**: `probe: READY joint_state_msgs=5 arm_joints=14
+    ik=True followers=2`, /joint_states at 97.03 Hz.
+  * **master:=false works** — run directly it yields 0 master_pose_node
+    lines. My earlier "the node started anyway" was WRONG: a stale log tail
+    plus a pgrep self-match.
+  * **the respawn storm is fixed at source**: PortNotFound now retries with
+    backoff then PARKS in a DORMANT state instead of exiting, and
+    distinguishes "no device present" from "device present but not
+    answering". Plus `sim_session.respawn_storm()`, validated both ways.
+  * **Xvfb teardown** on try/finally and on signals, proven by SIGTERM
+    mid-angle.
+  * **verifier self-test green**: 7/7 controls plus the per-angle control
+    both ways.
 
-Everything about the wiring looks right:
-  * `run_teleop.sh` line 14 is `exec ros2 launch srl_teleop teleop.launch.py "$@"`
-  * `teleop.launch.py` line 163 gates it:
-    `condition=IfCondition(LaunchConfiguration("master"))`
-  * `sim_session.py` passes `gate:=false master:=false`
-
-Yet the log tail from that very run shows `master_pose_node` printing its
-degraded-mode banner. So one of those three is not doing what it says.
-
-**Check it directly, it is one command:**
+## COMMANDS
 
 ```
-bash scripts/run_teleop.sh gate:=false master:=false 2>&1 | grep -c master_pose_node
+python3 scripts/sim_session.py --stack teleop -- \
+    python3 scripts/record_abc_sweep.py --taskset msc --only 06_full_autonomy
+python3 scripts/verify_rviz_clips.py --self-test
 ```
-
-If that is 0, the fault is in how sim_session builds the command line; if it
-is non-zero, the fault is in the launch file's condition. Do not proceed to
-recording until `pgrep -f master_pose_node` is 0 with `master:=false`.
-
-Once the storm is gone, expect the broadcaster to spawn, `/joint_states` to
-flow, and the probe to go READY — every other piece is already proven.
-
-## WHAT IS PROVEN AND READY
-
-  * **verifier: all three named blind spots green**, re-run this session.
-    7/7 controls (object present passes, absent fails, HUD-text-only fails,
-    skin fails, frozen fails, BLACK fails, unknown task fails) plus the
-    per-angle control BOTH ways: "black gripper is CAUGHT" and "all-good clip
-    is not flagged". It refuses to report until those pass.
-  * **Xvfb teardown**, proven by SIGTERM mid-angle: killed 16 processes,
-    removed 8 locks, then XVFB=0 LOCKS=0. try/finally + signal handlers.
-  * **the sweep wiring**: m0-m3 dispatch, 20 GUI specs, clip_scene item
-    tables, clip paths verified N=10 (103 waypoints, 0 failures).
-
-## HOUSEKEEPING ANSWERED
-
-**The 32 files cannot be archived — they were DELETED last session**, with
-`archive/recordings/failed_20260811_msc_mode06/WHY_THESE_ARE_NOT_RESULTS.md`
-recording that they existed and that two independent checks called them
-worthless (no scene_events.json; only 1.3 s long). Deleting rather than
-archiving was deliberate: a directory of mp4s under `recordings/` is the thing
-that gets cited by accident. `recordings/verification/` is empty.
-
-**The ensure_display note, in full.** `ensure_display()` carries the rule
-"NOTHING IS EVER KILLED": one Xvfb and one RViz per view, started once and
-left alone. That rule is CORRECT and I did not touch it. Killing and
-restarting an Xvfb that two RViz instances share is precisely what produced
-seven entirely black clips of 34 s each — reproduced by alternating the arm
-four times, brightness 99.00 → 98.92 → 0.04 → 0.04. The point I was making is
-that the rule governs the MIDDLE of a sweep and says nothing about its END,
-and nothing cleaned up there — so a failed run left one Xvfb per view alive
-holding its display number. The new `teardown_displays()` runs only at the
-end, so the two do not conflict.
 
 # RESUME POINT — 2026-08-11 (third session)
 

@@ -3455,7 +3455,42 @@ discovery, which CLAUDE.md already records as the stale-shm signature --
 "services appear for one client and not another, and wait_for_service times
 out on a service get_service_names_and_types() can see".
 
-**START HERE, and do not re-record until it is answered:**
+**NARROWED, and this is the decisive evidence.** `/joint_states` IS being
+published and IS being received -- by a node inside the stack:
+
+    [fsr_gripper_node] [FSR:left]  OPEN REFERENCE CONFIRMED from /joint_states
+                                   at 0.0000 rad (< 0.100)
+    [fsr_gripper_node] [FSR:right] OPEN REFERENCE CONFIRMED from /joint_states
+
+So the fault is NOT a dead broadcaster and NOT a dead topic. **Processes
+launched together by `ros2 launch` see each other; a process started
+separately does not.** That is the whole of it, and it is why the probe, a
+fresh `ros2 node list --no-daemon`, and `ros2 topic hz` all see nothing while
+the stack talks to itself perfectly.
+
+Cycling the ros2 daemon does NOT fix it -- tried, third identical
+reproduction. So it is below the daemon, in the RMW.
+
+**The prime suspect is the ENVIRONMENT, not the transport.** CLAUDE.md records
+that `scripts/env.sh` is the single source of environment truth -- it pins
+`ROS_DOMAIN_ID=0` and actively unsets any inherited `ROS_LOCALHOST_ONLY` --
+and that `teleop.launch.py` applies the same settings IN-PROCESS "because
+terminal 1 is launched by hand and never sources it". The probe does neither:
+`wait_ready()` runs `bash -lc "source /opt/ros/jazzy/setup.bash && source
+install/setup.bash && python3 ..."`. **It never sources env.sh, and `bash -l`
+reads the login profile**, so whatever domain or localhost setting the profile
+carries is what the probe uses -- while the launch has pinned itself to
+domain 0 in-process. A domain mismatch produces exactly this signature.
+
+**START HERE:**
+
+0. **Compare the two environments directly.** With a stack up, print
+   `ROS_DOMAIN_ID`, `ROS_LOCALHOST_ONLY` and `RMW_IMPLEMENTATION` from (a) a
+   `bash -lc` shell and (b) `/proc/<move_group pid>/environ`. If they differ,
+   that is the bug and the fix is one line: source `scripts/env.sh` in
+   `wait_ready()` and in the sweep's own shell.
+
+**THEN, only if the environments match:**
 
 1. `ros2 daemon stop && ros2 daemon start`, then `ros2 node list --no-daemon`
    with a stack up. The daemon is not in the probe's path but it is in the

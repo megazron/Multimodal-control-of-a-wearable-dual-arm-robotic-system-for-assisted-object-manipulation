@@ -1,0 +1,131 @@
+{
+  "ran": [
+    [
+      "T0",
+      "02_vr_teleop"
+    ],
+    [
+      "T1_s1",
+      "02_vr_teleop"
+    ],
+    [
+      "T1_s2",
+      "02_vr_teleop"
+    ]
+  ],
+  "failed": [
+    [
+      "T0",
+      "01_master_teleop"
+    ],
+    [
+      "T0",
+      "06_full_autonomy"
+    ],
+    [
+      "T0",
+      "03_shared_autonomy"
+    ],
+    [
+      "T0",
+      "04_vr_shared"
+    ],
+    [
+      "T1_s1",
+      "01_master_teleop"
+    ],
+    [
+      "T1_s1",
+      "06_full_autonomy"
+    ],
+    [
+      "T1_s1",
+      "03_shared_autonomy"
+    ],
+    [
+      "T1_s1",
+      "04_vr_shared"
+    ],
+    [
+      "T1_s2",
+      "01_master_teleop"
+    ],
+    [
+      "T1_s2",
+      "06_full_autonomy"
+    ],
+    [
+      "T1_s2",
+      "04_vr_shared"
+    ],
+    [
+      "T2",
+      "01_master_teleop"
+    ],
+    [
+      "T2",
+      "06_full_autonomy"
+    ],
+    [
+      "T3",
+      "01_master_teleop"
+    ],
+    [
+      "T3",
+      "06_full_autonomy"
+    ],
+    [
+      "T3",
+      "03_shared_autonomy"
+    ]
+  ],
+  "sample_rows": 272,
+  "travel": {
+    "T0/02_vr_teleop": 0.6881,
+    "T1_s1/02_vr_teleop": 1.2675,
+    "T1_s2/02_vr_teleop": 0.6684
+  },
+  "dead_modes": [],
+  "files": 3,
+  "fill": {
+    "t": 272,
+    "phase": 272,
+    "master_x": 0,
+    "master_y": 0,
+    "master_z": 0,
+    "master_qx": 0,
+    "master_qy": 0,
+    "master_qz": 0,
+    "master_qw": 0,
+    "pointing_x": 0,
+    "pointing_y": 0,
+    "pointing_z": 0,
+    "clutch": 0,
+    "ee_x": 272,
+    "ee_y": 272,
+    "ee_z": 272,
+    "ee_qx": 0,
+    "ee_qy": 0,
+    "ee_qz": 0,
+    "ee_qw": 0,
+    "cmd_x": 272,
+    "cmd_y": 272,
+    "cmd_z": 272,
+    "gripper_rad": 272,
+    "autonomy_state": 272,
+    "intent_top": 0,
+    "intent_top_p": 0,
+    "intent_margin": 0,
+    "intent_ambiguous": 0,
+    "intent_dist": 0,
+    "intent_ids": 0,
+    "grasp_offered": 0,
+    "channels_live": 0,
+    "ik_success": 0,
+    "ik_fail": 0,
+    "ik_rejected": 0,
+    "clearance_m": 0,
+    "payload_kg": 0,
+    "estop": 272
+  }
+}

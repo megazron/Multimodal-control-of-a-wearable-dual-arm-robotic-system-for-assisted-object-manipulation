@@ -88,84 +88,12 @@ SCENARIO.update({k: v["scenario"] for k, v in MCT.TASKS.items()})
 # refuses to proceed without.
 # ORDER IS DELIBERATE: most self-sufficient first, so a session that dies
 # part-way still leaves the modes that needed no operator on the remote.
-MODE_ORDER = ["06_full_autonomy", "01_master_teleop", "03_shared_autonomy",
-              "02_vr_teleop", "04_vr_shared"]
-
-MODES = {
-    "01_master_teleop": dict(
-        needs=[], follower_topic="/master_arm_pose_%s", expect_pubs=1,
-        note="the runner itself is the only publisher"),
-    "02_vr_teleop": dict(
-        needs=[("vr_pose_mapper",
-                # SCALE 1.0 FOR RECORDING, not the shipped 0.5.
-                #
-                # vr_pose_mapper defaults to scale 0.5 on purpose -- a VR play
-                # space is much larger than the robot's workspace, so an
-                # operator's half-metre reach should not demand a half-metre
-                # of robot. But the sweep does not feed it an operator: it
-                # feeds it the task's own ROBOT-FRAME waypoints on
-                # /vr/controller_pose_*, which the mapper then halves.
-                #
-                # Measured, and it is exactly a half: task A's block was
-                # carried 0.308 m instead of 0.594 m and released 0.150 m
-                # short in x and 0.115 m high, at 0.189 m from the bin -- the
-                # SAME 0.189 m on two separate runs, which is what ruled out
-                # lag and pointed at a constant factor. 04_vr_shared, which
-                # uses the same VR transport but lets autonomy own the pose,
-                # placed at 0 mm -- so the transport was never at fault.
-                #
-                # This is a property of the harness, not of the robot, and
-                # 0.5 remains right for a real operator.
-                ["ros2", "run", "srl_vr_teleop", "vr_pose_mapper",
-                 "--ros-args", "-p", "scale:=1.0"])],
-        follower_topic="/master_arm_pose_%s", expect_pubs=1,
-        note="the MAPPER is the only publisher; the runner drives it "
-             "upstream on /vr/controller_pose_*"),
-    "04_shared_autonomy": dict(
-        needs=[], follower_topic="/autonomy/assist_pose_%s", expect_pubs=1,
-        note="the runner itself"),
-    "06_full_autonomy": dict(
-        needs=[], follower_topic="/autonomy/assist_pose_%s", expect_pubs=1,
-        note="the runner itself, commanded by a spoken instruction"),
-    "03_shared_autonomy": dict(
-        needs=[], follower_topic="/autonomy/assist_pose_%s", expect_pubs=1,
-        note="the arbiter's topic; the master is present but not commanding"),
-    "04_vr_shared": dict(
-        needs=[("vr_pose_mapper",
-                # SCALE 1.0 FOR RECORDING, not the shipped 0.5.
-                #
-                # vr_pose_mapper defaults to scale 0.5 on purpose -- a VR play
-                # space is much larger than the robot's workspace, so an
-                # operator's half-metre reach should not demand a half-metre
-                # of robot. But the sweep does not feed it an operator: it
-                # feeds it the task's own ROBOT-FRAME waypoints on
-                # /vr/controller_pose_*, which the mapper then halves.
-                #
-                # Measured, and it is exactly a half: task A's block was
-                # carried 0.308 m instead of 0.594 m and released 0.150 m
-                # short in x and 0.115 m high, at 0.189 m from the bin -- the
-                # SAME 0.189 m on two separate runs, which is what ruled out
-                # lag and pointed at a constant factor. 04_vr_shared, which
-                # uses the same VR transport but lets autonomy own the pose,
-                # placed at 0 mm -- so the transport was never at fault.
-                #
-                # This is a property of the harness, not of the robot, and
-                # 0.5 remains right for a real operator.
-                ["ros2", "run", "srl_vr_teleop", "vr_pose_mapper",
-                 "--ros-args", "-p", "scale:=1.0"])],
-        follower_topic="/autonomy/assist_pose_%s", expect_pubs=1,
-        vr_present=True,
-        note="the VR transport is UP and autonomy owns the pose"),
-}
-
-# Every upstream any mode can start. Anything not in a mode's `needs` is torn
-# down before that mode runs -- listed explicitly so a new upstream cannot be
-# forgotten by omission.
-ALL_UPSTREAMS = ["lib/srl_vr_teleop/vr_pose_mapper",
-                 "lib/srl_autonomy/autonomy_executive",
-                 "lib/srl_vr_teleop/quest_vendor_bridge"]
-
-
+# MOVED to scripts/mode_upstreams.py so the CLIP path and the DATA path share
+# ONE definition of what each mode needs. They did not, and 02_vr_teleop's
+# data run recorded 0.0000 m of travel because run_abc had no equivalent of
+# isolate() and nobody started vr_pose_mapper.
+from mode_upstreams import (MODE_ORDER, MODES, ALL_UPSTREAMS,   # noqa: E402
+                            isolate)
 def burn_caption(front_mp4, lines, width=800):
     """Composite the caption ONTO the front clip, as pixels.
 
@@ -478,73 +406,6 @@ def preconditions():
         msgs.append("%s: %s -- kill by PID and remove the lock" % (what, detail))
 
     return (not msgs), msgs
-
-
-def isolate(mode, graph, started):
-    """Make `mode` the only source. Returns (ok, message).
-
-    Tears down every upstream this mode does not need, starts the ones it
-    does, then COUNTS publishers on the follower's input topic and compares
-    against the number this mode predicted.
-    """
-    spec = MODES[mode]
-    need_pats = {n[0] for n in spec["needs"]}
-
-    killed = []
-    for pat in ALL_UPSTREAMS:
-        if any(p in pat for p in need_pats):
-            continue
-        t, _ = procscan.kill_all(pat)
-        if t:
-            killed.append("%s x%d" % (pat.rsplit("/", 1)[-1], len(t)))
-            started.pop(pat, None)
-    if killed:
-        log("   torn down: %s" % ", ".join(killed))
-        # THE GRAPH CACHE OUTLIVES THE PROCESS. Measured: a publisher SIGKILLed
-        # 3 s earlier was still named by get_publishers_info_by_topic, so a
-        # 2 s settle refused a mode that was in fact isolated. The refusal is
-        # the safe direction -- a stale entry can only cause a false NO, never
-        # a false YES -- but it costs a whole mode, so wait long enough for the
-        # RMW to reap it rather than accept the flakiness.
-        time.sleep(8.0)
-
-    for name, argv in spec["needs"]:
-        pat = "lib/srl_vr_teleop/%s" % name if "vr" in name else name
-        if procscan.count(pat) == 0:
-            env = dict(os.environ, PYTHONUNBUFFERED="1")
-            p = subprocess.Popen(argv, env=env, start_new_session=True,
-                                 stdout=subprocess.DEVNULL,
-                                 stderr=subprocess.DEVNULL)
-            started[pat] = p
-            log("   started %s (pid %d)" % (name, p.pid))
-            time.sleep(9.0)
-
-    # THE COUNT. Before the runner starts, the follower's input topic should
-    # carry ONLY this mode's upstream -- 0 for the modes whose upstream IS the
-    # runner, 1 for VR where the mapper publishes it.
-    # BY NAME. The set of nodes allowed to publish the follower's input while
-    # the mode is IDLE -- before the runner starts. `master_pose_node` is
-    # tolerated because it is part of every launched stack and, with no Teensy,
-    # publishes NOTHING: it dies on PortNotFound and respawns. Tolerating it by
-    # name is honest; tolerating it by loosening a count would also tolerate a
-    # leftover mapper, which is the exact failure this check exists to catch.
-    allowed = {"master_pose_node"}
-    if spec["needs"]:
-        allowed |= {n[0] for n in spec["needs"]}
-    bad = []
-    for arm in ("left", "right"):
-        topic = spec["follower_topic"] % arm
-        names = graph.pub_nodes(topic)
-        extra = {x for x in names if x not in allowed}
-        if extra:
-            bad.append("%s is published by %s, which this mode does not own "
-                       "(allowed: %s)"
-                       % (topic, ", ".join(sorted(extra)),
-                          ", ".join(sorted(allowed))))
-    if bad:
-        return False, "; ".join(bad)
-    return True, ("isolated: no unowned publisher on the follower input (%s)"
-                  % spec["note"])
 
 
 # ===========================================================================

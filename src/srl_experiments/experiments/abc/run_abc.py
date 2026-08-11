@@ -106,6 +106,15 @@ MODES = {
 }
 
 
+# WHICH KIND OF BIMANUAL EACH TASK IS, carried into every trial row so the
+# distinction cannot be lost between the task spec and the analysis. T2 is
+# COUPLING, T3 is BY ROLE, T1 stage 2 is SIMULTANEITY, and merging them is the
+# error the specs warn about in three separate places.
+KIND = {"M0": "single-arm pointing", "M1": "single-arm pick and place",
+        "M1S2": "simultaneity", "M2": "physical coupling",
+        "M3": "bimanual by role"}
+
+
 def densify(path, step=0.03):
     """Intermediate waypoints, so the CLIP shows motion rather than two poses.
 
@@ -230,6 +239,30 @@ class Runner(Node):
         except Exception:                                     # noqa: BLE001
             self.buf = None
 
+    def _wire_logging(self):
+        """Subscriptions that exist ONLY to fill the log.
+
+        Kept separate and called explicitly so that nothing in the control
+        path depends on them: a data subscription that could change how the
+        arm moves would make every trial a measurement of the logger.
+        """
+        from sensor_msgs.msg import JointState as _JS
+        from std_msgs.msg import Float64MultiArray as _F64
+        self.js = {}
+        self.ikst = {}
+        self.create_subscription(_JS, "/joint_states",
+                                 lambda m: self.js.update(
+                                     zip(m.name, m.position)), 20)
+        for _a in ("left", "right"):
+            self.create_subscription(
+                _F64, "/ik_status_%s" % _a,
+                (lambda a: (lambda m: self.ikst.__setitem__(
+                    a, list(m.data))))(_a), 10)
+
+    def joints(self, arm):
+        return [round(self.js.get("%s_joint_%d" % (arm, i), 0.0), 5)
+                for i in range(1, 8)] if self.js else []
+
     def ee(self, arm):
         if self.buf is None:
             return None
@@ -240,6 +273,20 @@ class Runner(Node):
             return None
         v = t.transform.translation
         return (v.x, v.y, v.z)
+
+    def ee_pose(self, arm):
+        """Position AND orientation. `ee()` returns position only, which is
+        why every ee_q* column was empty in the first logged run."""
+        if self.buf is None:
+            return None
+        try:
+            t = self.buf.lookup_transform("world",
+                                          "%s_end_effector_link" % arm,
+                                          rclpy.time.Time())
+        except Exception:                                     # noqa: BLE001
+            return None
+        v, q = t.transform.translation, t.transform.rotation
+        return (v.x, v.y, v.z, q.x, q.y, q.z, q.w)
 
     def spin(self, s):
         end = time.monotonic() + s
@@ -301,6 +348,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", required=True,
                     choices=["a", "b", "c", "A", "B", "C",
+                             "m1s2", "M1S2",
                              "m0", "m1", "m2", "m3",
                              "M0", "M1", "M2", "M3"])
     ap.add_argument("--taskset", default="study",
@@ -327,6 +375,21 @@ def main(argv=None):
                     help="seconds per waypoint; the follower is asynchronous "
                          "so this sets how fast the target leads the arm")
     ap.add_argument("--min-travel-m", type=float, default=0.01)
+    # THE DATA PATH. Without these the MSc tasks were driven and filmed and
+    # wrote NOTHING a study could analyse: run_abc was the only entry point
+    # they had and it never constructed a TrialLogger. Measured end to end:
+    # 0 sample rows across 0 files.
+    ap.add_argument("--log-root", default=None,
+                    help="write per-trial CSVs here; without it, NO DATA is "
+                         "written and the run says so")
+    # --participant already exists above; do not re-declare it.
+    ap.add_argument("--session", default=None)
+    ap.add_argument("--trial-index", type=int, default=0)
+    ap.add_argument("--block", type=int, default=0)
+    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--isolate", action="store_true",
+                    help="start this mode's upstreams first, exactly as the "
+                         "clip sweep does -- see scripts/mode_upstreams.py")
     a = ap.parse_args(argv if argv is not None else sys.argv[1:])
     key = a.task.upper()
 
@@ -371,6 +434,25 @@ def main(argv=None):
 
     rclpy.init()
     n = Runner(a)
+    n._wire_logging()
+    # THE SAME ISOLATION THE CLIP PATH USES, from the same module.
+    #
+    # 02_vr_teleop's data run recorded 0.0000 m of EE travel on both arms
+    # because vr_pose_mapper is a mode UPSTREAM and only the sweep started it.
+    # A data run without this silently logs a stationary arm for both VR
+    # modes -- rows, columns, timestamps and no motion.
+    if a.isolate:
+        sys.path.insert(0, os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "..", "..", "..", "scripts"))
+        import mode_upstreams as MU
+        ok, why = MU.isolate_simple(a.mode, n)
+        print("[isolate] %s" % why, flush=True)
+        if not ok:
+            print("REFUSING: this mode is not isolated. A trial recorded now "
+                  "would be about whichever publisher happened to win.")
+            return 2
+
     n.spin(2.0)
     start = {arm: n.ee(arm) for arm in ARMS}
 
@@ -381,7 +463,12 @@ def main(argv=None):
     if n.speech is not None:
         # Mode 06 is commanded by an INSTRUCTION, not by a pose. The executive
         # then does the deciding; this waits for it rather than racing it.
-        n.speech.publish(String(data="hey doc oc grab the blue cube"))
+        _utt = "hey doc oc grab the blue cube"
+        # KEPT ON THE NODE so every sample row carries the utterance that
+        # commanded this trial. Mode 06 is driven by an INSTRUCTION, and a
+        # trial whose input is not in the data cannot be attributed to it.
+        n._said = _utt
+        n.speech.publish(String(data=_utt))
         n.spin(2.5)
 
     # APPROACH THE START, SETTLE, AND ONLY THEN START MEASURING.
@@ -528,6 +615,30 @@ def main(argv=None):
     pend_obj = {arm: None for arm in ARMS}  # the object it must arrive AT
     late = {arm: 0 for arm in ARMS}
 
+    # ---------------------------------------------------------------- DATA
+    # ONE TRIAL, ONE LOGGER. Opened here rather than in a wrapper so that
+    # every entry point into the MSc tasks writes data -- a wrapper is
+    # something a caller can forget, and forgetting it is exactly how this set
+    # came to have a clip path and no data path.
+    tl = None
+    if a.log_root:
+        sys.path.insert(0, os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+        from srl_experiments.trial_logger import TrialLogger
+        tl = TrialLogger(a.log_root, a.participant, "msc_%s" % key.lower(),
+                         session=a.session)
+        tl.write_manifest(
+            mode=a.mode, task=key, scenario=scen, seed=a.seed,
+            taskset=a.taskset, hold_s=a.hold_s,
+            entry_topic=MODES[a.mode]["topic"] % "<arm>",
+            waypoints=len(wp["left"]),
+            isolated=bool(a.isolate),
+            sim_only=True,
+            note="mock hardware echoes commands with no dynamics; every "
+                 "tracking figure here is a property of the mock")
+        tl.start(a.trial_index, condition=a.mode, scenario=scen,
+                 target_id=key, arm="both", block=a.block)
+
     n_sent = 0
     for k in range(len(wp["left"])):
         # RE-SEND THE SAME TARGET AT 20 Hz FOR THE WHOLE HOLD, rather than
@@ -595,6 +706,58 @@ def main(argv=None):
                         else:
                             late[arm] += 1
                     n.grip(arm, held_grip[arm])
+            if tl is not None:
+                _pl, _pr = n.ee_pose("left"), n.ee_pose("right")
+                _cl = wp["left"][min(k, len(wp["left"]) - 1)]
+                _cr = wp["right"][min(k, len(wp["right"]) - 1)]
+                _il = n.ikst.get("left") or []
+                _ir = n.ikst.get("right") or []
+                _src = {0.0: "sim", 1.0: "real"}.get(
+                    _il[11] if len(_il) > 11 else None, "unknown")
+                _vr = ("autonomy" not in MODES[a.mode]["topic"]
+                       and "vr" in a.mode)
+                tl.sample(
+                    phase=("grasp" if any(v != CT.OPEN
+                                          for v in held_grip.values())
+                           else "reach"),
+                    ee_x=_pl[0] if _pl else "", ee_y=_pl[1] if _pl else "",
+                    ee_z=_pl[2] if _pl else "",
+                    ee_qx=_pl[3] if _pl else "", ee_qy=_pl[4] if _pl else "",
+                    ee_qz=_pl[5] if _pl else "", ee_qw=_pl[6] if _pl else "",
+                    ee_r_x=_pr[0] if _pr else "", ee_r_y=_pr[1] if _pr else "",
+                    ee_r_z=_pr[2] if _pr else "",
+                    ee_r_qx=_pr[3] if _pr else "",
+                    ee_r_qy=_pr[4] if _pr else "",
+                    ee_r_qz=_pr[5] if _pr else "",
+                    ee_r_qw=_pr[6] if _pr else "",
+                    joints_left=json.dumps(n.joints("left")),
+                    joints_right=json.dumps(n.joints("right")),
+                    cmd_x=_cl[0], cmd_y=_cl[1], cmd_z=_cl[2],
+                    cmd_r_x=_cr[0], cmd_r_y=_cr[1], cmd_r_z=_cr[2],
+                    gripper_rad=held_grip["left"],
+                    gripper_rad_right=held_grip["right"],
+                    ik_success=_il[0] if _il else "",
+                    ik_fail=_il[1] if _il else "",
+                    ik_rejected=_il[4] if len(_il) > 4 else "",
+                    ik_success_right=_ir[0] if _ir else "",
+                    ik_fail_right=_ir[1] if _ir else "",
+                    ik_rejected_right=_ir[4] if len(_ir) > 4 else "",
+                    clearance_m=_il[5] if len(_il) > 5 else "",
+                    clearance_left_m=_il[5] if len(_il) > 5 else "",
+                    clearance_right_m=_ir[5] if len(_ir) > 5 else "",
+                    clearance_source=_src,
+                    # WHAT THIS MODE ACTUALLY SENT, not what its name implies.
+                    # A trial is attributable to the input only if the input
+                    # is in the row.
+                    vr_ctrl_left=(json.dumps(list(_cl)) if _vr else ""),
+                    vr_ctrl_right=(json.dumps(list(_cr)) if _vr else ""),
+                    autonomy_cmd=(json.dumps(list(_cl))
+                                  if "autonomy" in MODES[a.mode]["topic"]
+                                  else ""),
+                    voice_utterance=getattr(n, "_said", ""),
+                    autonomy_state=("ASSIST" if "autonomy" in
+                                    MODES[a.mode]["topic"] else "DIRECT"),
+                    estop=int(bool(getattr(n, "estopped", False))))
             n.spin(0.05)
         for arm in ARMS:
             pt = n.ee(arm)
@@ -641,6 +804,28 @@ def main(argv=None):
     # looks like a result. `None` is a failure too: not knowing whether the
     # arm moved is not evidence that it did.
     moved = [t for t in travel.values() if t is not None and t >= a.min_travel_m]
+
+    if tl is not None:
+        import math as _m
+        sl = [p for p in track["left"] if p is not None]
+        tl.finish(
+            completion_time_s=round(len(wp["left"]) * a.hold_s, 3),
+            duration_s=round(len(wp["left"]) * a.hold_s, 3),
+            samples=tl._rows,
+            kind=KIND.get(key, ""),
+            path_length_m=round(travel["left"] or 0.0, 4),
+            straight_line_m=round(net["left"] or 0.0, 4),
+            path_ratio=(round((net["left"] or 0.0) / travel["left"], 4)
+                        if travel["left"] else ""),
+            grasp_success=int(bool(moved)))
+        print("[data] %d sample rows -> %s" % (tl._rows, tl.dir), flush=True)
+        # A RUN THAT WROTE NOTHING IS A FAILURE, LOUDLY. Zero rows with exit 0
+        # is how a whole study's output goes missing while every check passes.
+        if tl._rows == 0:
+            print("\nFAILED: the logger wrote ZERO sample rows. A trial that "
+                  "produced no data is not a trial, whatever else happened.")
+            return 1
+
     if not moved:
         print("\nFAILED: no arm moved at least %.3f m. Not recording this as "
               "a successful run." % a.min_travel_m)

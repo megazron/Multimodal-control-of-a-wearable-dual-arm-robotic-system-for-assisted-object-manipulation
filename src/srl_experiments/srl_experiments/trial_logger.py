@@ -49,6 +49,33 @@ SAMPLE_COLUMNS = [
     "clearance_m",
     "payload_kg",
     "estop",
+    # ===================================================================
+    # ADDED 2026-08-11 when the MSc set was given a data path at all.
+    #
+    # The columns above are LEFT-ARM ONLY -- ee_*, cmd_*, gripper_rad -- which
+    # was adequate when every logged task was single-armed and is not now:
+    # T2 is a coupled carry whose metrics are DEFINED on the relationship
+    # between the two arms, and T1 stage 2 is both arms working at once. A
+    # right arm that is not logged cannot be analysed, and a joint metric
+    # computed from one arm is not a joint metric.
+    "joints_left", "joints_right",          # JSON list of 7, radians
+    "ee_r_x", "ee_r_y", "ee_r_z",
+    "ee_r_qx", "ee_r_qy", "ee_r_qz", "ee_r_qw",
+    "cmd_r_x", "cmd_r_y", "cmd_r_z",
+    "gripper_rad_right",
+    # WHICH ARM THE CLEARANCE IS ABOUT. Under the cascade the sim leads the
+    # real arm by the bridge delay, so "0.12 m" means different things
+    # depending on which tree was read -- see ik_follower_node.
+    "clearance_left_m", "clearance_right_m", "clearance_source",
+    "ik_success_right", "ik_fail_right", "ik_rejected_right",
+    # INPUT-SPECIFIC, so a trial can be attributed to what the operator
+    # actually did rather than to the mode's name.
+    "vr_ctrl_left", "vr_ctrl_right",        # JSON pose, as SENT
+    "autonomy_cmd", "autonomy_blend",
+    "voice_utterance", "voice_parse",
+    "master_joints",                        # JSON list, raw pot values
+    # The scene, so an object that moved can be told from an arm that moved.
+    "objects",
 ]
 
 # Per-trial summary. One row per trial in the session-level summary file.

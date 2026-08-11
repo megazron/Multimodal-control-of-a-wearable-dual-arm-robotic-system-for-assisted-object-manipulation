@@ -87,15 +87,24 @@ def main():
     print("MSc SEQUENCE END TO END -- %d of %d cells" % (len(cells),
                                                          len(MS.cells())))
     print("=" * 74)
-    ran, failed = [], []
-    for task, mode, trials, secs, worn in cells:
+    session = time.strftime("%Y%m%d_%H%M%S")
+    ran, failed, travels = [], [], {}
+    for idx, (task, mode, trials, secs, worn) in enumerate(cells):
+        bi = 0
         key = {"T0": "m0", "T1_s1": "m1", "T1_s2": "m1s2",
                "T2": "m2", "T3": "m3"}[task]
         cmd = [sys.executable, "-u",
                os.path.join(WS, "src/srl_experiments/experiments/abc",
                             "run_abc.py"),
                "--taskset", "msc", "--task", key, "--mode", mode,
-               "--hold-s", "0.05"]
+               "--hold-s", "0.05",
+               # THE DATA PATH AND THE SAME ISOLATION THE CLIP PATH USES.
+               # Without --isolate, 02_vr_teleop logs a stationary arm:
+               # vr_pose_mapper is a mode upstream and only the sweep used to
+               # start it.
+               "--log-root", out, "--participant", a.participant,
+               "--session", session, "--isolate",
+               "--trial-index", str(idx), "--block", str(bi)]
         t0 = time.time()
         r = subprocess.run(cmd, capture_output=True, text=True,
                            cwd=os.path.join(WS,
@@ -108,6 +117,15 @@ def main():
               % (task, mode, "OK" if ok else "FAIL", dt,
                  " | ".join(travel) or (r.stdout or r.stderr or "")[-80:]))
         (ran if ok else failed).append((task, mode))
+        # EE TRAVEL PER MODE, because "it ran" and "it moved" are different
+        # questions and the VR modes answered them differently.
+        for ln in travel:
+            if "left" in ln:
+                try:
+                    travels["%s/%s" % (task, mode)] = float(
+                        ln.split("path")[1].split("m")[0])
+                except (IndexError, ValueError):
+                    pass
 
     # THE HEADLINE, AND IT IS NOT A GREEN TICK.
     #
@@ -121,8 +139,8 @@ def main():
     # produces no trial CSV, no sample rows and no manifest: nothing a study
     # could analyse. That is the answer to "does the pipeline produce a
     # complete dataset before a participant sits down", and the answer is NO.
-    samples = sorted(glob.glob(os.path.join(WS, "recordings", "**",
-                                            "*sample*.csv"), recursive=True))
+    samples = sorted(glob.glob(os.path.join(out, "**", "msc_*.csv"),
+                               recursive=True))
     have, total = fill_rates(samples)
     print("\nCAPTURED: %d sample rows across %d files" % (total, len(samples)))
     if not total:
@@ -151,11 +169,26 @@ def main():
                                           NEEDS.get(c, "") if pct == 0 else ""))
         print("\n%d of %d sample columns are UNPOPULATED"
               % (len(empty), len(SAMPLE_COLUMNS)))
-    json.dump(dict(ran=ran, failed=failed, sample_rows=total,
+    print("\nEE TRAVEL PER CELL -- any near-zero mode is NOT RUNNING")
+    for k in sorted(travels):
+        flag = "   <- NEAR ZERO, this mode did not move" if travels[k] < 0.01 else ""
+        print("   %-32s %.4f m%s" % (k, travels[k], flag))
+    dead = sorted(k for k, v in travels.items() if v < 0.01)
+
+    json.dump(dict(ran=ran, failed=failed, sample_rows=total, travel=travels,
+                   dead_modes=dead,
                    files=len(samples),
                    fill={c: have[c] for c in SAMPLE_COLUMNS}),
               open(os.path.join(out, "capture_report.json"), "w"), indent=2)
     print("-> %s" % os.path.join(out, "capture_report.json"))
+    if not total:
+        print("\nFAILED: ZERO sample rows. A session that captures nothing "
+              "is not a session, whatever the runs reported.")
+        return 1
+    if dead:
+        print("\nFAILED: %d cell(s) moved less than 10 mm: %s"
+              % (len(dead), ", ".join(dead)))
+        return 1
     return 1 if failed else 0
 
 

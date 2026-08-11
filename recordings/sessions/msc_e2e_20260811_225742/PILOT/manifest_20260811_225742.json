@@ -1,0 +1,17 @@
+{
+  "created": "2026-08-11T23:03:51",
+  "entry_topic": "/autonomy/assist_pose_<arm>",
+  "experiment": "msc_m3",
+  "hold_s": 0.05,
+  "isolated": true,
+  "mode": "03_shared_autonomy",
+  "note": "mock hardware echoes commands with no dynamics; every tracking figure here is a property of the mock",
+  "participant": "PILOT",
+  "scenario": "S1_measure_cycle",
+  "seed": 0,
+  "session": "20260811_225742",
+  "sim_only": true,
+  "task": "M3",
+  "taskset": "msc",
+  "waypoints": 64
+}

@@ -62,7 +62,24 @@ PROGRESS = os.path.join(OUT, "abc_sweep_progress.json")
 TASKS = ("a", "b", "c")
 sys.path.insert(0, os.path.join(WS, "src/srl_experiments/experiments/abc"))
 import clip_tasks as CT                                      # noqa: E402
+import msc_clip_tasks as MCT                                  # noqa: E402
+
+# TWO CURRENT TASK SETS, selected by --taskset. Not two sweeps: everything
+# below -- isolation, preconditions, the foreign-description check, the
+# motion gate, the caption burner, the progress file -- is identical, and a
+# fork would have to be fixed twice.
+#
+# The GUI key prefix differs because the dispatcher keys do: the MSc four are
+# m0-m3, NOT t0-t3, because run_experiment.sh refuses t1..t9 by name as the
+# archived 300/310 mm set.
+TASKSETS = {
+    "abc": dict(mod=CT, keys=("a", "b", "c"), prefix="abc",
+                arg=lambda k: k),
+    "msc": dict(mod=MCT, keys=("t0", "t1", "t2", "t3"), prefix="msc",
+                arg=lambda k: "m" + k[1]),
+}
 SCENARIO = {k: v["scenario"] for k, v in CT.TASKS.items()}
+SCENARIO.update({k: v["scenario"] for k, v in MCT.TASKS.items()})
 
 # Per mode: which upstream nodes it needs, and how many publishers the
 # FOLLOWER's input topic must have while it runs. The expected counts are the
@@ -543,13 +560,13 @@ def build_gui():
 
 
 def run_one(app, gui, task, mode, out_dir, graph=None,
-            start_grabs=None, motion_wait_s=45.0):
+            start_grabs=None, motion_wait_s=45.0, prefix="abc"):
     """Press the GUI button for (task, mode) and wait for it to finish."""
     # THE WHOLE MODE NAME, not its first two characters. Cutting the key to
     # two characters is what let 03_shared_autonomy and the legacy alias
     # 04_shared_autonomy collide on one key; the specs are now keyed by the
     # full mode and this must match or every lookup returns None.
-    key = "abc_%s_%s" % (task, mode)
+    key = "%s_%s_%s" % (prefix, task, mode)
     spec = next((s for s in gui.specs if s.key == key), None)
     if spec is None:
         return False, "no GUI spec %r" % key
@@ -612,14 +629,23 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--only", default=None, help="one mode key")
-    ap.add_argument("--tasks", default="abc")
+    ap.add_argument("--taskset", default="msc", choices=sorted(TASKSETS))
+    ap.add_argument("--tasks", default=None,
+                    help="subset of the taskset's keys; default all of them")
     ap.add_argument("--settle-s", type=float, default=3.0)
     ap.add_argument("--no-verify", action="store_true",
                     help="record only; skip the verifiers")
     a = ap.parse_args()
 
     modes = [a.only] if a.only else list(MODE_ORDER)
-    tasks = [t for t in TASKS if t in a.tasks]
+    ts = TASKSETS[a.taskset]
+    tasks = [k for k in ts["keys"]
+             if a.tasks is None or k in a.tasks.split(",")]
+    if not tasks:
+        log("REFUSING: --tasks %r selected none of %s. A sweep over zero "
+            "tasks would report a clean run having recorded nothing."
+            % (a.tasks, list(ts["keys"])))
+        return 2
     prog = load_progress() if a.resume else {}
 
     log("=" * 74)
@@ -679,7 +705,7 @@ def main():
                     continue
                 os.makedirs(out_dir, exist_ok=True)
                 log("   %-28s recording..." % pkey)
-                spec = CT.TASKS[task]
+                spec = ts["mod"].TASKS[task]
                 # THE SCENE PUBLISHER, one per task, torn down after. Without
                 # it the clips show arms moving past nothing at all.
                 procscan.kill_all("clip_scene.py")
@@ -691,14 +717,21 @@ def main():
                     start_new_session=True, stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL)
                 time.sleep(3.0)
-                grip_arm = "left" if task in ("a", "c") else "right"
+                # WHICH ARM THE GRIPPER VIEW FOLLOWS. Taken from the task's
+                # own grip schedule rather than a hardcoded list, so a new
+                # task cannot silently get the wrong camera.
+                _g = ts["mod"].TASKS[task]["grip"](8)
+                grip_arm = ("right"
+                            if len(set(_g["right"])) > len(set(_g["left"]))
+                            else "left")
                 rr.ensure_display(os.path.join(out_dir, "rviz"),
                                   gripper_arm=grip_arm)
                 time.sleep(a.settle_s)
                 good, msg, grabs, gate, grab_t0 = run_one(
                     app, gui, task, mode, out_dir, graph=graph,
                     start_grabs=lambda: rr.start_grabs(out_dir,
-                                                      grip_arm))
+                                                      grip_arm),
+                    prefix=ts["prefix"])
                 log("      capture gated on %s" % gate)
                 time.sleep(1.0)
                 rr.stop_grabs(grabs)
@@ -752,7 +785,7 @@ def main():
                         else:
                             log("      grasp at %+.1f s of %.1f s"
                                 % (off, span))
-                    elif CT.TASKS[task].get("width_mm"):
+                    elif ts["mod"].TASKS[task].get("width_mm"):
                         good = False
                         msg += "; NO GRASP RECORDED at all"
 
@@ -764,7 +797,7 @@ def main():
                     # dropped 0.15 m short and 0.15 m above the bin -- a clip
                     # of a failed place that passed every check, because
                     # nothing compared the release point to the target.
-                    tgt = CT.TASKS[task].get("place_target")
+                    tgt = ts["mod"].TASKS[task].get("place_target")
                     itm = (ev.get("items") or [None])[0]
                     po = ev.get("pad_off") or [0.0, 0.0, 0.0]
                     if tgt and itm:

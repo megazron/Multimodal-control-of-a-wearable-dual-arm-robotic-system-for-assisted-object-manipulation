@@ -81,7 +81,13 @@ def dispatcher_tasks():
         if "exec" not in body and "SCRIPT=" not in body:
             continue
         for t in grp.split("|"):
-            if re.fullmatch(r"[te]\d|[abc]", t):
+            # KEY FAMILIES: a|b|c (the A/B/C set), m\d (the MSc four --
+            # m0-m3, displayed T0-T3), and t\d|e\d which exist only so the
+            # ARCHIVED sets are recognised as keys and then dropped by the
+            # refusal test above. A family the dispatcher gains must be added
+            # here or its buttons render disabled with a message that is
+            # wrong: the script does accept them.
+            if re.fullmatch(r"[tem]\d|[abc]", t):
                 ok.add(t)
     ok -= {"A", "B", "C"}
     return ok
@@ -175,6 +181,32 @@ def task_specs():
                     "would exit 2" % k),
                 note="enters at this mode's own command path; "
                      "coordinates from the N=10-verified spec"))
+    # ---------------------------------------------------------------- MSc
+    # The four MSc tasks, keyed m0-m3 in the dispatcher and displayed T0-T3.
+    # They are NOT keyed t0-t3: run_experiment.sh refuses t1..t9 BY NAME as
+    # the archived 300/310 mm set, and a dispatcher that took `t3` would have
+    # to pick one of two different T3s while silently orphaning the other.
+    for k, lab in (("m0", "T0 target reaching"),
+                   ("m1", "T1 pick and place"),
+                   ("m2", "T2 coordinated carry"),
+                   ("m3", "T3 circuit box + multimeter")):
+        for mode in ("01_master_teleop", "02_vr_teleop",
+                     "03_shared_autonomy", "04_vr_shared",
+                     "06_full_autonomy"):
+            short = mode.split("_", 1)[1].replace("_", " ")
+            out.append(Spec(
+                "msc_%s_%s" % (k, mode),
+                "%s  [%s]" % (lab, short), "task",
+                _sh("run_experiment.sh", k, "--mode", mode, "--taskset",
+                    "msc", "--participant", "PILOT", "--scripted"),
+                needs_stack=True,
+                disabled_reason=(
+                    None if k in accepted else
+                    "run_experiment.sh does not accept %r -- this button "
+                    "would exit 2" % k),
+                note="MSc set; coordinates verified N=10 over the full "
+                     "densified CLIP path with the bench in scene"))
+
     keys = [sp.key for sp in out]
     dupes = sorted({x for x in keys if keys.count(x) > 1})
     if dupes:

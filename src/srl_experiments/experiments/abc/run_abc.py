@@ -299,9 +299,12 @@ class Runner(Node):
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--task", required=True, choices=["a", "b", "c",
-                                                      "A", "B", "C"])
-    ap.add_argument("--taskset", default="study", choices=["study", "clip"],
+    ap.add_argument("--task", required=True,
+                    choices=["a", "b", "c", "A", "B", "C",
+                             "m0", "m1", "m2", "m3",
+                             "M0", "M1", "M2", "M3"])
+    ap.add_argument("--taskset", default="study",
+                    choices=["study", "clip", "msc"],
                     help="'clip' selects the RECORDING tasks (pick and place, "
                          "hold and place, multimeter); 'study' the "
                          "participant spec")
@@ -327,7 +330,17 @@ def main(argv=None):
     a = ap.parse_args(argv if argv is not None else sys.argv[1:])
     key = a.task.upper()
 
-    if a.taskset == "clip":
+    if a.taskset == "msc":
+        # m0-m3 on the command line, t0-t3 inside msc_clip_tasks. The
+        # translation lives HERE, in one line, rather than being spread
+        # through the sweep and the GUI -- see run_experiment.sh for why the
+        # dispatcher key cannot be t0-t3.
+        import msc_clip_tasks as MCT
+        spec = MCT.TASKS["t" + key[1]]
+        scen = a.scenario or spec["scenario"]
+        wp = spec["build"]()
+        grip_sched = spec["grip"](len(wp["left"]))
+    elif a.taskset == "clip":
         spec = CT.TASKS[key.lower()]
         scen = a.scenario or spec["scenario"]
         wp = spec["build"]()

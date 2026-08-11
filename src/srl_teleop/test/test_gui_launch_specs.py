@@ -52,22 +52,41 @@ def test_a_disabled_spec_is_never_enabled():
         assert spec.enabled == ok
 
 
-def test_tasks_A_B_C_are_the_only_task_set_offered():
-    """One generation of task set, one button per (task, mode).
+def test_only_the_two_CURRENT_task_sets_are_offered():
+    """One generation per set, one button per (task, mode), and NO archived
+    generation on the screen beside them.
 
-    A/B/C were disabled while they had a verified spec and no runner; run_abc
-    now reads experiments/abc/tasks.py and the dispatcher routes a|b|c there
-    and nowhere else, so they are live. What must NOT come back is the second
-    and third generation alongside them: t1-t9 ran a 300/310 mm span and e1-e6
-    are the superseded E-series, and offering either next to a 500 mm spec is
-    how a result gets filed under the wrong geometry.
+    This test used to assert A/B/C were the only set offered. That was right
+    when there was one; the MSc four (m0-m3, displayed T0-T3) are now a second
+    CURRENT set and are deliberately present. What the test is actually for is
+    unchanged and is still enforced: t1-t9 ran a 300/310 mm span and e1-e6 are
+    the superseded E-series, and offering either beside a 500 mm spec is how a
+    result gets filed under the wrong geometry.
+
+    Note the MSc set is keyed m0-m3 precisely BECAUSE t0-t3 are spoken for:
+    run_experiment.sh refuses t1..t9 by name, and a dispatcher that took `t3`
+    would have to choose between two different T3s.
     """
-    abc = [s for s in gls.all_specs() if s.key.startswith("abc_")]
+    specs = gls.all_specs()
+    abc = [s for s in specs if s.key.startswith("abc_")]
+    msc = [s for s in specs if s.key.startswith("msc_")]
     assert len(abc) == 15, "3 tasks x 5 modes"
-    for s in abc:
+    assert len(msc) == 20, "4 tasks x 5 modes"
+    for s in abc + msc:
         assert s.enabled, "%s disabled: %s" % (s.key, s.disabled_reason)
-    tasks = [s for s in gls.all_specs() if s.group == "task"]
-    assert len(tasks) == len(abc), "a non-A/B/C task button is being offered"
+
+    tasks = [s for s in specs if s.group == "task"]
+    assert len(tasks) == len(abc) + len(msc), (
+        "a task button outside the two current sets is being offered: %s"
+        % [s.key for s in tasks
+           if not s.key.startswith(("abc_", "msc_"))])
+
+    # The archived generations must not be reachable by ANY button.
+    import re
+    for s in tasks:
+        arg = " ".join(s.argv)
+        assert not re.search(r"run_experiment\.sh\s+(t[1-9]|e[1-6])\b", arg), (
+            "%s dispatches an ARCHIVED task set: %s" % (s.key, arg))
 
 
 def test_task_keys_and_labels_are_unique():

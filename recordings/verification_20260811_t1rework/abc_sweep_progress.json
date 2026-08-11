@@ -1,8 +1,8 @@
 {
-  "06_full_autonomy/t1s2/S2_both_arms_random": {
+  "04_vr_shared/t1s2/S2_both_arms_random": {
     "ok": true,
     "msg": "run exited 0",
-    "mode": "06_full_autonomy",
+    "mode": "04_vr_shared",
     "task": "t1s2",
     "scenario": "S2_both_arms_random",
     "quad": true,
@@ -16,6 +16,6 @@
       "rviz_right.mp4",
       "rviz_top.mp4"
     ],
-    "dir": "recordings/verification_20260811_t1rework/06_full_autonomy/T1S2/S2_both_arms_random"
+    "dir": "recordings/verification_20260811_t1rework/04_vr_shared/T1S2/S2_both_arms_random"
   }
 }

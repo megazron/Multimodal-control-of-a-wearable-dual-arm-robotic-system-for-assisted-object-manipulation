@@ -1,12 +1,8 @@
 [
   {
     "ok": false,
-    "why": "unknown task 't0' -- no object requirement is defined, so nothing was checked",
-    "duration_s": 14.9,
-    "bright": 63.1,
-    "variety": 10128,
-    "delta": 3.39,
-    "objects": {},
+    "why": "clip only 1.2 s long",
+    "duration_s": 1.2,
     "angles_bad": [],
     "mode": "06_full_autonomy",
     "task": "t0",
@@ -16,10 +12,10 @@
   {
     "ok": false,
     "why": "unknown task 't1' -- no object requirement is defined, so nothing was checked",
-    "duration_s": 31.7,
-    "bright": 66.0,
-    "variety": 12297,
-    "delta": 1.62,
+    "duration_s": 20.8,
+    "bright": 66.1,
+    "variety": 11757,
+    "delta": 0.37,
     "objects": {},
     "angles_bad": [],
     "mode": "06_full_autonomy",
@@ -28,16 +24,9 @@
     "condition": "-"
   },
   {
-    "ok": true,
-    "why": "",
-    "duration_s": 11.3,
-    "bright": 65.0,
-    "variety": 11806,
-    "delta": 2.4,
-    "objects": {
-      "container_teal": 2100,
-      "block_orange": 1344
-    },
+    "ok": false,
+    "why": "clip only 1.2 s long",
+    "duration_s": 1.2,
     "angles_bad": [],
     "mode": "06_full_autonomy",
     "task": "t2",
@@ -45,16 +34,9 @@
     "condition": "-"
   },
   {
-    "ok": true,
-    "why": "",
-    "duration_s": 13.3,
-    "bright": 66.8,
-    "variety": 11697,
-    "delta": 0.2,
-    "objects": {
-      "tray_tan": 6483,
-      "ball_yellow": 6359
-    },
+    "ok": false,
+    "why": "clip only 1.2 s long",
+    "duration_s": 1.2,
     "angles_bad": [],
     "mode": "06_full_autonomy",
     "task": "t3",

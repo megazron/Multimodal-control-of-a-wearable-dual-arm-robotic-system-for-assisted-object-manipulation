@@ -1,7 +1,7 @@
 {
   "06_full_autonomy/t0/D3_three_targets": {
-    "ok": true,
-    "msg": "run exited 0",
+    "ok": false,
+    "msg": "run exited 1",
     "mode": "06_full_autonomy",
     "task": "t0",
     "scenario": "D3_three_targets",
@@ -20,7 +20,7 @@
   },
   "06_full_autonomy/t1/S1_left_arm": {
     "ok": false,
-    "msg": "run exited 0; NO GRASP RECORDED at all; PLACED 0.206 m FROM TARGET",
+    "msg": "run exited 1; NO GRASP RECORDED at all",
     "mode": "06_full_autonomy",
     "task": "t1",
     "scenario": "S1_left_arm",
@@ -38,8 +38,8 @@
     "dir": "recordings/verification/06_full_autonomy/T1/S1_left_arm"
   },
   "06_full_autonomy/t2/S2_full_lift": {
-    "ok": true,
-    "msg": "run exited 0",
+    "ok": false,
+    "msg": "run exited 1",
     "mode": "06_full_autonomy",
     "task": "t2",
     "scenario": "S2_full_lift",
@@ -58,7 +58,7 @@
   },
   "06_full_autonomy/t3/S1_measure_cycle": {
     "ok": false,
-    "msg": "run exited 0; NO GRASP RECORDED at all",
+    "msg": "run exited 1; NO GRASP RECORDED at all",
     "mode": "06_full_autonomy",
     "task": "t3",
     "scenario": "S1_measure_cycle",

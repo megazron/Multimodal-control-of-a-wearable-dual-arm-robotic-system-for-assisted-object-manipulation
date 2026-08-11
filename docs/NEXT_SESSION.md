@@ -3392,3 +3392,75 @@ segment a live participant holds is worse than leaving it.
   behind a 5 s restart loop instead of a clean traceback. The right fix is that
   a dead follower be *loud*, which `blocking_aggregator`'s silent-unit
   detection already covers. Recorded as a decision, not an oversight.
+
+---
+
+## RESUME POINT (2026-08-11) — mode 06 re-recorded and STILL FAILS 4/4
+
+The four defect fixes are committed (24e013a) and are, as far as the scene is
+concerned, correct: `scene_events.json` now records `fixtures`, T0 lists its
+six spheres `L1 L2 L3 R1 R2 R3`, and T2 lists its `ball`. The subject check
+(`subjects_present()` in `verify_rviz_clips.py`) is written and its control
+fails as required.
+
+**But the re-record did not pass, and it failed in a NEW way. Mode 06 is not
+citable and nothing from this run may be quoted.**
+
+    t0/D3_three_targets   capture gated on timeout   run exited 1
+    t1/S1_left_arm        capture gated on timeout   run exited 1; NO GRASP
+    t2/S2_full_lift       capture gated on timeout   run exited 1
+    t3/S1_measure_cycle   capture gated on timeout   run exited 1
+    0 recorded, 4 failed, 0 skipped
+
+### READ THE SYMPTOM CORRECTLY BEFORE TOUCHING ANYTHING
+
+`capture gated on timeout` on ALL FOUR means `graph.moved(ref)` never fired:
+**the arm did not move**. `run exited 1` is the runner's own refusal for the
+same reason ("no arm moved at least 0.010 m") — that refusal is working, and
+it is the only reason four clips of a stationary arm were not filed as
+results.
+
+So this is NOT the grasp defect any more. The grasp numbers confirm it:
+
+| | previous run | this run |
+|---|---|---|
+| T1 cube_0 `min_pad_obj_m` | 0.0957 | **0.4234** |
+| T2 tray `min_pad_obj_m` | (grasped) | **0.6895** |
+
+The pad got FURTHER away, not closer. A pad that ends 42-69 cm from its object
+is not a mis-aimed grasp, it is an arm that never travelled. Do not re-tune
+`ee_for()` against these numbers — they are measuring the stationary arm, not
+the frame convention.
+
+### WHAT THE STACK SAID
+
+    probe: READY joint_state_msgs=507 arm_joints=14 ik=True followers=2
+
+So the stack was up, both followers were running and /compute_ik was
+answering. The arm was commanded and did not go. The two candidates, in order:
+
+1. **The furniture is now published for T0 when it never was before.** The
+   empty-items guard used to return before the furniture; removing it is
+   correct for the picture, but the bench and bin also exist as REAL
+   CollisionObjects (`_scene_objects`, clip_scene.py:304). If the arm is now
+   being asked to reach a sphere through a bench that only appeared in this
+   run, every IK call fails and the follower publishes nothing. **Check
+   `/compute_ik` error codes and the follower's `ik_failed` blocker first.**
+   This explains T0 exactly and does not explain T1-T3.
+2. **Something common to all four.** T1/T2/T3 already had non-empty items, so
+   the furniture change cannot be their cause. Find the shared reason before
+   fixing either — a fix aimed at T0 alone will leave three tasks broken and
+   look like progress.
+
+### THE NEXT ACTION, precisely
+
+Do NOT re-record. Run ONE task with the stack up and watch the follower:
+
+    python3 scripts/sim_session.py --stack teleop --keep-up -- \
+      python3 scripts/record_abc_sweep.py --taskset msc --only 06_full_autonomy
+
+then, while it is up, `ros2 topic echo /blocking_summary` and
+`ros2 topic echo /ik_status_left`. The named blocker will say which of the two
+it is. This project's standing rule applies with full force here: **a
+surprising failure is evidence about the instrument until the instrument has
+been cleared**, and the instrument this time is the scene I just changed.

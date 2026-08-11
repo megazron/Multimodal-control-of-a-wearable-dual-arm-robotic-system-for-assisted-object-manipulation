@@ -2,6 +2,14 @@
   "task": "t0",
   "events": [],
   "items": [],
+  "fixtures": [
+    "L1",
+    "L2",
+    "L3",
+    "R1",
+    "R2",
+    "R3"
+  ],
   "t0_wall": null,
   "pad_off": null
 }

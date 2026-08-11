@@ -474,6 +474,8 @@ def main():
                          "for /compute_ik verification). teleop = "
                          "run_teleop.sh (adds the IK FOLLOWERS, without which "
                          "poses are published and no arm moves).")
+    ap.add_argument("--skip-tests", action="store_true",
+                    help="record even if the unit suite fails; logged loudly")
     ap.add_argument("--keep-up", action="store_true",
                     help="leave the stack running afterwards")
     ap.add_argument("cmd", nargs=argparse.REMAINDER)
@@ -481,6 +483,43 @@ def main():
     cmd = [c for c in a.cmd if c != "--"]
     if not cmd:
         sys.exit("nothing to run; usage: sim_session.py -- <command>")
+
+    # THE UNIT SUITE GATES RECORDING, AND ONLY RECORDING.
+    #
+    # Two tests broke last session and went unnoticed for a whole session
+    # because the suite was not run. Of the three ways to make that
+    # impossible, this is the least fragile:
+    #
+    #   * "run it before every commit" relies on remembering, which is what
+    #     failed;
+    #   * a git pre-commit hook lives in .git/hooks, is NOT version
+    #     controlled, and is silently absent in every fresh clone -- a guard
+    #     that disappears when the repository is copied is worse than none,
+    #     because its absence looks like its success;
+    #   * this file is tracked, cannot be lost by cloning, and sits in front
+    #     of the one operation whose output gets FILED AS EVIDENCE. A broken
+    #     test does not matter much to a reachability check you are about to
+    #     read; it matters enormously to twenty clips somebody will cite.
+    #
+    # So the gate is on RECORDING specifically. A quick verification run is
+    # not slowed by 100 s of pytest, and nothing that produces a citable
+    # artefact can run while a test nobody has looked at is failing.
+    # --skip-tests exists for a deliberate override and says so in the log.
+    joined = " ".join(cmd)
+    records = any(k in joined for k in ("record_abc_sweep", "record_rviz",
+                                        "record_gui_tutorials"))
+    if records and not a.skip_tests:
+        print("[sim] this command RECORDS, so the unit suite runs first")
+        rc = subprocess.call([sys.executable,
+                              os.path.join(WS, "scripts", "check_tests.py")])
+        if rc != 0:
+            print("[sim] REFUSING TO RECORD while a test is failing. Clips "
+                  "made now would be filed as evidence against code nobody "
+                  "has checked. Fix it, or re-run with --skip-tests and say "
+                  "why in the commit.")
+            return 6
+    elif records:
+        print("[sim] --skip-tests: RECORDING WITHOUT RUNNING THE SUITE")
 
     print("[sim] killing any existing stack")
     left = kill_stack()

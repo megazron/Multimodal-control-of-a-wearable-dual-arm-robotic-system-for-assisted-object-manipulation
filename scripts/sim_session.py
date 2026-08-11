@@ -196,6 +196,26 @@ def main():
     log = os.path.join(WS, "log", "sim_session.log")
     os.makedirs(os.path.dirname(log), exist_ok=True)
     lf = open(log, "w")
+    # master:=false IS NOT OPTIONAL HERE, AND IT IS NOT ABOUT TIDINESS.
+    #
+    # With no Teensy attached master_pose_node raises PortNotFound and exits 1,
+    # and teleop.launch.py gives it respawn=True -- correct for the lab, where
+    # a board attached after launch is then picked up automatically. In a
+    # recording session it is a respawn storm: MEASURED 1726 deaths in one
+    # launch, each re-scanning the serial ports, and a 17 MB log.
+    #
+    # The storm is not cosmetic. It starved the controller manager -- "Read
+    # time: 21011 us" against a 10000 us budget, 15 missed cycles -- and
+    # joint_state_broadcaster's spawner then timed out calling
+    # /controller_manager/list_controllers three times and DIED. With no
+    # broadcaster there is no /joint_states at all, which is exactly what the
+    # readiness probe measured (joint_state_msgs=0 while ik=True followers=2)
+    # and what both followers reported: "Waiting for /joint_states".
+    #
+    # No recording mode needs it. The sweep IS the publisher on the follower's
+    # input topic in every mode -- that is what isolate() asserts -- so the
+    # master arm is not in any recorded command path.
+    #
     # WHICH STACK, and it is not a detail. demo.launch.py brings up MoveIt
     # and RViz and nothing else -- enough to answer /compute_ik, which is all
     # a reachability check needs. It does NOT start ik_follower_node, so a
@@ -206,7 +226,8 @@ def main():
     # results.
     launch = ("ros2 launch srl_moveit_config demo.launch.py"
               if a.stack == "moveit" else
-              "bash %s/scripts/run_teleop.sh gate:=false" % WS)
+              "bash %s/scripts/run_teleop.sh gate:=false master:=false"
+              % WS)
     print("[sim] launching %s (%s) -> %s" % (launch.split()[-1], a.stack, log))
     proc = subprocess.Popen(
         ["bash", "-lc", "%s && exec %s" % (SRC, launch)],

@@ -1,64 +1,82 @@
-# RESUME POINT — Xvfb leak FIXED and PROVEN. Recording blocked on stack readiness.
+# RESUME POINT — recording still blocked on /joint_states. ONE CHECK AWAY.
 
-## THE ONE THING STOPPING THE RECORDING
+## THE BLOCKER, now diagnosed to one contradiction
 
-The teleop stack does not deliver `/joint_states` to a subscriber within
-260 s, even though `/compute_ik` answers and BOTH followers are up:
+`sim_session.py --stack teleop` refuses to record because the probe measures:
 
-    probe: TIMEOUT joint_state_msgs=0 arm_joints=0 ik=True followers=2
+    probe: TIMEOUT joint_state_msgs=0 arm_joints=0 ik=True followers=1/2
 
-`sim_session.py --stack teleop` therefore REFUSES to run the sweep, which is
-correct — a run against a half-up graph produces numbers about the graph.
+**Root cause chain, established from the launch log:**
 
-**Diagnose this first.** `log/sim_session.log` has the launch output. Note
-48 stale `/dev/shm` segments were cleared immediately before this launch, so
-the graph was clean going in. Candidates: controllers slower than 260 s to
-spawn under `run_teleop.sh`; a QoS mismatch on `/joint_states` from that
-launch that `demo.launch.py` does not have (the probe uses default
-depth-10 reliable); or the gate prompt despite `gate:=false`.
+1. `joint_state_broadcaster`'s spawner FAILED — three attempts, each timing
+   out after 10 s on `/controller_manager/list_controllers`, then
+   `process has died ... exit code 1`. **With no broadcaster there is no
+   `/joint_states` at all**, which is exactly what the probe measures and what
+   both followers report ("Waiting for /joint_states").
+2. It timed out because the controller manager was starved:
+   `Read time: 21011 us` against a 10000 us budget, 15 missed cycles.
+3. It was starved by a **`master_pose_node` RESPAWN STORM** — with no Teensy
+   it raises PortNotFound and exits 1, `teleop.launch.py` gives it
+   `respawn=True`, and it died **1726 times in one launch**, each re-scanning
+   the serial ports. The log reached 18 MB.
 
-`--stack moveit` (demo.launch.py) still comes ready in ~40 s and is the right
-stack for IK verification — it just cannot record, because it has no
-followers.
+## THE ONE CONTRADICTION TO RESOLVE FIRST — it is small
 
-## WHAT WAS FIXED AND PROVEN THIS SESSION
+`master:=false` was added to the launch and **the node started anyway**.
 
-**The Xvfb leak — fixed on the FAILURE path and exercised there.**
-  * `record_rviz.teardown_displays()` kills every Xvfb/RViz BY PID and removes
-    `/tmp/.X<n>-lock` and the socket for all 8 views.
-  * `record_rviz.stale_displays()` is the precondition; `preconditions()`
-    refuses and NAMES anything live or locked.
-  * `record_abc_sweep.main()` is now a wrapper whose only job is that teardown
-    cannot be skipped: `try/finally` for exceptions and early returns,
-    `_install_teardown()` for SIGINT/SIGTERM/SIGHUP — because the way this
-    sweep actually ends when a session runs out is a signal, which `finally`
-    does not cover.
-  * **PROVEN by killing a run mid-angle**: `killed 16 process(es), removed 8
-    lock(s)` then `XVFB=0 LOCKS=0`.
+Everything about the wiring looks right:
+  * `run_teleop.sh` line 14 is `exec ros2 launch srl_teleop teleop.launch.py "$@"`
+  * `teleop.launch.py` line 163 gates it:
+    `condition=IfCondition(LaunchConfiguration("master"))`
+  * `sim_session.py` passes `gate:=false master:=false`
 
-**The verifier's blind spots were already closed; now VERIFIED not assumed.**
-Self-test: all 7 controls correct, plus the per-angle control BOTH ways —
-"black gripper is CAUGHT" and "all-good clip is not flagged".
+Yet the log tail from that very run shows `master_pose_node` printing its
+degraded-mode banner. So one of those three is not doing what it says.
 
-**Three real bugs found by running it:**
-  1. `demo.launch.py` has NO ik_follower_node, so the first recording attempt
-     published 50 poses and moved nothing — "left tf2 EE path 0.0000 m". The
-     runner caught it ("no arm moved at least 0.010 m") and refused, which is
-     the only reason 32 clips of a stationary arm were not filed as results.
-     Hence `--stack moveit|teleop`.
-  2. `clip_scene.py --task` had `choices={a,b,c}` — I added the MSc item
-     tables but never widened argparse, so it exited 2 instantly. Widened.
-  3. T0 has no objects, so it writes no `scene_events.json` and never can.
-     The sweep now expects one only from tasks that declare `grip_obj`.
+**Check it directly, it is one command:**
 
-## STATE
+```
+bash scripts/run_teleop.sh gate:=false master:=false 2>&1 | grep -c master_pose_node
+```
 
-`recordings/verification/` is EMPTY. The 32 clips from the failed runs are
-deleted, with `archive/recordings/failed_20260811_msc_mode06/` recording that
-they existed and that two independent checks called them worthless (no scene
-events; only 1.3 s long).
+If that is 0, the fault is in how sim_session builds the command line; if it
+is non-zero, the fault is in the launch file's condition. Do not proceed to
+recording until `pgrep -f master_pose_node` is 0 with `master:=false`.
 
-Machine is clean: `pgrep -x Xvfb` 0, no X locks, no move_group.
+Once the storm is gone, expect the broadcaster to spawn, `/joint_states` to
+flow, and the probe to go READY — every other piece is already proven.
+
+## WHAT IS PROVEN AND READY
+
+  * **verifier: all three named blind spots green**, re-run this session.
+    7/7 controls (object present passes, absent fails, HUD-text-only fails,
+    skin fails, frozen fails, BLACK fails, unknown task fails) plus the
+    per-angle control BOTH ways: "black gripper is CAUGHT" and "all-good clip
+    is not flagged". It refuses to report until those pass.
+  * **Xvfb teardown**, proven by SIGTERM mid-angle: killed 16 processes,
+    removed 8 locks, then XVFB=0 LOCKS=0. try/finally + signal handlers.
+  * **the sweep wiring**: m0-m3 dispatch, 20 GUI specs, clip_scene item
+    tables, clip paths verified N=10 (103 waypoints, 0 failures).
+
+## HOUSEKEEPING ANSWERED
+
+**The 32 files cannot be archived — they were DELETED last session**, with
+`archive/recordings/failed_20260811_msc_mode06/WHY_THESE_ARE_NOT_RESULTS.md`
+recording that they existed and that two independent checks called them
+worthless (no scene_events.json; only 1.3 s long). Deleting rather than
+archiving was deliberate: a directory of mp4s under `recordings/` is the thing
+that gets cited by accident. `recordings/verification/` is empty.
+
+**The ensure_display note, in full.** `ensure_display()` carries the rule
+"NOTHING IS EVER KILLED": one Xvfb and one RViz per view, started once and
+left alone. That rule is CORRECT and I did not touch it. Killing and
+restarting an Xvfb that two RViz instances share is precisely what produced
+seven entirely black clips of 34 s each — reproduced by alternating the arm
+four times, brightness 99.00 → 98.92 → 0.04 → 0.04. The point I was making is
+that the rule governs the MIDDLE of a sweep and says nothing about its END,
+and nothing cleaned up there — so a failed run left one Xvfb per view alive
+holding its display number. The new `teardown_displays()` runs only at the
+end, so the two do not conflict.
 
 # RESUME POINT — 2026-08-11 (third session)
 

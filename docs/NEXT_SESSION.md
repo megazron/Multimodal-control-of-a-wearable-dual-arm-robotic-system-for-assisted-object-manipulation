@@ -3533,3 +3533,59 @@ only then do the four scene fixes get their first real test. The standing rule
 applies to this whole session: the failure was in the instrument twice over --
 first the leaked graph, then the teardown that could not see it.
 
+
+
+---
+
+## 2026-08-11, later: THREE MORE CANDIDATES EXCLUDED BY MEASUREMENT
+
+All three were tried against the real thing. None fixed it, and each is worth
+not repeating.
+
+**(a) The machine's DDS is FINE.** The sanity floor passes: with no stack at
+all, `ros2 topic pub` in one bare shell and `ros2 topic list` / `ros2 topic hz`
+in another see each other and measure **5.002 Hz**. So separately-started
+processes CAN discover each other on this box. `wsl --shutdown` is not
+indicated, and the fault is not the machine.
+
+**(b) The discovery RANGE is not it either.** `teleop.launch.py` pins
+`ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET` via `setdefault`, and this box has
+**eth0 and eth1 DOWN** with only eth2 up (192.168.3.146/22) -- so SUBNET
+multicast having no healthy interface was a good theory. Because it is
+`setdefault`, an inherited value survives, and the whole run was repeated with
+`ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` exported to BOTH the launch and the
+probe. Identical failure:
+
+    probe: TIMEOUT joint_state_msgs=0 arm_joints=0 ik=True followers=0
+
+**(c) env.sh in the probe made it WORSE** (`ik` True -> False). Reverted; see
+the note in `sim_session.py`.
+
+### THE SIGNATURE IS THE CLUE, AND IT IS VERY SPECIFIC
+
+Five runs, three environment configurations, one shape every time:
+
+    ik = True          <- move_group's SERVICE is discovered
+    joint_state_msgs=0 <- ros2_control's TOPIC is not
+    followers = 0      <- srl_teleop's NODE NAMES are not
+
+If discovery were broken wholesale `ik` would be False. It is not. So the
+probe joins the graph and sees ONE participant. **Stop testing transports and
+ranges; ask why this particular process sees move_group and nothing else.**
+
+Two concrete next steps:
+
+1. **Instrument the probe rather than the environment.** Have WAIT_PROBE print
+   `n.get_node_names_and_namespaces()` and
+   `n.get_topic_names_and_types()` in FULL on timeout, not just the counts. The
+   counts have been saying "nothing"; the lists will say WHICH participants and
+   WHICH topics, and that distinguishes "sees only move_group" from "sees
+   everything but /joint_states has no publisher".
+2. **A NEW, UNEXPLAINED CRASH, found while chasing this and not yet
+   investigated:** `ik_follower_node-13` (**ik_follower_right**) died with
+   **exit code 1** -- a genuine crash, not the teardown SIGINT that killed
+   everything else (exit code -2). It is followed in the log by
+   `Error in sys.excepthook:`, which means the traceback itself failed to
+   print. The LEFT follower died -2 as expected. A right follower that exits 1
+   would explain `followers=0` for at least one arm and must be run down
+   before any further discovery work.

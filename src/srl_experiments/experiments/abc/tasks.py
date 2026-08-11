@@ -182,6 +182,30 @@ TASK_B = dict(
                      "see docs/research/13_two_arm_transfer_is_not_achievable.md",
     bimanual="YES, route (a) -- a body held at two points 500 mm apart spans "
              "the dead band between the disjoint reachable sets.",
+    # THE DISTINCTION THAT MUST NOT BE BLURRED IN THE WRITE-UP.
+    # This project now has TWO tasks that use both arms, and they support
+    # DIFFERENT claims:
+    #
+    #   T2 (this task)  PHYSICAL COUPLING. One body, two grips, and neither
+    #                   arm's pose is free given the other's -- the tray is
+    #                   rigid, so a height difference at one grip IS a tilt at
+    #                   the other. Remove one arm and the task becomes
+    #                   IMPOSSIBLE, not slower. Tilt RMS and separation error
+    #                   are JOINT metrics: no single arm can produce them,
+    #                   because they are defined on the relationship between
+    #                   the two.
+    #
+    #   T3              BIMANUAL BY ROLE. Two objects, two places, two arms --
+    #                   the right holds the circuit box, the left presents the
+    #                   meter. Neither arm's pose constrains the other's. One
+    #                   arm could do both sequentially; it would be slower and
+    #                   the wearer would wait, but it would not be impossible.
+    #
+    # Coupling is the stronger claim, and only T2 supports it. A sentence like
+    # "the bimanual tasks showed X" is therefore ambiguous and must not be
+    # written: name the task, and say which kind of bimanual it is.
+    bimanual_kind="physical coupling -- the stronger claim; see T3 for the "
+                  "weaker by-role sense, and do not merge the two",
     arms_used="both, simultaneously",
     objects=dict(
         tray=dict(size=(TRAY_SEP + 0.06, 0.26, 0.02), grip_sep=TRAY_SEP,

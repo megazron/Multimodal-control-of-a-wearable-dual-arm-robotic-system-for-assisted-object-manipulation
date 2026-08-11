@@ -160,6 +160,18 @@ TASK_3 = dict(
     bimanual="YES, but by ROLE not by coupling: the two arms hold two "
              "different objects at two places. Neither arm's pose constrains "
              "the other's, so this is not physical coupling -- T2 is.",
+    # SAID PLAINLY, because the two claims are easy to merge and only one of
+    # them is strong. T3 uses both arms because the TASK gives them different
+    # jobs at the same time, not because the physics ties them together: one
+    # arm could hold the box, put it down, pick up the meter and present it,
+    # and the task would be slower and more awkward but still possible.
+    # T2 could not be done that way at all -- a single arm cannot hold a rigid
+    # body at two points 500 mm apart, and no amount of time changes that.
+    #
+    # So: T2 supports "removing an arm makes it impossible"; T3 supports
+    # "removing an arm makes it worse". Both are worth measuring. Reporting
+    # them under one word is not.
+    bimanual_kind="by ROLE -- the weaker sense. T2 is the coupling task.",
     arms_used="right holds the box, left presents the meter",
     objects=dict(
         circuit_box=dict(size=BOX_SIZE, pose=BOX_OBJ, arm=BOX_ARM,

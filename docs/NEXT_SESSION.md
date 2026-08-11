@@ -1,3 +1,37 @@
+# RESUME POINT — 2026-08-11 (third session)
+
+## ⚠ PHYSICALLY CHECK THIS BEFORE ANY PARTICIPANT SEES THE RIG ⚠
+
+**T3's circuit box is at x = −0.540. That puts it about 0.41 m from the
+wearer's shoulder, AT THEIR SIDE rather than in front of them.**
+
+The geometry is sound and measured: 0.41 m is well inside a seated arm's
+reach, and |x| ≥ 0.51 is the *only* band where a pinned wrist can hold the box
+at all — 37 of 156 candidate hold poses, all right-arm, all outboard of 0.51.
+There is no inboard alternative.
+
+**What is NOT measured, and cannot be, is whether a person can comfortably
+probe a circuit board at their own side while their hands are occupied and
+they are wearing a 17 kg pack.** That is a working-posture judgement and it
+needs a body in the rig, not a solver.
+
+Check it before the first session. If it is not workable, the finding is that
+**no box position satisfies both the pinned-wrist reach and a natural working
+posture** — which is a result about the platform, and a publishable one, not a
+layout failure to be engineered around.
+
+---
+
+## WHERE PART 5 STANDS
+
+DONE this session:
+  * the coupling-vs-role distinction recorded in BOTH task specs, so the two
+    claims cannot be merged in the write-up (`bimanual_kind` on each)
+  * the 15 superseded clips archived to
+    `archive/recordings/verification_20260811/` with GEOMETRY_NOTE.md naming
+    both reasons: T2's band was inside the bench slab, and T3's box has moved
+    190 mm outboard
+
 # RESUME POINT — 2026-08-11 (second session), MSc experiment build
 
 **Parts 3 and 4 are DONE, committed and pushed (`23c3a25`). Part 5 —

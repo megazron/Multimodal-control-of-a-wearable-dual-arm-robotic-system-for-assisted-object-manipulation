@@ -55,6 +55,78 @@ def clear_shm():
     return n
 
 
+# MATCH ON THE COMMAND LINE, NOT ON `comm`. THIS IS NOT A STYLE CHOICE.
+#
+# `ps -o comm` truncates to 15 characters. The previous version compared that
+# field against a set of full names, so three of the five entries COULD NEVER
+# MATCH ANYTHING:
+#
+#     robot_state_publisher (21)  ->  comm reports  robot_state_pub
+#     ros2_control_node     (17)  ->                ros2_control_no
+#     ik_follower_node      (16)  ->                ik_follower_nod
+#
+# Only move_group, rviz2 and spawner were ever killed. Everything else leaked
+# from EVERY session, and kill_stack() then reported a clean teardown because
+# the same blind function decided what "clean" meant. Measured after a handful
+# of runs: SIXTEEN live ik_follower_node processes, no move_group, no
+# /tf publisher at all, and Fast DDS logging
+# "Failed init_port fastrtps_port7002: open_and_lock_file failed".
+#
+# That is what failed the 06 re-record. All four tasks reported "capture gated
+# on timeout" and the runner said "NO TF -- cannot tell whether it moved", so
+# the sweep recorded FOUR FAILURES OF THE SCENE while the actual fault was a
+# graph with sixteen followers and no robot_state_publisher in it. The scene
+# changes under test were never exercised.
+#
+# The lesson is the project's own standing rule, applied to a teardown: a
+# cleanup that decides its own success with the same broken predicate it
+# cleans with cannot report a leak. Match the installed executable PATH, which
+# is not truncated and which a shell command line cannot accidentally contain.
+_STACK_PATTERNS = (
+    "/lib/moveit_ros_move_group/move_group",
+    "/lib/rviz2/rviz2",
+    "/lib/controller_manager/ros2_control_node",
+    "/lib/controller_manager/spawner",
+    "/lib/robot_state_publisher/robot_state_publisher",
+    "/lib/srl_teleop/",          # ik_follower_node, estop_node, mount_guard...
+    "/lib/srl_autonomy/",
+    "/lib/srl_perception/",
+)
+
+# THE LAUNCH PARENT MUST DIE FIRST, OR THE CHILDREN COME BACK.
+#
+# teleop.launch.py sets respawn=True on several nodes -- correct in the lab,
+# where a Teensy attached after launch is then picked up automatically. It
+# means a teardown that kills only the children is a teardown that kills
+# nothing: the first kill_stack() after the truncation fix reported "10
+# survived SIGKILL" and every one of those ten was a NEW pid, respawned in the
+# grace period by ten leaked `ros2 launch` parents (six demo.launch.py, four
+# teleop.launch.py) still running from earlier sessions.
+#
+# CLAUDE.md already records the converse -- killing a launch by its parent pid
+# alone leaves orphans, which is what the child patterns above are for. Both
+# halves are needed, in this order.
+_LAUNCH_PATTERNS = (
+    "ros2 launch srl_moveit_config",
+    "ros2 launch srl_teleop",
+    "scripts/run_teleop.sh",
+)
+
+
+def launch_pids():
+    out = subprocess.run(["ps", "-eo", "pid,stat,args"], capture_output=True,
+                         text=True).stdout.splitlines()
+    me = os.getpid()
+    pids = []
+    for line in out[1:]:
+        f = line.split(None, 2)
+        if len(f) < 3 or f[1].startswith("Z"):
+            continue
+        if any(p in f[2] for p in _LAUNCH_PATTERNS) and int(f[0]) != me:
+            pids.append(int(f[0]))
+    return pids
+
+
 def stack_pids():
     """Live stack processes. ZOMBIES DO NOT COUNT.
 
@@ -65,19 +137,36 @@ def stack_pids():
     that fires on a transient is worse than no refusal, because the next
     person disables it.
     """
-    out = subprocess.run(["ps", "-eo", "pid,stat,comm"], capture_output=True,
+    out = subprocess.run(["ps", "-eo", "pid,stat,args"], capture_output=True,
                          text=True).stdout.splitlines()
-    want = {"move_group", "rviz2", "ros2_control_node",
-            "robot_state_publisher", "spawner"}
+    me = os.getpid()
     pids = []
     for line in out[1:]:
-        f = line.split()
-        if len(f) >= 3 and f[-1] in want and not f[1].startswith("Z"):
-            pids.append(int(f[0]))
+        f = line.split(None, 2)
+        if len(f) < 3 or f[1].startswith("Z"):
+            continue
+        if not any(p in f[2] for p in _STACK_PATTERNS):
+            continue
+        pid = int(f[0])
+        # Never count this process or the ps we just ran.
+        if pid == me:
+            continue
+        pids.append(pid)
     return pids
 
 
 def kill_stack(sig=signal.SIGINT, grace=4.0):
+    # Parents first: a live launch respawns whatever we kill below.
+    for p in launch_pids():
+        for s2 in (signal.SIGINT, signal.SIGKILL):
+            try:
+                os.killpg(os.getpgid(p), s2)
+            except OSError:
+                try:
+                    os.kill(p, s2)
+                except OSError:
+                    pass
+            time.sleep(0.4)
     for p in stack_pids():
         try:
             os.kill(p, sig)

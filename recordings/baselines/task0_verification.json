@@ -1,7 +1,7 @@
 {
   "repeats": 10,
   "step_m": 0.02,
-  "ik_calls": 984,
+  "ik_calls": 3384,
   "failures": 0,
   "detail": {
     "controls": {
@@ -162,6 +162,12 @@
       "id_span_bits": 1.544,
       "id_gap_unevenness": 0.068,
       "mirror_residual_m": 0.0
+    },
+    "sampled": {
+      "seeds": 40,
+      "checked": 240,
+      "unreachable": 0,
+      "examples": []
     }
   }
 }

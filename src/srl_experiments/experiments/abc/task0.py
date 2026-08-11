@@ -132,6 +132,141 @@ DWELL_S = 0.5                # must be HELD inside the sphere
 
 COLOURS = {"A": "red", "B": "green", "C": "blue", "D": "yellow"}
 
+# ==========================================================================
+# T0 AS SPECIFIED FOR THE MSc SESSION (2026-08-11)
+# ==========================================================================
+# THREE spheres per arm, labelled L1/L2/L3 and R1/R2/R3, at RANDOMISED
+# positions, with difficulty 1/2/3 setting how many are visible at once.
+#
+# The fixed A/B/C/D set below is retained, and is not dead weight: it is the
+# Fitts characterisation, whose six pairwise amplitudes were chosen by search
+# and verified N=10 over every densified transit.  The randomised set is the
+# study instrument; the fixed set is the calibration that says the region is
+# sound.  They share the SAME measured BAND, so neither can drift from the
+# geometry the other was verified against.
+LABELS = {"left": ("L1", "L2", "L3"), "right": ("R1", "R2", "R3")}
+SPHERE_COLOURS = {"L1": "red", "L2": "green", "L3": "blue",
+                  "R1": "red", "R2": "green", "R3": "blue"}
+# Two spheres closer than this are not two targets: the operator cannot tell
+# which was meant, and under FULL_AUTONOMY the parser has nothing to ground a
+# label against.
+#
+# SET FROM A MEASUREMENT, not from taste.  The verified band is only
+# 200 x 80 mm, and three targets do not fit in it at every separation.
+# Acceptance rate over 1000 seeds, 3 targets, max 400 draws:
+#
+#     min_sep   accepted   mean draws
+#      0.04 m     100.0%       4.1
+#      0.05 m     100.0%       5.0
+#      0.06 m     100.0%       7.8      <-- chosen
+#      0.07 m      99.0%      20.2
+#      0.08 m      85.3%      49.1
+#
+# 0.08 was the first choice and the sampler REFUSED it, loudly, rather than
+# returning two targets or quietly relaxing the constraint -- which is the
+# whole reason RegionExhausted exists.  0.06 m is still twice the 30 mm
+# target width and six times the +/-10 mm placement requirement, so a hit
+# inside one sphere can never be inside another.
+MIN_SEPARATION_M = 0.06
+TARGETS_PER_ARM = 3
+
+
+class RegionExhausted(RuntimeError):
+    """Raised when the sampler cannot place the targets.
+
+    It RAISES rather than returning fewer, or relaxing the separation, or
+    falling back to the fixed set.  A trial that quietly ran with two targets
+    instead of three, or with two targets 30 mm apart, would be scored as a
+    difficulty-3 trial and would be neither.
+    """
+
+
+def sample_targets(arm, seed, n=TARGETS_PER_ARM, band=BAND,
+                   min_sep=MIN_SEPARATION_M, validate=None, max_draws=400):
+    """Draw n sphere positions for one arm, reproducibly from `seed`.
+
+    SAMPLES ONLY FROM THE MEASURED BAND.  `band` is the rectangle both arms
+    were verified over with the bench in the planning scene -- it is not a
+    nominal box and must not be widened without re-running
+    scripts/survey_task0_band.py.
+
+    `validate(arm, xyz) -> bool` is the second gate: even inside a verified
+    region every draw is re-checked, because the region was verified on a
+    grid and a sampled point falls between grid cells.  When no validator is
+    supplied the caller is trusting the region alone, which is right for a
+    dry run and wrong for a participant session.
+
+    Reproducibility is the contract: same seed and same arm gives the same
+    targets, for ever, which is what makes a trial replayable.
+    """
+    import random
+    rng = random.Random("%s|%s|%d" % (arm, seed, n))
+    sgn = 1.0 if arm == "left" else -1.0
+    out, draws, rejected = [], 0, {"separation": 0, "validator": 0}
+    while len(out) < n:
+        draws += 1
+        if draws > max_draws:
+            raise RegionExhausted(
+                "could not place %d targets for %s in %r after %d draws "
+                "(rejected: %s).  The region is too small for the "
+                "separation, or the validator is refusing it -- do not "
+                "relax either silently."
+                % (n, arm, band, max_draws, rejected))
+        p = [round(sgn * rng.uniform(*band["x"]), 4),
+             band["y"],
+             round(rng.uniform(*band["z"]), 4)]
+        if any(math.dist(p, q) < min_sep for q in out):
+            rejected["separation"] += 1
+            continue
+        if validate is not None and not validate(arm, p):
+            rejected["validator"] += 1
+            continue
+        out.append(p)
+    return dict(zip(LABELS[arm], out)), {"draws": draws, "rejected": rejected}
+
+
+def sample_trial(seed, validate=None, **kw):
+    """Both arms' spheres for one trial, plus the provenance to reproduce it."""
+    t, meta = {}, {}
+    for arm in ("left", "right"):
+        pts, m = sample_targets(arm, seed, validate=validate, **kw)
+        t.update(pts)
+        meta[arm] = m
+    return t, {"seed": seed, "sampling": meta, "band": dict(BAND)}
+
+
+def visible_for(difficulty, arm, targets):
+    """Which spheres are on screen.  Difficulty 1/2/3 = 1/2/3 at once.
+
+    Under FULL_AUTONOMY every sphere is visible whatever the difficulty --
+    the participant names one -- so the caller passes difficulty=3 there.
+    That is a property of the TASK PRESENTATION, not of the task layer, which
+    is why it lives here and not in task_actions.
+    """
+    if difficulty not in (1, 2, 3):
+        raise ValueError("difficulty must be 1, 2 or 3, got %r" % difficulty)
+    return [ell for ell in LABELS[arm] if ell in targets][:difficulty]
+
+
+def commands(targets, order=None):
+    """The TaskCommands for one T0 trial: six REACH_TARGETs, 3 per arm.
+
+    Returns the SAME command list whatever mode will execute it -- that is
+    the architecture principle, and it is what test_mode_independence proves
+    holds all the way down.
+    """
+    from srl_experiments.task_actions import TaskCommand, Verb
+    seq = order or (list(LABELS["left"]) + list(LABELS["right"]))
+    out = []
+    for label in seq:
+        if label not in targets:
+            continue
+        arm = "left" if label.startswith("L") else "right"
+        out.append(TaskCommand(Verb.REACH_TARGET, arm, label,
+                               pose=list(targets[label])))
+    return out
+
+
 
 def fitts_id(amplitude_m: float, width_m: float = TARGET_W_M) -> float:
     """Shannon formulation, ID = log2(A/W + 1).

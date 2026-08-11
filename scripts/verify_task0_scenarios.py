@@ -80,6 +80,10 @@ def main():
     ap.add_argument("--step", type=float, default=STEP)
     ap.add_argument("--no-furniture", action="store_true",
                     help="diagnostic only -- NOT a valid verification")
+    ap.add_argument("--sampled-trials", type=int, default=0,
+                    help="also verify N RANDOMISED trials drawn by "
+                         "task0.sample_trial, which is what a participant "
+                         "session actually presents")
     args = ap.parse_args()
     N, step = args.repeats, args.step
 
@@ -235,6 +239,36 @@ def main():
     print("   left/right mirror residual %.2e m" % worst_mirror)
     if worst_mirror > 1e-9:
         fails += 1
+
+    # ---------------------------------------------- the RANDOMISED trials
+    # The fixed set above is the calibration.  What a participant sees is a
+    # SAMPLE, and a region verified on a grid does not verify the points
+    # between the grid cells.  This is the "randomisation must never generate
+    # an unsafe configuration" requirement, checked rather than asserted.
+    if args.sampled_trials:
+        print("\nSAMPLED TRIALS  %d seeds, every sphere at N=%d"
+              % (args.sampled_trials, N))
+        bad_seeds, checked = [], 0
+        for seed in range(args.sampled_trials):
+            tgt, _ = T0.sample_trial(seed)
+            for label, p in sorted(tgt.items()):
+                arm = "left" if label.startswith("L") else "right"
+                checked += 1
+                if not ok(arm, p):
+                    bad_seeds.append((seed, label, p))
+        if checked == 0:
+            print("   REFUSING: 0 sampled poses were checked.  A zero from a "
+                  "loop that never ran is not a measurement.")
+            fails += 1
+        else:
+            print("   %d poses checked, %d unreachable" % (checked,
+                                                           len(bad_seeds)))
+            for s in bad_seeds[:10]:
+                print("     seed %d %s %s" % s)
+            fails += len(bad_seeds)
+            out["sampled"] = dict(seeds=args.sampled_trials, checked=checked,
+                                  unreachable=len(bad_seeds),
+                                  examples=bad_seeds[:10])
 
     if not args.no_furniture:
         import clip_scene as CS

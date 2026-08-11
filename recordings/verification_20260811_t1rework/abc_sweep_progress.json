@@ -1,12 +1,21 @@
 {
   "06_full_autonomy/t1s2/S2_both_arms_random": {
-    "ok": false,
-    "msg": "GUI button disabled: run_experiment.sh does not accept 'm1s2' -- this button would exit 2; NO GRASP RECORDED at all",
+    "ok": true,
+    "msg": "run exited 0",
     "mode": "06_full_autonomy",
     "task": "t1s2",
     "scenario": "S2_both_arms_random",
-    "quad": false,
-    "files": [],
+    "quad": true,
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
     "dir": "recordings/verification_20260811_t1rework/06_full_autonomy/T1S2/S2_both_arms_random"
   }
 }

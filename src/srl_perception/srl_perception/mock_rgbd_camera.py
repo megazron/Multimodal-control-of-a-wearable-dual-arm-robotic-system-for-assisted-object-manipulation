@@ -1,0 +1,384 @@
+#!/usr/bin/env python3
+"""MOCK RGB-D on the wrist-camera topics, so the perception pipeline runs.
+
+    ros2 run srl_perception mock_rgbd_camera --ros-args -p arm:=left -p task:=t1
+
+Same pattern as `mock_real.launch.py` and `quest_vendor_mock.py`: stand a
+plausible producer at the boundary so everything INSIDE the boundary can be
+exercised, and then say precisely where the boundary is. The alternative --
+deferring the whole pipeline until the Kinova cameras exist -- leaves the
+frame chain, the intrinsics plumbing, the deprojection arithmetic and the
+tracker's timeout untested on the day they are first needed.
+
+WHAT IT PUBLISHES, on exactly the topics the real driver owns:
+
+    /<arm>_camera/color/image_raw     Image, rgb8,   640 x 480
+    /<arm>_camera/color/camera_info   CameraInfo,    plumb_bob, zero distortion
+    /<arm>_camera/depth/image_raw     Image, 16UC1,  MILLIMETRES
+
+Depth is 16UC1 in mm because that is what the Kinova driver emits, and
+`vlm_object_locator` carries a mm-or-metres branch that has never had the mm
+side exercised. A mock that published the convenient encoding would leave the
+branch that will actually run untested.
+
+The camera POSE is not invented: it is read from TF for
+`<arm>_camera_color_frame`, which the real `robot_state_publisher` provides
+from the same URDF the driver would. So the view moves with the arm, and the
+optical-frame convention (z forward, x right, y down) is exercised for real.
+
+=====================================================================
+WHAT THIS CAN AND CANNOT VERIFY -- READ BEFORE CITING ANYTHING FROM IT
+=====================================================================
+
+The standing rule in CLAUDE.md is that synthetic ONLY counts where the ground
+truth is CONSTRUCTED, not RENDERED. That line runs straight through this node,
+and it is the whole reason the file has this section:
+
+CAN be verified here, because the geometry is CONSTRUCTED and I know the
+answer in advance to the millimetre:
+
+  * the topics exist, with the right types, encodings and QoS, and the
+    detector nodes actually match them;
+  * CameraInfo intrinsics reach the consumer and are used, rather than a
+    hardcoded default silently winning;
+  * DEPROJECTION -- pixel + depth -> a 3-D point -- lands on the object's
+    true world position, through the real TF chain. This is arithmetic
+    against a known answer, which is exactly the case the rule permits;
+  * the optical-frame convention and the world <- camera transform compose
+    in the right order (getting this backwards is the AprilTag
+    object-space-vs-world-space bug in a new costume);
+  * timing, synchronisation and the tracker's 1.5 s drop.
+
+CANNOT be verified here, and no amount of work on this file changes it:
+
+  * DETECTION RATE OR ACCURACY, for YOLO-World or any learned detector.
+    This is not a hedge, it is MEASURED: flat-shaded primitives on a flat
+    background score 0-4% while the identical model scores 0.89-0.91 on a
+    real photograph. Rendering prettier primitives would move the number
+    without making it mean anything -- that is the trap the 0-4% figure
+    already sprang once.
+  * the REAL intrinsics, distortion and the colour-to-depth extrinsic. The
+    values below are nominal, not the Kinova's, and they are marked so in
+    the CameraInfo header comment. The driver is the only source for those.
+  * exposure, white balance, motion blur, rolling shutter, IR dropout on
+    dark or specular surfaces, and depth holes at range -- every one of
+    which is a real failure mode of the real sensor and none of which is
+    modelled here.
+  * whether the Kinova vision module streams at all over this machine's
+    network path, which is a live question given the UDP finding.
+
+So: the pipeline is exercised UP TO the camera. The camera itself, and
+anything that depends on how the world actually LOOKS, is unverified until
+the real driver runs. AprilTag is the one detector whose accuracy is
+partially transferable, because a tag is constructed geometry rather than
+appearance -- and even there the earlier characterisation was invalidated
+once by a mirrored renderer, so it is re-checked, not assumed.
+"""
+import os
+import sys
+
+import numpy as np
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy
+from sensor_msgs.msg import CameraInfo, Image
+from tf2_ros import Buffer, TransformListener
+
+# THREE levels up, not four: srl_perception/srl_perception -> srl_perception
+# -> src -> the workspace root. One extra ".." pointed outside the workspace,
+# clip_scene failed to import, and _scene() returned [] -- so the node ran,
+# published, and rendered an empty world while reporting success.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "..", "..", "..", "scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "..", "..", "..", "src", "srl_experiments",
+                                "experiments", "abc"))
+
+W, H = 640, 480
+# NOMINAL intrinsics for a 640x480 RGB-D wrist camera -- a ~55 deg horizontal
+# field of view. THESE ARE NOT THE KINOVA'S. The real values arrive in the
+# driver's own CameraInfo; anything calibrated against these numbers is
+# calibrated against an assumption.
+FX = FY = 615.0
+CX, CY = W / 2.0 - 0.5, H / 2.0 - 0.5
+DEPTH_MAX_M = 4.0
+
+BG_RGB = (58, 60, 64)          # a flat backdrop, and it is flat ON PURPOSE:
+BG_DEPTH_MM = 0                # 0 = invalid, the real sensor's no-return code
+
+# CALIBRATION PROBES -- three markers at FIXED WORLD POSITIONS, published only
+# with `probe:=true`.
+#
+# WHY THEY EXIST. Deprojection can only be checked against an object the camera
+# can SEE, and at the home pose neither wrist camera frames the work surface:
+# measured, the bench and table sit at pixel (954, 539) and (1115, 765) for the
+# right camera -- in front of it, but outside a 640 x 480 frame. That is not a
+# defect, it is the documented parking (CLAUDE.md: the left wrist "points
+# UPWARD - sees nothing at table height from home"; point the arms first).
+# Verifying against an empty frame measures nothing and reports it as a
+# pipeline failure, which is the instrument-blaming-the-system error the
+# standing rule exists to stop.
+#
+# THESE ARE CONSTANTS, NOT DERIVED AT RUNTIME. They were computed once from the
+# measured home camera pose and then written down. A probe recomputed from the
+# same TF the renderer uses could agree with a wrong frame composition; a fixed
+# number cannot, and the transposed-rotation control in verify_mock_camera.py
+# confirms the check discriminates. They are render targets in free space and
+# are NOT collision objects -- nothing plans against them.
+PROBE_WORLD = [
+    (-0.4994, 0.4244, 1.4010),
+    (-0.3522, 0.5664, 1.3627),
+    (-0.5127, 0.6870, 1.5867),
+]
+PROBE_SIZE = 0.05
+
+
+def _quat_to_R(x, y, z, w):
+    n = np.sqrt(x * x + y * y + z * z + w * w)
+    if n < 1e-12:
+        return np.eye(3)
+    x, y, z, w = x / n, y / n, z / n, w / n
+    return np.array([
+        [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+        [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+        [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]])
+
+
+class MockRGBD(Node):
+    """Renders the CONSTRUCTED scene from the live camera pose."""
+
+    def __init__(self):
+        super().__init__("mock_rgbd_camera")
+        self.declare_parameter("arm", "left")
+        self.declare_parameter("task", "t1")
+        self.declare_parameter("rate_hz", 15.0)
+        self.declare_parameter("frame_id", "")
+        self.declare_parameter("probe", False)
+        self.arm = self.get_parameter("arm").value
+        self.task = self.get_parameter("task").value
+        self.frame = self.get_parameter("frame_id").value or \
+            "%s_camera_color_frame" % self.arm
+
+        q = QoSProfile(depth=1)
+        q.reliability = ReliabilityPolicy.RELIABLE
+        base = "/%s_camera" % self.arm
+        self.pub_c = self.create_publisher(Image, base + "/color/image_raw", q)
+        self.pub_i = self.create_publisher(CameraInfo,
+                                           base + "/color/camera_info", q)
+        self.pub_d = self.create_publisher(Image, base + "/depth/image_raw", q)
+
+        self.tfb = Buffer()
+        self.tfl = TransformListener(self.tfb, self)
+        self.objects = self._scene()
+        self.n_pub = 0
+        self.no_tf = 0
+        hz = float(self.get_parameter("rate_hz").value)
+        self.create_timer(1.0 / hz, self.tick)
+
+        self.get_logger().warn(
+            "MOCK CAMERA on %s -- geometry is real, APPEARANCE IS NOT. "
+            "Deprojection and frames can be verified against this; "
+            "detection rate CANNOT. See the module docstring." % base)
+        self.get_logger().info("%d scene objects for task '%s', frame %s"
+                               % (len(self.objects), self.task, self.frame))
+
+    def _scene(self):
+        """The objects, from the SAME definition the clips and tasks use.
+
+        Reusing `clip_scene` rather than restating the geometry is the point:
+        a mock with its own copy of the scene drifts from the real one and
+        then verifies a world nothing else lives in.
+        """
+        out = []
+        # PROBES FIRST, before any import that can fail. They were behind the
+        # clip_scene guard, whose early return dropped them silently.
+        if self.get_parameter("probe").value:
+            for i, xyz in enumerate(PROBE_WORLD):
+                out.append(dict(xyz=list(xyz),
+                                size=[PROBE_SIZE] * 3,
+                                rgb=(0.9, 0.2, 0.2),
+                                name="probe_%d" % i))
+        try:
+            import clip_scene as CS
+        except Exception as e:                        # pragma: no cover
+            self.get_logger().error("no clip_scene: %s -- probes only" % e)
+            return out
+        # furniture_boxes() yields (name, xyz, size, rgba) TUPLES; fixtures_for()
+        # yields bare NAMES with no geometry. Reading either as a dict is how the
+        # first version of this node rendered an empty scene while reporting
+        # success -- so the shapes are unpacked explicitly here.
+        for name, xyz, size, rgba in CS.furniture_boxes(self.task):
+            out.append(dict(xyz=list(xyz), size=list(size),
+                            rgb=tuple(rgba[:3]), name=name))
+        # The two coloured mats: geometry lives in the task spec, not in
+        # fixtures_for(), which is a NAME list.
+        if self.task == "t1":
+            try:
+                import msc_clip_tasks as MCT
+                import clip_tasks as CT
+                for i, (px, py) in enumerate(MCT.T1_PLANES):
+                    out.append(dict(
+                        xyz=[px, py, CT.BENCH_TOP + CS.PLANE_T / 2.0],
+                        size=[CS.PLANE_W, CS.PLANE_D, CS.PLANE_T],
+                        rgb=(0.1, 0.3, 0.9) if i == 0 else (0.1, 0.8, 0.3),
+                        name="plane_%d" % i))
+            except Exception as e:
+                self.get_logger().warn("no plane geometry: %s" % e)
+        return out
+
+    def _cam_pose(self):
+        try:
+            t = self.tfb.lookup_transform("world", self.frame,
+                                          rclpy.time.Time())
+        except Exception:
+            return None, None
+        tr, ro = t.transform.translation, t.transform.rotation
+        return (np.array([tr.x, tr.y, tr.z]),
+                _quat_to_R(ro.x, ro.y, ro.z, ro.w))
+
+    def render(self, p_cam, R_wc):
+        """Colour + PER-PIXEL depth, by ray/box intersection.
+
+        R_wc maps CAMERA -> WORLD, so its transpose maps world points into the
+        optical frame. Composing these the wrong way round is the failure this
+        mock exists to let somebody catch cheaply, and the verifier's control
+        deliberately does it wrong to prove the check can tell.
+
+        THE FIRST VERSION PAINTED EACH BOX AS A FLAT CARD AT ITS CENTROID
+        DEPTH, and that is worth recording because it looked entirely fine.
+        A table is 1.7 m wide and 0.4 m from the wrist camera, so its card
+        covered the WHOLE frame at one constant depth and overwrote every
+        other object's depth with 0.44 m. The colour image was unchanged and
+        plausible; only the depth was quietly, uniformly wrong -- which is the
+        same shape as every other silent-wrong-data bug in this project. A
+        real box has a depth GRADIENT across it, so the renderer computes one.
+        """
+        col = np.zeros((H, W, 3), np.uint8)
+        col[:, :] = BG_RGB
+        best = np.full((H, W), np.inf)          # nearest hit so far, metres
+        dep = np.full((H, W), BG_DEPTH_MM, np.uint16)
+        R_cw = R_wc.T
+
+        for o in self.objects:
+            c = np.asarray(o["xyz"], float)
+            h = 0.5 * np.asarray(o["size"], float)
+            lo, hi = c - h, c + h
+            pc = R_cw @ (c - p_cam)
+            if pc[2] <= 0.02 or pc[2] > DEPTH_MAX_M:
+                continue
+            # Project the eight corners to bound the pixels worth testing.
+            us, vs = [], []
+            for sx in (-1, 1):
+                for sy in (-1, 1):
+                    for sz in (-1, 1):
+                        q = R_cw @ (c + h * np.array([sx, sy, sz]) - p_cam)
+                        if q[2] <= 0.02:
+                            us, vs = [0, W], [0, H]
+                            break
+                        us.append(FX * q[0] / q[2] + CX)
+                        vs.append(FY * q[1] / q[2] + CY)
+            u0 = max(0, int(np.floor(min(us))))
+            u1 = min(W, int(np.ceil(max(us))) + 1)
+            v0 = max(0, int(np.floor(min(vs))))
+            v1 = min(H, int(np.ceil(max(vs))) + 1)
+            if u1 <= u0 or v1 <= v0:
+                continue
+
+            uu, vv = np.meshgrid(np.arange(u0, u1, dtype=float),
+                                 np.arange(v0, v1, dtype=float))
+            d_cam = np.stack([(uu - CX) / FX, (vv - CY) / FY,
+                              np.ones_like(uu)], axis=-1)
+            d_w = d_cam @ R_wc.T                       # ray dirs, world frame
+            with np.errstate(divide="ignore", invalid="ignore"):
+                inv = 1.0 / d_w
+                t0 = (lo - p_cam) * inv
+                t1 = (hi - p_cam) * inv
+            tmin = np.nanmax(np.minimum(t0, t1), axis=-1)
+            tmax = np.nanmin(np.maximum(t0, t1), axis=-1)
+            hit = (tmax >= np.maximum(tmin, 0.0))
+            if not hit.any():
+                continue
+            # depth is the optical-frame z of the hit, i.e. t scaled by the
+            # ray's own z component -- NOT the distance along the ray.
+            z = np.where(hit, np.maximum(tmin, 0.0), np.inf)
+            z = np.where(hit & (z > 0), z, np.inf)
+            sub = best[v0:v1, u0:u1]
+            take = hit & (z < sub) & (z <= DEPTH_MAX_M)
+            if not take.any():
+                continue
+            sub[take] = z[take]
+            best[v0:v1, u0:u1] = sub
+            csub = col[v0:v1, u0:u1]
+            r, g, b = [int(255 * min(1.0, max(0.0, v))) for v in o["rgb"][:3]]
+            csub[take] = (r, g, b)
+            col[v0:v1, u0:u1] = csub
+
+        finite = np.isfinite(best)
+        dep[finite] = np.clip(best[finite] * 1000.0, 1, 65535).astype(np.uint16)
+        return col, dep
+
+    def _img(self, stamp, arr, enc, step):
+        m = Image()
+        m.header.stamp = stamp
+        m.header.frame_id = self.frame
+        m.height, m.width = arr.shape[0], arr.shape[1]
+        m.encoding = enc
+        m.is_bigendian = 0
+        m.step = step
+        m.data = arr.tobytes()
+        return m
+
+    def tick(self):
+        p_cam, R_wc = self._cam_pose()
+        if p_cam is None:
+            self.no_tf += 1
+            if self.no_tf in (15, 150) or self.no_tf % 450 == 0:
+                # NAMED, not silent. A camera publishing nothing because TF is
+                # missing looks exactly like a camera that is not running.
+                self.get_logger().warn(
+                    "no TF world <- %s after %d ticks -- PUBLISHING NOTHING. "
+                    "Is robot_state_publisher up?" % (self.frame, self.no_tf))
+            return
+        col, dep = self.render(p_cam, R_wc)
+        stamp = self.get_clock().now().to_msg()
+
+        info = CameraInfo()
+        info.header.stamp = stamp
+        info.header.frame_id = self.frame
+        info.height, info.width = H, W
+        info.distortion_model = "plumb_bob"
+        info.d = [0.0] * 5
+        info.k = [FX, 0.0, CX, 0.0, FY, CY, 0.0, 0.0, 1.0]
+        info.r = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+        info.p = [FX, 0.0, CX, 0.0, 0.0, FY, CY, 0.0, 0.0, 0.0, 1.0, 0.0]
+
+        self.pub_i.publish(info)
+        self.pub_c.publish(self._img(stamp, col, "rgb8", W * 3))
+        self.pub_d.publish(self._img(stamp, dep, "16UC1", W * 2))
+        self.n_pub += 1
+        if self.n_pub == 1 or self.n_pub % 300 == 0:
+            self.get_logger().info(
+                "published %d frames; camera at (%.3f, %.3f, %.3f), "
+                "%d objects in view"
+                % (self.n_pub, p_cam[0], p_cam[1], p_cam[2],
+                   int((dep > 0).any() and (dep > 0).sum() > 0)))
+
+
+def main(argv=None):
+    rclpy.init(args=argv)
+    n = MockRGBD()
+    try:
+        rclpy.spin(n)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        n.destroy_node()
+        try:
+            rclpy.shutdown()
+        except Exception:
+            pass
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

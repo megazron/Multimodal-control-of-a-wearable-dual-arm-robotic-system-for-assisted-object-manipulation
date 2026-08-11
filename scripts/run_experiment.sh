@@ -67,7 +67,7 @@ case "$TASK" in
     echo "current spec is 500 mm and the tilt threshold rescales with it." >&2
     echo "Data kept at src/srl_experiments/experiments/_archive/." >&2
     echo "Run: $0 a|b|c --mode <mode> --taskset clip" >&2
-    echo "The MSc four are m0|m1|m2|m3 (displayed T0-T3), not t0-t3." >&2
+    echo "The MSc set is m0|m1|m1s2|m2|m3 (displayed T0-T3), not t0-t3." >&2
     exit 2 ;;
   -h|--help) usage ;;
   *) echo "unknown task: $TASK" >&2; usage ;;

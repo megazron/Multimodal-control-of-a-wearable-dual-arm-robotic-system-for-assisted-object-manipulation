@@ -25,6 +25,7 @@ setup(
     extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
+            'mock_rgbd_camera = srl_perception.mock_rgbd_camera:main',
             # PRIMARY detector. Named for what it does, not for the library.
             'apriltag_detector = srl_perception.apriltag_detector:main',
             # Clearly-secondary fallback; off unless explicitly enabled.

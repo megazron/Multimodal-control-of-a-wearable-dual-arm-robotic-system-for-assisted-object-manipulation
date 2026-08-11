@@ -87,7 +87,16 @@ def dispatcher_tasks():
             # refusal test above. A family the dispatcher gains must be added
             # here or its buttons render disabled with a message that is
             # wrong: the script does accept them.
-            if re.fullmatch(r"[tem]\d|[abc]", t):
+            # STAGE SUFFIX: `m1s2` is T1 stage 2 -- the same task run with
+            # both arms at once. It is a distinct dispatcher key, not a
+            # variant of m1, because the two stages are separate cells in the
+            # session plan and must be separately launchable. Without the
+            # optional `s\d` here the dispatcher accepted m1s2 while every
+            # one of its five buttons rendered DISABLED with the message
+            # "run_experiment.sh does not accept 'm1s2'" -- a refusal that
+            # was simply false, and which cost a recording run to diagnose
+            # because the sweep's teardown crashed before printing it.
+            if re.fullmatch(r"[tem]\d(s\d)?|[abc]", t):
                 ok.add(t)
     ok -= {"A", "B", "C"}
     return ok

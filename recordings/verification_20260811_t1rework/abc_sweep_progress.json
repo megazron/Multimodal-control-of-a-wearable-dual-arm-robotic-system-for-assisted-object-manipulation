@@ -1,0 +1,12 @@
+{
+  "06_full_autonomy/t1s2/S2_both_arms_random": {
+    "ok": false,
+    "msg": "GUI button disabled: run_experiment.sh does not accept 'm1s2' -- this button would exit 2; NO GRASP RECORDED at all",
+    "mode": "06_full_autonomy",
+    "task": "t1s2",
+    "scenario": "S2_both_arms_random",
+    "quad": false,
+    "files": [],
+    "dir": "recordings/verification_20260811_t1rework/06_full_autonomy/T1S2/S2_both_arms_random"
+  }
+}

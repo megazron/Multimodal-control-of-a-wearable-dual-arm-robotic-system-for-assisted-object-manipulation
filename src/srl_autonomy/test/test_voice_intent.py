@@ -181,3 +181,49 @@ def test_verbs_are_matched_EXACTLY_and_here_is_why():
     assert not vi.parse("hey doc oc top").ok                       # NOT a stop
     i = vi.parse("hey doc oc take the gren ball")                  # noun: open
     assert i.ok and i.verb == "grab" and i.target == "ball"
+
+
+# ------------------------------------------------- the demonstration verbs
+def test_hand_it_to_me_is_the_WEARER_not_the_other_arm():
+    """Two different mechanisms, and only one of them is possible here.
+
+    Arm-to-arm transfer is IMPOSSIBLE on this rig: 0 of 16 candidate transfer
+    points reachable by both arms, 0 of 63 frontal cells, the reachable sets
+    being disjoint. Handing an object TO THE WEARER is T5 and is feasible. One
+    verb for both would route a possible request into an impossible mechanism.
+    """
+    for u in ("hand it to me", "give it to me", "pass it to me"):
+        r = vi.parse("hey doc oc " + u, wake=vi.WAKE_DEFAULT)
+        assert r.verb == "handover_wearer", (u, r.verb, r.reason)
+
+
+def test_arm_to_arm_handover_still_parses_as_itself():
+    r = vi.parse("hey doc oc hand it over to the other arm",
+                 wake=vi.WAKE_DEFAULT)
+    assert r.verb == "handover", (r.verb, r.reason)
+
+
+def test_the_front_centre_is_REFUSED_with_the_measurement():
+    """The most useful thing the demonstration can show about this platform.
+
+    The reachable region is nothing like the region a person expects, and the
+    robot must say so rather than accept and fail. 0 of 319 surveyed cells lie
+    at |x| <= 0.10.
+    """
+    for u in ("move to the front centre", "move to the front center"):
+        r = vi.parse("hey doc oc " + u, wake=vi.WAKE_DEFAULT)
+        assert r.verb is None, "the front centre must NOT be accepted"
+        assert "not reachable" in r.reason, r.reason
+        assert "0.30" in r.reason, "the refusal must carry the measurement"
+
+
+def test_a_reachable_named_place_is_accepted():
+    """Or the refusal above would pass for the wrong reason -- a grammar that
+    refuses everything also refuses the front centre."""
+    r = vi.parse("hey doc oc move to the left side", wake=vi.WAKE_DEFAULT)
+    assert r.verb == "goto" and r.target == "left side", (r.verb, r.target)
+
+
+def test_an_unknown_place_is_refused_by_name():
+    r = vi.parse("hey doc oc move to the moon", wake=vi.WAKE_DEFAULT)
+    assert r.verb is None and "no place I know" in r.reason, r.reason

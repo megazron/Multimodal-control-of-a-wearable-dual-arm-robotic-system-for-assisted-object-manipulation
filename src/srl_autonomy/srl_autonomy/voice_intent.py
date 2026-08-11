@@ -109,8 +109,50 @@ VERB_PATTERNS = (
     ("place", re.compile(
         r"\b(put|set|place|drop|release)\b.*\b(down|here|there|back)\b"
         r"|\blet\s+go\b|\brelease\b")),
+    # HAND IT TO THE WEARER. Distinct from the arm-to-arm `handover` above,
+    # and the distinction is not pedantic: arm-to-arm transfer is IMPOSSIBLE
+    # on this rig -- 0 of 16 candidate transfer points are reachable by both
+    # arms and 0 of 63 frontal cells, the sets being disjoint -- while handing
+    # an object TO THE WEARER is T5 and is feasible. One verb for both would
+    # route a possible request into an impossible mechanism.
+    ("handover_wearer", re.compile(
+        r"\b(give|hand|pass|bring)\b.*\b(me|to\s+me|wearer|here)\b"
+        r"|\bhand\s+it\s+(?:over\s+)?to\s+me\b")),
+    # GO SOMEWHERE NAMED. The demonstration asks for "move to the front
+    # centre", and the honest answer on this rig is a REFUSAL with the
+    # measurement behind it -- see NAMED_PLACES.
+    ("goto", re.compile(
+        r"\b(move|go|reach|point)\b.*\b(to|toward|towards)\b"
+        r"|\bmove\s+(?:to\s+)?the\b")),
     ("grab", re.compile(r"\b(grab|pick|take|get|grasp|fetch|lift)\b")),
 )
+
+# NAMED PLACES, and whether the arms can actually get there.
+#
+# MEASURED, not declared: scripts/survey_work_surface.py, a 29 x 11 grid on
+# the work plane, pinned wrist, full path, N=3, controls correct.
+#
+#     left    34 cells   x  0.30..0.70   y 0.05..0.20
+#     right   32 cells   x -0.70..-0.30  y 0.05..0.20
+#     |x| <= 0.10 (the FRONT CENTRE)      0 cells
+#
+# So "move to the front centre" must be refused, and refused with the reason
+# rather than with a shrug. It is the single most useful thing the
+# demonstration can show about this platform: the reachable region is nothing
+# like the region a person expects, and the robot knows it.
+NAMED_PLACES = {
+    "front centre": dict(reachable=False,
+                         why="the front centre is not reachable by either "
+                             "arm: 0 of 319 surveyed cells at |x| <= 0.10, "
+                             "and the nearest reachable x is 0.30"),
+    "front center": dict(reachable=False,
+                         why="the front centre is not reachable by either "
+                             "arm: 0 of 319 surveyed cells at |x| <= 0.10, "
+                             "and the nearest reachable x is 0.30"),
+    "left side": dict(reachable=True, arm="left"),
+    "right side": dict(reachable=True, arm="right"),
+    "home": dict(reachable=True, arm=None),
+}
 
 # The literal trigger words of the patterns above, used only to locate WHERE
 # in the sentence the verb sits so negation can be scoped to it.
@@ -273,6 +315,18 @@ def parse(text, wake=WAKE_DEFAULT, require_wake=True):
                               reason="heard 'grab' but no target description")
             if verb == "handover":
                 return Intent(verb="handover", arm=arm, raw=raw)
+            if verb == "handover_wearer":
+                return Intent(verb="handover_wearer", arm=arm, raw=raw)
+            if verb == "goto":
+                place = next((k for k in NAMED_PLACES if k in body), None)
+                if place is None:
+                    return Intent(raw=raw,
+                                  reason="heard 'move to' but no place I know")
+                spec = NAMED_PLACES[place]
+                if not spec["reachable"]:
+                    return Intent(raw=raw, reason=spec["why"])
+                return Intent(verb="goto", target=place,
+                              arm=spec.get("arm"), raw=raw)
             if verb == "place":
                 dest = "down"
                 if "back" in body:

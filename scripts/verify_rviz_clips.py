@@ -643,6 +643,7 @@ SUBJECTS = {
     # exactly the omission this list exists to catch.
     "t1": ("cube_0", "cube_1", "cube_2", "cube_3",
            "plane_blue", "plane_green"),
+    "t1s2": ("cube_left_0", "cube_left_1", "cube_right_0", "cube_right_1"),
     "t2": ("tray", "ball"),
     "t3": ("circuit_box", "multimeter"),
 }

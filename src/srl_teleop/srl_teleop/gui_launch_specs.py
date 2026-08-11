@@ -188,6 +188,7 @@ def task_specs():
     # to pick one of two different T3s while silently orphaning the other.
     for k, lab in (("m0", "T0 target reaching"),
                    ("m1", "T1 pick and place"),
+                   ("m1s2", "T1 stage 2, both arms"),
                    ("m2", "T2 coordinated carry"),
                    ("m3", "T3 circuit box + multimeter")):
         for mode in ("01_master_teleop", "02_vr_teleop",

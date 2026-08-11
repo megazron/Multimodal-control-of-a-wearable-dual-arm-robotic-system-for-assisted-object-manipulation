@@ -857,6 +857,13 @@ def start_grabs(out_dir, gripper_arm="left"):
 
 
 def stop_grabs(procs):
+    # TOLERATE None. run_one returns grabs=None on every FAILURE path, and
+    # this then raised AttributeError inside the sweep's teardown -- which
+    # MASKED the actual reason the clip failed, because the reason is logged
+    # after the teardown. A cleanup that crashes on the failure path destroys
+    # the evidence for the failure it is cleaning up after.
+    if not procs:
+        return {}
     for p in procs.values():
         try:
             p.communicate(input=b"q", timeout=15)

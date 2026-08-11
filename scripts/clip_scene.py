@@ -321,7 +321,7 @@ def furniture_boxes(task):
         return out
     if not SUPPORTS_ENABLED:
         return out
-    if task == "t1":
+    if task in ("t1", "t1s2"):
         for i, (cx, cy) in enumerate(_mct.T1_CUBES):
             out.append(_lip("lip_cube_%d" % i, [cx, cy, _mct.T1_Z],
                             (0.04, 0.04, 0.04), _ct.BENCH_NEAR_Y))
@@ -517,6 +517,24 @@ class Scene(Node):
                     # tick() now honours it, and a future fixtured item will
                     # need it.
                     graspable=True)
+            return out
+        if task == "t1s2":
+            # BOTH ARMS, RANDOM POSITIONS, drawn from the surveyed cells at
+            # the clip's fixed seed so the picture is reproducible. Two cubes
+            # per arm, coloured by ARM here rather than by pair: stage 2 is
+            # about simultaneity, not colour matching, and reusing the
+            # blue/green pairing would invite a reader to look for a colour
+            # rule that this stage does not have.
+            import msc_clip_tasks as _MCT
+            out = {}
+            tgt = _MCT.stage2_targets(_MCT.T0_CLIP_SEED, 2)
+            for arm in ("left", "right"):
+                for i, cube in enumerate(tgt[arm]):
+                    out["cube_%s_%d" % (arm, i)] = dict(
+                        arm=arm, width_mm=40, pos=CT.ee_for(cube),
+                        size=(0.04,) * 3,
+                        col=(YELLOW if arm == "left" else TEAL),
+                        held=False, graspable=True)
             return out
         if task == "t2":
             # NO `items` ENTRY. The tray is ONE body held at TWO points, and
@@ -846,7 +864,7 @@ class Scene(Node):
                 i += 1
                 if label not in self.fixtures:
                     self.fixtures.append(label)
-        if self.task in ("t1", "t2", "t3"):
+        if self.task in ("t1", "t1s2", "t2", "t3"):
             # THE MARKED REACHABLE REGION, on the surface, per arm. Drawn as
             # four thin bars rather than a filled patch so it reads as a
             # boundary and does not hide what is standing inside it.
@@ -1080,7 +1098,8 @@ class Scene(Node):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--task", required=True, choices=["a", "b", "c", "t0", "t1", "t2", "t3"])
+    ap.add_argument("--task", required=True,
+                    choices=["a", "b", "c", "t0", "t1", "t1s2", "t2", "t3"])
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     rclpy.init()

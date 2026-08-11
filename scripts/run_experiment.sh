@@ -27,7 +27,7 @@ usage: $0 <a|b|c> [args]
     args:  --mode 01_master_teleop|02_vr_teleop|03_shared_autonomy|
                   04_vr_shared|06_full_autonomy
            [--taskset study|clip|msc] [--scenario S..] [--participant P01]
-           tasks: a|b|c (A/B/C set)   m0|m1|m2|m3 (MSc T0-T3)
+           tasks: a|b|c (A/B/C set)   m0|m1|m1s2|m2|m3 (MSc T0-T3, m1s2 = T1 stage 2)
            [--scripted] [--dry-run]
 
   The bimanual (t2-t9), five-task and E-series (e1-e6) sets are ARCHIVED under
@@ -47,7 +47,7 @@ case "$TASK" in
     # experiments/abc/ (verified N=10 over the densified full path).
     exec python3 "$(dirname "$0")/../src/srl_experiments/experiments/abc/run_abc.py" \
         --task "$TASK" "$@" ;;
-  m0|m1|m2|m3|M0|M1|M2|M3)
+  m0|m1|m1s2|m2|m3|M0|M1|M1S2|M2|M3)
     # THE MSc SET, and it is deliberately NOT called t0|t1|t2|t3.
     #
     # Those names are already taken, and taken by a REFUSAL: t1..t9 below are

@@ -57,7 +57,12 @@ from srl_teleop import procscan                              # noqa: E402
 from srl_teleop import gui_launch_specs as gls               # noqa: E402
 import record_rviz as rr                                     # noqa: E402
 
-OUT = os.path.join(WS, "recordings/verification")
+# WHERE CLIPS LAND. Overridable with SRL_CLIP_OUT so a re-record can go to a
+# NEW directory instead of overwriting the set already on disk. The frozen
+# archive under archive/recordings/ is never a target either way -- it is a
+# snapshot, and a snapshot you can write to is not one.
+OUT = os.environ.get("SRL_CLIP_OUT") or os.path.join(WS,
+                                                     "recordings/verification")
 PROGRESS = os.path.join(OUT, "abc_sweep_progress.json")
 
 TASKS = ("a", "b", "c")
@@ -76,8 +81,12 @@ import msc_clip_tasks as MCT                                  # noqa: E402
 TASKSETS = {
     "abc": dict(mod=CT, keys=("a", "b", "c"), prefix="abc",
                 arg=lambda k: k),
-    "msc": dict(mod=MCT, keys=("t0", "t1", "t2", "t3"), prefix="msc",
-                arg=lambda k: "m" + k[1]),
+    # EXPLICIT MAP, not `"m" + k[1]`. That expression sent t1s2 -> "m1",
+    # which is stage ONE: a stage 2 sweep would have recorded stage 1 under
+    # stage 2's name. The same slip was already fixed once in run_abc.py.
+    "msc": dict(mod=MCT, keys=("t0", "t1", "t1s2", "t2", "t3"), prefix="msc",
+                arg=lambda k: {"t0": "m0", "t1": "m1", "t1s2": "m1s2",
+                               "t2": "m2", "t3": "m3"}[k]),
 }
 SCENARIO = {k: v["scenario"] for k, v in CT.TASKS.items()}
 SCENARIO.update({k: v["scenario"] for k, v in MCT.TASKS.items()})
@@ -663,6 +672,11 @@ def _main_body():
                                                       grip_arm),
                     prefix=ts["prefix"], gui_key=ts["arg"](task))
                 log("      capture gated on %s" % gate)
+                # SAY WHY, IMMEDIATELY. The reason used to be folded into the
+                # message printed after teardown, so a teardown that raised
+                # took the diagnosis with it.
+                if not good:
+                    log("      RUN FAILED: %s" % msg)
                 time.sleep(1.0)
                 rr.stop_grabs(grabs)
                 grab_t1 = time.time()

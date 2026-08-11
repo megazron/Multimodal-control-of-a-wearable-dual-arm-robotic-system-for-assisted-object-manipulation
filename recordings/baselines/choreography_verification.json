@@ -1,0 +1,20 @@
+{
+  "routines": {
+    "wave": {
+      "tested": 66,
+      "failures": 0
+    },
+    "mirror": {
+      "tested": 56,
+      "failures": 0
+    },
+    "sweep": {
+      "tested": 120,
+      "failures": 0
+    }
+  },
+  "repeats": 10,
+  "ik_calls": 2420,
+  "failures": 0,
+  "controls_ok": true
+}

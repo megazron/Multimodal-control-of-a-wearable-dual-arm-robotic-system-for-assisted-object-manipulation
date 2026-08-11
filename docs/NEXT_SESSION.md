@@ -1,3 +1,71 @@
+# RESUME POINT — part 5, mid-wiring. NO CLIP RECORDED.
+
+## DO THIS FIRST, BEFORE ANY RECORDING
+
+```
+rm -f /dev/shm/fastrtps_* /dev/shm/sem.fastrtps_*      # with the stack STOPPED
+ros2 launch srl_moveit_config demo.launch.py &          # wait ~40 s to settle
+python3 scripts/verify_msc_tasks.py --repeats 10        # ~20-30 min
+```
+
+**The CLIP PATHS have never been through IK.** The task SPECS are verified
+(4234 IK calls, 0 failures, N=10, bench in scene, both arm assignments) but
+`msc_clip_tasks.py` builds a DIFFERENT list — the interpolated waypoints the
+recorder actually drives — and that list is unchecked. **This is exactly how
+the archived set came to record a carry through the bench: the spec was
+checked and the clip path was not.** The verification section is written and
+in place; it just did not get to run.
+
+Do not record until that prints 0 failures.
+
+## STATE
+
+DONE and pushed:
+  * blockers A and B settled; T2 re-spec'd to z 1.32-1.40; T3 built
+  * all four task SPECS verified, 0 failures
+  * the 15 superseded clips archived to
+    `archive/recordings/verification_20260811/` with GEOMETRY_NOTE.md
+  * the coupling-vs-role distinction recorded in both specs (`bimanual_kind`)
+  * `msc_clip_tasks.py` — clip paths for T0/T1/T2/T3, self-check passing
+    (t0 25 waypoints, t1 113, t2 14, t3 38; both arms equal length, grip
+    schedules aligned)
+
+NOT DONE:
+  * clip-path IK verification (above)
+  * **no clip recorded at all** — `recordings/verification/` is EMPTY
+  * part 6 (visual re-verification) and part 7 (the report)
+
+## THE RECORDING SWEEP, WHEN THE PATHS VERIFY
+
+`record_abc_sweep.py` already has the machinery: `preconditions()`,
+`foreign_description()`, `isolate()`, `burn_caption()`, per-mode progress and
+resume. It is pointed at `clip_tasks.TASKS` (a/b/c) and needs pointing at
+`msc_clip_tasks.TASKS` (t0/t1/t2/t3) — a task-set switch, not a second sweep.
+
+MODE_ORDER is already "most self-sufficient first" so a session that dies
+part-way leaves the operator-free modes on the remote:
+
+    06_full_autonomy, 01_master_teleop, 03_shared_autonomy,
+    02_vr_teleop, 04_vr_shared
+
+Push after each mode and confirm with `git ls-remote origin -h refs/heads/main`.
+
+Known traps, all already paid for: Xvfb :99 never :0 (x11grab on :0 records
+BLACK — WSLg composites in Wayland and the pixels never reach the X root
+window); `LIBGL_ALWAYS_SOFTWARE=1`; one mode owns the graph at a time
+(`mode_adapters.conflicting_modes()`); stale `/dev/shm/fastrtps_*` silently
+degrade discovery.
+
+## PART 6 — the verifier's two known blind spots
+
+  * it once globbed only `rviz_front`, and **seven black gripper views
+    passed**. It must check EVERY angle.
+  * **HUD text is counted as the object** unless the top 24% of the frame is
+    ignored — measured: 587 "ball" pixels of which 529 were letters.
+  * thresholds must be calibrated on RENDERED colour, not the RGB set on the
+    marker; RViz shades everything.
+  * it must catch its constructed broken clips BEFORE printing anything.
+
 # RESUME POINT — 2026-08-11 (third session)
 
 ## ⚠ PHYSICALLY CHECK THIS BEFORE ANY PARTICIPANT SEES THE RIG ⚠

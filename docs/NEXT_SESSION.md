@@ -58,6 +58,33 @@ or T0 can never pass. That is a sweep fix, not a scene fix.
   * `sim_session.kill_stack()` counted ZOMBIES as survivors and refused to
     start on a machine that was clean.
 
+## CLEAN UP BEFORE RE-RECORDING — the sweep LEAKS ONE Xvfb PER ANGLE
+
+Found after the failed mode-06 run: **8 orphaned Xvfb servers** (one per
+angle) and **8 stale `/tmp/.X9*-lock` files**, left behind because the sweep
+failed before its teardown. They were killed by explicit PID and the locks
+removed.
+
+This matters for the next run, not just for tidiness: Xvfb refuses a display
+number whose lock file exists, so the leak is self-worsening — 8 per mode
+across 5 modes is 40 dead servers and 40 held display numbers, and the
+failure it produces is a recording that renders black on a display that was
+never actually created. Black frames are exactly what the verifier's known
+blind spot (globbing only `rviz_front`) let through once before.
+
+So before any re-record:
+
+```
+pgrep -x Xvfb                      # expect none
+ls /tmp/.X9*-lock                  # expect none
+```
+
+and kill/remove by EXPLICIT PID and path if not — never a broad pattern, which
+has killed the working shell three times in this project.
+
+Worth fixing properly in `record_rviz.py` / `record_abc_sweep.py`: the Xvfb
+teardown should run on the FAILURE path too, not only on success.
+
 ## STILL NOT DONE
 
   * part 3 (re-verify by looking) — nothing to look at yet

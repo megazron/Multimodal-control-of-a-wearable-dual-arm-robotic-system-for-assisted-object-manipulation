@@ -45,7 +45,9 @@ sys.path.insert(0, os.path.join(WS, "scripts"))
 sys.path.insert(0, os.path.join(WS, "src/srl_experiments/experiments/abc"))
 import record_rviz as rr                                     # noqa: E402
 import clip_tasks as CT                                      # noqa: E402
+import tasks as TSK                                          # noqa: E402
 
+CT_BALL_R = TSK.BALL_R               # 0.020, the T2 spec's own ball radius
 Y = CT.Y
 SEP = CT.SEP
 KN = "%s_robotiq_85_left_knuckle_joint"
@@ -72,6 +74,25 @@ BLUE = (0.10, 0.30, 0.90, 1.0)       # T1 cube/plane -> _blue
 GREY = (0.32, 0.34, 0.36, 1.0)
 DARK = (0.18, 0.19, 0.21, 1.0)
 
+# T1's TWO COLOURED PLANES -- the thing a cube is matched TO, and the reason
+# the task has a scoreable wrong-colour outcome at all. They were specified
+# and never drawn: every T1 clip so far shows four cubes and nowhere to put
+# them, so "placed on the plane of its own colour" had no referent on screen
+# and a wrong-colour placement was not distinguishable from a right one.
+#
+# A MAT, NOT A BLOCK. A colour-matched target is a marked area on the work
+# surface, so it is drawn 4 mm thick with its TOP at the bench-top plane --
+# the same plane a cube's base sits on. It is deliberately NOT a collision
+# object: a printed target is not something the gripper must avoid, and
+# making it one would refuse the very placement the task is about. What IS a
+# collision object is the LIP that holds it out over the bench edge.
+PLANE_W, PLANE_D, PLANE_T = 0.14, 0.10, 0.004
+
+RED = (0.90, 0.15, 0.12, 1.0)
+# task0 names its spheres by COLOUR ("go to the green one"), so the picture
+# has to use those colours and not one colour per arm.
+SPHERE_RGBA = {"red": RED, "green": GREEN, "blue": BLUE, "yellow": YELLOW}
+
 
 def _m(ns, i, typ, xyz, scale, col, frame="world"):
     m = Marker()
@@ -84,13 +105,188 @@ def _m(ns, i, typ, xyz, scale, col, frame="world"):
     return m
 
 
-def furniture_ids():
-    """Names of every collision object this scene owns."""
+# ---------------------------------------------------------------- SUPPORTS
+# EVERY OBJECT RESTS ON SOMETHING, AND THE SOMETHING COMES FROM BEHIND.
+#
+# The objects used to hang in mid air. `on_bench()` is a misnomer: it places
+# an object at BENCH_NEAR_Y + depth/2 - OVERHANG with OVERHANG = 0.08, which
+# for anything shallower than 160 mm puts the WHOLE object in front of the
+# bench edge. Measured on the shipped layout: T1's cubes sit at y = 0.170 and
+# 0.230 against a bench edge at 0.245, so three of the four have nothing
+# whatever beneath them.
+#
+# THE SUPPORT CANNOT SIMPLY GO UNDERNEATH, and that is measured, not a
+# preference. The pinned tool axis is (-0.153, +0.846, +0.511) -- 30.7 deg
+# ABOVE horizontal -- so the hand enters from the NEAR side and from BELOW and
+# closes underneath the object. Anything filling that cone converts an
+# unsupported object into an unreachable one, which is what the rail sweep
+# found (FIXED cells 0 at every continuous-rail position, 2026-08-11).
+#
+# So each object gets a CANTILEVERED LIP of its own: a thin slab whose TOP is
+# exactly the object's base plane, as wide as the object plus a margin,
+# running from `SUPPORT_UNDER_FRAC` of the way through the object's own
+# footprint BACKWARD to the bench. Local in x, so it is not the continuous
+# rail that failed; and its front edge is behind the point where the approach
+# axis crosses the object's base plane, which for a 40 mm cube is 33 mm in
+# front of the object centre.
+SUPPORT_T = 0.012
+# Fraction of the object's depth that has lip beneath it. 0.75 leaves the
+# centre of mass 25% of the depth behind the lip edge -- resting, not
+# balancing -- while keeping the lip edge out of the approach cone.
+SUPPORT_UNDER_FRAC = 0.75
+SUPPORT_MARGIN_X = 0.02
+
+# ==========================================================================
+# SUPPORTS ARE OFF, AND THE REASON IS A MEASUREMENT, NOT A PREFERENCE
+# ==========================================================================
+# The lips above were built, applied and measured. They break the task.
+#
+# `scripts/sweep_t1_supports.py`, T1's six pick paths densified at 20 mm,
+# N=5, both controls correct (bench-only scores 0, a slab across the approach
+# scores 61):
+#
+#     bench only, no support (the shipped, verified layout)      0 failures
+#     cube lips, 75% / 50% / 25% of the depth supported     22 / 20 / 16
+#     plane lips, 75% / 50% / 25%                           52 / 46 / 32
+#     cube + plane lips                                     52 / 46 / 32
+#     pads under the object's OWN FOOTPRINT only                26
+#     side ledges on posts, dx = 0.06 / 0.09                65 / 65
+#
+# Read the last two rows together and they settle it. The footprint-only pad
+# does not reach back to the bench at all, so it can only be obstructing
+# DIRECTLY BENEATH THE OBJECT -- which is where the fingers close. And moving
+# the support out to the sides is worse, because the posts then stand in the
+# gripper's own corridor. There is no direction left: the approach cone
+# occupies the front, the underside, and now measurably the sides too.
+#
+# This is the same wall the 2026-08-11 rail sweep hit from the other side
+# (FIXED cells 0 at every continuous-rail position) and the same geometry
+# d44dbb8 states in one line: the pinned tool axis is 30.7 deg above
+# horizontal, the hand enters from the near side and from below, and the
+# instinctive fix -- put something under it -- fills exactly the volume the
+# fingers need.
+#
+# So the objects stay FIXTURED, which is what "option 4" already decided and
+# what every T1 clip caption already says. What has changed is that it is now
+# a measured impossibility with a table behind it rather than a choice nobody
+# had re-examined.
+#
+# WHAT WOULD ACTUALLY FIX IT, named so it is not lost: raise the objects onto
+# stands well clear of the bench top, so the approach cone lies in free air
+# ABOVE the bench instead of in the 60 mm strip in front of its edge. That
+# moves T1_Z, so it is a re-derivation of the whole layout against
+# verify_t1_layout.py -- a task-position change with its own verification
+# pass, not a scene edit. Flip SUPPORTS_ENABLED and re-run the sweep to
+# re-measure any candidate geometry.
+SUPPORTS_ENABLED = False
+
+
+def _lip(name, obj_xyz, obj_size, bench_y, top_z=None):
+    """A cantilevered lip under the REAR of one object, back to the bench."""
+    d = obj_size[1]
+    front = obj_xyz[1] + d / 2.0 - SUPPORT_UNDER_FRAC * d
+    back = max(bench_y + 0.03, front + 0.02)
+    top = (obj_xyz[2] - obj_size[2] / 2.0) if top_z is None else top_z
+    return (name,
+            [obj_xyz[0], round((front + back) / 2.0, 4),
+             round(top - SUPPORT_T / 2.0, 4)],
+            [round(obj_size[0] + SUPPORT_MARGIN_X, 4),
+             round(back - front, 4), SUPPORT_T],
+            TAN)
+
+
+def furniture_boxes(task):
+    """(name, xyz, size, colour) for every SOLID in THIS task's scene.
+
+    PER TASK, and that is the whole point of the argument.
+
+    T0 IS REACHING ONLY -- no objects, no grasp, nothing to rest on a surface
+    -- so it gets NO FURNITURE AT ALL. It used to be handed the bench, the bin
+    and a circuit box, none of which it uses, and with them the bench's own
+    limits: T0's target band was derived as the largest rectangle both arms
+    can work WITH THE BENCH IN THE SCENE, 200 x 80 mm, which is why its three
+    targets were a hand's breadth apart. Free space is a much larger volume
+    and it is the volume this task actually runs in.
+
+    The legacy A/B/C set keeps the furniture it was verified against, exactly:
+    bench, bin, and the circuit box at x = -0.35. The MSc four do not get the
+    bin (nothing places into it) and T3 does not get the legacy circuit box --
+    it carries its OWN, 190 mm further outboard, as a graspable item, and
+    drawing both put two circuit boxes in one picture.
+    """
     import clip_tasks as _ct
-    w = _ct.A_BIN_D / 2.0
-    return ["bench", "circuit_box", "bin_floor"] + [
-        "bin_wall_%+.0f_%+.0f" % (dx * 100, dy * 100)
-        for dx, dy in ((w, 0.0), (-w, 0.0), (0.0, w), (0.0, -w))]
+    import msc_clip_tasks as _mct
+    import task3 as _t3
+    out = []
+    if task == "t0":
+        return out
+    yc = (_ct.BENCH_NEAR_Y + _ct.BENCH_FAR_Y) / 2.0
+    yd = _ct.BENCH_FAR_Y - _ct.BENCH_NEAR_Y
+    out.append(("bench", [0.0, yc, _ct.BENCH_TOP - _ct.BENCH_THICK / 2.0],
+                [2 * _ct.BENCH_HALF_X, yd, _ct.BENCH_THICK], TAN))
+    if task in ("a", "b", "c"):
+        out.append(("circuit_box", list(_ct.BOX_OBJ),
+                    [0.17, _ct.BOX_D, _ct.BOX_H], GREEN))
+        bx, by = _ct.A_BIN_OBJ[0], _ct.A_BIN_OBJ[1]
+        w = _ct.A_BIN_D / 2.0
+        out.append(("bin_floor", [bx, by, _ct.BENCH_TOP + 0.01],
+                    [_ct.A_BIN_D, _ct.A_BIN_D, 0.02], TEAL))
+        for dx, dy in ((w, 0.0), (-w, 0.0), (0.0, w), (0.0, -w)):
+            out.append(("bin_wall_%+.0f_%+.0f" % (dx * 100, dy * 100),
+                        [bx + dx, by + dy,
+                         _ct.BENCH_TOP + _ct.A_BIN_H / 2.0],
+                        [0.02 if dx else _ct.A_BIN_D,
+                         _ct.A_BIN_D if dx else 0.02, _ct.A_BIN_H], TEAL))
+        return out
+    if not SUPPORTS_ENABLED:
+        return out
+    if task == "t1":
+        for i, (cx, cy) in enumerate(_mct.T1_CUBES):
+            out.append(_lip("lip_cube_%d" % i, [cx, cy, _mct.T1_Z],
+                            (0.04, 0.04, 0.04), _ct.BENCH_NEAR_Y))
+        for i, (px, py) in enumerate(_mct.T1_PLANES):
+            out.append(_lip("lip_plane_%d" % i,
+                            [px, py, _ct.BENCH_TOP + PLANE_T / 2.0],
+                            (PLANE_W, PLANE_D, PLANE_T), _ct.BENCH_NEAR_Y))
+    elif task == "t3":
+        out.append(_lip("lip_circuit_box", _t3.BOX_OBJ, _t3.BOX_SIZE,
+                        _ct.BENCH_NEAR_Y))
+        out.append(_lip("lip_multimeter", _t3.METER_OBJ, _t3.METER_SIZE,
+                        _ct.BENCH_NEAR_Y))
+    return out
+
+
+def fixtures_for(task):
+    """Names of the NON-GRASPABLE subjects tick() draws for this task.
+
+    Declared here rather than discovered from a recording, so an audit can ask
+    "does the scene publish what the spec requires" without running a clip,
+    and so tick() and the audit cannot drift apart.
+    """
+    if task == "t0":
+        return ["L1", "L2", "L3", "R1", "R2", "R3"]
+    if task == "t1":
+        return ["plane_blue", "plane_green"]
+    if task == "t2":
+        return ["tray", "ball"]
+    if task == "t3":
+        return ["P1", "P2", "P3", "P4"]
+    return []
+
+
+def furniture_ids():
+    """Every collision-object name this scene can own, over ALL tasks.
+
+    A SUPERSET ON PURPOSE. This is what removal is driven from, and removing
+    an object that was never added is a no-op in MoveIt, whereas leaving one
+    task's lip loaded while the next task runs is exactly the leak the bench
+    comment below is about.
+    """
+    names = set()
+    for t in ("a", "b", "c", "t0", "t1", "t2", "t3"):
+        for n in furniture_boxes(t):
+            names.add(n[0])
+    return sorted(names)
 
 
 def remove_furniture(node, timeout_s=10.0):
@@ -238,13 +434,17 @@ class Scene(Node):
                     graspable=(i == 0))
             return out
         if task == "t2":
-            # ONE body held at two points 500 mm apart. It is drawn as a
-            # single wide object because that is what it is -- drawing two
-            # would show the coupling task as two independent objects.
-            return {"tray": dict(arm="left", width_mm=30,
-                                 pos=CT.ee_for([0.0, CT.Y, 1.32]),
-                                 size=(0.56, 0.26, 0.02), col=ORANGE,
-                                 held=True)}
+            # NO `items` ENTRY. The tray is ONE body held at TWO points, and
+            # an `items` entry is pinned to ONE arm's pads by construction --
+            # which is what put a 560 mm tray centred on the left hand while
+            # the right one held air. It is drawn as a FIXTURE spanning
+            # between the two grippers instead; see tick().
+            #
+            # Nothing is lost: T2 declares width_mm = 0, grip_obj = None and
+            # place_target = None, because the task is the CARRY and both
+            # grippers are already closed on the tray when it starts. There is
+            # no grasp event to record.
+            return {}
         if task == "t3":
             # WIDTH 50, NOT 110. The box is 170 x 110 x 50 mm and the 2F-85
             # spans 85 mm, so 110 is not a grip the hand can make at all --
@@ -300,17 +500,22 @@ class Scene(Node):
         return [v.x + ax, v.y + ay, v.z + az]
 
     # ------------------------------------------------------------- frame
-    def _collision_furniture(self):
-        """Bench, bin walls and circuit box as real CollisionObjects.
+    def _collision_furniture(self, task=None):
+        """THIS TASK's solids as real CollisionObjects.
+
+        ONE TABLE, `furniture_boxes()`, feeds both this and the markers drawn
+        in tick(). Two descriptions of one bench is how a scene comes to look
+        solid and behave hollow, and this file has already paid for that.
 
         The graspable object is deliberately NOT included: it is attached to
         the gripper as the hand closes, and a collision object sitting where
         the fingers must go would make every grasp pose infeasible. Its
-        support is what has to be solid, not the thing being picked up.
+        SUPPORT is what has to be solid, not the thing being picked up.
         """
+        from geometry_msgs.msg import Pose
         out = []
-
-        def box(name, xyz, size):
+        for name, xyz, size, _col in furniture_boxes(
+                task or getattr(self, "task", None)):
             co = CollisionObject()
             co.header.frame_id = "world"
             co.id = name
@@ -318,7 +523,6 @@ class Scene(Node):
             pr.type = SolidPrimitive.BOX
             pr.dimensions = [float(v) for v in size]
             co.primitives.append(pr)
-            from geometry_msgs.msg import Pose
             ps = Pose()
             ps.position.x, ps.position.y, ps.position.z = [float(v)
                                                            for v in xyz]
@@ -326,27 +530,19 @@ class Scene(Node):
             co.primitive_poses.append(ps)
             co.operation = CollisionObject.ADD
             out.append(co)
-
-        yc = (CT.BENCH_NEAR_Y + CT.BENCH_FAR_Y) / 2.0
-        yd = CT.BENCH_FAR_Y - CT.BENCH_NEAR_Y
-        box("bench", [0.0, yc, CT.BENCH_TOP - CT.BENCH_THICK / 2.0],
-            [2 * CT.BENCH_HALF_X, yd, CT.BENCH_THICK])
-        box("circuit_box", CT.BOX_OBJ, [0.17, CT.BOX_D, CT.BOX_H])
-        # The bin as four walls, so the block can be released INTO it rather
-        # than onto a solid block of the same size.
-        bx, by = CT.A_BIN_OBJ[0], CT.A_BIN_OBJ[1]
-        bz = CT.BENCH_TOP + CT.A_BIN_H / 2.0
-        w = CT.A_BIN_D / 2.0
-        box("bin_floor", [bx, by, CT.BENCH_TOP + 0.01],
-            [CT.A_BIN_D, CT.A_BIN_D, 0.02])
-        for dx, dy in ((w, 0.0), (-w, 0.0), (0.0, w), (0.0, -w)):
-            box("bin_wall_%+.0f_%+.0f" % (dx * 100, dy * 100),
-                [bx + dx, by + dy, bz],
-                [0.02 if dx else CT.A_BIN_D,
-                 CT.A_BIN_D if dx else 0.02, CT.A_BIN_H])
         return out
 
     def _publish_scene(self):
+        # CLEAR THE PREVIOUS TASK'S FURNITURE FIRST. Now that each task loads
+        # only its own, a leak is no longer merely untidy: T0 declares NO
+        # furniture, so a bench left behind by the T3 clip would put T0 back
+        # inside the very limits removing the bench was meant to lift, and
+        # nothing downstream would disagree. clip_scene removes its own on
+        # exit, but only on the paths where it is allowed to run its handler.
+        try:
+            remove_furniture(self, timeout_s=8.0)
+        except Exception:                                     # noqa: BLE001
+            pass
         objs = self._collision_furniture()
         ps = PlanningScene()
         ps.is_diff = True
@@ -389,6 +585,16 @@ class Scene(Node):
                 % ", ".join(missing))
         return [w for w in want if w in have]
 
+    def _ee(self, arm):
+        """The wrist in world, or None. Used for the travel measurement."""
+        try:
+            t = self.buf.lookup_transform(
+                "world", "%s_end_effector_link" % arm, rclpy.time.Time())
+        except Exception:                                     # noqa: BLE001
+            return None
+        v = t.transform.translation
+        return [v.x, v.y, v.z]
+
     def _pad_offset(self, arm):
         """Wrist -> finger-pad vector in world, from the live anchor pose."""
         try:
@@ -424,6 +630,26 @@ class Scene(Node):
             for it in self.items.values():
                 it["pos"] = [it["pos"][i] + off[i] for i in range(3)]
 
+        # ---- HOW FAR DID THE ARM ACTUALLY GO -----------------------------
+        # The path integral of each end effector over the life of this node,
+        # which is the life of the clip. run_abc prints the same quantity, but
+        # its stdout goes to /dev/null through the GUI's job launcher, so no
+        # clip on disk has ever carried the one number that says whether the
+        # motion is legible. Written into scene_events.json beside everything
+        # else the clip is judged on.
+        self.ee_track = getattr(self, "ee_track", {"left": None, "right": None})
+        self.ee_travel = getattr(self, "ee_travel", {"left": 0.0, "right": 0.0})
+        self.ee_first = getattr(self, "ee_first", {})
+        for _arm in ("left", "right"):
+            _p = self._ee(_arm)
+            if _p is None:
+                continue
+            self.ee_first.setdefault(_arm, list(_p))
+            _prev = self.ee_track[_arm]
+            if _prev is not None:
+                self.ee_travel[_arm] += math.dist(_prev, _p)
+            self.ee_track[_arm] = list(_p)
+
         A = MarkerArray()
         d = Marker()
         d.action = Marker.DELETEALL
@@ -435,29 +661,19 @@ class Scene(Node):
             A.markers.append(_m(ns, i, typ, xyz, scale, col))
             i += 1
 
-        # ---- furniture, common to every task ---------------------------
-        # DRAWN FROM THE SAME CONSTANTS AS THE COLLISION OBJECTS, so the
-        # picture and the planner cannot disagree. Two descriptions of one
-        # bench is how a scene comes to look solid and behave hollow.
-        yc = (CT.BENCH_NEAR_Y + CT.BENCH_FAR_Y) / 2.0
-        yd = CT.BENCH_FAR_Y - CT.BENCH_NEAR_Y
-        add(Marker.CUBE, [0.0, yc, CT.BENCH_TOP - CT.BENCH_THICK / 2.0],
-            (2 * CT.BENCH_HALF_X, yd, CT.BENCH_THICK), TAN)
-        for sx in (-0.75, 0.75):
-            add(Marker.CUBE, [sx, yc, (CT.BENCH_TOP - CT.BENCH_THICK) / 2.0],
-                (0.05, 0.05, CT.BENCH_TOP - CT.BENCH_THICK), DARK)
-        # the bin task A places into: floor plus four walls, on the bench
-        bx, by = CT.A_BIN_OBJ[0], CT.A_BIN_OBJ[1]
-        w = CT.A_BIN_D / 2.0
-        add(Marker.CUBE, [bx, by, CT.BENCH_TOP + 0.01],
-            (CT.A_BIN_D, CT.A_BIN_D, 0.02), TEAL)
-        for dx, dy in ((w, 0), (-w, 0), (0, w), (0, -w)):
-            add(Marker.CUBE,
-                [bx + dx, by + dy, CT.BENCH_TOP + CT.A_BIN_H / 2.0],
-                (0.02 if dx else CT.A_BIN_D,
-                 CT.A_BIN_D if dx else 0.02, CT.A_BIN_H), TEAL)
-        # the circuit box task C probes and task B places onto
-        add(Marker.CUBE, CT.BOX_OBJ, (0.17, CT.BOX_D, CT.BOX_H), GREEN)
+        # ---- furniture, PER TASK ---------------------------------------
+        # DRAWN FROM THE SAME TABLE AS THE COLLISION OBJECTS, so the picture
+        # and the planner cannot disagree. Two descriptions of one bench is
+        # how a scene comes to look solid and behave hollow.
+        solids = furniture_boxes(self.task)
+        for _name, _xyz, _size, _col in solids:
+            add(Marker.CUBE, list(_xyz), tuple(_size), _col)
+        if any(s[0] == "bench" for s in solids):
+            yc = (CT.BENCH_NEAR_Y + CT.BENCH_FAR_Y) / 2.0
+            for sx in (-0.75, 0.75):
+                add(Marker.CUBE,
+                    [sx, yc, (CT.BENCH_TOP - CT.BENCH_THICK) / 2.0],
+                    (0.05, 0.05, CT.BENCH_TOP - CT.BENCH_THICK), DARK)
 
         # ---- PER-TASK SCENE FIXTURES: the task's SUBJECT ----------------
         # Things the task is ABOUT that are not grasped. They belong here, not
@@ -478,9 +694,15 @@ class Scene(Node):
             tgt, _meta = _T0.sample_trial(_MCT.T0_CLIP_SEED)
             for label in ("L1", "L2", "L3", "R1", "R2", "R3"):
                 p3 = tgt[label]
+                # COLOURED AS THE SPEC COLOURS THEM. task0.SPHERE_COLOURS is
+                # red / green / blue for 1 / 2 / 3 on BOTH arms, and the clip
+                # was colouring by ARM instead -- so "go to the green one" had
+                # three blue spheres on the left and three green on the right,
+                # and the FULL_AUTONOMY condition, whose whole point is naming
+                # one of several visible targets by colour, could not be shown.
                 add(Marker.SPHERE, list(p3),
                     (2 * _T0.TARGET_R_M,) * 3,
-                    BLUE if label.startswith("L") else GREEN, ns="targets")
+                    SPHERE_RGBA[_T0.SPHERE_COLOURS[label]], ns="targets")
                 # The LABEL, so a viewer can tell L2 from L3 rather than
                 # trusting that the arm went to the right one.
                 lab = Marker()
@@ -500,24 +722,104 @@ class Scene(Node):
                 i += 1
                 if label not in self.fixtures:
                     self.fixtures.append(label)
+        elif self.task == "t1":
+            # THE TWO COLOURED PLANES. T1 is "blue cube to blue plane, green
+            # cube to green plane" and the planes had never been drawn, so the
+            # task had no target on screen and a wrong-colour placement could
+            # not be scored from a frame.
+            #
+            # Positions are T1_PLANES verbatim -- the option-4 layout,
+            # verified N=10 over the full path -- and the pairing is the one
+            # declared in msc_clip_tasks: cubes 0,2 -> plane 0 (BLUE),
+            # cubes 1,3 -> plane 1 (GREEN). Drawn as MATS resting on their
+            # lips, top flush with the bench-top plane, which is the plane a
+            # placed cube's base sits on.
+            import msc_clip_tasks as _MCT
+            for pi, (px, py) in enumerate(_MCT.T1_PLANES):
+                name = "plane_%s" % ("blue" if pi == 0 else "green")
+                add(Marker.CUBE,
+                    [px, py, CT.BENCH_TOP - PLANE_T / 2.0],
+                    (PLANE_W, PLANE_D, PLANE_T),
+                    BLUE if pi == 0 else GREEN, ns="planes")
+                # an outline, so the mat reads as a target and not as a
+                # shadow on the bench
+                add(Marker.CUBE,
+                    [px, py, CT.BENCH_TOP - PLANE_T / 2.0],
+                    (PLANE_W * 1.10, PLANE_D * 1.14, PLANE_T * 0.5),
+                    ((BLUE if pi == 0 else GREEN)[0],
+                     (BLUE if pi == 0 else GREEN)[1],
+                     (BLUE if pi == 0 else GREEN)[2], 0.35), ns="planes")
+                if name not in self.fixtures:
+                    self.fixtures.append(name)
+        elif self.task == "t3":
+            # THE FOUR MEASUREMENT POINTS. task3 declares them and the clip
+            # never drew them, so the clip could not show the one thing T3's
+            # design turns on: P1 and P2 are served by the initial
+            # presentation, P3 is on the FAR face and P4 needs the meter
+            # turned, so at least two REPOSITIONING REQUESTS are structurally
+            # required. Without the points on screen a viewer sees a hold,
+            # not a task with a coordination demand in it.
+            import task3 as _T3
+            for mp in _T3.MEASUREMENT_POINTS:
+                host = "multimeter" if mp["id"] == "P4" else "circuit_box"
+                it = self.items.get(host)
+                if it is None:
+                    continue
+                size = it["size"]
+                dy = (size[1] / 2.0 if mp["face"] == "far" else -size[1] / 2.0)
+                p3 = [it["pos"][0] + mp["offset_mm"][0] / 1000.0,
+                      it["pos"][1] + dy,
+                      it["pos"][2] + mp["offset_mm"][1] / 1000.0]
+                add(Marker.SPHERE, p3, (0.014,) * 3,
+                    (YELLOW if mp["served_by_initial_presentation"]
+                     else RED), ns="measure")
+                if mp["id"] not in self.fixtures:
+                    self.fixtures.append(mp["id"])
         elif self.task == "t2":
-            # THE BALL. It is the failure indicator: the tray tilting past
-            # 6.8 deg rolls it off, and without it a tilt has no visible
-            # consequence at all. Drawn ON the tray and carried WITH it, so a
-            # level carry keeps it and a tilted one does not.
-            tray = self.items.get("tray")
-            if tray is not None:
-                bp = list(tray["pos"])
-                bp[2] += tray["size"][2] / 2.0 + 0.020
-                add(Marker.SPHERE, bp, (0.040,) * 3, YELLOW, ns="ball")
-                if "ball" not in self.fixtures:
-                    self.fixtures.append("ball")
+            # THE TRAY IS ONE BODY HELD AT TWO POINTS, SO IT IS DRAWN BETWEEN
+            # THE TWO GRIPPERS -- not at one of them.
+            #
+            # It used to be an ordinary `items` entry owned by the LEFT arm,
+            # and the attach rule pins an item to its owner's pads. With the
+            # grips 500 mm apart that put a 560 mm tray centred on the left
+            # hand, spanning from 30 mm PAST the right gripper to 280 mm
+            # beyond the left one: the right arm was holding air, in the one
+            # task whose entire claim is that neither arm's pose is free given
+            # the other's.
+            gl, gr = self._grip("left"), self._grip("right")
+            if gl is not None and gr is not None:
+                mid = [(gl[k] + gr[k]) / 2.0 for k in range(3)]
+                span = math.dist(gl, gr)
+                th = TSK.TASK_B["objects"]["tray"]["size"][2]
+                dep = TSK.TASK_B["objects"]["tray"]["size"][1]
+                add(Marker.CUBE, mid, (round(span + 0.06, 4), dep, th),
+                    TAN, ns="tray")
+                # THE BALL. It is the failure indicator: the tray tilting past
+                # 6.8 deg rolls it off, and without it a tilt has no visible
+                # consequence at all. Drawn ON the tray and carried WITH it.
+                bp = list(mid)
+                bp[2] += th / 2.0 + CT_BALL_R
+                add(Marker.SPHERE, bp, (2 * CT_BALL_R,) * 3, YELLOW, ns="ball")
+                for nm in ("tray", "ball"):
+                    if nm not in self.fixtures:
+                        self.fixtures.append(nm)
 
         # ---- the graspable object --------------------------------------
         for name, it in self.items.items():
             arm = it["arm"]
             k = self.knuck.get(arm)
             g = self._grip(arm)
+            # ABSENCE OF DATA IS NOT A RELEASE.
+            #
+            # /joint_states takes a moment to arrive, so on the first ticks
+            # the knuckle is unknown -- and an unknown knuckle used to
+            # evaluate as "not closed", which for an item declared held=True
+            # fired a RELEASED event at t=0.00 before any measurement existed.
+            # T2's tray was dropped on the first frame of every clip and never
+            # picked up again. Draw the item where it was declared and wait.
+            if k is None:
+                add(Marker.CUBE, it["pos"], it["size"], it["col"], ns="item")
+                continue
             # PROXIMITY IS PART OF "GRASPED", AND IT WAS MISSING.
             #
             # The test was the knuckle alone, so ANY closure anywhere counted
@@ -655,6 +957,21 @@ def main():
                            # `items` cannot tell a missing subject from a task
                            # that never had one.
                            fixtures=sorted(getattr(n, "fixtures", [])),
+                           # WHAT THE SCENE PUT IN THE PLANNING SCENE, by
+                           # name, so "T0 has no bench" is a fact in the file
+                           # and not a claim in a commit message.
+                           furniture=[f[0] for f in furniture_boxes(n.task)],
+                           # HOW FAR EACH ARM ACTUALLY TRAVELLED, tf2 path
+                           # integral over the clip, and the straight-line
+                           # net. A few centimetres of travel means the task
+                           # geometry is too tight to see.
+                           ee_travel_m={a2: round(v, 4) for a2, v
+                                        in getattr(n, "ee_travel",
+                                                   {}).items()},
+                           ee_net_m={a2: (round(math.dist(
+                               n.ee_first[a2], n.ee_track[a2]), 4)
+                               if getattr(n, "ee_track", {}).get(a2) else None)
+                               for a2 in getattr(n, "ee_first", {})},
                            t0_wall=getattr(n, "t0_wall", None),
                            # The wrist->pad offset the whole scene was shifted
                            # by, so a consumer comparing against a declared

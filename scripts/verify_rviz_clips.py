@@ -637,7 +637,12 @@ if __name__ == "__main__":
 # somewhere", and none asks "is the SUBJECT there".
 SUBJECTS = {
     "t0": ("L1", "L2", "L3", "R1", "R2", "R3"),
-    "t1": ("cube_0", "cube_1", "cube_2", "cube_3"),
+    # THE PLANES ARE PART OF THE SUBJECT, not scenery. T1 is "blue cube to
+    # blue plane, green cube to green plane": with no plane on screen the task
+    # has no target and a wrong-colour placement cannot be scored, which is
+    # exactly the omission this list exists to catch.
+    "t1": ("cube_0", "cube_1", "cube_2", "cube_3",
+           "plane_blue", "plane_green"),
     "t2": ("tray", "ball"),
     "t3": ("circuit_box", "multimeter"),
 }

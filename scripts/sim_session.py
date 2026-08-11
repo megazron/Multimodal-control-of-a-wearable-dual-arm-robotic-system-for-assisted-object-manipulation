@@ -336,6 +336,49 @@ sys.exit(0 if ready else 1)
 '''
 
 
+def wait_launched(log_path, timeout_s, settle_s=20.0):
+    """Wait for the LAUNCH to finish coming up, without joining the graph.
+
+    A GATE, NOT THE READINESS CRITERION. wait_ready() is still the authority
+    on whether the robot is there; this only decides WHEN IT IS SAFE TO ASK.
+
+    Why it has to exist. MEASURED, same launch, three times:
+
+        probe created ~0 s after the launch   -> 1 node (itself), and every
+                                                 later probe also saw nothing
+        probe created ~12 s after             -> 7 nodes: the six rclpy ones,
+                                                 none of the four C++ ones
+        probe created ~30 s after             -> 31 nodes, READY
+
+    and re-spawning the probe did NOT rescue the first case: seven fresh
+    processes over 180 s all saw one node. So a participant created into a
+    half-built shared-memory domain does not merely fail for itself, it leaves
+    the domain in a state the next participant fails in too. The only thing
+    that works is not to create one until the stack is up.
+
+    The line waited on is the controller manager's own report that the joint
+    state broadcaster is running, read from the launch's log file. That is a
+    proxy and it is used as one -- it decides nothing about the robot, it only
+    stops us poisoning the domain by asking too early.
+    """
+    marker = "Configured and activated joint_state_broadcaster"
+    end = time.monotonic() + timeout_s
+    while time.monotonic() < end:
+        try:
+            with open(log_path, "r", errors="ignore") as f:
+                if marker in f.read():
+                    print("   launch: broadcaster activated; settling %.0f s "
+                          "before joining the graph" % settle_s)
+                    time.sleep(settle_s)
+                    return True
+        except OSError:
+            pass
+        time.sleep(2.0)
+    print("   launch: %r never appeared in %s -- probing anyway"
+          % (marker, log_path))
+    return False
+
+
 def wait_ready(timeout_s, need_followers=False, chunk_s=30):
     """Block until a real node RECEIVES arm joint states and /compute_ik is
     up, or fail loudly. Returns True/False -- never hangs.
@@ -506,6 +549,7 @@ def main():
     print("[sim] waiting for arm joint states AND /compute_ik%s (max %d s)"
           % (" AND both IK followers" if a.stack == "teleop" else "",
              a.ready_timeout))
+    wait_launched(log, a.ready_timeout)
     if not wait_ready(a.ready_timeout, need_followers=(a.stack == "teleop")):
         print("[sim] STACK NEVER BECAME READY. Not running the command -- a "
               "run against a half-up graph produces numbers about the graph, "

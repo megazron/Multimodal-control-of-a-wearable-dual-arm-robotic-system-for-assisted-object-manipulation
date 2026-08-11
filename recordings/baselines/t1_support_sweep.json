@@ -1,0 +1,22 @@
+{
+  "rows": {
+    "bench only (shipped, CONTROL: must be 0)": 0,
+    "cube footprint-only pads": 26,
+    "cube+plane footprint-only pads": 65,
+    "cube SIDE ledges dx=0.06": 65,
+    "cube SIDE ledges dx=0.09": 65,
+    "cube lips, 75% under": 65,
+    "cube lips, 50% under": 65,
+    "cube lips, 25% under": 65,
+    "plane lips, 75% under": 65,
+    "plane lips, 50% under": 65,
+    "plane lips, 25% under": 65,
+    "cube + plane lips, 75% under": 65,
+    "cube + plane lips, 50% under": 65,
+    "cube + plane lips, 25% under": 65,
+    "CONTROL slab across the approach (must be > 0)": 65
+  },
+  "repeats": 5,
+  "ik_calls": 2366,
+  "controls_ok": true
+}

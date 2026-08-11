@@ -84,25 +84,36 @@ def main():
         return 4
 
     import clip_scene as CS
+    import time as _t
     tmp = CS.Scene.__new__(CS.Scene)
-    ps = PlanningScene()
-    ps.is_diff = True
-    ps.world.collision_objects = CS.Scene._collision_furniture(tmp)
     cli = n.create_client(ApplyPlanningScene, "/apply_planning_scene")
     cli.wait_for_service(timeout_sec=15.0)
-    import time as _t
-    applied = False
-    for _ in range(3):
-        fut = cli.call_async(ApplyPlanningScene.Request(scene=ps))
-        end = _t.time() + 20.0
-        while _t.time() < end and not fut.done():
-            rclpy.spin_once(n, timeout_sec=0.05)
-        if fut.done():
-            applied = True
-            break
-    if not applied:
-        print("REFUSING: the bench did not apply.")
-        return 5
+
+    def use(task):
+        """Load exactly THIS task's furniture, having removed every other.
+
+        EACH TASK IS CHECKED AGAINST ITS OWN SCENE, and that is a correction.
+        One scene was applied for the whole run, so T0 -- which has no
+        objects, no grasp and therefore no furniture -- was verified against
+        another task's bench, and its target band was then derived inside the
+        limits that bench imposes. A task's reachable volume is a property of
+        the task's OWN scene.
+        """
+        CS.remove_furniture(n)
+        objs = CS.Scene._collision_furniture(tmp, task)
+        if not objs:
+            return []
+        ps = PlanningScene()
+        ps.is_diff = True
+        ps.world.collision_objects = objs
+        for _ in range(3):
+            fut = cli.call_async(ApplyPlanningScene.Request(scene=ps))
+            end = _t.time() + 20.0
+            while _t.time() < end and not fut.done():
+                rclpy.spin_once(n, timeout_sec=0.05)
+            if fut.done():
+                return [o.id for o in objs]
+        raise RuntimeError("REFUSING: %s furniture did not apply." % task)
 
     calls = {"n": 0}
 
@@ -133,6 +144,13 @@ def main():
     print("=" * 74)
 
     # ------------------------------------------------ CONTROLS
+    # Run with the LEGACY A/B/C scene loaded, and that matters now that each
+    # task carries its own furniture. Two of the four controls are poses whose
+    # expected answer is only defined against a particular scene: "inside the
+    # bench slab" needs a bench, and "a known-good pick" is task A's own pick,
+    # verified against task A's own furniture. Asking either of them inside
+    # T1's scene measures T1's supports, not the solver.
+    use("a")
     ctl_far = ok("left", [1.60, 0.35, 1.15], k=1)
     ctl_wearer = ok("left", [0.0, -0.10, 1.25], k=1)
     ctl_bench = ok("left", [0.30, 0.40, 1.08], k=1)
@@ -155,12 +173,18 @@ def main():
         return 6
     out = {"controls": dict(far=not ctl_far, wearer=not ctl_wearer,
                             bench=not ctl_bench, known_good=bool(ctl_good)),
-           "repeats": N, "bench_in_scene": True}
+           "repeats": N,
+           # PER TASK, not one scene for the run -- see use().
+           "furniture_per_task": {t: [f[0] for f in CS.furniture_boxes(t)]
+                                  for t in MCT.ORDER}}
     fails = 0
 
     # ------------------------------------------------ T0
-    print("\nT0  sphere pointing -- fixed set, transits, and %d sampled trials"
-          % a.sampled_trials)
+    # T0 HAS NO FURNITURE. It is reaching only -- no objects, no grasp,
+    # nothing to rest on a surface -- so it is verified in the free space it
+    # actually runs in, not against another task's bench.
+    print("\nT0  sphere pointing -- NO FURNITURE (%s), transits, and %d "
+          "sampled trials" % (use("t0") or "free space", a.sampled_trials))
     t0 = {}
     for arm, pts in (("left", T0.TARGETS_LEFT), ("right", T0.TARGETS_RIGHT)):
         bad = [k for k, p in sorted(pts.items()) if not ok(arm, p)]
@@ -189,8 +213,8 @@ def main():
     out["T0"] = t0
 
     # ------------------------------------------------ T1
-    print("\nT1  pick and place -- 4 cubes + 2 planes, %s arm, full path"
-          % T1_ARM)
+    print("\nT1  pick and place -- 4 cubes + 2 planes, %s arm, full path "
+          "(scene: %s)" % (T1_ARM, ", ".join(use("t1"))))
     zc = CT.BENCH_TOP + CUBE_M / 2.0
     t1, t1bad = {}, 0
     for kind, items in (("cube", T1_CUBES), ("plane", T1_PLANES)):
@@ -220,7 +244,8 @@ def main():
 
     # ------------------------------------------------ T2
     print("\nT2  coordinated carry -- both grippers, %d mm span, both "
-          "assignments" % (TSK.TRAY_SEP * 1000))
+          "assignments (scene: %s)"
+          % (TSK.TRAY_SEP * 1000, ", ".join(use("t2"))))
     t2, t2bad = {}, 0
     for name, path in TSK.TASK_B["paths"].items():
         pts = require(densify(path, STEP), "T2 %s" % name)
@@ -233,7 +258,8 @@ def main():
     out["T2"] = t2
 
     # ------------------------------------------------ T3
-    print("\nT3  circuit box and multimeter -- hold poses and the full picks")
+    print("\nT3  circuit box and multimeter -- hold poses and the full picks "
+          "(scene: %s)" % ", ".join(use("t3")))
     t3, t3bad = {}, 0
     for arm, p in T3.poses_to_verify():
         good = ok(arm, CT.ee_for(p))
@@ -261,6 +287,7 @@ def main():
     clips, cbad, ctested = {}, 0, 0
     for key in MCT.ORDER:
         spec = MCT.TASKS[key]
+        use(key)                    # this task's own scene, again
         path = spec["build"]()
         per = {}
         for arm in ("left", "right"):

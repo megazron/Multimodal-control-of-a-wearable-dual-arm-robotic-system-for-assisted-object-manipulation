@@ -1,0 +1,34 @@
+{
+  "declared_band": [
+    1.32,
+    1.4
+  ],
+  "rows": {
+    "1.320": true,
+    "1.340": true,
+    "1.360": true,
+    "1.380": true,
+    "1.400": true,
+    "1.420": true,
+    "1.440": true,
+    "1.460": true,
+    "1.480": true,
+    "1.500": true,
+    "1.520": true,
+    "1.540": true,
+    "1.560": true,
+    "1.580": true,
+    "1.600": true,
+    "1.620": true,
+    "1.640": true,
+    "1.660": true,
+    "1.680": true,
+    "1.700": true
+  },
+  "highest_passing": 1.7,
+  "recommended_top": 1.68,
+  "margin_m": 0.02,
+  "repeats": 10,
+  "ik_calls": 402,
+  "control_far_unreachable": true
+}

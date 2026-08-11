@@ -233,15 +233,39 @@ TASK_B = dict(
     # at each y -- this project's rule that N finds the boundary and MARGIN is
     # what keeps you off it.  The tilt threshold is unaffected: 6.8 deg is
     # 60 mm over the 500 mm SPAN and does not depend on height.
+    # RAISED 2026-08-11. THE OLD TOP WAS NOT A LIMIT, IT WAS WHERE THE SURVEY
+    # STOPPED LOOKING.
+    #
+    # The band was re-spec'd from 1.10-1.30 to 1.32-1.40 by a survey that
+    # established the BOTTOM properly and recorded the top only as "up to at
+    # least 1.40", because 1.40 was as high as it sampled. The consequence was
+    # that T2's entire commanded motion was EIGHTY MILLIMETRES -- the whole
+    # coordinated carry, the task whose claim is that neither arm's pose is
+    # free given the other's, is not visible in a clip at that scale.
+    #
+    # Measured upward the same way -- both grippers 500 mm apart at y = 0.35,
+    # BOTH arm assignments, N=10, T2's own scene, control at z = 2.20
+    # correctly unreachable (scripts/measure_t2_band_top.py):
+    #
+    #     z = 1.32 .. 1.70 in 20 mm steps: EVERY ONE PASSES
+    #
+    # so the ceiling is at least 1.70 and was never 1.40. The paths below use
+    # 1.60, which is 100 mm inside the last z that passed N/N -- this project's
+    # rule that N locates the boundary and MARGIN is what keeps you off it --
+    # and turns the full lift from 80 mm into 280 mm.
+    #
+    # The tilt threshold is UNCHANGED and must be: 6.8 deg is 60 mm over the
+    # 500 mm SPAN, and does not depend on height.
     paths=dict(
-        S1_short_lift=[[0.0, Y, 1.32], [0.0, Y, 1.37]],
-        S2_full_lift=[[0.0, Y, 1.32], [0.0, Y, 1.40]],
-        S3_detour=[[0.0, Y, 1.32], [0.0, 0.38, 1.35],
-                   [0.0, 0.38, 1.38], [0.0, Y, 1.40]],
+        S1_short_lift=[[0.0, Y, 1.32], [0.0, Y, 1.42]],
+        S2_full_lift=[[0.0, Y, 1.32], [0.0, Y, 1.60]],
+        S3_detour=[[0.0, Y, 1.32], [0.0, 0.38, 1.42],
+                   [0.0, 0.38, 1.52], [0.0, Y, 1.60]],
     ),
-    band_z=(1.32, 1.40),
+    band_z=(1.32, 1.60),
     band_rationale="lowest clear z measured 1.28 (y=0.35) / 1.30 (y=0.38) "
-                   "with the bench in scene; +20 mm margin",
+                   "with the bench in scene, +20 mm margin; top measured "
+                   "clear to 1.70 at N=10, held 100 mm inside it",
     grip_sep=TRAY_SEP,
     fail_tilt_deg=6.8,               # 60 mm over 500 mm
     repeats=3,

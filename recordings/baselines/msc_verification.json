@@ -6,7 +6,26 @@
     "known_good": true
   },
   "repeats": 10,
-  "bench_in_scene": true,
+  "furniture_per_task": {
+    "t0": [],
+    "t1": [
+      "bench",
+      "lip_cube_0",
+      "lip_cube_1",
+      "lip_cube_2",
+      "lip_cube_3",
+      "lip_plane_0",
+      "lip_plane_1"
+    ],
+    "t2": [
+      "bench"
+    ],
+    "t3": [
+      "bench",
+      "lip_circuit_box",
+      "lip_multimeter"
+    ]
+  },
   "T0": {
     "left": {
       "sphere_failures": 0,
@@ -28,7 +47,7 @@
         0.23
       ],
       "waypoints": 13,
-      "failures": 0
+      "failures": 12
     },
     "cube_1": {
       "xy": [
@@ -36,7 +55,7 @@
         0.23
       ],
       "waypoints": 13,
-      "failures": 0
+      "failures": 12
     },
     "cube_2": {
       "xy": [
@@ -44,7 +63,7 @@
         0.17
       ],
       "waypoints": 13,
-      "failures": 0
+      "failures": 8
     },
     "cube_3": {
       "xy": [
@@ -52,7 +71,7 @@
         0.23
       ],
       "waypoints": 13,
-      "failures": 0
+      "failures": 12
     },
     "plane_0": {
       "xy": [
@@ -60,7 +79,7 @@
         0.13
       ],
       "waypoints": 13,
-      "failures": 0
+      "failures": 4
     },
     "plane_1": {
       "xy": [
@@ -68,9 +87,9 @@
         0.13
       ],
       "waypoints": 13,
-      "failures": 0
+      "failures": 4
     },
-    "transport_failures": 0
+    "transport_failures": 16
   },
   "T2": {
     "S1_short_lift": {
@@ -91,12 +110,12 @@
     ]
   },
   "T3": {
-    "right_-0.540_0.170_1.125": true,
+    "right_-0.540_0.170_1.125": false,
     "right_-0.540_0.170_1.205": true,
-    "left_0.340_0.190_1.123": true,
+    "left_0.340_0.190_1.123": false,
     "left_0.340_0.190_1.202": true,
-    "circuit_box_pick_failures": 0,
-    "multimeter_pick_failures": 0,
+    "circuit_box_pick_failures": 4,
+    "multimeter_pick_failures": 2,
     "min_expected_repositioning_requests": 2
   },
   "clip_paths": {
@@ -116,7 +135,7 @@
       "left": {
         "waypoints": 113,
         "distinct": 61,
-        "failures": 0
+        "failures": 31
       },
       "right": {
         "waypoints": 113,
@@ -140,16 +159,16 @@
       "left": {
         "waypoints": 38,
         "distinct": 8,
-        "failures": 0
+        "failures": 1
       },
       "right": {
         "waypoints": 38,
         "distinct": 8,
-        "failures": 0
+        "failures": 3
       }
     }
   },
   "clip_waypoints_tested": 103,
-  "ik_calls": 5264,
-  "failures": 0
+  "ik_calls": 4265,
+  "failures": 111
 }

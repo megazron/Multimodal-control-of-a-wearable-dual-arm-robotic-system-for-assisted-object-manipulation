@@ -1,5 +1,8 @@
 {
   "bench_near_y": 0.245,
+  "rail_y": null,
+  "rail_t": 0.015,
+  "support_edge": 0.245,
   "cube_m": 0.04,
   "pitch_m": 0.06,
   "plane": [
@@ -14,13 +17,14 @@
     "verdict": "IMPOSSIBLE -- only 0 usable cells, and six items are required"
   },
   "topdown": {
-    "cells": 18,
-    "extent_mm": [
-      160,
-      20
-    ],
-    "combinations_tried": 18564,
-    "verdict": "DOES NOT FIT -- 18564 combinations of 6 cells searched, none satisfies the spacing"
+    "cells": 0,
+    "extent_mm": null,
+    "verdict": "IMPOSSIBLE -- only 0 usable cells, and six items are required"
   },
-  "ik_calls": 1243
+  "regression": {
+    "T0_spheres_unreachable": 0,
+    "T2_carry_waypoint_failures": 37,
+    "T3_object_failures_left": 2
+  },
+  "ik_calls": 326
 }

@@ -172,13 +172,12 @@ def main():
     # ---- the feasible cells ------------------------------------------
     xs = [round(0.24 + 0.02 * i, 3) for i in range(14)]      # 0.24 .. 0.50
     ys = [round(0.13 + 0.02 * i, 3) for i in range(12)]      # 0.13 .. 0.35
+    support_edge = CT.BENCH_NEAR_Y if a.rail_y is None else a.rail_y
     res = {"bench_near_y": CT.BENCH_NEAR_Y, "rail_y": a.rail_y,
            "rail_t": a.rail_t, "support_edge": None, "cube_m": CUBE_M,
            "pitch_m": PITCH_M, "plane": list(PLANE),
            "plane_clear_m": round(PLANE_CLEAR_M, 4), "repeats": a.repeats}
     res["support_edge"] = support_edge
-
-    support_edge = CT.BENCH_NEAR_Y if a.rail_y is None else a.rail_y
 
     def supported(y):
         """Resting on something.  With a rail the support edge moves forward;

@@ -1,3 +1,106 @@
+# RESUME POINT — items 0-2 of the six-part brief are DONE; 3, 4 and 5 are NOT STARTED
+
+Five modes are recorded and frozen. Task 1 has been reworked and re-verified.
+**The next session starts at item 3.**
+
+| item | state |
+| --- | --- |
+| 0 protect the results | **DONE** — tag `mode06-good-20260811`, frozen copy + README |
+| 1 real-robot readiness | **DONE** — `docs/system/14_real_robot_readiness.md` |
+| 2 Task 1 fixes | **DONE**, except 2(b) which is **measured impossible** |
+| 3 T1 stage 2, both arms, random | **NOT STARTED** |
+| 4 data collection sequence | **NOT STARTED** |
+| 5 demonstration mode | **NOT STARTED** |
+
+## THE NUMBER ITEM 3 NEEDS, ALREADY MEASURED
+
+`scripts/survey_work_surface.py` -> `recordings/baselines/work_surface_region.json`.
+29 x 11 grid on the work plane at z = 1.12, pinned wrist, T1's scene, N=3,
+controls correct:
+
+| | cells | x | y |
+| --- | --- | --- | --- |
+| left | 35 of 319 | 0.30 .. 0.70 | 0.05 .. 0.20 |
+| right | 32 of 319 | -0.70 .. -0.30 | 0.05 .. 0.20 |
+| **both arms** | **0** | — | — |
+| **\|x\| <= 0.10** | **0** | — | — |
+
+**This is the marked region, and item 3 samples from it.** Two limits travel
+with it: the box was x -0.70..0.70, y 0.05..0.55 and the region TOUCHES
+x = 0.70 and y = 0.05 on both arms, so it is truncated and the true extent is
+at least this; and cells were tested at the grasp pose, not the full path.
+Re-run with `--full-path` before sampling participants into it.
+
+**Item 3 is genuinely a different KIND from T2 and the write-up must say so:**
+two arms doing separate things at once is SIMULTANEITY; T2 is PHYSICAL
+COUPLING through one rigid body, where neither arm's pose is free given the
+other's. `tasks.py` already carries that distinction as `bimanual_kind` on
+both specs — stage 2 needs its own, and it is a third value, not a copy of
+either.
+
+## 2(b) CANNOT BE BUILT, AND THAT IS THE FINDING
+
+"The coloured planes go in the FRONT CENTRE, both centred, reachable by either
+arm." **There are zero reachable cells anywhere with |x| <= 0.10.** The
+nearest reachable x is 0.30. This is the platform's disjoint-reachable-sets
+result measured directly on the surface the planes would sit on, not a tuning
+problem. The planes stay where they are verified, at x = 0.300 and 0.460.
+
+If the front centre is required, it needs the arms re-parked in hardware —
+`|v_R - M v_L| = 1.3837 m`, proved independent of the mount.
+
+## WHAT CHANGED IN TASK 1
+
+* **Two-level table.** Every reachable cell is at y = 0.05..0.20 while the
+  slab's edge was at 0.245, so the whole usable region was in front of the
+  furniture — the table was misplaced, not the objects. The edge cannot come
+  forward at the objects' height (0 / 6 / 18 / 34 failures at y = 0.245 /
+  0.200 / 0.180 / 0.100) but a top at z = 0.95 reaching to y = 0.10 costs
+  nothing. So: a table at 0.95 with legs, apron and riser posts, objects on
+  the raised surface at the verified 1.10.
+* **A slot per cube**, ±30 mm in y. Two cubes share a plane and both used to
+  be delivered to its centre, one inside the other.
+* **Planes 15 mm outboard**, 0.130 -> 0.145, so the near slot clears the front
+  edge of the measured band.
+* **Workspace markings** painted on the surface from the survey, per arm.
+
+All verified: **6304 IK calls, 0 failures**, four controls correct.
+
+**The existing T1 clips are superseded geometry** — the archive README says
+so. T0, T2 and T3 are unaffected by the slot and plane changes but now render
+with the two-level table, so re-record all four when convenient.
+
+## REAL-ROBOT READINESS, IN ONE LINE EACH
+
+Full audit in `docs/system/14_real_robot_readiness.md`. The arm path is in
+better shape than the safety path:
+
+* **WILL FAIL, silently** — the clearance floor looks up `f"{arm}_{link}"`,
+  the SIM frames, while the real arm's are `real_*`; and
+  `halt_real_driver()` targets `/real/controller_manager`, which the
+  high-level bridge does not have. The arm still stops, because the bridge
+  subscribes to `/estop_state` directly; what is missing is the second layer.
+* **WILL FAIL as the machine stands** — eth0/eth1 DOWN, only eth2 at
+  192.168.3.146/22. Confirm mirrored networking Windows-side and run
+  `check_arm_network.sh`, which probes UDP 10001; a ping does not.
+* **WILL FAIL as configured** — detector topics default to `/camera/...`
+  and the Kinova driver publishes elsewhere. Nothing asserts the subscribed
+  topic has a publisher, so a wrong name is a silent empty scene.
+* **UNVERIFIABLE** — two simultaneous Kortex sessions, the minimum
+  commandable joint speed, the board across a usbipd re-enumeration.
+
+## HOW TO RUN THINGS HERE
+
+* **One task per recording invocation.** The sweep aborts on exit (exit -6)
+  after the work is done; fatal mid-run. The progress file is the authority.
+* **Detach with `setsid` and do not poll.** Any Bash call is killed at 600 s.
+  Wait with a script that watches the log and uses `procscan` — `pgrep -f`
+  matches the waiting shell itself.
+* `sim_session.py --stack teleop --keep-up -- true` brings the stack up once;
+  everything else then runs against it.
+
+---
+
 # RESUME POINT — ALL FIVE MODES RECORDED AND INSPECTED
 
 **20 clips, 8 angles each, one identical task definition, every capture gated

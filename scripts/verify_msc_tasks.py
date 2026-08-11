@@ -47,7 +47,7 @@ STANDOFF, LIFT = 0.10, 0.08
 
 # T1's layout, verified 2026-08-11 under option 4 (fixtured objects).
 T1_CUBES = [[0.280, 0.230], [0.340, 0.230], [0.380, 0.170], [0.400, 0.230]]
-T1_PLANES = [[0.300, 0.130], [0.460, 0.130]]
+T1_PLANES = [[0.300, 0.145], [0.460, 0.145]]
 T1_ARM = "left"
 CUBE_M = 0.040
 

@@ -46,7 +46,14 @@ CUBE_M = 0.040
 # T1's layout, from the option-4 search: 4 cubes + 2 planes, left arm, all
 # verified over the full pick path at N=10 with the bench in the scene.
 T1_CUBES = [[0.280, 0.230], [0.340, 0.230], [0.380, 0.170], [0.400, 0.230]]
-T1_PLANES = [[0.300, 0.130], [0.460, 0.130]]
+# MOVED 15 mm OUTBOARD IN y, 0.130 -> 0.145, TO MAKE ROOM FOR THE SLOTS.
+# Two cubes share each plane and each now gets its own slot at +/-SLOT_DY in
+# y. At the old centre those slots fell at y = 0.100 and 0.160, and the near
+# one cost 5 clip-path waypoints at N=10 -- it sits on the front edge of the
+# measured reachable band (y 0.05..0.20 at the grasp pose only, and the place
+# path also has to clear a 0.10 m standoff above it). At 0.145 the slots are
+# 0.115 and 0.175, both well inside.
+T1_PLANES = [[0.300, 0.145], [0.460, 0.145]]
 T1_Z = CT.BENCH_TOP + CUBE_M / 2.0
 T1_ARM = "left"
 STANDOFF, LIFT = 0.10, 0.08
@@ -97,6 +104,9 @@ _T1_GRIP = []
 # The OBJECT the arrival gate should measure against, per waypoint. A
 # single-grasp task can name one; a four-cube task cannot.
 _T1_GRIP_AT = []
+# Half the separation between the two cubes that share a plane. 30 mm against
+# a 40 mm cube leaves a 20 mm gap: two distinct objects, not a stack.
+SLOT_DY = 0.030
 
 
 def t1():
@@ -128,9 +138,20 @@ def t1():
         grip.extend([state] * len(pts))
         at.extend([list(obj)] * len(pts))
 
+    # A SLOT PER CUBE, SO TWO CUBES DO NOT LAND IN ONE PLACE.
+    #
+    # The pairing sends cubes 0 and 2 to the SAME plane and 1 and 3 to the
+    # other, and both were placed at the plane's centre -- so the second cube
+    # of each pair was delivered INSIDE the first. Each cube gets its own slot
+    # on its plane, separated in y because the region is only 0.40 m wide in x
+    # and the planes already sit at its inboard edge: measured, the reachable
+    # band is x 0.30..0.70 and y 0.05..0.20, so +/-0.03 in y stays well inside
+    # it while +/-0.035 in x would put the inboard slot at 0.265, outside.
+    slot = {0: -SLOT_DY, 2: +SLOT_DY, 1: -SLOT_DY, 3: +SLOT_DY}
     for i, (cx, cy) in enumerate(T1_CUBES):
         pick = ee_for([cx, cy, T1_Z])
         px, py = T1_PLANES[T1_PAIR[i]]
+        py = round(py + slot[i], 4)
         place = ee_for([px, py, T1_Z])
         cube_obj = [cx, cy, T1_Z]
         plane_obj = [px, py, T1_Z]

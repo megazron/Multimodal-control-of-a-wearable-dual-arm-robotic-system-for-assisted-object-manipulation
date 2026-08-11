@@ -9,13 +9,16 @@
   "furniture_per_task": {
     "t0": [],
     "t1": [
-      "bench"
+      "bench",
+      "table"
     ],
     "t2": [
-      "bench"
+      "bench",
+      "table"
     ],
     "t3": [
-      "bench"
+      "bench",
+      "table"
     ]
   },
   "T0": {
@@ -68,7 +71,7 @@
     "plane_0": {
       "xy": [
         0.3,
-        0.13
+        0.145
       ],
       "waypoints": 13,
       "failures": 0
@@ -76,7 +79,7 @@
     "plane_1": {
       "xy": [
         0.46,
-        0.13
+        0.145
       ],
       "waypoints": 13,
       "failures": 0
@@ -113,24 +116,24 @@
   "clip_paths": {
     "t0": {
       "left": {
-        "waypoints": 62,
-        "distinct": 27,
-        "failures": 2
+        "waypoints": 58,
+        "distinct": 25,
+        "failures": 0
       },
       "right": {
-        "waypoints": 62,
-        "distinct": 27,
+        "waypoints": 58,
+        "distinct": 25,
         "failures": 0
       }
     },
     "t1": {
       "left": {
-        "waypoints": 113,
-        "distinct": 61,
+        "waypoints": 140,
+        "distinct": 76,
         "failures": 0
       },
       "right": {
-        "waypoints": 113,
+        "waypoints": 140,
         "distinct": 1,
         "failures": 0
       }
@@ -149,18 +152,18 @@
     },
     "t3": {
       "left": {
-        "waypoints": 38,
+        "waypoints": 64,
         "distinct": 8,
         "failures": 0
       },
       "right": {
-        "waypoints": 38,
+        "waypoints": 64,
         "distinct": 8,
         "failures": 0
       }
     }
   },
-  "clip_waypoints_tested": 154,
-  "ik_calls": 6217,
-  "failures": 2
+  "clip_waypoints_tested": 165,
+  "ik_calls": 6304,
+  "failures": 0
 }

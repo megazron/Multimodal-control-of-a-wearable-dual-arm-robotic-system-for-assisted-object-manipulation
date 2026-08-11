@@ -88,6 +88,58 @@ DARK = (0.18, 0.19, 0.21, 1.0)
 # collision object is the LIP that holds it out over the bench edge.
 PLANE_W, PLANE_D, PLANE_T = 0.14, 0.10, 0.004
 
+# THE TABLE UNDER THE WORK SURFACE. Top at 0.95 and reaching forward to
+# y = 0.10, which is under the whole measured reachable region (y 0.05..0.20)
+# and 150 mm below the work plane -- clear of the approach cone, measured at
+# 0 waypoint failures. See furniture_boxes() for the sweep.
+TABLE_TOP = 0.95
+TABLE_THICK = 0.035
+# 0.10, NOT 0.02, AND THE 80 mm MATTERS. The edge sweep measured z = 0.95 with
+# the edge at y = 0.100 at ZERO failures; built at 0.02 -- further forward than
+# anything measured -- T1 went to 4 waypoint failures on the items and 7 on the
+# clip path while T0, T2 and T3 stayed at 0. Extrapolating past the last
+# measured point is how a verified layout stops being verified.
+TABLE_NEAR_Y = 0.10
+TABLE_FAR_Y = 0.72
+TABLE_HALF_X = 0.90
+TABLE_LEG = 0.055                # square section, at the four corners
+TABLE_APRON = 0.06               # skirt depth under the top, so it reads as
+                                 # a table rather than a floating slab
+OAK = (0.68, 0.52, 0.33, 1.0)
+RISER = (0.55, 0.42, 0.27, 1.0)
+
+# ==========================================================================
+# WORKSPACE MARKINGS -- the boundary each arm can actually reach, MEASURED
+# ==========================================================================
+# scripts/survey_work_surface.py, a 29 x 11 grid on the work plane at
+# z = 1.12, pinned wrist, T1's scene, N=3, controls correct:
+#
+#     left    35 of 319 cells    x  0.30..0.70   y 0.05..0.20
+#     right   32 of 319 cells    x -0.70..-0.30  y 0.05..0.20
+#     BOTH arms                  0 cells
+#     |x| <= 0.10 (front centre) 0 cells
+#
+# Drawn so a viewer and a participant can see where the robot can and cannot
+# go. It is the measurement, not a drawn guess -- a marking that is not the
+# measured boundary is decoration that lies, and this rig's whole difficulty
+# is that the reachable region is nothing like the region people expect.
+#
+# TWO HONEST LIMITS ON THESE NUMBERS. The survey box was x -0.70..0.70 and
+# y 0.05..0.55, and the region touches x = 0.70 and y = 0.05 on both arms, so
+# it is TRUNCATED BY THE BOX and the true extent is at least this and may be
+# larger outboard and nearer. And every cell was tested at the object-centre
+# height with the grasp pose alone unless --full-path was given.
+WORKSPACE = {
+    "left": dict(x=(0.30, 0.70), y=(0.05, 0.20),
+                 truncated=("x_max", "y_min")),
+    "right": dict(x=(-0.70, -0.30), y=(0.05, 0.20),
+                  truncated=("x_min", "y_min")),
+}
+MARK_T = 0.003                   # a painted line, not a kerb
+MARK_W = 0.012
+MARK_RGBA = {"left": (0.95, 0.75, 0.10, 0.85),
+             "right": (0.20, 0.75, 0.95, 0.85)}
+
 RED = (0.90, 0.15, 0.12, 1.0)
 # task0 names its spheres by COLOUR ("go to the green one"), so the picture
 # has to use those colours and not one colour per arm.
@@ -220,10 +272,39 @@ def furniture_boxes(task):
     out = []
     if task == "t0":
         return out
+    # A REAL TABLE, IN TWO LEVELS, AND THE SPLIT IS MEASURED.
+    #
+    # "Objects fall outside the table." They do, and the table is what is
+    # wrong: scripts/survey_work_surface.py finds EVERY reachable cell on the
+    # work plane at y = 0.05..0.20 while the slab's near edge sat at 0.245, so
+    # the entire usable region was in front of the furniture.
+    #
+    # The edge cannot simply come forward. At the objects' own height the
+    # approach cone is in the way, and scripts/sweep_table_edge.py prices it
+    # exactly -- T1's six pick paths, N=5, both controls correct:
+    #
+    #     near edge y = 0.245 (shipped)   0 failures
+    #                   0.220 / 0.200     6 / 6
+    #                   0.180 / 0.160    18 / 20
+    #                   0.140 / 0.100    23 / 34
+    #
+    # But a LOWER top reaching right forward costs nothing:
+    #
+    #     top z = 1.00 / 0.95 / 0.90, edge y = 0.100    0 / 0 / 0 failures
+    #
+    # So: a TABLE at 0.95 spanning the whole reachable region, and the objects
+    # on a RAISED WORK SURFACE at the verified 1.10 whose own edge stays at
+    # 0.245 where the grasp needs it. Seen from the front the objects are
+    # within the table's footprint and nothing hangs over nothing; the pick
+    # geometry is untouched, because the surface they overhang is unchanged.
     yc = (_ct.BENCH_NEAR_Y + _ct.BENCH_FAR_Y) / 2.0
     yd = _ct.BENCH_FAR_Y - _ct.BENCH_NEAR_Y
     out.append(("bench", [0.0, yc, _ct.BENCH_TOP - _ct.BENCH_THICK / 2.0],
                 [2 * _ct.BENCH_HALF_X, yd, _ct.BENCH_THICK], TAN))
+    tyc = (TABLE_NEAR_Y + TABLE_FAR_Y) / 2.0
+    tyd = TABLE_FAR_Y - TABLE_NEAR_Y
+    out.append(("table", [0.0, tyc, TABLE_TOP - TABLE_THICK / 2.0],
+                [2 * TABLE_HALF_X, tyd, TABLE_THICK], OAK))
     if task in ("a", "b", "c"):
         out.append(("circuit_box", list(_ct.BOX_OBJ),
                     [0.17, _ct.BOX_D, _ct.BOX_H], GREEN))
@@ -691,12 +772,32 @@ class Scene(Node):
         solids = furniture_boxes(self.task)
         for _name, _xyz, _size, _col in solids:
             add(Marker.CUBE, list(_xyz), tuple(_size), _col)
-        if any(s[0] == "bench" for s in solids):
-            yc = (CT.BENCH_NEAR_Y + CT.BENCH_FAR_Y) / 2.0
-            for sx in (-0.75, 0.75):
+        if any(s[0] == "table" for s in solids):
+            # LEGS, APRON AND RISER SUPPORTS -- drawn only, because none of
+            # them is anywhere the arm goes and a collision object that is
+            # never approached is cost without cover. Four corner legs, a
+            # skirt under the top and two posts carrying the raised work
+            # surface: what makes it read as a table rather than a slab.
+            tyc = (TABLE_NEAR_Y + TABLE_FAR_Y) / 2.0
+            tyd = TABLE_FAR_Y - TABLE_NEAR_Y
+            for sx in (-1, 1):
+                for sy in (TABLE_NEAR_Y + TABLE_LEG, TABLE_FAR_Y - TABLE_LEG):
+                    add(Marker.CUBE,
+                        [sx * (TABLE_HALF_X - TABLE_LEG), sy,
+                         (TABLE_TOP - TABLE_THICK) / 2.0],
+                        (TABLE_LEG, TABLE_LEG, TABLE_TOP - TABLE_THICK),
+                        DARK)
+            for sy in (TABLE_NEAR_Y + TABLE_THICK, TABLE_FAR_Y - TABLE_THICK):
                 add(Marker.CUBE,
-                    [sx, yc, (CT.BENCH_TOP - CT.BENCH_THICK) / 2.0],
-                    (0.05, 0.05, CT.BENCH_TOP - CT.BENCH_THICK), DARK)
+                    [0.0, sy, TABLE_TOP - TABLE_THICK - TABLE_APRON / 2.0],
+                    (2 * TABLE_HALF_X - 0.02, 0.02, TABLE_APRON), OAK)
+            gap = CT.BENCH_TOP - CT.BENCH_THICK - TABLE_TOP
+            for sx in (-0.60, 0.60):
+                add(Marker.CUBE,
+                    [sx, (CT.BENCH_NEAR_Y + CT.BENCH_FAR_Y) / 2.0,
+                     TABLE_TOP + gap / 2.0],
+                    (0.06, CT.BENCH_FAR_Y - CT.BENCH_NEAR_Y - 0.04, gap),
+                    RISER)
 
         # ---- PER-TASK SCENE FIXTURES: the task's SUBJECT ----------------
         # Things the task is ABOUT that are not grasped. They belong here, not
@@ -745,7 +846,37 @@ class Scene(Node):
                 i += 1
                 if label not in self.fixtures:
                     self.fixtures.append(label)
-        elif self.task == "t1":
+        if self.task in ("t1", "t2", "t3"):
+            # THE MARKED REACHABLE REGION, on the surface, per arm. Drawn as
+            # four thin bars rather than a filled patch so it reads as a
+            # boundary and does not hide what is standing inside it.
+            for arm, box in WORKSPACE.items():
+                x0, x1 = box["x"]
+                y0, y1 = box["y"]
+                col = MARK_RGBA[arm]
+                zt = CT.BENCH_TOP + MARK_T / 2.0
+                for yy in (y0, y1):
+                    add(Marker.CUBE, [(x0 + x1) / 2.0, yy, zt],
+                        (x1 - x0, MARK_W, MARK_T), col, ns="workspace")
+                for xx in (x0, x1):
+                    add(Marker.CUBE, [xx, (y0 + y1) / 2.0, zt],
+                        (MARK_W, y1 - y0, MARK_T), col, ns="workspace")
+                lab = Marker()
+                lab.header.frame_id = "world"
+                lab.ns, lab.id = "workspace_labels", i
+                lab.type = Marker.TEXT_VIEW_FACING
+                lab.action = Marker.ADD
+                lab.text = "%s arm reach" % arm
+                lab.pose.position.x = float((x0 + x1) / 2.0)
+                lab.pose.position.y = float(y0 - 0.03)
+                lab.pose.position.z = float(CT.BENCH_TOP + 0.02)
+                lab.pose.orientation.w = 1.0
+                lab.scale.z = 0.030
+                (lab.color.r, lab.color.g,
+                 lab.color.b, lab.color.a) = col
+                A.markers.append(lab)
+                i += 1
+        if self.task == "t1":
             # THE TWO COLOURED PLANES. T1 is "blue cube to blue plane, green
             # cube to green plane" and the planes had never been drawn, so the
             # task had no target on screen and a wrong-colour placement could

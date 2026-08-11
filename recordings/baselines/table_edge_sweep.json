@@ -1,0 +1,18 @@
+{
+  "rows": {
+    "edge_0.245": 0,
+    "edge_0.220": 6,
+    "edge_0.200": 6,
+    "edge_0.180": 18,
+    "edge_0.160": 20,
+    "edge_0.140": 23,
+    "edge_0.100": 34,
+    "low_1.00_edge_0.100": 0,
+    "low_0.95_edge_0.100": 0,
+    "low_0.90_edge_0.100": 0
+  },
+  "repeats": 5,
+  "ik_calls": 2272,
+  "controls_ok": true,
+  "shipped_edge": 0.245
+}

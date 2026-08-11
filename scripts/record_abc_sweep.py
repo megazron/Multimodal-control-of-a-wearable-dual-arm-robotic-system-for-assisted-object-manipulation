@@ -875,8 +875,19 @@ def _main_body():
                         else:
                             log("      placed %.0f mm from target" % (d * 1000))
                 except FileNotFoundError:
-                    good = False
-                    msg += "; no scene_events.json -- the scene never ran"
+                    # A TASK WITH NO OBJECTS HAS NO SCENE EVENTS, and that is
+                    # correct rather than a failure. T0 is reaching only --
+                    # its _items() is {} by design, so clip_scene writes no
+                    # events file and never can. Requiring one would make T0
+                    # unpassable for the very property that lets it run in
+                    # every mode. Every task that DOES declare objects must
+                    # still produce the file.
+                    if ts["mod"].TASKS[task].get("grip_obj") is None:
+                        log("      no objects in this task -- no scene events "
+                            "expected")
+                    else:
+                        good = False
+                        msg += "; no scene_events.json -- the scene never ran"
 
                 # CAPTION ON THE FRONT VIEW ONLY -- the other six stay clean,
                 # and the quad is built AFTER so the tile carries it too.

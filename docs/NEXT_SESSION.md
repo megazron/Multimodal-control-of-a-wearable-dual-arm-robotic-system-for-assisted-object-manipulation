@@ -1,95 +1,64 @@
-# RESUME POINT — wiring DONE. Mode 06 recorded 32 files and ALL FOUR FAILED.
+# RESUME POINT — Xvfb leak FIXED and PROVEN. Recording blocked on stack readiness.
 
-## THE STATE, PLAINLY
+## THE ONE THING STOPPING THE RECORDING
 
-**No mode is complete.** `recordings/verification/06_full_autonomy/` holds 32
-mp4s (4 tasks x 8 angles) and **every task failed the sweep's own check**:
+The teleop stack does not deliver `/joint_states` to a subscriber within
+260 s, even though `/compute_ik` answers and BOTH followers are up:
 
-    FAIL  run exited 1; no scene_events.json -- the scene never ran
+    probe: TIMEOUT joint_state_msgs=0 arm_joints=0 ik=True followers=2
 
-`find recordings/verification -name scene_events.json` returns **0**. The
-clips render, but nothing has confirmed an object was ever in them, so none
-of them may be cited. Do not treat the 32 files as a recorded mode.
+`sim_session.py --stack teleop` therefore REFUSES to run the sweep, which is
+correct — a run against a half-up graph produces numbers about the graph.
 
-## DIAGNOSE THIS FIRST
+**Diagnose this first.** `log/sim_session.log` has the launch output. Note
+48 stale `/dev/shm` segments were cleared immediately before this launch, so
+the graph was clean going in. Candidates: controllers slower than 260 s to
+spawn under `run_teleop.sh`; a QoS mismatch on `/joint_states` from that
+launch that `demo.launch.py` does not have (the probe uses default
+depth-10 reliable); or the gate prompt despite `gate:=false`.
 
-`clip_scene.py --task t1` never wrote its events file. Two candidates, and
-they are distinguishable:
+`--stack moveit` (demo.launch.py) still comes ready in ~40 s and is the right
+stack for IK verification — it just cannot record, because it has no
+followers.
 
-  1. **`run_abc.py` exited 1** — the sweep says so ("run exited 1"). Check the
-     GUI job log for the launched button; the runner may be failing before
-     the scene matters, in which case the scene not running is a SYMPTOM.
-  2. **the scene itself failed** — my `_items()` tables import
-     `msc_clip_tasks` and `task3` *inside* the function. If that import
-     raises inside the node, the timer callback dies quietly.
+## WHAT WAS FIXED AND PROVEN THIS SESSION
 
-Run it directly and read the error:
+**The Xvfb leak — fixed on the FAILURE path and exercised there.**
+  * `record_rviz.teardown_displays()` kills every Xvfb/RViz BY PID and removes
+    `/tmp/.X<n>-lock` and the socket for all 8 views.
+  * `record_rviz.stale_displays()` is the precondition; `preconditions()`
+    refuses and NAMES anything live or locked.
+  * `record_abc_sweep.main()` is now a wrapper whose only job is that teardown
+    cannot be skipped: `try/finally` for exceptions and early returns,
+    `_install_teardown()` for SIGINT/SIGTERM/SIGHUP — because the way this
+    sweep actually ends when a session runs out is a signal, which `finally`
+    does not cover.
+  * **PROVEN by killing a run mid-angle**: `killed 16 process(es), removed 8
+    lock(s)` then `XVFB=0 LOCKS=0`.
 
-```
-python3 scripts/sim_session.py -- \
-  "timeout 45 python3 scripts/clip_scene.py --task t1 --out /tmp/se.json; echo X=$?"
-```
+**The verifier's blind spots were already closed; now VERIFIED not assumed.**
+Self-test: all 7 controls correct, plus the per-angle control BOTH ways —
+"black gripper is CAUGHT" and "all-good clip is not flagged".
 
-**Note for t0 specifically:** T0 has NO objects, so `_items()` returns `{}`
-and `tick()` returns early by design — which means it will *never* write a
-scene_events.json. The sweep must not require one for a task with no objects,
-or T0 can never pass. That is a sweep fix, not a scene fix.
+**Three real bugs found by running it:**
+  1. `demo.launch.py` has NO ik_follower_node, so the first recording attempt
+     published 50 poses and moved nothing — "left tf2 EE path 0.0000 m". The
+     runner caught it ("no arm moved at least 0.010 m") and refused, which is
+     the only reason 32 clips of a stationary arm were not filed as results.
+     Hence `--stack moveit|teleop`.
+  2. `clip_scene.py --task` had `choices={a,b,c}` — I added the MSc item
+     tables but never widened argparse, so it exited 2 instantly. Widened.
+  3. T0 has no objects, so it writes no `scene_events.json` and never can.
+     The sweep now expects one only from tasks that declare `grip_obj`.
 
-## WHAT IS DONE AND PUSHED
+## STATE
 
-  * **wiring complete**: `run_experiment.sh` m0-m3, `run_abc.py --taskset
-    msc`, 20 GUI specs `msc_<m0-m3>_<mode>`, `record_abc_sweep.py --taskset`.
-    All four dry-run correctly: m0 25 waypoints, m1 113, m2 14, m3 38.
-  * **clip paths verified**: 103 distinct waypoints, N=10, both arms, bench in
-    scene, 0 failures, 5264 IK calls.
-  * **the MSc names collide with an archived refusal.** run_experiment.sh
-    refuses t1..t9 BY NAME as the 300/310 mm set. The MSc tasks are therefore
-    keyed **m0-m3** in the dispatcher and displayed T0-T3. Do not "tidy" this.
+`recordings/verification/` is EMPTY. The 32 clips from the failed runs are
+deleted, with `archive/recordings/failed_20260811_msc_mode06/` recording that
+they existed and that two independent checks called them worthless (no scene
+events; only 1.3 s long).
 
-## BUGS FIXED THIS SESSION, all found by running
-
-  * the GUI key was built from the taskset key (`msc_t0_...`) and matched no
-    button; it now uses the dispatcher key (`msc_m0_...`).
-  * `run_one`'s four error paths returned a 2-tuple where the caller unpacks
-    5, so the FIRST real failure surfaced as `ValueError: not enough values to
-    unpack` with the actual reason nowhere on screen.
-  * `gui_launch_specs`' accepted-key whitelist was `[te]\d|[abc]` and silently
-    disabled all 20 MSc buttons with a message that was WRONG.
-  * `sim_session.kill_stack()` counted ZOMBIES as survivors and refused to
-    start on a machine that was clean.
-
-## CLEAN UP BEFORE RE-RECORDING — the sweep LEAKS ONE Xvfb PER ANGLE
-
-Found after the failed mode-06 run: **8 orphaned Xvfb servers** (one per
-angle) and **8 stale `/tmp/.X9*-lock` files**, left behind because the sweep
-failed before its teardown. They were killed by explicit PID and the locks
-removed.
-
-This matters for the next run, not just for tidiness: Xvfb refuses a display
-number whose lock file exists, so the leak is self-worsening — 8 per mode
-across 5 modes is 40 dead servers and 40 held display numbers, and the
-failure it produces is a recording that renders black on a display that was
-never actually created. Black frames are exactly what the verifier's known
-blind spot (globbing only `rviz_front`) let through once before.
-
-So before any re-record:
-
-```
-pgrep -x Xvfb                      # expect none
-ls /tmp/.X9*-lock                  # expect none
-```
-
-and kill/remove by EXPLICIT PID and path if not — never a broad pattern, which
-has killed the working shell three times in this project.
-
-Worth fixing properly in `record_rviz.py` / `record_abc_sweep.py`: the Xvfb
-teardown should run on the FAILURE path too, not only on success.
-
-## STILL NOT DONE
-
-  * part 3 (re-verify by looking) — nothing to look at yet
-  * part 4 (the report)
-  * modes 01, 02, 03, 04 — not attempted
+Machine is clean: `pgrep -x Xvfb` 0, no X locks, no move_group.
 
 # RESUME POINT — 2026-08-11 (third session)
 

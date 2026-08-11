@@ -537,7 +537,7 @@ class Scene(Node):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--task", required=True, choices=["a", "b", "c"])
+    ap.add_argument("--task", required=True, choices=["a", "b", "c", "t0", "t1", "t2", "t3"])
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     rclpy.init()

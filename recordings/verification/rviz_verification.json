@@ -1,8 +1,12 @@
 [
   {
     "ok": false,
-    "why": "clip only 1.3 s long",
-    "duration_s": 1.3,
+    "why": "unknown task 't0' -- no object requirement is defined, so nothing was checked",
+    "duration_s": 8.7,
+    "bright": 63.1,
+    "variety": 11267,
+    "delta": 1.81,
+    "objects": {},
     "angles_bad": [],
     "mode": "06_full_autonomy",
     "task": "t0",
@@ -11,8 +15,12 @@
   },
   {
     "ok": false,
-    "why": "clip only 1.3 s long",
-    "duration_s": 1.3,
+    "why": "unknown task 't1' -- no object requirement is defined, so nothing was checked",
+    "duration_s": 33.1,
+    "bright": 64.0,
+    "variety": 10658,
+    "delta": 1.7,
+    "objects": {},
     "angles_bad": [],
     "mode": "06_full_autonomy",
     "task": "t1",
@@ -21,8 +29,15 @@
   },
   {
     "ok": false,
-    "why": "clip only 1.2 s long",
-    "duration_s": 1.2,
+    "why": "object not visible: container_teal, block_orange",
+    "duration_s": 8.3,
+    "bright": 63.1,
+    "variety": 11386,
+    "delta": 2.78,
+    "objects": {
+      "container_teal": 0,
+      "block_orange": 0
+    },
     "angles_bad": [],
     "mode": "06_full_autonomy",
     "task": "t2",
@@ -31,8 +46,15 @@
   },
   {
     "ok": false,
-    "why": "clip only 1.3 s long",
-    "duration_s": 1.3,
+    "why": "object not visible: tray_tan, ball_yellow",
+    "duration_s": 14.5,
+    "bright": 64.9,
+    "variety": 10759,
+    "delta": 1.34,
+    "objects": {
+      "tray_tan": 71,
+      "ball_yellow": 0
+    },
     "angles_bad": [],
     "mode": "06_full_autonomy",
     "task": "t3",

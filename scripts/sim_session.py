@@ -110,6 +110,7 @@ def cb(m):
     got["names"].update(m.name)
 n.create_subscription(JointState, "/joint_states", cb, 10)
 cli = n.create_client(GetPositionIK, "/compute_ik")
+need_fol = len(sys.argv) > 2 and sys.argv[2] == "1"
 deadline = time.time() + float(sys.argv[1])
 ready = False
 while time.time() < deadline:
@@ -120,19 +121,29 @@ while time.time() < deadline:
             and any(k.startswith("left_joint") for k in got["names"])
             and any(k.startswith("right_joint") for k in got["names"])
             and cli.service_is_ready()):
+        # THE FOLLOWERS, when recording. Without them poses publish and the
+        # arm does not move, which looks like a working run until the travel
+        # check at the end.
+        if need_fol:
+            names = [x[0] for x in n.get_node_names_and_namespaces()]
+            if not ({"ik_follower_left", "ik_follower_right"} <= set(names)):
+                continue
         ready = True
         break
+_nm = [x[0] for x in n.get_node_names_and_namespaces()]
 print("READY" if ready else "TIMEOUT",
-      "joint_state_msgs=%d arm_joints=%d ik=%s"
+      "joint_state_msgs=%d arm_joints=%d ik=%s followers=%d"
       % (got["js"],
          sum(1 for k in got["names"] if "_joint_" in k),
-         cli.service_is_ready()))
+         cli.service_is_ready(),
+         sum(1 for f in ("ik_follower_left", "ik_follower_right")
+             if f in _nm)))
 n.destroy_node(); rclpy.shutdown()
 sys.exit(0 if ready else 1)
 '''
 
 
-def wait_ready(timeout_s):
+def wait_ready(timeout_s, need_followers=False):
     """Block until a real node RECEIVES arm joint states and /compute_ik is
     up, or fail loudly. Returns True/False -- never hangs."""
     p = os.path.join("/tmp", "sim_ready_probe_%d.py" % os.getpid())
@@ -140,7 +151,8 @@ def wait_ready(timeout_s):
         f.write(WAIT_PROBE)
     try:
         r = subprocess.run(["bash", "-lc",
-                            "%s && python3 %s %d" % (SRC, p, timeout_s)],
+                            "%s && python3 %s %d %d"
+                            % (SRC, p, timeout_s, int(need_followers))],
                            capture_output=True, text=True,
                            timeout=timeout_s + 60)
         print("   probe: %s" % (r.stdout.strip() or r.stderr.strip()[:200]))
@@ -159,6 +171,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ready-timeout", type=int, default=180)
     ap.add_argument("--run-timeout", type=int, default=5400)
+    ap.add_argument("--stack", default="moveit",
+                    choices=["moveit", "teleop"],
+                    help="moveit = demo.launch.py (MoveIt + RViz only; enough "
+                         "for /compute_ik verification). teleop = "
+                         "run_teleop.sh (adds the IK FOLLOWERS, without which "
+                         "poses are published and no arm moves).")
     ap.add_argument("--keep-up", action="store_true",
                     help="leave the stack running afterwards")
     ap.add_argument("cmd", nargs=argparse.REMAINDER)
@@ -178,15 +196,26 @@ def main():
     log = os.path.join(WS, "log", "sim_session.log")
     os.makedirs(os.path.dirname(log), exist_ok=True)
     lf = open(log, "w")
-    print("[sim] launching demo.launch.py -> %s" % log)
+    # WHICH STACK, and it is not a detail. demo.launch.py brings up MoveIt
+    # and RViz and nothing else -- enough to answer /compute_ik, which is all
+    # a reachability check needs. It does NOT start ik_follower_node, so a
+    # RECORDING run against it publishes every pose correctly and no arm
+    # moves: measured, "50 poses published ... left tf2 EE path 0.0000 m".
+    # The runner caught it and refused ("no arm moved at least 0.010 m"),
+    # which is the only reason 32 clips of a stationary arm were not filed as
+    # results.
+    launch = ("ros2 launch srl_moveit_config demo.launch.py"
+              if a.stack == "moveit" else
+              "bash %s/scripts/run_teleop.sh gate:=false" % WS)
+    print("[sim] launching %s (%s) -> %s" % (launch.split()[-1], a.stack, log))
     proc = subprocess.Popen(
-        ["bash", "-lc",
-         "%s && exec ros2 launch srl_moveit_config demo.launch.py" % SRC],
+        ["bash", "-lc", "%s && exec %s" % (SRC, launch)],
         stdout=lf, stderr=subprocess.STDOUT, start_new_session=True)
 
-    print("[sim] waiting for arm joint states AND /compute_ik (max %d s)"
-          % a.ready_timeout)
-    if not wait_ready(a.ready_timeout):
+    print("[sim] waiting for arm joint states AND /compute_ik%s (max %d s)"
+          % (" AND both IK followers" if a.stack == "teleop" else "",
+             a.ready_timeout))
+    if not wait_ready(a.ready_timeout, need_followers=(a.stack == "teleop")):
         print("[sim] STACK NEVER BECAME READY. Not running the command -- a "
               "run against a half-up graph produces numbers about the graph, "
               "not about the robot. See %s" % log)

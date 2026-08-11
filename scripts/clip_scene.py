@@ -64,6 +64,11 @@ ORANGE = (1.00, 0.45, 0.02, 1.0)     # block -> _orange
 TEAL = (0.05, 0.75, 0.70, 1.0)       # container -> _teal
 GREEN = (0.10, 0.90, 0.20, 1.0)      # circuit box -> _green
 YELLOW = (0.95, 0.75, 0.10, 1.0)     # multimeter body -> _yellow
+# T1's colour-matched pair needs a BLUE. The verifier's detectors key on
+# channel RELATIONS, not absolute RGB, because RViz shades every surface --
+# a requested colour renders nothing like itself. This one is chosen to sit
+# inside the existing blue band rather than near its edge.
+BLUE = (0.10, 0.30, 0.90, 1.0)       # T1 cube/plane -> _blue
 GREY = (0.32, 0.34, 0.36, 1.0)
 DARK = (0.18, 0.19, 0.21, 1.0)
 
@@ -198,10 +203,52 @@ class Scene(Node):
                                  pos=list(CT.B_START),
                                  size=(0.045, 0.045, 0.05), col=ORANGE,
                                  held=False)}
-        return {"multimeter": dict(arm="left", width_mm=CT.C_MM_MM,
-                                   pos=list(CT.C_PRESENT),
-                                   size=CT.C_MM_SIZE, col=YELLOW,
-                                   held=False)}
+        if task == "c":
+            return {"multimeter": dict(arm="left", width_mm=CT.C_MM_MM,
+                                       pos=list(CT.C_PRESENT),
+                                       size=CT.C_MM_SIZE, col=YELLOW,
+                                       held=False)}
+
+        # ---------------------------------------------------------- MSc set
+        import msc_clip_tasks as MCT
+        import task3 as T3M
+        if task == "t0":
+            # NO OBJECTS. T0 is reaching only, which is exactly why it runs in
+            # every mode including any that cannot grasp.
+            return {}
+        if task == "t1":
+            # Four cubes, two blue and two green, colour matched onto two
+            # planes. The pairing is 0,2 -> blue and 1,3 -> green, declared in
+            # msc_clip_tasks so a WRONG-COLOUR placement is scoreable rather
+            # than ambiguous. Only the first is graspable in the clip; the
+            # rest are shown so the colour-matching task is legible.
+            out = {}
+            for i, (cx, cy) in enumerate(MCT.T1_CUBES):
+                out["cube_%d" % i] = dict(
+                    arm="left", width_mm=40,
+                    pos=[cx, cy, MCT.T1_Z], size=(0.04,) * 3,
+                    col=(BLUE if i in (0, 2) else GREEN), held=False,
+                    graspable=(i == 0))
+            return out
+        if task == "t2":
+            # ONE body held at two points 500 mm apart. It is drawn as a
+            # single wide object because that is what it is -- drawing two
+            # would show the coupling task as two independent objects.
+            return {"tray": dict(arm="left", width_mm=30,
+                                 pos=[0.0, CT.Y, 1.32],
+                                 size=(0.56, 0.26, 0.02), col=ORANGE,
+                                 held=True)}
+        if task == "t3":
+            return {"circuit_box": dict(arm="right", width_mm=110,
+                                        pos=list(T3M.BOX_OBJ),
+                                        size=T3M.BOX_SIZE, col=GREEN,
+                                        held=False),
+                    "multimeter": dict(arm="left", width_mm=30,
+                                       pos=list(T3M.METER_OBJ),
+                                       size=T3M.METER_SIZE, col=YELLOW,
+                                       held=False)}
+        raise KeyError("clip_scene has no item table for task %r -- refusing "
+                       "to draw an empty scene under a task's name" % task)
 
     def _js(self, m):
         for a in ("left", "right"):
@@ -344,6 +391,12 @@ class Scene(Node):
                 (1.0 - 2.0 * (x * x + y * y)) * d]
 
     def tick(self):
+        if not self.items:
+            # T0 HAS NO OBJECTS. A task with nothing to grasp must draw
+            # nothing -- not a placeholder, which would show an object in the
+            # one task whose whole point is that there isn't one. Without this
+            # guard the line below raises StopIteration on an empty dict.
+            return
         if self.pad_off is None:
             arm = next(iter(self.items.values()))["arm"]
             off = self._pad_offset(arm)

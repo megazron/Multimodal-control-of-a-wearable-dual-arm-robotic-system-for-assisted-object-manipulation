@@ -36,6 +36,7 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
 from vision_msgs.msg import Detection3DArray
+import tf2_ros
 
 from srl_perception import scene_fingerprint as sf
 from srl_perception import scene_markers
@@ -47,6 +48,10 @@ class SceneFingerprintNode(Node):
 
     def __init__(self):
         super().__init__("scene_fingerprint_node")
+        # TF only so the sweep can tell you it is pointed at nothing. It is
+        # NOT used for any pose the node stores -- those come from detections.
+        self.buf = tf2_ros.Buffer()
+        self.lis = tf2_ros.TransformListener(self.buf, self)
         self.declare_parameter("store_path", DEFAULT_STORE)
         # PREVIOUS SETTING: 0.015. Tightened to 0.010 on 2026-08-10 because
         # the grasp's capture window is 17.5 mm on the widest object, so a
@@ -108,6 +113,57 @@ class SceneFingerprintNode(Node):
         self.sweep_t0 = self.get_clock().now().nanoseconds * 1e-9
         self.state = "sweeping"
         self.get_logger().info("sweep started (%s)" % why)
+        self._warn_if_looking_at_nothing()
+
+    def _warn_if_looking_at_nothing(self):
+        """Say so when the cameras cannot see the work surface AT ALL.
+
+        THIS IS THE FIRST THING THAT WILL GO WRONG ON CAMERA DAY. At the home
+        pose neither wrist camera frames the work surface -- measured, the
+        bench projects to pixel (954, 539) for the right camera, in front of
+        it but outside a 640-wide image. A sweep run from home therefore
+        accumulates nothing, and an empty result from a correctly-working
+        camera is indistinguishable from a dead one. This project has burned
+        days on exactly that ambiguity (frozen /real/joint_states, the dead j7
+        pot, the 0.000 noise floor), and every time the fix was to make the
+        silent case NAME ITSELF.
+
+        The scan poses live in recordings/baselines/scan_pose.json
+        (find_scan_pose.py, IK 10/10, 100% of the work region's corners in
+        frame). Missing file or missing TF is NOT treated as a fault: a
+        warning that fires on absent data would cry wolf, and a guard that
+        cries wolf gets switched off.
+        """
+        import json as _json
+        import math as _math
+        import os as _os
+        f = _os.path.join(_os.path.expanduser("~"), "kortex_ws", "recordings",
+                          "baselines", "scan_pose.json")
+        try:
+            poses = _json.load(open(f))["poses"]
+        except Exception:
+            return
+        for arm in ("left", "right"):
+            if arm not in poses:
+                continue
+            try:
+                t = self.buf.lookup_transform(
+                    "world", "%s_camera_color_frame" % arm,
+                    rclpy.time.Time())
+            except Exception:
+                continue
+            tr = t.transform.translation
+            want = poses[arm]["cam_xyz"]
+            d = _math.dist((tr.x, tr.y, tr.z), want)
+            if d > 0.15:
+                self.get_logger().warn(
+                    "[SCAN POSE] %s camera is %.2f m from the scan pose "
+                    "(%.3f, %.3f, %.3f). AT HOME THE WRIST CAMERAS DO NOT "
+                    "FRAME THE WORK SURFACE and this sweep will accumulate "
+                    "NOTHING -- that is the parking, not a broken camera. "
+                    "Drive the arm to the scan pose first; see "
+                    "docs/system/03_real_robot_bringup.md."
+                    % (arm, d, want[0], want[1], want[2]))
 
     def on_detections(self, msg):
         if self.sweeping:

@@ -48,7 +48,20 @@ sys.path.insert(0, os.path.join(WS, "src", "srl_experiments", "experiments",
                                 "abc"))
 sys.path.insert(0, os.path.join(WS, "src", "srl_perception", "srl_perception"))
 
+from geometry_msgs.msg import Quaternion                    # noqa: E402
 from verify_task_scenes import Solver, HOME_TOL_RAD          # noqa: E402
+
+
+def _quat_msg(q):
+    """Solver.solve() takes a geometry_msgs Quaternion, not a 4-list.
+
+    Passing a list does not raise a Python TypeError -- it trips a rosidl C
+    assertion deep in the conversion layer and aborts the interpreter, which
+    reads as a crash rather than as a wrong argument.
+    """
+    m = Quaternion()
+    m.x, m.y, m.z, m.w = (float(v) for v in q)
+    return m
 
 N = 10
 OUT = os.path.join(WS, "recordings", "baselines", "scan_pose.json")
@@ -121,7 +134,7 @@ def ee_to_cam(node, arm):
     """
     for _ in range(200):
         try:
-            t = node.tfb.lookup_transform("%s_end_effector_link" % arm,
+            t = node.buf.lookup_transform("%s_end_effector_link" % arm,
                                           "%s_camera_color_frame" % arm,
                                           rclpy.time.Time())
             tr, ro = t.transform.translation, t.transform.rotation
@@ -200,7 +213,7 @@ def main():
                     p_ee = eye - R_ee @ p_ec
                     q = _R_to_q(R_ee)
                     hits = sum(1 for _ in range(N)
-                               if n.solve(arm, list(p_ee), list(q), tries=6))
+                               if n.solve(arm, list(p_ee), _quat_msg(q), tries=6))
                     if hits == N:
                         best = dict(arm=arm, ee_xyz=[float(v) for v in p_ee],
                                     ee_quat=[float(v) for v in q],
@@ -230,7 +243,8 @@ def main():
 
     # CONTROL: a pose the arm cannot reach must not be accepted.
     ctl = n.solve("left", [1.6, 0.35, 1.15],
-                  out.get("left", {}).get("ee_quat", [0, 0, 0, 1]), tries=6)
+                  _quat_msg(out.get("left", {}).get("ee_quat",
+                                                    [0, 0, 0, 1])), tries=6)
     print("CONTROL 1.6 m out -> %s" % ("REACHABLE(BAD)" if ctl
                                        else "unreachable"))
     ok_all = ok_all and not ctl

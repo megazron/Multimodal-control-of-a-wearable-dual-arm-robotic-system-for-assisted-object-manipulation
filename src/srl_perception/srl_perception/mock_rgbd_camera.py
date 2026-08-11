@@ -224,6 +224,21 @@ class MockRGBD(Node):
                         name="plane_%d" % i))
             except Exception as e:
                 self.get_logger().warn("no plane geometry: %s" % e)
+            # THE GRASPABLE OBJECTS. Without them the mock renders the
+            # furniture and nothing else, and "can the camera see the
+            # objects" -- the question a scan pose exists to answer -- is
+            # unanswerable from it.
+            try:
+                import msc_clip_tasks as MCT
+                import clip_tasks as CT
+                for i, (px, py) in enumerate(MCT.T1_CUBES):
+                    out.append(dict(
+                        xyz=[px, py, CT.BENCH_TOP + MCT.CUBE_M / 2.0],
+                        size=[MCT.CUBE_M] * 3,
+                        rgb=(0.1, 0.3, 0.9) if i % 2 == 0 else (0.1, 0.8, 0.3),
+                        name="cube_%d" % i))
+            except Exception as e:
+                self.get_logger().warn("no cube geometry: %s" % e)
         return out
 
     def _cam_pose(self):

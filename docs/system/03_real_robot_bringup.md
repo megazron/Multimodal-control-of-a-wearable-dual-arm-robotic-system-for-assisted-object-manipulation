@@ -1,5 +1,49 @@
 # Real robot bring-up checklist
 
+## THE WRIST CAMERAS DO NOT SEE THE WORK SURFACE FROM HOME. Read this first.
+
+**Measured, in sim, before anyone had a real camera:** at the home pose the
+bench projects to pixel **(954, 539)** and the table to **(1115, 765)** for the
+right camera — both **in front of** the camera and both outside a 640-wide
+image. The left camera is parked looking up and back (elevation +38.3 deg;
+"sees nothing at table height from home").
+
+**So a correctly-working camera returns an empty scene from home**, and an
+empty scene is indistinguishable from a dead camera, a bad cable or a driver
+that never started. That ambiguity has cost this project days before, in the
+frozen `/real/joint_states`, the dead j7 pot and the 0.000 noise floor.
+
+**THE PINNED WRIST CANNOT FIX IT.** The camera's optical axis IS the gripper
+approach axis, and teleop pins that axis at (-0.153, +0.846, +0.511) — 30.7 deg
+**above** horizontal. A camera on that axis looks up and forward from wherever
+the hand is, so **no position** makes it look down at a table.
+
+**WHAT TO DO: drive to the SCAN POSE first.** It commands its own orientation,
+which is legitimate because scanning is not teleoperation — one posture, taken
+before the trial, no operator in the loop, same collision-aware IK.
+
+    python3 scripts/find_scan_pose.py            # search, report
+    python3 scripts/verify_scan_view.py          # what the camera then sees
+    recordings/baselines/scan_pose.json          # the stored answer
+
+| | camera position | IK | work-region corners in frame |
+| --- | --- | --- | --- |
+| left | (+0.600, -0.225, 1.370) | **10/10** | **100%** |
+| right | (-0.600, -0.225, 1.370) | **10/10** | **100%** |
+
+Verified through the mock RGB-D publisher from those poses: left renders the
+bench/table across **71%** of the frame with all four T1 objects visible
+(17546 blue px, 19098 green px); right renders it across **83%** with **no T1
+objects, by design** — T1 is a left-arm task and all four cubes sit at
+positive x.
+
+`scene_fingerprint_node` now WARNS BY NAME at sweep start when a camera is
+more than 0.15 m from its scan pose, rather than accumulating nothing quietly.
+
+**Appearance is the mock's, not the real camera's — no detection rate may be
+read off any of this.** Detection at working distance remains UNMEASURED.
+
+
 LEFT `192.168.1.10`, RIGHT `192.168.1.9`, port 10000, `admin`/`admin`.
 
 Work through in order. **Every step has an abort condition — if it trips,

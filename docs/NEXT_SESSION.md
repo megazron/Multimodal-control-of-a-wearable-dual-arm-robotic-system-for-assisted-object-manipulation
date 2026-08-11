@@ -1,3 +1,184 @@
+# RESUME POINT — the four scene defects are FIXED and VERIFIED; mode 06 is NOT re-recorded
+
+**Read this first. The one thing left before mode 06 can be recorded is
+nothing — the geometry is clean. The recording itself did not fit in the
+session that fixed it.**
+
+## MODE 06 IS STILL NOT CITABLE, AND THE REASON HAS CHANGED
+
+It is no longer blocked. Every earlier resume point said mode 06 was blocked
+by the scene, then by discovery, then by the transport. All three are settled:
+
+  * **the stack comes up reliably now** — `probe: READY joint_state_msgs=5
+    arm_joints=14 ik=True followers=2 (attempt 1)`, first try, every run;
+  * **the four MSc tasks verify clean** at N=10 against a live `/compute_ik`
+    with each task in ITS OWN scene;
+  * **the four defects found by watching the clips are fixed**, and a fifth
+    class of them — specified-but-never-drawn — now has a mechanical audit.
+
+What has NOT happened is the recording. No clip on disk was produced with any
+of this geometry, so **no number from any existing mode-06 clip may be
+quoted**, exactly as before. The next session records it.
+
+## START HERE
+
+```
+python3 scripts/audit_task_specs_vs_scene.py          # no stack needed, ~1 s
+python3 scripts/sim_session.py --stack teleop -- \
+    python3 scripts/record_abc_sweep.py --taskset msc --only 06_full_autonomy
+python3 scripts/clip_contact_sheet.py --angle front --mode 06_full_autonomy
+```
+
+Then LOOK, per clip: are the task's objects visible, do they rest on
+something, does the arm visibly move between distinct positions, is the target
+visible, did the object end up on it. The sweep passing is necessary and has
+never been sufficient — two clips passed every automatic check with the
+task's own subject missing from the picture.
+
+**A WARNING ABOUT THIS MACHINE, learned the expensive way this session:
+processes that run longer than about twenty minutes do not survive.** Four
+consecutive `verify_msc_tasks --repeats 10` runs (~20 min each) were killed
+part-way and restarted from the beginning, and the only reason it was noticed
+is that `ps` showed a 54-second-old process against a half-written log. Split
+long work into pieces that finish inside that window — the targeted T0 clip
+check that closed out this session runs in four minutes and answered the same
+question. The sweep is resumable (`--resume`, progress written after every
+clip) and that is now a requirement, not a convenience.
+
+## WHAT THE BLOCKER ACTUALLY WAS, because five sessions got it wrong
+
+`sim_session` cleared every `/dev/shm/fastrtps_*` segment and launched the
+stack in the same instant. That produced a graph a separately-started process
+could join only PARTLY — the six rclpy nodes and NONE of the four C++ ones,
+while `ps` showed move_group, ros2_control_node, robot_state_publisher and
+rviz2 all alive with the broadcaster activated. A 5 s pause after the clear
+fixes it. Same binary, same environment, same transport, one sleep apart.
+
+**And the transport conclusion in `0608c22` was backwards.** It forced
+UDP-only on the strength of a probe that could not join for this other reason.
+Measured on a clean machine:
+
+| | SHM | UDPv4 | DEFAULT |
+| --- | --- | --- | --- |
+| two bare shells, `ros2 topic pub` -> `hz` | **5.001 Hz** | nothing | nothing |
+| the stack | broadcaster activated 1 s after load | `controller_manager` waits on `robot_description` for ever | — |
+| a fresh probe against a healthy SHM stack | 31 nodes, 81 topics | 1 node | 1 node |
+
+UDP is dead on this host in both directions; the latched ~MB URDF cannot cross
+it (`net.core.rmem_max` is 212992). `FASTDDS_BUILTIN_TRANSPORTS=SHM`, override
+with `SRL_DDS_TRANSPORT` to re-measure. `config/fastdds_udp_only.xml` is kept
+for its evidence and must not be used — it also broke every service.
+
+## THE FOUR DEFECTS
+
+| | what it was | now |
+| --- | --- | --- |
+| (a) T0 had a bench | it also had the bin and a circuit box, and with them the bench's limits: T0's targets were sampled from the band that is the largest rectangle both arms can work WITH the bench, 200 x 80 mm | `furniture_boxes(task)` is per task and T0's is empty. Verified in free space: 0 sphere failures, 0 transit failures, 0 of 120 sampled poses unreachable |
+| (b) T0's targets clustered | 76 mm apart, 0.219 m of travel for the whole task | three DIRECTIONS per arm, re-derived in T0's own scene: FRONT_UP above the shoulder line (1.46), FRONT_OUT at chest height a third of a metre clear of the chest, FRONT_DOWN 240 mm below it. Separations 0.29–0.67 m; path 0.219 -> 0.698 m |
+| (c) the cubes float | `on_bench()` puts anything shallower than 160 mm entirely in front of the bench edge | **measured impossible for this wrist** — see below. Objects stay fixtured; the audit reports it as BLOCK, not as a silent gap |
+| (d) no coloured planes | specified, never drawn, so T1 had no target on screen and a wrong-colour placement was not scoreable | both drawn at the verified `T1_PLANES`, as 4 mm mats with their top on the bench-top plane |
+
+### (c) is a platform finding, not an unfinished job
+
+Cantilevered lips were built, applied and swept
+(`scripts/sweep_t1_supports.py`, T1's six pick paths densified at 20 mm, N=5,
+controls correct — bench-only 0, a slab across the approach 61):
+
+    bench only, no support (the shipped, verified layout)      0 failures
+    cube lips, 75% / 50% / 25% of the depth supported     22 / 20 / 16
+    plane lips                                           52 / 46 / 32
+    cube + plane lips                                    52 / 46 / 32
+    pads under the object's OWN FOOTPRINT only               26
+    side ledges on posts, dx = 0.06 / 0.09               65 / 65
+
+The last two settle it. A footprint-only pad does not reach the bench at all,
+so it can only be obstructing DIRECTLY BENEATH the object — where the fingers
+close — and moving the support out to the sides is worse, because the posts
+then stand in the gripper's own corridor. The approach cone occupies the
+front, the underside and the sides; there is no direction left. Same wall the
+rail sweep hit from the other side.
+
+**The named fix, so it is not lost: raise the objects onto stands well clear
+of the bench top, so the approach cone lies in free air above the bench
+instead of in the 60 mm strip in front of its edge.** That moves `T1_Z`, so it
+is a re-derivation of the whole layout against `verify_t1_layout.py` — a
+task-position change with its own verification pass, not a scene edit.
+`SUPPORTS_ENABLED` in `clip_scene.py` re-enables the lips for re-measuring.
+
+## WHAT THE SPEC AUDIT FOUND THAT NOBODY WAS LOOKING FOR
+
+`scripts/audit_task_specs_vs_scene.py` — 39 checks, no stack needed. It exists
+because two specified requirements reached no instrument: the recording sweep,
+the pixel verifier and the subject check each ask about the things they were
+TOLD to look for, and none compares the scene against the spec.
+
+  * **T2's tray was drawn on ONE arm.** It was an `items` entry owned by the
+    left arm, and an items entry is pinned to that arm's pads — so a 560 mm
+    tray was centred on the left hand, spanning from 30 mm past the right
+    gripper to 280 mm beyond the left one, in the one task whose whole claim
+    is that neither arm's pose is free given the other's. It is now a fixture
+    drawn BETWEEN the two grippers.
+  * **T2's tray was RELEASED on the first tick of every clip.** `held=True`
+    with the knuckle not yet known evaluated as "not closed". Absence of data
+    is not a release.
+  * **T3 drew TWO circuit boxes** — the legacy furniture one at x = -0.35 and
+    its own graspable one at x = -0.54.
+  * **T3's four measurement points were declared and never drawn**, so the
+    clip could not show the coordination demand the task is built on: P3 is on
+    the far face and P4 needs the meter turned, which is what forces at least
+    two repositioning requests.
+  * **T0's spheres were coloured by ARM.** `task0` names them by COLOUR — red,
+    green, blue for 1/2/3 on both arms — and "go to the green one" is exactly
+    what the full-autonomy condition exists to show.
+
+## THE ARM BARELY MOVED, AND HOW MUCH IT MOVES NOW
+
+Commanded path length per clip, per arm, and this is the number item 4 asked
+for. It could not be read off any clip on disk: `run_abc` prints the tf2 EE
+travel and the GUI sends its jobs' stdout to `/dev/null`. `scene_events.json`
+now carries `ee_travel_m` and `ee_net_m` per arm, measured by the scene node's
+own TF listener, so the next recording answers it from the file.
+
+| task | before | after |
+| --- | --- | --- |
+| t0 | 0.219 / 0.172 m | **0.698 / 0.692** |
+| t1 | 2.243 / 0.000 m | unchanged — this one was always legible |
+| t2 | 0.080 / 0.080 m | **0.280 / 0.280** |
+| t3 | 0.360 / 0.360 m | unchanged |
+
+**T2's band was not a limit, it was where the survey stopped looking.** It was
+re-spec'd to 1.32–1.40 by a survey that established the bottom properly and
+recorded the top only as "up to at least 1.40". Measured upward the same way —
+500 mm span at y = 0.35, both arm assignments, N=10, T2's own scene, control at
+z = 2.20 correctly unreachable — **every 20 mm step from 1.32 to 1.70 passes.**
+The paths now run to 1.60, 100 mm inside the last passing z. The tilt
+threshold is unchanged and must be: 6.8 deg is 60 mm over the SPAN.
+
+## VERIFIED STATE OF THE FOUR TASKS
+
+`verify_msc_tasks.py --repeats 10`, each task in its own scene, both arm
+assignments, all four controls correct:
+
+    T0  free space: 0 sphere failures, 0 transit failures, 0/120 sampled
+    T1  bench only: 0 of 6 item paths, 0 of 8 transports
+    T2  bench only: S1 0, S2 0, S3 0
+    T3  bench only: circuit_box 0, multimeter 0
+    CLIP PATHS      t1 0, t2 0, t3 0 ; t0 0 of 50 distinct at N=10
+                    (t0 measured separately after its last two parameter
+                     changes -- see the commit for the scope note)
+
+## STILL TRUE, AND STILL NOT DONE
+
+* **No clip has been recorded against any of this geometry.** Mode 06 first;
+  the other four modes only after it passes the sweep AND inspection.
+* T3's box is at the wearer's SIDE (|x| = 0.54). Whether that is a workable
+  posture needs a person in the rig, not a solver.
+* The tilt that drops T2's ball is drawn, not simulated: the clip shows the
+  geometry, not the physics.
+* Nothing in this repository has ever run against a real arm.
+
+---
+
 # RESUME POINT — mode 06 RECORDED (2 of 4 pass automatically), and LOOKING found more
 
 ## THE HEADLINE: NONE OF THE FOUR CLIPS IS ACTUALLY CORRECT YET

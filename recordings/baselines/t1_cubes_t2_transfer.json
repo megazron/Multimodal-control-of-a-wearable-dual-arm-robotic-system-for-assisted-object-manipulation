@@ -1,0 +1,371 @@
+{
+  "cube_m": 0.04,
+  "container_d": 0.075,
+  "bench_top": 1.1,
+  "bench_near_y": 0.245,
+  "repeats": 10,
+  "controls": {
+    "known_good": true,
+    "far": true
+  },
+  "t1_cube_grasp": {
+    "left": {
+      "fixed": {
+        "ok": 12,
+        "of": 12,
+        "pct": 100.0
+      },
+      "cube_4yaw": {
+        "ok": 12,
+        "of": 12,
+        "pct": 100.0
+      },
+      "free_yaw": {
+        "ok": 12,
+        "of": 12,
+        "pct": 100.0
+      },
+      "topdown_cube": {
+        "ok": 12,
+        "of": 12,
+        "pct": 100.0
+      }
+    },
+    "right": {
+      "fixed": {
+        "ok": 5,
+        "of": 12,
+        "pct": 41.7
+      },
+      "cube_4yaw": {
+        "ok": 11,
+        "of": 12,
+        "pct": 91.7
+      },
+      "free_yaw": {
+        "ok": 11,
+        "of": 12,
+        "pct": 91.7
+      },
+      "topdown_cube": {
+        "ok": 12,
+        "of": 12,
+        "pct": 100.0
+      }
+    }
+  },
+  "t1_region_vs_bench_edge": {
+    "edge_0.245": {
+      "left_fixed": {
+        "cells": 0
+      },
+      "left_topdown": {
+        "cells": 14,
+        "x_mm": [
+          240,
+          420
+        ],
+        "y_mm": [
+          270,
+          290
+        ],
+        "width_mm": 180,
+        "depth_mm": 20
+      },
+      "right_fixed": {
+        "cells": 0
+      },
+      "right_topdown": {
+        "cells": 7,
+        "x_mm": [
+          240,
+          570
+        ],
+        "y_mm": [
+          270,
+          290
+        ],
+        "width_mm": 330,
+        "depth_mm": 20
+      }
+    },
+    "edge_0.210": {
+      "left_fixed": {
+        "cells": 5,
+        "x_mm": [
+          270,
+          390
+        ],
+        "y_mm": [
+          230,
+          230
+        ],
+        "width_mm": 120,
+        "depth_mm": 0
+      },
+      "left_topdown": {
+        "cells": 28,
+        "x_mm": [
+          240,
+          420
+        ],
+        "y_mm": [
+          230,
+          290
+        ],
+        "width_mm": 180,
+        "depth_mm": 60
+      },
+      "right_fixed": {
+        "cells": 0
+      },
+      "right_topdown": {
+        "cells": 14,
+        "x_mm": [
+          240,
+          570
+        ],
+        "y_mm": [
+          230,
+          290
+        ],
+        "width_mm": 330,
+        "depth_mm": 60
+      }
+    },
+    "edge_0.190": {
+      "left_fixed": {
+        "cells": 10,
+        "x_mm": [
+          270,
+          390
+        ],
+        "y_mm": [
+          210,
+          230
+        ],
+        "width_mm": 120,
+        "depth_mm": 20
+      },
+      "left_topdown": {
+        "cells": 35,
+        "x_mm": [
+          240,
+          450
+        ],
+        "y_mm": [
+          210,
+          290
+        ],
+        "width_mm": 210,
+        "depth_mm": 80
+      },
+      "right_fixed": {
+        "cells": 2,
+        "x_mm": [
+          540,
+          570
+        ],
+        "y_mm": [
+          210,
+          210
+        ],
+        "width_mm": 30,
+        "depth_mm": 0
+      },
+      "right_topdown": {
+        "cells": 24,
+        "x_mm": [
+          240,
+          570
+        ],
+        "y_mm": [
+          210,
+          290
+        ],
+        "width_mm": 330,
+        "depth_mm": 80
+      }
+    },
+    "edge_0.170": {
+      "left_fixed": {
+        "cells": 15,
+        "x_mm": [
+          270,
+          390
+        ],
+        "y_mm": [
+          190,
+          230
+        ],
+        "width_mm": 120,
+        "depth_mm": 40
+      },
+      "left_topdown": {
+        "cells": 42,
+        "x_mm": [
+          240,
+          480
+        ],
+        "y_mm": [
+          190,
+          290
+        ],
+        "width_mm": 240,
+        "depth_mm": 100
+      },
+      "right_fixed": {
+        "cells": 4,
+        "x_mm": [
+          540,
+          570
+        ],
+        "y_mm": [
+          190,
+          210
+        ],
+        "width_mm": 30,
+        "depth_mm": 20
+      },
+      "right_topdown": {
+        "cells": 33,
+        "x_mm": [
+          240,
+          570
+        ],
+        "y_mm": [
+          190,
+          290
+        ],
+        "width_mm": 330,
+        "depth_mm": 100
+      }
+    },
+    "edge_0.150": {
+      "left_fixed": {
+        "cells": 20,
+        "x_mm": [
+          270,
+          420
+        ],
+        "y_mm": [
+          170,
+          230
+        ],
+        "width_mm": 150,
+        "depth_mm": 60
+      },
+      "left_topdown": {
+        "cells": 49,
+        "x_mm": [
+          240,
+          480
+        ],
+        "y_mm": [
+          170,
+          290
+        ],
+        "width_mm": 240,
+        "depth_mm": 120
+      },
+      "right_fixed": {
+        "cells": 6,
+        "x_mm": [
+          540,
+          570
+        ],
+        "y_mm": [
+          170,
+          210
+        ],
+        "width_mm": 30,
+        "depth_mm": 40
+      },
+      "right_topdown": {
+        "cells": 42,
+        "x_mm": [
+          240,
+          570
+        ],
+        "y_mm": [
+          170,
+          290
+        ],
+        "width_mm": 330,
+        "depth_mm": 120
+      }
+    }
+  },
+  "t2": {
+    "policies": {
+      "left_fixed__right_fixed": {
+        "pairs_tested": 66402,
+        "min_distance_m": 0.24,
+        "closest": [
+          [
+            0.12,
+            0.33,
+            1.34
+          ],
+          [
+            -0.12,
+            0.33,
+            1.34
+          ]
+        ]
+      },
+      "left_fixed__right_topdown": {
+        "pairs_tested": 49028,
+        "min_distance_m": 0.253,
+        "closest": [
+          [
+            0.12,
+            0.33,
+            1.3
+          ],
+          [
+            -0.12,
+            0.25,
+            1.3
+          ]
+        ]
+      },
+      "left_topdown__right_fixed": {
+        "pairs_tested": 62775,
+        "min_distance_m": 0.2332,
+        "closest": [
+          [
+            0.08,
+            0.21,
+            1.34
+          ],
+          [
+            -0.12,
+            0.33,
+            1.34
+          ]
+        ]
+      },
+      "left_topdown__right_topdown": {
+        "pairs_tested": 46350,
+        "min_distance_m": 0.2,
+        "closest": [
+          [
+            0.08,
+            0.21,
+            1.34
+          ],
+          [
+            -0.12,
+            0.21,
+            1.34
+          ]
+        ]
+      }
+    },
+    "min_separation_m": 0.2,
+    "transfer_needs_m": 0.115,
+    "verdict": "IMPOSSIBLE"
+  },
+  "ik_calls": 9165
+}

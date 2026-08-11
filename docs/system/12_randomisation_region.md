@@ -156,3 +156,90 @@ it.
   count. A randomisation region has to be something an experimenter can mark
   with tape and drop an object anywhere inside; a scattered feasible set is
   not that, and a raw count would flatter it.
+
+---
+
+# T1 UPDATE (2026-08-11) — the cube, and whether the layout fits
+
+Measured by `scripts/measure_t1_cubes_t2_transfer.py`, bench in scene.
+
+## Grasping a 40 mm CUBE, per arm, per orientation policy
+
+A cube admits only **four** grasp yaws (its 4-fold symmetry about the
+vertical); a cylinder admits all of them. That distinction is the whole of the
+cube-versus-cylinder question, so it is measured on identical poses:
+
+| arm | fixed (pinned anchor) | cube, best of 4 yaws | cylinder, best of 8 | top-down, 4 yaws |
+| --- | --- | --- | --- | --- |
+| left | **12/12 (100 %)** | 12/12 | 12/12 | 12/12 |
+| right | **5/12 (42 %)** | **11/12 (92 %)** | **11/12 (92 %)** | 12/12 (100 %) |
+
+**THE CUBE COSTS NOTHING AGAINST A CYLINDER: 11/12 either way.** Gate 2's
+5/12-versus-11/12 gap was *fixed versus yaw-free*, not *cube versus cylinder* —
+four yaws already recover everything eight do. The object shape is not the
+binding factor; **wrist freedom is**. Switching to cylinders would have bought
+nothing and would have changed the task for no measured gain.
+
+Read per mode:
+
+| mode | wrist | left | right |
+| --- | --- | --- | --- |
+| MASTER_TELEOP | pinned, no yaw freedom | 100 % | **42 %** |
+| VR_TELEOP | 6-DOF, operator chooses | 100 % | 92–100 % |
+| MASTER_SHARED / VR_SHARED / FULL_AUTONOMY | autonomy supplies it | 100 % | 100 % |
+
+**The hole in the matrix is MASTER_TELEOP on the RIGHT arm, and only there.**
+
+## The randomisation region, and the bench edge
+
+"Supported" = the cube's near face is at or behind the bench edge, i.e. it is
+resting on something rather than floating.
+
+| bench edge | left/fixed | left/top-down | right/fixed | right/top-down |
+| --- | --- | --- | --- | --- |
+| **0.245 (current)** | **NONE** | 180 × 20 mm | **NONE** | 330 × 20 mm |
+| 0.210 | 120 × 0 mm | 180 × 60 mm | NONE | 330 × 60 mm |
+| 0.190 | 120 × 20 mm | 210 × 80 mm | 30 × 0 mm | 330 × 80 mm |
+| 0.170 | 120 × 40 mm | 240 × 100 mm | 30 × 20 mm | 330 × 100 mm |
+| 0.150 | 150 × 60 mm | 240 × 120 mm | 30 × 40 mm | 330 × 120 mm |
+
+The ~55 mm forward move predicted earlier is confirmed and now quantified: it
+is the difference between **no supported teleop region at all** and
+120 × 20 mm.
+
+## Does the layout fit? Arithmetic, so it can be checked
+
+Four cubes at the 60 mm pitch T0 measured, plus two 110 × 80 mm placement
+targets:
+
+    4 cubes  0.0144 m²   +   2 planes  0.0176 m²   =   0.0320 m²
+
+| region | area | 4 cubes + 2 planes | 4 cubes alone |
+| --- | --- | --- | --- |
+| edge 0.245, left/top-down | 0.0036 m² | no | no |
+| edge 0.190, left/top-down | 0.0168 m² | **no** | **fits** |
+| edge 0.170, left/top-down | 0.0240 m² | **no** | fits |
+| edge 0.150, left/top-down | 0.0288 m² | **no** | fits |
+
+**Four cubes and two planes do not fit in any measured region at any tested
+bench edge**, and no region reaches the 0.0320 m² required. Four cubes alone
+fit once the edge moves to 0.190 or forward.
+
+### What has to move — three options, none of them chosen here
+
+1. **Bench edge forward to ~0.190 and the planes go outside the cube region**
+   (further back on the bench, still within reach for the release). Keeps four
+   cubes and all five conditions. Needs the plane positions verified
+   separately — a placement target must be *reachable*, which is the same
+   constraint as a pick.
+2. **Two cubes instead of four** (one blue, one green). Fits at edge 0.190
+   with the planes. Halves T1's 40 pick-place actions to 20, which is a real
+   loss of statistical power and should be costed before it is chosen.
+3. **T1 becomes left-arm only.** The right arm is the whole of the
+   MASTER_TELEOP problem (42 % against 100 %), and T1 is already specified as
+   one arm at a time. This preserves all five conditions at 100 % grasp
+   feasibility and costs the arm comparison within T1 — which T0 measures
+   anyway, on both arms, in every mode.
+
+Option 3 costs nothing the study needs and removes the matrix hole; option 1
+keeps the arm contrast at the price of a bench move. **Not decided here.**

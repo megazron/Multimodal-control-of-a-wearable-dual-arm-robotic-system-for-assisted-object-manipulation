@@ -70,3 +70,30 @@ the arm never moved, and its numbers were about a stationary robot.
   physics; a tilt past 6.8 deg would drop it on a real tray and does not here.
 * **Sim only.** Nothing in this repository has ever run against a real arm,
   and the mock hardware echoes commands with no dynamics.
+
+---
+
+## ADDENDUM — THE SCENE CHANGED AFTER THESE CLIPS WERE MADE
+
+Added 2026-08-11, after the Task-1 rework at commit `a81797d`. **The clips are
+untouched and remain valid evidence for what they show; this note exists so
+nobody assumes the current scene looks like them.**
+
+Since these were recorded:
+
+* the work surface became **two levels** — a table at z = 0.95 reaching
+  forward to y = 0.10, with the objects on the raised surface at the verified
+  1.10. In these clips there is only the single slab.
+* T1's **planes moved 15 mm outboard**, from y = 0.130 to 0.145, to make room
+  for per-cube slots.
+* T1's cubes now get **a slot each** at ±30 mm in y, because two cubes share a
+  plane and both used to be delivered to its centre — one inside the other. In
+  these clips they stack.
+* the surface now carries **workspace markings**: each arm's measured
+  reachable boundary, painted on it.
+
+All of that is verified at N=10 over the full path, 0 failures. **T1 in these
+clips is therefore superseded geometry.** T0, T2 and T3 are unaffected by the
+slot and plane changes but do now render with the two-level table.
+
+Re-record into `recordings/verification/`, never in here.

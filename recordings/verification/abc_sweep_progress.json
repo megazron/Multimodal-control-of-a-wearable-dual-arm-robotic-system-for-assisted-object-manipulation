@@ -1,10 +1,10 @@
 {
-  "01_master_teleop/t1/S1_left_arm": {
+  "03_shared_autonomy/t3/S1_measure_cycle": {
     "ok": true,
     "msg": "run exited 0",
-    "mode": "01_master_teleop",
-    "task": "t1",
-    "scenario": "S1_left_arm",
+    "mode": "03_shared_autonomy",
+    "task": "t3",
+    "scenario": "S1_measure_cycle",
     "quad": true,
     "files": [
       "rviz_back.mp4",
@@ -16,6 +16,6 @@
       "rviz_right.mp4",
       "rviz_top.mp4"
     ],
-    "dir": "recordings/verification/01_master_teleop/T1/S1_left_arm"
+    "dir": "recordings/verification/03_shared_autonomy/T3/S1_measure_cycle"
   }
 }

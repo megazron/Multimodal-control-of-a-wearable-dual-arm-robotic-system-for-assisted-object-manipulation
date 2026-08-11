@@ -1,3 +1,124 @@
+# RESUME POINT — 2026-08-11, MSc experiment build
+
+**Stopped at a clean boundary: parts 1 and 2 of the build brief are DONE and
+committed. Parts 3-7 are NOT STARTED.** Nothing is half-built.
+
+## WHERE TO PICK UP
+
+    part 3  build T2 (coordinated carry), then T3     <-- START HERE
+    part 4  verify every task N=10, both arm assignments, bench in scene
+    part 5  record 4 tasks x 5 modes, 7 angles + quad, Xvfb :99
+    part 6  re-verify the recordings BY LOOKING, frame by frame
+    part 7  the report
+
+But **two blockers surfaced in part 2 and must be settled before part 4**, see
+"WHAT THE FIXED CHECK FOUND" below.
+
+## PART 1 — T1 IS SETTLED: OPTION 4, and the layout is verified
+
+Options were tested in the order the brief set. Both of the preferred ones
+fail, and the failures are informative.
+
+**Option 2 (reduce standoff/lift) — cannot even be tested.** At the current
+bench edge FIXED has zero supported cells on the GRASP POSE alone, so there is
+nothing for a smaller standoff to rescue. With a support rail at y=0.19 the
+grasp pose is *still* zero — the rail occupies exactly the volume the fingers
+enter. `--sweep-standoff` REFUSED rather than reporting a ladder with no rungs.
+
+**Option 1 (bench edge forward) — dead by deduction, stated as such.** A bench
+edge at 0.19 is the same obstruction 40 mm thick where the rail was 15 mm,
+with the same top face at z=1.10. Strictly worse than the rail, which gave 0.
+NOT separately measured; if anyone doubts the deduction, measure it.
+
+Rail sweep, bench in scene, full densified path:
+
+    rail edge   FIXED cells   TOPDOWN cells   6-item layout
+    none            0             18          no (18564 combos)
+    0.230           0             19          no (27132)
+    0.210           0             20          no (38760)
+    0.190           0             22          no (74613)
+    0.170        CONTROL FAILED -- Task A's own pick became unreachable
+
+**OPTION 4 TAKEN, and it FITS.** Objects fixtured rather than resting:
+
+    FIXED    45 cells, layout FITS at N=10 over the full path
+    TOPDOWN  94 cells, layout FITS
+
+    VERIFIED T1 LAYOUT (left arm, pinned wrist, bench in scene, N=10):
+      cubes   (0.280, 0.230)  (0.340, 0.230)  (0.380, 0.170)  (0.400, 0.230)
+      planes  (0.300, 0.130)  (0.460, 0.130)
+
+**WHAT OPTION 4 COSTS, plainly: a cube that cannot fall cannot be dropped, so
+`drops` stops being a measurable outcome for T1.** Grasp success, placement
+success and wrong-colour placement all survive; `drops` does not. It is
+recorded in the result JSON as `cost_of_option_4`, not left implicit.
+
+## PART 2 — REGRESSION BLOCK FIXED, and it found two real problems
+
+It forced left=+x / right=-x at k=1. Now it tries BOTH arm assignments at
+N=10, the way verify_abc_scenarios does. Re-baselined:
+
+    T0 spheres (8)                    0 unreachable        OK
+    T2 carry waypoints, N=10          21 FAILURES          <-- BLOCKER
+    T3 circuit_box                    reachable by NEITHER ARM  <-- BLOCKER
+    T3 multimeter                     reachable by left only
+
+The old 37/2 figures were the broken check, confirmed against a no-rail
+baseline of exactly 37 and 2.
+
+### BLOCKER A — T2's carry has 21 waypoint failures WITH THE BENCH IN SCENE
+
+verify_abc_scenarios reports 0 failures for the same path, because it checks
+the study tasks in FREE SPACE and applies furniture only to the clip tasks.
+So T2's carry band has never been checked against the bench it is carried
+over. **Settle this before building T2** — it may need the band raised, or it
+may be my check asking at the wrong z.
+
+### BLOCKER B — T3's circuit box is reachable by NEITHER arm
+
+Caveat before acting: my check asks for `ee_for(BOX_OBJ)`, the wrist pose for
+grasping the box at its centre. T3 may never grasp it there — clip_tasks has
+B_PLACE and C_PROBE_ON, which are different poses. **Check what T3 actually
+commands before concluding the box is unreachable.** This is exactly the
+"asked the wrong question" shape that has bitten twice already.
+
+## WHAT IS BUILT AND PROVEN (parts of the earlier build order)
+
+    1/5  task_actions.py + mode_adapters.py + the mode-independence PROOF
+         7 tests. All five modes produce identical task traces; the proof
+         refuses a vacuous pass, requires the five adapter logs to DIFFER,
+         and catches a deliberately mode-leaking task layer.
+         FOUND: refusal is only expressible in 3 of 5 modes -- a refusal
+         count is structurally zero in two cells and must not be compared
+         across all five.
+    2/5  T0 -- seeded sampler, region-bounded, RegionExhausted rather than
+         silent degradation. 240 sampled poses over 40 seeds, 0 unreachable,
+         N=10, bench in scene. 9 unit tests. min separation 0.06 m set from a
+         measured acceptance curve.
+
+## STANDING TRAPS RE-CONFIRMED THIS SESSION
+
+* **Stale /dev/shm/fastrtps_\* degrade discovery.** Two verification runs died
+  on the Solver's absent-data guard with /joint_states present but not
+  arriving. Clear with the stack STOPPED.
+* **The planning scene outlives the process.** `clip_scene.remove_furniture()`
+  only removes ITS OWN ids, so a `support_rail` added by another script
+  survives it and the next run fails its own control for an unrelated reason.
+  That happened twice. `verify_t1_layout.py` now removes what it adds, on
+  every exit path including the refusals.
+* **A number with no control means nothing.** The rail "damaging" T2 and T3
+  was the check, not the rail.
+
+## UNVERIFIED, NAMED
+
+* T2's carry against the bench (blocker A).
+* T3's real grasp poses (blocker B).
+* Nothing in this repository has ever run against a real arm.
+* All figures here are IK feasibility in simulation, against a mock that
+  echoes commands. Mock and physics figures must never share a column.
+
+---
+
 # RE-RECORD 2026-08-10 — STOPPED AT 3.5 OF 5 MODES, AND WHY
 
 Old clips moved to `archive/recordings/verification_20260810/` with

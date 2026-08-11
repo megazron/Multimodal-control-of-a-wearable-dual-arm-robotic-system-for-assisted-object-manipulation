@@ -11,20 +11,98 @@
   ],
   "plane_clear_m": 0.088,
   "repeats": 10,
+  "support_required": false,
+  "cost_of_option_4": "objects are fixtured, not resting; a cube that cannot fall cannot be dropped, so `drops` is not a measurable outcome",
   "fixed": {
-    "cells": 0,
-    "extent_mm": null,
-    "verdict": "IMPOSSIBLE -- only 0 usable cells, and six items are required"
+    "cells": 45,
+    "extent_mm": [
+      180,
+      100
+    ],
+    "combinations_tried": 2138780,
+    "layout": {
+      "cubes": [
+        [
+          0.28,
+          0.23
+        ],
+        [
+          0.34,
+          0.23
+        ],
+        [
+          0.38,
+          0.17
+        ],
+        [
+          0.4,
+          0.23
+        ]
+      ],
+      "planes": [
+        [
+          0.3,
+          0.13
+        ],
+        [
+          0.46,
+          0.13
+        ]
+      ]
+    },
+    "verified_at_N": true,
+    "verdict": "FITS"
   },
   "topdown": {
-    "cells": 0,
-    "extent_mm": null,
-    "verdict": "IMPOSSIBLE -- only 0 usable cells, and six items are required"
+    "cells": 94,
+    "extent_mm": [
+      260,
+      160
+    ],
+    "combinations_tried": 17674837,
+    "layout": {
+      "cubes": [
+        [
+          0.24,
+          0.23
+        ],
+        [
+          0.26,
+          0.29
+        ],
+        [
+          0.3,
+          0.13
+        ],
+        [
+          0.3,
+          0.19
+        ]
+      ],
+      "planes": [
+        [
+          0.36,
+          0.27
+        ],
+        [
+          0.4,
+          0.13
+        ]
+      ]
+    },
+    "verified_at_N": true,
+    "verdict": "FITS"
   },
   "regression": {
     "T0_spheres_unreachable": 0,
-    "T2_carry_waypoint_failures": 37,
-    "T3_object_failures_left": 2
+    "T2_carry_waypoint_failures": 21,
+    "T3_objects": {
+      "circuit_box": [],
+      "multimeter": [
+        "left"
+      ]
+    },
+    "T3_unreachable_by_either": 1
   },
-  "ik_calls": 326
+  "ik_calls": 8084
 }

@@ -51,6 +51,29 @@ STANDOFF_M = 0.10            # task_actions.STANDOFF_M
 LIFT_M = 0.08                # task_actions.LIFT_M
 
 
+def _drop(node, ids):
+    """Delete collision objects by id, whoever added them."""
+    if not ids:
+        return
+    from moveit_msgs.msg import CollisionObject
+    import time as _t
+    ps = PlanningScene()
+    ps.is_diff = True
+    for i in ids:
+        co = CollisionObject()
+        co.header.frame_id = "world"
+        co.id = i
+        co.operation = CollisionObject.REMOVE
+        ps.world.collision_objects.append(co)
+    cli = node.create_client(ApplyPlanningScene, "/apply_planning_scene")
+    if not cli.wait_for_service(timeout_sec=10.0):
+        return
+    fut = cli.call_async(ApplyPlanningScene.Request(scene=ps))
+    end = _t.time() + 10.0
+    while _t.time() < end and not fut.done():
+        rclpy.spin_once(node, timeout_sec=0.05)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repeats", type=int, default=10)
@@ -58,6 +81,15 @@ def main():
     ap.add_argument("--rail-y", type=float, default=None,
                     help="front edge of a cantilevered support lip, in y. "
                          "None = no rail, the bench edge does the work.")
+    ap.add_argument("--no-support-required", action="store_true",
+                    help="OPTION 4: the object is held by a fixture rather "
+                         "than resting on the bench.  A cube that cannot "
+                         "fall cannot be DROPPED, so `drops` stops being a "
+                         "measurable outcome -- that is the cost, and it is "
+                         "recorded in the result rather than assumed away.")
+    ap.add_argument("--sweep-standoff", action="store_true",
+                    help="find the LARGEST standoff/lift that leaves a "
+                         "workable layout, instead of testing one value")
     ap.add_argument("--rail-t", type=float, default=0.015,
                     help="rail thickness in z; its TOP is the bench top, so "
                          "the space beneath it stays free for the fingers")
@@ -86,6 +118,7 @@ def main():
     ps = PlanningScene()
     ps.is_diff = True
     objs = CS.Scene._collision_furniture(tmp)
+    rail_ids = []
     if a.rail_y is not None:
         # A LIP CANTILEVERED FORWARD FROM THE BENCH EDGE.  Its TOP is flush
         # with the bench top so an object resting on it is at the same height
@@ -113,6 +146,12 @@ def main():
         co.primitive_poses.append(pose)
         co.operation = CollisionObject.ADD
         objs.append(co)
+        # REMOVE WHAT YOU ADD.  clip_scene.remove_furniture() only knows its
+        # own ids, so "support_rail" survives it -- and the planning scene
+        # outlives the process.  Two consecutive runs failed their own control
+        # on a rail left behind by a third.  Registered here so every exit
+        # path can take it out.
+        rail_ids.append("support_rail")
         print("RAIL  edge y=%.3f, depth %.3f m, thickness %.3f m, "
               "top flush with the bench at z=%.3f"
               % (a.rail_y, depth, a.rail_t, CT.BENCH_TOP))
@@ -144,14 +183,14 @@ def main():
                 return False
         return True
 
-    def full_path_ok(obj_xyz, q, k):
+    def full_path_ok(obj_xyz, q, k, standoff=STANDOFF_M, lift=LIFT_M):
         """The WHOLE pick: standoff, descend, lift -- densified.  Endpoints
         being reachable says nothing about the segment between them, and the
         arm flies it."""
         ee = CT.ee_for(obj_xyz)
-        pre = [ee[0], ee[1], ee[2] + STANDOFF_M]
-        lift = [ee[0], ee[1], ee[2] + LIFT_M]
-        path = densify([pre, ee], 0.02) + densify([ee, lift], 0.02)
+        pre = [ee[0], ee[1], ee[2] + standoff]
+        up = [ee[0], ee[1], ee[2] + lift]
+        path = densify([pre, ee], 0.02) + densify([ee, up], 0.02)
         if not path:
             raise RuntimeError("densify returned nothing -- refusing to "
                                "report a pass on an empty path")
@@ -166,6 +205,13 @@ def main():
           % ("ok" if ctl_good else "UNREACHABLE",
              "SOLVED" if ctl_far else "none"))
     if not ctl_good or ctl_far:
+        # CLEAN UP BEFORE RETURNING.  The planning scene lives in move_group
+        # and outlives this process: an early return that skips
+        # remove_furniture() leaves the rail behind, and the NEXT run inherits
+        # it and fails its own control for a reason that has nothing to do
+        # with what it is testing.  That happened -- twice.
+        _drop(n, rail_ids)
+        CS.remove_furniture(n)
         print("REFUSING TO REPORT: a control failed.")
         return 6
 
@@ -178,13 +224,59 @@ def main():
            "pitch_m": PITCH_M, "plane": list(PLANE),
            "plane_clear_m": round(PLANE_CLEAR_M, 4), "repeats": a.repeats}
     res["support_edge"] = support_edge
+    res["support_required"] = not a.no_support_required
+    if a.no_support_required:
+        res["cost_of_option_4"] = ("objects are fixtured, not resting; a cube "
+                                   "that cannot fall cannot be dropped, so "
+                                   "`drops` is not a measurable outcome")
 
     def supported(y):
+        if a.no_support_required:
+            return True
         """Resting on something.  With a rail the support edge moves forward;
         the object still has to OVERHANG it, because support has to come from
         BEHIND -- there is nowhere else it can come from when the fingers
         occupy the space underneath."""
         return (y - CUBE_M / 2.0) >= support_edge
+
+    if a.sweep_standoff:
+        # THE STANDOFF LADDER.  The grasp pose is cheap, the path is not, so
+        # the supported cells whose GRASP POSE works are found first and only
+        # those climb the ladder.  A cell that cannot be grasped at all is
+        # not made reachable by a smaller standoff.
+        print("\nSTANDOFF SWEEP  (support edge y=%.3f)" % support_edge)
+        base = [(x, y) for x in xs for y in ys
+                if supported(y) and ok("left", CT.ee_for([x, y, zc]),
+                                       anchor, a.quick)]
+        print("  %d cells supported with a feasible GRASP POSE (fixed wrist)"
+              % len(base))
+        if not base:
+            print("  REFUSING: 0 cells to sweep.  A ladder with no rungs "
+                  "reports nothing, and 0 cells at every standoff would read "
+                  "as 'the standoff does not help'.")
+            res["standoff_sweep"] = {"verdict": "INVALID -- 0 base cells"}
+        else:
+            ladder = {}
+            for so in (0.10, 0.08, 0.06, 0.04, 0.02):
+                for lf in (0.08, 0.04, 0.02):
+                    if lf > so:
+                        continue
+                    good = [c for c in base
+                            if full_path_ok([c[0], c[1], zc], anchor,
+                                            a.quick, standoff=so, lift=lf)]
+                    ladder["so%.2f_lift%.2f" % (so, lf)] = len(good)
+                    print("    standoff %.2f  lift %.2f  ->  %2d cells"
+                          % (so, lf, len(good)))
+            res["standoff_sweep"] = dict(base_cells=len(base), ladder=ladder,
+                                         support_edge=support_edge)
+        res["ik_calls"] = calls["n"]
+        json.dump(res, open(OUT, "w"), indent=2)
+        print("\n%d IK calls -> %s" % (calls["n"], OUT))
+        _drop(n, rail_ids)
+        CS.remove_furniture(n)
+        n.destroy_node()
+        rclpy.shutdown()
+        return 0
 
     for pol, q in (("fixed", anchor), ("topdown", topdown)):
         cells = []
@@ -273,27 +365,44 @@ def main():
     reg["T0_spheres_unreachable"] = bad
     print("   T0 spheres (8)                    %d unreachable" % bad)
 
+    # BOTH ARM ASSIGNMENTS, at N.  The first version forced left=+x and
+    # right=-x at k=1 and reported 37 T2 failures -- against a no-rail
+    # baseline of exactly 37, i.e. the number was the CHECK, not the scene.
+    # verify_abc_scenarios tries both ways for a reason: in this model the
+    # links named left_* sit at POSITIVE x, the naming is viewer perspective
+    # rather than anatomical, and assuming otherwise once made an audit report
+    # every waypoint unreachable on perfectly good geometry.
     import tasks as TSK
+    qr = n.ee_quat("right")
+
+    def pair_ok(p, sep, k):
+        lo = [p[0] - sep / 2.0, p[1], p[2]]
+        hi = [p[0] + sep / 2.0, p[1], p[2]]
+        return ((ok("left", hi, anchor, k) and ok("right", lo, qr, k)) or
+                (ok("left", lo, anchor, k) and ok("right", hi, qr, k)))
+
     tb = 0
     for name, path in TSK.TASK_B["paths"].items():
-        for p in densify(path, 0.02):
-            for arm, s in (("left", +0.5), ("right", -0.5)):
-                q2 = anchor if arm == "left" else n.ee_quat("right")
-                if not ok(arm, [p[0] + s * TSK.TRAY_SEP, p[1], p[2]], q2,
-                          1):
-                    tb += 1
+        pts = densify(path, 0.02)
+        if not pts:
+            raise RuntimeError("densify returned nothing for T2 %s" % name)
+        tb += sum(1 for p in pts if not pair_ok(p, TSK.TRAY_SEP, a.repeats))
     reg["T2_carry_waypoint_failures"] = tb
-    print("   T2 carry waypoints, both arms      %d failures" % tb)
+    print("   T2 carry waypoints, both assignments, N=%d   %d failures"
+          % (a.repeats, tb))
 
-    t3 = 0
+    t3 = {}
     for nm, obj in (("circuit_box", CT.BOX_OBJ), ("multimeter", CT.C_MM_OBJ)):
-        if not ok("left", CT.ee_for(obj), anchor, a.quick):
-            t3 += 1
-            print("   T3 %s LEFT unreachable" % nm)
-    reg["T3_object_failures_left"] = t3
-    print("   T3 objects (2, left arm)           %d unreachable" % t3)
+        reach = [arm for arm, q2 in (("left", anchor), ("right", qr))
+                 if ok(arm, CT.ee_for(obj), q2, a.repeats)]
+        t3[nm] = reach
+        print("   T3 %-12s reachable by: %s"
+              % (nm, ", ".join(reach) if reach else "NEITHER ARM"))
+    reg["T3_objects"] = t3
+    reg["T3_unreachable_by_either"] = sum(1 for v in t3.values() if not v)
     res["regression"] = reg
 
+    _drop(n, rail_ids)
     CS.remove_furniture(n)
     res["ik_calls"] = calls["n"]
     os.makedirs(os.path.dirname(OUT), exist_ok=True)

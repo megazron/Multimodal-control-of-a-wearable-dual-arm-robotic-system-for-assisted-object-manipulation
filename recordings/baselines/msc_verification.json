@@ -99,6 +99,57 @@
     "multimeter_pick_failures": 0,
     "min_expected_repositioning_requests": 2
   },
-  "ik_calls": 4234,
+  "clip_paths": {
+    "t0": {
+      "left": {
+        "waypoints": 25,
+        "distinct": 9,
+        "failures": 0
+      },
+      "right": {
+        "waypoints": 25,
+        "distinct": 8,
+        "failures": 0
+      }
+    },
+    "t1": {
+      "left": {
+        "waypoints": 113,
+        "distinct": 61,
+        "failures": 0
+      },
+      "right": {
+        "waypoints": 113,
+        "distinct": 1,
+        "failures": 0
+      }
+    },
+    "t2": {
+      "left": {
+        "waypoints": 14,
+        "distinct": 4,
+        "failures": 0
+      },
+      "right": {
+        "waypoints": 14,
+        "distinct": 4,
+        "failures": 0
+      }
+    },
+    "t3": {
+      "left": {
+        "waypoints": 38,
+        "distinct": 8,
+        "failures": 0
+      },
+      "right": {
+        "waypoints": 38,
+        "distinct": 8,
+        "failures": 0
+      }
+    }
+  },
+  "clip_waypoints_tested": 103,
+  "ik_calls": 5264,
   "failures": 0
 }

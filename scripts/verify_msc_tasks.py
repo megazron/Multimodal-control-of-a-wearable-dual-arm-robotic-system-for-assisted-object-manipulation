@@ -37,6 +37,7 @@ import clip_tasks as CT                                      # noqa: E402
 import tasks as TSK                                          # noqa: E402
 import task0 as T0                                           # noqa: E402
 import task3 as T3                                           # noqa: E402
+import msc_clip_tasks as MCT                                 # noqa: E402
 from moveit_msgs.msg import PlanningScene                    # noqa: E402
 from moveit_msgs.srv import ApplyPlanningScene               # noqa: E402
 
@@ -250,6 +251,47 @@ def main():
     fails += t3bad
     t3["min_expected_repositioning_requests"] = T3.MIN_EXPECTED_REQUESTS
     out["T3"] = t3
+
+    # ------------------------------------------------ THE CLIP PATHS
+    # The recorder drives THESE, not the specs above. A spec verified and a
+    # clip path unverified is EXACTLY how the archived set came to record a
+    # carry through the bench: the two are different lists and only one had
+    # ever been checked.
+    print("\nCLIP PATHS  the waypoints record_abc_sweep actually drives")
+    clips, cbad, ctested = {}, 0, 0
+    for key in MCT.ORDER:
+        spec = MCT.TASKS[key]
+        path = spec["build"]()
+        per = {}
+        for arm in ("left", "right"):
+            pts = require(path[arm], "clip path %s/%s" % (key, arm))
+            # De-duplicate: a HOLD repeats one pose and re-solving it N times
+            # per repeat costs a great deal and tells you nothing new.
+            uniq, seen = [], set()
+            for w in pts:
+                kk = tuple(round(v, 4) for v in w)
+                if kk not in seen:
+                    seen.add(kk)
+                    uniq.append(list(w))
+            b = sum(1 for w in uniq if not ok(arm, w))
+            ctested += len(uniq)
+            per[arm] = dict(waypoints=len(pts), distinct=len(uniq),
+                            failures=b)
+            cbad += b
+        clips[key] = per
+        print("   %-3s %-28s L %3d distinct %d fail   R %3d distinct %d fail"
+              % (key, spec["name"], per["left"]["distinct"],
+                 per["left"]["failures"], per["right"]["distinct"],
+                 per["right"]["failures"]))
+    if ctested == 0:
+        raise RuntimeError(
+            "REFUSING: 0 clip waypoints were tested. A zero from a loop that "
+            "never ran is not a measurement -- and this is the very section "
+            "that was silently absent from the previous run.")
+    print("   %d distinct clip waypoints tested at N=%d" % (ctested, N))
+    fails += cbad
+    out["clip_paths"] = clips
+    out["clip_waypoints_tested"] = ctested
 
     CS.remove_furniture(n)
     out["ik_calls"] = calls["n"]

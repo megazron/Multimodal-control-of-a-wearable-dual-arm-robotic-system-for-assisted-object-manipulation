@@ -1,3 +1,114 @@
+# RESUME POINT — items 1-4 done; ITEM 5 NOT STARTED, and the DATA PATH IS MISSING
+
+Two things dominate what happens next, and neither is a tidy-up.
+
+## 1. THE MSc TASK SET HAS NO DATA PATH. This blocks the study, not the clips.
+
+Measured end to end in sim (`scripts/run_msc_session.py`):
+
+    CAPTURED: 0 sample rows across 0 files
+
+`run_abc.py` is the ONLY entry point the MSc tasks have -- `run_experiment.sh
+--taskset msc` dispatches straight to it -- and it never constructs a
+`TrialLogger`. `TrialLogger` is used by `runner.py` (the legacy E-series),
+`fault_injector.py` and an ARCHIVED bimanual runner, none of which know the
+MSc tasks exist.
+
+**So the set can be driven and filmed, and produces no trial CSV, no sample
+rows and no manifest.** The gap was invisible because the CLIP pipeline is
+healthy and loud: every sweep reports travel, grasps and placements, so "the
+tasks run" is true and "the tasks produce data" is false, and nothing had ever
+asked the second question.
+
+**To close it:** wire the MSc tasks into `runner.py` / `task_trial.py` so
+every trial opens a TrialLogger, writes the 39 sample and 99 trial columns and
+emits a manifest. Then re-run `scripts/run_msc_session.py`, which reports
+every column BY FILL RATE rather than printing OK -- the E1-E5 pilot once
+passed with `clutch` and `intent_top` empty in every row.
+
+**And fix the second finding with it:** `02_vr_teleop` recorded 0.0000 m and
+failed, because `vr_pose_mapper` is started by the SWEEP's `isolate()`, not by
+`run_abc`. A data run driven this way silently records a stationary arm for
+both VR modes.
+
+## 2. ITEM 5 (the demonstration mode) IS NOT STARTED
+
+Scene understanding from the wrist cameras, free-form voice and text commands,
+the choreographed routine, clips of all of it. Nothing has been built.
+
+**Its perception half rests on something UNMEASURED.** Detection rate at
+working distance is not known: the 0-4% figure came from a renderer that is
+out of distribution, the same model scores 0.89-0.91 on a real photograph, and
+the >=95% gate is neither passed nor failed. Scene understanding "without
+fiducials and without a pre-declared layout" is exactly the capability that
+number gates, so **build the measurement before the demo**, or the demo will
+be a confident-looking scene fingerprint nobody can defend.
+
+The safety requirement is not negotiable and is already enforced structurally:
+`assert_safety_invariant()` raises on every mode transition and 36 ordered
+mode pairs are tested, so a demonstration mode cannot opt out of the
+collision-aware IK, the clearance floor, the e-stop or the dead-man. Add it as
+a MODE, not as a bypass.
+
+## WHAT WAS DONE
+
+| item | state |
+| --- | --- |
+| the two silent real-robot failures | **FIXED**, pinned by 11 static checks |
+| the unprefixed-name class | **SWEPT** -- 5 more services, 1 live bug |
+| test suite unavoidable | **DONE** -- the session runner refuses to RECORD |
+| T1 stage 2 | **DONE**, verified 5 seeds x N=10, 0 failures |
+| the session sequence | **DONE** -- 19 cells, 115 min against a 120 cap |
+| item 5, demonstration mode | **NOT STARTED** |
+| T1 re-record | **NOT DONE** -- its clips are still superseded geometry |
+
+### The safety fixes, in one line each
+
+* **The clearance measured the wrong arm and said nothing.** Unprefixed sim
+  frames while the real arm publishes `real_*`, and under the cascade the sim
+  LEADS the real arm by the bridge delay -- so every figure described a pose
+  the arm had not reached. Now chosen by `cascade_active`, UNKNOWN rather than
+  a quiet fall back, and the source travels into `/ik_status[11]`.
+* **The e-stop's second layer did nothing on the path that runs.**
+  `halt_real_driver()` targets the ros2_control cascade; the high-level bridge
+  has no controller manager. The bridge now offers
+  `/real/emergency_halt_<arm>` -- zero speeds then `Base.Stop()` on the
+  existing session -- and an entirely unreachable halt is reported as one
+  fact rather than four UNAVAILABLE lines.
+* **Five more unprefixed services** on per-arm nodes (`session_recover`,
+  `bridge_enable`, `bridge_disable`, `home_arm`, `home_abort`) and **one live
+  bug**: `recovery_manager` stored `/real/session_state` whole, so a healthy
+  arm's heartbeat overwrote a lost arm's report ~20 times a second and a real
+  session loss FLICKERED instead of latching. The sweep is now a test that
+  fails on any bare-literal `create_service` in a per-arm node.
+
+### The region, for whoever samples from it
+
+`recordings/baselines/work_surface_region.json`, **full-path** survey:
+
+    left    34 cells   x +0.30..+0.70 (0.40 m)   y 0.05..0.20 (0.15 m)
+    right   32 cells   x -0.70..-0.30 (0.40 m)   y 0.05..0.20 (0.15 m)
+    both arms 0        front centre 0
+
+Two 0.40 x 0.15 m strips with a 0.60 m dead band. `_region()` REFUSES a
+grasp-pose-only survey by name: sampling from one gave seed 1 five waypoint
+failures while four other seeds gave zero, because the path climbs to a 0.10 m
+standoff the survey never tested. **A cell that can be REACHED is not a cell
+that can be WORKED.**
+
+## RUNNING THINGS HERE
+
+* One task per recording invocation; the sweep aborts on exit (-6) after the
+  work is done. The progress file is the authority.
+* Detach with `setsid`; any Bash call dies at 600 s. Wait on the log with
+  `procscan` -- `pgrep -f` matches the waiting shell itself.
+* `sim_session.py --stack teleop --keep-up -- true` brings the stack up once.
+* **Recording now runs the unit suite first and refuses on any NEW failure**
+  (`--skip-tests` overrides, loudly). `test_flake8` and `test_pep257` are
+  allowed by name.
+
+---
+
 # RESUME POINT — items 0-2 of the six-part brief are DONE; 3, 4 and 5 are NOT STARTED
 
 Five modes are recorded and frozen. Task 1 has been reworked and re-verified.

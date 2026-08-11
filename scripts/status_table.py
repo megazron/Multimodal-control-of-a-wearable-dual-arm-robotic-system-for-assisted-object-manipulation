@@ -6,6 +6,11 @@
 Four independent columns, because they fail independently and conflating
 them is how this project has previously believed things it had not shown:
 
+    PLAN     the SESSION PLAN runs this task in this mode at all. Read from
+             msc_session.PLAN, because the design is deliberately HALF
+             CROSSED -- T2 runs in the two anchors only, T3 adds shared
+             autonomy, T1 stage 2 adds the two VR modes. A cell outside the
+             plan has no data BY DESIGN and is not a gap.
     BUILT    the task and its scenarios exist in the task table
     VERIF    coordinates verified at N=10 over the FULL densified path
              against a live /compute_ik  (recordings/baselines/*.json)
@@ -158,13 +163,33 @@ def data():
     return found
 
 
+def planned():
+    """(task, mode) cells the SESSION PLAN actually runs.
+
+    THE TABLE USED TO RENDER A BY-DESIGN ABSENCE IDENTICALLY TO A REAL GAP,
+    and that is worse than not showing it: it invites somebody to go hunting
+    for a broken data path that is not broken. T2 has no rows in either VR
+    mode because msc_session.py runs T2 in the two ANCHORS only -- measured,
+    a T2 trial driven in 02_vr_teleop logs 42 rows with 0.2322 m of left EE
+    travel, so the path works and the plan is simply not asking for it.
+    """
+    try:
+        import msc_session as MS
+    except Exception:
+        return None
+    key = {"T0": "t0", "T1_s1": "t1", "T1_s2": "t1s2", "T2": "t2", "T3": "t3"}
+    return {(key[k], m) for k, v in MS.PLAN.items() for m in v[0]}
+
+
 def main():
     b, c, d = built(), clips(), data()
+    pl = planned()
     print("=" * 78)
     print("STATUS: every MSc task x every mode, read from disk")
     print("=" * 78)
-    print("\nB = built   V = verified N=10 full path   C = clip on disk   "
-          "D = trial rows\n")
+    print("\nC = clip on disk   D = trial rows   -- = OUTSIDE THE SESSION "
+          "PLAN, absence is by design")
+    print("a lower-case letter means PLANNED AND MISSING -- a real gap\n")
     hdr = "%-22s %-3s" % ("task", "B")
     for m in MODES:
         hdr += " %-13s" % m.split("_", 1)[1][:12]
@@ -179,11 +204,23 @@ def main():
             # substring match in data() and in the same file -- prefix keys
             # and prefix tests do not mix.
             has_clip = (k, m) in c
-            cell = ("C" if has_clip else ".") + ("D" if got else ".")
+            in_plan = pl is None or (k, m) in pl
+            # CLIPS are a verification artefact and are filmed for EVERY
+            # mode; DATA follows the plan. So a missing clip is always a gap,
+            # while missing data is a gap only inside the plan.
+            cell = ("C" if has_clip else "c")
+            cell += ("D" if got else ("d" if in_plan else "-"))
             row += " %-13s" % cell
         print(row)
-    print("\nclip dirs on disk: %d   task-mode cells with logged rows: %d"
-          % (len(c), len(d)))
+    gaps_c = sorted(k for k in [(t, m) for t, _ in TASKS for m in MODES]
+                    if k not in c)
+    gaps_d = sorted(k for k in (pl or set()) if k not in d)
+    print("\nclip dirs %d   logged cells %d of %d planned"
+          % (len(c), len(d), len(pl or [])))
+    print("REAL GAPS -- missing clip : %s"
+          % (", ".join("/".join(g) for g in gaps_c) or "NONE"))
+    print("REAL GAPS -- planned, no data: %s"
+          % (", ".join("/".join(g) for g in gaps_d) or "NONE"))
 
     print("\n" + "=" * 78)
     print("BLOCKED ON THE LAB -- not on code, and not fixable from here")

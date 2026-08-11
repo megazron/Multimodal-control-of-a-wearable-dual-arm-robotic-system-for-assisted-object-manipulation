@@ -4099,3 +4099,36 @@ Two concrete next steps:
    print. The LEFT follower died -2 as expected. A right follower that exits 1
    would explain `followers=0` for at least one arm and must be run down
    before any further discovery work.
+
+---
+
+## RESUME POINT 2026-08-12 -- demo mode built to the boundary, status table live
+
+`python3 scripts/status_table.py` is the live answer to "what is done"; it
+reads artefacts off disk rather than a hand-maintained list. As of this
+commit: 21 clip dirs, 19 of 25 task-mode cells with trial rows, 3312 rows.
+T1 stage 2 has no shared-autonomy cell BY DESIGN (msc_session.py runs it in
+the anchors plus the two VR modes).
+
+DONE THIS PASS
+  * grammar verbs (`handover_wearer`, `goto` + NAMED_PLACES, front-centre
+    refusal quoting the 0-of-319-cells survey)
+  * three choreography routines, EVERY waypoint collision-checked against
+    the wearer at N=10 -- 242 waypoints, 2420 IK calls, 0 failures
+  * mock RGB-D on /<arm>_camera/* -- 5/5 plumbing checks, deprojection to
+    0.8 mm with a transposed-rotation control failing at 1.44 m
+  * T1 re-recorded and T1 stage 2 recorded into
+    recordings/verification_20260811_t1rework (mode06_GOOD untouched)
+
+NEXT, IN ORDER
+  1. RECORD THE CHOREOGRAPHY. Verified but not yet filmed. It needs no
+     perception and no participant, so it is the cheapest remaining item.
+  2. T1 stage 2 in the other four modes -- only 06 is filmed.
+  3. T2/T3 data cells: vr_teleop and vr_shared have clips but no rows.
+  4. Point the arms before any perception work. The wrist cameras do NOT
+     frame the work surface at home (measured: bench at pixel (954, 539),
+     outside a 640-wide frame). This is the documented parking, not a fault,
+     and it will make any camera work from home look broken.
+
+DO NOT re-derive the mount, the home angles or the anchor. The home JOINT
+ANGLES are ground truth and every geometric figure here is derived from them.

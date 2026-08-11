@@ -71,7 +71,15 @@ def test_only_the_two_CURRENT_task_sets_are_offered():
     abc = [s for s in specs if s.key.startswith("abc_")]
     msc = [s for s in specs if s.key.startswith("msc_")]
     assert len(abc) == 15, "3 tasks x 5 modes"
-    assert len(msc) == 20, "4 tasks x 5 modes"
+    # 5 LAUNCHABLE CELLS, not 4 tasks. T1 has two STAGES: stage 1 is one arm
+    # at a time, stage 2 is both arms at once from random positions, and they
+    # are separate dispatcher keys (m1, m1s2) with separate session cells
+    # because stage 2 is the SIMULTANEITY condition -- the same job twice at
+    # once -- and a participant must do stage 1 first or they are learning the
+    # task and the simultaneity together. This constant was 20 and the code
+    # was right; a stale count in a test that exists to catch drift is the
+    # thing it is supposed to catch.
+    assert len(msc) == 25, "5 launchable cells (T1 has two stages) x 5 modes"
     for s in abc + msc:
         assert s.enabled, "%s disabled: %s" % (s.key, s.disabled_reason)
 

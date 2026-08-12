@@ -76,7 +76,9 @@ T1_CUBES = [[-0.320, 0.190], [-0.380, 0.190], [-0.440, 0.190],
 # 0.300, not 0.320. At 0.320 the place-down point sits at EE
 # (x, 0.255, 1.063) and BOTH planes failed there -- the lowest
 # point of the descent, after the grasp had already succeeded.
-T1_PLANES = [[-0.340, 0.300], [-0.500, 0.300]]
+# plane_1 pulled in from -0.500: its PLACE-DOWN point, EE
+# (-0.483, 0.235, 1.063), was the single remaining failure of 80.
+T1_PLANES = [[-0.340, 0.300], [-0.470, 0.300]]
 T1_Z = CT.BENCH_TOP + CUBE_M / 2.0
 # T1 RUNS ON THE RIGHT ARM. Measured, N=10, full path, wearer and furniture:
 #

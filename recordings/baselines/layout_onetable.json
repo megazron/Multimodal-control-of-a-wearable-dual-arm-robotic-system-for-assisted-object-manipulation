@@ -6,7 +6,7 @@
   },
   "t1": {
     "tested": 80,
-    "failures": 1,
+    "failures": 0,
     "furniture": [
       "table"
     ]

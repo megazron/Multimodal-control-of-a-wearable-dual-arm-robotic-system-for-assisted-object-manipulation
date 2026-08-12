@@ -1,0 +1,6 @@
+  t0      50 distinct waypoints, 0 failures   furniture=0
+  t1      80 distinct waypoints, 0 failures   furniture=1
+  t1s2    50 distinct waypoints, 0 failures   furniture=1
+  t2      22 distinct waypoints, 0 failures   furniture=1
+  t3      16 distinct waypoints, 0 failures   furniture=1
+MSc LAYOUT: TOTAL FAILURES 0

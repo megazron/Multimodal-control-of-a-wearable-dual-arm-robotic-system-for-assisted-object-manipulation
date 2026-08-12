@@ -75,10 +75,10 @@ Re-measure rather than trust this table; each row names its command.
 | task layer | mode-independent BY CONSTRUCTION — `run_abc` builds waypoints from the task spec with no mode argument | `02_baseline_and_hypotheses.md` |
 | accuracy table | reproducible from committed data; grasp NOT uniformly 100% (06 reads 50%, VR 75%) | `scripts/accuracy_table.py` |
 | status | 25 clip dirs, 19/19 planned data cells | `scripts/status_table.py` |
-| clips | **all predate the bench deletion — superseded** | |
-| T1 | **0/4 reachable on the left arm.** Mirror to the right measured 4/4, NOT applied | `recordings/baselines/t1_layout_options.json` |
+| clips | **all predate the bench deletion and the T1 mirror — superseded, re-record** | |
+| T1 | mirrored to the **RIGHT** arm; full-path failures 49 -> 0 | `recordings/baselines/t1_layout_options.json` |
 | workspace marking | **170 mm stale in y** — it excludes both task targets | `docs/NEXT_SESSION.md` |
-| grasp pose | pads land **39.5 mm past the object** along the tool axis. Fix is `p_ee = p_object − 0.098 × tool_axis`, NOT applied | `recordings/baselines/pad_clearance.json` |
+| grasp pose | pad offset IS applied — `PAD_OFFSET` in `clip_tasks.py`, tips +0.098 m along the tool axis | `recordings/baselines/pad_clearance.json` |
 | table height | owner exists and detects ±20 mm; **nothing calls `set_measured()` from depth** | `srl_experiments/work_surface.py` |
 | silent faults | 3–4 open, listed at the top of `03_real_robot_bringup.md` | `scripts/inject_lab_day_faults.py` |
 | real hardware | **nothing in this repo has ever run against a real arm** | |
@@ -98,6 +98,10 @@ with no gravity compensation on someone who did not choose the motion.
 
 ## HARD CONSTRAINTS. Violating one of these causes real damage.
 
+0. **The home wrist points UP by +85 deg (left) and +79 deg (right). That is
+   REAL, read from the physical arms, and it is not a rendering fault.** The
+   anchor's 30.7 deg is a DIFFERENT quantity measured from the shoulder and
+   the two are not comparable. → `home_wrist_is_real.md`
 1. **Home joint angles are ground truth.** When the geometry looks wrong, the
    mount is the suspect. Never change the home angles to fix a pose; the
    sim→real bridge replays sim angles onto the real arm and any difference is
@@ -199,6 +203,7 @@ seems not to apply, suspect a stale PROCESS, not a stale install.
 | `docs/system/hardware.md` | Teensy and serial, channel health, spherical position and AXIS_MAP, gyro azimuth, calibration, clutch, grippers, degraded mode, the virtual Teensy |
 | `docs/system/wsl.md` | mirrored networking, the cyclic-path finding, `/mnt/c`, `/dev/shm`, the Quest transport, x11grab and Xvfb capture |
 | `docs/system/architecture.md` | packages and topics, the IK follower, operating modes, VR stack, the three GUIs |
+| `docs/system/home_wrist_is_real.md` | why the home wrist points up, what changing it would cost, and why 30.7 deg is a different number |
 | `docs/system/03_real_robot_bringup.md` | **the lab-day fault table and the camera framing note. Read before hardware.** |
 | `docs/system/06_troubleshooting.md` | keyed by SYMPTOM |
 | `docs/NEXT_SESSION.md` | what to do next, in order |

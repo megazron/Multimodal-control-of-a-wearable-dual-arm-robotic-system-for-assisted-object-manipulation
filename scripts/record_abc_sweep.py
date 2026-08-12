@@ -68,7 +68,8 @@ PROGRESS = os.path.join(OUT, "abc_sweep_progress.json")
 TASKS = ("a", "b", "c")
 sys.path.insert(0, os.path.join(WS, "src/srl_experiments/experiments/abc"))
 import clip_tasks as CT                                      # noqa: E402
-import msc_clip_tasks as MCT                                  # noqa: E402
+import msc_clip_tasks as MCT
+import choreography as CH                                  # noqa: E402
 
 # TWO CURRENT TASK SETS, selected by --taskset. Not two sweeps: everything
 # below -- isolation, preconditions, the foreign-description check, the
@@ -84,12 +85,19 @@ TASKSETS = {
     # EXPLICIT MAP, not `"m" + k[1]`. That expression sent t1s2 -> "m1",
     # which is stage ONE: a stage 2 sweep would have recorded stage 1 under
     # stage 2's name. The same slip was already fixed once in run_abc.py.
+    # THE DEMONSTRATION ROUTINES. Same sweep, same eight angles, same
+    # verifier -- deliberately, so a demo clip cannot be produced by a path
+    # that nobody checks. The key IS the dispatcher key here, so there is no
+    # map to get wrong.
+    "demo": dict(mod=CH, keys=("d1", "d2", "d3"), prefix="demo",
+                 arg=lambda k: k),
     "msc": dict(mod=MCT, keys=("t0", "t1", "t1s2", "t2", "t3"), prefix="msc",
                 arg=lambda k: {"t0": "m0", "t1": "m1", "t1s2": "m1s2",
                                "t2": "m2", "t3": "m3"}[k]),
 }
 SCENARIO = {k: v["scenario"] for k, v in CT.TASKS.items()}
 SCENARIO.update({k: v["scenario"] for k, v in MCT.TASKS.items()})
+SCENARIO.update({k: v["scenario"] for k, v in CH.TASKS.items()})
 
 # Per mode: which upstream nodes it needs, and how many publishers the
 # FOLLOWER's input topic must have while it runs. The expected counts are the

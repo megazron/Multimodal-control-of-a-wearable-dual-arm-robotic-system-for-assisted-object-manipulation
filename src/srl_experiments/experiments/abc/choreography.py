@@ -114,6 +114,46 @@ ROUTINES = {
 }
 
 
+# THE SPEC SHAPE the recording machinery already understands, so the routines
+# film through the SAME sweep, the SAME eight angles and the SAME verifier as
+# every task -- rather than growing a second capture path that would drift.
+#
+# `expect` and `caveat` are burnt into every clip's caption, and the caveat is
+# where the demo says what it is NOT. A smooth clip of two arms moving well is
+# the single easiest thing in this project to mistake for a result.
+_DEMO_CAVEAT = ("A DEMONSTRATION IS NOT EVIDENCE. This routine produces no "
+                "trial data, no condition, no metric and no comparison, and "
+                "nothing in it may be cited as a result. It runs the same "
+                "collision-aware IK, clearance floor, step guard, e-stop and "
+                "dead-man as every task -- a demo does not get its own, "
+                "weaker, safety stack.")
+
+TASKS = {
+    "d1": dict(name="choreography: wave", scenario="D1_wave", build=wave,
+               grip=lambda n: {"left": [0.0] * n, "right": [0.0] * n},
+               width_mm=0, grip_obj=None, place_target=None,
+               expect="The arms TAKE TURNS: one holds while the other sweeps "
+                      "the full width of its own marked region, then they "
+                      "swap. Shows REACH. 66 distinct waypoints.",
+               caveat=_DEMO_CAVEAT),
+    "d2": dict(name="choreography: mirror", scenario="D2_mirror", build=mirror,
+               grip=lambda n: {"left": [0.0] * n, "right": [0.0] * n},
+               width_mm=0, grip_obj=None, place_target=None,
+               expect="Both arms move AT ONCE and symmetrically about the "
+                      "sagittal plane. Shows COORDINATION -- the symmetry is "
+                      "what makes simultaneity legible. 56 waypoints.",
+               caveat=_DEMO_CAVEAT),
+    "d3": dict(name="choreography: sweep", scenario="D3_sweep", build=sweep,
+               grip=lambda n: {"left": [0.0] * n, "right": [0.0] * n},
+               width_mm=0, grip_obj=None, place_target=None,
+               expect="A continuous arc, the two arms in ANTIPHASE. No dwell "
+                      "and no corner, which is what a viewer reads as under "
+                      "control. Shows SMOOTHNESS. 120 waypoints.",
+               caveat=_DEMO_CAVEAT),
+}
+ORDER = ("d1", "d2", "d3")
+
+
 def path_length(p):
     return sum(math.dist(p[i], p[i + 1]) for i in range(len(p) - 1))
 

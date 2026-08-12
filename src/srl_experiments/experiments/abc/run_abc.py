@@ -348,11 +348,13 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", required=True,
                     choices=["a", "b", "c", "A", "B", "C",
+                             # demo routines -- see the "demo" taskset
+                             "d1", "d2", "d3", "D1", "D2", "D3",
                              "m1s2", "M1S2",
                              "m0", "m1", "m2", "m3",
                              "M0", "M1", "M2", "M3"])
     ap.add_argument("--taskset", default="study",
-                    choices=["study", "clip", "msc"],
+                    choices=["study", "clip", "msc", "demo"],
                     help="'clip' selects the RECORDING tasks (pick and place, "
                          "hold and place, multimeter); 'study' the "
                          "participant spec")
@@ -410,6 +412,21 @@ def main(argv=None):
                 "unknown msc task key %r -- expected one of %s"
                 % (key, ", ".join(sorted(_MSC_KEY))))
         spec = MCT.TASKS[_MSC_KEY[key]]
+        scen = a.scenario or spec["scenario"]
+        wp = spec["build"]()
+        grip_sched = spec["grip"](len(wp["left"]))
+    elif a.taskset == "demo":
+        # THE CHOREOGRAPHED ROUTINES. They are not tasks: no grasp, no
+        # object, no metric. They enter here so they are driven by the same
+        # runner, filmed by the same sweep and bound by the same mode safety
+        # invariant -- a demo with its own code path is a demo with its own
+        # bugs, and worse, its own weaker guarantees.
+        import choreography as CH
+        if key.lower() not in CH.TASKS:
+            raise SystemExit(
+                "unknown demo key %r -- expected one of %s"
+                % (key, ", ".join(sorted(CH.TASKS))))
+        spec = CH.TASKS[key.lower()]
         scen = a.scenario or spec["scenario"]
         wp = spec["build"]()
         grip_sched = spec["grip"](len(wp["left"]))

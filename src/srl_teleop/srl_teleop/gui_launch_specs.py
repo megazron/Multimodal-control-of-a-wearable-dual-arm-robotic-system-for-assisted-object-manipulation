@@ -96,7 +96,7 @@ def dispatcher_tasks():
             # "run_experiment.sh does not accept 'm1s2'" -- a refusal that
             # was simply false, and which cost a recording run to diagnose
             # because the sweep's teardown crashed before printing it.
-            if re.fullmatch(r"[tem]\d(s\d)?|[abc]", t):
+            if re.fullmatch(r"[temd]\d(s\d)?|[abc]", t):
                 ok.add(t)
     ok -= {"A", "B", "C"}
     return ok
@@ -216,6 +216,36 @@ def task_specs():
                     "would exit 2" % k),
                 note="MSc set; coordinates verified N=10 over the full "
                      "densified CLIP path with the bench in scene"))
+
+    # ------------------------------------------------------------- DEMO
+    # THE CHOREOGRAPHED ROUTINES. Buttons because the sweep launches through
+    # these specs, so a routine with no spec cannot be filmed -- which is
+    # exactly how the first demo sweep failed, with "no GUI spec
+    # 'demo_d1_06_full_autonomy'" on all three routines.
+    #
+    # They are tagged "demo", not "task", so nothing that enumerates tasks
+    # picks them up: they produce no trial data and must never be counted as
+    # a condition.
+    for k, lab in (("d1", "Demo: wave (reach)"),
+                   ("d2", "Demo: mirror (coordination)"),
+                   ("d3", "Demo: sweep (smoothness)")):
+        for mode in ("01_master_teleop", "02_vr_teleop",
+                     "03_shared_autonomy", "04_vr_shared",
+                     "06_full_autonomy"):
+            short = mode.split("_", 1)[1].replace("_", " ")
+            out.append(Spec(
+                "demo_%s_%s" % (k, mode),
+                "%s  [%s]" % (lab, short), "demo",
+                _sh("run_experiment.sh", k, "--mode", mode, "--taskset",
+                    "demo", "--participant", "DEMO", "--scripted"),
+                needs_stack=True,
+                disabled_reason=(
+                    None if k in accepted else
+                    "run_experiment.sh does not accept %r -- this button "
+                    "would exit 2" % k),
+                note="DEMONSTRATION ONLY -- no trial data, no condition, no "
+                     "metric. Every waypoint collision-checked against the "
+                     "wearer at N=10 (2420 IK calls, 0 failures)"))
 
     keys = [sp.key for sp in out]
     dupes = sorted({x for x in keys if keys.count(x) > 1})

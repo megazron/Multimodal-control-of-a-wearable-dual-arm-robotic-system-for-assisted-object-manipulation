@@ -1195,7 +1195,16 @@ class Scene(Node):
                             "the wrong way."
                             % (k, it.get("yaw_deg", 0.0), yerr,
                                GRASP_YAW_TOL_DEG))
-            on = closed and aligned and (it["held"] or near)
+            # REPORTS, DOES NOT GATE. Making attachment conditional on
+            # alignment refused EVERY grasp in a live sweep -- "NO GRASP
+            # RECORDED at all" across four clips -- because the pinned wrist
+            # sits well off square and a 20 deg tolerance rejects it. The
+            # point of the check was to make a rotated object VISIBLE, and
+            # max_yaw_err_deg in scene_events.json plus the warning do that
+            # without deciding whether the object attaches. A check that
+            # silently stops the task it measures is worse than the silence
+            # it replaced.
+            on = closed and (it["held"] or near)
             if self.t0 is None:
                 self.t0 = self.get_clock().now().nanoseconds * 1e-9
                 self.t0_wall = time.time()

@@ -4289,3 +4289,39 @@ Then re-verify N=10 full path with wearer and furniture, and only then record.
 
 Also open, from Part C: the GUI button-press sweep HANGS after constructing
 the GUI. Dispatch is verified for all 13 task keys; the press layer is not.
+
+---
+
+## STOPPED 2026-08-13 IN PART D. The sweep is running against two fixed bugs.
+
+The layout gate is CLOSED: 0 IK failures across all five tasks, N=10 full
+path, wearer and furniture in scene. Colour pairing and slot spacing were
+re-confirmed after the coordinate moves. The information card is built and
+verified by eye. The sweep is guarded and names what it films.
+
+**Two bugs surfaced during the sweep and BOTH ARE FIXED, but the clips
+recorded before the fixes are wrong and must be redone:**
+
+1. `clip_scene` had `arm="left"` hardcoded on every T1 cube while the task
+   moved to the RIGHT arm. The right gripper closed on the cube and the scene
+   watched the left one, so every T1 grasp went unrecorded. Now follows
+   `MCT.T1_ARM`. Scenario renamed `S1_left_arm` -> `S1_right_arm`.
+2. The orientation check I added GATED attachment. The pinned wrist sits well
+   off square, so a 20 deg tolerance refused every grasp: four clips read
+   "NO GRASP RECORDED at all" on runs where the arm visibly picked things up.
+   It now REPORTS and does not gate. `max_yaw_err_deg` still lands in
+   `scene_events.json` and the warning still fires, which is what made the
+   rotated-object failure visible in the first place.
+
+**Do this next, in order. It is one clean sweep with no analysis left:**
+
+    rm -rf recordings/verification_20260813        # every clip predates the fixes
+    scripts/... sweep, detached, per mode, pushing after each
+
+Then Part E: extract frames and look. The specific things to check are the
+opening card, the cubes clear of the mats at the start and on them at the end,
+the pads on the cube rather than above it, one table, and the markings.
+
+**Not done and still open:** the presentation pose for the opening frame was
+recorded as a decision in `home_wrist_is_real.md` but never built or verified.
+The GUI button-press sweep still hangs after constructing the GUI.

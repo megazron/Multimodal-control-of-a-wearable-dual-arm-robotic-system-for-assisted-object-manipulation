@@ -212,9 +212,17 @@ def main():
             cell += ("D" if got else ("d" if in_plan else "-"))
             row += " %-13s" % cell
         print(row)
-    gaps_c = sorted(k for k in [(t, m) for t, _ in TASKS for m in MODES]
-                    if k not in c)
-    gaps_d = sorted(k for k in (pl or set()) if k not in d)
+    # ONE definition of by-design-vs-gap, shared with verify_scan_view.py.
+    # These were two separate fixes for the same confusion within an hour;
+    # see srl_experiments.by_design for why that is now one place.
+    sys.path.insert(0, os.path.join(WS, "src", "srl_experiments"))
+    from srl_experiments.by_design import Expectation
+    all_cells = [(t, m) for t, _ in TASKS for m in MODES]
+    clip_exp = Expectation(all_cells, label="the clip sweep",
+                           reason="clips are filmed for EVERY mode")
+    data_exp = Expectation(pl or set(), label="the session plan")
+    gaps_c = clip_exp.gaps(c)
+    gaps_d = data_exp.gaps(d)
     print("\nclip dirs %d   logged cells %d of %d planned"
           % (len(c), len(d), len(pl or [])))
     print("REAL GAPS -- missing clip : %s"

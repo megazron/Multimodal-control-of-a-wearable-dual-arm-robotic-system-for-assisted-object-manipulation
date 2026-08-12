@@ -120,8 +120,19 @@ def main():
             sys.path.insert(0, os.path.join(
                 WS, "src", "srl_experiments", "experiments", "abc"))
             import msc_clip_tasks as MCT
+            sys.path.insert(0, os.path.join(WS, "src", "srl_experiments"))
+            from srl_experiments.by_design import Expectation
             side = 1.0 if arm == "left" else -1.0
             n_obj = sum(1 for x, _y in MCT.T1_CUBES if x * side > 0)
+            # Same helper the status table uses: "no objects visible" is a
+            # GAP only where the layout puts objects.
+            obj_exp = Expectation(
+                {a for a in ("left", "right")
+                 if any(x * (1.0 if a == "left" else -1.0) > 0
+                        for x, _y in MCT.T1_CUBES)},
+                label="the T1 layout",
+                reason="T1 is a left-arm task -- all 4 cubes at positive x")
+            verdict, why = obj_exp.classify(arm, present=bool(blue or green))
             surface_ok = bench > 0.02 * tot
             if n_obj:
                 ok = surface_ok and blue > 0 and green > 0

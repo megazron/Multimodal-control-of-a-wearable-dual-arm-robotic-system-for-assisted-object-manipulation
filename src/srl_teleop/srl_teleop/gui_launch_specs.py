@@ -226,9 +226,9 @@ def task_specs():
     # They are tagged "demo", not "task", so nothing that enumerates tasks
     # picks them up: they produce no trial data and must never be counted as
     # a condition.
-    for k, lab in (("d1", "Demo: wave (reach)"),
-                   ("d2", "Demo: mirror (coordination)"),
-                   ("d3", "Demo: sweep (smoothness)")):
+    for k, lab in (("d1", "Dance: flow (canon)"),
+                   ("d2", "Dance: pulse (opposition)"),
+                   ("d3", "Dance: play (call/response)")):
         for mode in ("01_master_teleop", "02_vr_teleop",
                      "03_shared_autonomy", "04_vr_shared",
                      "06_full_autonomy"):

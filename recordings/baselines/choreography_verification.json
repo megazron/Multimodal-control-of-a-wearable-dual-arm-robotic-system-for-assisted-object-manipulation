@@ -1,20 +1,20 @@
 {
   "routines": {
-    "wave": {
-      "tested": 66,
+    "flow": {
+      "tested": 600,
       "failures": 0
     },
-    "mirror": {
-      "tested": 56,
+    "pulse": {
+      "tested": 264,
       "failures": 0
     },
-    "sweep": {
-      "tested": 120,
+    "play": {
+      "tested": 446,
       "failures": 0
     }
   },
   "repeats": 10,
-  "ik_calls": 2420,
+  "ik_calls": 13100,
   "failures": 0,
   "controls_ok": true
 }

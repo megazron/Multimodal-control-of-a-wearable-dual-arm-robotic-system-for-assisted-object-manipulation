@@ -213,6 +213,9 @@ def shift_xform(dy):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", default="abcd")
+    ap.add_argument("--z-probe", type=float, default=0.97,
+                    help="height to probe for the (A) mount measurement; "
+                         "default is 20 mm above the table top")
     ap.add_argument("--furniture", default="",
                     help="comma list of furniture NAMES to publish; empty "
                          "means all of the scene's. Isolates WHICH piece "
@@ -252,6 +255,14 @@ def main():
         if w > HOME_TOL_RAD:
             print("REFUSING: %s %.4f rad from home" % (arm, w))
             return 3
+    # CLEAR FIRST, ALWAYS. remove_furniture() used to run only when --scene
+    # was given, so a run WITHOUT a scene inherited the previous run's
+    # furniture and reported it as the no-furniture baseline. That produced
+    # 0.025 m where a clean stack gives 0.325 m, i.e. a fabricated result
+    # that looked like a finding.
+    import clip_scene as _CS0
+    _CS0.remove_furniture(n)
+    n.spin(1.0)
     if a.scene:
         # THE FURNITURE IS A COLLISION OBJECT, and that turns out to be the
         # entire story -- see the header. Published the same way the survey
@@ -327,6 +338,75 @@ def main():
         res["c_nocoll"] = {}
         for z in (0.95, 1.05, 1.12, 1.20, 1.30):
             res["c_nocoll"]["%.2f" % z] = row("collisions OFF", z, None, False)
+
+    if "A" in a.only:
+        # THE HONEST MOUNT MEASUREMENT. Transforming only the target leaves
+        # the furniture where it was, so the arm is asked about a displaced
+        # point while colliding against undisplaced obstacles -- not an upper
+        # bound, just wrong. Here the FURNITURE is transformed by the same
+        # inverse, per arm, and republished before that arm is measured.
+        # The wearer still does not move, so this remains optimistic about
+        # wearer clearance -- but the furniture, which is what actually
+        # binds, is now handled correctly.
+        import clip_scene as CS2
+        import time as _t2
+        from moveit_msgs.msg import PlanningScene as PS2
+        from moveit_msgs.srv import ApplyPlanningScene as APS2
+        tmp2 = CS2.Scene.__new__(CS2.Scene)
+        cli2 = n.create_client(APS2, "/apply_planning_scene")
+        cli2.wait_for_service(timeout_sec=15.0)
+
+        def publish_xformed(arm, dR, dt):
+            CS2.remove_furniture(n)
+            n.spin(0.6)
+            objs = CS2.Scene._collision_furniture(tmp2, a.scene or "t1")
+            if a.furniture:
+                want = set(a.furniture.split(","))
+                objs = [o for o in objs if o.id in want
+                        or o.id.split("_")[0] in want]
+            m = rig.mount[arm]
+            for o in objs:
+                for pp in o.primitive_poses:
+                    v = np.array([pp.position.x, pp.position.y,
+                                  pp.position.z])
+                    if dt is not None:
+                        v = v - np.array([dt[0] if arm == "left" else -dt[0],
+                                          dt[1], dt[2]])
+                    if dR is not None:
+                        v = dR.T @ (v - m) + m
+                    pp.position.x, pp.position.y, pp.position.z = (
+                        float(v[0]), float(v[1]), float(v[2]))
+            ps = PS2()
+            ps.is_diff = True
+            ps.world.collision_objects = objs
+            fut = cli2.call_async(APS2.Request(scene=ps))
+            end = _t2.time() + 20.0
+            while _t2.time() < end and not fut.done():
+                rclpy.spin_once(n, timeout_sec=0.05)
+            n.spin(1.0)
+
+        print("\n(A) MOUNT with the FURNITURE TRANSFORMED TOO, per arm")
+        res["A_mount_real"] = {}
+        for lab, dR, dt in [("baseline", None, None),
+                            ("tilt -30 deg", _Rx(math.radians(-30)), None),
+                            ("tilt -45 deg", _Rx(math.radians(-45)), None),
+                            ("fwd 0.15 + tilt -30", _Rx(math.radians(-30)),
+                             (0.0, 0.15, 0.0)),
+                            ("fwd 0.30", None, (0.0, 0.30, 0.0))]:
+            cell = {}
+            for arm in ("left", "right"):
+                publish_xformed(arm, dR, dt)
+                lo, hi, k = rig.reach(arm, a.z_probe,
+                                      mount_xform(rig, dR, dt), True,
+                                      a.orient)
+                cell[arm] = dict(y_min=lo, y_max=hi, cells=k)
+            res["A_mount_real"][lab] = cell
+            print("   %-24s z=%.2f  L y_max %s   R y_max %s"
+                  % (lab, a.z_probe,
+                     "----" if cell["left"]["y_max"] is None
+                     else "%.3f" % cell["left"]["y_max"],
+                     "----" if cell["right"]["y_max"] is None
+                     else "%.3f" % cell["right"]["y_max"]))
 
     if "a" in a.only:
         print("\n(a) MOUNT -- KINEMATIC UPPER BOUND, wearer does not move")

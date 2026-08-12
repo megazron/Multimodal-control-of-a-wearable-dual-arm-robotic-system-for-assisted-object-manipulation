@@ -1,124 +1,64 @@
 {
   "results": {
-    "b_height": {
-      "0.90": {
-        "left": {
-          "y_min": null,
-          "y_max": null,
-          "cells": 0
-        },
-        "right": {
-          "y_min": null,
-          "y_max": null,
-          "cells": 0
-        }
-      },
-      "0.95": {
-        "left": {
-          "y_min": null,
-          "y_max": null,
-          "cells": 0
-        },
-        "right": {
-          "y_min": null,
-          "y_max": null,
-          "cells": 0
-        }
-      },
-      "1.00": {
-        "left": {
-          "y_min": null,
-          "y_max": null,
-          "cells": 0
-        },
-        "right": {
-          "y_min": null,
-          "y_max": null,
-          "cells": 0
-        }
-      },
-      "1.05": {
-        "left": {
-          "y_min": null,
-          "y_max": null,
-          "cells": 0
-        },
-        "right": {
-          "y_min": null,
-          "y_max": null,
-          "cells": 0
-        }
-      },
-      "1.10": {
-        "left": {
-          "y_min": null,
-          "y_max": null,
-          "cells": 0
-        },
-        "right": {
-          "y_min": null,
-          "y_max": null,
-          "cells": 0
-        }
-      },
-      "1.15": {
+    "A_mount_real": {
+      "baseline": {
         "left": {
           "y_min": 0.0,
-          "y_max": 0.0,
-          "cells": 1
+          "y_max": 0.05,
+          "cells": 3
         },
         "right": {
           "y_min": 0.0,
-          "y_max": 0.0,
-          "cells": 1
+          "y_max": 0.05,
+          "cells": 3
         }
       },
-      "1.20": {
+      "tilt -30 deg": {
         "left": {
           "y_min": 0.0,
-          "y_max": 0.075,
-          "cells": 4
-        },
-        "right": {
-          "y_min": 0.0,
-          "y_max": 0.1,
-          "cells": 5
-        }
-      },
-      "1.25": {
-        "left": {
-          "y_min": 0.0,
-          "y_max": 0.475,
-          "cells": 7
-        },
-        "right": {
-          "y_min": 0.0,
-          "y_max": 0.5,
-          "cells": 10
-        }
-      },
-      "1.30": {
-        "left": {
-          "y_min": 0.0,
-          "y_max": 0.5,
+          "y_max": 0.125,
           "cells": 6
         },
         "right": {
           "y_min": 0.0,
-          "y_max": 0.5,
-          "cells": 9
+          "y_max": 0.15,
+          "cells": 7
         }
       },
-      "1.40": {
+      "tilt -45 deg": {
         "left": {
           "y_min": 0.0,
-          "y_max": 0.5,
-          "cells": 11
+          "y_max": 0.2,
+          "cells": 9
         },
         "right": {
-          "y_min": 0.1,
-          "y_max": 0.5,
-          "cells": 14
+          "y_min": 0.0,
+          "y_max": 0.225,
+          "cells": 10
+        }
+      },
+      "fwd 0.15 + tilt -30": {
+        "left": {
+          "y_min": 0.0,
+          "y_max": 0.125,
+          "cells": 6
+        },
+        "right": {
+          "y_min": 0.0,
+          "y_max": 0.15,
+          "cells": 7
+        }
+      },
+      "fwd 0.30": {
+        "left": {
+          "y_min": 0.0,
+          "y_max": 0.05,
+          "cells": 3
+        },
+        "right": {
+          "y_min": 0.0,
+          "y_max": 0.05,
+          "cells": 3
         }
       }
     }

@@ -152,3 +152,53 @@ Repairing left j6/j7 and right j3/j5/j7 would restore wrist measurement and
 the DIRECT condition could return. The measurement to redo first is the one
 above: the required rotation from the anchor, per arm, per object orientation.
 Nothing else in this document survives that repair unchanged.
+
+
+---
+
+# Approach geometry: two results that constrain any task design
+
+## Approach direction is a PER-GRASP property, not a configuration setting
+
+T3 is the evidence, and it is unusually clean because both objects live in one
+task: the **circuit box needs top-down** (0/1 near-side) and the **multimeter
+needs near-side** (0/1 top-down). Two objects, one task, opposite approaches,
+neither optional.
+
+Measured across the task set, N=10, full path, wearer and furniture in scene,
+constrained yaw-free IK at 0.05 rad:
+
+| task | pinned near-side | top-down, constrained |
+| --- | --- | --- |
+| T1 | 0/4 | 0/4 |
+| T2 | **2/2, lift ≥ 300 mm** | 0/2 |
+| T3 | 0/2 | **1/2, lift ≥ 300 mm** |
+
+The approaches are **complementary, not ordered** — each rescues a task the
+other cannot do — so there is no correct global default and choosing one
+trades a task away. Approach therefore belongs in the TASK definition, per
+grasp.
+
+**Why this is a finding and not a configuration detail.** On a conventional
+arm the approach direction is a free parameter chosen for convenience. On a
+supernumerary arm the base is on the wearer, so the arm reaches *around* a
+body rather than *over* a bench, and which side of an object is approachable
+becomes a property of where that object sits relative to the wearer. Task
+design for an SRL therefore cannot assume a uniform approach, and a task with
+two objects can require two.
+
+## The minimum object size is set by APPROACH GEOMETRY, not gripper aperture
+
+**40 mm is the floor. 30 mm fails** — and it fails not on the gripper, which
+closes far below that, but because the constrained near-side approach cannot
+produce a valid path to an object that small.
+
+This matters for every task built on this rig: the smallest manipulable object
+is not a property of the hand, and specifying objects by gripper aperture will
+produce task designs that cannot be executed. It also means "use a smaller
+object" is not available as a way to make a task easier.
+
+*(Provenance: the 40/30 mm figures come from the 2026-08-12 accuracy runs and
+are not reproduced in this repository — no script writes them and no baseline
+records them. The approach table above IS reproduced here:
+`recordings/baselines/topdown_vs_pinned.json`.)*

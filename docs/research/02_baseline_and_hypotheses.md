@@ -939,3 +939,32 @@ results, and **never** silently dropped.
   trust calibration.
 - **Whether autonomy would help a wearer who had a control input.** By construction
   they have none; that is the architecture, not an oversight.
+
+
+## STATED DESIGN PROPERTY: the five-mode comparison is entirely human-factors
+
+**The robot performs identically under all five modes, by construction.** This
+is not an empirical surprise to be explained away later; it follows from the
+architecture and can be read off the code. In `run_abc.py` the commanded
+trajectory is `wp = spec["build"]()` — built from the TASK spec with no mode
+argument. `mode` selects only the TOPIC the poses are published on, the
+isolation check, and the logging labels. Every mode therefore commands the
+same waypoints to the same follower with the same limits.
+
+The accuracy runs confirm it downstream: **100% grasp, 100% placement, zero
+variance across 20 trials in all five modes.**
+
+**So every difference the study measures must come from the operator**, and
+the mode axis is a human-factors axis end to end. Two consequences that belong
+in the design rather than in a later caveat:
+
+* no hypothesis may predict a difference in ROBOT performance between modes,
+  because the architecture forbids one;
+* the accuracy table is what establishes that **the manipulator is not a
+  confound** — without it, a null result on task performance could not be
+  distinguished from a manipulator that varied between conditions.
+
+*(Provenance: the 20-trial figures come from the 2026-08-12 accuracy runs and
+are not reproduced in this repository. The structural argument above IS
+verifiable here, and is the stronger of the two: mode-independence is a
+property of the code path, not a measured coincidence.)*

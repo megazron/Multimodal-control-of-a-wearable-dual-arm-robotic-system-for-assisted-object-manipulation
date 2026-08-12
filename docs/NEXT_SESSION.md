@@ -1,5 +1,30 @@
 # RESUME POINT — the data path is WIRED (19/19 planned cells logged); read the camera warning below before any perception work
 
+## THE WORKSPACE MARKING IS STALE, and the mismatch is not 15 mm
+
+Measured against the current layout (`WORKSPACE['left']` = x 0.300..0.700,
+y 0.050..0.200):
+
+| object | x outside by | y outside by |
+| --- | --- | --- |
+| cube_0 | **60 mm** | 10 mm |
+| cube_1,2,3 | 0 | 10 mm |
+| plane_0 | **70 mm** | **170 mm** |
+| plane_1 | 0 | **170 mm** |
+
+**Widening x to 0.365 does not fix this.** The dominant error is in **y**, and
+it is 170 mm on both planes — because `WORKSPACE` was surveyed from the work
+plane WITH THE BENCH IN SCENE, where the reachable band was y 0.05..0.20. The
+bench is gone and the band is not that any more: forward reach at object height
+with the table alone measures **0.425 m**
+(`recordings/baselines/forward_reach.json`), and the planes were deliberately
+moved out to y 0.32 on the strength of it.
+
+So the marking is describing a workspace that no longer exists. It must be
+RE-SURVEYED against the current scene, not nudged — a participant told "work
+inside the yellow box" would otherwise be shown a box that excludes both of
+the task's targets by 170 mm.
+
 ## THE WRIST CAMERAS DO NOT SEE THE WORK SURFACE FROM HOME. Read this first.
 
 **Measured, in sim, before anyone had a real camera:** at the home pose the

@@ -92,7 +92,25 @@ PLANE_W, PLANE_D, PLANE_T = 0.14, 0.10, 0.004
 # y = 0.10, which is under the whole measured reachable region (y 0.05..0.20)
 # and 150 mm below the work plane -- clear of the approach cone, measured at
 # 0 waypoint failures. See furniture_boxes() for the sweep.
-TABLE_TOP = 0.95
+# THE HEIGHT NOW HAS ONE OWNER. srl_experiments.work_surface holds the
+# declared value and, once something measures the real surface from depth,
+# the measured one. This module reads it rather than defining it, so a
+# measured surface reaches the scene instead of sitting beside it.
+try:
+    import sys as _sys, os as _os
+    _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.dirname(
+        _os.path.abspath(__file__))), "src", "srl_experiments"))
+    from srl_experiments.work_surface import table_top as _table_top
+    TABLE_TOP = _table_top()
+except Exception as _e:                             # pragma: no cover
+    # LOUD, not silent. Falling back to a hardcoded height without saying so
+    # is the bug this module was created to remove -- it is how a measured
+    # surface can exist and reach nothing.
+    import warnings as _w
+    _w.warn("work_surface unavailable (%s); falling back to a HARDCODED "
+            "table height. A measured surface will NOT reach the scene."
+            % _e, RuntimeWarning)
+    TABLE_TOP = 0.95
 TABLE_THICK = 0.035
 # 0.10, NOT 0.02, AND THE 80 mm MATTERS. The edge sweep measured z = 0.95 with
 # the edge at y = 0.100 at ZERO failures; built at 0.02 -- further forward than

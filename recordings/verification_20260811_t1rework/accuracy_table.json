@@ -1,0 +1,95 @@
+{
+  "01_master_teleop": [
+    {
+      "task": "t1s2",
+      "n": 4,
+      "grasped": 4,
+      "pos_err": [
+        0.0143,
+        0.0,
+        0.0,
+        0.0078
+      ],
+      "place_err": [],
+      "smallest": 40.0
+    }
+  ],
+  "02_vr_teleop": [
+    {
+      "task": "t1s2",
+      "n": 4,
+      "grasped": 3,
+      "pos_err": [
+        0.0,
+        0.0093,
+        0.0,
+        0.0475
+      ],
+      "place_err": [],
+      "smallest": 40.0
+    }
+  ],
+  "06_full_autonomy": [
+    {
+      "task": "t1",
+      "n": 4,
+      "grasped": 4,
+      "pos_err": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "place_err": [
+        0.203500221130101,
+        0.20470002442598778,
+        0.1446000345781425,
+        0.1442001386961885
+      ],
+      "smallest": 40.0
+    },
+    {
+      "task": "t1s2",
+      "n": 4,
+      "grasped": 4,
+      "pos_err": [
+        0.0,
+        0.0,
+        0.0,
+        0.0009
+      ],
+      "place_err": [],
+      "smallest": 40.0
+    }
+  ],
+  "04_vr_shared": [
+    {
+      "task": "t1s2",
+      "n": 4,
+      "grasped": 4,
+      "pos_err": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "place_err": [],
+      "smallest": 40.0
+    }
+  ],
+  "03_shared_autonomy": [
+    {
+      "task": "t1s2",
+      "n": 4,
+      "grasped": 4,
+      "pos_err": [
+        0.0,
+        0.0,
+        0.0,
+        0.0056
+      ],
+      "place_err": [],
+      "smallest": 40.0
+    }
+  ]
+}

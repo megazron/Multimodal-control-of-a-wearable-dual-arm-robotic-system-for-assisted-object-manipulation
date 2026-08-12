@@ -605,7 +605,12 @@ class Scene(Node):
                 # T1's min_pad_obj_m of 0.0957 m against a 0.03 m gate, so the
                 # fingers closed at the right MOMENT 96 mm from the cube.
                 out["cube_%d" % i] = dict(
-                    arm="left", width_mm=40,
+                    # FOLLOW THE TASK'S ARM. This was hardcoded "left" while
+                    # the task moved to the RIGHT arm, so the right gripper
+                    # closed on the cube and the scene was watching the left
+                    # one. Every T1 grasp went unrecorded: "NO GRASP RECORDED
+                    # at all" on a run where the arm plainly picked things up.
+                    arm=MCT.T1_ARM, width_mm=40,
                     pos=CT.ee_for([cx, cy, MCT.T1_Z]), size=(0.04,) * 3,
                     col=(BLUE if i in (0, 2) else GREEN), held=False,
                     # ALL FOUR are picked, one after another: T1's schedule is

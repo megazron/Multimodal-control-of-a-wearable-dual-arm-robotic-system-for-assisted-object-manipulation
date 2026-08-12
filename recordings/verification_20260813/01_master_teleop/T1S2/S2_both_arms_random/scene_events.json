@@ -1,0 +1,209 @@
+{
+  "task": "t1s2",
+  "events": [
+    {
+      "t": 42.13,
+      "wall": 1786577527.2999852,
+      "ev": "GRASPED",
+      "item": "cube_left_0",
+      "arm": "left",
+      "knuckle": 0.3926,
+      "needed": 0.3812,
+      "at": [
+        0.65,
+        0.0499,
+        1.12
+      ]
+    },
+    {
+      "t": 42.13,
+      "wall": 1786577527.3004882,
+      "ev": "GRASPED",
+      "item": "cube_right_0",
+      "arm": "right",
+      "knuckle": 0.3832,
+      "needed": 0.3812,
+      "at": [
+        -0.5968,
+        0.1021,
+        1.1057
+      ]
+    },
+    {
+      "t": 43.93,
+      "wall": 1786577529.0925777,
+      "ev": "RELEASED",
+      "item": "cube_left_0",
+      "arm": "left",
+      "carried_m": 0.1583,
+      "at": [
+        0.65,
+        0.0499,
+        1.12
+      ]
+    },
+    {
+      "t": 43.94,
+      "wall": 1786577529.1013808,
+      "ev": "RELEASED",
+      "item": "cube_right_0",
+      "arm": "right",
+      "carried_m": 0.1563,
+      "at": [
+        -0.6042,
+        0.1051,
+        1.1086
+      ]
+    },
+    {
+      "t": 46.34,
+      "wall": 1786577531.5029154,
+      "ev": "GRASPED",
+      "item": "cube_left_1",
+      "arm": "left",
+      "knuckle": 0.3814,
+      "needed": 0.3812,
+      "at": [
+        0.4,
+        0.0999,
+        1.12
+      ]
+    },
+    {
+      "t": 46.73,
+      "wall": 1786577531.897589,
+      "ev": "GRASPED",
+      "item": "cube_right_1",
+      "arm": "right",
+      "knuckle": 0.3942,
+      "needed": 0.3812,
+      "at": [
+        -0.2968,
+        0.1021,
+        1.1057
+      ]
+    },
+    {
+      "t": 48.83,
+      "wall": 1786577533.9953284,
+      "ev": "RELEASED",
+      "item": "cube_left_1",
+      "arm": "left",
+      "carried_m": 0.3949,
+      "at": [
+        0.6501,
+        0.05,
+        1.121
+      ]
+    },
+    {
+      "t": 49.23,
+      "wall": 1786577534.3930638,
+      "ev": "RELEASED",
+      "item": "cube_right_1",
+      "arm": "right",
+      "carried_m": 0.3906,
+      "at": [
+        -0.592,
+        0.1101,
+        1.1252
+      ]
+    }
+  ],
+  "items": [
+    {
+      "item": "cube_left_0",
+      "arm": "left",
+      "width_mm": 40,
+      "carried_m": 0.1583,
+      "final": [
+        0.65,
+        0.0499,
+        1.12
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0,
+      "min_pad_obj_knuckle": 0.4222,
+      "min_pad_obj_closed_m": 0.0,
+      "grasp_near_m": 0.03
+    },
+    {
+      "item": "cube_left_1",
+      "arm": "left",
+      "width_mm": 40,
+      "carried_m": 0.3949,
+      "final": [
+        0.6501,
+        0.05,
+        1.121
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0,
+      "min_pad_obj_knuckle": 0.3975,
+      "min_pad_obj_closed_m": 0.0,
+      "grasp_near_m": 0.03
+    },
+    {
+      "item": "cube_right_0",
+      "arm": "right",
+      "width_mm": 40,
+      "carried_m": 0.1563,
+      "final": [
+        -0.6042,
+        0.1051,
+        1.1086
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0,
+      "min_pad_obj_knuckle": 0.4221,
+      "min_pad_obj_closed_m": 0.0,
+      "grasp_near_m": 0.03
+    },
+    {
+      "item": "cube_right_1",
+      "arm": "right",
+      "width_mm": 40,
+      "carried_m": 0.3906,
+      "final": [
+        -0.592,
+        0.1101,
+        1.1252
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0054,
+      "min_pad_obj_knuckle": 0.4206,
+      "min_pad_obj_closed_m": 0.0054,
+      "grasp_near_m": 0.03
+    }
+  ],
+  "fixtures": [],
+  "furniture": [
+    "table"
+  ],
+  "ee_travel_m": {
+    "left": 1.5218,
+    "right": 1.4663
+  },
+  "ee_net_m": {
+    "left": 0.4037,
+    "right": 0.2957
+  },
+  "t0_wall": 1786577485.1659753,
+  "pad_off": [
+    -0.01706972155174902,
+    0.09453844942132691,
+    0.05718694070464837
+  ],
+  "pad_off_by_arm": {
+    "left": [
+      -0.01706972155174902,
+      0.09453844942132691,
+      0.05718694070464837
+    ],
+    "right": [
+      0.03614894957594736,
+      0.09671186534485471,
+      0.04288716062033375
+    ]
+  }
+}

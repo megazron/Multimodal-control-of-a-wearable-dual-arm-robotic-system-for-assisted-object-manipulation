@@ -546,7 +546,7 @@ TASKS = {
                "for grasping must be ABSENT here."),
     "t1": dict(
         name="pick and place, colour matched",
-        scenario="S1_left_arm",
+        scenario="S1_right_arm",
         build=t1,
         grip=lambda n: t1_grip(n),
         width_mm=40,

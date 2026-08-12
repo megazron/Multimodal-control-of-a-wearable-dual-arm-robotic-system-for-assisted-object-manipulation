@@ -1,0 +1,5 @@
+[INFO] [1786577575.937235478] [rviz2]: Stereo is NOT SUPPORTED
+[INFO] [1786577575.937437857] [rviz2]: OpenGl version: 4.5 (GLSL 4.5)
+[INFO] [1786577576.057393871] [rviz2]: Stereo is NOT SUPPORTED
+The X11 connection broke: I/O error (code 1)
+X connection to :91 broken (explicit kill or server shutdown).

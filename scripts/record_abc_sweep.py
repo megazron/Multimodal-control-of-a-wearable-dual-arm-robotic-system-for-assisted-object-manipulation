@@ -588,6 +588,28 @@ def _main_body():
             "tasks would report a clean run having recorded nothing."
             % (a.tasks, list(ts["keys"])))
         return 2
+
+    # SAY WHAT IS ABOUT TO BE FILMED, AND REFUSE IF IT IS NOT THIS TASKSET'S.
+    #
+    # SCENARIO is a FLAT dict merged from every task table, so a key present
+    # in two of them would resolve to whichever was merged last and the sweep
+    # would film one taskset's scenario under another's name. Nothing
+    # downstream could tell: the directories, the captions and the counts all
+    # look exactly right, and it surfaces only when a person watches the
+    # footage and sees the wrong task.
+    #
+    # There is no collision today. This refuses the day somebody adds one.
+    own = ts["mod"].TASKS
+    wrong = [k for k in tasks
+             if k not in own or SCENARIO.get(k) != own[k]["scenario"]]
+    log("   taskset %r -> %d task(s): %s"
+        % (a.taskset, len(tasks),
+           ", ".join("%s/%s" % (k, SCENARIO.get(k)) for k in tasks)))
+    if wrong:
+        log("REFUSING: %s did not resolve to the %r taskset's own scenarios. "
+            "A sweep that films the wrong tasks looks entirely normal until "
+            "somebody watches it." % (", ".join(wrong), a.taskset))
+        return 2
     prog = load_progress() if a.resume else {}
 
     log("=" * 74)

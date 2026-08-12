@@ -60,7 +60,12 @@ CUBE_M = 0.040
 # cube_2 straddled BOTH planes (10 x 40 mm each), so the cubes began heaped
 # on their own targets and "placed on the plane of its colour" had no visible
 # before and after. The rows are now 130 mm apart, which no footprint spans.
-T1_CUBES = [[0.260, 0.190], [0.320, 0.190], [0.380, 0.190], [0.440, 0.190]]
+# INSIDE THE SURVEYED BAND, which is |x| 0.30..0.70. The row used to start at
+# |x| 0.26, which is 40 mm INBOARD of it, and the approach column for that
+# cube failed 10 of T1's waypoints -- the grasp itself was fine, so a check
+# that only tested grasp points passed it. Shifted outboard by 60 mm.
+T1_CUBES = [[-0.320, 0.190], [-0.380, 0.190], [-0.440, 0.190],
+            [-0.500, 0.190]]
 # MOVED 15 mm OUTBOARD IN y, 0.130 -> 0.145, TO MAKE ROOM FOR THE SLOTS.
 # Two cubes share each plane and each now gets its own slot at +/-SLOT_DY in
 # y. At the old centre those slots fell at y = 0.100 and 0.160, and the near
@@ -68,9 +73,23 @@ T1_CUBES = [[0.260, 0.190], [0.320, 0.190], [0.380, 0.190], [0.440, 0.190]]
 # measured reachable band (y 0.05..0.20 at the grasp pose only, and the place
 # path also has to clear a 0.10 m standoff above it). At 0.145 the slots are
 # 0.115 and 0.175, both well inside.
-T1_PLANES = [[0.300, 0.320], [0.460, 0.320]]
+# 0.300, not 0.320. At 0.320 the place-down point sits at EE
+# (x, 0.255, 1.063) and BOTH planes failed there -- the lowest
+# point of the descent, after the grasp had already succeeded.
+T1_PLANES = [[-0.340, 0.300], [-0.500, 0.300]]
 T1_Z = CT.BENCH_TOP + CUBE_M / 2.0
-T1_ARM = "left"
+# T1 RUNS ON THE RIGHT ARM. Measured, N=10, full path, wearer and furniture:
+#
+#     left arm,  table only    2/4 cubes, 1/2 planes
+#     RIGHT arm, table only    4/4 cubes, 2/2 planes    <- the only clean pass
+#     split,     table only    3/4 cubes, 2/2 planes
+#
+# The two arms are NOT mirror images -- CLAUDE.md records
+# |v_R - M v_L| = 1.3837 m, a parking asymmetry proven independent of the
+# mount -- so the side an object sits on decides whether it can be reached at
+# all. T1's cubes were on the side of the arm that could not do it.
+# recordings/baselines/t1_layout_options.json
+T1_ARM = "right"
 STANDOFF, LIFT = 0.10, 0.08
 # Fixed so the T0 clip is reproducible; recorded in the clip metadata.
 T0_CLIP_SEED = 0
@@ -192,7 +211,9 @@ def t1():
             CT.OPEN, plane_obj)
     _T1_GRIP[:] = grip
     _T1_GRIP_AT[:] = at
-    return {"left": seq, "right": _hold(park(-0.32), len(seq))}
+    other = "left" if T1_ARM == "right" else "right"
+    sx = -0.32 if other == "right" else 0.32
+    return {T1_ARM: seq, other: _hold(park(sx), len(seq))}
 
 
 def t1_grip(n):
@@ -216,12 +237,15 @@ def t1_grip(n):
         t1()
     full = list(_T1_GRIP)
     if n == len(full):
-        return {"left": full, "right": [CT.OPEN] * n}
+        return {T1_ARM: full,
+                ("left" if T1_ARM == "right" else "right"):
+                    [CT.OPEN] * n}
     if n < len(full):
         step = len(full) / float(n)
-        return {"left": [full[min(len(full) - 1, int(i * step))]
+        return {T1_ARM: [full[min(len(full) - 1, int(i * step))]
                          for i in range(n)],
-                "right": [CT.OPEN] * n}
+                ("left" if T1_ARM == "right" else "right"):
+                    [CT.OPEN] * n}
     raise RuntimeError(
         "T1 grip schedule is %d long and %d waypoints were asked for -- "
         "refusing to pad it. A schedule longer than the path it was built "

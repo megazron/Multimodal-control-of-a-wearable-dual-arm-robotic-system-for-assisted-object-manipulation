@@ -5,29 +5,17 @@
     "furniture": []
   },
   "t1": {
-    "tested": 83,
-    "failures": 49,
+    "tested": 80,
+    "failures": 1,
     "furniture": [
-      "table",
-      "stand_cube_0",
-      "stand_cube_1",
-      "stand_cube_2",
-      "stand_cube_3",
-      "stand_plane_0",
-      "stand_plane_1"
+      "table"
     ]
   },
   "t1s2": {
     "tested": 50,
     "failures": 0,
     "furniture": [
-      "table",
-      "stand_cube_0",
-      "stand_cube_1",
-      "stand_cube_2",
-      "stand_cube_3",
-      "stand_plane_0",
-      "stand_plane_1"
+      "table"
     ]
   },
   "t2": {
@@ -39,11 +27,9 @@
   },
   "t3": {
     "tested": 16,
-    "failures": 8,
+    "failures": 0,
     "furniture": [
-      "table",
-      "stand_circuit_box",
-      "stand_multimeter"
+      "table"
     ]
   }
 }

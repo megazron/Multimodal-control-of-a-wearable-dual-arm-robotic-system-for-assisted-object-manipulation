@@ -111,6 +111,109 @@ SCENARIO.update({k: v["scenario"] for k, v in CH.TASKS.items()})
 # isolate() and nobody started vr_pose_mapper.
 from mode_upstreams import (MODE_ORDER, MODES, ALL_UPSTREAMS,   # noqa: E402
                             isolate)
+
+# The plain-words card text. Written per task rather than generated from the
+# task spec's prose, because that prose is long, uses dashes and reads like
+# documentation. A card is read in about six seconds by someone who has not
+# seen the clip before, so it gets short sentences and nothing decorative.
+CARD_TEXT = {
+    "t0": ("Reach three targets with one arm while the other stays still.",
+           "Watch the arm settle on each target before it moves to the next."),
+    "t1": ("Pick up four cubes and place each one on the mat of its colour.",
+           "Watch the fingers close on the cube, not above it. Blue goes to "
+           "the blue mat and green to the green mat."),
+    "t1s2": ("Both arms pick and place at the same time.",
+             "Watch both arms move together. Neither reaches into the "
+             "other's half of the table."),
+    "t2": ("Both arms lift one tray together.",
+           "Watch the tray stay level. If one hand leads, the ball rolls."),
+    "t3": ("Pick up the meter and touch it to each test point in turn.",
+           "Watch the tip land on the point and pause there."),
+    "d1": ("A slow routine. The arms take turns, one holding while the other "
+           "moves.",
+           "Watch the pause at the top of each reach."),
+    "d2": ("A routine on a beat. The arms move in opposite directions.",
+           "Watch one arm rise as the other drops, then both stop together."),
+    "d3": ("Call and answer. One arm gestures and the other replies.",
+           "Watch the arm wind up slightly before it moves, and settle after "
+           "it arrives."),
+}
+MODE_TEXT = {
+    "01_master_teleop": "Driven by hand from the master arm.",
+    "02_vr_teleop": "Driven by hand from the VR controllers.",
+    "03_shared_autonomy": "Driven by hand. The robot sets the wrist angle.",
+    "04_vr_shared": "Driven from VR. The robot sets the wrist angle.",
+    "06_full_autonomy": "The robot runs the task on a spoken instruction.",
+}
+
+
+def prepend_card(mp4, mode, task, hold_s=6.0):
+    """Put a full-frame information card in FRONT of the footage.
+
+    It used to be an overlay across the whole clip, which competes with the
+    thing it describes: the words sit on top of the arms for the entire run
+    and a viewer reads them while trying to watch the motion. A card that
+    plays first is read once and then gets out of the way.
+
+    Six seconds because that is roughly how long four short lines take to
+    read for someone who has not seen the clip before.
+    """
+    from PIL import Image, ImageDraw, ImageFont
+    if not os.path.exists(mp4):
+        return False
+    W, H = 800, 500
+    what, watch = CARD_TEXT.get(task, ("", ""))
+    im = Image.new("RGB", (W, H), (9, 13, 18))
+    d = ImageDraw.Draw(im)
+
+    def font(sz, bold=False):
+        try:
+            return ImageFont.truetype(
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans%s.ttf"
+                % ("-Bold" if bold else ""), sz)
+        except OSError:
+            return ImageFont.load_default()
+
+    import textwrap as _t
+    y = 70
+    d.text((56, y), task.upper(), fill=(238, 244, 248), font=font(34, True))
+    y += 52
+    d.text((56, y), MODE_TEXT.get(mode, mode), fill=(99, 200, 216),
+           font=font(17))
+    y += 46
+    d.line([(56, y), (W - 56, y)], fill=(60, 80, 96))
+    y += 30
+    for ln in _t.wrap(what, 58):
+        d.text((56, y), ln, fill=(238, 244, 248), font=font(18))
+        y += 27
+    y += 18
+    d.text((56, y), "What to watch for", fill=(232, 163, 61), font=font(15,
+                                                                       True))
+    y += 26
+    for ln in _t.wrap(watch, 62):
+        d.text((56, y), ln, fill=(206, 216, 224), font=font(16))
+        y += 24
+    png = mp4 + ".card.png"
+    im.save(png)
+    tmp = mp4 + ".carded.mp4"
+    r = subprocess.run(
+        [rr.FFMPEG, "-y", "-loglevel", "error",
+         "-loop", "1", "-t", "%.1f" % hold_s, "-i", png, "-i", mp4,
+         "-filter_complex",
+         "[0:v]scale=%d:%d,fps=12,format=yuv420p[c];"
+         "[1:v]scale=%d:%d,fps=12,format=yuv420p[v];[c][v]concat=n=2:v=1[o]"
+         % (W, H, W, H),
+         "-map", "[o]", "-c:v", "libx264", "-preset", "ultrafast",
+         "-pix_fmt", "yuv420p", tmp],
+        capture_output=True, text=True)
+    if r.returncode == 0 and os.path.exists(tmp) \
+            and os.path.getsize(tmp) > 10000:
+        os.replace(tmp, mp4)
+        os.remove(png)
+        return True
+    return False
+
+
 def burn_caption(front_mp4, lines, width=800):
     """Composite the caption ONTO the front clip, as pixels.
 
@@ -814,8 +917,10 @@ def _main_body():
                                    % ("AS EXPECTED" if good
                                       else "DID NOT COMPLETE", msg), 104):
                     cap_lines.append((ln, C_TXT if good else R_TXT))
-                burn_caption(os.path.join(out_dir, "rviz_front.mp4"),
-                             cap_lines)
+                # A CARD IN FRONT OF EVERY ANGLE, not an overlay across one.
+                for _f in sorted(os.listdir(out_dir)):
+                    if _f.startswith("rviz_") and _f.endswith(".mp4"):
+                        prepend_card(os.path.join(out_dir, _f), mode, task)
                 quad = rr.make_quad(out_dir)
                 files = sorted(f for f in os.listdir(out_dir)
                                if f.endswith(".mp4"))

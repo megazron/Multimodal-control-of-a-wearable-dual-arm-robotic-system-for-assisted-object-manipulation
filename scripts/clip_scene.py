@@ -299,8 +299,31 @@ def furniture_boxes(task):
     # geometry is untouched, because the surface they overhang is unchanged.
     yc = (_ct.BENCH_NEAR_Y + _ct.BENCH_FAR_Y) / 2.0
     yd = _ct.BENCH_FAR_Y - _ct.BENCH_NEAR_Y
-    out.append(("bench", [0.0, yc, _ct.BENCH_TOP - _ct.BENCH_THICK / 2.0],
-                [2 * _ct.BENCH_HALF_X, yd, _ct.BENCH_THICK], TAN))
+    # THE BENCH IS GONE. ONE TABLE.
+    #
+    # It cost 0.250 m of forward reach and supported nothing. Measured
+    # (scripts/measure_forward_reach.py), forward reach at working height:
+    #
+    #     no furniture 0.425   table only 0.425   bench only 0.175
+    #
+    # and its top surface (y 0.245..0.630) overlapped the reachable band
+    # (y 0.05..0.20) by EXACTLY ZERO, so no object could ever be placed on
+    # it. Every object was in fact floating in front of its near edge, over
+    # nothing -- which is what "the objects are on neither surface" meant.
+    #
+    # Raising it does not help: with the surface at 1.20/1.25/1.30/1.35 the
+    # band reads 0.200 every time. The band rises WITH the surface and never
+    # moves forward, because the arm's approach cone points 30.7 deg ABOVE
+    # horizontal, so the forearm trails below and behind the fingertip -- and
+    # over a slab, that trailing volume is inside the slab.
+    #
+    # That is also why the objects cannot simply lie on the table: at 20 mm
+    # above the table top the band is 0.025 m, i.e. nothing on the table is
+    # reachable at all. They need to be ~150 mm clear of it, which is what
+    # the PEDESTALS below provide. One table, and small stands on it.
+    if task in ("a", "b", "c"):
+        out.append(("bench", [0.0, yc, _ct.BENCH_TOP - _ct.BENCH_THICK / 2.0],
+                    [2 * _ct.BENCH_HALF_X, yd, _ct.BENCH_THICK], TAN))
     tyc = (TABLE_NEAR_Y + TABLE_FAR_Y) / 2.0
     tyd = TABLE_FAR_Y - TABLE_NEAR_Y
     out.append(("table", [0.0, tyc, TABLE_TOP - TABLE_THICK / 2.0],
@@ -319,6 +342,36 @@ def furniture_boxes(task):
                         [0.02 if dx else _ct.A_BIN_D,
                          _ct.A_BIN_D if dx else 0.02, _ct.A_BIN_H], TEAL))
         return out
+    # PEDESTALS -- one slim stand per object, table top to object base.
+    #
+    # NOT a second table. Each is the object's own footprint plus 10 mm, so
+    # the arm approaches BESIDE and ABOVE it rather than over a slab: the
+    # blocking mechanism is a broad surface under the approach path, and a
+    # 60 mm post is not one. They are what makes "objects rest on a surface
+    # with their base at surface height" true again now the bench is gone.
+    def _pedestal(name, xy, top_z, foot):
+        h = top_z - TABLE_TOP
+        return (name, [xy[0], xy[1], TABLE_TOP + h / 2.0],
+                [foot[0], foot[1], h], TAN)
+
+    if task in ("t1", "t1s2"):
+        for i, (cx, cy) in enumerate(_mct.T1_CUBES):
+            out.append(_pedestal("stand_cube_%d" % i, (cx, cy),
+                                 _mct.T1_Z - _mct.CUBE_M / 2.0,
+                                 (_mct.CUBE_M + 0.01, _mct.CUBE_M + 0.01)))
+        for i, (px, py) in enumerate(_mct.T1_PLANES):
+            out.append(_pedestal("stand_plane_%d" % i, (px, py),
+                                 _ct.BENCH_TOP, (PLANE_W, PLANE_D)))
+    elif task == "t3":
+        out.append(_pedestal("stand_circuit_box",
+                             (_t3.BOX_OBJ[0], _t3.BOX_OBJ[1]),
+                             _t3.BOX_OBJ[2] - _t3.BOX_SIZE[2] / 2.0,
+                             (_t3.BOX_SIZE[0], _t3.BOX_SIZE[1])))
+        out.append(_pedestal("stand_multimeter",
+                             (_t3.METER_OBJ[0], _t3.METER_OBJ[1]),
+                             _t3.METER_OBJ[2] - _t3.METER_SIZE[2] / 2.0,
+                             (_t3.METER_SIZE[0], _t3.METER_SIZE[1])))
+
     if not SUPPORTS_ENABLED:
         return out
     if task in ("t1", "t1s2"):

@@ -1,0 +1,49 @@
+{
+  "t0": {
+    "tested": 50,
+    "failures": 0,
+    "furniture": []
+  },
+  "t1": {
+    "tested": 83,
+    "failures": 49,
+    "furniture": [
+      "table",
+      "stand_cube_0",
+      "stand_cube_1",
+      "stand_cube_2",
+      "stand_cube_3",
+      "stand_plane_0",
+      "stand_plane_1"
+    ]
+  },
+  "t1s2": {
+    "tested": 50,
+    "failures": 0,
+    "furniture": [
+      "table",
+      "stand_cube_0",
+      "stand_cube_1",
+      "stand_cube_2",
+      "stand_cube_3",
+      "stand_plane_0",
+      "stand_plane_1"
+    ]
+  },
+  "t2": {
+    "tested": 22,
+    "failures": 0,
+    "furniture": [
+      "table"
+    ]
+  },
+  "t3": {
+    "tested": 16,
+    "failures": 8,
+    "furniture": [
+      "table",
+      "stand_circuit_box",
+      "stand_multimeter"
+    ]
+  }
+}

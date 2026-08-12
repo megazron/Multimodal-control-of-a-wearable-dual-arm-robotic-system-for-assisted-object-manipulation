@@ -46,7 +46,21 @@ park = CT.park
 CUBE_M = 0.040
 # T1's layout, from the option-4 search: 4 cubes + 2 planes, left arm, all
 # verified over the full pick path at N=10 with the bench in the scene.
-T1_CUBES = [[0.280, 0.230], [0.340, 0.230], [0.380, 0.170], [0.400, 0.230]]
+# THE ONE-TABLE LAYOUT. The bench is deleted -- it cost 0.250 m of forward
+# reach and its top surface overlapped the reachable band by EXACTLY ZERO, so
+# no object could ever sit on it. The objects now stand on slim pedestals on
+# the table and the work moves OUT IN FRONT instead of against the wearer.
+#
+# Reach at object height with the table alone is 0.425 m (measured,
+# scripts/measure_forward_reach.py). Cubes sit at y 0.19 and planes at 0.32,
+# so the furthest the gripper visits is 0.37 -- 55 mm inside the limit, per
+# the rule of staying at least 20 mm inside the last pose that passed N/N.
+#
+# CUBES CLEAR OF PLANES AT THE START. The old rows were 85 mm apart and
+# cube_2 straddled BOTH planes (10 x 40 mm each), so the cubes began heaped
+# on their own targets and "placed on the plane of its colour" had no visible
+# before and after. The rows are now 130 mm apart, which no footprint spans.
+T1_CUBES = [[0.260, 0.190], [0.320, 0.190], [0.380, 0.190], [0.440, 0.190]]
 # MOVED 15 mm OUTBOARD IN y, 0.130 -> 0.145, TO MAKE ROOM FOR THE SLOTS.
 # Two cubes share each plane and each now gets its own slot at +/-SLOT_DY in
 # y. At the old centre those slots fell at y = 0.100 and 0.160, and the near
@@ -54,7 +68,7 @@ T1_CUBES = [[0.280, 0.230], [0.340, 0.230], [0.380, 0.170], [0.400, 0.230]]
 # measured reachable band (y 0.05..0.20 at the grasp pose only, and the place
 # path also has to clear a 0.10 m standoff above it). At 0.145 the slots are
 # 0.115 and 0.175, both well inside.
-T1_PLANES = [[0.300, 0.145], [0.460, 0.145]]
+T1_PLANES = [[0.300, 0.320], [0.460, 0.320]]
 T1_Z = CT.BENCH_TOP + CUBE_M / 2.0
 T1_ARM = "left"
 STANDOFF, LIFT = 0.10, 0.08

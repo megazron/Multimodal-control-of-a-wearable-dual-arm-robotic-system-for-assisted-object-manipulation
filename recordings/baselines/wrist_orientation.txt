@@ -1,0 +1,11 @@
+table top z = 0.950
+
+=== 1. WRIST DIRECTION AT HOME (tool axis = gripper approach axis) ===
+  left  tool axis (-0.153, +0.846, +0.511)  elevation +30.8 deg  angle to table normal 120.8 deg  -> POINTING UP
+        EE z 1.146   fingertip z 1.186   fingertip is +40 mm relative to EE
+  right tool axis (+0.259, +0.890, +0.376)  elevation +22.1 deg  angle to table normal 112.1 deg  -> POINTING UP
+        EE z 1.179   fingertip z 1.228   fingertip is +49 mm relative to EE
+
+=== 2. PAD POSITION AT GRASP vs THE TABLE SURFACE ===
+  left  cube_0  no IK
+python3: ./.obj-x86_64-linux-gnu/rosidl_generator_py/sensor_msgs/msg/_joint_state_s.c:59: sensor_msgs__msg__joint_state__convert_from_py: Assertion `strncmp("sensor_msgs.msg._joint_state.JointState", full_classname_dest, 39) == 0' failed.

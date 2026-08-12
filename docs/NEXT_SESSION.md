@@ -1,5 +1,53 @@
 # RESUME POINT — the data path is WIRED (19/19 planned cells logged); read the camera warning below before any perception work
 
+
+## LAB-DAY FAULT TABLE: match a symptom to a known cause
+
+Injected, not reasoned about: `python3 scripts/inject_lab_day_faults.py`.
+The 14 faults in `srl_teleop/fault_injector.py` are separate and all handled;
+these are the ones it does not cover.
+
+**Read the SILENT rows first.** A named failure costs a minute. A silent one
+costs a morning, because you debug the wrong thing.
+
+| fault | what happens | named | recovers without restart |
+| --- | --- | --- | --- |
+| `object_missing` | **SILENT** | **NO** | no |
+| `object_rotated_30deg` | **SILENT** | **NO** | no |
+| `wearer_moves` | **SILENT** | **NO** | no |
+| `camera_absent` | **DETECTED** | yes | start the camera |
+| `camera_garbage` | **PARTIAL** | yes | unknown |
+| `camera_silent` | **DETECTED** | yes | fix TF / restart camera |
+| `gui_killed` | **PARTIAL** | yes | relaunch; session state resumable |
+| `object_moved_after_scan` | **DETECTED** | yes | re-scan (srv_resweep) |
+| `table_20mm_high` | **DETECTED** | yes | yes, clear_measured |
+| `table_20mm_low` | **DETECTED** | yes | yes, clear_measured |
+| `table_never_measured` | **DETECTED** | yes | n/a |
+| `two_stacks` | **DETECTED** | yes | kill the named PIDs |
+
+### The 3 silent ones, in full
+
+**`object_rotated_30deg`** — fingerprint CAN store a quat=True but NO grasp path reads .quat=False -- a rotated object gets a SQUARE grasp and nothing compares them
+
+**`object_missing`** — fingerprint names dropped/missing objects=False
+
+**`wearer_moves`** — the wearer is a FIXED link in the URDF; mount guard and clearance check the ARM against a STATIONARY model, so a wearer who moves is invisible
+
+### What the silent ones mean on the day
+
+* **A rotated object.** The fingerprint can hold an orientation and compares
+  rotation between scans, but no grasp path reads it. Put a cube down at an
+  angle and the arm will grasp as if it were square. Nothing will say so, and
+  the grasp will simply be poor. Square everything up by hand until the grasp
+  reads the observed pose.
+* **A missing object.** The fingerprint does not name an object that has gone.
+  A trial will run against a scene that is short one item.
+* **A wearer who moves.** The wearer is a fixed link in the URDF. The mount
+  guard and the clearance floor both check the arm against a stationary model,
+  so a wearer who shifts is invisible to every safety check that mentions them.
+  This is the one to take seriously: the clearance figures assume a person who
+  does not move, and a person will move.
+
 ## THE WORKSPACE MARKING IS STALE, and the mismatch is not 15 mm
 
 Measured against the current layout (`WORKSPACE['left']` = x 0.300..0.700,

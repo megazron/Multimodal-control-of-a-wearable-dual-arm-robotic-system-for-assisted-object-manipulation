@@ -1,0 +1,86 @@
+[
+  {
+    "fault": "table_20mm_high",
+    "what": "DETECTED",
+    "named": true,
+    "recovers": "yes, clear_measured",
+    "detail": "WORK SURFACE +20.0 mm FROM DECLARED: measured 0.970 m against 0.950 m. Every grasp was verified against the declared height, so each one is now -20.0 mm off the object. The cube is 40 mm. Re-measure, or re-verify the task coordinates against 0.970 m before running. (injected)"
+  },
+  {
+    "fault": "table_20mm_low",
+    "what": "DETECTED",
+    "named": true,
+    "recovers": "yes, clear_measured",
+    "detail": "WORK SURFACE -20.0 mm FROM DECLARED: measured 0.930 m against 0.950 m. Every grasp was verified against the declared height, so each one is now +20.0 mm off the object. The cube is 40 mm. Re-measure, or re-verify the task coordinates against 0.930 m before running. (injected)"
+  },
+  {
+    "fault": "table_never_measured",
+    "what": "DETECTED",
+    "named": true,
+    "recovers": "n/a",
+    "detail": "WORK SURFACE NOT MEASURED. Running on the declared 0.950 m. On real hardware this is a guess: a surface 20 mm out moves every object half a cube relative to the grasp computed for it."
+  },
+  {
+    "fault": "object_rotated_30deg",
+    "what": "SILENT",
+    "named": false,
+    "recovers": "no",
+    "detail": "fingerprint CAN store a quat=True but NO grasp path reads .quat=False -- a rotated object gets a SQUARE grasp and nothing compares them"
+  },
+  {
+    "fault": "object_moved_after_scan",
+    "what": "DETECTED",
+    "named": true,
+    "recovers": "re-scan (srv_resweep)",
+    "detail": "drift check present=True, position tolerance present=True"
+  },
+  {
+    "fault": "object_missing",
+    "what": "SILENT",
+    "named": false,
+    "recovers": "no",
+    "detail": "fingerprint names dropped/missing objects=False"
+  },
+  {
+    "fault": "camera_absent",
+    "what": "DETECTED",
+    "named": true,
+    "recovers": "start the camera",
+    "detail": "camera topics present=False; fingerprint warns on a blind sweep=True"
+  },
+  {
+    "fault": "camera_silent",
+    "what": "DETECTED",
+    "named": true,
+    "recovers": "fix TF / restart camera",
+    "detail": "mock names a blind camera by TF frame=True"
+  },
+  {
+    "fault": "camera_garbage",
+    "what": "PARTIAL",
+    "named": true,
+    "recovers": "unknown",
+    "detail": "tracker guards seen: confidence,drop,1.5. A confidently WRONG pose passes every one of them"
+  },
+  {
+    "fault": "two_stacks",
+    "what": "DETECTED",
+    "named": true,
+    "recovers": "kill the named PIDs",
+    "detail": "GUI refuses a second stack=True, counts master_pose_node=True"
+  },
+  {
+    "fault": "wearer_moves",
+    "what": "SILENT",
+    "named": false,
+    "recovers": "no",
+    "detail": "the wearer is a FIXED link in the URDF; mount guard and clearance check the ARM against a STATIONARY model, so a wearer who moves is invisible"
+  },
+  {
+    "fault": "gui_killed",
+    "what": "PARTIAL",
+    "named": true,
+    "recovers": "relaunch; session state resumable",
+    "detail": "GUI kills its children cleanly=True, session resume present=True"
+  }
+]

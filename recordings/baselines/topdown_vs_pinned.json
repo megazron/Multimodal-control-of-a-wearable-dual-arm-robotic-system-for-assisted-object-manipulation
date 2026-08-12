@@ -1,0 +1,36 @@
+{
+  "t1": {
+    "pinned near-side": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "TOP-DOWN constrained 0.05": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "t2": {
+    "pinned near-side": [
+      0.30000000000000016,
+      0.30000000000000016
+    ],
+    "TOP-DOWN constrained 0.05": [
+      null,
+      null
+    ]
+  },
+  "t3": {
+    "pinned near-side": [
+      null,
+      null
+    ],
+    "TOP-DOWN constrained 0.05": [
+      null,
+      0.30000000000000016
+    ]
+  }
+}

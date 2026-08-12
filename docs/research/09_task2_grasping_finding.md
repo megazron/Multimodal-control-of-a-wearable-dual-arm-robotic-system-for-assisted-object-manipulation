@@ -55,24 +55,48 @@ an aligned grasp. They do not demonstrate that an *operator* can command one,
 and the three recorded conditions differ only in trajectory smoothing, so they
 do not distinguish it either.
 
-## What is NOT established: that the WEARER forbids a top-down grasp
+## The wearer does NOT forbid top-down — the 0/128 measured something else
 
-A separate claim — top-down **0/128 with the wearer present, 128/128 without**,
-i.e. the wearer is the ceiling — does not reproduce at T1's grasp points.
+**Resolved 2026-08-12.** The 0/128 poses sat **240 mm inboard of T1's grasp
+points**, so that sweep measured LATERAL REACH, not approach direction. The
+wearer is not the ceiling, and the general claim that was proposed on the back
+of it — *"a supernumerary arm cannot approach from above, because its own
+wearer is above the workspace"* — is **FALSE at these grasp points and must not
+appear anywhere.** It would have been a wrong claim generalised to every SRL.
+
+The original null result also does not reproduce at T1's grasp points.
 Measured there with `avoid_collisions=True` and the wearer in the scene,
 top-down succeeds **4/4** and FK confirms the achieved orientation is 0.00°
 from top-down. The 128-pose set is not in this repository — no script writes
 it and no baseline records it — so the two cannot be reconciled by rerunning
 the other probe.
 
-Both can be true if the sets differ in POSITION: top-down may well be
-forbidden lower down or further over the table while permitted at T1's grasp
-height. **If so the claim is real but SCOPED, and the scope belongs in its
-first sentence.** As it is currently worded — "a supernumerary arm cannot
-approach from above, because its own wearer is above the workspace" — it
-generalises to every SRL, and at the only poses measured here it is false.
-That sentence must not enter a thesis until the pose set is recovered and the
-scope stated.
+### So is top-down the better approach? MEASURED, AND NO.
+
+Once the premise dissolved, top-down was tested as a working approach for the
+first time — N=10, full path, wearer AND furniture in the scene, constrained
+yaw-free IK at 0.05 rad, i.e. exactly the mechanism modes 3/4/6 would use:
+
+| task | pinned near-side | top-down, constrained |
+| --- | --- | --- |
+| T1 | 0/4 reachable | 0/4 reachable |
+| T2 | **2/2, lift ≥ 300 mm** | 0/2 reachable |
+| T3 | 0/2 reachable | **1/2, lift ≥ 300 mm** |
+
+**The two approaches are COMPLEMENTARY, not ordered.** Each rescues a task the
+other cannot do, so neither is the right global default and "switch to
+top-down" would have traded T2 away for part of T3. The approach belongs in
+the TASK definition, chosen per grasp, not in a global setting.
+
+**And the lift premise does not survive either.** The near-side approach was
+believed to cap the lift because it enters from below; measured, wherever the
+grasp is reachable at all the lift is ≥ 300 mm — the sweep's own cap, never
+the arm's — for BOTH approaches. There is no 40 mm ceiling to raise. Dropping
+`LIFT_M` from 80 mm was premised on a limit that does not exist.
+
+T1 fails under both approaches for a reason unrelated to orientation: the
+object pedestals block the left arm (see the one-table layout work), and T1's
+cubes are all on the side of the arm that cannot reach them.
 
 ## Why this is a finding rather than a gap
 

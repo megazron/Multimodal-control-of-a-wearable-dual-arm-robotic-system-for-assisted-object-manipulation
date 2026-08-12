@@ -1,0 +1,12 @@
+
+t1  (7 collision objects)
+   pinned near-side           lift mm: --, --, --, --            reachable 0/4  min n/a
+   TOP-DOWN constrained 0.05  lift mm: --, --, --, --            reachable 0/4  min n/a
+
+t2  (1 collision objects)
+   pinned near-side           lift mm: 300, 300                  reachable 2/2  min 300 mm
+   TOP-DOWN constrained 0.05  lift mm: --, --                    reachable 0/2  min n/a
+
+t3  (3 collision objects)
+   pinned near-side           lift mm: --, --                    reachable 0/2  min n/a
+   TOP-DOWN constrained 0.05  lift mm: --, 300                   reachable 1/2  min 300 mm

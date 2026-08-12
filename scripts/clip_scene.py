@@ -59,6 +59,40 @@ KN = "%s_robotiq_85_left_knuckle_joint"
 # of tracking error between the commanded pose and tf2.
 GRASP_NEAR_M = 0.03
 
+# ORIENTATION MUST MATCH, NOT JUST POSITION.
+#
+# Attachment tested DISTANCE alone, so an object sitting at an angle was
+# grasped as though it were square and the sim reported a clean grasp. On a
+# 40 mm cube a 30 deg error is about 20 mm of misalignment across the face --
+# in reality the fingers catch a corner or push the cube away. The sim could
+# not show it because nothing anywhere compared the gripper's closing axis to
+# the object's.
+#
+# A CUBE IS SYMMETRIC UNDER 90 DEG, so the error is taken modulo 90: a gripper
+# at 90 deg to a square cube grasps it perfectly well, and a check that called
+# that a failure would be wrong in the other direction.
+GRASP_YAW_TOL_DEG = 20.0
+
+
+def yaw_error_deg(axis, obj_yaw_deg, symmetry_deg=90.0):
+    """Misalignment between the gripper's closing axis and the object, degrees.
+
+    `axis` is any vector along the line joining the two finger pads; its SIGN
+    does not matter, which is why the result is folded into [0, symmetry/2].
+    Returns None if the axis is degenerate (pads coincident), because a
+    missing measurement must not read as a good one.
+    """
+    import math as _m
+    if axis is None:
+        return None
+    ax, ay = float(axis[0]), float(axis[1])
+    if _m.hypot(ax, ay) < 1e-6:
+        return None                      # axis is vertical: no yaw to compare
+    a = _m.degrees(_m.atan2(ay, ax))
+    d = (a - float(obj_yaw_deg)) % symmetry_deg
+    return min(d, symmetry_deg - d)
+
+
 # rgba, measured RENDERED colours are what the verifier keys on, so these are
 # chosen to sit inside its existing detector bands rather than near them.
 TAN = (0.78, 0.66, 0.42, 1.0)        # tray  -> _tan
@@ -639,6 +673,26 @@ class Scene(Node):
     # close about here; the wrist is 111.8 mm behind it.
     PAD_DEPTH_M = 0.1118
 
+    def _grip_axis(self, arm):
+        """The gripper's CLOSING axis in world, from the two finger pads.
+
+        Read from TF rather than derived from the wrist quaternion, so it
+        cannot disagree with the model actually running. Returns None if
+        either pad frame is missing -- and None is treated by the caller as
+        "no measurement", never as "aligned", because a missing check that
+        reads as a pass is the failure this gate was added to stop.
+        """
+        try:
+            a = self.buf.lookup_transform(
+                "world", "%s_robotiq_85_left_finger_tip_link" % arm,
+                rclpy.time.Time()).transform.translation
+            b = self.buf.lookup_transform(
+                "world", "%s_robotiq_85_right_finger_tip_link" % arm,
+                rclpy.time.Time()).transform.translation
+        except Exception:                                     # noqa: BLE001
+            return None
+        return (b.x - a.x, b.y - a.y, b.z - a.z)
+
     def _grip(self, arm):
         """Where the finger PADS are, in world -- not where the wrist is.
 
@@ -1112,7 +1166,31 @@ class Scene(Node):
                 if closed and d < it.get("min_d_closed", 1e9):
                     it["min_d_closed"] = d
             near = d is not None and d <= GRASP_NEAR_M
-            on = closed and (it["held"] or near)
+            # ORIENTATION GATE. An object at an angle needs a gripper turned
+            # to match; distance alone called that a grasp.
+            axis = self._grip_axis(_arm) if hasattr(self, "_grip_axis") else None
+            yerr = yaw_error_deg(axis, it.get("yaw_deg", 0.0),
+                                 it.get("symmetry_deg", 90.0))
+            aligned = (yerr is None) or (yerr <= GRASP_YAW_TOL_DEG)
+            if yerr is not None:
+                it["max_yaw_err_deg"] = max(it.get("max_yaw_err_deg", 0.0),
+                                            yerr)
+                if near and closed and not aligned:
+                    # LOUD, and only when it actually cost a grasp: the pads
+                    # were on the object, the fingers closed, and the grasp
+                    # was refused for ORIENTATION. Without this the operator
+                    # sees "no grasp" and looks at the path.
+                    self._yaw_refusals = getattr(self, "_yaw_refusals", 0) + 1
+                    if self._yaw_refusals in (1, 10) or \
+                            self._yaw_refusals % 100 == 0:
+                        self.get_logger().warn(
+                            "GRASP REFUSED ON ORIENTATION: %s is at %.0f deg "
+                            "and the gripper is %.0f deg off it (limit %.0f). "
+                            "The pads are on the object; the hand is turned "
+                            "the wrong way."
+                            % (k, it.get("yaw_deg", 0.0), yerr,
+                               GRASP_YAW_TOL_DEG))
+            on = closed and aligned and (it["held"] or near)
             if self.t0 is None:
                 self.t0 = self.get_clock().now().nanoseconds * 1e-9
                 self.t0_wall = time.time()

@@ -61,13 +61,17 @@ def test_the_scene_reads_the_owner_rather_than_its_own_literal():
     root = os.path.dirname(os.path.dirname(os.path.dirname(
         os.path.dirname(os.path.abspath(__file__)))))
     src = open(os.path.join(root, "scripts", "clip_scene.py")).read()
-    head = src[:src.index("def ")] if "def " in src else src
-    assert "work_surface" in head, (
+    # SCAN THE WHOLE MODULE, not a slice "before the first def". The first
+    # version cut at the first `def` and passed only as long as no function
+    # was ever defined above the table-height block. One was, and the test
+    # broke without the property it guards having changed at all -- the
+    # instrument was the fault, not the code.
+    assert "work_surface" in src, (
         "clip_scene must READ work_surface.table_top(), not define its own "
         "table height")
-    # A fallback literal is allowed, but only inside an except branch that
-    # WARNS -- a silent fallback is how a measured surface reaches nothing.
-    i = head.find("TABLE_TOP = 0.95")
+    i = src.find("TABLE_TOP = 0.95")
     if i != -1:
-        assert "warn" in head[max(0, i - 500):i], (
+        # A fallback literal is allowed, but only where it WARNS. A silent
+        # fallback is how a measured surface reaches nothing.
+        assert "warn" in src[max(0, i - 600):i], (
             "the fallback table height is silent; it must warn")

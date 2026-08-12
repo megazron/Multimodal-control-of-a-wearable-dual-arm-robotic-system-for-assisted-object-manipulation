@@ -1,0 +1,25 @@
+left  EE->pad offsets in the EE frame: ['(0.068,-0.000,0.098)', '(-0.068,-0.000,0.098)']
+right EE->pad offsets in the EE frame: ['(0.068,-0.000,0.098)', '(-0.068,0.000,0.098)']
+
+validating: recompute home pad from the offset
+   left  left_robotiq_85_left_finger_tip_link   err 0.00e+00 m
+   left  left_robotiq_85_right_finger_tip_link  err 0.00e+00 m
+   right right_robotiq_85_left_finger_tip_link  err 5.55e-17 m
+   right right_robotiq_85_right_finger_tip_link err 5.55e-17 m
+
+table top z = 0.950
+
+t1
+   left  (+0.260,0.190,1.120)  PAD z 1.1595   +209.5 mm vs table
+   left  (+0.320,0.190,1.120)  PAD z 1.1595   +209.5 mm vs table
+   left  (+0.380,0.190,1.120)  PAD z 1.1595   +209.5 mm vs table
+   left  (+0.440,0.190,1.120)  PAD z 1.1595   +209.5 mm vs table
+t2
+   left  (+0.250,0.350,1.320)  PAD z 1.3595   +409.5 mm vs table
+   right (-0.250,0.350,1.320)  PAD z 1.3445   +394.5 mm vs table
+t3
+   left  (+0.357,0.095,1.065)  PAD z 1.1045   +154.5 mm vs table
+   right (-0.523,0.075,1.068)  PAD z 1.0925   +142.5 mm vs table
+
+WORST +142.5 mm
+CONTROL grasp 300 mm below the table -> pad -260.5 mm vs table  FLAGGED (good)

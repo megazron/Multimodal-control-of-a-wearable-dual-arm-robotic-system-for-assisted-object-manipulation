@@ -1,0 +1,15 @@
+table top z = 0.950  (pad BELOW this = grasping inside the table)
+
+t1
+   left  (0.260,0.190,1.120)  no IK
+   left  (+0.320,0.190,1.120)  EE z 1.146  PAD z 1.186   +235.9 mm vs table   tool elev +30.8 deg
+   left  (+0.380,0.190,1.120)  EE z 1.146  PAD z 1.186   +235.9 mm vs table   tool elev +30.8 deg
+   left  (+0.440,0.190,1.120)  EE z 1.146  PAD z 1.186   +235.9 mm vs table   tool elev +30.8 deg
+t2
+   left  (+0.250,0.350,1.320)  EE z 1.146  PAD z 1.186   +235.9 mm vs table   tool elev +30.8 deg
+   right (-0.250,0.350,1.320)  EE z 1.179  PAD z 1.203   +253.3 mm vs table   tool elev +22.1 deg
+t3
+   left  (+0.357,0.095,1.065)  EE z 1.146  PAD z 1.186   +235.9 mm vs table   tool elev +30.8 deg
+   right (-0.523,0.075,1.068)  EE z 1.179  PAD z 1.203   +253.3 mm vs table   tool elev +22.1 deg
+
+WORST pad clearance: +235.9 mm

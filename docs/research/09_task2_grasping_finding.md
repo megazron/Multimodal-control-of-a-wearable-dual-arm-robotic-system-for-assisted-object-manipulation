@@ -15,9 +15,36 @@ There is no channel that commands it:
 * the master's wrist is unmeasurable — left j7 is restricted to
   \SI{26}{\degree} and j6 is incoherent; right j3, j5 and j7 are dead or
   incoherent. That is *why* the mode defaults to pinned;
-* ORIENTATION_ASSIST, which exists to supply it, is a stub because this
-  `/compute_ik` plugin ignores `OrientationConstraint` (measured: identical IK
-  success with and without, over 270 calls);
+* ORIENTATION_ASSIST, which exists to supply it, is a stub — **but NOT for
+  the reason this document gave until 2026-08-12.** The earlier claim was that
+  the `/compute_ik` plugin ignores `OrientationConstraint`, on the evidence of
+  identical IK success with and without over 270 calls. **That was a tolerance
+  artefact and the claim is WITHDRAWN.** The tolerance used (0.2 / 0.2 / π rad)
+  was loose enough not to bind at the poses tested, so identical counts were
+  the expected result either way — a success COUNT cannot distinguish "honoured
+  but not binding" from "ignored".
+
+  Re-measured by FK on the solution rather than by counting successes, at T1's
+  four real grasp poses, with the decisive case being a request whose POSE and
+  whose CONSTRAINT disagree:
+
+  | request | result |
+  | --- | --- |
+  | exact pinned, no constraint | achieved **0.00°** from pinned |
+  | pose PINNED + constraint TOP-DOWN 0.05 rad | **REFUSED, 4/4** |
+  | exact top-down, no constraint | achieved **0.00°** from top-down |
+  | pose TOP-DOWN + constraint TOP-DOWN 0.05 rad | achieved **0.00°** from top-down |
+
+  Row 2 is the discriminator. Had the constraint been ignored the solver would
+  have returned the pinned solution and reported success, exactly as row 1
+  does. It refused instead, at every pose: **the constraint binds.** So a
+  constrained yaw-free IK path is available and ORIENTATION_ASSIST can stop
+  being a stub. Raw output: `recordings/baselines/orientation_constraint_fk.txt`.
+
+  **The conclusion of this document is unchanged**, because it never rested on
+  the solver. It rests on the MASTER: a 169.7° wrist rotation cannot be
+  commanded by an input device whose wrist channels are dead. A solver that
+  honours a constraint does not give the operator a wrist.
 * the VR controller does report 6-DOF, but it drives the same follower through
   the same pinned-orientation path, so it inherits the same limit.
 
@@ -27,6 +54,25 @@ teleoperation orientation lock. They demonstrate that the *robot* can execute
 an aligned grasp. They do not demonstrate that an *operator* can command one,
 and the three recorded conditions differ only in trajectory smoothing, so they
 do not distinguish it either.
+
+## What is NOT established: that the WEARER forbids a top-down grasp
+
+A separate claim — top-down **0/128 with the wearer present, 128/128 without**,
+i.e. the wearer is the ceiling — does not reproduce at T1's grasp points.
+Measured there with `avoid_collisions=True` and the wearer in the scene,
+top-down succeeds **4/4** and FK confirms the achieved orientation is 0.00°
+from top-down. The 128-pose set is not in this repository — no script writes
+it and no baseline records it — so the two cannot be reconciled by rerunning
+the other probe.
+
+Both can be true if the sets differ in POSITION: top-down may well be
+forbidden lower down or further over the table while permitted at T1's grasp
+height. **If so the claim is real but SCOPED, and the scope belongs in its
+first sentence.** As it is currently worded — "a supernumerary arm cannot
+approach from above, because its own wearer is above the workspace" — it
+generalises to every SRL, and at the only poses measured here it is false.
+That sentence must not enter a thesis until the pose set is recovered and the
+scope stated.
 
 ## Why this is a finding rather than a gap
 

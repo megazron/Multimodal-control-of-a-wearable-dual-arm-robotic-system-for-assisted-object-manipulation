@@ -1,0 +1,22 @@
+pinned vs top-down are 169.7 deg apart (tool axis 120.8 deg)
+
+(i)  exact pinned, no constraint
+   cube_0  REFUSED
+   cube_1  achieved:   0.00 deg from PINNED, 169.72 deg from TOP-DOWN   (tool axis  0.00 / 120.76)
+   cube_2  achieved:   0.00 deg from PINNED, 169.72 deg from TOP-DOWN   (tool axis  0.00 / 120.76)
+   cube_3  achieved:   0.00 deg from PINNED, 169.72 deg from TOP-DOWN   (tool axis  0.00 / 120.76)
+(ii) pose PINNED + constraint TOP-DOWN 0.05
+   cube_0  REFUSED
+   cube_1  REFUSED
+   cube_2  REFUSED
+   cube_3  REFUSED
+(iii) exact top-down, no constraint
+   cube_0  achieved: 169.72 deg from PINNED,   0.00 deg from TOP-DOWN   (tool axis 120.76 /  0.00)
+   cube_1  achieved: 169.72 deg from PINNED,   0.00 deg from TOP-DOWN   (tool axis 120.76 /  0.00)
+   cube_2  achieved: 169.72 deg from PINNED,   0.00 deg from TOP-DOWN   (tool axis 120.76 /  0.00)
+   cube_3  achieved: 169.72 deg from PINNED,   0.00 deg from TOP-DOWN   (tool axis 120.76 /  0.00)
+(iv) pose TOP-DOWN + constraint TOP-DOWN 0.05
+   cube_0  achieved: 169.72 deg from PINNED,   0.00 deg from TOP-DOWN   (tool axis 120.76 /  0.00)
+   cube_1  achieved: 169.72 deg from PINNED,   0.00 deg from TOP-DOWN   (tool axis 120.76 /  0.00)
+   cube_2  achieved: 169.72 deg from PINNED,   0.00 deg from TOP-DOWN   (tool axis 120.76 /  0.00)
+   cube_3  achieved: 169.72 deg from PINNED,   0.00 deg from TOP-DOWN   (tool axis 120.76 /  0.00)

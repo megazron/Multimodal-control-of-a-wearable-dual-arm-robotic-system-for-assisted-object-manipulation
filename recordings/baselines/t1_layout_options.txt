@@ -1,0 +1,8 @@
+B) LEFT arm, current side
+   stands OFF (table only)            cubes 2/4  planes 1/2   (1 objs)
+   stands ON                          cubes 0/4  planes 0/2   (7 objs)
+A) RIGHT arm, mirrored
+   stands OFF (table only)            cubes 4/4  planes 2/2   (1 objs)
+   stands ON                          cubes 0/4  planes 0/2   (7 objs)
+C) SPLIT, two cubes per arm
+   stands OFF                         cubes 3/4  planes 2/2   (1 objs)

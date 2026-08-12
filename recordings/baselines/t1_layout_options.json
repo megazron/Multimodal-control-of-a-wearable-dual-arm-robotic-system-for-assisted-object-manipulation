@@ -1,0 +1,62 @@
+{
+  "B_left_nostand": {
+    "cubes": [
+      false,
+      false,
+      true,
+      true
+    ],
+    "planes": [
+      false,
+      true
+    ]
+  },
+  "B_left_stands": {
+    "cubes": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "planes": [
+      false,
+      false
+    ]
+  },
+  "A_right_nostand": {
+    "cubes": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "planes": [
+      true,
+      true
+    ]
+  },
+  "A_right_stands": {
+    "cubes": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "planes": [
+      false,
+      false
+    ]
+  },
+  "C_split_nostand": {
+    "cubes": [
+      false,
+      true,
+      true,
+      true
+    ],
+    "planes": [
+      true,
+      true
+    ]
+  }
+}

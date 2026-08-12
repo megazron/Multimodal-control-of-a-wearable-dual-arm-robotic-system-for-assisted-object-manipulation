@@ -342,36 +342,27 @@ def furniture_boxes(task):
                         [0.02 if dx else _ct.A_BIN_D,
                          _ct.A_BIN_D if dx else 0.02, _ct.A_BIN_H], TEAL))
         return out
-    # PEDESTALS -- one slim stand per object, table top to object base.
+    # PEDESTALS: TRIED, MEASURED, REMOVED. They were added so the objects
+    # would rest on something once the bench went, and they are FATAL --
+    # 0 of 4 cubes and 0 of 2 planes reachable in EVERY layout tried:
     #
-    # NOT a second table. Each is the object's own footprint plus 10 mm, so
-    # the arm approaches BESIDE and ABOVE it rather than over a slab: the
-    # blocking mechanism is a broad surface under the approach path, and a
-    # 60 mm post is not one. They are what makes "objects rest on a surface
-    # with their base at surface height" true again now the bench is gone.
-    def _pedestal(name, xy, top_z, foot):
-        h = top_z - TABLE_TOP
-        return (name, [xy[0], xy[1], TABLE_TOP + h / 2.0],
-                [foot[0], foot[1], h], TAN)
-
-    if task in ("t1", "t1s2"):
-        for i, (cx, cy) in enumerate(_mct.T1_CUBES):
-            out.append(_pedestal("stand_cube_%d" % i, (cx, cy),
-                                 _mct.T1_Z - _mct.CUBE_M / 2.0,
-                                 (_mct.CUBE_M + 0.01, _mct.CUBE_M + 0.01)))
-        for i, (px, py) in enumerate(_mct.T1_PLANES):
-            out.append(_pedestal("stand_plane_%d" % i, (px, py),
-                                 _ct.BENCH_TOP, (PLANE_W, PLANE_D)))
-    elif task == "t3":
-        out.append(_pedestal("stand_circuit_box",
-                             (_t3.BOX_OBJ[0], _t3.BOX_OBJ[1]),
-                             _t3.BOX_OBJ[2] - _t3.BOX_SIZE[2] / 2.0,
-                             (_t3.BOX_SIZE[0], _t3.BOX_SIZE[1])))
-        out.append(_pedestal("stand_multimeter",
-                             (_t3.METER_OBJ[0], _t3.METER_OBJ[1]),
-                             _t3.METER_OBJ[2] - _t3.METER_SIZE[2] / 2.0,
-                             (_t3.METER_SIZE[0], _t3.METER_SIZE[1])))
-
+    #     option                       cubes  planes
+    #     left arm,  table only         2/4    1/2
+    #     left arm,  stands ON          0/4    0/2
+    #     right arm, table only         4/4    2/2
+    #     right arm, stands ON          0/4    0/2
+    #     split,     table only         3/4    2/2
+    #
+    # This is the bench finding again at 1/30 the size: a 60 mm post under the
+    # approach path blocks as completely as a 1.7 m slab, because the arm's
+    # trailing forearm needs that volume and does not care how wide the
+    # obstacle is. It is not about the support's footprint; it is about there
+    # being a support there AT ALL.
+    #
+    # So the objects are unsupported, and that is recorded as a KNOWN COST
+    # rather than hidden: with the pinned wrist there is no support geometry
+    # yet found that an object can rest on and still be reached. The table is
+    # 170 mm below them and is what a viewer reads as the work surface.
     if not SUPPORTS_ENABLED:
         return out
     if task in ("t1", "t1s2"):

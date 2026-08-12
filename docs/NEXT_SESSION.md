@@ -4254,3 +4254,38 @@ NEXT, IN ORDER
 
 DO NOT re-derive the mount, the home angles or the anchor. The home JOINT
 ANGLES are ground truth and every geometric figure here is derived from them.
+
+---
+
+## STOPPED HERE 2026-08-12: PART D IS BLOCKED, AND THE BRIEF THINKS IT IS NOT
+
+Part C is done and pushed. Part D was NOT started, deliberately.
+
+**The two gates the brief records as closed are open in this repository.**
+Checked directly, not inferred:
+
+| gate | brief says | repo says |
+| --- | --- | --- |
+| T1 mirrored to the right arm | applied, 4/4 | `T1_CUBES` are still at **positive x** (left arm). T1 is 0/4. |
+| WORKSPACE re-surveyed | done | still `y (0.05, 0.20)`, the 170 mm stale value |
+| pad offset along the tool axis | fixed | no `0.098` or `tool_axis` anywhere in `task_actions.py` or `msc_clip_tasks.py` |
+
+Recording now would film the left arm failing to reach four cubes, inside a
+marking that excludes both targets, with the pads landing 39.5 mm past each
+object. That is a fourth superseded set, and it takes about an hour to make.
+
+**Do these three first. All three are measured; none needs new analysis.**
+
+1. mirror `T1_CUBES` and `T1_PLANES` to negative x and drive T1 with the
+   RIGHT arm. Measured 4/4 vs 0/4 (`recordings/baselines/t1_layout_options.json`).
+   Also update `t1()`'s arm assignment and the scenario name.
+2. re-survey `WORKSPACE` against the current scene. The old value was
+   measured with the bench present and the bench is gone.
+3. apply `p_ee = p_object - 0.098 * tool_axis` at every grasp, then re-run
+   `scripts/measure_lift.py` style pad check: no pad below the surface, pads
+   ON the object rather than 39.5 mm past it.
+
+Then re-verify N=10 full path with wearer and furniture, and only then record.
+
+Also open, from Part C: the GUI button-press sweep HANGS after constructing
+the GUI. Dispatch is verified for all 13 task keys; the press layer is not.

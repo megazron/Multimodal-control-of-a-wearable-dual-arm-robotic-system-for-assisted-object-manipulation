@@ -1,0 +1,10 @@
+PINNED exact       wearer ON    12/16
+PINNED exact       wearer OFF   16/16
+PINNED oc 0.05     wearer ON    12/16
+PINNED oc 0.05     wearer OFF   16/16
+TOPDOWN exact      wearer ON    16/16
+TOPDOWN exact      wearer OFF   16/16
+TOPDOWN oc 0.05    wearer ON    16/16
+TOPDOWN oc 0.05    wearer OFF   16/16
+TOPDOWN oc 0.20    wearer ON    16/16
+TOPDOWN oc 0.20    wearer OFF   16/16

@@ -47,7 +47,7 @@ case "$TASK" in
     # experiments/abc/ (verified N=10 over the densified full path).
     exec python3 "$(dirname "$0")/../src/srl_experiments/experiments/abc/run_abc.py" \
         --task "$TASK" "$@" ;;
-  m0|m1|m1s2|m2|m3|M0|M1|M1S2|M2|M3|d1|d2|d3|D1|D2|D3)
+  m0|m1|m1s2|m2|m3|M0|M1|M1S2|M2|M3)
     # THE MSc SET, and it is deliberately NOT called t0|t1|t2|t3.
     #
     # Those names are already taken, and taken by a REFUSAL: t1..t9 below are
@@ -62,6 +62,19 @@ case "$TASK" in
     # archived refusal is untouched.
     exec python3 "$(dirname "$0")/../src/srl_experiments/experiments/abc/run_abc.py" \
         --task "$TASK" --taskset msc "$@" ;;
+  d1|d2|d3|D1|D2|D3)
+    # THE DEMONSTRATION ROUTINES, and they need their OWN arm.
+    #
+    # They were folded into the MSc arm above, which hardcodes
+    # `--taskset msc`, so `run_experiment.sh d1` exited 1 with "unknown msc
+    # task key 'D1'". The GUI happened to survive it because its spec appends
+    # `--taskset demo` and argparse takes the last one, so the button worked
+    # while the command it claims to run did not. That is the same shape as
+    # the five buttons that exited 2 while appearing to launch: the label,
+    # the dispatcher and the process disagreed, and only one of the three was
+    # ever checked.
+    exec python3 "$(dirname "$0")/../src/srl_experiments/experiments/abc/run_abc.py" \
+        --task "$TASK" --taskset demo "$@" ;;
   t1|t2|t3|t4|t5|t6|t7|t8|t9|e1|e2|e3|e4|e5|e6)
     echo "$TASK is ARCHIVED. It used the superseded 300/310 mm span; the" >&2
     echo "current spec is 500 mm and the tilt threshold rescales with it." >&2

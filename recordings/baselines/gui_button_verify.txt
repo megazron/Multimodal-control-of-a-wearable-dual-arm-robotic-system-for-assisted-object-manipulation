@@ -1,0 +1,45 @@
+============================================================================
+GUI BUTTONS -- press every one, require evidence
+============================================================================
+
+-- LEVEL 1: run the dispatcher for real, --dry-run, require exit 0
+  [1] dispatcher task list parsed              PASS   11 tasks: a b c d1 d2 d3 m0 m1 m1s2 m2 m3
+  [1] dispatch a                               PASS   exit 0  world-frame pose, entering request_ik at the same door teleop uses
+  [1] dispatch b                               PASS   exit 0  world-frame pose, entering request_ik at the same door teleop uses
+  [1] dispatch c                               PASS   exit 0  world-frame pose, entering request_ik at the same door teleop uses
+  [1] dispatch d1                              PASS   exit 0  world-frame pose, entering request_ik at the same door teleop uses
+  [1] dispatch d2                              PASS   exit 0  world-frame pose, entering request_ik at the same door teleop uses
+  [1] dispatch d3                              PASS   exit 0  world-frame pose, entering request_ik at the same door teleop uses
+  [1] dispatch m0                              PASS   exit 0  world-frame pose, entering request_ik at the same door teleop uses
+  [1] dispatch m1                              PASS   exit 0  world-frame pose, entering request_ik at the same door teleop uses
+  [1] dispatch m1s2                            PASS   exit 0  world-frame pose, entering request_ik at the same door teleop uses
+  [1] dispatch m2                              PASS   exit 0  world-frame pose, entering request_ik at the same door teleop uses
+  [1] dispatch m3                              PASS   exit 0  world-frame pose, entering request_ik at the same door teleop uses
+
+-- LEVEL 2: construct the GUI offscreen and press every button
+This plugin does not support propagateSizeHints()
+  [2] GUI constructed and has buttons          PASS   64 QPushButton
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHintsException in thread Thread-1 (<lambda>):
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/gausms/kortex_ws/scripts/verify_gui_buttons.py", line 115, in <lambda>
+    threading.Thread(target=lambda: rclpy.spin(bus), daemon=True).start()
+                                    ^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 247, in spin
+    executor.spin_once()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 926, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 907, in _spin_once_impl
+    handler, entity, node = self.wait_for_ready_callbacks(
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 877, in wait_for_ready_callbacks
+    return next(self._cb_iter)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 785, in _wait_for_ready_callbacks
+    raise ExternalShutdownException()
+rclpy.executors.ExternalShutdownException
+on

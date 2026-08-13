@@ -70,58 +70,35 @@ POSE_FILE = os.path.join(ROOT, "recordings", "baselines",
 ARRIVE_TOL_RAD = 0.02          # ~1.1 deg per joint
 
 
-def reap_orphaned_shm():
-    """Delete Fast DDS segments NO LIVE PROCESS HAS MAPPED. Returns the count.
-
-    CLAUDE.md says /dev/shm/fastrtps_* may only be cleared with the stack
-    STOPPED, and that rule stands: wiping them wholesale mid-sweep takes the
-    running stack's discovery with it. This does something narrower and safe
-    -- it reads /proc/*/maps, and removes only segments that no living
-    process has open. A segment nobody has mapped cannot be anybody's
-    discovery.
-
-    WHY IT IS NEEDED. Fast DDS leaks a segment per participant on this host,
-    and every clip runs this script as a fresh process. Measured mid-sweep:
-    156 segments, 76 held by a live process and 80 orphaned. The port range
-    fills, `rclpy.init()` fails with "Failed init_port fastrtps_portNNNN",
-    and the clip silently opens on the home pose -- five retries were not
-    enough because retrying does not free a port.
-    """
-    import glob
-    live = set()
-    for pid in os.listdir("/proc"):
-        if not pid.isdigit():
-            continue
-        try:
-            with open("/proc/%s/maps" % pid) as f:
-                for line in f:
-                    if "fastrtps_" in line:
-                        live.add("/dev/shm/" + line.rsplit("/", 1)[-1].strip())
-        except OSError:
-            continue
-    n = 0
-    for seg in glob.glob("/dev/shm/fastrtps_*"):
-        # NEVER TOUCH THE PORT SEGMENTS, and this is the whole correctness of
-        # the function. /dev/shm holds two kinds: `fastrtps_port7400`, which
-        # are the DISCOVERY PORTS every participant rendezvouses through, and
-        # `fastrtps_<hex>`, one per participant, which are what leak.
-        #
-        # A port segment is not mapped continuously by anybody, so the
-        # "orphaned" test calls every one of them orphaned. Deleting them
-        # breaks discovery for the whole graph -- measured: after a clean
-        # stack restart the stager reaped them and then could not see
-        # /joint_states for 15 s, on a stack that had just reported
-        # "READY joint_state_msgs=30 ik=True followers=2".
-        if os.path.basename(seg).startswith("fastrtps_port"):
-            continue
-        if seg in live:
-            continue
-        try:
-            os.unlink(seg)
-            n += 1
-        except OSError:
-            pass
-    return n
+# THE SHM REAPER IS REMOVED, AND THE REASONING IS WORTH KEEPING.
+#
+# The presentation pose kept losing a port race -- Fast DDS leaks a segment
+# per participant on this host, the range fills, rclpy.init() fails with
+# "Failed init_port fastrtps_portNNNN" and the clip silently opens on home.
+# So a reaper was added: delete any /dev/shm/fastrtps_* segment that no live
+# process has mapped, read from /proc/*/maps.
+#
+# IT WAS UNSOUND, in two escalating ways, and both were measured:
+#
+#   1. it deleted the DISCOVERY PORTS. `fastrtps_port7400` is the rendezvous
+#      every participant uses and is not mapped continuously by anybody, so
+#      the "orphaned" test called every one of them orphaned. After a clean
+#      restart that had just reported READY with 30 joint-state messages, the
+#      graph became unjoinable.
+#
+#   2. excluding the ports was not enough. A participant's own segment is
+#      mapped by its PEERS on demand, so a participant with no peer attached
+#      at that instant also looks orphaned -- and deleting it makes that
+#      participant permanently unreachable. Measured after the exclusion was
+#      added: a fresh rclpy node discovered 2 topics and 1 node, itself.
+#
+# "NOT CURRENTLY MAPPED" IS NOT "ORPHANED", and no amount of refining the
+# test fixes that -- the information simply is not in /proc.
+#
+# So the port pressure is left alone. CLAUDE.md's rule stands: clear
+# /dev/shm/fastrtps_* only with the stack STOPPED. When staging loses the
+# race the sweep records opened_on="home" for that clip, which is a true
+# statement about a real clip rather than a graph broken to avoid it.
 
 
 class Stager(Node):
@@ -300,7 +277,6 @@ def main():
     # purpose: CLAUDE.md is explicit that /dev/shm/fastrtps_* may only be
     # cleared with the stack STOPPED, and a staging script that wiped them
     # mid-sweep would take the running stack's discovery with it.
-    reap_orphaned_shm()
     last = None
     for attempt in range(1, 6):
         try:

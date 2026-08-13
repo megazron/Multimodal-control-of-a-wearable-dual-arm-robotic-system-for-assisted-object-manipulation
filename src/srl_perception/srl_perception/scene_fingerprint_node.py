@@ -201,6 +201,14 @@ class SceneFingerprintNode(Node):
         cur.confidence = max(cur.confidence, o.confidence)
         if o.quat and cur.quat is None:
             cur.quat = o.quat
+        # YAW IS AVERAGED OVER VIEWS, like the position, and NOT taken from
+        # whichever view happened to arrive first. The position has been a
+        # confidence-weighted running mean since this was written while the
+        # orientation was first-come, so a single bad view fixed the yaw for
+        # the whole sweep. Circular, and inside the object's own symmetry --
+        # see scene_fingerprint.mean_yaw_deg.
+        if getattr(o, "yaw_known", False):
+            cur.add_yaw(o.yaw_deg)
 
     def end_sweep(self):
         dt = self.get_clock().now().nanoseconds * 1e-9 - self.sweep_t0

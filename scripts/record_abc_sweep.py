@@ -127,8 +127,15 @@ CARD_TEXT = {
              "other's half of the table."),
     "t2": ("Both arms lift one tray together.",
            "Watch the tray stay level. If one hand leads, the ball rolls."),
-    "t3": ("Pick up the meter and touch it to each test point in turn.",
-           "Watch the tip land on the point and pause there."),
+    # WHAT THE PATH ACTUALLY DOES. The old card said "touch it to each test
+    # point in turn", which the clip never shows: the right arm holds the box
+    # up and the left arm presents the meter beside it, and the hold is where
+    # the measurement lives. A card describing a different task is worse than
+    # no card, because a viewer trusts it over the picture.
+    "t3": ("One arm holds the circuit box up. The other brings the meter to "
+           "it and both hold still while a reading is taken.",
+           "Watch the four test points on the box. Two of them face away "
+           "from the meter, so the box has to be turned to reach them."),
     "d1": ("A slow routine. The arms take turns, one holding while the other "
            "moves.",
            "Watch the pause at the top of each reach."),
@@ -798,6 +805,33 @@ def _main_body():
                 # sixty pixels wide. See record_rviz.TASK_FOCUS.
                 rr.ensure_display(os.path.join(out_dir, "rviz"),
                                   gripper_arm=grip_arm, task=task)
+                # EVERY CLIP OPENS ON THE PRESENTATION POSE. A joint-space
+                # staging move, commanded before capture and waited on --
+                # not teleoperation, not part of the task, and it produces no
+                # trial data. Without it every clip opens on the home wrist
+                # pointing up by +85 / +79 degrees, which is real and correct
+                # and reads, to anyone who has not been told, as a fault.
+                #
+                # IT CANNOT COME FROM THE TASK PATH: the clip runner
+                # publishes EE positions and the follower pins orientation,
+                # so no commanded position changes where the hand points.
+                #
+                # A FAILURE HERE DOES NOT STOP THE RECORDING. The pose is a
+                # framing improvement; the home pose is a known, documented
+                # picture, and losing the whole clip over the opening frame
+                # would be the worse trade. It is logged either way, so a
+                # clip that opened on home is identifiable afterwards.
+                _st = subprocess.run(
+                    [sys.executable,
+                     os.path.join(WS, "scripts",
+                                  "stage_presentation_pose.py")],
+                    capture_output=True, text=True)
+                log("      presentation pose: %s"
+                    % ("OK" if _st.returncode == 0
+                       else "NOT STAGED (rc=%d) -- this clip opens on HOME: %s"
+                       % (_st.returncode,
+                          (_st.stdout or _st.stderr).strip()[:120])))
+                staged = _st.returncode == 0
                 time.sleep(a.settle_s)
                 good, msg, grabs, gate, grab_t0 = run_one(
                     app, gui, task, mode, out_dir, graph=graph,
@@ -926,6 +960,13 @@ def _main_body():
                                if f.endswith(".mp4"))
                 prog[pkey] = dict(ok=bool(good), msg=msg, mode=mode,
                                   task=task, scenario=scen, quad=bool(quad),
+                                  # WHICH POSE THE CLIP OPENED ON, recorded
+                                  # per clip. A set where some clips were
+                                  # staged and some were not is otherwise
+                                  # indistinguishable from one where the
+                                  # staging never ran.
+                                  opened_on=("presentation" if staged
+                                             else "home"),
                                   files=files, dir=os.path.relpath(out_dir, WS))
                 save_progress(prog)          # AFTER EVERY CLIP
                 log("      %s  %s  (%d files%s)"

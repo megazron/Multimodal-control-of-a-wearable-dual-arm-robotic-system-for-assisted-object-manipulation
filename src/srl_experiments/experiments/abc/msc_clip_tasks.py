@@ -129,8 +129,10 @@ def t0():
 
 
 # --------------------------------------------------------------------------
-# T1 -- pick and place, ONE ARM. Left only: the right arm's pinned-wrist
-# grasp rate is 42%, and T1 is already specified as one arm at a time.
+# T1 -- pick and place, ONE ARM, and that arm is T1_ARM. This comment used to
+# read "left only" long after the layout moved to the right arm, which is the
+# same drift that had clip_scene watching the left gripper while the right one
+# did the work. Nothing here names a side except through T1_ARM.
 # --------------------------------------------------------------------------
 T1_PAIR = {0: 0, 1: 1, 2: 0, 3: 1}
 # The per-waypoint gripper schedule t1() builds alongside its path. It cannot
@@ -555,9 +557,15 @@ TASKS = {
         # written for one. See t1_grip_at().
         grip_at=lambda n: t1_grip_at(n),
         place_target=ee_for([T1_PLANES[0][0], T1_PLANES[0][1], T1_Z]),
-        expect="LEFT arm descends to each cube, closes on 40 mm, lifts, "
-               "carries to the plane of the SAME COLOUR and opens. RIGHT arm "
-               "parked throughout. Four cubes, two planes.",
+        # DERIVED FROM T1_ARM, never written out. The literal used to say
+        # "LEFT arm descends to each cube" while T1_ARM was "right", so the
+        # sweep printed and the write-up would have quoted the wrong arm for
+        # the whole task.
+        expect="%s arm descends to each cube, closes on 40 mm, lifts, "
+               "carries to the plane of the SAME COLOUR and opens. %s arm "
+               "parked throughout. Four cubes, two planes."
+               % (T1_ARM.upper(),
+                  ("LEFT" if T1_ARM == "right" else "RIGHT")),
         caveat="Objects are FIXTURED, not resting (option 4): a cube that "
                "cannot fall cannot be dropped, so `drops` is not a "
                "measurable outcome in this task."),

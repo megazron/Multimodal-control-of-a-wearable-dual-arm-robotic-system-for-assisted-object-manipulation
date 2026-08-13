@@ -181,12 +181,90 @@ RISER = (0.55, 0.42, 0.27, 1.0)
 # it is TRUNCATED BY THE BOX and the true extent is at least this and may be
 # larger outboard and nearer. And every cell was tested at the object-centre
 # height with the grasp pose alone unless --full-path was given.
-WORKSPACE = {
-    "left": dict(x=(0.30, 0.70), y=(0.05, 0.20),
-                 truncated=("x_max", "y_min")),
-    "right": dict(x=(-0.70, -0.30), y=(0.05, 0.20),
-                  truncated=("x_min", "y_min")),
-}
+# ==========================================================================
+# READ FROM THE SURVEY, NOT WRITTEN DOWN HERE. This was a hardcoded box and
+# the box went stale: it was surveyed WITH THE BENCH IN THE SCENE, giving
+# y 0.05..0.20, and the bench has since been deleted. T1's coloured planes
+# sit at y 0.27..0.33, so the marking a participant would be told to work
+# inside EXCLUDED BOTH OF THE TASK'S TARGETS by up to 130 mm.
+#
+# Re-surveyed 2026-08-13 against the current one-table scene, step 0.025,
+# N=3, full path, both sides, all three controls correct -- 14751 IK calls:
+#
+#     left    181 cells   x  0.25..0.70   y 0.05..0.30
+#     right   228 cells   x -0.70..-0.15  y 0.05..0.45
+#
+# THE REGION IS NOT A RECTANGLE. At 50 mm resolution the right arm's cells
+# filled only 62% of their own bounding box, so a drawn box would claim a
+# third of it falsely -- decoration that lies, which is exactly what the
+# marking exists not to be. The cells are therefore drawn as CELLS.
+# ==========================================================================
+REGION_FILE = os.path.join(WS, "recordings", "baselines",
+                           "work_surface_region.json")
+
+
+def _load_region():
+    """(cells_by_arm, step, bbox_by_arm). RAISES if the survey is missing.
+
+    No fallback box. A fallback would be a guess wearing the survey's name,
+    and the whole reason this is a file rather than a constant is that the
+    constant drifted from the thing it claimed to describe and nobody could
+    see it happen.
+    """
+    import json as _json
+    if not os.path.exists(REGION_FILE):
+        raise RuntimeError(
+            "no surveyed region at %s -- run "
+            "scripts/survey_work_surface.py --full-path. The workspace "
+            "marking is the MEASURED boundary or it is not drawn."
+            % REGION_FILE)
+    d = _json.load(open(REGION_FILE))
+    if not d.get("full_path"):
+        raise RuntimeError(
+            "%s was surveyed at the GRASP POSE ONLY. A cell that can be "
+            "reached is not a cell that can be WORKED." % REGION_FILE)
+    cells = {a: [tuple(c) for c in d["cells"].get(a, [])]
+             for a in ("left", "right")}
+    box = {}
+    for a, c in cells.items():
+        if not c:
+            raise RuntimeError("the survey has no cell for the %s arm" % a)
+        box[a] = dict(x=(min(p[0] for p in c), max(p[0] for p in c)),
+                      y=(min(p[1] for p in c), max(p[1] for p in c)))
+    return cells, float(d["step"]), box
+
+
+REGION_CELLS, REGION_STEP, WORKSPACE = _load_region()
+
+
+def marked_arms(task):
+    """Which arms' reachable regions this task should draw, and why.
+
+    T0 draws none: it is reaching in free space with no work surface at all,
+    so a surface marking would describe a table that is not in the scene.
+
+    A ONE-ARM TASK DRAWS ONE MARKING. T1 runs on msc_clip_tasks.T1_ARM and
+    used to draw both, which put a large empty rectangle on the idle side --
+    in the middle of the front view, while the actual work sat at the edge of
+    the frame. Two arms, two markings, only where two arms work.
+    """
+    import msc_clip_tasks as _M
+    if task == "t1":
+        return (_M.T1_ARM,)
+    if task in ("t1s2", "t2", "t3"):
+        return ("left", "right")
+    return ()
+
+
+def in_region(arm, x, y):
+    """Is (x, y) inside a cell that was MEASURED reachable for this arm?
+
+    Cell membership, not the bounding box. The two differ by a third of the
+    right arm's box.
+    """
+    h = REGION_STEP / 2.0 + 1e-9
+    return any(abs(x - cx) <= h and abs(y - cy) <= h
+               for cx, cy in REGION_CELLS[arm])
 MARK_T = 0.003                   # a painted line, not a kerb
 MARK_W = 0.012
 MARK_RGBA = {"left": (0.95, 0.75, 0.10, 0.85),
@@ -509,6 +587,10 @@ class Scene(Node):
         # scored as grasped-and-carried-and-delivered rather than as the arm
         # having moved somewhere near an object.
         self.events = []
+        # T2's carry trace. One row per tick for the whole clip, so tilt and
+        # separation are a SERIES and not a verdict. Empty for every other
+        # task, and empty is meaningful: it says the task has no coupling.
+        self.carry_series = []
         self.t0 = None
         qos = QoSProfile(depth=4, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.pub = self.create_publisher(MarkerArray, "/task_objects", qos)
@@ -985,15 +1067,32 @@ class Scene(Node):
                 i += 1
                 if label not in self.fixtures:
                     self.fixtures.append(label)
-        if self.task in ("t1", "t1s2", "t2", "t3"):
+        if marked_arms(self.task):
             # THE MARKED REACHABLE REGION, on the surface, per arm. Drawn as
             # four thin bars rather than a filled patch so it reads as a
             # boundary and does not hide what is standing inside it.
-            for arm, box in WORKSPACE.items():
-                x0, x1 = box["x"]
-                y0, y1 = box["y"]
+            # ONLY THE ARMS THIS TASK USES. T1 runs on one arm, and drawing
+            # the other one's marking put a large empty rectangle in the
+            # middle of every T1 frame -- which is what the front view was
+            # centring on while the actual work sat at the edge of the shot.
+            for arm in marked_arms(self.task):
                 col = MARK_RGBA[arm]
                 zt = CT.BENCH_TOP + MARK_T / 2.0
+                # THE MEASURED CELLS, drawn as cells. The bounding box was
+                # what used to be drawn and the right arm's cells fill only
+                # 62% of it, so the box asserted a third of a region that
+                # was never measured reachable.
+                cell = REGION_STEP - 0.004        # a hairline between tiles
+                for cx, cy in REGION_CELLS[arm]:
+                    add(Marker.CUBE, [cx, cy, zt], (cell, cell, MARK_T),
+                        (col[0], col[1], col[2], 0.30), ns="workspace")
+                # A heavier outline on the bounding box, so the region reads
+                # as one shape from across the room and the cells give it
+                # its true edge close up.
+                x0, x1 = WORKSPACE[arm]["x"]
+                y0, y1 = WORKSPACE[arm]["y"]
+                x0, x1 = x0 - REGION_STEP / 2.0, x1 + REGION_STEP / 2.0
+                y0, y1 = y0 - REGION_STEP / 2.0, y1 + REGION_STEP / 2.0
                 for yy in (y0, y1):
                     add(Marker.CUBE, [(x0 + x1) / 2.0, yy, zt],
                         (x1 - x0, MARK_W, MARK_T), col, ns="workspace")
@@ -1005,7 +1104,7 @@ class Scene(Node):
                 lab.ns, lab.id = "workspace_labels", i
                 lab.type = Marker.TEXT_VIEW_FACING
                 lab.action = Marker.ADD
-                lab.text = "%s arm reach" % arm
+                lab.text = "%s arm reach (measured)" % arm
                 lab.pose.position.x = float((x0 + x1) / 2.0)
                 lab.pose.position.y = float(y0 - 0.03)
                 lab.pose.position.z = float(CT.BENCH_TOP + 0.02)
@@ -1096,6 +1195,39 @@ class Scene(Node):
                 for nm in ("tray", "ball"):
                     if nm not in self.fixtures:
                         self.fixtures.append(nm)
+                # ---- TILT AND SEPARATION, EVERY TICK ---------------------
+                #
+                # tasks.TASK_B has declared `log_continuously = ("tilt_deg",
+                # "sep_err_mm", "height_diff_mm")` since the task was written
+                # and NOTHING READ IT. The clip could only ever answer "did
+                # the ball stay on", which is the end state of a carry whose
+                # whole measurement is the carry: a tray that swings to 9 deg
+                # in the middle and comes back level scores identically to
+                # one that never moves. That is the difference the coupling
+                # task exists to show.
+                #
+                # Measured here rather than in the trial logger because the
+                # clip is the only thing that knows where the two grippers
+                # actually are, and because a series in scene_events.json is
+                # what an inspection pass can plot against the footage.
+                #
+                # TILT IS OVER THE SPAN, not over a nominal. 6.8 deg is 60 mm
+                # of height difference over 500 mm, and taking the baseline
+                # from a constant while the arms drift apart reports an angle
+                # the tray is not at.
+                dz = gl[2] - gr[2]
+                tilt = math.degrees(math.asin(
+                    max(-1.0, min(1.0, dz / span)))) if span > 1e-6 else 0.0
+                if self.t0 is None:
+                    self.t0 = self.get_clock().now().nanoseconds * 1e-9
+                    self.t0_wall = time.time()
+                tnow = self.get_clock().now().nanoseconds * 1e-9 - self.t0
+                self.carry_series.append(dict(
+                    t=round(tnow, 2),
+                    tilt_deg=round(tilt, 3),
+                    sep_m=round(span, 4),
+                    sep_err_mm=round((span - TSK.TRAY_SEP) * 1000.0, 1),
+                    height_diff_mm=round(dz * 1000.0, 1)))
 
         # ---- the graspable object --------------------------------------
         for name, it in self.items.items():
@@ -1173,7 +1305,12 @@ class Scene(Node):
             near = d is not None and d <= GRASP_NEAR_M
             # ORIENTATION GATE. An object at an angle needs a gripper turned
             # to match; distance alone called that a grasp.
-            axis = self._grip_axis(_arm) if hasattr(self, "_grip_axis") else None
+            # THE ITEM'S OWN ARM, not `_arm`. `_arm` is the travel loop's
+            # variable and Python leaks it, so it is always "right" by the
+            # time this runs: every left-arm item was having its yaw error
+            # measured against the RIGHT gripper's closing axis. Silent,
+            # because the check only reports.
+            axis = self._grip_axis(arm) if hasattr(self, "_grip_axis") else None
             yerr = yaw_error_deg(axis, it.get("yaw_deg", 0.0),
                                  it.get("symmetry_deg", 90.0))
             aligned = (yerr is None) or (yerr <= GRASP_YAW_TOL_DEG)
@@ -1250,6 +1387,41 @@ class Scene(Node):
         self.pub.publish(A)
 
 
+def _carry_summary(series):
+    """T2's coupling metrics, derived from the series and nothing else.
+
+    Returns None for a task with no carry, which is NOT the same as a carry
+    that measured zero -- `by_design.py` exists because those two have been
+    rendered identically before.
+
+    `time_above_fail_tilt_s` is integrated from the sample spacing rather
+    than counted in samples, so a dropped frame does not read as a shorter
+    excursion.
+    """
+    if not series:
+        return None
+    tilts = [abs(r["tilt_deg"]) for r in series]
+    seps = [r["sep_err_mm"] for r in series]
+    thr = TSK.TASK_B["fail_tilt_deg"]
+    above = 0.0
+    for i, r in enumerate(series):
+        if abs(r["tilt_deg"]) <= thr:
+            continue
+        dt = (series[i]["t"] - series[i - 1]["t"]) if i else 0.0
+        above += max(0.0, dt)
+    return dict(
+        samples=len(series),
+        span_s=round(series[-1]["t"] - series[0]["t"], 2),
+        tilt_rms_deg=round(
+            math.sqrt(sum(t * t for t in tilts) / len(tilts)), 3),
+        tilt_max_deg=round(max(tilts), 3),
+        fail_tilt_deg=thr,
+        time_above_fail_tilt_s=round(above, 2),
+        sep_err_max_mm=round(max(seps, key=abs), 1),
+        sep_err_rms_mm=round(
+            math.sqrt(sum(s * s for s in seps) / len(seps)), 1))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", required=True,
@@ -1316,6 +1488,14 @@ def main():
                                if getattr(n, "ee_track", {}).get(a2) else None)
                                for a2 in getattr(n, "ee_first", {})},
                            t0_wall=getattr(n, "t0_wall", None),
+                           # THE CARRY, SAMPLE BY SAMPLE. tasks.TASK_B asked
+                           # for this from the day it was written; until now
+                           # nothing wrote it. The summary is derived from
+                           # the series here rather than accumulated during
+                           # the run, so the two cannot disagree.
+                           carry_series=getattr(n, "carry_series", []),
+                           carry_summary=_carry_summary(
+                               getattr(n, "carry_series", [])),
                            # The wrist->pad offset the whole scene was shifted
                            # by, so a consumer comparing against a declared
                            # EE-frame target can apply the same shift instead

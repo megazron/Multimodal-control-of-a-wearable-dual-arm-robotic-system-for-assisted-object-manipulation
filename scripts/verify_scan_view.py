@@ -111,9 +111,12 @@ def main():
             green = int(((g > 120) & (g > r + 60) & (g > b + 40)).sum())
             tot = a.shape[0] * a.shape[1]
             # HOW MANY T1 OBJECTS ARE ON THIS ARM'S SIDE AT ALL? T1 is a
-            # LEFT-ARM task -- its scenario is literally S1_left_arm and all
-            # four cubes sit at positive x -- so the right camera correctly
-            # frames a work surface with nothing on it. Demanding objects in
+            # ONE-ARM task and the side is msc_clip_tasks.T1_ARM, currently
+            # the RIGHT arm with all four cubes at negative x -- so the LEFT
+            # camera correctly frames a work surface with nothing on it. (This
+            # comment said the opposite for a while, from before the layout
+            # moved; the code below has always read the coordinates rather
+            # than a side, which is why it kept working.) Demanding objects in
             # both views would fail a working scan pose for the layout's
             # reason, which is the by-design-versus-real-gap confusion the
             # status table just had to be fixed for.

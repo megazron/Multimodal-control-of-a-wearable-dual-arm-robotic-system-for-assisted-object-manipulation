@@ -44,31 +44,131 @@ VANISHED = "vanished"
 RECLASSIFIED = "reclassified"
 
 
+# AN IDENTITY QUATERNION IS NOT A MEASUREMENT OF ZERO ROTATION.
+#
+# This is U-2 in TASK_SPEC.md and it is the by_design.py failure wearing
+# perception's clothes: the colour/shape detector published w = 1.0 because
+# roll is unobservable to it, the grasp path read that as yaw = 0, and an
+# object sitting at 30 degrees was grasped square. Nothing anywhere could
+# tell "the object is square" from "nobody looked".
+#
+# So yaw is carried EXPLICITLY, with a flag, and code that wants it has to
+# ask whether it is known.
+IDENTITY_TOL = 1e-6
+
+
+def yaw_from_quat(q):
+    """Yaw about world z, in degrees, or None if `q` carries no rotation.
+
+    Returns None for identity ON PURPOSE. A caller that wants to treat
+    unknown as square must write that down.
+
+    THE ONE CASE THIS CONVENTION LOSES, stated rather than discovered later:
+    an object MEASURED at exactly 0.000000 degrees encodes as identity and is
+    therefore read back as unmeasured. `vision_msgs` has no field for "not
+    observed", so the sentinel has to be a pose, and identity is the only
+    honest choice. The cost is nil in practice and here is why: the objects
+    are 90-degree symmetric, so a grasp planned for "unknown, assume square"
+    and a grasp planned for "measured, 0 degrees" are the SAME grasp. Any
+    angle at all -- 0.5 degrees encodes as z = 0.0044, four thousand times
+    the tolerance -- comes through as measured. Where the distinction has to
+    survive exactly, pass `yaw_deg=` to Observation() explicitly; it is
+    believed over the quaternion.
+    """
+    if q is None:
+        return None
+    x, y, z, w = q
+    if abs(x) < IDENTITY_TOL and abs(y) < IDENTITY_TOL and \
+            abs(z) < IDENTITY_TOL and abs(abs(w) - 1.0) < IDENTITY_TOL:
+        return None
+    return math.degrees(math.atan2(2.0 * (w * z + x * y),
+                                   1.0 - 2.0 * (y * y + z * z)))
+
+
+def wrap_symmetric(deg, symmetry_deg=90.0):
+    """Fold an angle into the object's own symmetry.
+
+    A cube grasped at 0 and at 90 degrees is grasped identically, so the two
+    must compare EQUAL. Without this a cube nudged past 45 degrees reports a
+    90 degree rotation and every scan looks like a rotated object.
+    """
+    if deg is None:
+        return None
+    d = deg % symmetry_deg
+    return d - symmetry_deg if d > symmetry_deg / 2.0 else d
+
+
+def mean_yaw_deg(values, symmetry_deg=90.0):
+    """Circular mean inside the symmetry, or None if there is nothing to
+    average. An arithmetic mean of 89 and -89 is 0, which is the wrong
+    answer by the whole symmetry."""
+    vals = [v for v in values if v is not None]
+    if not vals:
+        return None
+    k = 360.0 / symmetry_deg
+    s = sum(math.sin(math.radians(v * k)) for v in vals)
+    c = sum(math.cos(math.radians(v * k)) for v in vals)
+    if abs(s) < 1e-12 and abs(c) < 1e-12:
+        return wrap_symmetric(vals[0], symmetry_deg)
+    return wrap_symmetric(math.degrees(math.atan2(s, c)) / k, symmetry_deg)
+
+
 class Observation:
     """One object as seen in one sweep."""
 
-    __slots__ = ("label", "xyz", "quat", "confidence", "n_views", "size")
+    __slots__ = ("label", "xyz", "quat", "confidence", "n_views", "size",
+                 "yaw_deg", "symmetry_deg", "yaw_views")
 
     def __init__(self, label, xyz, quat=None, confidence=1.0, n_views=1,
-                 size=None):
+                 size=None, yaw_deg=None, symmetry_deg=90.0, yaw_views=None):
         self.label = str(label)
         self.xyz = tuple(float(v) for v in xyz)
         self.quat = tuple(float(v) for v in quat) if quat else None
         self.confidence = float(confidence)
         self.n_views = int(n_views)
         self.size = tuple(float(v) for v in size) if size else None
+        self.symmetry_deg = float(symmetry_deg)
+        # YAW IS FIRST CLASS, not derived on demand from `quat`. An explicit
+        # yaw_deg can be None, and None is the answer to "was it measured".
+        y = yaw_deg if yaw_deg is not None else yaw_from_quat(self.quat)
+        self.yaw_deg = wrap_symmetric(y, self.symmetry_deg)
+        # Every yaw this object has contributed, so the running estimate is a
+        # circular mean over views rather than whichever view arrived first.
+        self.yaw_views = list(yaw_views) if yaw_views is not None else \
+            ([self.yaw_deg] if self.yaw_deg is not None else [])
+
+    @property
+    def yaw_known(self):
+        return self.yaw_deg is not None
+
+    def add_yaw(self, yaw_deg):
+        """Fold another view's yaw into the running estimate."""
+        y = wrap_symmetric(yaw_deg, self.symmetry_deg)
+        if y is None:
+            return
+        self.yaw_views.append(y)
+        self.yaw_deg = mean_yaw_deg(self.yaw_views, self.symmetry_deg)
 
     def as_dict(self):
         return dict(label=self.label, xyz=list(self.xyz),
                     quat=list(self.quat) if self.quat else None,
                     confidence=self.confidence, n_views=self.n_views,
-                    size=list(self.size) if self.size else None)
+                    size=list(self.size) if self.size else None,
+                    # WRITTEN OUT EVEN WHEN None. A key that vanishes when
+                    # unmeasured makes "not measured" and "old file" the same
+                    # thing to every reader.
+                    yaw_deg=(round(self.yaw_deg, 2)
+                             if self.yaw_deg is not None else None),
+                    yaw_known=self.yaw_known,
+                    yaw_views=len(self.yaw_views),
+                    symmetry_deg=self.symmetry_deg)
 
     @staticmethod
     def from_dict(d):
         return Observation(d["label"], d["xyz"], d.get("quat"),
                            d.get("confidence", 1.0), d.get("n_views", 1),
-                           d.get("size"))
+                           d.get("size"), d.get("yaw_deg"),
+                           d.get("symmetry_deg", 90.0))
 
 
 def dist(a, b):
@@ -87,7 +187,11 @@ def quat_angle_deg(a, b):
 class Fingerprint:
     """A stored scene: what was where, with what confidence, and when."""
 
-    VERSION = 1
+    # 2: yaw became a first-class field. A version 1 store has no yaw at all,
+    # and load() refusing it is right -- reading one would silently give every
+    # object yaw_known = False and make a rotated object look unmeasurable
+    # rather than unmeasured.
+    VERSION = 2
 
     def __init__(self, objects=None, stamp=None, sweep_s=None, note=""):
         self.objects = list(objects or [])
@@ -193,7 +297,34 @@ def compare(stored, observed, pos_tol=0.010, gate=0.25, rot_tol_deg=15.0):
             continue
         o = observed[j]
         d = dist(s.xyz, o.xyz)
-        rot = quat_angle_deg(s.quat, o.quat)
+        # ---- HOW MUCH DID IT TURN, and it is not quat_angle_deg alone ----
+        #
+        # Two things were wrong with taking `quat_angle_deg(s.quat, o.quat)`
+        # and nothing else, and both were silent:
+        #
+        #   1. AN IDENTITY QUATERNION IS NOT AN ORIENTATION. The fallback
+        #      detector published identity for everything, so comparing a
+        #      stored identity against a measured 30 degrees reported a
+        #      30 degree rotation that nobody ever observed -- a MOVED
+        #      verdict manufactured out of a missing measurement.
+        #   2. A CUBE TURNED 90 DEGREES IS NOT TURNED. quat_angle_deg says
+        #      90, so every square object nudged past its own symmetry
+        #      flagged as re-oriented and the operator learned to ignore it.
+        #
+        # So: prefer the yaw comparison, folded into the object's symmetry,
+        # whenever BOTH sides measured a yaw. Fall back to the full
+        # orientation only when both carry a real, non-identity quaternion --
+        # which is the AprilTag path, where pitch and roll are meaningful.
+        # Otherwise None, meaning nobody knows, which is a third answer and
+        # not a zero.
+        s_real_q = s.quat is not None and yaw_from_quat(s.quat) is not None
+        o_real_q = o.quat is not None and yaw_from_quat(o.quat) is not None
+        if s.yaw_known and getattr(o, "yaw_known", False):
+            rot = abs(wrap_symmetric(o.yaw_deg - s.yaw_deg, s.symmetry_deg))
+        elif s_real_q and o_real_q:
+            rot = quat_angle_deg(s.quat, o.quat)
+        else:
+            rot = None
         if s.label != o.label:
             out.append(dict(verdict=RECLASSIFIED, label=s.label,
                             new_label=o.label, stored=list(s.xyz),

@@ -76,6 +76,29 @@ def delta_m():
     return None if _measured is None else _measured - DECLARED_M
 
 
+def subscribe(node, topic="/perception/work_surface_z"):
+    """Keep THIS process's measured value in step with the estimator's.
+
+    THE PRODUCER IS IN ANOTHER PROCESS AND MODULE STATE DOES NOT TRAVEL.
+    `srl_perception.work_surface_node` measures the surface from depth and
+    calls `set_measured()` in its own interpreter, which does nothing at all
+    for the follower, the clip scene or the task layer. Every consumer that
+    grasps against `table_top()` has to subscribe, and this is the one line
+    that does it.
+
+    Returns the subscription so the caller can hold it; dropping it on the
+    floor lets rclpy garbage-collect the callback and the value silently
+    stops updating, which is the same class of quiet failure this module
+    exists to remove.
+    """
+    from std_msgs.msg import Float64
+
+    def _on(msg):
+        set_measured(float(msg.data), "from %s" % topic)
+
+    return node.create_subscription(Float64, topic, _on, 1)
+
+
 def check(require_measured=False):
     """(ok, message). NEVER returns a bare boolean.
 

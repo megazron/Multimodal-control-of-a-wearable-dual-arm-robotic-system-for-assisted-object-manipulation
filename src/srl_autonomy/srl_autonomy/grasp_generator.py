@@ -88,9 +88,18 @@ class GraspGenerator(Node):
             if not d.results:
                 continue
             p = d.results[0].pose.pose
+            # YAW = 0 AND YAW UNKNOWN ARE DIFFERENT ANSWERS.
+            #
+            # An identity quaternion arrives from any detector that did not
+            # measure orientation, and `_yaw_of` turns it into 0.0 -- so a
+            # cube sitting at 30 degrees was grasped square and the status
+            # message said nothing at all. The unknown case is now carried
+            # through to the status, where an operator can see it, instead of
+            # being laundered into a number.
             objs.append((d.id or d.results[0].hypothesis.class_id,
                          np.array([p.position.x, p.position.y, p.position.z]),
-                         _yaw_of(p.orientation)))
+                         _yaw_of(p.orientation),
+                         _yaw_known(p.orientation)))
         self.objects = objs
 
     def _on_intent(self, arm, msg):
@@ -146,7 +155,14 @@ class GraspGenerator(Node):
                 status["reason"] = "no unambiguous target"
                 self._publish_status(arm, status)
                 continue
-            oid, pos, yaw = by_id[tgt]
+            oid, pos, yaw, yaw_known = by_id[tgt]
+            # SAID OUT LOUD ON EVERY OFFER. Without this a square grasp on a
+            # turned object is indistinguishable from a correct grasp on a
+            # square one, which is the `object_rotated_30deg` row of the
+            # lab-day fault table and is marked SILENT there.
+            status["yaw_deg"] = round(math.degrees(yaw), 1)
+            status["yaw_source"] = ("measured" if yaw_known
+                                    else "UNKNOWN, assuming square")
             ok_width, width = gl.is_graspable(oid)
             status["width_m"] = round(width, 4)
             if not ok_width:
@@ -202,6 +218,17 @@ class GraspGenerator(Node):
 def _yaw_of(q):
     return math.atan2(2 * (q.w * q.z + q.x * q.y),
                       1 - 2 * (q.y * q.y + q.z * q.z))
+
+
+def _yaw_known(q, tol=1e-6):
+    """False for an identity quaternion, which carries no measurement.
+
+    Deliberately NOT folded into `_yaw_of`: callers that only want a number
+    keep getting one, and the caller that needs to know whether anybody
+    measured it has to ask separately and say what it did about the answer.
+    """
+    return not (abs(q.x) < tol and abs(q.y) < tol and abs(q.z) < tol
+                and abs(abs(q.w) - 1.0) < tol)
 
 
 def main():

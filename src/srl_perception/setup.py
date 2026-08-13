@@ -34,6 +34,10 @@ setup(
             'object_pose_tracker = srl_perception.object_pose_tracker:main',
             # Scene fingerprinting: calibrate only when the bed has changed.
             'scene_fingerprint_node = srl_perception.scene_fingerprint_node:main',
+            # Measures the work surface from depth and is the ONLY producer
+            # for srl_experiments.work_surface.set_measured(), which had none
+            # until now -- the height was declared and never measured.
+            'work_surface_node = srl_perception.work_surface_node:main',
             # Offline characterisation: detection rate, accuracy, latency.
             'measure_detector = srl_perception.measure_detector:main',
             # Legacy VLM locator, kept but not part of the study pipeline.

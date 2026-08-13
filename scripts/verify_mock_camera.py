@@ -192,10 +192,33 @@ def main():
             d = np.maximum(np.abs(back - pw) - h, 0.0)
             errs.append((o.get("name", "?"), float(np.linalg.norm(d))))
         worst = max((e for _, e in errs), default=9.9)
-        rows.append(("deprojection lands on TRUE world position",
-                     seen >= 2 and worst <= TOL_M,
-                     "%d objects in view, worst error %.4f m (tol %.3f)"
-                     % (seen, worst, TOL_M)))
+        # THREE STATES, NOT TWO, AND THAT IS THE POINT.
+        #
+        # This read `seen >= 2 and worst <= TOL_M` and printed FAIL for
+        # anything else -- so a run with ONE object in view and an error of
+        # 0.2 mm, which is the arithmetic being exactly right, was reported
+        # identically to a broken deprojection. Measured on this machine:
+        # "FAIL 1 objects in view, worst error 0.0002 m (tol 0.005)".
+        #
+        # From the HOME pose the wrist cameras frame almost nothing at table
+        # height, which is documented and expected, so "too few objects to
+        # judge" is the NORMAL outcome there and it is not a defect. It is
+        # also not a pass. INSUFFICIENT says so, and names the fix.
+        if seen < 2:
+            rows.append(("deprojection lands on TRUE world position",
+                         None,
+                         "INSUFFICIENT: only %d object%s in view (need 2). "
+                         "Worst error so far %.4f m against a %.3f m "
+                         "tolerance, which is not a verdict. From the home "
+                         "pose the cameras frame almost nothing at table "
+                         "height -- drive to the SCAN POSE "
+                         "(recordings/baselines/scan_pose.json) and re-run."
+                         % (seen, "" if seen == 1 else "s", worst, TOL_M)))
+        else:
+            rows.append(("deprojection lands on TRUE world position",
+                         worst <= TOL_M,
+                         "%d objects in view, worst error %.4f m (tol %.3f)"
+                         % (seen, worst, TOL_M)))
 
         # CONTROL: compose the rotation the WRONG way round. It must fail.
         bad = []
@@ -238,11 +261,21 @@ def _report(rows):
     print("=" * 70)
     print("MOCK CAMERA -- PLUMBING ONLY. Detection accuracy is NOT tested")
     print("=" * 70)
-    bad = 0
+    bad = unk = 0
     for label, ok, detail in rows:
-        print("   %-46s %-4s %s" % (label, "OK" if ok else "FAIL", detail))
-        bad += not ok
-    print("\n%d of %d checks fail" % (bad, len(rows)))
+        # None is INSUFFICIENT: the check could not be run, which is neither
+        # a pass nor a failure. Collapsing it into either one is how a
+        # correct pipeline gets reported as broken and, worse, how a broken
+        # one gets reported as untested and ignored.
+        word = "??" if ok is None else ("OK" if ok else "FAIL")
+        print("   %-46s %-4s %s" % (label, word, detail))
+        if ok is None:
+            unk += 1
+        elif not ok:
+            bad += 1
+    print("\n%d of %d checks fail%s"
+          % (bad, len(rows),
+             ", %d could not be run (??)" % unk if unk else ""))
     print("\nUNVERIFIED WITHOUT THE REAL KINOVA DRIVER: detection rate and "
           "accuracy,\nthe real intrinsics/distortion/extrinsic, exposure, "
           "motion blur, rolling\nshutter, depth holes, and whether the "

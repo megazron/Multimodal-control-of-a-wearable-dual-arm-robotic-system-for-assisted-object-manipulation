@@ -11,11 +11,21 @@ emits is capped at `max_confidence` (default 0.45) so it can never outrank an
 AprilTag detection in the tracker's fusion.
 
 It also cannot give full 6-DOF: with no depth camera, range comes from the
-apparent size of a blob of ASSUMED physical width, and orientation comes from
-the 2-D minor axis with roll unobservable. Both are recorded in the message
-(low score) rather than presented as equivalent to a tag pose.
+apparent size of a blob of ASSUMED physical width, and orientation is the
+in-image angle only, with out-of-plane tilt unobservable. Both are recorded in
+the message (low score) rather than presented as equivalent to a tag pose.
+
+WHAT CHANGED, AND IT WAS A SILENT FAULT. This detector measured the blob's
+in-image angle and published IDENTITY anyway, so `grasp_generator` -- which
+reads yaw straight off the quaternion -- saw yaw = 0 for every object however
+it was turned. An object at 30 degrees got a square grasp and no check
+anywhere could tell that from a square object. It now publishes the angle it
+measured, and publishes identity ONLY when the blob is too close to square
+for the angle to mean anything, so identity now means "not measured"
+throughout. See `scene_fingerprint.yaw_from_quat`.
 """
 import json
+import math
 
 import cv2
 import numpy as np
@@ -50,12 +60,19 @@ class ColourShapeDetector(Node):
         # Hard ceiling. AprilTag detections routinely exceed this, so the
         # tracker's max() fusion will always prefer a tag when one exists.
         self.declare_parameter("max_confidence", 0.45)
+        # Below this width-to-height ratio the minAreaRect angle is
+        # degenerate and no yaw is published. 1.15 on a 40 mm cube is a
+        # 6 mm difference between the two sides, which is comfortably above
+        # the contour noise and well below any real elongation.
+        self.declare_parameter("min_aspect_for_yaw", 1.15)
 
         self.arm = self.get_parameter("arm").value
         self.enabled = bool(self.get_parameter("enabled").value)
         self.width = float(self.get_parameter("object_width_m").value)
         self.min_area = int(self.get_parameter("min_area_px").value)
         self.max_conf = float(self.get_parameter("max_confidence").value)
+        self.min_aspect_for_yaw = float(
+            self.get_parameter("min_aspect_for_yaw").value)
         img = self.get_parameter("image_topic").value or \
             f"/{self.arm}_camera/color/image_raw"
         info = self.get_parameter("camera_info_topic").value or \
@@ -121,10 +138,37 @@ class ColourShapeDetector(Node):
                     min(self.max_conf, self.max_conf * min(1.0, area / 5000.0)))
                 p = hyp.pose.pose
                 p.position.x, p.position.y, p.position.z = float(x), float(y), float(z)
-                # Orientation: only the 2-D minor axis is observable. Roll
-                # about the optical axis is NOT, and is left at identity
-                # rather than fabricated.
-                p.orientation.w = 1.0
+                # ORIENTATION: THE IN-IMAGE ANGLE IS PUBLISHED, BECAUSE IT
+                # WAS MEASURED. The old comment here said roll about the
+                # optical axis is unobservable and left w = 1.0; that is
+                # backwards. Rotation about the optical axis is precisely
+                # what minAreaRect measures -- it is the OUT-OF-PLANE tilt
+                # that this detector cannot see. So the measured angle was
+                # being computed, written into a debug string, and thrown
+                # away, while identity went out on the wire.
+                #
+                # The cost of that was not cosmetic. `grasp_generator` reads
+                # yaw straight off this quaternion, and identity reads as
+                # yaw = 0, so an object sitting at 30 degrees got a square
+                # grasp with nothing anywhere able to tell "the object is
+                # square" from "nobody looked". That is the rotated-object
+                # fault listed as SILENT in the lab-day table.
+                #
+                # A NEAR-SQUARE BLOB STILL GETS IDENTITY, and that is the
+                # honest answer rather than a lazy one: minAreaRect's angle
+                # is degenerate when the two sides are the same length, so
+                # publishing it would be inventing a direction. Identity now
+                # means "not measured" everywhere downstream -- see
+                # scene_fingerprint.yaw_from_quat.
+                lo_ax, hi_ax = min(w, h), max(w, h)
+                if lo_ax > 0 and hi_ax / lo_ax >= self.min_aspect_for_yaw:
+                    a = math.radians(float(ang))
+                    p.orientation.z = math.sin(a / 2.0)
+                    p.orientation.w = math.cos(a / 2.0)
+                    yaw_known = True
+                else:
+                    p.orientation.w = 1.0
+                    yaw_known = False
                 d.results.append(hyp)
                 d.bbox = BoundingBox3D()
                 d.bbox.center = p
@@ -132,12 +176,21 @@ class ColourShapeDetector(Node):
                 out.detections.append(d)
                 found.append(dict(colour=name, area=int(area),
                                   range_m=round(float(z), 3),
-                                  minor_axis_deg=round(float(ang), 1)))
+                                  minor_axis_deg=round(float(ang), 1),
+                                  aspect=round(float(hi_ax / lo_ax), 2)
+                                  if lo_ax else None,
+                                  # PUBLISHED, or explicitly not. A reader of
+                                  # this diagnostic can tell a square object
+                                  # from an unmeasured one.
+                                  yaw_deg=(round(float(ang), 1)
+                                           if yaw_known else None),
+                                  yaw_known=yaw_known))
         self.pub.publish(out)
         m = String()
         m.data = json.dumps({"arm": self.arm, "fallback": True,
                              "note": "range from assumed object width; "
-                                     "roll unobservable",
+                                     "in-image yaw measured, out-of-plane "
+                                     "tilt unobservable",
                              "detections": found})
         self.diag.publish(m)
 

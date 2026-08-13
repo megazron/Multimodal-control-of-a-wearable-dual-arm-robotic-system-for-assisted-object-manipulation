@@ -1,0 +1,25 @@
+{
+  "arm": "right",
+  "repeats": 5,
+  "tested_waypoints": 54,
+  "object_z": 1.12,
+  "resting_base_z": 1.1,
+  "controls": {
+    "no_slab": 0,
+    "slab_through": 54,
+    "topdown_no_slab": 0
+  },
+  "topdown_failures_at_resting": 12,
+  "failures_by_slab_top": {
+    "0.950": 0,
+    "1.000": 4,
+    "1.020": 4,
+    "1.040": 16,
+    "1.050": 24,
+    "1.060": 28,
+    "1.070": 28,
+    "1.080": 40,
+    "1.100": 46
+  },
+  "ik_calls": 2486
+}

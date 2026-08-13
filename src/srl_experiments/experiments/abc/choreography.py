@@ -70,6 +70,35 @@ sys.path.insert(0, HERE)
 
 FPS = 20.0          # the runner publishes one waypoint per 0.05 s
 
+# ANTICIPATION HAS A FLOOR IN SECONDS, NOT A FRACTION OF THE MOVE.
+#
+# The wind-up used to be 20% of whatever the move's waypoint count happened
+# to be. At the beats these three routines currently use that lands at
+# 0.45-0.60 s and looks right, so nothing had ever gone wrong -- but nothing
+# held it there either. Shorten a key from 3 beats to 1 and the same code
+# renders a 0.10 s wind-up, which the capture runs at 5-13 fps: ONE FRAME.
+# An anticipation nobody can see is not an anticipation, and the failure is
+# silent because the geometry is unchanged and every check still passes.
+#
+# So the floor is stated in TIME, at the rate the clip is filmed at, and a
+# move too short to carry it gets NO wind-up rather than an invisible one.
+ANTICIPATE_S = 0.30
+ANTICIPATE_N = int(round(ANTICIPATE_S * FPS))     # 6 waypoints
+# The travelling part of the move needs to survive too. Four waypoints is
+# 0.20 s, the shortest thing that reads as a move rather than a jump.
+ANTICIPATE_MIN_MOVE_N = 4
+# Every wind-up actually rendered, in seconds, and every key that ASKED for
+# one and was too short to carry it. Read by the audit and by main(), so
+# "the anticipation is 0.30 s" is a measurement of the rendered path rather
+# than a claim about the constant.
+_ANTI_LOG = []
+_ANTI_SKIPPED = []
+
+
+def anticipation_report():
+    """(durations_s, skipped) for the routines rendered so far."""
+    return list(_ANTI_LOG), list(_ANTI_SKIPPED)
+
 # THE SPEED BUDGET, and it is a real constraint rather than a style choice.
 # `ik_follower_node` caps max_vel_rad_s at 0.6 and slews anything past
 # max_step_rad, so a commanded pose that moves faster than the arm can
@@ -167,15 +196,26 @@ def _render(keys, bpm):
         tgt, beats, ez, anti = k
         n = _beats_to_n(beats, bpm)
         f = EASE.get(ez, _smooth)
-        if anti and n >= 5:
+        if anti and n >= ANTICIPATE_N + ANTICIPATE_MIN_MOVE_N:
             # WIND UP: a short move the OTHER way first. Without it a gesture
             # reads as a setpoint change rather than an intention.
-            na = max(2, int(round(n * 0.20)))
+            #
+            # AT LEAST ANTICIPATE_N WAYPOINTS, whatever the move's length --
+            # see the constant. 20% of a long move is still used when it is
+            # more than the floor, because a big gesture wants a bigger
+            # wind-up; the floor only stops a short one vanishing.
+            na = max(ANTICIPATE_N, int(round(n * 0.20)))
+            na = min(na, n - ANTICIPATE_MIN_MOVE_N)
+            _ANTI_LOG.append(na / FPS)
             back = [cur[i] - (tgt[i] - cur[i]) * anti for i in range(3)]
             for j in range(1, na + 1):
                 out.append(_lerp(cur, back, _smooth(j / float(na))))
             cur = list(back)
             n = max(2, n - na)
+        elif anti:
+            # ASKED FOR AND NOT GIVEN, and said so. Rendering a 0.10 s wind-up
+            # here would satisfy the keyframe and show nothing on screen.
+            _ANTI_SKIPPED.append((tuple(round(v, 3) for v in tgt), beats, n))
         for j in range(1, n + 1):
             out.append(_lerp(cur, tgt, f(j / float(n))))
         cur = list(tgt)

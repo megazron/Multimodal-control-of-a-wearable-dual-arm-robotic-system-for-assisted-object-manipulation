@@ -128,7 +128,15 @@ _FOCUS = (0.15, 0.35, 1.16)
 # wearer-clearance question they answer is the same in every task.
 TASK_FOCUS = {
     "t0": ((0.00, 0.35, 1.28), 1.95),
-    "t1": ((0.34, 0.22, 1.19), 1.15),
+    # x -0.41, not +0.34. THIS is what aims the front view; _FOCUS aims the
+    # other seven and verification_capture.rviz aims only the standalone
+    # RViz. +0.34 was the LEFT-arm cube row. T1 moved to the right arm and
+    # its cubes now sit at x -0.32..-0.50 with the mats at -0.34 and -0.47,
+    # so the whole task sat at the right edge of frame while the empty
+    # left-arm workspace marking held the middle of the picture.
+    "t1": ((-0.30, 0.22, 1.19), 1.45),
+    # t1s2 works BOTH sides, so it centres on the wearer.
+    "t1s2": ((0.00, 0.24, 1.19), 1.55),
     "t2": ((0.00, 0.35, 1.46), 1.55),
     "t3": ((-0.10, 0.19, 1.18), 1.70),
 }

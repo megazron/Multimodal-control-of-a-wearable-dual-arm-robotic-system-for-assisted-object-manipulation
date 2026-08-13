@@ -4413,3 +4413,29 @@ values, so the repo is in a known state.
     SRL_CLIP_OUT=recordings/framing_test python3 scripts/record_abc_sweep.py \
         --taskset msc --only 01_master_teleop --tasks t1 --no-verify
     ffmpeg -ss 16 -i .../rviz_front.mp4 -frames:v 1 out.png     # then LOOK
+
+
+## 2026-08-13: framing SOLVED, and the presentation pose settled
+
+`TASK_FOCUS` in `record_rviz.py` aims the FRONT view per task. T1's entry was
+(0.34, ...) which was the OLD left-arm cube row; T1 is now on the right arm at
+x -0.32..-0.50. Corrected to (-0.30, 0.22, 1.19) at distance 1.45, which keeps
+the wearer fully in shot and the work and its marking in frame. `t1s2` added,
+centred on the wearer because it works both sides.
+
+The tall box at bottom-left is a TABLE LEG, 0.055 m square, drawn by tick().
+Declared scene geometry, not a leftover.
+
+THE PRESENTATION POSE WAS NEVER BUILT. `git log -S"PRESENT_POSE"` across all
+branches returns nothing and no commit mentions it. The earlier report that it
+existed was wrong.
+
+It cannot come from a task path: the clip runner publishes EE POSITIONS and
+the follower pins orientation, so a level wrist is not expressible there. It
+COULD be done by publishing a joint trajectory straight to the arm
+controllers before capture starts, which is a staging move rather than
+teleoperation and would be legitimate. That is a real piece of work and it is
+NOT done. Every clip therefore opens on the +85/+79 home wrist, which
+`home_wrist_is_real.md` explains is genuine.
+
+THE MODE IS `06_full_autonomy`. There is no 05.

@@ -1178,20 +1178,69 @@ class Scene(Node):
             # turned, so at least two REPOSITIONING REQUESTS are structurally
             # required. Without the points on screen a viewer sees a hold,
             # not a task with a coordination demand in it.
+            # ALL FOUR ARE ON THE BOX. P4 used to be drawn on the MULTIMETER,
+            # which contradicts the spec -- "one circuit box with four
+            # measurement points, one multimeter" -- and it misread what P4's
+            # `needs` says: the meter's DISPLAY has to be turned toward the
+            # wearer to READ that point, which is a fact about the meter and
+            # not about where the point is. A test point lives on the board
+            # being probed.
+            #
+            # THEY MUST READ AS MEASUREMENT POINTS, NOT AS DECORATION, and a
+            # 14 mm sphere floating at the face did not: at T3's framing it
+            # is sub-pixel, and the earlier pass recorded that as an honest
+            # residual. Three things fix it, and none of them is "make the
+            # dot bigger until it shows up":
+            #
+            #   * a FLAT PAD ON THE FACE, not a ball beside it. A disc lying
+            #     in the surface is what a test pad looks like; a sphere is a
+            #     marker hovering near one.
+            #   * a RING around it, so the pad has an edge and survives being
+            #     shaded down to a few pixels.
+            #   * a LABEL. P1..P4 named on screen is what makes a viewer read
+            #     them as points being measured IN TURN rather than as spots
+            #     on a box, and it is the same thing that made T0's spheres
+            #     legible.
+            #
+            # Colour still carries the coordination demand: yellow for the
+            # two the initial presentation serves, red for the two that
+            # structurally require a repositioning request.
             import task3 as _T3
-            for mp in _T3.MEASUREMENT_POINTS:
-                host = "multimeter" if mp["id"] == "P4" else "circuit_box"
-                it = self.items.get(host)
-                if it is None:
-                    continue
+            it = self.items.get("circuit_box")
+            for mp in (_T3.MEASUREMENT_POINTS if it is not None else []):
                 size = it["size"]
-                dy = (size[1] / 2.0 if mp["face"] == "far" else -size[1] / 2.0)
+                far = mp["face"] == "far"
+                dy = (size[1] / 2.0 if far else -size[1] / 2.0)
+                col = (YELLOW if mp["served_by_initial_presentation"]
+                       else RED)
                 p3 = [it["pos"][0] + mp["offset_mm"][0] / 1000.0,
                       it["pos"][1] + dy,
                       it["pos"][2] + mp["offset_mm"][1] / 1000.0]
-                add(Marker.SPHERE, p3, (0.014,) * 3,
-                    (YELLOW if mp["served_by_initial_presentation"]
-                     else RED), ns="measure")
+                # PAD_T sticks out of the face by half its depth so the pad
+                # is never coplanar with the box: two coincident surfaces
+                # z-fight and the pad flickers in and out between frames,
+                # which on an 8-13 fps capture looks like a fault.
+                PAD_W, PAD_T = 0.020, 0.006
+                add(Marker.CUBE, p3, (PAD_W, PAD_T, PAD_W), col, ns="measure")
+                add(Marker.CUBE, p3, (PAD_W * 1.7, PAD_T * 0.6, PAD_W * 1.7),
+                    (col[0], col[1], col[2], 0.45), ns="measure")
+                lab = Marker()
+                lab.header.frame_id = "world"
+                lab.ns, lab.id = "measure_labels", i
+                lab.type = Marker.TEXT_VIEW_FACING
+                lab.action = Marker.ADD
+                lab.text = mp["id"]
+                lab.pose.position.x = float(p3[0])
+                # The label stands OFF the face on the same side the pad
+                # does, so it never sinks into the box on the far side.
+                lab.pose.position.y = float(p3[1] + (0.03 if far else -0.03))
+                lab.pose.position.z = float(p3[2] + 0.028)
+                lab.pose.orientation.w = 1.0
+                lab.scale.z = 0.030
+                (lab.color.r, lab.color.g,
+                 lab.color.b, lab.color.a) = (1.0, 1.0, 1.0, 1.0)
+                A.markers.append(lab)
+                i += 1
                 if mp["id"] not in self.fixtures:
                     self.fixtures.append(mp["id"])
         elif self.task == "t2":

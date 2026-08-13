@@ -111,6 +111,12 @@ MEASUREMENT_POINTS = [
          served_by_initial_presentation=False,
          needs="the box rotated or moved -- the far face is not reachable "
                "past the box at the presented angle"),
+    # ON THE BOX, like the other three. The clip drew this one on the
+    # MULTIMETER for a while, which contradicts the spec -- "one circuit box
+    # with FOUR measurement points, one multimeter" -- and misread the line
+    # below: the meter's DISPLAY has to face the wearer to READ this point,
+    # which is a fact about the meter, not about where the point is. A test
+    # point is on the board being probed.
     dict(id="P4", face="near", offset_mm=(0, -55),
          served_by_initial_presentation=False,
          needs="the METER display turned toward the wearer; the initial "

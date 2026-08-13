@@ -64,6 +64,12 @@ def script():
                                              [0.0, 0.35, 1.20],
                                              [0.0, 0.35, 1.30]]}),
         TA.TaskCommand(TA.Verb.RETURN, "right", "box", pose=R, to_pose=R),
+        # MOVE_TO: go somewhere NAMED, with no object at all. It is the one
+        # verb whose target is a place rather than a thing, and it has to be
+        # here for the same reason as the rest -- the proof covers the whole
+        # API or it covers the verb that happens to be easy. The pose is a
+        # measured cell; see srl_autonomy.named_places.
+        TA.TaskCommand(TA.Verb.MOVE_TO, "left", "left side", pose=L),
     ]
 
 

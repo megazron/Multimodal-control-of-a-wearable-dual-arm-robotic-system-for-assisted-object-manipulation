@@ -207,14 +207,26 @@ def test_the_front_centre_is_REFUSED_with_the_measurement():
     """The most useful thing the demonstration can show about this platform.
 
     The reachable region is nothing like the region a person expects, and the
-    robot must say so rather than accept and fail. 0 of 319 surveyed cells lie
-    at |x| <= 0.10.
+    robot must say so rather than accept and fail.
+
+    THE NUMBER MOVED, DELIBERATELY, AND THIS TEST MOVED WITH IT. The refusal
+    used to be written out here as "0 of 319 surveyed cells ... nearest
+    reachable x is 0.30", and it went stale: the current survey has 409 cells
+    and the nearest reachable x is 0.15. Two owners for one measurement is how
+    that happens, so the parser now says only THAT the place is unreachable
+    and `srl_autonomy.named_places` -- which reads the survey -- supplies the
+    figures. The measurement is asserted there, in test_named_places.py.
     """
     for u in ("move to the front centre", "move to the front center"):
         r = vi.parse("hey doc oc " + u, wake=vi.WAKE_DEFAULT)
         assert r.verb is None, "the front centre must NOT be accepted"
         assert "not reachable" in r.reason, r.reason
-        assert "0.30" in r.reason, "the refusal must carry the measurement"
+    # AND NO NUMBERS HERE. A digit creeping back into the parser's refusal is
+    # the staleness returning, so it is a failure rather than a style note.
+    for spec in vi.NAMED_PLACES.values():
+        why = spec.get("why") or ""
+        assert not any(c.isdigit() for c in why), (
+            "the parser is quoting a measurement again: %r" % why)
 
 
 def test_a_reachable_named_place_is_accepted():

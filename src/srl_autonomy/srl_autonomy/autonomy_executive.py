@@ -49,6 +49,7 @@ from std_msgs.msg import Bool, String
 sys.path.insert(0, "/home/gausms/kortex_ws/src/srl_teleop")
 from srl_teleop import operating_modes as om            # noqa: E402
 from srl_autonomy import voice_intent as vi             # noqa: E402
+from srl_autonomy import named_places as np_places      # noqa: E402
 from srl_autonomy.world_model import WorldModel         # noqa: E402
 
 STAGES = ("IDLE", "SCAN", "AWAIT_COMMAND", "RESOLVE", "CONFIRM", "PLAN",
@@ -312,6 +313,8 @@ class Executive(Node):
         elif intent.verb == "place":
             self.to("PLACE", "commanded")
             self.say("Putting it down.")
+        elif intent.verb == "goto":
+            self.start_move_to(intent.target, intent.arm)
         else:
             self.refuse("I don't know how to %r" % intent.verb)
 
@@ -347,6 +350,66 @@ class Executive(Node):
     def _begin_motion(self, obj):
         self.decide("begin_motion", **obj)
         self.to("PLAN", "target %s" % obj.get("label"))
+
+    def start_move_to(self, place, arm=None):
+        """MOVE_TO: go to a named place, with no object involved.
+
+        THE POSITION COMES OUT OF THE SURVEY. `named_places.resolve()` returns
+        a cell the full-path work-surface survey actually solved, snapped to a
+        tested cell centre rather than to the region's centroid -- the region
+        is not convex, so its centroid can sit in a hole.
+
+        A REFUSAL HERE IS A RESULT, NOT A FAILURE. "Move to the front centre"
+        is the single most useful thing this platform can demonstrate about
+        itself: the reachable region is nothing like the region a person
+        expects, and the robot knows the number. So the refusal carries the
+        measurement instead of a shrug.
+
+        THE SAFETY CHECKS ARE THE SAME ONES A PICK GETS. A named place is
+        still a Cartesian goal over a person, so it goes through the wearer
+        keep-out exactly as `start_pick` does. A verb that skipped them
+        because it has no object would be a hole in the keep-out.
+        """
+        try:
+            spec = np_places.resolve(place)
+        except (np_places.Unreachable, np_places.SurveyUnavailable) as e:
+            self.refuse(str(e))
+            return
+        if spec.get("joint_space"):
+            # HOME is a joint-space pose and this project has exactly one
+            # definition of it. Inventing a Cartesian "home" here would make
+            # a second.
+            self.decide("move_to", place=place, joint_space=True)
+            self.say("Going home.")
+            self.to("PLAN", "move to %s (joint space)" % place)
+            return
+        p = np.asarray(spec["position"], float)
+        if behind_wearer(p):
+            self.refuse(
+                "%s is behind the wearer. I will not plan a path there -- I "
+                "refuse rather than routing around a person." % place)
+            return
+        bad, part = inside_wearer(p)
+        if bad:
+            self.refuse("%s is inside the wearer's %s" % (place, part))
+            return
+        use_arm = spec.get("arm") or arm
+        self.decide("move_to", place=place, arm=use_arm,
+                    position=[round(v, 4) for v in p],
+                    n_cells=spec.get("n_cells"))
+        self.say("Moving to the %s." % place)
+        self.to("PLAN", "move to %s" % place)
+        # AND ACTUALLY COMMAND IT. `command()` publishes to
+        # /autonomy/assist_pose_<arm>, which ik_follower_node routes through
+        # request_ik -- the same door teleop uses, so this inherits the
+        # collision-aware IK, the clearance floor, the mount guard and the
+        # e-stop with no per-mode exemption.
+        #
+        # Announcing a stage without commanding is how this node once
+        # narrated a whole pick while the arm never moved, and a MOVE_TO that
+        # only said "Moving to the left side" would be that same gap wearing
+        # a new verb.
+        self.command(use_arm, p)
 
     def start_handover(self, to_arm):
         """MODE 5/6 ONLY. Teleop cannot do this: under orientation_mode

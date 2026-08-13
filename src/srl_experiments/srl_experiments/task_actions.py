@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""THE TASK LAYER. Seven verbs, and it does not know which mode drives it.
+"""THE TASK LAYER. Eight verbs, and it does not know which mode drives it.
 
     REACH_TARGET  PICK_OBJECT  PLACE_OBJECT  GRASP  RELEASE  TRANSFER  RETURN
+    MOVE_TO
 
 WHY THIS FILE EXISTS AT ALL, AND WHY IT IS BUILT FIRST
 ------------------------------------------------------
@@ -57,6 +58,13 @@ class Verb(str, Enum):
     RELEASE = "RELEASE"
     TRANSFER = "TRANSFER"
     RETURN = "RETURN"
+    # GO SOMEWHERE NAMED, with no object involved. "move to the front centre"
+    # has been in the spec and parsable by voice_intent from the start, and
+    # there was no verb for it -- so the executive fell through to "I don't
+    # know how to 'goto'" and the system refused a command it was designed to
+    # accept. The target resolver is srl_autonomy.named_places, and every
+    # position it returns is a cell the work-surface survey actually solved.
+    MOVE_TO = "MOVE_TO"
 
 
 class Phase(str, Enum):
@@ -206,6 +214,7 @@ class TaskLayer:
             Verb.RELEASE: self._release,
             Verb.TRANSFER: self._transfer,
             Verb.RETURN: self._return,
+            Verb.MOVE_TO: self._move_to,
         }[cmd.verb]
         out = []
         t0 = self.clock()
@@ -216,6 +225,31 @@ class TaskLayer:
 
     def _reach(self, out, cmd):
         if not self._confirm(out, cmd, "reach %s" % cmd.subject):
+            return Status.REFUSED
+        if self._move(out, cmd, cmd.arm, cmd.pose, Phase.APPROACH) is None:
+            return Status.UNREACHABLE
+        if self._move(out, cmd, cmd.arm, cmd.pose, Phase.SETTLE) is None:
+            return Status.UNREACHABLE
+        self._ev(out, cmd, Phase.VERIFY, Status.OK)
+        return Status.OK
+
+    def _move_to(self, out, cmd):
+        """MOVE_TO: go to a NAMED PLACE. No object, no gripper, at all.
+
+        Deliberately NOT an alias for REACH_TARGET, though the trace shape is
+        the same. REACH_TARGET goes to a target the task laid out; MOVE_TO
+        goes somewhere a PERSON named out loud, and the difference is where
+        the pose came from -- a measured cell out of
+        `srl_autonomy.named_places`, not a task coordinate. Keeping them
+        separate is what lets the write-up count how often the operator
+        redirected the robot, which is a different quantity from how many
+        targets the task had.
+
+        No gripper phase anywhere in it. A verb that opened or closed the
+        hand on the way to a place would put a grasp event in a trial that
+        never grasped anything.
+        """
+        if not self._confirm(out, cmd, "move to %s" % cmd.subject):
             return Status.REFUSED
         if self._move(out, cmd, cmd.arm, cmd.pose, Phase.APPROACH) is None:
             return Status.UNREACHABLE

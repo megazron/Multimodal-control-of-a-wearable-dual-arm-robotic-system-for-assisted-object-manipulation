@@ -299,6 +299,7 @@ def check_t2(mods):
 def check_t3(mods):
     CS, T3 = mods["clip_scene"], mods["task3"]
     out = {}
+    src = open(os.path.join(WS, "scripts", "clip_scene.py")).read()
     furn = [f[0] for f in CS.furniture_boxes("t3")]
     boxes = [f for f in furn if "circuit_box" in f]
     out["T3-1"] = ((PRESENT, "one graspable circuit_box at x=%.3f, none in the "
@@ -307,14 +308,30 @@ def check_t3(mods):
                    else (MISSING, "a second circuit box in the furniture: %s"
                          % boxes))
 
+    # DRAWN, ON THE BOX, AND LEGIBLE. "Declared" was all this used to ask,
+    # and the points were then drawn as 14 mm spheres that are sub-pixel at
+    # T3's framing -- present in the file and absent from the picture -- with
+    # P4 on the MULTIMETER, which contradicts "one circuit box with four
+    # measurement points".
     pts = [p["id"] for p in T3.MEASUREMENT_POINTS]
     drawn = CS.fixtures_for("t3")
-    out["T3-2"] = ((PRESENT, "%s declared and drawn by tick()" % pts)
-                   if len(pts) == 4 and sorted(drawn) == sorted(pts)
-                   else (MISSING, "declared %s, fixtures_for('t3') %s"
-                         % (pts, drawn)))
+    on_box = 'it = self.items.get("circuit_box")' in src and \
+        'host = "multimeter"' not in src
+    labelled = 'lab.ns, lab.id = "measure_labels", i' in src
+    pad = 'PAD_W, PAD_T = ' in src
+    faces = {p["face"] for p in T3.MEASUREMENT_POINTS}
+    ok = (len(pts) == 4 and sorted(drawn) == sorted(pts) and on_box
+          and labelled and pad and faces == {"near", "far"})
+    out["T3-2"] = ((PRESENT, "%s drawn as labelled pads ON THE BOX across "
+                             "its %s faces; %d structurally need a "
+                             "repositioning request"
+                    % (pts, "/".join(sorted(faces)),
+                       T3.MIN_EXPECTED_REQUESTS))
+                   if ok
+                   else (MISSING, "declared %s drawn %s on_box=%s "
+                                  "labelled=%s pads=%s faces=%s"
+                         % (pts, drawn, on_box, labelled, pad, faces)))
 
-    src = open(os.path.join(WS, "scripts", "clip_scene.py")).read()
     right_box = 'dict(arm="right"' in src and T3.BOX_ARM == "right"
     left_meter = T3.METER_ARM == "left" and 'dict(arm="left"' in src
     size_mm = tuple(round(v * 1000) for v in T3.METER_SIZE)
@@ -643,6 +660,15 @@ def self_test(mods):
                 lambda: T3.MEASUREMENT_POINTS.__delitem__(slice(2, None)),
                 lambda: T3.MEASUREMENT_POINTS.__setitem__(slice(None), pts))
 
+    # A set of points that are all on ONE face has lost the coordination
+    # demand the task is built on: P3 is on the far face and that is why a
+    # repositioning request is structurally required.
+    expect_fail("T3 points span both faces",
+                check_t3,
+                lambda: T3.MEASUREMENT_POINTS.__setitem__(
+                    slice(None), [dict(p, face="near") for p in pts]),
+                lambda: T3.MEASUREMENT_POINTS.__setitem__(slice(None), pts))
+
     card = dict(mods["sweep"].CARD_TEXT)
     expect_fail("card text style",
                 check_recording,
@@ -665,7 +691,7 @@ def self_test(mods):
     if _cycles([0.6] * 10) != (0, 0):
         fails.append("_cycles never opens")
 
-    print("SELF-TEST: %d probes" % 12)
+    print("SELF-TEST: %d probes" % 13)
     if fails:
         print("FAILED -- these checks passed a deliberately broken input:")
         for f in fails:

@@ -140,15 +140,25 @@ VERB_PATTERNS = (
 # rather than with a shrug. It is the single most useful thing the
 # demonstration can show about this platform: the reachable region is nothing
 # like the region a person expects, and the robot knows it.
+# THE NAMES ONLY. The GEOMETRY lives in srl_autonomy.named_places, which
+# reads the survey, and this module deliberately does not import it: the
+# parser is pure text and is tested without a workspace on disk.
+#
+# THE REFUSAL TEXT USED TO BE WRITTEN OUT HERE AND IT WENT STALE. It said
+# "0 of 319 surveyed cells ... the nearest reachable x is 0.30", which was the
+# bench-era survey; the current one has 409 cells and the nearest reachable x
+# is 0.15. Both statements refuse the same command for the same reason, and
+# one of them quoted a number that no longer described this robot. So the
+# parser now says only THAT the front centre is unreachable, and the executive
+# attaches the measurement when it resolves the place -- one owner for the
+# number, which is the whole point of named_places.
 NAMED_PLACES = {
     "front centre": dict(reachable=False,
                          why="the front centre is not reachable by either "
-                             "arm: 0 of 319 surveyed cells at |x| <= 0.10, "
-                             "and the nearest reachable x is 0.30"),
+                             "arm; ask the executive for the survey figures"),
     "front center": dict(reachable=False,
                          why="the front centre is not reachable by either "
-                             "arm: 0 of 319 surveyed cells at |x| <= 0.10, "
-                             "and the nearest reachable x is 0.30"),
+                             "arm; ask the executive for the survey figures"),
     "left side": dict(reachable=True, arm="left"),
     "right side": dict(reachable=True, arm="right"),
     "home": dict(reachable=True, arm=None),

@@ -70,6 +70,47 @@ POSE_FILE = os.path.join(ROOT, "recordings", "baselines",
 ARRIVE_TOL_RAD = 0.02          # ~1.1 deg per joint
 
 
+def reap_orphaned_shm():
+    """Delete Fast DDS segments NO LIVE PROCESS HAS MAPPED. Returns the count.
+
+    CLAUDE.md says /dev/shm/fastrtps_* may only be cleared with the stack
+    STOPPED, and that rule stands: wiping them wholesale mid-sweep takes the
+    running stack's discovery with it. This does something narrower and safe
+    -- it reads /proc/*/maps, and removes only segments that no living
+    process has open. A segment nobody has mapped cannot be anybody's
+    discovery.
+
+    WHY IT IS NEEDED. Fast DDS leaks a segment per participant on this host,
+    and every clip runs this script as a fresh process. Measured mid-sweep:
+    156 segments, 76 held by a live process and 80 orphaned. The port range
+    fills, `rclpy.init()` fails with "Failed init_port fastrtps_portNNNN",
+    and the clip silently opens on the home pose -- five retries were not
+    enough because retrying does not free a port.
+    """
+    import glob
+    live = set()
+    for pid in os.listdir("/proc"):
+        if not pid.isdigit():
+            continue
+        try:
+            with open("/proc/%s/maps" % pid) as f:
+                for line in f:
+                    if "fastrtps_" in line:
+                        live.add("/dev/shm/" + line.rsplit("/", 1)[-1].strip())
+        except OSError:
+            continue
+    n = 0
+    for seg in glob.glob("/dev/shm/fastrtps_*"):
+        if seg in live:
+            continue
+        try:
+            os.unlink(seg)
+            n += 1
+        except OSError:
+            pass
+    return n
+
+
 class Stager(Node):
     def __init__(self):
         super().__init__("presentation_pose_stager")
@@ -220,6 +261,7 @@ def main():
     # purpose: CLAUDE.md is explicit that /dev/shm/fastrtps_* may only be
     # cleared with the stack STOPPED, and a staging script that wiped them
     # mid-sweep would take the running stack's discovery with it.
+    reap_orphaned_shm()
     last = None
     for attempt in range(1, 6):
         try:

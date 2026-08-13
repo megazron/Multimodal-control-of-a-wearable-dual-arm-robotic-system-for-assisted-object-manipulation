@@ -1,0 +1,46 @@
+{
+  "repeats": 3,
+  "stride": 4,
+  "box": [
+    [
+      0.26,
+      0.5
+    ],
+    [
+      0.22,
+      0.44
+    ],
+    [
+      1.02,
+      1.58
+    ]
+  ],
+  "rows": {
+    "d1": {
+      "tested": 182,
+      "failures": 0,
+      "examples": []
+    },
+    "d2": {
+      "tested": 178,
+      "failures": 0,
+      "examples": []
+    },
+    "d3": {
+      "tested": 278,
+      "failures": 0,
+      "examples": []
+    }
+  },
+  "ik_calls": 1918,
+  "controls": {
+    "far": {
+      "left": false,
+      "right": false
+    },
+    "inside": {
+      "left": false,
+      "right": false
+    }
+  }
+}

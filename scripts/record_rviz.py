@@ -139,6 +139,15 @@ TASK_FOCUS = {
     "t1s2": ((0.00, 0.24, 1.19), 1.55),
     "t2": ((0.00, 0.35, 1.46), 1.55),
     "t3": ((-0.10, 0.19, 1.18), 1.70),
+    # THE DANCE. Centred on the wearer because both arms work both sides, and
+    # pulled BACK to 2.10 because the routines span z 1.02..1.58 -- a 560 mm
+    # vertical range against T1's 120 mm. Framed at T1's distance the apex of
+    # every reach would leave the top of the picture, which is exactly what
+    # happened to T0's two FRONT_UP targets and T2's tray before TASK_FOCUS
+    # existed.
+    "d1": ((0.00, 0.33, 1.30), 2.10),
+    "d2": ((0.00, 0.33, 1.30), 2.10),
+    "d3": ((0.00, 0.33, 1.30), 2.10),
 }
 VIEWS = {
     #  name       display  yaw      pitch  dist  focal(x,y,z)   hud

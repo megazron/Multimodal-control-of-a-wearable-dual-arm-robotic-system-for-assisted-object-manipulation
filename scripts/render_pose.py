@@ -75,6 +75,13 @@ def main():
             print("   %-6s -> %s" % (name, png))
         else:
             print("   %-6s FAILED: %s" % (name, g.stderr.strip()[:100]))
+    # TEAR THE DISPLAYS DOWN. `ensure_display` deliberately never kills
+    # anything, so a still-grab leaves eight Xvfb servers and their locks
+    # behind -- and the recording sweep REFUSES to run with them alive,
+    # correctly, because a display it did not start may be showing anything.
+    # Measured: the first dance recording after a render aborted with eight
+    # PRECONDITION FAILED lines.
+    rr.teardown_displays(verbose=False)
     print("\n%d still(s). LOOK AT THEM." % len(made))
     return 0 if made else 1
 

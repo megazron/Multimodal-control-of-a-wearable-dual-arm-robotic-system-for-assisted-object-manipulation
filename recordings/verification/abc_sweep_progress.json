@@ -39,26 +39,6 @@
     ],
     "dir": "recordings/verification/01_master_teleop/T2/S2_full_lift"
   },
-  "01_master_teleop/t1/S1_right_arm": {
-    "ok": true,
-    "msg": "run exited 0",
-    "mode": "01_master_teleop",
-    "task": "t1",
-    "scenario": "S1_right_arm",
-    "quad": true,
-    "opened_on": "home",
-    "files": [
-      "rviz_back.mp4",
-      "rviz_front.mp4",
-      "rviz_gripper.mp4",
-      "rviz_iso.mp4",
-      "rviz_left.mp4",
-      "rviz_quad.mp4",
-      "rviz_right.mp4",
-      "rviz_top.mp4"
-    ],
-    "dir": "recordings/verification/01_master_teleop/T1/S1_right_arm"
-  },
   "01_master_teleop/t1s2/S2_both_arms_random": {
     "ok": true,
     "msg": "run exited 0",
@@ -98,5 +78,145 @@
       "rviz_top.mp4"
     ],
     "dir": "recordings/verification/01_master_teleop/T3/S1_measure_cycle"
+  },
+  "01_master_teleop/t1/S1_right_arm": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "01_master_teleop",
+    "task": "t1",
+    "scenario": "S1_right_arm",
+    "quad": true,
+    "opened_on": "presentation",
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/01_master_teleop/T1/S1_right_arm"
+  },
+  "04_vr_shared/t0/D3_three_targets": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "04_vr_shared",
+    "task": "t0",
+    "scenario": "D3_three_targets",
+    "quad": true,
+    "opened_on": "presentation",
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/04_vr_shared/T0/D3_three_targets"
+  },
+  "04_vr_shared/t1/S1_right_arm": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "04_vr_shared",
+    "task": "t1",
+    "scenario": "S1_right_arm",
+    "quad": true,
+    "opened_on": "home",
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/04_vr_shared/T1/S1_right_arm"
+  },
+  "04_vr_shared/t1s2/S2_both_arms_random": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "04_vr_shared",
+    "task": "t1s2",
+    "scenario": "S2_both_arms_random",
+    "quad": true,
+    "opened_on": "presentation",
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/04_vr_shared/T1S2/S2_both_arms_random"
+  },
+  "04_vr_shared/t2/S2_full_lift": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "04_vr_shared",
+    "task": "t2",
+    "scenario": "S2_full_lift",
+    "quad": true,
+    "opened_on": "presentation",
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/04_vr_shared/T2/S2_full_lift"
+  },
+  "04_vr_shared/t3/S1_measure_cycle": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "04_vr_shared",
+    "task": "t3",
+    "scenario": "S1_measure_cycle",
+    "quad": true,
+    "opened_on": "presentation",
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/04_vr_shared/T3/S1_measure_cycle"
+  },
+  "03_shared_autonomy/t0/D3_three_targets": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "03_shared_autonomy",
+    "task": "t0",
+    "scenario": "D3_three_targets",
+    "quad": true,
+    "opened_on": "presentation",
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/03_shared_autonomy/T0/D3_three_targets"
   }
 }

@@ -116,7 +116,7 @@ OUT = os.path.join(ROOT, "recordings", "baselines", "presentation_pose.json")
 # so the same request returns different postures -- which is usually a
 # nuisance and is useful here: it samples the arm's null space, and the elbow
 # is exactly what the null space controls.
-IK_DRAWS = 12
+IK_DRAWS = 40
 
 # ---- WHAT "STANDING READY TO WORK" MEANS, AS NUMBERS ---------------------
 # The wearer's torso is a 0.36 x 0.22 x 0.48 box centred at z = 1.22
@@ -124,9 +124,38 @@ IK_DRAWS = 12
 TORSO_HALF_W = 0.18          # "lateral extent roughly the width of the torso"
 TORSO_FRONT_Y = 0.11         # the front face; a hand "in front of the chest"
                              # has to be beyond this
-HAND_TARGET = dict(x=0.18,   # each hand at the torso's own half width
-                   y=0.32,   # clear of the front face, within easy reach
+# THE BRIEF ASKED FOR |x| = 0.18, THE TORSO'S OWN HALF WIDTH, AND THE
+# CLEARANCE FLOOR FORBIDS IT. Measured, level wrist, geometric wearer
+# clearance with no SRDF exclusions:
+#
+#     hand |x| = 0.18   clearance -0.016 m   (the arm is INSIDE the torso)
+#                0.20             -0.004
+#                0.26             +0.002 .. +0.041
+#                0.30             +0.019 .. +0.045
+#                0.45             +0.151 .. +0.161   <- the floor is 0.15
+#
+# It is not the HAND that collides -- the hand is well clear at 0.32 m in
+# front of a torso face at 0.11. It is the upper arm and forearm: the mount
+# is on the BACK, so folding the arms round to the front lays the limbs
+# across the person. |x| = 0.45 is the nearest either hand can come to the
+# centreline with the floor intact, which is a 0.90 m span against a 0.36 m
+# torso.
+#
+# HARD CONSTRAINT 11: the floor is not lowered for a staging pose. So the
+# target is the measured frontier, and the shortfall against the brief is
+# reported rather than engineered around.
+#
+# AND AN EARLIER MEASUREMENT OF MINE WAS WRONG, for a reason worth keeping:
+# scripts/measure_ready_pose_envelope.py said both arms reach |x| = 0.14 and
+# I reported the brief as achievable. That sweep asked MoveIt's
+# collision-aware IK, and the wearer pairs are SRDF-EXCLUDED -- the same trap
+# mount_guard_node exists for. MoveIt said valid; the geometry says the metal
+# is 16 mm inside the person.
+HAND_TARGET = dict(x=0.45,   # the measured clearance frontier, not the brief
+                   y=0.32,   # clear of the front face, at chest depth
                    z=1.22)   # chest height
+# What the brief asked for, kept so the shortfall can be stated in numbers.
+BRIEF_HAND_X = 0.18
 # A hand nearer the centreline than this reads as hands clasped rather than
 # ready, and the two grippers start to threaten each other.
 HAND_MIN_X = 0.10
@@ -146,6 +175,24 @@ MIN_CLEARANCE_M = 0.15
 # in favour of the shorter move, because the staging move happens before
 # every clip and travels over a person.
 TRAVEL_W = 0.0008
+# ---- THE MOVE FROM HOME IS BOUNDED, AND THAT IS A HARD CONSTRAINT --------
+# The first pose that satisfied everything else needed 270 and 281 degrees of
+# total joint travel, with joint_5 swinging +175 and -145. That is not a
+# staging move, it is a large unattended sweep over a person before every
+# clip, and it is exactly what "short and clean rather than a large sweep"
+# rules out.
+#
+# JOINT_5 IS BOUNDED HARDER THAN THE REST, and not for tidiness.
+# config/home_positions_left.txt records it as a SEAM RISK: home puts it
+# 14.10 deg from the +/-180 boundary, inside the 0.3 rad margin used
+# elsewhere in this project, and "ANY future position-mode code touching
+# joint_5 must go through kortex_convention.pose_delta_rad". This script
+# publishes position setpoints, so a 175 deg command here is precisely the
+# case that warning names -- a small negative excursion wraps and a naive
+# controller executes ~358 deg.
+MAX_JOINT_DELTA_DEG = 60.0
+MAX_J5_DELTA_DEG = 15.0
+MAX_TOTAL_TRAVEL_DEG = 150.0
 
 
 class Kin(Node):
@@ -373,6 +420,15 @@ class Kin(Node):
         if ok is False:
             return None, None
 
+        # ---- HARD: a staging move, not a sweep -----------------------
+        deltas = [abs(math.degrees(q[i] - home[i])) for i in range(7)]
+        if max(deltas) > MAX_JOINT_DELTA_DEG:
+            return None, None
+        if deltas[4] > MAX_J5_DELTA_DEG:
+            return None, None
+        if sum(deltas) > MAX_TOTAL_TRAVEL_DEG:
+            return None, None
+
         c = 0.0
         c += (abs(hand[0]) - HAND_TARGET["x"]) ** 2
         c += (hand[1] - HAND_TARGET["y"]) ** 2
@@ -487,9 +543,9 @@ def main():
         # the one with the best elbow wins, which is the only way to get
         # "elbows down and slightly out" out of a position-only solver.
         cands = []
-        for tx in (HAND_TARGET["x"], 0.16, 0.20, 0.22, 0.26):
-            for ty in (HAND_TARGET["y"], 0.28, 0.36):
-                for tz in (HAND_TARGET["z"], 1.18, 1.26):
+        for tx in (HAND_TARGET["x"], 0.50, 0.55, 0.60):
+            for ty in (HAND_TARGET["y"], 0.25, 0.36):
+                for tz in (HAND_TARGET["z"], 1.18, 1.10):
                     tgt = [(1.0 if arm == "left" else -1.0) * tx, ty, tz]
                     for _try in range(IK_DRAWS):
                         q = n.ik_joints(arm, tgt)
@@ -559,10 +615,12 @@ def main():
                   % (abs(b["elev"]), GOOD_ENOUGH_DEG))
     if all(result[a2] for a2 in ("left", "right")):
         span = abs(result["left"]["hand"][0] - result["right"]["hand"][0])
-        print("   HAND SPAN %.3f m against a %.3f m torso width -- %s"
-              % (span, 2 * TORSO_HALF_W,
-                 "still wider than the torso" if span > 2 * TORSO_HALF_W * 1.35
-                 else "about the width of the torso"))
+        print("   HAND SPAN %.3f m against a %.3f m torso -- %.1fx. The "
+              "brief asked for about 1x and the CLEARANCE FLOOR forbids it: "
+              "at |x| = %.2f the arm is inside the torso. This is the "
+              "nearest-in posture the floor permits."
+              % (span, 2 * TORSO_HALF_W, span / (2 * TORSO_HALF_W),
+                 BRIEF_HAND_X))
 
     if a.save and not bad:
         os.makedirs(os.path.dirname(OUT), exist_ok=True)

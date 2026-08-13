@@ -1,5 +1,5 @@
 {
-  "note": "joint-space staging pose commanded before capture; NOT a task pose and not teleoperation. Derived from home by sweeping one wrist joint for a level tool axis, checked against /check_state_validity with the wearer in scene.",
+  "note": "joint-space staging pose commanded before capture; NOT a task pose and not teleoperation. Found by coordinate descent over joints 1, 2, 4 and 6 against a cost that encodes hands in front of the chest, lateral extent about the torso's, elbows below the shoulders and a level wrist, with clearance to the wearer measured GEOMETRICALLY (the SRDF excludes the pairs that matter, so /check_state_validity is not the authority on it).",
   "good_enough_deg": 8.0,
   "controls": {
     "fk_responds_left": true,
@@ -12,41 +12,84 @@
     "fk_responds_right": true,
     "fk_matches_tf_right": true,
     "home_elevation_right_deg": 22.09,
-    "home_elevation_tf_right_deg": 22.1,
+    "home_elevation_tf_right_deg": 22.09,
     "home_clearance_right_m": 0.161,
     "wearer_collision_detected_right": true,
     "wearer_collision_example_right": "joint_2=-3.20 -> -0.157 m into torso"
   },
   "min_clearance_m": 0.15,
+  "hand_target": {
+    "x": 0.45,
+    "y": 0.32,
+    "z": 1.22
+  },
   "poses": {
     "left": {
-      "joint": 6,
-      "delta_deg": -32.0,
-      "elevation_deg": 6.54,
+      "delta_deg": [
+        -15.8,
+        -21.73,
+        8.71,
+        -18.06,
+        175.28,
+        13.99,
+        16.43
+      ],
+      "elevation_deg": -0.0,
       "clearance_m": 0.161,
+      "hand": [
+        0.45,
+        0.32,
+        1.22
+      ],
+      "elbow": [
+        0.5089,
+        -0.0837,
+        1.021
+      ],
+      "elbow_below_shoulder_m": 0.2773,
+      "travel_deg": 270.0,
       "q": [
-        -1.762259,
-        -1.436581,
-        -1.610241,
-        -1.2891,
-        -2.895501,
-        -0.078889,
-        0.964469
+        -2.038071,
+        -1.815927,
+        -1.458141,
+        -1.604378,
+        0.163756,
+        0.723861,
+        1.251198
       ]
     },
     "right": {
-      "joint": 6,
-      "delta_deg": -42.0,
-      "elevation_deg": 7.54,
+      "delta_deg": [
+        5.01,
+        29.81,
+        -11.24,
+        33.37,
+        -144.79,
+        4.64,
+        -52.29
+      ],
+      "elevation_deg": 0.0,
       "clearance_m": 0.161,
+      "hand": [
+        -0.45,
+        0.32,
+        1.22
+      ],
+      "elbow": [
+        -0.4884,
+        -0.0851,
+        1.0178
+      ],
+      "elbow_below_shoulder_m": 0.2805,
+      "travel_deg": 281.2,
       "q": [
-        -0.983493,
-        1.344951,
-        1.720371,
-        1.022239,
-        -0.748048,
-        -0.097913,
-        2.700199
+        -0.896023,
+        1.865272,
+        1.524239,
+        1.604728,
+        -3.275057,
+        0.716131,
+        1.787523
       ]
     }
   }

@@ -4325,3 +4325,45 @@ the pads on the cube rather than above it, one table, and the markings.
 **Not done and still open:** the presentation pose for the opening frame was
 recorded as a decision in `home_wrist_is_real.md` but never built or verified.
 The GUI button-press sweep still hangs after constructing the GUI.
+
+---
+
+## STOPPED 2026-08-13 IN PART E. Framing is the only thing left, and it is aimed.
+
+**Recording works.** Mode 01 recorded 5 of 5 with 0 failures, twice. T1 shows
+4 grasps, pads on the cube at 0.000 m, and the information card plays first
+and is readable. The two bugs that broke the previous sweep are fixed and
+stayed fixed.
+
+**What is wrong is the CAMERA, and only the camera.** Extracted frames show
+the work at the right edge of frame and partly outside it, while the empty
+left-arm workspace marking sits in the middle of the picture. Every number in
+the run is correct. The picture is not.
+
+**THE CONTROL IS `_FOCUS` IN `scripts/record_rviz.py`, NOT THE .rviz FILE.**
+This cost three attempts. `verification_capture.rviz` aims only the standalone
+RViz; the eight capture angles are generated from the `VIEWS` table in
+`record_rviz.py`, which uses `_FOCUS`. Editing the .rviz changes nothing about
+a clip, and it looks like the edit simply had no effect.
+
+    _FOCUS = (0.15, 0.35, 1.16)     <- current, on the LEFT arm's side
+    every MSc task now spans x -0.54 .. 0.34, T1 at -0.32 .. -0.50
+
+`_FOCUS` is reverted to its original value so the repo is in a known state.
+`x = -0.10` was tried and put the robot out of frame entirely, so the answer
+is NOT simply the task-span centre. Iterate with ONE clip, which takes about
+four minutes:
+
+    SRL_CLIP_OUT=recordings/framing_test python3 scripts/record_abc_sweep.py \
+        --taskset msc --only 01_master_teleop --tasks t1 --no-verify
+    then extract a frame at ss=12 and LOOK
+
+Try x between 0.15 and 0.00 and check the wearer stays in shot. The distance
+(1.35) and pitch may need to move with it.
+
+Once a frame looks right, the full sweep is one detached run with no analysis
+left in the way.
+
+**Also still open:** the presentation pose does not exist. Nothing in the repo
+implements it, and it cannot come from a task path because the follower pins
+orientation, so it needs a joint-space move commanded before capture.

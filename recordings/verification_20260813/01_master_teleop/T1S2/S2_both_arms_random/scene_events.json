@@ -1,0 +1,209 @@
+{
+  "task": "t1s2",
+  "events": [
+    {
+      "t": 45.0,
+      "wall": 1786580750.8614435,
+      "ev": "GRASPED",
+      "item": "cube_left_0",
+      "arm": "left",
+      "knuckle": 0.3954,
+      "needed": 0.3812,
+      "at": [
+        0.65,
+        0.0499,
+        1.12
+      ]
+    },
+    {
+      "t": 45.1,
+      "wall": 1786580750.9657555,
+      "ev": "GRASPED",
+      "item": "cube_right_0",
+      "arm": "right",
+      "knuckle": 0.3836,
+      "needed": 0.3812,
+      "at": [
+        -0.604,
+        0.1049,
+        1.1049
+      ]
+    },
+    {
+      "t": 46.6,
+      "wall": 1786580752.4614275,
+      "ev": "RELEASED",
+      "item": "cube_left_0",
+      "arm": "left",
+      "carried_m": 0.1596,
+      "at": [
+        0.6501,
+        0.05,
+        1.1205
+      ]
+    },
+    {
+      "t": 46.6,
+      "wall": 1786580752.4694357,
+      "ev": "RELEASED",
+      "item": "cube_right_0",
+      "arm": "right",
+      "carried_m": 0.1557,
+      "at": [
+        -0.6043,
+        0.1052,
+        1.109
+      ]
+    },
+    {
+      "t": 49.0,
+      "wall": 1786580754.86194,
+      "ev": "GRASPED",
+      "item": "cube_left_1",
+      "arm": "left",
+      "knuckle": 0.3907,
+      "needed": 0.3812,
+      "at": [
+        0.4,
+        0.0999,
+        1.12
+      ]
+    },
+    {
+      "t": 49.3,
+      "wall": 1786580755.1633382,
+      "ev": "GRASPED",
+      "item": "cube_right_1",
+      "arm": "right",
+      "knuckle": 0.3827,
+      "needed": 0.3812,
+      "at": [
+        -0.304,
+        0.1049,
+        1.1049
+      ]
+    },
+    {
+      "t": 51.3,
+      "wall": 1786580757.1639512,
+      "ev": "RELEASED",
+      "item": "cube_left_1",
+      "arm": "left",
+      "carried_m": 0.393,
+      "at": [
+        0.65,
+        0.0499,
+        1.12
+      ]
+    },
+    {
+      "t": 51.6,
+      "wall": 1786580757.4632258,
+      "ev": "RELEASED",
+      "item": "cube_right_1",
+      "arm": "right",
+      "carried_m": 0.3838,
+      "at": [
+        -0.5871,
+        0.1113,
+        1.1257
+      ]
+    }
+  ],
+  "items": [
+    {
+      "item": "cube_left_0",
+      "arm": "left",
+      "width_mm": 40,
+      "carried_m": 0.1596,
+      "final": [
+        0.6501,
+        0.05,
+        1.1205
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0,
+      "min_pad_obj_knuckle": 0.4185,
+      "min_pad_obj_closed_m": 0.0,
+      "grasp_near_m": 0.03
+    },
+    {
+      "item": "cube_left_1",
+      "arm": "left",
+      "width_mm": 40,
+      "carried_m": 0.393,
+      "final": [
+        0.65,
+        0.0499,
+        1.12
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0,
+      "min_pad_obj_knuckle": 0.4101,
+      "min_pad_obj_closed_m": 0.0,
+      "grasp_near_m": 0.03
+    },
+    {
+      "item": "cube_right_0",
+      "arm": "right",
+      "width_mm": 40,
+      "carried_m": 0.1557,
+      "final": [
+        -0.6043,
+        0.1052,
+        1.109
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0,
+      "min_pad_obj_knuckle": 0.3612,
+      "min_pad_obj_closed_m": 0.0,
+      "grasp_near_m": 0.03
+    },
+    {
+      "item": "cube_right_1",
+      "arm": "right",
+      "width_mm": 40,
+      "carried_m": 0.3838,
+      "final": [
+        -0.5871,
+        0.1113,
+        1.1257
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0,
+      "min_pad_obj_knuckle": 0.3622,
+      "min_pad_obj_closed_m": 0.0044,
+      "grasp_near_m": 0.03
+    }
+  ],
+  "fixtures": [],
+  "furniture": [
+    "table"
+  ],
+  "ee_travel_m": {
+    "left": 1.5311,
+    "right": 1.466
+  },
+  "ee_net_m": {
+    "left": 0.4037,
+    "right": 0.2921
+  },
+  "t0_wall": 1786580705.864601,
+  "pad_off": [
+    -0.017069721466275483,
+    0.09453844940947233,
+    0.05718694074975875
+  ],
+  "pad_off_by_arm": {
+    "left": [
+      -0.017069721466275483,
+      0.09453844940947233,
+      0.05718694074975875
+    ],
+    "right": [
+      0.028923262165569338,
+      0.09946790937095817,
+      0.042057340751319484
+    ]
+  }
+}

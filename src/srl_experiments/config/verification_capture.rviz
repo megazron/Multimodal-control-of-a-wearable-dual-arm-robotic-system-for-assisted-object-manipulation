@@ -70,9 +70,9 @@ Visualization Manager:
     Current:
       Class: rviz_default_plugins/Orbit
       Name: FixedFront
-      Distance: 2.55
+      Distance: 2.70
       Focal Point:
-        X: -0.10
+        X: -0.30
         Y: 0.26
         Z: 1.16
       Pitch: 0.32

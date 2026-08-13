@@ -1,0 +1,23 @@
+{
+  "task": "t2",
+  "events": [],
+  "items": [],
+  "fixtures": [
+    "ball",
+    "tray"
+  ],
+  "furniture": [
+    "table"
+  ],
+  "ee_travel_m": {
+    "left": 1.0694,
+    "right": 0.9802
+  },
+  "ee_net_m": {
+    "left": 0.7217,
+    "right": 0.6757
+  },
+  "t0_wall": null,
+  "pad_off": null,
+  "pad_off_by_arm": null
+}

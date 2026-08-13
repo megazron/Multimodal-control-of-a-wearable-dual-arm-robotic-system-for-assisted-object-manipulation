@@ -94,6 +94,12 @@ RVIZ_CFG = os.path.join(ROOT, "src/srl_experiments/config/verification_capture.r
 #
 # The focal point follows the task volume, whose x centre moved when task A's
 # bin went outboard to 0.62 (see clip_tasks.A_BIN).
+# x -0.10, not +0.15. THIS is what aims the eight capture angles; the
+# verification_capture.rviz file aims only the standalone RViz, so editing
+# that one changes nothing about a clip. +0.15 was on the LEFT arm's side,
+# and every MSc task now spans x -0.54..0.34 with T1 out at -0.32..-0.50, so
+# the work sat at the right edge of frame and partly outside it while the
+# empty left-arm workspace marking held the middle of the picture.
 _FOCUS = (0.15, 0.35, 1.16)
 
 # ONE FRAMING DOES NOT FIT FOUR TASKS, and the clips proved it.

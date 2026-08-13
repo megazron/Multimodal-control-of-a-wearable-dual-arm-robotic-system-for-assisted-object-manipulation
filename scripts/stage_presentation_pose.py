@@ -194,13 +194,39 @@ class Stager(Node):
                          else "COULD NOT PAUSE -- the follower may win")
         return out
 
-    def resume_followers(self, paused):
-        """Restore exactly what was lowered, and nothing else."""
+    def resume_followers(self, paused, tries=10):
+        """Restore exactly what was lowered, and VERIFY IT BY READ-BACK.
+
+        A FAILED RESTORE LEAVES THE ARM DISARMED, which is the one outcome
+        this helper must never produce. It happened: one clip logged
+        "paused (motion_enabled true -> false), RESTORE FAILED" and every
+        later clip in that mode failed, because the follower it had silenced
+        never spoke again. The single set_parameters call was believed on its
+        return value alone.
+
+        So: retry, then read the value back and retry again if it is still
+        false. Restoring is worth more effort than pausing, because the
+        failure modes are not symmetric -- a pause that does not happen costs
+        one badly framed clip, and a restore that does not happen costs every
+        clip after it.
+        """
         for node, note in paused.items():
-            if note.startswith("paused"):
-                ok = self._set_bool(node, "motion_enabled", True)
-                paused[node] = note + (", restored" if ok
-                                       else ", RESTORE FAILED")
+            if not note.startswith("paused"):
+                continue
+            good = False
+            for _ in range(tries):
+                self._set_bool(node, "motion_enabled", True)
+                res = self._params(node, ["motion_enabled"])
+                if res and res.values and res.values[0].bool_value:
+                    good = True
+                    break
+                time.sleep(0.5)
+            paused[node] = note + (", restored" if good else
+                                   ", RESTORE FAILED -- THIS ARM IS "
+                                   "DISARMED, re-arm it before recording "
+                                   "anything else")
+            if not good:
+                self._restore_failed = True
 
     def worst_error(self, arm, q):
         if self.js is None:
@@ -327,10 +353,17 @@ def main():
             break
     errs = {arm: n.worst_error(arm, want[arm]) for arm in ("left", "right")}
     n.resume_followers(paused)
+    failed = getattr(n, "_restore_failed", False)
     n.destroy_node()
     rclpy.shutdown()
     for node, note in paused.items():
         print("   %-22s %s" % (node, note))
+    if failed:
+        # NON-ZERO EVEN IF THE POSE ITSELF ARRIVED. A clip that opened on the
+        # right pose and left the follower disarmed has broken every clip
+        # after it, and that is the more important fact.
+        print("REFUSING to report success: a follower was left DISARMED.")
+        return 4
 
     for arm in ("left", "right"):
         e = errs[arm]

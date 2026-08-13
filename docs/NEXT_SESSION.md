@@ -1,3 +1,110 @@
+# RESUME POINT 2026-08-13 (late) — THE AUDIT IS DONE; RECORDING IS BLOCKED ON ONE BUG
+
+`docs/TASK_SPEC.md` is now the single source of truth and
+`scripts/audit_task_spec.py` checks every MUST BE TRUE item against the CODE
+in one pass. **40 PRESENT, 0 MISSING, 1 BLOCKED.** Nine gaps were found and
+closed; see TASK_SPEC section 9 for the table and the commit for the detail.
+
+## START HERE: `ee_for()` USES THE LEFT ARM'S PAD OFFSET AND T1 IS ON THE RIGHT
+
+This is the first thing to fix and nothing should be recorded before it.
+
+A single T1 clip under `01_master_teleop` — the mode that used to score 4/4 —
+now records **NO GRASP AT ALL**, with the pads stopping **31.4 mm** from three
+of the four cubes against a 30 mm capture gate:
+
+    cube_0/1/2   min_pad_obj_closed_m  0.0314      gate 0.030
+    cube_3       min_pad_obj_closed_m  0.0801
+    right arm travelled 2.72 m, so the arm is being driven
+
+**Three cubes reporting the IDENTICAL 0.0314 is the clue.** They sit in a row
+60 mm apart, so an identical closest approach to all three is the
+perpendicular distance from a path running parallel to the row. That is a
+CONSTANT OFFSET, not accumulating lag, and it is not what the earlier
+"lag accumulates along the sequence" note described.
+
+Measured directly off TF at the home pose:
+
+    clip_tasks.PAD_OFFSET                   (-0.0171, +0.0946, +0.0572)
+    LEFT  wrist -> finger-tip midpoint      (-0.0150, +0.0831, +0.0503)   13.5 mm from it
+    RIGHT wrist -> finger-tip midpoint      (+0.0284, +0.0977, +0.0413)   48.3 mm from it
+
+`ee_for()` derives EVERY commanded wrist pose from the object by subtracting
+that one constant, and the constant is the LEFT arm's. T1 moved to the RIGHT
+arm. So every T1 wrist pose is displaced by the difference between the two
+arms' offsets, which this repository already measured once as 49 mm and fixed
+ON THE SCENE SIDE ONLY (`pad_off_by_arm` in clip_scene). The TASK side still
+has one number.
+
+**AND IT EXPLAINS "T1 IS FLAKY ACROSS MODES."** 31.4 mm against a 30 mm gate
+is 1.4 mm outside. A constant error that lands the closure a millimetre and a
+half past the gate is exactly a coin flip: 4/4 under 01 and 04, 0/4 under 02,
+03 and 06, identical layout, identical waypoints. This is CLAUDE.md's
+"MARGINAL is not usable" rule appearing at the task level, and the marginality
+has a cause rather than being noise.
+
+### BEFORE FIXING IT, SETTLE WHICH VECTOR IS THE RIGHT ONE
+
+There are THREE definitions of "the pad offset" in play and they disagree, so
+picking one by eye would be guessing:
+
+| definition | right arm | note |
+| --- | --- | --- |
+| `clip_tasks.PAD_OFFSET`, a constant | (-0.0171, +0.0946, +0.0572) | the left arm's, used for both |
+| finger-tip midpoint from TF, at home | (+0.0284, +0.0977, +0.0413) | **moves with the gripper aperture** |
+| `clip_scene._pad_offset()`, PAD_DEPTH_M along the tool axis | (-0.0464, +0.1007, +0.0147) | aperture-independent, sampled once at clip start from whatever pose the arm was in |
+
+The aperture dependence is the trap: the fingers close during the grasp, so a
+finger-tip midpoint taken with the hand open is not where the pads are when it
+shuts. The tool-axis definition does not have that problem and is what the
+grasp test already uses, so it is the likely answer — but it is sampled at an
+arbitrary pose, and the vector rotates with the wrist.
+
+**The measurement to make: for each arm, the tool-axis pad offset at the
+PINNED ANCHOR orientation, which is the orientation every mode commands and
+therefore the only one a task path ever holds.** Then:
+
+1. `PAD_OFFSET_BY_ARM`, and `ee_for(obj, arm)` with the legacy default
+   preserved so the A/B/C set does not move;
+2. re-run `scripts/verify_t1_layout.py` and `verify_msc_tasks.py --repeats 10`
+   — this MOVES every T1 wrist pose by ~48 mm, so the verified layout is no
+   longer verified until it passes again;
+3. only then record.
+
+## THE OTHER OPEN FAULT, UNCHANGED
+
+`02_vr_teleop` loses every grasp while the arms travel 1.0-2.6 m. It is not
+"VR is broken": `04_vr_shared` uses the same controllers and scores 4/4, 4/4,
+2/2. Start at how `run_abc` issues grip in 02 versus 04. It may share a cause
+with the above, or it may not; do not assume.
+
+## WHAT IS NEW AND WORKING
+
+* **the presentation pose exists.** `find_presentation_pose.py` derives it,
+  `stage_presentation_pose.py` commands it and waits for arrival, the sweep
+  calls it and records `opened_on` per clip. Tool axis +30.8 -> +6.5 (left)
+  and +22.1 -> +7.5 (right), wearer clearance 0.1610 m against a 0.15 floor,
+  measured GEOMETRICALLY -- `/check_state_validity` is not the authority,
+  because the pairs are SRDF-excluded.
+* **the workspace marking is the survey.** Re-surveyed at 25 mm, both sides,
+  full path, 14751 IK calls; `clip_scene` reads the file and refuses without
+  it, and draws measured CELLS rather than a bounding box the cells fill 62%
+  of. A one-arm task draws one marking.
+* **T2 logs tilt and separation every tick** into `carry_series`, with a
+  known-answer test for the excursion that recovers.
+* **the perception path runs end to end** to the camera boundary. See
+  `docs/system/15_perception_to_the_camera_boundary.md`, which also lists
+  what still needs real cameras.
+
+## A BUG WORTH REMEMBERING, BECAUSE IT COST A CLIP
+
+`x or 9.9` reads a PERFECT arrival as a failure, because `0.0` is falsy. The
+stager reported "worst joint error 0.0000 rad" and then "DID NOT ARRIVE", and
+the sweep logged that the clip opened on home. Fixed; the sentinel is tested
+for now.
+
+---
+
 # RESUME POINT — the data path is WIRED (19/19 planned cells logged); read the camera warning below before any perception work
 
 

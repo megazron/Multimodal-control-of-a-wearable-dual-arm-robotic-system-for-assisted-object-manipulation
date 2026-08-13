@@ -91,6 +91,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--timeout-s", type=float, default=8.0)
     ap.add_argument("--move-s", type=float, default=2.5)
+    ap.add_argument("--discover-s", type=float, default=15.0,
+                    help="how long to wait for /joint_states to appear")
     ap.add_argument("--home", action="store_true",
                     help="go to HOME instead, for teardown")
     a = ap.parse_args()
@@ -117,9 +119,18 @@ def main():
 
     rclpy.init()
     n = Stager()
-    n.spin(1.5)
+    # WAIT FOR DISCOVERY, do not sleep a guess. A fixed 1.5 s was enough when
+    # this was run by hand against a warm graph and NOT enough as a fresh
+    # subprocess of the sweep -- so the first clip of a run silently opened on
+    # the home pose with "no /joint_states -- is the stack up?" while the
+    # stack was plainly up. Every other helper here sleeps 3 s for the same
+    # reason; a loop is better than any of those numbers.
+    t0 = time.time()
+    while n.js is None and time.time() - t0 < a.discover_s:
+        n.spin(0.25)
     if n.js is None:
-        print("no /joint_states -- is the stack up?")
+        print("no /joint_states after %.1f s -- is the stack up?"
+              % a.discover_s)
         n.destroy_node()
         rclpy.shutdown()
         return 2
@@ -130,8 +141,15 @@ def main():
     ok = {}
     while time.time() - t0 < a.timeout_s:
         n.spin(0.2)
-        ok = {arm: (n.worst_error(arm, want[arm]) or 9.9) <= ARRIVE_TOL_RAD
-              for arm in ("left", "right")}
+        # `x or 9.9` READS A PERFECT ARRIVAL AS A FAILURE, because 0.0 is
+        # falsy. Measured: an arm already sitting exactly on the pose
+        # reported "worst joint error 0.0000 rad" and then "DID NOT ARRIVE",
+        # and the sweep dutifully logged that the clip opened on home. The
+        # sentinel has to be tested for, not leaned on.
+        errs = {arm: n.worst_error(arm, want[arm])
+                for arm in ("left", "right")}
+        ok = {arm: e is not None and e <= ARRIVE_TOL_RAD
+              for arm, e in errs.items()}
         if all(ok.values()):
             break
     errs = {arm: n.worst_error(arm, want[arm]) for arm in ("left", "right")}

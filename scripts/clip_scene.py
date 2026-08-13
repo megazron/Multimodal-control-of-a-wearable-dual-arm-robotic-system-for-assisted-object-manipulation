@@ -1487,6 +1487,20 @@ def _carry_summary(series):
     """
     if not series:
         return None
+    # SEPARATION IS MEASURED FROM THE FIRST TICK, WHICH INCLUDES THE APPROACH.
+    #
+    # Read the sep_err figures with that in mind: the arms start at home,
+    # about 1.46 m apart, so the series opens with a ~700 mm "error" that is
+    # the arms not yet being on the tray rather than anything about the
+    # carry. Measured across the first full sweep: sep_err_max_mm is 700.3 in
+    # four of five modes, which is the same number every time because it is
+    # the START pose, not a carry event.
+    #
+    # TILT DOES NOT HAVE THIS PROBLEM -- it is an angle between two grippers
+    # and is meaningful whenever both exist -- so the tilt figures below are
+    # usable as they stand and the separation figures are not, until the
+    # series is gated on the carry phase. Naming it here rather than quoting
+    # 700 mm as if it described the carry.
     tilts = [abs(r["tilt_deg"]) for r in series]
     seps = [r["sep_err_mm"] for r in series]
     thr = TSK.TASK_B["fail_tilt_deg"]

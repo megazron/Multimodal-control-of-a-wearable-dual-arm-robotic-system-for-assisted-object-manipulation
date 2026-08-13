@@ -603,9 +603,19 @@ TASKS = {
         width_mm=0,
         grip_obj=None,
         place_target=None,
-        expect="BOTH arms hold a rigid tray 500 mm apart and lift together "
-               "from z=1.32 to z=1.40, staying level. The ball stays on the "
-               "tray. Tilt past 6.8 deg would drop it.",
+        # THE HEIGHTS ARE READ FROM THE PATH, NOT WRITTEN OUT. This said
+        # "from z=1.32 to z=1.40" long after the band was re-measured and the
+        # path taken up to 1.60 -- every 20 mm step from 1.32 to 1.70 passes,
+        # and the path stops 100 mm inside the last one that did. A caption
+        # that describes a lift 200 mm shorter than the one on screen is the
+        # same class of error as T1's `expect` naming the wrong arm.
+        expect="BOTH arms hold a rigid tray %.0f mm apart and lift together "
+               "from z=%.2f to z=%.2f, staying level. The ball stays on the "
+               "tray. Tilt past %.1f deg would drop it."
+               % (TSK.TRAY_SEP * 1000,
+                  min(p[2] for p in TSK.TASK_B["paths"]["S2_full_lift"]),
+                  max(p[2] for p in TSK.TASK_B["paths"]["S2_full_lift"]),
+                  TSK.TASK_B["fail_tilt_deg"]),
         caveat="PHYSICAL COUPLING -- remove one arm and the task is "
                "impossible, not slower. Band re-spec'd 2026-08-11: the old "
                "1.10-1.30 was inside the bench slab."),

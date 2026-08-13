@@ -1,0 +1,98 @@
+{
+  "task": "t1",
+  "events": [],
+  "items": [
+    {
+      "item": "cube_0",
+      "arm": "right",
+      "width_mm": 40,
+      "carried_m": 0.0,
+      "final": [
+        -0.274,
+        0.1949,
+        1.1049
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0544,
+      "min_pad_obj_knuckle": 0.0,
+      "min_pad_obj_closed_m": null,
+      "grasp_near_m": 0.03
+    },
+    {
+      "item": "cube_1",
+      "arm": "right",
+      "width_mm": 40,
+      "carried_m": 0.0,
+      "final": [
+        -0.334,
+        0.1949,
+        1.1049
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0815,
+      "min_pad_obj_knuckle": 0.0,
+      "min_pad_obj_closed_m": null,
+      "grasp_near_m": 0.03
+    },
+    {
+      "item": "cube_2",
+      "arm": "right",
+      "width_mm": 40,
+      "carried_m": 0.0,
+      "final": [
+        -0.394,
+        0.1949,
+        1.1049
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.1319,
+      "min_pad_obj_knuckle": 0.0,
+      "min_pad_obj_closed_m": null,
+      "grasp_near_m": 0.03
+    },
+    {
+      "item": "cube_3",
+      "arm": "right",
+      "width_mm": 40,
+      "carried_m": 0.0,
+      "final": [
+        -0.454,
+        0.1949,
+        1.1049
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.1878,
+      "min_pad_obj_knuckle": 0.0,
+      "min_pad_obj_closed_m": null,
+      "grasp_near_m": 0.03
+    }
+  ],
+  "fixtures": [
+    "plane_blue",
+    "plane_green"
+  ],
+  "furniture": [
+    "table"
+  ],
+  "ee_travel_m": {
+    "left": 1.0186,
+    "right": 2.4808
+  },
+  "ee_net_m": {
+    "left": 0.6671,
+    "right": 0.6754
+  },
+  "t0_wall": 1786590782.4794617,
+  "pad_off": [
+    0.028923317714697232,
+    0.09946790600554652,
+    0.04205731050895248
+  ],
+  "pad_off_by_arm": {
+    "right": [
+      0.028923317714697232,
+      0.09946790600554652,
+      0.04205731050895248
+    ]
+  }
+}

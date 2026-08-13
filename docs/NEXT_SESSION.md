@@ -4439,3 +4439,32 @@ NOT done. Every clip therefore opens on the +85/+79 home wrist, which
 `home_wrist_is_real.md` explains is genuine.
 
 THE MODE IS `06_full_autonomy`. There is no 05.
+
+
+## 2026-08-13 SWEEP RESULT: 19 of 25 cells, and TWO clear patterns
+
+    mode                 recorded   grasp tasks (T1 / T1S2 / T3)
+    01_master_teleop        5/5      4/4   4/4   2/2
+    02_vr_teleop            2/5      0/4   0/4   0/2     <- every grasp lost
+    03_shared_autonomy      4/5      0/4   4/4   2/2
+    04_vr_shared            5/5      4/4   4/4   2/2
+    06_full_autonomy        3/5      0/4   4/4   2/2
+    dance                   1/3
+
+T0 and T2 show 0/0 because they have no graspable items; they are not
+failures.
+
+**PATTERN ONE: 02_vr_teleop loses EVERY grasp while the arms move 1.0 to
+2.6 m.** The arm is driven and the gripper never closes. It is NOT "VR is
+broken": 04_vr_shared uses the same controllers and gets 4/4, 4/4, 2/2. So
+the fault is specific to the 02 path, most likely the gripper command rather
+than the pose command. Start at how run_abc issues grip in 02 versus 04.
+
+**PATTERN TWO: T1 is FLAKY ACROSS MODES.** 4/4 in 01 and 04, 0/4 in 02, 03
+and 06, with the identical layout and the identical waypoints. The layout
+verifies at 0 IK failures N=10, so the geometry is fine and the grasp is
+marginal in a way the path check does not capture. This is the "marginal is
+not usable" rule appearing at the task level rather than the pose level.
+Suspect the grip SCHEDULE timing against arrival rather than the coordinates.
+
+Neither is a layout problem and neither is fixed.

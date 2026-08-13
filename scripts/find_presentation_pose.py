@@ -22,11 +22,24 @@ legitimate: it is one posture, taken before the trial, with no operator in the
 loop, and it is not teleoperation. It is not part of any task and produces no
 trial data.
 
-HOW THE ANGLE IS FOUND. Not guessed. Home is the start; one wrist joint is
-swept; for each candidate the TOOL AXIS ELEVATION is read from forward
-kinematics, and the pose is also required to be collision free against the
-same planning scene everything else uses -- wearer included. The candidate
-whose tool axis is closest to level, and which is valid, wins.
+HOW THE POSE IS FOUND. Not guessed. Coordinate descent from home over joints
+1, 2, 4 and 6 against a cost that spells out what "standing ready to work"
+means as numbers: hands in FRONT of the chest rather than out at the sides,
+lateral extent about the width of the torso, elbows below the shoulders and
+slightly outboard of the hands, wrists level, and -- as a tie-break only -- a
+short move from home.
+
+THE FIRST VERSION SWEPT joint_6 ALONE, and it could not have worked. Turning
+the wrist levels the wrist and does nothing else, so the arms stayed where
+home puts them: measured, hands 1.633 m apart against a 0.360 m torso, which
+is a T-pose, and WIDER than home's own 1.459 m because swinging the wrist
+throws the hand further out. A pose can satisfy every check it is given and
+still be the wrong pose, which is why the cost now says what the posture is
+FOR.
+
+Hard constraints are hard: a candidate that is unreachable, too close to the
+wearer, self-colliding, behind the chest or folded into the centreline is not
+scored badly, it is not a candidate at all.
 
 THREE CONTROLS, because a search over poses that all return the same number
 looks exactly like a search that worked:
@@ -86,15 +99,40 @@ from srl_teleop import mount_guard_node as MG                  # noqa: E402
 
 OUT = os.path.join(ROOT, "recordings", "baselines", "presentation_pose.json")
 
-# The wrist joints, in the order they are tried. joint_6 is the wrist bend on
-# a Gen3 and is the one that changes where the tool points without swinging
-# the whole forearm; joint_5 is the fallback if it cannot get there alone.
-WRIST_JOINTS = (6, 5)
-SWEEP_DEG = 120.0            # each side of home
-STEP_DEG = 2.0
-# "Level" is the goal, but the pose also has to stay somewhere a camera can
-# see and a person is not. 8 degrees of residual elevation is well under the
-# 30.7 deg the pinned wrist sits at and far under home's +85.
+# WHICH JOINTS THE SEARCH IS ALLOWED TO MOVE.
+#
+# The first version turned joint_6 ALONE. That levels the wrist and can do
+# nothing else, so it left the arms where home puts them -- and home puts
+# them out at the sides. Measured on the pose it produced: hands 1.633 m
+# apart against a 0.360 m torso, which is a T-pose, and WIDER than home's
+# 1.459 m because swinging the wrist throws the hand further out.
+#
+# joint_1 and joint_2 swing the whole arm in and forward, joint_4 is the
+# elbow, joint_6 is the wrist bend. Those four are enough to bring the hands
+# in front of the chest with the elbows down, and leaving joints 3, 5 and 7
+# alone keeps the move short and keeps joint_5 well away from the +/-pi seam
+# it sits 14 deg from.
+# HOW MANY IK SOLUTIONS TO DRAW PER HAND TARGET. TRAC-IK restarts randomly,
+# so the same request returns different postures -- which is usually a
+# nuisance and is useful here: it samples the arm's null space, and the elbow
+# is exactly what the null space controls.
+IK_DRAWS = 12
+
+# ---- WHAT "STANDING READY TO WORK" MEANS, AS NUMBERS ---------------------
+# The wearer's torso is a 0.36 x 0.22 x 0.48 box centred at z = 1.22
+# (human_backpack.xacro, via mount_guard_node). So:
+TORSO_HALF_W = 0.18          # "lateral extent roughly the width of the torso"
+TORSO_FRONT_Y = 0.11         # the front face; a hand "in front of the chest"
+                             # has to be beyond this
+HAND_TARGET = dict(x=0.18,   # each hand at the torso's own half width
+                   y=0.32,   # clear of the front face, within easy reach
+                   z=1.22)   # chest height
+# A hand nearer the centreline than this reads as hands clasped rather than
+# ready, and the two grippers start to threaten each other.
+HAND_MIN_X = 0.10
+# "Elbows down and slightly out, not level with the shoulders."
+ELBOW_BELOW_SHOULDER_M = 0.05
+# "Wrists level, as they are now."
 GOOD_ENOUGH_DEG = 8.0
 # FK and TF must agree about the home tool axis to within this. It is a
 # comparison of two instruments on one pose, so the tolerance is tight.
@@ -103,6 +141,11 @@ FK_TF_TOL_DEG = 1.0
 # HARD CONSTRAINT 11: it is the last thing between the arms and a person's
 # chest and it is not lowered for a staging pose.
 MIN_CLEARANCE_M = 0.15
+# How much a degree of travel from home costs against a millimetre of pose
+# error. Small, but not zero: two poses that look the same should be settled
+# in favour of the shorter move, because the staging move happens before
+# every clip and travels over a person.
+TRAVEL_W = 0.0008
 
 
 class Kin(Node):
@@ -116,6 +159,7 @@ class Kin(Node):
                                  lambda m: setattr(self, "js", m), 10)
         self.tfb = Buffer()
         self.tfl = TransformListener(self.tfb, self)
+        self._solver = None
 
     def spin(self, secs):
         t = time.time()
@@ -220,6 +264,135 @@ class Kin(Node):
                         worst, who = d, name
         return worst, who
 
+    def ik_joints(self, arm, xyz):
+        """One collision-aware IK solution for a LEVEL wrist at `xyz`.
+
+        Level and pointing FORWARD: the tool's +z is the approach axis, so a
+        level wrist in front of the chest aims it along +y, which is a -90 deg
+        rotation about x. This is the one place the pose deliberately does NOT
+        use the pinned anchor -- a staging pose is not teleoperation, and the
+        whole reason it exists is that the pinned wrist points up.
+        """
+        if self._solver is None:
+            sys.path.insert(0, os.path.join(ROOT, "src", "srl_experiments",
+                                            "experiments", "abc"))
+            from verify_task_scenes import Solver
+            self._solver = Solver()
+            self._solver.spin(3.0)
+            self._solver.ik.wait_for_service(timeout_sec=20.0)
+        from geometry_msgs.msg import Quaternion
+        h = math.radians(45.0)
+        q = Quaternion(x=-math.sin(h), y=0.0, z=0.0, w=math.cos(h))
+        sol = self._solver.solve_joints(arm, list(xyz), q, tries=4)
+        if sol is None:
+            return None
+        # THIS ARM'S SEVEN, SELECTED BY NAME. solve_joints returns
+        # `res.solution.joint_state.position` WHOLE -- all 26 joints of both
+        # arms and both grippers -- and handing that to a state builder that
+        # expects seven produced a name/position mismatch that MoveIt
+        # resolved by falling back to the CURRENT state. Every candidate then
+        # measured as the home pose: identical elevation, identical hand
+        # position, for every target. That is the "FK evaluating the current
+        # state, ignoring the solution given" row of CLAUDE.md's failure
+        # table, reached by a different route.
+        last = getattr(self._solver, "_last_solution_names", None)
+        names = last or self._solver.names(arm)
+        if len(sol) == len(names):
+            return list(sol)
+        idx = {n: i for i, n in enumerate(self._solver_names())}
+        want = ["%s_joint_%d" % (arm, i + 1) for i in range(7)]
+        if all(n in idx and idx[n] < len(sol) for n in want):
+            return [float(sol[idx[n]]) for n in want]
+        return None
+
+    def _solver_names(self):
+        """The joint ORDER the solver's solutions come back in.
+
+        Read from /joint_states rather than assumed: the IK response orders
+        joints however MoveIt's model does, and indexing that by position is
+        what turned a 26-joint answer into a 7-joint one silently.
+        """
+        return list(self.js.name) if self.js is not None else []
+
+    def frame(self, arm, q, links):
+        """World positions of several links for one candidate posture."""
+        req = GetPositionFK.Request()
+        req.header.frame_id = "world"
+        req.fk_link_names = ["%s_%s" % (arm, ln) for ln in links]
+        req.robot_state = self._state(arm, q)
+        res = self._call(self.fk, req)
+        if res is None or res.error_code.val != 1 or not res.pose_stamped:
+            return None
+        out = {}
+        for ln, ps in zip(links, res.pose_stamped):
+            p, o = ps.pose.position, ps.pose.orientation
+            out[ln] = dict(xyz=(p.x, p.y, p.z), quat=(o.x, o.y, o.z, o.w))
+        return out
+
+    def cost(self, arm, q, home):
+        """How far this posture is from 'standing ready to work'.
+
+        None means it FAILED A HARD CONSTRAINT, which is different from
+        scoring badly: an unreachable or unsafe pose is not a worse candidate,
+        it is not a candidate. The soft terms below only ever rank poses that
+        are already safe and already have a level wrist.
+
+        The terms are the brief, in order:
+          hands in front of the chest, not out at the sides
+          lateral extent roughly the width of the torso
+          elbows down and slightly out, not level with the shoulders
+          wrists level
+          and, as a tie-break only, a short move from home
+        """
+        F = self.frame(arm, q, ["shoulder_link", "forearm_link",
+                                "end_effector_link"])
+        if F is None:
+            return None, None
+        hand = F["end_effector_link"]["xyz"]
+        elbow = F["forearm_link"]["xyz"]
+        sh = F["shoulder_link"]["xyz"]
+
+        # ---- HARD: the wrist must be level ---------------------------
+        x, y, z, w = F["end_effector_link"]["quat"]
+        ax = (2.0 * (x * z + w * y), 2.0 * (y * z - w * x),
+              1.0 - 2.0 * (x * x + y * y))
+        elev = math.degrees(math.atan2(ax[2], math.hypot(ax[0], ax[1])))
+        if abs(elev) > GOOD_ENOUGH_DEG:
+            return None, None
+        # ---- HARD: in FRONT of the chest, not beside it --------------
+        if hand[1] <= TORSO_FRONT_Y:
+            return None, None
+        # ---- HARD: not folded into the centreline --------------------
+        if abs(hand[0]) < HAND_MIN_X:
+            return None, None
+        # ---- HARD: clear of the wearer, and self-collision free ------
+        clear, _who = self.clearance(arm, q)
+        if clear is None or clear < MIN_CLEARANCE_M:
+            return None, None
+        ok, _c = self.valid(arm, q)
+        if ok is False:
+            return None, None
+
+        c = 0.0
+        c += (abs(hand[0]) - HAND_TARGET["x"]) ** 2
+        c += (hand[1] - HAND_TARGET["y"]) ** 2
+        c += (hand[2] - HAND_TARGET["z"]) ** 2
+        # ELBOWS DOWN. Below the shoulder by at least a hand's depth; only
+        # the shortfall is penalised, so an elbow that is already low enough
+        # is not pushed lower for its own sake.
+        el_below = sh[2] - elbow[2]
+        c += 4.0 * max(0.0, ELBOW_BELOW_SHOULDER_M - el_below) ** 2
+        # AND SLIGHTLY OUT. The elbow outboard of the hand is what makes the
+        # posture read as a person about to work rather than a mannequin
+        # with its arms pinned; only an elbow INBOARD of the hand is
+        # penalised.
+        c += 2.0 * max(0.0, abs(hand[0]) - abs(elbow[0])) ** 2
+        # A SHORT MOVE, as a tie-break and nothing more.
+        travel = sum(abs(math.degrees(q[i] - home[i])) for i in range(7))
+        c += TRAVEL_W * travel
+        return c, dict(elev=elev, clearance=clear, hand=hand, elbow=elbow,
+                       el_below=el_below, travel=travel)
+
     def valid(self, arm, q):
         req = GetStateValidity.Request()
         req.robot_state = self._state(arm, q)
@@ -291,43 +464,62 @@ def main():
             else "NONE FOUND -- the clearance model never goes negative, so "
                  "it cannot be trusted to say a pose is clear")
 
-        # ---- the search ------------------------------------------------
+        # ---- the search: SOLVE FOR THE POSE, do not hunt for it ------
         #
-        # AMONG THE POSES THAT ARE LEVEL ENOUGH, TAKE THE SMALLEST MOVE.
-        # Taking the flattest instead picked joint_6 +120 deg on the right
-        # arm for 0.2 deg of elevation, when a much smaller swing reaches
-        # the same target -- and a staging move is travel before every clip,
-        # over a person, so shorter is strictly better. Flatness is a
-        # threshold here, not something to maximise.
+        # The hand pose the brief asks for is REACHABLE. Measured
+        # (scripts/measure_ready_pose_envelope.py, 282 IK calls, all three
+        # controls correct): with a LEVEL wrist in free space at chest
+        # height, both arms solve at |x| = 0.14, a hand span of 0.280 m
+        # against a 0.360 m torso.
+        #
+        # THAT DOES NOT CONTRADICT the platform's central result. "Zero
+        # reachable cells at |x| <= 0.10" was measured on the WORK PLANE,
+        # with the wrist PINNED at the anchor and over a whole approach path.
+        # A staging pose is none of those: one posture, chest height, free
+        # space, and the wrist is level precisely because it is not pinned.
+        # Two different questions, two different answers, and conflating them
+        # would have made this pose look impossible.
+        #
+        # So: ask IK for the pose, rather than descending toward it. What IK
+        # does NOT decide is the elbow -- a 7-DOF arm has a null space and
+        # TRAC-IK restarts randomly, so repeated calls return genuinely
+        # different postures for the same hand pose. Several are drawn and
+        # the one with the best elbow wins, which is the only way to get
+        # "elbows down and slightly out" out of a position-only solver.
         cands = []
-        for j in WRIST_JOINTS:
-            k = j - 1
-            d = -SWEEP_DEG
-            while d <= SWEEP_DEG + 1e-9:
-                q = list(home)
-                q[k] = home[k] + math.radians(d)
-                _ax, elev = n.tool_axis(arm, q)
-                if elev is not None and abs(elev) <= GOOD_ENOUGH_DEG:
-                    clear, who = n.clearance(arm, q)
-                    ok, contacts = n.valid(arm, q)
-                    if clear is not None and clear >= MIN_CLEARANCE_M and ok:
-                        cands.append(dict(joint=j, delta_deg=round(d, 2),
-                                          elev=elev, q=q,
-                                          clearance_m=round(clear, 4)))
-                    else:
-                        # A level pose that is too close to the wearer is a
-                        # different answer from no level pose existing, so it
-                        # is named rather than silently skipped.
-                        print("   %s: joint_%d %+6.1f deg is level (%+.1f) "
-                              "but clearance %s m to %s / self-collision %s"
-                              % (arm, j, d, elev,
-                                 "%.3f" % clear if clear is not None else "?",
-                                 who, "yes" if ok is False else "no"))
-                d += STEP_DEG
+        for tx in (HAND_TARGET["x"], 0.16, 0.20, 0.22, 0.26):
+            for ty in (HAND_TARGET["y"], 0.28, 0.36):
+                for tz in (HAND_TARGET["z"], 1.18, 1.26):
+                    tgt = [(1.0 if arm == "left" else -1.0) * tx, ty, tz]
+                    for _try in range(IK_DRAWS):
+                        q = n.ik_joints(arm, tgt)
+                        if q is None:
+                            continue
+                        c, why = n.cost(arm, q, home)
+                        if c is not None:
+                            cands.append((c, q, why, list(tgt)))
+                    if cands:
+                        break
+                if cands:
+                    break
             if cands:
                 break
-        result[arm] = min(cands, key=lambda c: abs(c["delta_deg"])) \
-            if cands else None
+        if not cands:
+            print("   %s: NO pose satisfied the hard constraints" % arm)
+            result[arm] = None
+        else:
+            c, q, g, tgt = min(cands, key=lambda t: t[0])
+            result[arm] = dict(q=q, elev=g["elev"],
+                               clearance_m=round(g["clearance"], 4),
+                               hand=[round(v, 4) for v in g["hand"]],
+                               elbow=[round(v, 4) for v in g["elbow"]],
+                               elbow_below_shoulder_m=round(g["el_below"], 4),
+                               travel_deg=round(g["travel"], 1),
+                               target=[round(v, 4) for v in tgt],
+                               n_draws=len(cands),
+                               cost=round(c, 5),
+                               delta_deg=[round(math.degrees(q[i] - home[i]), 2)
+                                          for i in range(7)])
 
     print("=" * 72)
     print("PRESENTATION POSE -- a joint-space staging move, not a task pose")
@@ -344,34 +536,57 @@ def main():
             print("   %-5s NO valid pose found" % arm)
             bad += 1
             continue
-        print("   %-5s home tool axis %+.1f deg (TF %+.1f) -> %+.1f deg by "
-              "joint_%d %+.1f deg"
+        print("   %-5s home tool axis %+.1f deg (TF %+.1f) -> %+.1f deg"
               % (arm, controls["home_elevation_%s_deg" % arm],
-                 controls["home_elevation_tf_%s_deg" % arm], b["elev"],
-                 b["joint"], b["delta_deg"]))
-        print("         wearer clearance %.4f m at the staging pose against "
-              "%.4f m at home, floor %.2f"
-              % (b["clearance_m"], controls["home_clearance_%s_m" % arm],
-                 MIN_CLEARANCE_M))
+                 controls["home_elevation_tf_%s_deg" % arm], b["elev"]))
+        print("         hand  (%+.3f, %+.3f, %.3f)   elbow (%+.3f, %+.3f, "
+              "%.3f), %.0f mm below the shoulder"
+              % (b["hand"][0], b["hand"][1], b["hand"][2],
+                 b["elbow"][0], b["elbow"][1], b["elbow"][2],
+                 b["elbow_below_shoulder_m"] * 1000))
+        print("         wearer clearance %.4f m against %.4f m at home, "
+              "floor %.2f" % (b["clearance_m"],
+                              controls["home_clearance_%s_m" % arm],
+                              MIN_CLEARANCE_M))
+        print("         move from home %.0f deg total: %s"
+              % (b["travel_deg"],
+                 " ".join("j%d%+.0f" % (i + 1, d)
+                          for i, d in enumerate(b["delta_deg"])
+                          if abs(d) > 0.5) or "none"))
         print("         %s" % controls["wearer_collision_example_%s" % arm])
         if abs(b["elev"]) > GOOD_ENOUGH_DEG:
             print("         WARNING: %.1f deg is outside the %.0f deg target"
                   % (abs(b["elev"]), GOOD_ENOUGH_DEG))
+    if all(result[a2] for a2 in ("left", "right")):
+        span = abs(result["left"]["hand"][0] - result["right"]["hand"][0])
+        print("   HAND SPAN %.3f m against a %.3f m torso width -- %s"
+              % (span, 2 * TORSO_HALF_W,
+                 "still wider than the torso" if span > 2 * TORSO_HALF_W * 1.35
+                 else "about the width of the torso"))
 
     if a.save and not bad:
         os.makedirs(os.path.dirname(OUT), exist_ok=True)
         json.dump(dict(
             note="joint-space staging pose commanded before capture; NOT a "
-                 "task pose and not teleoperation. Derived from home by "
-                 "sweeping one wrist joint for a level tool axis, checked "
-                 "against /check_state_validity with the wearer in scene.",
+                 "task pose and not teleoperation. Found by coordinate "
+                 "descent over joints 1, 2, 4 and 6 against a cost that "
+                 "encodes hands in front of the chest, lateral extent about "
+                 "the torso's, elbows below the shoulders and a level wrist, "
+                 "with clearance to the wearer measured GEOMETRICALLY (the "
+                 "SRDF excludes the pairs that matter, so "
+                 "/check_state_validity is not the authority on it).",
             good_enough_deg=GOOD_ENOUGH_DEG,
             controls={k: v for k, v in controls.items()},
             min_clearance_m=MIN_CLEARANCE_M,
-            poses={arm: dict(joint=result[arm]["joint"],
-                             delta_deg=result[arm]["delta_deg"],
+            hand_target=HAND_TARGET,
+            poses={arm: dict(delta_deg=result[arm]["delta_deg"],
                              elevation_deg=round(result[arm]["elev"], 2),
                              clearance_m=result[arm]["clearance_m"],
+                             hand=result[arm]["hand"],
+                             elbow=result[arm]["elbow"],
+                             elbow_below_shoulder_m=(
+                                 result[arm]["elbow_below_shoulder_m"]),
+                             travel_deg=result[arm]["travel_deg"],
                              q=[round(v, 6) for v in result[arm]["q"]])
                    for arm in ("left", "right")}),
             open(OUT, "w"), indent=2)

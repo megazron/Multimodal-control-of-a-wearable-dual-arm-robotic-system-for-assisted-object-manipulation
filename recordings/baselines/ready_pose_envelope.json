@@ -1,0 +1,128 @@
+{
+  "repeats": 5,
+  "xs": [
+    0.14,
+    0.18,
+    0.22,
+    0.26,
+    0.3,
+    0.35,
+    0.4,
+    0.45
+  ],
+  "ys": [
+    0.24,
+    0.3,
+    0.36
+  ],
+  "zs": [
+    1.05,
+    1.15,
+    1.25
+  ],
+  "rows": {
+    "left|0.14": [
+      "  . ",
+      " OK ",
+      " OK "
+    ],
+    "left|0.18": [
+      " OK ",
+      " OK ",
+      " OK "
+    ],
+    "left|0.22": [
+      " OK ",
+      " OK ",
+      " OK "
+    ],
+    "left|0.26": [
+      " OK ",
+      " OK ",
+      " OK "
+    ],
+    "left|0.30": [
+      " OK ",
+      " OK ",
+      " OK "
+    ],
+    "left|0.35": [
+      " OK ",
+      " OK ",
+      " OK "
+    ],
+    "left|0.40": [
+      " OK ",
+      " OK ",
+      " OK "
+    ],
+    "left|0.45": [
+      " OK ",
+      " OK ",
+      " OK "
+    ],
+    "left_best": [
+      0.14,
+      1.15
+    ],
+    "right|0.14": [
+      "  . ",
+      " OK ",
+      " OK "
+    ],
+    "right|0.18": [
+      " OK ",
+      " OK ",
+      " OK "
+    ],
+    "right|0.22": [
+      " OK ",
+      " OK ",
+      " OK "
+    ],
+    "right|0.26": [
+      " OK ",
+      " OK ",
+      " OK "
+    ],
+    "right|0.30": [
+      " OK ",
+      " OK ",
+      " OK "
+    ],
+    "right|0.35": [
+      " OK ",
+      " OK ",
+      " OK "
+    ],
+    "right|0.40": [
+      " OK ",
+      " OK ",
+      " OK "
+    ],
+    "right|0.45": [
+      " OK ",
+      " OK ",
+      " OK "
+    ],
+    "right_best": [
+      0.14,
+      1.15
+    ]
+  },
+  "ik_calls": 282,
+  "controls": {
+    "far": {
+      "left": false,
+      "right": false
+    },
+    "inside": {
+      "left": false,
+      "right": false
+    },
+    "home": {
+      "left": true,
+      "right": true
+    }
+  }
+}

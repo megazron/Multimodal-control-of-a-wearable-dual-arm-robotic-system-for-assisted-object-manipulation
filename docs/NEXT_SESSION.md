@@ -4367,3 +4367,49 @@ left in the way.
 **Also still open:** the presentation pose does not exist. Nothing in the repo
 implements it, and it cannot come from a task path because the follower pins
 orientation, so it needs a joint-space move commanded before capture.
+
+
+---
+
+## 2026-08-13, SECOND ATTEMPT AT THE FRAMING. Three wrong files, then the answer.
+
+The framing is the ONLY thing left. Recording itself is clean: mode 01 records
+5 of 5 with 0 failures, T1 shows 4 grasps with pads on the cube at 0.000 m,
+and the card plays first and reads well.
+
+**Where the front view's aim actually comes from, after eliminating two
+wrong answers by experiment:**
+
+| candidate | result |
+| --- | --- |
+| `config/verification_capture.rviz` | aims only the STANDALONE RViz. Edited twice, frame never moved. |
+| `_FOCUS` in `record_rviz.py` | aims the other angles. Set to 0.15 and to -0.10, front view IDENTICAL both times. |
+| **the FRONT view's focus FOLLOWS THE TASK** | `record_rviz.py` around line 121 says so, and the config cache contains `front_t1.rviz` alongside `front.rviz`. **This is the one to fix.** |
+
+Find where `front_<task>.rviz` gets its focal point and centre it on the
+task's own objects. T1 now sits at x -0.32..-0.50; the picture currently
+centres near x 0 with the empty LEFT-arm marking mid-frame.
+
+**Two traps that cost most of the session, both now known:**
+
+* **The config cache is under ANOTHER SESSION'S scratch directory** and is
+  REUSED, so an edit to any camera constant has no effect until it is
+  cleared:
+
+      rm -rf /tmp/claude-1000/-home-gausms-kortex-ws/*/scratchpad/rvizcfg
+
+* **A dead stack renders no robot and looks exactly like a framing bug.** The
+  clip still records: ground grid, markings and scene objects, no arms, and
+  the frame rate jumps from 8-13 fps to 31. If the robot vanishes, check the
+  stack before touching the camera. I reverted a correct focal change on the
+  strength of this and lost an iteration to it.
+
+`_FOCUS` and `verification_capture.rviz` are both back at their original
+values, so the repo is in a known state.
+
+**Test loop, about four minutes:**
+
+    rm -rf /tmp/claude-1000/-home-gausms-kortex-ws/*/scratchpad/rvizcfg
+    SRL_CLIP_OUT=recordings/framing_test python3 scripts/record_abc_sweep.py \
+        --taskset msc --only 01_master_teleop --tasks t1 --no-verify
+    ffmpeg -ss 16 -i .../rviz_front.mp4 -frames:v 1 out.png     # then LOOK

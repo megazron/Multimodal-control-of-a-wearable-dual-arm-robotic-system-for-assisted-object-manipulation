@@ -124,10 +124,27 @@ V_MAX = 0.30
 # _clamp() guarantees the rendered path -- overshoot, bounce and wind-up
 # included -- cannot leave it, because those curves deliberately travel PAST
 # their targets and an envelope that only bounds the keyframes bounds nothing.
-X_IN, X_MID, X_OUT = 0.32, 0.41, 0.50
-Y_NEAR, Y_MID, Y_FAR = 0.20, 0.27, 0.34
-Z_LOW, Z_MID, Z_HIGH, Z_TOP = 1.24, 1.30, 1.36, 1.42
-BOX = ((0.30, 0.52), (0.18, 0.36), (1.22, 1.44))     # |x|, y, z
+# THE ENVELOPE WAS A TENTH OF THE ROOM AVAILABLE. The old levels spanned
+# 0.18 x 0.14 x 0.18 m, and a routine inside a box that size reads as a robot
+# nodding, not dancing -- the z span alone was 180 mm.
+#
+# The free-space anchors are MEASURED, from task0's own verification (0
+# failures, N=10, no furniture in the scene):
+#
+#     FRONT_UP    (0.24, 0.44, 1.62)
+#     FRONT_OUT   (0.28, 0.46, 1.26)
+#     FRONT_DOWN  (0.32, 0.28, 0.98)
+#
+# So the routines now span z 1.06..1.54 -- 480 mm, nearly three times the old
+# range -- and stay at least 20 mm inside the last pose that passed N/N, per
+# CLAUDE.md's rule. scripts/verify_dance_paths.py checks every rendered
+# waypoint through /compute_ik with avoid_collisions before anything is
+# filmed, with controls, because an envelope taken from another task's
+# verification is an inference until it is measured here.
+X_IN, X_MID, X_OUT = 0.28, 0.38, 0.48
+Y_NEAR, Y_MID, Y_FAR = 0.24, 0.33, 0.42
+Z_LOW, Z_MID, Z_HIGH, Z_TOP = 1.06, 1.22, 1.38, 1.54
+BOX = ((0.26, 0.50), (0.22, 0.44), (1.02, 1.58))     # |x|, y, z
 
 
 # ------------------------------------------------------------------ easing

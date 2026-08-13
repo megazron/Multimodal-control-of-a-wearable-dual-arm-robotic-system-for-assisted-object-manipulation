@@ -400,7 +400,15 @@ def furniture_boxes(task):
     import msc_clip_tasks as _mct
     import task3 as _t3
     out = []
-    if task == "t0":
+    # T0 AND THE DANCE ARE FREE-SPACE. No work surface, so no furniture: a
+    # table drawn under a routine that never touches one is scenery that
+    # invites a viewer to read the motion as reaching for something.
+    #
+    # The dance was REFUSED by this module's own argument list until now
+    # ("d1" was not in `choices`), so every dance clip was filmed with no
+    # scene node running at all -- no furniture, no markers, and no
+    # scene_events.json to say how far the arms travelled.
+    if task == "t0" or task in ("d1", "d2", "d3"):
         return out
     # A REAL TABLE, IN TWO LEVELS, AND THE SPLIT IS MEASURED.
     #
@@ -520,6 +528,8 @@ def fixtures_for(task):
     """
     if task == "t0":
         return ["L1", "L2", "L3", "R1", "R2", "R3"]
+    if task in ("d1", "d2", "d3"):
+        return []
     if task == "t1":
         return ["plane_blue", "plane_green"]
     if task == "t2":
@@ -667,9 +677,10 @@ class Scene(Node):
         # ---------------------------------------------------------- MSc set
         import msc_clip_tasks as MCT
         import task3 as T3M
-        if task == "t0":
-            # NO OBJECTS. T0 is reaching only, which is exactly why it runs in
-            # every mode including any that cannot grasp.
+        if task == "t0" or task in ("d1", "d2", "d3"):
+            # NO OBJECTS. T0 is reaching only, and the dance is a routine --
+            # neither has anything to grasp, which is exactly why they run in
+            # every mode including any that cannot.
             return {}
         if task == "t1":
             # Four cubes, two blue and two green, colour matched onto two
@@ -1501,7 +1512,8 @@ def _carry_summary(series):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", required=True,
-                    choices=["a", "b", "c", "t0", "t1", "t1s2", "t2", "t3"])
+                    choices=["a", "b", "c", "t0", "t1", "t1s2", "t2", "t3",
+                             "d1", "d2", "d3"])
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     rclpy.init()

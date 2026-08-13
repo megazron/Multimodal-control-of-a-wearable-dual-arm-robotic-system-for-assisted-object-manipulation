@@ -161,6 +161,16 @@ BRIEF_HAND_X = 0.18
 HAND_MIN_X = 0.10
 # "Elbows down and slightly out, not level with the shoulders."
 ELBOW_BELOW_SHOULDER_M = 0.05
+# How far outboard of the hand the elbow may sit before it reads as a chicken
+# wing rather than "slightly out". Measured off the render that failed: the
+# left elbow was 229 mm outboard and the posture read as splayed.
+ELBOW_OUT_BAND_M = 0.09
+# THE TWO ARMS GET THE SAME TARGET, MIRRORED. Solving each arm independently
+# let them settle on different targets -- left at (0.450, 0.320, 1.100) and
+# right at (-0.500, 0.320, 1.220) -- and the render shows exactly that: one
+# arm forward at the hip, the other out at the side. A staging pose is a
+# POSTURE, and a posture is symmetric or it looks like a fault.
+REQUIRE_MIRRORED_TARGET = True
 # "Wrists level, as they are now."
 GOOD_ENOUGH_DEG = 8.0
 # FK and TF must agree about the home tool axis to within this. It is a
@@ -190,9 +200,25 @@ TRAVEL_W = 0.0008
 # publishes position setpoints, so a 175 deg command here is precisely the
 # case that warning names -- a small negative excursion wraps and a naive
 # controller executes ~358 deg.
-MAX_JOINT_DELTA_DEG = 60.0
-MAX_J5_DELTA_DEG = 15.0
-MAX_TOTAL_TRAVEL_DEG = 150.0
+# "SHORT AND CLEAN" IS ABOUT THE MOTION YOU SEE, so the bound that matters is
+# on the HAND's travel through space, not on a count of degrees. A wrist ROLL
+# in place is not a sweep across the wearer however many degrees it is, and a
+# level wrist in front of the chest cannot be reached from home without one:
+# capping joint_5 at 15 deg found no pose at all, for either arm.
+MAX_JOINT_DELTA_DEG = 120.0
+MAX_TOTAL_TRAVEL_DEG = 320.0
+# How far the hand may travel from where home leaves it. THIS is the number
+# that stops the arm sweeping across the person.
+MAX_HAND_TRAVEL_M = 0.55
+
+# THE JOINT_5 RULE IS ABOUT DIRECTION, NOT SIZE, and the first version had it
+# backwards. home_positions_left.txt records joint_5 as a SEAM RISK because
+# home puts it 14.10 deg from the -180 boundary -- so what is dangerous is
+# moving it TOWARD that boundary, where a small excursion wraps and a naive
+# position controller executes ~358 deg. Moving it the other way, toward
+# zero, walks AWAY from the seam and is safer than standing still. A
+# symmetric 15 deg cap forbade both equally and ruled out every pose.
+J5_HARD_LIMIT_DEG = 179.0
 
 
 class Kin(Node):
@@ -424,9 +450,16 @@ class Kin(Node):
         deltas = [abs(math.degrees(q[i] - home[i])) for i in range(7)]
         if max(deltas) > MAX_JOINT_DELTA_DEG:
             return None, None
-        if deltas[4] > MAX_J5_DELTA_DEG:
-            return None, None
         if sum(deltas) > MAX_TOTAL_TRAVEL_DEG:
+            return None, None
+        j5, j5_home = math.degrees(q[4]), math.degrees(home[4])
+        if abs(j5) > J5_HARD_LIMIT_DEG or abs(j5) > abs(j5_home) + 1e-9:
+            return None, None
+        home_hand = self.frame(arm, home, ["end_effector_link"])
+        if home_hand is None:
+            return None, None
+        hand_travel = math.dist(hand, home_hand["end_effector_link"]["xyz"])
+        if hand_travel > MAX_HAND_TRAVEL_M:
             return None, None
 
         c = 0.0
@@ -438,16 +471,25 @@ class Kin(Node):
         # is not pushed lower for its own sake.
         el_below = sh[2] - elbow[2]
         c += 4.0 * max(0.0, ELBOW_BELOW_SHOULDER_M - el_below) ** 2
-        # AND SLIGHTLY OUT. The elbow outboard of the hand is what makes the
-        # posture read as a person about to work rather than a mannequin
-        # with its arms pinned; only an elbow INBOARD of the hand is
-        # penalised.
-        c += 2.0 * max(0.0, abs(hand[0]) - abs(elbow[0])) ** 2
+        # AND SLIGHTLY OUT -- WHICH IS A BAND, NOT A DIRECTION.
+        #
+        # This used to penalise only an elbow INBOARD of the hand, on the
+        # reasoning that an elbow tucked in reads as pinned. It scored an
+        # elbow 229 mm OUTBOARD of the hand as perfect, and that is precisely
+        # the splay the brief rules out: in the render the arm went up and
+        # out from the mount and came down outside the body, which is a
+        # chicken wing rather than a person standing ready.
+        #
+        # "Slightly" is ELBOW_OUT_BAND_M. Inside it, no cost; outside it in
+        # either direction, quadratic.
+        out = abs(elbow[0]) - abs(hand[0])
+        c += 6.0 * max(0.0, abs(out) - ELBOW_OUT_BAND_M) ** 2
         # A SHORT MOVE, as a tie-break and nothing more.
         travel = sum(abs(math.degrees(q[i] - home[i])) for i in range(7))
         c += TRAVEL_W * travel
         return c, dict(elev=elev, clearance=clear, hand=hand, elbow=elbow,
-                       el_below=el_below, travel=travel)
+                       el_below=el_below, travel=travel,
+                       hand_travel=hand_travel)
 
     def valid(self, arm, q):
         req = GetStateValidity.Request()
@@ -477,6 +519,7 @@ def main():
         return 2
 
     result, controls = {}, {}
+    best_for_target = {}
     for arm in ("left", "right"):
         home = list(hp.load_home_radians(arm))
 
@@ -542,40 +585,61 @@ def main():
         # different postures for the same hand pose. Several are drawn and
         # the one with the best elbow wins, which is the only way to get
         # "elbows down and slightly out" out of a position-only solver.
-        cands = []
+        best_for_target.setdefault(arm, {})
         for tx in (HAND_TARGET["x"], 0.50, 0.55, 0.60):
             for ty in (HAND_TARGET["y"], 0.25, 0.36):
                 for tz in (HAND_TARGET["z"], 1.18, 1.10):
+                    key = (tx, ty, tz)
                     tgt = [(1.0 if arm == "left" else -1.0) * tx, ty, tz]
+                    cands = []
                     for _try in range(IK_DRAWS):
                         q = n.ik_joints(arm, tgt)
                         if q is None:
                             continue
                         c, why = n.cost(arm, q, home)
                         if c is not None:
-                            cands.append((c, q, why, list(tgt)))
+                            cands.append((c, q, why))
                     if cands:
-                        break
-                if cands:
-                    break
-            if cands:
-                break
-        if not cands:
-            print("   %s: NO pose satisfied the hard constraints" % arm)
-            result[arm] = None
-        else:
-            c, q, g, tgt = min(cands, key=lambda t: t[0])
-            result[arm] = dict(q=q, elev=g["elev"],
-                               clearance_m=round(g["clearance"], 4),
-                               hand=[round(v, 4) for v in g["hand"]],
-                               elbow=[round(v, 4) for v in g["elbow"]],
-                               elbow_below_shoulder_m=round(g["el_below"], 4),
-                               travel_deg=round(g["travel"], 1),
-                               target=[round(v, 4) for v in tgt],
-                               n_draws=len(cands),
-                               cost=round(c, 5),
-                               delta_deg=[round(math.degrees(q[i] - home[i]), 2)
-                                          for i in range(7)])
+                        c, q, g = min(cands, key=lambda t: t[0])
+                        best_for_target[arm][key] = dict(
+                            q=q, elev=g["elev"],
+                            clearance_m=round(g["clearance"], 4),
+                            hand=[round(v, 4) for v in g["hand"]],
+                            elbow=[round(v, 4) for v in g["elbow"]],
+                            elbow_below_shoulder_m=round(g["el_below"], 4),
+                            travel_deg=round(g["travel"], 1),
+                            hand_travel_m=round(g["hand_travel"], 4),
+                            target=[round(v, 4) for v in tgt],
+                            n_draws=len(cands), cost=round(c, 5),
+                            delta_deg=[round(math.degrees(q[i] - home[i]), 2)
+                                       for i in range(7)])
+
+    # ---- ONE TARGET, MIRRORED, FOR BOTH ARMS -------------------------
+    # Chosen AFTER both arms have been solved, so it is a target both can
+    # actually reach rather than whichever each settled on alone. Solving
+    # them independently gave the left hand (0.450, 0.320, 1.100) and the
+    # right (-0.500, 0.320, 1.220), and the render shows exactly that: one
+    # arm forward at the hip and the other out at the side. A posture is
+    # symmetric or it reads as a fault.
+    shared = [k for k in best_for_target.get("left", {})
+              if k in best_for_target.get("right", {})]
+    if shared and REQUIRE_MIRRORED_TARGET:
+        key = min(shared, key=lambda k: (best_for_target["left"][k]["cost"]
+                                         + best_for_target["right"][k]["cost"]))
+        for arm in ("left", "right"):
+            result[arm] = best_for_target[arm][key]
+        print("   mirrored target |x|=%.2f y=%.2f z=%.2f, reachable by both "
+              "(%d of %d targets were)"
+              % (key[0], key[1], key[2], len(shared),
+                 len(best_for_target.get("left", {}))))
+    else:
+        for arm in ("left", "right"):
+            per = best_for_target.get(arm, {})
+            result[arm] = (min(per.values(), key=lambda d: d["cost"])
+                           if per else None)
+        if REQUIRE_MIRRORED_TARGET:
+            print("   NO target is reachable by BOTH arms -- falling back to "
+                  "per-arm bests, and the pose will be ASYMMETRIC.")
 
     print("=" * 72)
     print("PRESENTATION POSE -- a joint-space staging move, not a task pose")
@@ -604,6 +668,8 @@ def main():
               "floor %.2f" % (b["clearance_m"],
                               controls["home_clearance_%s_m" % arm],
                               MIN_CLEARANCE_M))
+        print("         hand travels %.3f m from home (limit %.2f)"
+              % (b["hand_travel_m"], MAX_HAND_TRAVEL_M))
         print("         move from home %.0f deg total: %s"
               % (b["travel_deg"],
                  " ".join("j%d%+.0f" % (i + 1, d)
@@ -645,6 +711,7 @@ def main():
                              elbow_below_shoulder_m=(
                                  result[arm]["elbow_below_shoulder_m"]),
                              travel_deg=result[arm]["travel_deg"],
+                             hand_travel_m=result[arm]["hand_travel_m"],
                              q=[round(v, 6) for v in result[arm]["q"]])
                    for arm in ("left", "right")}),
             open(OUT, "w"), indent=2)

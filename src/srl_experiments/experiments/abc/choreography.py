@@ -328,7 +328,12 @@ def flow():
         ([X_IN, Y_NEAR, Z_LOW], 3.0, "smooth", 0),
     ], bpm)[1:]
     L += _hold(L[-1], 1.0, bpm)
-    R = _mirror(_canon(L, 1.0, bpm))
+    # TWO BEATS BEHIND, NOT ONE. At one beat the two arms sit 68 mm apart on
+    # average, which at the clip's framing is a few pixels: the canon was real
+    # in the numbers and read as unison on screen. Two beats at 60 BPM is 2 s
+    # of phrase separation, so the trailing arm is visibly still climbing when
+    # the leading one has arrived -- which is the whole effect.
+    R = _mirror(_canon(L, 2.0, bpm))
     return dict(zip(("left", "right"),
                     _pad(_limit(_clamp(L)), _limit(_clamp(R)))))
 

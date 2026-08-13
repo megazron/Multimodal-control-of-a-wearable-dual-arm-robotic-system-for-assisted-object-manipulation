@@ -1,15 +1,10 @@
 _XSERVTransmkdir: Mode of /tmp/.X11-unix should be set to 1777
-_XSERVTransmkdir: Mode of /tmp/.X11-unix should be set to 1777
 _XSERVTransSocketCreateListener: failed to bind listener
 _XSERVTransSocketUNIXCreateListener: ...SocketCreateListener() failed
 _XSERVTransMakeAllCOTSServerListeners: failed to create listener for unix
 _XSERVTransmkdir: Mode of /tmp/.X11-unix should be set to 1777
 _XSERVTransmkdir: Mode of /tmp/.X11-unix should be set to 1777
 _XSERVTransmkdir: Mode of /tmp/.X11-unix should be set to 1777
-_XSERVTransmkdir: Mode of /tmp/.X11-unix should be set to 1777
-_XSERVTransSocketCreateListener: failed to bind listener
-_XSERVTransSocketUNIXCreateListener: ...SocketCreateListener() failed
-_XSERVTransMakeAllCOTSServerListeners: failed to create listener for unix
 _XSERVTransmkdir: Mode of /tmp/.X11-unix should be set to 1777
 The XKEYBOARD keymap compiler (xkbcomp) reports:
 > Warning:          Could not resolve keysym XF86CameraAccessEnable
@@ -31,6 +26,14 @@ The XKEYBOARD keymap compiler (xkbcomp) reports:
 > Warning:          Could not resolve keysym XF86NavInfo
 Errors from xkbcomp are not fatal to the X server
 _XSERVTransmkdir: Mode of /tmp/.X11-unix should be set to 1777
+_XSERVTransmkdir: Mode of /tmp/.X11-unix should be set to 1777
+_XSERVTransmkdir: Mode of /tmp/.X11-unix should be set to 1777
+_XSERVTransSocketCreateListener: failed to bind listener
+_XSERVTransSocketUNIXCreateListener: ...SocketCreateListener() failed
+_XSERVTransMakeAllCOTSServerListeners: failed to create listener for unix
+_XSERVTransSocketCreateListener: failed to bind listener
+_XSERVTransSocketUNIXCreateListener: ...SocketCreateListener() failed
+_XSERVTransMakeAllCOTSServerListeners: failed to create listener for unix
 _XSERVTransSocketCreateListener: failed to bind listener
 _XSERVTransSocketUNIXCreateListener: ...SocketCreateListener() failed
 _XSERVTransMakeAllCOTSServerListeners: failed to create listener for unix
@@ -59,9 +62,6 @@ The XKEYBOARD keymap compiler (xkbcomp) reports:
 > Warning:          Could not resolve keysym XF86SidevuSonar
 > Warning:          Could not resolve keysym XF86NavInfo
 Errors from xkbcomp are not fatal to the X server
-_XSERVTransSocketCreateListener: failed to bind listener
-_XSERVTransSocketUNIXCreateListener: ...SocketCreateListener() failed
-_XSERVTransMakeAllCOTSServerListeners: failed to create listener for unix
 _XSERVTransSocketCreateListener: failed to bind listener
 _XSERVTransSocketUNIXCreateListener: ...SocketCreateListener() failed
 _XSERVTransMakeAllCOTSServerListeners: failed to create listener for unix

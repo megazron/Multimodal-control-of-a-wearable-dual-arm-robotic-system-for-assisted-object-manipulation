@@ -145,9 +145,14 @@ TASK_FOCUS = {
     # every reach would leave the top of the picture, which is exactly what
     # happened to T0's two FRONT_UP targets and T2's tray before TASK_FOCUS
     # existed.
-    "d1": ((0.00, 0.33, 1.30), 2.10),
-    "d2": ((0.00, 0.33, 1.30), 2.10),
-    "d3": ((0.00, 0.33, 1.30), 2.10),
+    # 1.75, NOT 2.10. Framed at 2.10 the wearer filled about a third of the
+    # height and the empty ground plane took the rest -- and the canon, which
+    # separates the two arms by 68 mm on average, was a few pixels and read as
+    # unison. The focus rises to 1.32 so the apex at z = 1.54 still clears the
+    # top of the picture at the closer distance.
+    "d1": ((0.00, 0.33, 1.32), 1.75),
+    "d2": ((0.00, 0.33, 1.32), 1.75),
+    "d3": ((0.00, 0.33, 1.32), 1.75),
 }
 VIEWS = {
     #  name       display  yaw      pitch  dist  focal(x,y,z)   hud

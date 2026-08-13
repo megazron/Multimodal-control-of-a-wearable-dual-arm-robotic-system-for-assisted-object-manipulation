@@ -60,13 +60,13 @@
     "dir": "recordings/verification/01_master_teleop/T1/S1_right_arm"
   },
   "01_master_teleop/t1s2/S2_both_arms_random": {
-    "ok": false,
-    "msg": "run exited 1; NO GRASP RECORDED at all",
+    "ok": true,
+    "msg": "run exited 0",
     "mode": "01_master_teleop",
     "task": "t1s2",
     "scenario": "S2_both_arms_random",
     "quad": true,
-    "opened_on": "home",
+    "opened_on": "presentation",
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",
@@ -80,13 +80,13 @@
     "dir": "recordings/verification/01_master_teleop/T1S2/S2_both_arms_random"
   },
   "01_master_teleop/t3/S1_measure_cycle": {
-    "ok": false,
-    "msg": "run exited 1; NO GRASP RECORDED at all",
+    "ok": true,
+    "msg": "run exited 0",
     "mode": "01_master_teleop",
     "task": "t3",
     "scenario": "S1_measure_cycle",
     "quad": true,
-    "opened_on": "home",
+    "opened_on": "presentation",
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",

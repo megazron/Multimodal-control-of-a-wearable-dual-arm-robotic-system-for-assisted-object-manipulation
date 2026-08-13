@@ -1,37 +1,92 @@
 {
   "task": "t3",
-  "events": [],
+  "events": [
+    {
+      "t": 49.2,
+      "wall": 1786605699.992291,
+      "ev": "GRASPED",
+      "item": "multimeter",
+      "arm": "left",
+      "knuckle": 0.4667,
+      "needed": 0.4659,
+      "at": [
+        0.34,
+        0.19,
+        1.1225
+      ]
+    },
+    {
+      "t": 53.39,
+      "wall": 1786605704.1856735,
+      "ev": "GRASPED",
+      "item": "circuit_box",
+      "arm": "right",
+      "knuckle": 0.3294,
+      "needed": 0.2965,
+      "at": [
+        -0.54,
+        0.17,
+        1.125
+      ]
+    },
+    {
+      "t": 53.69,
+      "wall": 1786605704.4858353,
+      "ev": "RELEASED",
+      "item": "multimeter",
+      "arm": "left",
+      "carried_m": 0.1601,
+      "at": [
+        0.34,
+        0.19,
+        1.1225
+      ]
+    },
+    {
+      "t": 54.0,
+      "wall": 1786605704.7927012,
+      "ev": "RELEASED",
+      "item": "circuit_box",
+      "arm": "right",
+      "carried_m": 0.0276,
+      "at": [
+        -0.54,
+        0.17,
+        1.125
+      ]
+    }
+  ],
   "items": [
     {
       "item": "circuit_box",
       "arm": "right",
       "width_mm": 50,
-      "carried_m": 0.0,
+      "carried_m": 0.0276,
       "final": [
         -0.54,
         0.17,
         1.125
       ],
       "still_held": false,
-      "min_pad_obj_m": null,
-      "min_pad_obj_knuckle": null,
-      "min_pad_obj_closed_m": null,
+      "min_pad_obj_m": 0.0008,
+      "min_pad_obj_knuckle": 0.2901,
+      "min_pad_obj_closed_m": 0.0036,
       "grasp_near_m": 0.03
     },
     {
       "item": "multimeter",
       "arm": "left",
       "width_mm": 30,
-      "carried_m": 0.0,
+      "carried_m": 0.1601,
       "final": [
         0.34,
         0.19,
         1.1225
       ],
       "still_held": false,
-      "min_pad_obj_m": null,
-      "min_pad_obj_knuckle": null,
-      "min_pad_obj_closed_m": null,
+      "min_pad_obj_m": 0.0,
+      "min_pad_obj_knuckle": 0.4847,
+      "min_pad_obj_closed_m": 0.0,
       "grasp_near_m": 0.03
     }
   ],
@@ -45,11 +100,14 @@
     "table"
   ],
   "ee_travel_m": {
-    "left": 0.0,
-    "right": 0.0
+    "left": 0.9849,
+    "right": 1.1898
   },
-  "ee_net_m": {},
-  "t0_wall": null,
+  "ee_net_m": {
+    "left": 0.2097,
+    "right": 0.1439
+  },
+  "t0_wall": 1786605650.7970757,
   "carry_series": [],
   "carry_summary": null,
   "pad_off": [

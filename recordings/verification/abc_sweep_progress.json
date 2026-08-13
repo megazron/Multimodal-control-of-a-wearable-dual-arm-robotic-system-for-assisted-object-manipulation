@@ -20,13 +20,13 @@
     "dir": "recordings/verification/01_master_teleop/T0/D3_three_targets"
   },
   "01_master_teleop/t1/S1_right_arm": {
-    "ok": false,
-    "msg": "run exited 0; NO GRASP RECORDED at all",
+    "ok": true,
+    "msg": "run exited 0",
     "mode": "01_master_teleop",
     "task": "t1",
     "scenario": "S1_right_arm",
     "quad": true,
-    "opened_on": "home",
+    "opened_on": "presentation",
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",
@@ -46,7 +46,7 @@
     "task": "t1s2",
     "scenario": "S2_both_arms_random",
     "quad": true,
-    "opened_on": "home",
+    "opened_on": "presentation",
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",
@@ -66,7 +66,7 @@
     "task": "t2",
     "scenario": "S2_full_lift",
     "quad": true,
-    "opened_on": "home",
+    "opened_on": "presentation",
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",
@@ -78,25 +78,5 @@
       "rviz_top.mp4"
     ],
     "dir": "recordings/verification/01_master_teleop/T2/S2_full_lift"
-  },
-  "01_master_teleop/t3/S1_measure_cycle": {
-    "ok": false,
-    "msg": "run exited 1; NO GRASP RECORDED at all",
-    "mode": "01_master_teleop",
-    "task": "t3",
-    "scenario": "S1_measure_cycle",
-    "quad": true,
-    "opened_on": "home",
-    "files": [
-      "rviz_back.mp4",
-      "rviz_front.mp4",
-      "rviz_gripper.mp4",
-      "rviz_iso.mp4",
-      "rviz_left.mp4",
-      "rviz_quad.mp4",
-      "rviz_right.mp4",
-      "rviz_top.mp4"
-    ],
-    "dir": "recordings/verification/01_master_teleop/T3/S1_measure_cycle"
   }
 }

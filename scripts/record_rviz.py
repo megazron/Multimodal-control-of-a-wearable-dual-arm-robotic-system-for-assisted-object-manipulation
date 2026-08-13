@@ -134,11 +134,21 @@ TASK_FOCUS = {
     # its cubes now sit at x -0.32..-0.50 with the mats at -0.34 and -0.47,
     # so the whole task sat at the right edge of frame while the empty
     # left-arm workspace marking held the middle of the picture.
-    "t1": ((-0.30, 0.22, 1.19), 1.45),
+    # CENTRED ON THE WORK, AND LOOKING DOWN AT IT. Focal moved from -0.30 to
+    # -0.38, which is the middle of the cube row (-0.32..-0.50) rather than a
+    # compromise between the wearer and the work, and pitch raised from the
+    # shared 0.28 to 0.52 rad. Looked at: at 0.28 the camera is nearly
+    # edge-on to the surface, the mats read as lines and the cubes sit on top
+    # of them, and the work sat right of centre. Distance out to 1.55 so the
+    # wearer stays fully in shot from the higher angle.
+    "t1": ((-0.38, 0.24, 1.16), 1.55, 0.52),
     # t1s2 works BOTH sides, so it centres on the wearer.
-    "t1s2": ((0.00, 0.24, 1.19), 1.55),
+    "t1s2": ((0.00, 0.24, 1.16), 1.70, 0.52),
     "t2": ((0.00, 0.35, 1.46), 1.55),
-    "t3": ((-0.10, 0.19, 1.18), 1.70),
+    # T3's subject is the BOX's faces and the four pads on them, which are
+    # vertical surfaces, so it wants less downward pitch than T1 -- but more
+    # than the shared 0.28, because the meter is presented above the box.
+    "t3": ((-0.20, 0.19, 1.20), 1.70, 0.40),
     # THE DANCE. Centred on the wearer because both arms work both sides, and
     # pulled BACK to 2.10 because the routines span z 1.02..1.58 -- a 560 mm
     # vertical range against T1's 120 mm. Framed at T1's distance the apex of
@@ -619,7 +629,17 @@ def write_cfg(name, arm="left", task=None):
     yaw, pitch, dist, focal, hud = VIEWS[name][1:]
     # THE FRONT VIEW FOLLOWS THE TASK. See TASK_FOCUS.
     if name == "front" and task in TASK_FOCUS:
-        focal, dist = TASK_FOCUS[task]
+        # PITCH IS OPTIONAL AND PER TASK. It used to be shared by every task
+        # at 0.28 rad, and for the pick-and-place tasks that is nearly
+        # edge-on to the work surface: LOOKED AT, T1's cubes and mats
+        # foreshortened into a thin band in which a 40 mm cube and a 140 mm
+        # mat are hard to tell apart. A task whose subject lies FLAT on a
+        # surface needs to be looked down at; one whose subject is in free
+        # space does not.
+        _f = TASK_FOCUS[task]
+        focal, dist = _f[0], _f[1]
+        if len(_f) > 2:
+            pitch = _f[2]
     tgt = "%s_end_effector_link" % arm if name == "gripper" else "world"
     disp = ["""    - Class: rviz_default_plugins/Grid
       Name: Grid

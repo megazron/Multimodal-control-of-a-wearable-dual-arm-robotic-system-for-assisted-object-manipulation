@@ -498,5 +498,65 @@
       "rviz_top.mp4"
     ],
     "dir": "recordings/verification/06_full_autonomy/D3/D3_play"
+  },
+  "03_shared_autonomy/t1/S1_right_arm": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "03_shared_autonomy",
+    "task": "t1",
+    "scenario": "S1_right_arm",
+    "quad": true,
+    "opened_on": "presentation",
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/03_shared_autonomy/T1/S1_right_arm"
+  },
+  "03_shared_autonomy/t1s2/S2_both_arms_random": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "03_shared_autonomy",
+    "task": "t1s2",
+    "scenario": "S2_both_arms_random",
+    "quad": true,
+    "opened_on": "presentation",
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/03_shared_autonomy/T1S2/S2_both_arms_random"
+  },
+  "03_shared_autonomy/t3/S1_measure_cycle": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "03_shared_autonomy",
+    "task": "t3",
+    "scenario": "S1_measure_cycle",
+    "quad": true,
+    "opened_on": "presentation",
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/03_shared_autonomy/T3/S1_measure_cycle"
   }
 }

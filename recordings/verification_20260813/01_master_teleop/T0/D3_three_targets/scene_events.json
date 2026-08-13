@@ -12,12 +12,12 @@
   ],
   "furniture": [],
   "ee_travel_m": {
-    "left": 1.4728,
-    "right": 1.4358
+    "left": 1.3248,
+    "right": 1.3261
   },
   "ee_net_m": {
-    "left": 0.0,
-    "right": 0.0
+    "left": 0.3402,
+    "right": 0.2211
   },
   "t0_wall": null,
   "pad_off": null,

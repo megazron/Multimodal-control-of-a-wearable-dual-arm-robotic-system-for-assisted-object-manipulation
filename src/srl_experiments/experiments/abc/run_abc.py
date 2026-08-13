@@ -613,7 +613,19 @@ def main(argv=None):
     # the same quantity the grasp gate uses -- so "arrived" means "close
     # enough that closing here is a grasp".
     ARRIVE_TOL_M = 0.03
-    PAD_OFF = CT.PAD_OFFSET
+    # PER ARM. This was `CT.PAD_OFFSET`, which is the LEFT arm's wrist-to-pad
+    # vector, and it is the THIRD consumer of that constant -- the task path
+    # and the clip scene were both fixed to use the per-arm table and this one
+    # was missed.
+    #
+    # It decides when the hand is allowed to close, so on the right arm, whose
+    # offset differs by 48.3 mm, the gate compared a pad position that was
+    # 48 mm wrong against a 30 mm window and never fired. Measured on the
+    # first mode-01 sweep after the other two were fixed: T1's pads reached
+    # the cube to within 0.1 mm -- the geometry was right -- and the knuckle
+    # stayed at 0.0 for the entire clip. "NO GRASP RECORDED at all" on a run
+    # where the arm went exactly where it was told.
+    PAD_OFF_BY_ARM = CT.PAD_OFFSET_BY_ARM
     grip_obj = spec.get("grip_obj")
     # PER-WAYPOINT OBJECT, when the task has more than one.
     #
@@ -712,8 +724,9 @@ def main(argv=None):
                         # the hand never closed at all. The object is the one
                         # thing both frames agree about.
                         here = n.ee(arm)
+                        _off = PAD_OFF_BY_ARM[arm]
                         pads = (None if here is None else
-                                [here[i] + PAD_OFF[i] for i in range(3)])
+                                [here[i] + _off[i] for i in range(3)])
                         obj = pend_obj[arm] or grip_obj
                         if (pads is not None and obj is not None
                                 and math.dist(pads, obj) <= ARRIVE_TOL_M):

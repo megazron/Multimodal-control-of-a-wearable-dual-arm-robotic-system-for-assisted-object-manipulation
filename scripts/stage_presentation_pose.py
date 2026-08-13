@@ -209,7 +209,28 @@ def main():
         want = {arm: d["poses"][arm]["q"] for arm in ("left", "right")}
         what = "presentation"
 
-    rclpy.init()
+    # RETRY THE DDS BRING-UP. Every clip runs this as a fresh process, and
+    # Fast DDS leaks a shared-memory segment per participant on this host --
+    # 167 of them after one session -- so the port range fills and
+    # `rclpy.init()` fails with "Failed init_port fastrtps_portNNNN". Measured
+    # on the first full mode: the pose staged on clip 1 and failed on the
+    # other four, so four clips silently opened on home.
+    #
+    # A retry gets a different port. The segments are NOT cleared here on
+    # purpose: CLAUDE.md is explicit that /dev/shm/fastrtps_* may only be
+    # cleared with the stack STOPPED, and a staging script that wiped them
+    # mid-sweep would take the running stack's discovery with it.
+    last = None
+    for attempt in range(1, 6):
+        try:
+            rclpy.init()
+            break
+        except Exception as e:                                 # noqa: BLE001
+            last = e
+            time.sleep(1.5)
+    else:
+        print("could not initialise DDS after 5 attempts: %s" % last)
+        return 2
     n = Stager()
     # ---- PAUSE THE FOLLOWER FOR THE DURATION OF THE MOVE --------------
     #

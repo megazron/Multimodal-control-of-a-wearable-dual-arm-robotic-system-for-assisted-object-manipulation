@@ -127,8 +127,41 @@ TRANSIT_Z = 0.10
 # Measured from TF: the tips sit +0.098 m along the tool axis, 0.1194 m away.
 PAD_OFFSET = [-0.0171, 0.0946, 0.0572]
 
+# ONE PAD OFFSET PER ARM, AND PAD_OFFSET ABOVE IS THE LEFT ARM'S.
+#
+# Measured off TF at the home pose, which IS the pinned anchor -- the only
+# orientation a task path ever holds, because the follower pins it:
+#
+#     left   (-0.0171, +0.0945, +0.0572)     identical to PAD_OFFSET
+#     right  (+0.0289, +0.0995, +0.0421)     48.3 mm away from it
+#
+# The arms are parked asymmetrically -- CLAUDE.md records
+# |v_R - M v_L| = 1.3837 m, proven independent of the mount -- so their
+# wrist-to-pad vectors differ, and this repository has already paid for that
+# once: T3's left-arm multimeter was drawn 49 mm from where the left hand
+# closes, and the fix went in on the SCENE side only (`pad_off_by_arm`). The
+# TASK side kept one number, and T1 has since moved to the right arm.
+#
+# WHY IT DID NOT SHOW UP AS A BROKEN GRASP. The scene drew each item at
+# ee_for(obj) + the arm's OWN measured offset, so the pads and the drawn
+# object coincided exactly and every grasp worked. What was wrong was quieter:
+# the object appeared 48 mm from the coordinates the task declares and the
+# layout was verified at, so the workspace marking, the placement error and
+# every distance quoted against a declared position described a scene that was
+# not the one on screen.
+#
+# THE OFFSET IS AT THE ANCHOR, NOT AT WHATEVER POSE THE ARM IS IN. Sampling it
+# live is what the presentation pose broke: staging rotates the wrist, the
+# right arm's tool-axis offset moves 80.1 mm, and a scene sampled while staged
+# is drawn 80 mm out. A constant taken at the anchor cannot be moved by
+# anything that happens before capture.
+PAD_OFFSET_BY_ARM = {
+    "left": [-0.0171, 0.0945, 0.0572],
+    "right": [0.0289, 0.0995, 0.0421],
+}
 
-def ee_for(obj_xyz):
+
+def ee_for(obj_xyz, arm="left"):
     """WRIST pose that puts the finger pads -- and so the object -- HERE.
 
     DECLARE WHERE THE OBJECT IS, DERIVE WHERE THE WRIST GOES. Getting this
@@ -138,8 +171,13 @@ def ee_for(obj_xyz):
     37 mm below its top. With the bench a real collision object, the pick
     pose was correctly REFUSED -- the geometry had been wrong all along and
     a hollow bench had been hiding it.
+
+    `arm` DEFAULTS TO LEFT so the legacy A/B/C coordinates do not move. Every
+    MSc task passes its own arm; see PAD_OFFSET_BY_ARM for why one number for
+    two arms was wrong by 48 mm.
     """
-    return [round(obj_xyz[i] - PAD_OFFSET[i], 4) for i in range(3)]
+    off = PAD_OFFSET_BY_ARM.get(arm, PAD_OFFSET)
+    return [round(obj_xyz[i] - off[i], 4) for i in range(3)]
 
 
 def on_bench(x, depth_m, height_m, surface_z=None):

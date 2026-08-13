@@ -23,6 +23,32 @@ climbing. Exit code says whether both arms actually got there.
 REFUSES RATHER THAN GUESSING. No stored pose, a pose whose controls failed, or
 an arm that does not arrive are all reported and non-zero. Opening on the home
 pose is a known, documented picture; opening on a half-finished move is not.
+
+=====================================================================
+KNOWN LIMITATION, MEASURED: THE FOLLOWER WINS. Read before relying on it.
+=====================================================================
+`ik_follower_node` streams position commands to the SAME arm controller this
+script publishes a trajectory to. Once the follower has a target it holds the
+arm there, so a staging trajectory published underneath it is overridden and
+this script correctly reports DID NOT ARRIVE.
+
+Measured: immediately after a fresh stack start, when the follower has no
+target yet, staging works -- both arms arrive to within 0.012 rad. After a
+clip has run, the follower is holding the last task pose and the same command
+moves the arm by nothing at all: worst joint error 0.5585 (left) and 0.7330
+(right) rad, unchanged across the whole timeout.
+
+This is the project's own one-source-at-a-time rule appearing at the CONTROLLER
+level rather than the process level, and it is not fixed. Two ways out, and
+neither is chosen here because both need a decision about the follower:
+
+  * pause the follower for the staging move (it already has enable/disable
+    services) and resume it before the task starts; or
+  * give the follower a joint-space "go here and hold" mode and stage through
+    it, so there is only ever one publisher.
+
+Until then the sweep records `opened_on` per clip, so a set where staging
+silently lost is identifiable rather than assumed.
 """
 
 import argparse

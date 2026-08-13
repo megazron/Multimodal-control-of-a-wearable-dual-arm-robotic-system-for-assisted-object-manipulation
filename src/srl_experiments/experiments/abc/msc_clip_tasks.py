@@ -187,10 +187,10 @@ def t1():
     # it while +/-0.035 in x would put the inboard slot at 0.265, outside.
     slot = {0: -SLOT_DY, 2: +SLOT_DY, 1: -SLOT_DY, 3: +SLOT_DY}
     for i, (cx, cy) in enumerate(T1_CUBES):
-        pick = ee_for([cx, cy, T1_Z])
+        pick = ee_for([cx, cy, T1_Z], T1_ARM)
         px, py = T1_PLANES[T1_PAIR[i]]
         py = round(py + slot[i], 4)
-        place = ee_for([px, py, T1_Z])
+        place = ee_for([px, py, T1_Z], T1_ARM)
         cube_obj = [cx, cy, T1_Z]
         plane_obj = [px, py, T1_Z]
         add(_dense([[pick[0], pick[1], pick[2] + STANDOFF], pick]),
@@ -313,8 +313,10 @@ def t3():
     The HOLD in the middle is where the task's own measurement lives -- arm
     drift while the wearer works -- so it is long in the clip on purpose.
     """
-    box, boxp = ee_for(T3M.BOX_OBJ), ee_for(T3M.BOX_PRESENT)
-    met, metp = ee_for(T3M.METER_OBJ), ee_for(T3M.METER_PRESENT)
+    box, boxp = (ee_for(T3M.BOX_OBJ, T3M.BOX_ARM),
+                 ee_for(T3M.BOX_PRESENT, T3M.BOX_ARM))
+    met, metp = (ee_for(T3M.METER_OBJ, T3M.METER_ARM),
+                 ee_for(T3M.METER_PRESENT, T3M.METER_ARM))
     # THE HOLDS ARE LONG BECAUSE THE ARM HAS TO ARRIVE, not for effect.
     #
     # At 3 waypoints per hold the whole cycle was 38 waypoints -- about six
@@ -472,13 +474,13 @@ def t1_stage2(seed=0, n_per_arm=2):
 
         sgn = 1.0 if arm == "left" else -1.0
         for i, cube in enumerate(tgt[arm]):
-            pick = ee_for(cube)
+            pick = ee_for(cube, arm)
             # Each arm places onto ITS OWN side of the marked region, at the
             # outboard end, so a placement is never in the other arm's cells.
             px = sgn * (max(abs(c[0]) for c in tgt[arm]) + 0.0)
             place_obj = [round(px, 4),
                          round(min(c[1] for c in tgt[arm]), 4), T1_Z]
-            place = ee_for(place_obj)
+            place = ee_for(place_obj, arm)
             add(_dense([[pick[0], pick[1], pick[2] + STANDOFF], pick]),
                 CT.OPEN, cube)
             add(_hold(pick, 8), g, cube)
@@ -556,7 +558,8 @@ TASKS = {
         # PER WAYPOINT, because this task has six objects and the gate was
         # written for one. See t1_grip_at().
         grip_at=lambda n: t1_grip_at(n),
-        place_target=ee_for([T1_PLANES[0][0], T1_PLANES[0][1], T1_Z]),
+        place_target=ee_for([T1_PLANES[0][0], T1_PLANES[0][1], T1_Z],
+                            T1_ARM),
         # DERIVED FROM T1_ARM, never written out. The literal used to say
         # "LEFT arm descends to each cube" while T1_ARM was "right", so the
         # sweep printed and the write-up would have quoted the wrong arm for
@@ -635,7 +638,7 @@ TASKS = {
         # and the last leg of the path. Comparing the final position against
         # BOX_PRESENT scored the box 80 mm out for having been put back
         # correctly, which is PRESENT_LIFT_M to the millimetre.
-        place_target=ee_for(T3M.BOX_OBJ),
+        place_target=ee_for(T3M.BOX_OBJ, T3M.BOX_ARM),
         expect="RIGHT arm picks up the circuit box and holds it raised while "
                "LEFT presents the multimeter; both hold still for the "
                "measurement; both return their object to the bench.",

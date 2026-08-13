@@ -5,9 +5,74 @@
 in one pass. **40 PRESENT, 0 MISSING, 1 BLOCKED.** Nine gaps were found and
 closed; see TASK_SPEC section 9 for the table and the commit for the detail.
 
-## START HERE: `ee_for()` USES THE LEFT ARM'S PAD OFFSET AND T1 IS ON THE RIGHT
+## START HERE: THE STAGING MOVE LOSES TO THE FOLLOWER
 
-This is the first thing to fix and nothing should be recorded before it.
+Recording is blocked on ONE thing and it is small and well understood.
+
+`stage_presentation_pose.py` publishes a joint trajectory to
+`/<arm>_arm_controller/joint_trajectory`, and `ik_follower_node` streams
+position commands to the SAME controller. Once the follower has a target it
+holds the arm there and the staging trajectory is overridden.
+
+Measured both ways:
+
+    fresh stack, follower has no target yet   both arms arrive, <= 0.012 rad
+    after a clip has run                      arm does not move AT ALL:
+                                              0.5585 (left) / 0.7330 (right)
+                                              rad, unchanged for the whole
+                                              timeout
+
+This is the project's own one-source-at-a-time rule appearing at the
+CONTROLLER level rather than the process level. Two ways out, and the choice
+belongs to whoever owns the follower:
+
+  1. pause the follower for the staging move -- it already has
+     `bridge_enable` / `bridge_disable` services -- and resume before the
+     task starts; or
+  2. give the follower a joint-space "go here and hold" mode, so there is
+     only ever one publisher on that controller.
+
+Until then the sweep records `opened_on` per clip, so a set where staging
+silently lost is identifiable rather than assumed. **It also means every
+verification script must be given a homed arm**: they refuse at
+`REFUSING: left arm 0.5585 rad from home`, which after a sweep is the
+staging pose still being held, not a fault.
+
+## FIXED THIS SESSION: `ee_for()` USED THE LEFT ARM'S PAD OFFSET
+
+`clip_tasks.PAD_OFFSET_BY_ARM` now carries both, measured off TF at home,
+which IS the pinned anchor:
+
+    left   (-0.0171, +0.0945, +0.0572)     identical to the old PAD_OFFSET
+    right  (+0.0289, +0.0995, +0.0421)     48.3 mm away from it
+
+`ee_for(obj, arm)` takes the arm and defaults to left so the A/B/C set does
+not move. `clip_scene._pad_offset()` now reads the SAME table instead of
+sampling live TF.
+
+**Why the live sampling had to go**, and this was the real cause of the
+"NO GRASP RECORDED at all" clip: it read the arm's CURRENT orientation once
+at clip start, which is only the anchor if nothing moved the arm first --
+and the presentation pose now does. Measured, the right arm's tool-axis
+offset moves **80.1 mm** between home and the staged pose, so the scene was
+drawn 80 mm out and every closure missed by ~31 mm against a 30 mm gate.
+
+Three cubes reporting an IDENTICAL 0.0314 was the clue: they sit in a row
+60 mm apart, so an identical closest approach is the perpendicular distance
+from a path parallel to the row -- a CONSTANT offset, not accumulating lag.
+
+**The left/right mismatch was NOT what broke the grasp.** The scene drew each
+item at `ee_for(obj) + the arm's own measured offset`, so pads and object
+coincided and grasps worked. What was wrong was quieter: the object appeared
+48 mm from the coordinates the task declares and the layout was verified at.
+Now `drawn == declared` to 0.0000 m for all eight T1 objects, and all eight
+are inside the measured cells.
+
+**STILL TO DO BEFORE RECORDING: re-verify the layout.** T1's commanded wrist
+poses moved by 48 mm, so `verify_t1_layout.py` and
+`verify_msc_tasks.py --repeats 10` must pass again. The run was started and
+refused because the arm was parked at the staging pose; home it first with
+`stage_presentation_pose.py --home` on a quiet stack.
 
 A single T1 clip under `01_master_teleop` — the mode that used to score 4/4 —
 now records **NO GRASP AT ALL**, with the pads stopping **31.4 mm** from three
@@ -42,34 +107,6 @@ half past the gate is exactly a coin flip: 4/4 under 01 and 04, 0/4 under 02,
 03 and 06, identical layout, identical waypoints. This is CLAUDE.md's
 "MARGINAL is not usable" rule appearing at the task level, and the marginality
 has a cause rather than being noise.
-
-### BEFORE FIXING IT, SETTLE WHICH VECTOR IS THE RIGHT ONE
-
-There are THREE definitions of "the pad offset" in play and they disagree, so
-picking one by eye would be guessing:
-
-| definition | right arm | note |
-| --- | --- | --- |
-| `clip_tasks.PAD_OFFSET`, a constant | (-0.0171, +0.0946, +0.0572) | the left arm's, used for both |
-| finger-tip midpoint from TF, at home | (+0.0284, +0.0977, +0.0413) | **moves with the gripper aperture** |
-| `clip_scene._pad_offset()`, PAD_DEPTH_M along the tool axis | (-0.0464, +0.1007, +0.0147) | aperture-independent, sampled once at clip start from whatever pose the arm was in |
-
-The aperture dependence is the trap: the fingers close during the grasp, so a
-finger-tip midpoint taken with the hand open is not where the pads are when it
-shuts. The tool-axis definition does not have that problem and is what the
-grasp test already uses, so it is the likely answer — but it is sampled at an
-arbitrary pose, and the vector rotates with the wrist.
-
-**The measurement to make: for each arm, the tool-axis pad offset at the
-PINNED ANCHOR orientation, which is the orientation every mode commands and
-therefore the only one a task path ever holds.** Then:
-
-1. `PAD_OFFSET_BY_ARM`, and `ee_for(obj, arm)` with the legacy default
-   preserved so the A/B/C set does not move;
-2. re-run `scripts/verify_t1_layout.py` and `verify_msc_tasks.py --repeats 10`
-   — this MOVES every T1 wrist pose by ~48 mm, so the verified layout is no
-   longer verified until it passes again;
-3. only then record.
 
 ## THE OTHER OPEN FAULT, UNCHANGED
 

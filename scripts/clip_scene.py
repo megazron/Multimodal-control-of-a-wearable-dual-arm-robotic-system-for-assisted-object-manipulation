@@ -693,7 +693,8 @@ class Scene(Node):
                     # one. Every T1 grasp went unrecorded: "NO GRASP RECORDED
                     # at all" on a run where the arm plainly picked things up.
                     arm=MCT.T1_ARM, width_mm=40,
-                    pos=CT.ee_for([cx, cy, MCT.T1_Z]), size=(0.04,) * 3,
+                    pos=CT.ee_for([cx, cy, MCT.T1_Z], MCT.T1_ARM),
+                    size=(0.04,) * 3,
                     col=(BLUE if i in (0, 2) else GREEN), held=False,
                     # ALL FOUR are picked, one after another: T1's schedule is
                     # four closes and four opens. The flag stays because
@@ -714,7 +715,8 @@ class Scene(Node):
             for arm in ("left", "right"):
                 for i, cube in enumerate(tgt[arm]):
                     out["cube_%s_%d" % (arm, i)] = dict(
-                        arm=arm, width_mm=40, pos=CT.ee_for(cube),
+                        arm=arm, width_mm=40,
+                        pos=CT.ee_for(cube, arm),
                         size=(0.04,) * 3,
                         col=(YELLOW if arm == "left" else TEAL),
                         held=False, graspable=True)
@@ -739,11 +741,13 @@ class Scene(Node):
             # 50 mm is the box's HEIGHT: the gripper takes it across the
             # thickness, which is the only dimension that fits.
             return {"circuit_box": dict(arm="right", width_mm=50,
-                                        pos=CT.ee_for(T3M.BOX_OBJ),
+                                        pos=CT.ee_for(T3M.BOX_OBJ,
+                                                       T3M.BOX_ARM),
                                         size=T3M.BOX_SIZE, col=GREEN,
                                         held=False),
                     "multimeter": dict(arm="left", width_mm=30,
-                                       pos=CT.ee_for(T3M.METER_OBJ),
+                                       pos=CT.ee_for(T3M.METER_OBJ,
+                                                      T3M.METER_ARM),
                                        size=T3M.METER_SIZE, col=YELLOW,
                                        held=False)}
         raise KeyError("clip_scene has no item table for task %r -- refusing "
@@ -902,7 +906,30 @@ class Scene(Node):
         return [v.x, v.y, v.z]
 
     def _pad_offset(self, arm):
-        """Wrist -> finger-pad vector in world, from the live anchor pose."""
+        """Wrist -> finger-pad vector in world, AT THE PINNED ANCHOR.
+
+        A CONSTANT, NOT A LIVE READING, and that is the fix. This used to
+        sample the arm's CURRENT orientation once at clip start, which is
+        only the anchor if nothing has moved the arm first -- and something
+        now does: the presentation pose is staged before capture, which
+        rotates the wrist. Measured, the right arm's tool-axis offset moves
+        80.1 mm between home and the staged pose, so the whole scene was
+        drawn 80 mm out and every grasp missed by ~31 mm against a 30 mm
+        gate. "NO GRASP RECORDED at all" on a run where the arm plainly
+        picked things up, for the second time in this file's history.
+        SHARED WITH THE TASK LAYER. clip_tasks.PAD_OFFSET_BY_ARM is the same
+        table `ee_for()` derives every commanded wrist pose from, so the
+        picture and the path cannot disagree about where an object is. Two
+        descriptions of one offset is what produced the 49 mm error this
+        module already carries a comment about.
+        """
+        off = CT.PAD_OFFSET_BY_ARM.get(arm)
+        if off is not None:
+            return list(off)
+        # Only reached for an arm name the table does not know, which is a
+        # programming error rather than a missing measurement -- fall through
+        # to the live reading and let the caller see something rather than
+        # silently drawing the scene at the origin.
         try:
             t = self.buf.lookup_transform(
                 "world", "%s_end_effector_link" % arm, rclpy.time.Time())

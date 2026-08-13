@@ -101,6 +101,19 @@ def reap_orphaned_shm():
             continue
     n = 0
     for seg in glob.glob("/dev/shm/fastrtps_*"):
+        # NEVER TOUCH THE PORT SEGMENTS, and this is the whole correctness of
+        # the function. /dev/shm holds two kinds: `fastrtps_port7400`, which
+        # are the DISCOVERY PORTS every participant rendezvouses through, and
+        # `fastrtps_<hex>`, one per participant, which are what leak.
+        #
+        # A port segment is not mapped continuously by anybody, so the
+        # "orphaned" test calls every one of them orphaned. Deleting them
+        # breaks discovery for the whole graph -- measured: after a clean
+        # stack restart the stager reaped them and then could not see
+        # /joint_states for 15 s, on a stack that had just reported
+        # "READY joint_state_msgs=30 ik=True followers=2".
+        if os.path.basename(seg).startswith("fastrtps_port"):
+            continue
         if seg in live:
             continue
         try:

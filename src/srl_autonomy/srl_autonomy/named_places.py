@@ -14,8 +14,8 @@ reachable region on this platform is nothing like the region a person expects
 -- the two arms' sets are disjoint and the front centre is empty -- so a named
 place resolved to a plausible-looking coordinate would be a guess wearing a
 measurement's name. `recordings/baselines/work_surface_region.json` holds
-every (x, y) that actually solved over the FULL pick path, and nothing else is
-used.
+every (x, y) that actually solved over the FULL pick path AND kept the 150 mm
+wearer clearance floor -- its `clear_cells` -- and nothing else is used.
 
 THE CENTROID IS SNAPPED TO A REAL CELL, and that is not fussiness. The region
 is not convex: at 50 mm resolution the right arm's cells filled 62% of their
@@ -82,7 +82,37 @@ def places(path=None):
     geometry, and the test below requires the two to agree on reachability.
     """
     d = _region(path)
-    cells = {a: [tuple(c) for c in d["cells"].get(a, [])]
+    # `clear_cells`, NOT `cells`. THE DIFFERENCE IS THE WEARER.
+    #
+    # `cells` is the IK-reachable set, and IK cannot see the wearer where it
+    # matters: srl_dual.srdf permanently excludes torso/harness/backpack
+    # against each arm's base, shoulder and half_arm_1 -- the pairs a
+    # shoulder-mounted arm actually threatens -- so /compute_ik returns
+    # `valid` for poses with the tube inside the person. Measured
+    # geometrically on 2026-08-15, 72 of the left arm's 265 IK cells and 68 of
+    # the right's 314 are inside the 150 mm clearance floor, the worst at
+    # -2.7 mm.
+    #
+    # This resolver hands a POSE to autonomy_executive on a spoken command, so
+    # reading `cells` meant "move to the left side" could be answered with a
+    # cell that puts the metal inside the wearer. It was safe only by luck of
+    # where the centroid fell: today's IK centroid (0.625, 0.175) happens to
+    # clear the floor, and a re-survey that moved it inboard would have
+    # returned an unsafe pose with nothing disagreeing. `n_cells` was also
+    # overstating the usable region by those 72/68 cells.
+    #
+    # clip_scene.py and msc_clip_tasks.py were switched to `clear_cells` on
+    # 2026-08-15 and this file was missed.
+    if "clear_cells" not in d:
+        raise SurveyUnavailable(
+            "%s has no `clear_cells`: it predates the wearer-clearance "
+            "measurement, so every cell in it is an IK result that was never "
+            "checked against the person wearing the arms. Re-run "
+            "scripts/measure_clearance_region.py and "
+            "scripts/merge_work_surface_region.py. I will not resolve a "
+            "spoken place against an unchecked region."
+            % (path or REGION_FILE))
+    cells = {a: [tuple(c) for c in d["clear_cells"].get(a, [])]
              for a in ("left", "right")}
     z = float(d["z"])
     out = {}
@@ -106,7 +136,8 @@ def places(path=None):
         arm=None,
         why=None if front else
         ("the front centre is not reachable by either arm: 0 of %d surveyed "
-         "cells at |x| <= 0.10, and the nearest reachable x is %.2f"
+         "cells that are reachable AND clear of the wearer at |x| <= 0.10, "
+         "and the nearest reachable x is %.2f"
          % (len(cells["left"]) + len(cells["right"]),
             near if near is not None else float("nan"))))
     out["front center"] = out["front centre"]

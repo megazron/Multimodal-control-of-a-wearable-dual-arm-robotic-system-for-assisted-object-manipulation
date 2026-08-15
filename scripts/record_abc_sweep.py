@@ -66,6 +66,14 @@ OUT = os.environ.get("SRL_CLIP_OUT") or os.path.join(WS,
 PROGRESS = os.path.join(OUT, "abc_sweep_progress.json")
 
 TASKS = ("a", "b", "c")
+
+# THE SECOND TRAVEL GATE, in metres, measured by the SCENE node rather than by
+# the runner. 0.05 is chosen from a good clip and a bad one, not from taste:
+# a healthy 01/T1 clip measured 3.0205 m (left) and 0.6010 m (right) on
+# 2026-08-15, and the failure this catches reports 0.0000 on both. There is
+# nothing between them to be careful about, so the number is set two orders of
+# magnitude below the good case and well above tf2 jitter.
+MIN_SCENE_TRAVEL_M = 0.05
 sys.path.insert(0, os.path.join(WS, "src/srl_experiments/experiments/abc"))
 import clip_tasks as CT                                      # noqa: E402
 import msc_clip_tasks as MCT
@@ -152,6 +160,35 @@ MODE_TEXT = {
     "04_vr_shared": "Driven from VR. The robot sets the wrist angle.",
     "06_full_autonomy": "The robot runs the task on a spoken instruction.",
 }
+
+
+def scene_travel_verdict(ev, floor_m=MIN_SCENE_TRAVEL_M):
+    """Did the SCENE NODE see an arm move? -> (True | False | None, why).
+
+    Pulled out of the sweep body so it can be given a deliberately broken
+    input by a test. The project's rule is that a check which cannot fail on
+    a broken input is not a check, and a gate buried inside a 300-line loop
+    that needs a stack, an Xvfb and four minutes to reach cannot be given one.
+
+    None means NOT ANSWERED, and it is deliberately not False. A clip
+    recorded before `ee_travel_m` existed says nothing about motion either
+    way, and failing it would be scoring the recorder's age.
+    """
+    tr = ev.get("ee_travel_m")
+    if not isinstance(tr, dict) or not tr:
+        return None, ("scene travel NOT REPORTED by this clip -- the runner's "
+                      "own travel gate is the only witness")
+    vals = {k: v for k, v in tr.items() if isinstance(v, (int, float))}
+    if not vals:
+        return None, ("scene travel reported %r, which carries no number"
+                      % (tr,))
+    shown = ", ".join("%s %.4f" % (k, v) for k, v in sorted(vals.items()))
+    # MAX OVER ARMS, not all of them: T1 and T3 work one arm at a time and
+    # the idle arm is SUPPOSED to be still.
+    if max(vals.values()) < floor_m:
+        return False, ("THE SCENE SAW A STATIONARY ARM: ee_travel %s, all "
+                       "under %.2f m" % (shown, floor_m))
+    return True, "scene travel %s" % shown
 
 
 def prepend_card(mp4, mode, task, hold_s=6.0):
@@ -900,6 +937,34 @@ def _main_body():
                 try:
                     ev = json.load(open(os.path.join(out_dir,
                                                      "scene_events.json")))
+
+                    # DID THE ARM MOVE, ACCORDING TO THE SCENE NODE?
+                    #
+                    # THIS IS A SECOND, INDEPENDENT WITNESS, and that is the
+                    # entire point of it. run_abc already refuses to exit 0
+                    # unless one arm travelled >= --min-travel-m, and this
+                    # sweep trusted that exit code alone. The two measure the
+                    # same quantity in DIFFERENT PROCESSES off different tf2
+                    # listeners, so the runner can see motion the scene node
+                    # never received -- and on 2026-08-15 that is exactly what
+                    # was filed: clips reporting TRAVEL L 0.00 R 0.00 with
+                    # four cubes carried 0.000 m while the sweep recorded OK.
+                    # A stationary arm is this project's oldest failure mode
+                    # and one witness for it is not enough.
+                    #
+                    # MAX OVER ARMS, not all of them: T1 and T3 work one arm
+                    # at a time and the idle arm is SUPPOSED to be still.
+                    #
+                    # ABSENT IS NOT ZERO. A file written before this field
+                    # existed says nothing about motion, and scoring it 0.00
+                    # would fail good clips for the recorder's age.
+                    verdict, why = scene_travel_verdict(ev)
+                    if verdict is False:
+                        good = False
+                        msg += "; " + why
+                    else:
+                        log("      %s" % why)
+
                     gr = [e for e in ev.get("events", [])
                           if e.get("ev") == "GRASPED" and e.get("wall")]
                     if gr:

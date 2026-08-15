@@ -259,11 +259,11 @@
     "why": "",
     "duration_s": 19.8,
     "bright": 88.1,
-    "variety": 5497,
-    "delta": 2.29,
+    "variety": 5463,
+    "delta": 2.42,
     "objects": {
-      "msc_sphere_blue": 24,
-      "msc_sphere_green": 42
+      "msc_sphere_blue": 26,
+      "msc_sphere_green": 43
     },
     "angles_bad": [],
     "mode": "04_vr_shared",
@@ -275,12 +275,12 @@
     "ok": true,
     "why": "",
     "duration_s": 32.8,
-    "bright": 104.9,
-    "variety": 8740,
-    "delta": 3.36,
+    "bright": 125.7,
+    "variety": 8549,
+    "delta": 2.45,
     "objects": {
-      "msc_blue": 128,
-      "msc_green": 512
+      "msc_blue": 133,
+      "msc_green": 515
     },
     "angles_bad": [],
     "mode": "04_vr_shared",
@@ -291,13 +291,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 24.2,
-    "bright": 107.8,
-    "variety": 9443,
-    "delta": 2.73,
+    "duration_s": 23.3,
+    "bright": 130.3,
+    "variety": 10369,
+    "delta": 2.31,
     "objects": {
-      "msc_yellow_cube": 146,
-      "msc_teal_cube": 553
+      "msc_yellow_cube": 148,
+      "msc_teal_cube": 458
     },
     "angles_bad": [],
     "mode": "04_vr_shared",
@@ -308,13 +308,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 15.2,
-    "bright": 91.2,
-    "variety": 7554,
-    "delta": 4.09,
+    "duration_s": 15.8,
+    "bright": 101.2,
+    "variety": 8002,
+    "delta": 4.33,
     "objects": {
-      "msc_tray_tan": 1326,
-      "msc_ball_yellow": 1146
+      "msc_tray_tan": 937,
+      "msc_ball_yellow": 644
     },
     "angles_bad": [],
     "mode": "04_vr_shared",
@@ -326,12 +326,12 @@
     "ok": true,
     "why": "",
     "duration_s": 20.8,
-    "bright": 103.3,
-    "variety": 9157,
-    "delta": 1.72,
+    "bright": 119.6,
+    "variety": 8968,
+    "delta": 1.18,
     "objects": {
-      "msc_green": 429,
-      "msc_meter_yellow": 88
+      "msc_green": 427,
+      "msc_meter_yellow": 87
     },
     "angles_bad": [],
     "mode": "04_vr_shared",

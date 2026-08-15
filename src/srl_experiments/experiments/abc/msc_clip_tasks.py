@@ -472,6 +472,25 @@ class RegionUnavailable(RuntimeError):
     """
 
 
+# THE INNERMOST COLUMN EACH ARM CAN ACTUALLY WORK, AT THE CURRENT HOME.
+#
+# `work_surface_region.json` was surveyed BEFORE the 2026-08-15 home change and
+# its right-arm cells reach |x| = 0.400. Re-measured at the current home over
+# the full path at N=10, the right arm's innermost column that is reachable AND
+# clear of the 150 mm floor is **0.450**; the left's is 0.325, which is inboard
+# of the survey's own 0.425 and so costs nothing. See
+# recordings/baselines/centre_posture_down.json and the reconciliation in
+# docs/system/findings.md, 2026-08-15.
+#
+# THIS IS NOT A MARGIN, IT IS A CORRECTION. Stage 2 seed 0 drew a right-arm
+# cell from the stale part of the pool and its path put **26 waypoints inside
+# the wearer floor, worst 0.1135 m**, with zero IK failures -- the exact
+# signature of a region built on a boundary that has moved. Seeds 1 and 2 were
+# clean, which is what made it look like one bad draw rather than a pool that
+# includes cells the arm can no longer work.
+INNERMOST_SAFE_X = {"left": 0.325, "right": 0.450}
+
+
 def _region(path=None):
     """The surveyed cells, per arm, as [(x, y)]."""
     import json
@@ -524,11 +543,23 @@ def _region(path=None):
             "then scripts/merge_work_surface_region.py" % p)
     cells = {a: [tuple(c) for c in d["clear_cells"].get(a, [])]
              for a in ("left", "right")}
+    # DROP THE CELLS THE SURVEY STILL BELIEVES IN AND THE ARM CANNOT WORK.
+    # See INNERMOST_SAFE_X: the file predates the home change and its right-arm
+    # cells reach 0.400 against a re-measured 0.450.
+    dropped = {}
+    for a in ("left", "right"):
+        lim = INNERMOST_SAFE_X[a]
+        keep = [c for c in cells[a] if abs(c[0]) >= lim - 1e-9]
+        dropped[a] = len(cells[a]) - len(keep)
+        cells[a] = keep
+    d = dict(d, inboard_limit_applied=INNERMOST_SAFE_X,
+             cells_dropped_as_stale=dropped)
     for a, c in cells.items():
         if not c:
             raise RegionUnavailable(
                 "the survey has NO cell for the %s arm that is both "
-                "reachable and clear of the wearer" % a)
+                "reachable and clear of the wearer, after the inboard limit "
+                "of %.3f m is applied" % (a, INNERMOST_SAFE_X[a]))
     return cells, d
 
 

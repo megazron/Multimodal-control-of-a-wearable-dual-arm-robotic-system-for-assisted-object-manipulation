@@ -100,7 +100,12 @@ def main():
         total_bad += bad
         print("  %-3s %-16s %4d of %4d waypoints FAIL%s"
               % (key, spec["name"], bad, tested,
-                 ("   e.g. %s" % worst[0]) if worst else ""))
+                 # `worst[0]` IS A TUPLE, so `"%s" % worst[0]` tries to fill
+                 # three conversions from a one-conversion format and raises
+                 # TypeError. It only ever ran when there WAS a failure to
+                 # report, so the verifier crashed exactly when it had
+                 # something to say and passed silently the rest of the time.
+                 ("   e.g. %s" % (worst[0],)) if worst else ""))
 
     print("\n%d IK calls, %d failures" % (calls["n"], total_bad))
     if total_bad:

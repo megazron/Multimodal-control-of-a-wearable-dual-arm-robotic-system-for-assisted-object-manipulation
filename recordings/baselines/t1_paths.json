@@ -127,10 +127,10 @@
   "stage2": {
     "seed_0": {
       "left": {
-        "waypoints": 98,
+        "waypoints": 90,
         "ik_failures": 0,
-        "worst_clearance_m": 0.161,
-        "clearance_to": "torso",
+        "worst_clearance_m": 0.1571,
+        "clearance_to": "L-upperarm",
         "waypoints_below_floor": 0,
         "cubes": [
           [
@@ -146,20 +146,20 @@
         ]
       },
       "right": {
-        "waypoints": 98,
+        "waypoints": 90,
         "ik_failures": 0,
-        "worst_clearance_m": 0.1135,
-        "clearance_to": "R-upperarm",
-        "waypoints_below_floor": 25,
+        "worst_clearance_m": 0.161,
+        "clearance_to": "torso",
+        "waypoints_below_floor": 0,
         "cubes": [
-          [
-            -0.4,
-            0.325,
-            1.12
-          ],
           [
             -0.775,
             0.2,
+            1.12
+          ],
+          [
+            -0.6,
+            0.1,
             1.12
           ]
         ]
@@ -167,10 +167,10 @@
     },
     "seed_1": {
       "left": {
-        "waypoints": 103,
+        "waypoints": 97,
         "ik_failures": 0,
-        "worst_clearance_m": 0.161,
-        "clearance_to": "torso",
+        "worst_clearance_m": 0.1571,
+        "clearance_to": "L-upperarm",
         "waypoints_below_floor": 0,
         "cubes": [
           [
@@ -186,7 +186,7 @@
         ]
       },
       "right": {
-        "waypoints": 103,
+        "waypoints": 97,
         "ik_failures": 0,
         "worst_clearance_m": 0.161,
         "clearance_to": "torso",
@@ -207,10 +207,10 @@
     },
     "seed_2": {
       "left": {
-        "waypoints": 96,
+        "waypoints": 88,
         "ik_failures": 0,
-        "worst_clearance_m": 0.161,
-        "clearance_to": "torso",
+        "worst_clearance_m": 0.1571,
+        "clearance_to": "L-upperarm",
         "waypoints_below_floor": 0,
         "cubes": [
           [
@@ -226,7 +226,7 @@
         ]
       },
       "right": {
-        "waypoints": 96,
+        "waypoints": 88,
         "ik_failures": 0,
         "worst_clearance_m": 0.161,
         "clearance_to": "torso",
@@ -246,7 +246,7 @@
       }
     }
   },
-  "ik_calls": 7932,
+  "ik_calls": 7492,
   "total_ik_failures": 0,
-  "total_waypoints_below_floor": 25
+  "total_waypoints_below_floor": 0
 }

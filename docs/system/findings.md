@@ -4717,3 +4717,52 @@ the BETWEEN-mode difference. It needs no hardware, no participants and no
 ethics approval. `docs/research/02_baseline_and_hypotheses.md` section 5.0 now
 carries it as a threat to validity ahead of fatigue, because it bears on every
 hypothesis that compares conditions.
+
+---
+
+# 2026-08-15 (part 6, before recording) — T1 STAGE 2 SEED 0 WAS A STALE POOL, NOT A BAD DRAW
+
+The pre-recording re-verification at N=10 reproduced the known regression:
+**stage 2, seed 0, RIGHT arm, 26 waypoints inside the 150 mm wearer floor,
+worst 0.1135 m, with ZERO IK failures.** Seeds 1 and 2 were clean, which is
+what made it look like one unlucky draw.
+
+**It was the pool.** `work_surface_region.json` was surveyed BEFORE the
+2026-08-15 home change and its right-arm `clear_cells` reach \|x\| = 0.400. The
+right arm's innermost column that is reachable AND clear at the CURRENT home is
+**0.450** — re-measured over the full path at N=10 in part 1, and the same
+staleness that made `centre_vs_height.json`'s published columns wrong. Seed 0
+drew a right-arm cube from the 50 mm of pool that the arm can no longer work,
+and the breach is on the path rather than at the grasp pose, which is why an
+IK-clean survey passed it.
+
+`INNERMOST_SAFE_X = {"left": 0.325, "right": 0.450}` is applied in `_region()`
+and **11 stale right-arm cells are dropped**; the left's measured limit is
+inboard of the survey's own 0.425 and costs nothing. Re-verified:
+
+| | waypoints | IK failures | worst clearance | below floor |
+| --- | --- | --- | --- | --- |
+| seed 0 left | 90 | 0 | 0.1571 | **0** |
+| seed 0 right | 90 | 0 | 0.1610 | **0** |
+| seed 1 both | 97 | 0 | 0.1571 / 0.1610 | 0 |
+| seed 2 both | 88 | 0 | 0.1571 / 0.1610 | 0 |
+
+`verify_t1_paths.py` exits 0. **This is the class fix rather than the one-draw
+fix**, which is the choice NEXT_SESSION §5 left open: re-drawing seed 0 would
+have moved one cube and left the other stale cells in the pool for the next
+seed to find.
+
+## AND A CONTROL FAILED IN A VERIFIER I DID NOT CHANGE
+
+`verify_msc_tasks.py` refuses to report, because its fourth control — "a
+known-good pick", which is task A's own pick in the LEGACY A/B/C scene — reads
+UNREACHABLE. The other three controls pass. That verifier is not what the MSc
+task set is checked with (`verify_t1_paths.py` is), and nothing in this
+session's changes touches `clip_tasks.A_PICK` or scene "a".
+
+It is recorded here rather than fixed, because the honest reading is that the
+legacy A/B/C coordinates have not been re-derived since the home change and
+the refusal is that verifier telling the truth about itself. **Its refusal is
+correct behaviour**: it will not print a count when a control says the
+instrument is wrong. What it needs is A_PICK re-derived at the current home,
+which is a job for whoever next needs the A/B/C set.

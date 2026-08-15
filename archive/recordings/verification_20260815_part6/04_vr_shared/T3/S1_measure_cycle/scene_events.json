@@ -1,0 +1,130 @@
+{
+  "task": "t3",
+  "events": [
+    {
+      "t": 80.44,
+      "wall": 1786781625.2432747,
+      "ev": "GRASPED",
+      "item": "circuit_box",
+      "arm": "right",
+      "knuckle": 0.3278,
+      "needed": 0.2965,
+      "at": [
+        -0.54,
+        0.17,
+        1.125
+      ]
+    },
+    {
+      "t": 80.44,
+      "wall": 1786781625.2439327,
+      "ev": "GRASPED",
+      "item": "multimeter",
+      "arm": "left",
+      "knuckle": 0.5005,
+      "needed": 0.4659,
+      "at": [
+        0.34,
+        0.19,
+        1.1225
+      ]
+    },
+    {
+      "t": 84.78,
+      "wall": 1786781629.5795345,
+      "ev": "RELEASED",
+      "item": "multimeter",
+      "arm": "left",
+      "carried_m": 0.1851,
+      "at": [
+        0.34,
+        0.19,
+        1.1225
+      ]
+    },
+    {
+      "t": 85.21,
+      "wall": 1786781630.0102384,
+      "ev": "RELEASED",
+      "item": "circuit_box",
+      "arm": "right",
+      "carried_m": 0.1872,
+      "at": [
+        -0.54,
+        0.17,
+        1.125
+      ]
+    }
+  ],
+  "items": [
+    {
+      "item": "circuit_box",
+      "arm": "right",
+      "width_mm": 50,
+      "carried_m": 0.1872,
+      "final": [
+        -0.54,
+        0.17,
+        1.125
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0,
+      "min_pad_obj_knuckle": 0.3294,
+      "min_pad_obj_closed_m": 0.0,
+      "grasp_near_m": 0.03
+    },
+    {
+      "item": "multimeter",
+      "arm": "left",
+      "width_mm": 30,
+      "carried_m": 0.1851,
+      "final": [
+        0.34,
+        0.19,
+        1.1225
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0,
+      "min_pad_obj_knuckle": 0.5175,
+      "min_pad_obj_closed_m": 0.0,
+      "grasp_near_m": 0.03
+    }
+  ],
+  "fixtures": [
+    "P1",
+    "P2",
+    "P3",
+    "P4"
+  ],
+  "furniture": [
+    "table"
+  ],
+  "ee_travel_m": {
+    "left": 1.1115,
+    "right": 1.2407
+  },
+  "ee_net_m": {
+    "left": 0.5179,
+    "right": 0.5948
+  },
+  "t0_wall": 1786781544.8018894,
+  "carry_series": [],
+  "carry_summary": null,
+  "pad_off": [
+    0.0289,
+    0.0995,
+    0.0421
+  ],
+  "pad_off_by_arm": {
+    "left": [
+      -0.0171,
+      0.0945,
+      0.0572
+    ],
+    "right": [
+      0.0289,
+      0.0995,
+      0.0421
+    ]
+  }
+}

@@ -1,0 +1,211 @@
+{
+  "task": "t1s2",
+  "events": [
+    {
+      "t": 43.31,
+      "wall": 1786778302.6862848,
+      "ev": "GRASPED",
+      "item": "cube_left_0",
+      "arm": "left",
+      "knuckle": 0.3999,
+      "needed": 0.3812,
+      "at": [
+        0.675,
+        0.225,
+        1.12
+      ]
+    },
+    {
+      "t": 43.4,
+      "wall": 1786778302.7775772,
+      "ev": "GRASPED",
+      "item": "cube_right_0",
+      "arm": "right",
+      "knuckle": 0.3818,
+      "needed": 0.3812,
+      "at": [
+        -0.4,
+        0.325,
+        1.12
+      ]
+    },
+    {
+      "t": 46.91,
+      "wall": 1786778306.288748,
+      "ev": "RELEASED",
+      "item": "cube_left_0",
+      "arm": "left",
+      "carried_m": 0.4495,
+      "at": [
+        0.95,
+        0.0751,
+        1.1207
+      ]
+    },
+    {
+      "t": 47.8,
+      "wall": 1786778307.1769865,
+      "ev": "RELEASED",
+      "item": "cube_right_0",
+      "arm": "right",
+      "carried_m": 0.6306,
+      "at": [
+        -0.8992,
+        0.1759,
+        1.1266
+      ]
+    },
+    {
+      "t": 49.6,
+      "wall": 1786778308.9727926,
+      "ev": "GRASPED",
+      "item": "cube_left_1",
+      "arm": "left",
+      "knuckle": 0.3952,
+      "needed": 0.3812,
+      "at": [
+        0.525,
+        0.25,
+        1.12
+      ]
+    },
+    {
+      "t": 49.6,
+      "wall": 1786778308.973334,
+      "ev": "GRASPED",
+      "item": "cube_right_1",
+      "arm": "right",
+      "knuckle": 0.3839,
+      "needed": 0.3812,
+      "at": [
+        -0.775,
+        0.2,
+        1.12
+      ]
+    },
+    {
+      "t": 51.81,
+      "wall": 1786778311.1849782,
+      "ev": "RELEASED",
+      "item": "cube_left_1",
+      "arm": "left",
+      "carried_m": 0.2499,
+      "at": [
+        0.5257,
+        0.1058,
+        1.147
+      ]
+    },
+    {
+      "t": 52.5,
+      "wall": 1786778311.8806245,
+      "ev": "RELEASED",
+      "item": "cube_right_1",
+      "arm": "right",
+      "carried_m": 0.2736,
+      "at": [
+        -0.6258,
+        0.1505,
+        1.1248
+      ]
+    }
+  ],
+  "items": [
+    {
+      "item": "cube_left_0",
+      "arm": "left",
+      "width_mm": 40,
+      "carried_m": 0.4495,
+      "final": [
+        0.95,
+        0.0751,
+        1.1207
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0,
+      "min_pad_obj_knuckle": 0.4197,
+      "min_pad_obj_closed_m": 0.0,
+      "grasp_near_m": 0.03
+    },
+    {
+      "item": "cube_left_1",
+      "arm": "left",
+      "width_mm": 40,
+      "carried_m": 0.2499,
+      "final": [
+        0.5257,
+        0.1058,
+        1.147
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0,
+      "min_pad_obj_knuckle": 0.4053,
+      "min_pad_obj_closed_m": 0.0,
+      "grasp_near_m": 0.03
+    },
+    {
+      "item": "cube_right_0",
+      "arm": "right",
+      "width_mm": 40,
+      "carried_m": 0.6306,
+      "final": [
+        -0.8992,
+        0.1759,
+        1.1266
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0,
+      "min_pad_obj_knuckle": 0.4125,
+      "min_pad_obj_closed_m": 0.0,
+      "grasp_near_m": 0.03
+    },
+    {
+      "item": "cube_right_1",
+      "arm": "right",
+      "width_mm": 40,
+      "carried_m": 0.2736,
+      "final": [
+        -0.6258,
+        0.1505,
+        1.1248
+      ],
+      "still_held": false,
+      "min_pad_obj_m": 0.0,
+      "min_pad_obj_knuckle": 0.3981,
+      "min_pad_obj_closed_m": 0.0,
+      "grasp_near_m": 0.03
+    }
+  ],
+  "fixtures": [],
+  "furniture": [
+    "table"
+  ],
+  "ee_travel_m": {
+    "left": 1.9985,
+    "right": 1.9185
+  },
+  "ee_net_m": {
+    "left": 0.1901,
+    "right": 0.1374
+  },
+  "t0_wall": 1786778259.3775613,
+  "carry_series": [],
+  "carry_summary": null,
+  "pad_off": [
+    -0.0171,
+    0.0945,
+    0.0572
+  ],
+  "pad_off_by_arm": {
+    "left": [
+      -0.0171,
+      0.0945,
+      0.0572
+    ],
+    "right": [
+      0.0289,
+      0.0995,
+      0.0421
+    ]
+  }
+}

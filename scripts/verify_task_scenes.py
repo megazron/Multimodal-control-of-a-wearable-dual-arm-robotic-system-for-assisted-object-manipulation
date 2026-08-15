@@ -147,7 +147,37 @@ class Solver(Node):
                 rclpy.spin_once(self, timeout_sec=0.002)
             res = fut.result()
             if res is not None and res.error_code.val == 1:
+                # THE NAMES THAT CAME BACK WITH THE POSITIONS, recorded on the
+                # node so a caller can select ITS arm's seven by name.
+                #
+                # `res.solution.joint_state` is the WHOLE robot -- both arms
+                # and both grippers, 26 joints, LEFT ARM FIRST -- so
+                # `positions[:7]` is the LEFT arm's joints whatever arm was
+                # asked about. For a right-arm query those seven are the left
+                # arm sitting at its seed, i.e. a CONSTANT, and anything
+                # measured from them (FK, clearance) reads the same value for
+                # every target. That is two rows of CLAUDE.md's table at once,
+                # "every pose returns one value" and "zero variance", and
+                # find_presentation_pose already had to work around it by
+                # reading the order off /joint_states. The order is now taken
+                # from the response itself, which is the only thing that
+                # cannot disagree with it.
+                self.last_solution_names = list(res.solution.joint_state.name)
                 return list(res.solution.joint_state.position)
+        return None
+
+    def solve_arm_joints(self, arm, xyz, quat, avoid=True, tries=7):
+        """THIS ARM'S seven joints, selected by name. See solve_joints."""
+        sol = self.solve_joints(arm, xyz, quat, avoid, tries)
+        if sol is None:
+            return None
+        names = getattr(self, "last_solution_names", None) or []
+        idx = {n: i for i, n in enumerate(names)}
+        want = self.names(arm)
+        if all(n in idx and idx[n] < len(sol) for n in want):
+            return [float(sol[idx[n]]) for n in want]
+        if len(sol) == len(want):
+            return [float(v) for v in sol]
         return None
 
     def solve_yaw_free(self, arm, xyz, quat, avoid=True):

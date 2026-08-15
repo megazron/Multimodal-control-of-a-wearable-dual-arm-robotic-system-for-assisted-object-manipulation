@@ -61,6 +61,11 @@ def near(a, b, tol=1e-4):
     return abs(a - b) <= tol
 
 
+def _pad(arm):
+    """The arm's OWN wrist-to-pad offset, which is what the scene draws with."""
+    return CT.PAD_OFFSET_BY_ARM.get(arm, CT.PAD_OFFSET)
+
+
 def items_of(task):
     tmp = CS.Scene.__new__(CS.Scene)
     return CS.Scene._items(tmp, task)
@@ -104,9 +109,25 @@ def main():
     chk("T1", "four cubes",
         len([k for k in it if k.startswith("cube")]) == 4,
         "cubes=%s" % sorted(k for k in it if k.startswith("cube")))
+    # THE ARM'S OWN PAD OFFSET, not the module-level constant.
+    #
+    # `CT.PAD_OFFSET` is the LEGACY single number and it is the LEFT arm's;
+    # the scene draws every item at `ee_for(obj, arm) + PAD_OFFSET_BY_ARM[arm]`.
+    # Two consequences, and this audit reported both as FAIL for months
+    # without either being a scene defect:
+    #
+    #   right-arm items were compared against the left arm's offset and came
+    #   out 48.3 mm adrift -- T3's circuit box, and T1 for as long as it ran
+    #   on the right;
+    #
+    #   and even the LEFT arm failed, by 0.1 mm, because PAD_OFFSET says
+    #   y = 0.0946 and PAD_OFFSET_BY_ARM["left"] says 0.0945 -- one number
+    #   written down twice, differing in the last digit, against a 1e-4
+    #   tolerance. The check was sitting exactly on the boundary between the
+    #   two copies.
     chk("T1", "cubes at the verified T1_CUBES layout",
-        all(near(it["cube_%d" % i]["pos"][0] + CT.PAD_OFFSET[0], c[0])
-            and near(it["cube_%d" % i]["pos"][1] + CT.PAD_OFFSET[1], c[1])
+        all(near(it["cube_%d" % i]["pos"][0] + _pad(MCT.T1_ARM)[0], c[0])
+            and near(it["cube_%d" % i]["pos"][1] + _pad(MCT.T1_ARM)[1], c[1])
             for i, c in enumerate(MCT.T1_CUBES)),
         "T1_CUBES=%s" % MCT.T1_CUBES)
     chk("T1", "cube edge = CUBE_M",
@@ -188,7 +209,7 @@ def main():
             chk("T3", "%s is carried by the %s arm" % (name, arm),
                 it[name]["arm"] == arm, it[name]["arm"])
             chk("T3", "%s at its declared pose" % name,
-                all(near(it[name]["pos"][k] + CT.PAD_OFFSET[k], obj[k])
+                all(near(it[name]["pos"][k] + _pad(arm)[k], obj[k])
                     for k in range(3)), "%s" % obj)
         lip = fur.get("lip_%s" % name)
         if lip is None:

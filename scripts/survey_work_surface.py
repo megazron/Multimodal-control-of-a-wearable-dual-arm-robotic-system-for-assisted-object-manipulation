@@ -108,8 +108,23 @@ def main():
         return True
 
     def cell_ok(arm, obj_xyz):
-        """Grasp pose alone, or the whole pick path."""
-        ee = CT.ee_for(obj_xyz)
+        """Grasp pose alone, or the whole pick path.
+
+        `ee_for` TAKES THE ARM, and this call did not pass it. `ee_for`
+        defaults to the LEFT arm's wrist-to-pad offset, so every RIGHT-arm
+        cell in every survey before 2026-08-15 was tested at a wrist pose
+        48.3 mm from the one the right arm is actually commanded to
+        (PAD_OFFSET_BY_ARM: left -0.0171/+0.0945/+0.0572, right
+        +0.0289/+0.0995/+0.0421).
+
+        It matters twice over, and both consumers read the file as measured
+        truth: the workspace MARKING drawn on the right side of every clip,
+        and T1 stage 2's sampling pool, which draws "random reachable"
+        positions for the right arm out of it. This is the same defect the
+        scene side had and paid for -- `pad_off_by_arm` in clip_scene -- now
+        found on the survey side.
+        """
+        ee = CT.ee_for(obj_xyz, arm)
         if not a.full_path:
             return ok(arm, ee)
         pre = [ee[0], ee[1], ee[2] + STANDOFF]
@@ -122,11 +137,19 @@ def main():
     ctl_far = ok("left", [1.60, 0.35, 1.15], k=1)
     ctl_wearer = ok("left", [0.0, -0.10, 1.25], k=1)
     ctl_good = ok("left", CT.A_PICK, k=1)
-    print("CONTROLS  1.6 m out -> %s | inside the wearer -> %s | known pick -> %s"
+    # A RIGHT-ARM CONTROL, because every control here was a LEFT-arm one while
+    # the survey reports both sides. A right-arm loop that never solved would
+    # have produced an empty right map, and an empty map and a broken loop
+    # look identical -- which is the failure mode this project keeps paying
+    # for. Cube 0 of the shipped T1 layout, at the right arm's own offset.
+    ctl_good_r = ok("right", CT.ee_for([-0.32, 0.19, z], "right"), k=1)
+    print("CONTROLS  1.6 m out -> %s | inside the wearer -> %s | "
+          "known pick L -> %s | known pick R -> %s"
           % ("REACHABLE" if ctl_far else "unreachable",
              "REACHABLE" if ctl_wearer else "unreachable",
-             "reachable" if ctl_good else "UNREACHABLE"))
-    if ctl_far or ctl_wearer or not ctl_good:
+             "reachable" if ctl_good else "UNREACHABLE",
+             "reachable" if ctl_good_r else "UNREACHABLE"))
+    if ctl_far or ctl_wearer or not ctl_good or not ctl_good_r:
         print("REFUSING TO REPORT: a control failed.")
         n.destroy_node()
         rclpy.shutdown()
@@ -175,7 +198,9 @@ def main():
                cells=grid, both=both, either=either, front_centre=centre,
                ik_calls=calls["n"],
                controls=dict(far=not ctl_far, wearer=not ctl_wearer,
-                             known_good=bool(ctl_good)))
+                             known_good=bool(ctl_good),
+                             known_good_right=bool(ctl_good_r)),
+               per_arm_pad_offset=True)
     CS.remove_furniture(n)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump(out, open(OUT, "w"), indent=2)

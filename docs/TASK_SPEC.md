@@ -57,11 +57,60 @@ visible and the command is **"move the left arm to L2"**.
 
 ### T1 — COLOUR-MATCHED PICK AND PLACE
 
-Four cubes, two blue and two green, on the table. One blue plane and one green
-plane. Each cube goes on the plane of its own colour.
+Four cubes, two blue and two green. One blue plane and one green plane. Each
+cube goes on the plane of its own colour.
 
-* **Stage 1** (`m1`): one arm.
-* **Stage 2** (`m1s2`): both arms at once, positions randomised.
+**The table is WHITE.** Everything else about it is unchanged: same top height
+(0.95), same near edge (y = 0.10), same legs, apron and risers. It is 1.05 m
+half-width rather than 0.90, because the marked region now reaches |x| = 1.00
+and a marking drawn over air is a marking that lies. Three shades of white —
+top, apron, legs — so the form still reads at 5–13 fps against the dark RViz
+background. White is *safer* for the clip verifier than the old oak: every
+detector keys on channel differences (`_tan` needs R−B > 45, `_green` needs
+G−R > 45) and a neutral has R = G = B, so it cannot fire any of them.
+
+**Stage 1** (`m1`) — **the LEFT arm only, with all four cubes on the LEFT
+side.** This reverses the 2026-08-12 mirror to the right arm. That mirror was
+decided on `t1_layout_options.json` (left 2/4 cubes, right 4/4) and both of
+its inputs have since been found wrong: the survey behind it applied the
+**left** arm's wrist-to-pad offset to **both** arms, and the layout it scored
+sat inside the wearer clearance floor. Re-measured on the left arm against
+its own cells, N=10 over the full path with wearer and furniture in scene:
+**4 of 4 cubes and 2 of 2 planes, 0 waypoint failures, 0 waypoints inside the
+clearance floor.**
+
+**Stage 2** (`m1s2`) — both arms working at once, four cubes, **and the SIDE
+of each cube is part of the random draw**, not fixed at two per arm. Positions
+are drawn only from surveyed cells that are reachable over the whole pick path
+*and* clear of the wearer. The draw is re-taken per trial from the trial's own
+seed, and that seed is stored in the manifest and read by both the task path
+and the scene. At least one cube falls on each side; a draw that puts all four
+on one side is rejected and re-taken, because "both arms working" is the task
+definition and not a preference.
+
+#### Where the planes are, and why they are not in the centre
+
+The brief asks for the two planes in the **centre** of the table, directly in
+front of the person. **That is not reachable, and the shortfall is 450 mm.**
+Measured (`recordings/baselines/centre_reach.json`, z = 1.120, N=3, wearer and
+furniture in scene, four controls correct):
+
+| | left arm | right arm |
+| --- | --- | --- |
+| innermost workable column, any forward distance | **x = 0.250** | x = 0.075 |
+| … that also keeps the 150 mm wearer clearance floor | **x = 0.425** | x = 0.400 |
+| x = 0.00, asked directly | no y from 0.10 to 0.55 | no y from 0.10 to 0.55 |
+| x = ±0.10, asked directly | no y from 0.10 to 0.55 | y 0.425–0.475 only |
+| what stops it going further in | **the wearer's own arm**, 23 mm inside | the wearer / orientation |
+
+The planes therefore sit at **x = 0.450 and 0.610, y = 0.240** — the innermost
+clearance-safe column plus the project's own 20 mm margin, and 160 mm apart so
+a cube released over one cannot land on the other. They are 450 mm off centre.
+
+This is a result about shoulder-mounted arms, not a layout failure. The thing
+occupying the centre of the workspace is the wearer, and the right arm's one
+near-centre band (x = −0.10 at y ≥ 0.425) sits at the very edge of forward
+reach, which the project's own rule forbids building on.
 
 **MUST BE TRUE**
 
@@ -74,6 +123,11 @@ plane. Each cube goes on the plane of its own colour.
 | T1-5 | pads on the cube and not inside the table |
 | T1-6 | each cube ends on the correct colour |
 | T1-7 | workspace markings drawn on the correct arms and enclosing all objects |
+| T1-8 | the table is WHITE |
+| T1-9 | stage 1 runs on the LEFT arm with all four cubes on the LEFT |
+| T1-10 | the planes sit at the innermost column that is reachable AND clear of the wearer, and the distance from the centreline is stated, not hidden |
+| T1-11 | **every T1 and t1s2 waypoint keeps the 150 mm wearer clearance floor**, measured geometrically and not by `avoid_collisions` |
+| T1-12 | stage 2's cube SIDES are drawn at random, both arms always get work, and the seed is stored in the manifest and read by the task |
 
 ### T2 — BIMANUAL COORDINATED CARRY
 
@@ -110,6 +164,168 @@ Approach differs per object: the box needs **top-down**, the meter needs
 | T3-1 | exactly one box |
 | T3-2 | four measurement points drawn |
 | T3-3 | each object held by the correct arm |
+
+---
+
+## 2A. THE WORKSPACE — what it is, and what limits it
+
+Everything in this section was measured on 2026-08-15 against the current
+one-table scene, with the wearer and the furniture in the planning scene, at
+the T1 work plane z = 1.120, with the wrist pinned at the anchor as every
+teleop mode commands it. Each script carries its own controls and prints
+nothing if one fails.
+
+### The region
+
+| | IK-reachable, full pick path | **also clear of the wearer** |
+| --- | --- | --- |
+| left | 265 cells, x +0.425…+1.000 | **193 cells** |
+| right | 314 cells, x −1.000…−0.400 | **246 cells** |
+| both arms | 0 | 0 |
+| \|x\| ≤ 0.10 (front centre) | **0** | **0** |
+
+`recordings/baselines/work_surface_region.json`, 25 mm cells, full pick path,
+merged from three clearance surveys. **Two things about it are new and both
+change what the marking means.**
+
+**1. The clearance floor is now part of the region, and it never was before.**
+Every workspace number this project has ever quoted is an IK number, and IK
+cannot see the wearer where it matters: the SRDF permanently excludes
+torso/harness/backpack against each arm's base, shoulder and half_arm_1 —
+exactly the pairs a shoulder-mounted arm threatens — so `/compute_ik` returns
+`valid` for poses with the tube inside the person. Measured geometrically with
+the mount guard's own capsule model, **72 of the left arm's 265 IK-reachable
+cells and 68 of the right's 314 are inside the 150 mm floor, the worst at
+−2.7 mm.** The shipped right-arm T1 layout spent **70 of its 143 waypoints**
+inside the floor with **zero IK failures**, and so did the idle arm's park
+pose, at 30.6 mm. Every check this project had called that layout clean.
+
+**2. The old boundary at |x| = 0.70 was the survey box, not the arm.** Beyond
+it there are 108 more left cells and 125 more right cells out to |x| = 1.000,
+and **every one of them is 100% clear of the wearer.** The marking a
+participant is shown was understating the usable space by 300 mm per side
+while overstating it by 175 mm at the inboard end, where it is not safe.
+
+### What binds, per direction
+
+`recordings/baselines/what_binds.json`. The ladder is: collision-aware with
+furniture → collision-aware without furniture → collisions off → orientation
+free. The first rung that succeeds names the constraint. Four controls, all
+correct, including a box placed on a cell just called reachable, which must
+then read FURNITURE.
+
+| direction | reach from a surveyed seed | **what binds** | clearance at the last reachable pose |
+| --- | --- | --- | --- |
+| forward (+y) | 0.300 m, to y = 0.425 | **ORIENTATION** — the pinned wrist | 0.132 (L) / 0.116 (R) — **already under the floor** |
+| outboard | 0.600 m, to \|x\| = 0.950 | **ORIENTATION** — the pinned wrist | 0.161 / 0.161 |
+| inboard | 0.125 m (L) / 0.150 m (R) | **THE WEARER** — their own forearm | 0.023 / 0.016 |
+| down (−z) | 0.100 m (L) / 0.125 m (R) | **FURNITURE** — the table top | 0.121 / 0.136 |
+| up (+z) | not bounded within 0.700 m | — | 0.161 / 0.068 |
+| back (−y) | not bounded within 0.700 m | — (behind the person; not usable space) | 0.161 / 0.161 |
+
+**No direction is bound by a joint limit or by arm length.** Nothing returned
+KINEMATIC except the 1.6 m control. Forward and outboard are bound by the
+pinned wrist, inboard by the wearer on **both** arms — 0 mm inside the left
+forearm and 8 mm inside the right — and down by the table.
+
+**Read the last column with the third one.** The IK boundary and the safe
+boundary are not the same boundary, and in four of the six directions the
+clearance floor is reached first. Forward, the arm is at 132 mm and 116 mm
+against a 150 mm floor while IK still solves for another 25 mm. The usable
+workspace is the smaller of the two everywhere, and until this measurement it
+had only ever been quoted as the larger.
+
+### The band, and the height claim
+
+The remembered claim is "the reachable band on the work surface is
+y = 0.06–0.20 and is the SAME at every table height from 0.90 to 1.30 m."
+**Half of it holds and the half that holds is the important half.**
+
+Objects **on the table**, probed 20 mm above its top, table moved to each
+height (`band_vs_table_height.json`):
+
+| table top | 0.90 | 0.95 | 1.00 | 1.05 | 1.10 | 1.15 | 1.20 | 1.25 | 1.30 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| band, y | 0.00–0.05 | 0.00–0.05 | 0.00–0.05 | 0.00–0.05 | 0.00–0.05 | 0.00–0.05 | 0.00–0.05 | 0.00–0.05 | 0.00–0.05 |
+
+**Invariant, exactly as remembered — and 50 mm wide, not 140.** Raising or
+lowering the table buys nothing at all, because what limits it is the table
+itself: the approach axis points 30.7° *above* horizontal, so the forearm
+trails below and behind the fingertip, and over a slab that trailing volume is
+inside the slab. The band rises with the surface and never moves forward.
+
+The same probe with the table left at 0.95 and only the work plane moved
+(`band_vs_work_height.json`) shows the other half:
+
+| work plane z | 0.90 | 0.95 | 1.00 | 1.05 | 1.10 | 1.15 | 1.20 | 1.30 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| left, y max | none | 0.025 | 0.100 | 0.175 | **0.425** | 0.450 | 0.475 | 0.500 |
+| right, y max | none | 0.025 | 0.125 | 0.200 | **0.450** | 0.475 | 0.475 | 0.500 |
+
+So the band is **not** the same at every height and it is **not** 0.06–0.20.
+It is a function of how far the work is **above** the table, saturating near
+0.50 m at about 200 mm of clearance. The current layout already exploits this:
+the objects are fixtured 170 mm above the table and get 0.425 m of forward
+reach. The old "0.06–0.20 everywhere" figure was measured with the bench in
+the scene, and the bench is what made it look height-invariant.
+
+### The mount tilt, priced again
+
+`recordings/baselines/forward_reach.json`, option A, and the price has not
+changed:
+
+| | left y max | right y max |
+| --- | --- | --- |
+| baseline (mount as built, tilt 60°) | 0.050 | 0.050 |
+| tilt −30° | 0.125 | 0.150 |
+| **tilt −45°** | **0.200** | **0.225** |
+| translate forward 0.30 m | 0.050 | 0.050 |
+
+That is the ~0.15 m of forward reach, and **it is an upper bound, not an
+offer.** Option A is implemented as the inverse transform on the *target*,
+which is exact for kinematics and wrong for wearer collision, because the
+wearer does not tilt with the mount. Every clearance figure in this document
+would have to be re-measured before a single number of it could be believed.
+
+What it invalidates, with the current geometry: `P_HOME` for both arms (the
+home wrist points up by +85°/+79°, read from the physical arms, and it is the
+anchor every task coordinate is derived from); the pinned anchor orientation
+and therefore `PAD_OFFSET_BY_ARM`, which is measured off TF at home; every
+T0–T3 coordinate, all of them derived through `ee_for()` from that anchor; the
+presentation pose (tool axis +30.8 → +6.5° left, +22.1 → +7.5° right, and
+0.1610 m of clearance against a 0.15 floor — an 11 mm margin that a mount
+rotation would move); and all 579 cells of the region above. It is a
+re-derivation of the whole platform, and the arms have never been run.
+
+### The cheap options, priced
+
+| option | what it buys | what it costs |
+| --- | --- | --- |
+| **use the space already measured** (|x| to 1.00) | **+300 mm per side, 233 new cells, all 100% clear of the wearer** | the table widens to ±1.05 (scenery, no verified coordinate); the marking and stage-2 pool change; **no task coordinate moves** |
+| raise the work plane 1.12 → 1.20 | +50 mm forward | `T1_Z` moves, so the whole layout is re-derived and re-verified; objects sit 250 mm above the table |
+| move the table | **nothing** — measured invariant at every height 0.90–1.30 | — |
+| wearer stands further back | **nothing, and it is the wrong sign** — the work moves away from the arm, not toward it | — |
+| lower the clearance floor below 0.15 | the inboard 175 mm (x 0.25–0.425) | HARD CONSTRAINT 11. It is the last thing between the arms and a person's chest, and the cells it would buy are the ones measured at 23 mm and −2.7 mm |
+| unpin the wrist | forward and outboard, both of which bind on ORIENTATION | changes what the modes ARE; the pinned wrist is the thing the study compares |
+| tilt the mount −45° | ~0.15 m forward, as an upper bound | the whole re-derivation above |
+
+### RECOMMENDATION
+
+**Take the space that is already there: extend the usable region to
+|x| = 1.000 and drop the inboard cells that breach the clearance floor.** It
+is the only option that buys real space at no cost to anything verified — 233
+new cells, every one of them measured clear of the wearer, no task coordinate
+moved, no mount touched, no floor lowered. It is done: the region file, the
+marking, the stage-2 sampling pool and T1's own layout all now run on it.
+
+**And say the rest plainly, because it is a finding and not a failure.** The
+workspace of a shoulder-mounted supernumerary arm is bounded *inboard by the
+wearer* and *forward by the pinned wrist*, and neither can be widened from
+software. The centre of the person's own workspace is the one place these arms
+cannot go, and the 450 mm the planes sit off centre is the size of that
+result. Widening it needs a mount change, which invalidates every coordinate
+and every clearance figure in this repository, on a platform that has never
+been run against a real arm.
 
 ---
 

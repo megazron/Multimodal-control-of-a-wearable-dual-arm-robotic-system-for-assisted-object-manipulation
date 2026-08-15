@@ -141,7 +141,20 @@ TASK_FOCUS = {
     # edge-on to the surface, the mats read as lines and the cubes sit on top
     # of them, and the work sat right of centre. Distance out to 1.55 so the
     # wearer stays fully in shot from the higher angle.
-    "t1": ((-0.38, 0.24, 1.16), 1.55, 0.52),
+    # RE-AIMED 2026-08-15, because T1 moved back to the LEFT arm and the work
+    # with it: cubes x 0.560..0.740 y 0.120, mats x 0.450 and 0.610 y 0.240.
+    # Left at -0.38 the camera pointed at the empty right-hand side and the
+    # whole task sat cut off against the left edge of frame -- looked at, on
+    # the first clip recorded after the move. Focal moved to +0.45, between
+    # the wearer at x = 0 and the work centre at 0.57 and biased toward the
+    # work, and the distance out to 1.85 so the wearer is still in shot: the
+    # subject of a clip of a WORN arm is the arm AND the person wearing it.
+    # Looked at twice. At focal +0.45 / dist 1.85 the work sat about 60 px
+    # left of frame centre and the scene filled a little over half the width,
+    # with dead sky above. +0.54 / 1.65 centres the cube row and the mats and
+    # brings the whole thing up to size without losing the wearer, who is the
+    # other half of the subject.
+    "t1": ((0.54, 0.22, 1.14), 1.65, 0.52),
     # t1s2 works BOTH sides, so it centres on the wearer.
     "t1s2": ((0.00, 0.24, 1.16), 1.70, 0.52),
     "t2": ((0.00, 0.35, 1.46), 1.55),

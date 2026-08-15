@@ -1,0 +1,115 @@
+{
+  "repeats": 10,
+  "floor": 0.15,
+  "controls": {
+    "driven_into_the_wearer": {
+      "want": "IK failures > 0 or clearance < 0",
+      "ik_failures": 2,
+      "worst_clearance_m": null
+    },
+    "home_clears_floor": {
+      "want": ">= 0.15",
+      "got": 0.161
+    }
+  },
+  "arm": "left",
+  "cubes": [
+    [
+      0.56,
+      0.12
+    ],
+    [
+      0.62,
+      0.12
+    ],
+    [
+      0.68,
+      0.12
+    ],
+    [
+      0.74,
+      0.12
+    ]
+  ],
+  "planes": [
+    [
+      0.45,
+      0.24
+    ],
+    [
+      0.61,
+      0.24
+    ]
+  ],
+  "z": 1.12,
+  "stage1": {
+    "cube_0": {
+      "arm": "left",
+      "waypoints": 3,
+      "ik_failures": 0,
+      "worst_clearance_m": 0.161,
+      "clearance_to": "torso",
+      "waypoints_below_floor": 0
+    },
+    "cube_1": {
+      "arm": "left",
+      "waypoints": 3,
+      "ik_failures": 0,
+      "worst_clearance_m": 0.161,
+      "clearance_to": "torso",
+      "waypoints_below_floor": 0
+    },
+    "cube_2": {
+      "arm": "left",
+      "waypoints": 3,
+      "ik_failures": 0,
+      "worst_clearance_m": 0.161,
+      "clearance_to": "torso",
+      "waypoints_below_floor": 0
+    },
+    "cube_3": {
+      "arm": "left",
+      "waypoints": 3,
+      "ik_failures": 0,
+      "worst_clearance_m": 0.161,
+      "clearance_to": "torso",
+      "waypoints_below_floor": 0
+    },
+    "plane_0 slot -0.030": {
+      "arm": "left",
+      "waypoints": 3,
+      "ik_failures": 0,
+      "worst_clearance_m": 0.1609,
+      "clearance_to": "L-upperarm",
+      "waypoints_below_floor": 0
+    },
+    "plane_0 slot +0.030": {
+      "arm": "left",
+      "waypoints": 3,
+      "ik_failures": 0,
+      "worst_clearance_m": 0.161,
+      "clearance_to": "torso",
+      "waypoints_below_floor": 0
+    },
+    "plane_1 slot -0.030": {
+      "arm": "left",
+      "waypoints": 3,
+      "ik_failures": 0,
+      "worst_clearance_m": 0.161,
+      "clearance_to": "torso",
+      "waypoints_below_floor": 0
+    },
+    "plane_1 slot +0.030": {
+      "arm": "left",
+      "waypoints": 3,
+      "ik_failures": 0,
+      "worst_clearance_m": 0.161,
+      "clearance_to": "torso",
+      "waypoints_below_floor": 0
+    }
+  },
+  "stage2": {},
+  "ik_calls": 242,
+  "total_ik_failures": 0,
+  "total_waypoints_below_floor": 0
+}

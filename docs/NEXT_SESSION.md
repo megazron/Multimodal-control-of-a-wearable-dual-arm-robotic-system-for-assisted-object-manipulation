@@ -1,3 +1,141 @@
+# RESUME POINT 2026-08-15 — THE WORKSPACE WAS NEVER CHECKED AGAINST THE WEARER
+
+**Read this before anything else in this file. It changes what "verified"
+means for every layout number below.**
+
+Every workspace and layout figure this project has ever quoted came from
+`/compute_ik` with `avoid_collisions`. The SRDF permanently excludes
+torso/harness/backpack against each arm's base, shoulder and half_arm_1 — the
+pairs a shoulder-mounted arm actually threatens — so MoveIt returns `valid`
+for poses with the tube inside the person, and nothing measured the distance.
+
+Measured geometrically now, with the mount guard's own capsule model:
+
+* **the shipped right-arm T1 layout spent 70 of its 143 waypoints inside the
+  150 mm clearance floor**, worst 58.7 mm, at **zero IK failures**. The idle
+  arm's park pose sat at 30.6 mm for the whole clip;
+* **72 of the left arm's 265 IK-reachable cells and 68 of the right's 314**
+  are inside the floor, the worst at **−2.7 mm** — the metal inside the person;
+* those cells were inside the workspace marking a participant is told to work
+  in.
+
+`docs/TASK_SPEC.md` **section 2A** is the whole account: the region, what binds
+per direction, the height claim, the mount-tilt price and a recommendation.
+The short version:
+
+| direction | what binds |
+| --- | --- |
+| forward, outboard | the PINNED WRIST |
+| inboard | THE WEARER — 0 mm inside the left forearm, 8 mm inside the right |
+| down | the TABLE |
+| up, back | nothing within 0.70 m |
+
+**And the free win: the old |x| ≤ 0.70 boundary was the SURVEY BOX, not the
+arm.** There are 233 more cells out to |x| = 1.000 and every one is 100% clear
+of the wearer. Taken.
+
+## WHAT WAS DONE, 2026-08-15
+
+| | |
+| --- | --- |
+| table | **WHITE** (three shades so the form reads), widened to ±1.05 so the marking is not drawn over air |
+| T1 stage 1 | **LEFT arm, cubes on the LEFT** at x 0.560–0.740, y 0.120. 150 waypoints, N=10, **0 IK failures, 0 inside the clearance floor** |
+| planes | (0.450, 0.240) and (0.610, 0.240) — the innermost clearance-safe column + 20 mm. **450 mm off centre, because the centre is not reachable** |
+| T1 stage 2 | the SIDE of each cube is part of the random draw; both arms always get work; the seed now reaches the layout. 5 seeds, N=10, 0 failures, 0 inside the floor |
+| the region file | now carries `clear_cells` as well as `cells`, and the marking and stage-2 sampler both read `clear_cells` |
+| audit | `audit_task_spec.py` **45 PRESENT, 0 MISSING, 1 BLOCKED** (T1-1, measured impossible), self-test 13/13 |
+| tests | 477 pass, 2 fail (`test_flake8`, `test_pep257`, pre-existing) |
+
+### Four instrument defects found on the way, all fixed
+
+1. **`survey_work_surface.py` passed no `arm` to `ee_for()`**, so every
+   right-arm cell in every survey was tested 48.3 mm from where the right hand
+   closes. The move of T1 to the right arm was decided on that survey.
+2. **`positions[:7]` on an IK response is always the LEFT arm.** The response
+   carries all 26 joints, left first. The right arm's clearance therefore read
+   one constant — 0.1610 m — across 80 cells while the left varied from −0.003
+   to 0.161. Caught by the zero-variance row of CLAUDE.md's table before the
+   number was used. `Solver.solve_arm_joints()` selects by name now.
+3. **`verify_msc_tasks.py` carried its own copy of T1's layout**, frozen at
+   2026-08-11. It verified coordinates nothing runs, through three layout
+   changes, at zero failures. It imports now.
+4. **`run_abc` recorded `--seed` in the manifest and never read it.** Stage 2,
+   whose whole definition is random positions, ran one layout in every trial
+   with a different seed number written beside it.
+
+### THE RECORDING IS BLOCKED ON THE HOST, AND HERE IS THE EVIDENCE
+
+**Ten clips were recorded successfully on this geometry and then invalidated
+by two fixes found by looking at them (below). The re-record did not finish:
+the host's DDS stopped admitting new participants part-way through.**
+
+The failure is unambiguous and is not the task code:
+
+* clips report `TRAVEL L 0.00 R 0.00`, four cubes carried 0.000 m, and the
+  sweep reports **OK** — a silently stationary arm, which is this project's
+  oldest failure mode wearing a new hat;
+* `stage_presentation_pose.py`, started fresh, reports `no /joint_states
+  after 15.0 s` while `move_group`, `ros2_control_node`,
+  `robot_state_publisher` and both followers are running and talking to each
+  other;
+* at the end, `ros2 topic list` from a fresh shell returns **nothing at all**
+  against that same live stack;
+* `Failed init_port fastrtps_port7000` / `fastrtps_port7424` in the logs.
+
+Two contributing causes were found and one is fixed:
+
+1. **Three orphaned `verify_gui_buttons.py` processes, 28 hours old**, each
+   burning 13–20% CPU and holding DDS participants. Load average was 22.9 on
+   22 cores. Killed. Load fell to 1.8 and it did NOT fix the graph.
+2. The SHM transport itself will not admit new participants any more.
+   Existing processes keep talking; nothing new can join. **This needs the
+   WSL host restarted**, which is a decision for whoever owns the machine.
+
+**First action next session: restart WSL, then `bash scripts/check_channels.sh`
+and one clip, and check `ee_travel_m` in `scene_events.json` before recording
+a set.** A clip whose arm did not move passes every check the sweep has.
+
+The invalid clips were deleted rather than left on disk. `recordings/
+verification/*/T1` and `*/T1S2` are therefore ABSENT, not stale — T0, T2 and
+T3 are untouched and still predate the white table.
+
+### What the ten good clips showed, which is the part worth keeping
+
+Recorded before the host degraded, on the left-arm layout, all five modes.
+Read from `scene_events.json` and from extracted frames:
+
+* **all four cubes closed at 0.0000 m and landed on the plane of their own
+  colour, to 0.3 mm**, in modes 01, 03, 04 and 06;
+* **the table is white** and reads as a table from the front and top views;
+* the front framing was **wrong** — the work sat cut off against the left
+  edge, because `TASK_FOCUS["t1"]` still aimed at the old right-arm cube row
+  at x = −0.38. Re-aimed to +0.54 and checked by looking, twice;
+* **02_vr_teleop lost the LAST cube**: closed 44.0 mm out against a 30 mm
+  gate, carried 0.000 m, 3 of 4. Its whole run is ~35% longer (grasp at
+  +17.0 s against +5.0 s) because of the extra hop through `vr_pose_mapper`.
+  Fixed in the TASK, identical for every mode: the close now dwells 14
+  waypoints instead of 8;
+* **stage 2 delivered both of an arm's cubes to ONE point** — `cube_left_0`
+  and `cube_left_1` both ending at (0.675, 0.225) — because the place target
+  was one formula per arm rather than one target per cube. It also made the
+  outermost cube travel 28 mm. Fixed: each cube now gets its own destination
+  drawn from the same measured cells, minimum travel 0.150 m over five seeds.
+
+Both fixes are verified at N=10 over the full path (0 IK failures, 0
+waypoints inside the clearance floor) and are why the ten clips were
+superseded rather than kept.
+
+### Also left
+
+* T2, T3 and T0 now render with a white, wider table and have not been
+  re-recorded;
+* `verify_scan_view.py` still assumes T1 sits on the right arm's side;
+* `stage_presentation_pose.py` fails intermittently with a DDS port race
+  (`Failed init_port`). It is logged per clip as `opened_on`, so a clip that
+  opened on home is identifiable rather than assumed.
+
+---
+
 # RESUME POINT 2026-08-13 (late) — THE AUDIT IS DONE; RECORDING IS BLOCKED ON ONE BUG
 
 `docs/TASK_SPEC.md` is now the single source of truth and

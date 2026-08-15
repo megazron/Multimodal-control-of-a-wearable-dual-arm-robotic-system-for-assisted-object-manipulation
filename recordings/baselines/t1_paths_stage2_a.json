@@ -1,0 +1,131 @@
+{
+  "repeats": 10,
+  "floor": 0.15,
+  "controls": {
+    "driven_into_the_wearer": {
+      "want": "IK failures > 0 or clearance < 0",
+      "ik_failures": 2,
+      "worst_clearance_m": null
+    },
+    "home_clears_floor": {
+      "want": ">= 0.15",
+      "got": 0.161
+    }
+  },
+  "arm": "left",
+  "cubes": [
+    [
+      0.56,
+      0.12
+    ],
+    [
+      0.62,
+      0.12
+    ],
+    [
+      0.68,
+      0.12
+    ],
+    [
+      0.74,
+      0.12
+    ]
+  ],
+  "planes": [
+    [
+      0.45,
+      0.24
+    ],
+    [
+      0.61,
+      0.24
+    ]
+  ],
+  "z": 1.12,
+  "stage1": {},
+  "stage2": {
+    "seed_0": {
+      "left": {
+        "waypoints": 98,
+        "ik_failures": 0,
+        "worst_clearance_m": 0.161,
+        "clearance_to": "torso",
+        "waypoints_below_floor": 0,
+        "cubes": [
+          [
+            0.675,
+            0.225,
+            1.12
+          ],
+          [
+            0.525,
+            0.25,
+            1.12
+          ]
+        ]
+      },
+      "right": {
+        "waypoints": 98,
+        "ik_failures": 0,
+        "worst_clearance_m": 0.161,
+        "clearance_to": "torso",
+        "waypoints_below_floor": 0,
+        "cubes": [
+          [
+            -0.4,
+            0.325,
+            1.12
+          ],
+          [
+            -0.775,
+            0.2,
+            1.12
+          ]
+        ]
+      }
+    },
+    "seed_1": {
+      "left": {
+        "waypoints": 103,
+        "ik_failures": 0,
+        "worst_clearance_m": 0.161,
+        "clearance_to": "torso",
+        "waypoints_below_floor": 0,
+        "cubes": [
+          [
+            1.0,
+            0.125,
+            1.12
+          ],
+          [
+            0.5,
+            0.2,
+            1.12
+          ]
+        ]
+      },
+      "right": {
+        "waypoints": 103,
+        "ik_failures": 0,
+        "worst_clearance_m": 0.161,
+        "clearance_to": "torso",
+        "waypoints_below_floor": 0,
+        "cubes": [
+          [
+            -0.625,
+            0.2,
+            1.12
+          ],
+          [
+            -0.95,
+            0.075,
+            1.12
+          ]
+        ]
+      }
+    }
+  },
+  "ik_calls": 4022,
+  "total_ik_failures": 0,
+  "total_waypoints_below_floor": 0
+}

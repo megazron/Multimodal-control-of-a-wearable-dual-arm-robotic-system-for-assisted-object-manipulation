@@ -388,7 +388,14 @@ def main(argv=None):
     ap.add_argument("--session", default=None)
     ap.add_argument("--trial-index", type=int, default=0)
     ap.add_argument("--block", type=int, default=0)
-    ap.add_argument("--seed", type=int, default=0)
+    # THE DEFAULT COMES FROM THE ENVIRONMENT so the recording sweep can set
+    # ONE seed for a clip and have both the task path and the scene node use
+    # it. The GUI buttons are fixed command lines (gui_launch_specs) and
+    # cannot carry a per-run seed; an inherited environment variable can, and
+    # it is inherited by construction rather than by two places remembering
+    # to agree.
+    ap.add_argument("--seed", type=int,
+                    default=int(os.environ.get("SRL_TASK_SEED", "0")))
     ap.add_argument("--isolate", action="store_true",
                     help="start this mode's upstreams first, exactly as the "
                          "clip sweep does -- see scripts/mode_upstreams.py")
@@ -413,7 +420,18 @@ def main(argv=None):
                 % (key, ", ".join(sorted(_MSC_KEY))))
         spec = MCT.TASKS[_MSC_KEY[key]]
         scen = a.scenario or spec["scenario"]
-        wp = spec["build"]()
+        # THE SEED REACHES THE LAYOUT. `--seed` has existed since the runner
+        # was written and went straight into the manifest, while the layout
+        # was built by `spec["build"]()` with no arguments -- so stage 2,
+        # whose entire definition is "positions drawn at random", ran the
+        # SAME four cubes in every trial while each trial's manifest recorded
+        # a different seed. A recorded seed that nothing reads is worse than
+        # no seed: it is a claim of randomisation in the data file.
+        #
+        # `seeded` is declared on the task rather than inferred from the key,
+        # so a future randomised task gets it by saying so.
+        wp = (spec["build"](seed=a.seed) if spec.get("seeded")
+              else spec["build"]())
         grip_sched = spec["grip"](len(wp["left"]))
     elif a.taskset == "demo":
         # THE CHOREOGRAPHED ROUTINES. They are not tasks: no grasp, no

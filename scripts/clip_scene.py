@@ -153,12 +153,34 @@ TABLE_THICK = 0.035
 # measured point is how a verified layout stops being verified.
 TABLE_NEAR_Y = 0.10
 TABLE_FAR_Y = 0.72
-TABLE_HALF_X = 0.90
+# 1.05, NOT 0.90. The measured clearance-safe region runs to |x| = 1.000 --
+# the old |x| <= 0.70 was where the SURVEY BOX stopped, not where the arm
+# does -- and a marking drawn out to 1.000 over a table that ends at 0.90
+# would be tiles floating in air. The table carries no verified coordinate
+# (it is 170 mm below the work plane and nothing rests on it), so widening it
+# is a scenery change; it is re-verified with the layout regardless.
+TABLE_HALF_X = 1.05
 TABLE_LEG = 0.055                # square section, at the four corners
 TABLE_APRON = 0.06               # skirt depth under the top, so it reads as
                                  # a table rather than a floating slab
-OAK = (0.68, 0.52, 0.33, 1.0)
-RISER = (0.55, 0.42, 0.27, 1.0)
+# THE TABLE IS WHITE. Specified in TASK_SPEC section 2, T1-8.
+#
+# Three shades, not one, and the reason is the capture rather than taste: a
+# single flat white renders as one silhouette against the dark RViz
+# background (45,45,48) and the top, the apron and the risers merge into a
+# slab with no edges. The top is the white; the apron and risers step down so
+# the form still reads at 5-13 fps.
+#
+# WHITE IS SAFER FOR THE VERIFIER THAN OAK WAS, and that is worth stating
+# because a colour change near a colour-keyed check is normally a risk. Every
+# detector in verify_rviz_clips keys on channel DIFFERENCES -- _tan needs
+# R-B > 45, _yellow R-B > 65, _green G-R > 45, _teal G-R > 40 -- and a
+# neutral has R = G = B, so it cannot fire any of them. Oak (0.68, 0.52,
+# 0.33) sat inside the _tan band and could leak into it; white cannot.
+OAK = (0.94, 0.94, 0.95, 1.0)        # the table top
+RISER = (0.80, 0.80, 0.82, 1.0)      # the posts under the raised surface
+APRON = (0.86, 0.86, 0.88, 1.0)      # the skirt under the top
+LEG = (0.70, 0.70, 0.73, 1.0)        # the four legs
 
 # ==========================================================================
 # WORKSPACE MARKINGS -- the boundary each arm can actually reach, MEASURED
@@ -223,7 +245,23 @@ def _load_region():
         raise RuntimeError(
             "%s was surveyed at the GRASP POSE ONLY. A cell that can be "
             "reached is not a cell that can be WORKED." % REGION_FILE)
-    cells = {a: [tuple(c) for c in d["cells"].get(a, [])]
+    # THE MARKING IS THE CLEARANCE-SAFE REGION, NOT THE IK REGION.
+    #
+    # A participant is told to work inside this. The IK region includes cells
+    # where the arm is measurably inside the 150 mm wearer clearance floor --
+    # 72 of the left arm's 265, the worst of them with the tube 2.7 mm INSIDE
+    # the person -- because collision-aware IK cannot see the wearer pairs
+    # the SRDF excludes. A boundary drawn on the floor of a room, that a
+    # person is instructed to work inside, must not include the places where
+    # the machine hits them.
+    if not d.get("clearance_floor_m"):
+        raise RuntimeError(
+            "%s carries no clearance_floor_m -- its cells were chosen by IK "
+            "alone, and a marking drawn from them tells a participant to "
+            "work in cells that breach HARD CONSTRAINT 11. Re-run "
+            "scripts/measure_clearance_region.py, then "
+            "scripts/merge_work_surface_region.py." % REGION_FILE)
+    cells = {a: [tuple(c) for c in d["clear_cells"].get(a, [])]
              for a in ("left", "right")}
     box = {}
     for a, c in cells.items():
@@ -586,10 +624,11 @@ def remove_furniture(node, timeout_s=10.0):
 class Scene(Node):
     """Static furniture plus one graspable object per arm, per task."""
 
-    def __init__(self, task, out=None):
+    def __init__(self, task, out=None, seed=0):
         super().__init__("clip_scene")
         self.task = task
         self.out = out
+        self.seed = seed
         # THE EVIDENCE LOG. "Did the task complete" must be a measurement, not
         # a judgement made by squinting at a frame. This records when the
         # fingers actually reached the object's width, how far the object
@@ -722,7 +761,11 @@ class Scene(Node):
             # rule that this stage does not have.
             import msc_clip_tasks as _MCT
             out = {}
-            tgt = _MCT.stage2_targets(_MCT.T0_CLIP_SEED, 2)
+            # THE RUN'S SEED, not a hardcoded one. This read T0_CLIP_SEED
+            # while run_abc drove --seed, so the two could draw different
+            # layouts and the scene would then be measuring closures against
+            # cubes the arm was never sent to.
+            tgt = _MCT.stage2_targets(self.seed)["cubes"]
             for arm in ("left", "right"):
                 for i, cube in enumerate(tgt[arm]):
                     out["cube_%s_%d" % (arm, i)] = dict(
@@ -1045,11 +1088,11 @@ class Scene(Node):
                         [sx * (TABLE_HALF_X - TABLE_LEG), sy,
                          (TABLE_TOP - TABLE_THICK) / 2.0],
                         (TABLE_LEG, TABLE_LEG, TABLE_TOP - TABLE_THICK),
-                        DARK)
+                        LEG)
             for sy in (TABLE_NEAR_Y + TABLE_THICK, TABLE_FAR_Y - TABLE_THICK):
                 add(Marker.CUBE,
                     [0.0, sy, TABLE_TOP - TABLE_THICK - TABLE_APRON / 2.0],
-                    (2 * TABLE_HALF_X - 0.02, 0.02, TABLE_APRON), OAK)
+                    (2 * TABLE_HALF_X - 0.02, 0.02, TABLE_APRON), APRON)
             gap = CT.BENCH_TOP - CT.BENCH_THICK - TABLE_TOP
             for sx in (-0.60, 0.60):
                 add(Marker.CUBE,
@@ -1529,9 +1572,15 @@ def main():
                     choices=["a", "b", "c", "t0", "t1", "t1s2", "t2", "t3",
                              "d1", "d2", "d3"])
     ap.add_argument("--out", default=None)
+    # THE SEED THE SCENE DRAWS, and it has to be the seed the task RUNS.
+    # t1s2's cubes are a random draw; the scene built one at a hardcoded
+    # T0_CLIP_SEED while run_abc built another from --seed, so the picture
+    # and the waypoints could describe different layouts and every distance
+    # measured between them would be nonsense. One seed, passed to both.
+    ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
     rclpy.init()
-    n = Scene(a.task, a.out)
+    n = Scene(a.task, a.out, seed=a.seed)
     # APPLY THE COLLISION SCENE BEFORE THE EXECUTOR STARTS.
     #
     # It was applied from inside the 10 Hz tick, which spins to wait on the

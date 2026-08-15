@@ -45,11 +45,22 @@ OUT = os.path.join(ROOT, "recordings/baselines/msc_verification.json")
 STEP = 0.02
 STANDOFF, LIFT = 0.10, 0.08
 
-# T1's layout, verified 2026-08-11 under option 4 (fixtured objects).
-T1_CUBES = [[0.280, 0.230], [0.340, 0.230], [0.380, 0.170], [0.400, 0.230]]
-T1_PLANES = [[0.300, 0.145], [0.460, 0.145]]
-T1_ARM = "left"
-CUBE_M = 0.040
+# T1'S LAYOUT, IMPORTED. It used to be a COPY, written down here on
+# 2026-08-11 and never touched again:
+#
+#     T1_CUBES = [[0.280, 0.230], [0.340, 0.230], [0.380, 0.170], [0.400, 0.230]]
+#     T1_PLANES = [[0.300, 0.145], [0.460, 0.145]]
+#     T1_ARM = "left"
+#
+# The task moved to the right arm, then to cubes at y = 0.190 and planes at
+# y = 0.300, then to the left arm again, and this file verified the 2026-08-11
+# coordinates through every one of those changes and reported zero failures.
+# It was checking a layout nothing runs. A verifier with its own copy of the
+# thing it verifies is not a verifier.
+T1_CUBES = MCT.T1_CUBES
+T1_PLANES = MCT.T1_PLANES
+T1_ARM = MCT.T1_ARM
+CUBE_M = MCT.CUBE_M
 
 
 def require(seq, what):

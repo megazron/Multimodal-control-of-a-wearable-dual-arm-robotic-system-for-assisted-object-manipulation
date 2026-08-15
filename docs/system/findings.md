@@ -3107,3 +3107,134 @@ terminal 3:  bash scripts/start_real.sh          # --mock to rehearse
 ```
 
 ---
+
+---
+
+# 2026-08-15 — THE WORKSPACE HAD NEVER BEEN MEASURED AGAINST THE WEARER
+
+The brief was four changes to T1 and one question about the workspace. The
+question turned out to be the whole session, because the answer to "what is
+limiting it" was, in part, "nobody has ever asked the arm how close it gets to
+the person."
+
+## The gap
+
+Every workspace and layout figure in this repository comes from
+`/compute_ik` with `avoid_collisions`. `srl_dual.srdf` permanently excludes
+`torso`, `harness` and `backpack` against each arm's `base_link`,
+`shoulder_link` and `half_arm_1_link` — the pairs a shoulder-mounted arm
+actually threatens — so MoveIt returns `valid` for poses with the tube inside
+the person. `find_presentation_pose.py` already knew this and checks clearance
+GEOMETRICALLY for that one pose; nothing else did, and no task coordinate,
+survey cell or workspace marking had ever been checked at all.
+
+Measured with the mount guard's own capsule model
+(`scripts/measure_clearance_region.py`, `scripts/verify_t1_paths.py`):
+
+| | |
+| --- | --- |
+| shipped right-arm T1 layout | **70 of 143 waypoints inside the 150 mm floor**, worst 58.7 mm, at **0 IK failures** |
+| the idle arm's park pose | **30.6 mm**, held for the whole clip |
+| stage 2, seed 0, left arm | 21 of 71 waypoints inside the floor |
+| left arm's IK-reachable cells | 72 of 265 inside the floor, worst **−2.7 mm** |
+| right arm's IK-reachable cells | 68 of 314 inside the floor, worst −10.5 mm |
+
+Negative means the metal is inside the person. Those cells were inside the
+workspace marking a participant is told to work in.
+
+## What binds, per direction, with the mechanism named
+
+`scripts/measure_what_binds.py` — a four-rung ladder (collision-aware with
+furniture → without furniture → collisions off → orientation free), the first
+rung that succeeds naming the constraint, with the wearer split from
+self-collision by measuring the collision-free solution against the capsule
+model. Four controls, including a box placed on a cell just called REACHABLE,
+which must then read FURNITURE.
+
+    forward (+y)   ORIENTATION -- the pinned wrist, at y = 0.425
+    outboard       ORIENTATION -- the pinned wrist, at |x| = 0.950
+    inboard        THE WEARER  -- 0 mm inside the left forearm, 8 mm the right
+    down (-z)      FURNITURE   -- the table top
+    up, back       not bounded within 0.700 m
+
+**No direction is bound by a joint limit or by arm length.** And the IK
+boundary is not the safe boundary: forward, the arm is at 132 mm and 116 mm
+against a 150 mm floor while IK still solves for another 25 mm.
+
+## The height claim, settled both ways
+
+"The band is y 0.06–0.20 and the same at every table height 0.90–1.30" is half
+right, and the half that holds is the useful one. Objects ON the table, table
+moved to each height, probed 20 mm above its top: **0.00–0.05 at every height
+without exception.** Raising the table buys nothing, because what limits it is
+the table — the approach axis is 30.7 deg ABOVE horizontal, so the forearm
+trails below the fingertip and over a slab that volume is inside the slab.
+
+With the table fixed and only the work plane moved, the band is strongly
+height-dependent: 0.025 m at z = 0.95, 0.175 at 1.05, **0.425 at 1.10**, 0.500
+at 1.30. It is a function of how far the work is ABOVE the table, saturating
+near 0.50 m at about 200 mm of clearance. The current fixtured layout at
+z = 1.12, 170 mm clear, already sits on that plateau.
+
+## The free 300 mm
+
+The old region boundary at |x| = 0.70 was **the survey box**, not the arm.
+`survey_work_surface.py` has always defaulted to `--x -0.70 0.70`. Beyond it
+there are 108 more left cells and 125 more right cells out to |x| = 1.000, and
+**every one of them is 100% clear of the wearer**. The marking a participant
+is shown was understating the usable space by 300 mm per side while
+overstating it by 175 mm at the inboard end, where it is not safe.
+
+## Four instrument defects found on the way
+
+1. **`survey_work_surface.py` passed no `arm` to `ee_for()`.** It defaults to
+   the LEFT arm's wrist-to-pad offset, so every right-arm cell in every survey
+   was tested at a wrist pose 48.3 mm from where the right hand closes. The
+   2026-08-12 decision to move T1 to the right arm was taken on that survey.
+
+2. **`positions[:7]` on an IK response is always the LEFT arm.**
+   `res.solution.joint_state` is the whole robot — 26 joints, left arm first —
+   so slicing it gives the left arm whatever arm was asked about, and for a
+   right-arm query those seven are the left arm sitting at its seed. The right
+   arm's clearance therefore read ONE value, 0.1610 m, across 80 cells while
+   the left varied from −0.003 to 0.161. Caught by the "zero variance" row of
+   CLAUDE.md's table before the number was used for anything.
+   `Solver.solve_arm_joints()` selects by name now, and
+   `measure_clearance_region` carries a per-arm differential control that
+   fails if an arm's clearance does not fall as the target comes inboard.
+
+3. **`verify_msc_tasks.py` carried its own copy of T1's layout**, written down
+   on 2026-08-11 and never touched. It verified those coordinates through
+   three layout changes and reported zero failures each time. It imports now.
+
+4. **`run_abc` wrote `--seed` into the manifest and never read it.** The
+   layout came from `spec["build"]()` with no arguments, so stage 2 — whose
+   entire definition is random positions — ran the same four cubes in every
+   trial with a different seed number recorded beside them. A recorded seed
+   that nothing reads is worse than no seed: it is a claim of randomisation
+   in the data file.
+
+## The centre, asked directly
+
+The brief asked for T1's coloured planes in the centre of the table.
+`scripts/measure_centre_reach.py`, scanning inboard at every forward distance
+because the wearer's own arms hang at y = 0 and reaching inboard 300 mm IN
+FRONT of them is a different question from reaching inboard beside them:
+
+    left  innermost workable column, any y            x = 0.250
+    left  ... that also keeps the clearance floor     x = 0.425
+    left  x = 0.00 and +/-0.10                        NO y from 0.10 to 0.55
+    right x = -0.10                                   y 0.425..0.475 only,
+                                                      at the forward limit
+
+The planes sit at x = 0.450 and 0.610 — the innermost clearance-safe column
+plus the project's 20 mm margin — and they are **450 mm off centre**. That
+number is the size of the finding: the centre of a person's own workspace is
+the one place a shoulder-mounted supernumerary arm cannot go.
+
+Its first version had a real bug worth recording: the inward scan STOPPED at
+the first column that failed, which assumed the reachable set is an interval
+in x. It is not — the left arm's row at y = 0.30 fails at x = 0.55 and
+succeeds at 0.25..0.50 — so the scan reported "nothing at this y" for a row
+with eleven working columns in it. Same family as the 62%-of-its-bounding-box
+result that made the marking be drawn as cells.

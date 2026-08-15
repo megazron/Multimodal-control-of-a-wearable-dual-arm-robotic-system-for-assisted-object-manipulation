@@ -682,6 +682,12 @@ def _main_body():
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--only", default=None, help="one mode key")
     ap.add_argument("--taskset", default="msc", choices=sorted(TASKSETS))
+    # THE LAYOUT SEED FOR RANDOMISED TASKS (t1s2). It goes to the scene node
+    # on the command line and to the task through SRL_TASK_SEED, because the
+    # task is launched by a fixed GUI button that cannot carry an argument.
+    # Both sides read the same number or the picture and the path disagree.
+    ap.add_argument("--seed", type=int, default=0,
+                    help="layout seed for randomised tasks; recorded per clip")
     ap.add_argument("--tasks", default=None,
                     help="subset of the taskset's keys; default all of them")
     ap.add_argument("--settle-s", type=float, default=3.0)
@@ -690,6 +696,11 @@ def _main_body():
     a = ap.parse_args()
 
     modes = [a.only] if a.only else list(MODE_ORDER)
+    # THE SEED, INTO THE ENVIRONMENT, BEFORE ANY CHILD IS LAUNCHED. The task
+    # runs behind a GUI button whose command line is fixed, so the only way
+    # to give it a per-run seed is to put it where the child inherits it.
+    seed = a.seed
+    os.environ["SRL_TASK_SEED"] = str(seed)
     ts = TASKSETS[a.taskset]
     tasks = [k for k in ts["keys"]
              if a.tasks is None or k in a.tasks.split(",")]
@@ -787,6 +798,11 @@ def _main_body():
                     [sys.executable, os.path.join(WS, "scripts",
                                                   "clip_scene.py"),
                      "--task", task,
+                     # ONE SEED FOR THE PICTURE AND THE PATH. t1s2's layout
+                     # is a random draw; if the scene node draws its own the
+                     # two disagree and every measured distance is between
+                     # objects from different layouts.
+                     "--seed", str(seed),
                      "--out", os.path.join(out_dir, "scene_events.json")],
                     start_new_session=True, stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL)

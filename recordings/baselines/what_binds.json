@@ -1,0 +1,329 @@
+{
+  "z": 1.12,
+  "scene": "t1",
+  "repeats": 3,
+  "step": 0.025,
+  "controls": {
+    "far_1.6m": {
+      "want": "KINEMATIC",
+      "got": "KINEMATIC",
+      "detail": "no configuration reaches it at all"
+    },
+    "inside_torso": {
+      "want": "WEARER",
+      "got": "WEARER",
+      "detail": "arm inside the wearer by 159 mm at torso",
+      "clearance_m": -0.1594
+    },
+    "surveyed_cell": {
+      "want": "REACHABLE",
+      "got": "REACHABLE",
+      "detail": "",
+      "clearance_m": 0.1227
+    },
+    "box_on_a_good_cell": {
+      "want": "FURNITURE",
+      "got": "FURNITURE",
+      "detail": "the scene blocks it; free with furniture out"
+    }
+  },
+  "seed": {
+    "left": [
+      0.4,
+      0.175,
+      1.12
+    ],
+    "right": [
+      -0.4,
+      0.175,
+      1.12
+    ]
+  },
+  "walks": [
+    {
+      "direction": "forward (+y)",
+      "arm": "left",
+      "seed": [
+        0.4,
+        0.175,
+        1.12
+      ],
+      "last_ok": [
+        0.4,
+        0.45,
+        1.12
+      ],
+      "cells": 12,
+      "reach_m": 0.3,
+      "first_bad": [
+        0.4,
+        0.475,
+        1.12
+      ],
+      "binds": "ORIENTATION",
+      "detail": "reachable only with the wrist unpinned",
+      "last_ok_clearance_m": 0.132,
+      "last_ok_clearance_to": "L-upperarm"
+    },
+    {
+      "direction": "back (-y)",
+      "arm": "left",
+      "seed": [
+        0.4,
+        0.175,
+        1.12
+      ],
+      "last_ok": [
+        0.4,
+        -0.5,
+        1.12
+      ],
+      "cells": 28,
+      "reach_m": 0.7,
+      "first_bad": null,
+      "binds": "NOT BOUNDED WITHIN 0.70 m",
+      "detail": "",
+      "last_ok_clearance_m": 0.161,
+      "last_ok_clearance_to": "torso"
+    },
+    {
+      "direction": "inboard",
+      "arm": "left",
+      "seed": [
+        0.4,
+        0.175,
+        1.12
+      ],
+      "last_ok": [
+        0.3,
+        0.175,
+        1.12
+      ],
+      "cells": 5,
+      "reach_m": 0.125,
+      "first_bad": [
+        0.275,
+        0.175,
+        1.12
+      ],
+      "binds": "WEARER",
+      "detail": "arm inside the wearer by 0 mm at L-forearm",
+      "last_ok_clearance_m": 0.0232,
+      "last_ok_clearance_to": "L-forearm"
+    },
+    {
+      "direction": "outboard",
+      "arm": "left",
+      "seed": [
+        0.4,
+        0.175,
+        1.12
+      ],
+      "last_ok": [
+        0.975,
+        0.175,
+        1.12
+      ],
+      "cells": 24,
+      "reach_m": 0.6,
+      "first_bad": [
+        1.0,
+        0.175,
+        1.12
+      ],
+      "binds": "ORIENTATION",
+      "detail": "reachable only with the wrist unpinned",
+      "last_ok_clearance_m": 0.161,
+      "last_ok_clearance_to": "torso"
+    },
+    {
+      "direction": "up (+z)",
+      "arm": "left",
+      "seed": [
+        0.4,
+        0.175,
+        1.12
+      ],
+      "last_ok": [
+        0.4,
+        0.175,
+        1.795
+      ],
+      "cells": 28,
+      "reach_m": 0.7,
+      "first_bad": null,
+      "binds": "NOT BOUNDED WITHIN 0.70 m",
+      "detail": "",
+      "last_ok_clearance_m": 0.161,
+      "last_ok_clearance_to": "torso"
+    },
+    {
+      "direction": "down (-z)",
+      "arm": "left",
+      "seed": [
+        0.4,
+        0.175,
+        1.12
+      ],
+      "last_ok": [
+        0.4,
+        0.175,
+        1.045
+      ],
+      "cells": 4,
+      "reach_m": 0.1,
+      "first_bad": [
+        0.4,
+        0.175,
+        1.02
+      ],
+      "binds": "FURNITURE",
+      "detail": "the scene blocks it; free with furniture out",
+      "last_ok_clearance_m": 0.1212,
+      "last_ok_clearance_to": "L-forearm"
+    },
+    {
+      "direction": "forward (+y)",
+      "arm": "right",
+      "seed": [
+        -0.4,
+        0.175,
+        1.12
+      ],
+      "last_ok": [
+        -0.4,
+        0.45,
+        1.12
+      ],
+      "cells": 12,
+      "reach_m": 0.3,
+      "first_bad": [
+        -0.4,
+        0.475,
+        1.12
+      ],
+      "binds": "ORIENTATION",
+      "detail": "reachable only with the wrist unpinned",
+      "last_ok_clearance_m": 0.1158,
+      "last_ok_clearance_to": "R-upperarm"
+    },
+    {
+      "direction": "back (-y)",
+      "arm": "right",
+      "seed": [
+        -0.4,
+        0.175,
+        1.12
+      ],
+      "last_ok": [
+        -0.4,
+        -0.5,
+        1.12
+      ],
+      "cells": 28,
+      "reach_m": 0.7,
+      "first_bad": null,
+      "binds": "NOT BOUNDED WITHIN 0.70 m",
+      "detail": "",
+      "last_ok_clearance_m": 0.161,
+      "last_ok_clearance_to": "torso"
+    },
+    {
+      "direction": "inboard",
+      "arm": "right",
+      "seed": [
+        -0.4,
+        0.175,
+        1.12
+      ],
+      "last_ok": [
+        -0.275,
+        0.175,
+        1.12
+      ],
+      "cells": 6,
+      "reach_m": 0.15,
+      "first_bad": [
+        -0.25,
+        0.175,
+        1.12
+      ],
+      "binds": "WEARER",
+      "detail": "arm inside the wearer by 8 mm at R-forearm",
+      "last_ok_clearance_m": 0.0163,
+      "last_ok_clearance_to": "R-forearm"
+    },
+    {
+      "direction": "outboard",
+      "arm": "right",
+      "seed": [
+        -0.4,
+        0.175,
+        1.12
+      ],
+      "last_ok": [
+        -0.975,
+        0.175,
+        1.12
+      ],
+      "cells": 24,
+      "reach_m": 0.6,
+      "first_bad": [
+        -1.0,
+        0.175,
+        1.12
+      ],
+      "binds": "ORIENTATION",
+      "detail": "reachable only with the wrist unpinned",
+      "last_ok_clearance_m": 0.161,
+      "last_ok_clearance_to": "torso"
+    },
+    {
+      "direction": "up (+z)",
+      "arm": "right",
+      "seed": [
+        -0.4,
+        0.175,
+        1.12
+      ],
+      "last_ok": [
+        -0.4,
+        0.175,
+        1.795
+      ],
+      "cells": 28,
+      "reach_m": 0.7,
+      "first_bad": null,
+      "binds": "NOT BOUNDED WITHIN 0.70 m",
+      "detail": "",
+      "last_ok_clearance_m": 0.0675,
+      "last_ok_clearance_to": "torso"
+    },
+    {
+      "direction": "down (-z)",
+      "arm": "right",
+      "seed": [
+        -0.4,
+        0.175,
+        1.12
+      ],
+      "last_ok": [
+        -0.4,
+        0.175,
+        1.02
+      ],
+      "cells": 5,
+      "reach_m": 0.125,
+      "first_bad": [
+        -0.4,
+        0.175,
+        0.995
+      ],
+      "binds": "FURNITURE",
+      "detail": "the scene blocks it; free with furniture out",
+      "last_ok_clearance_m": 0.1363,
+      "last_ok_clearance_to": "R-forearm"
+    }
+  ],
+  "ik_calls": 900
+}

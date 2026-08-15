@@ -76,8 +76,10 @@ Re-measure rather than trust this table; each row names its command.
 | accuracy table | reproducible from committed data; grasp NOT uniformly 100% (06 reads 50%, VR 75%) | `scripts/accuracy_table.py` |
 | status | 25 clip dirs, 19/19 planned data cells | `scripts/status_table.py` |
 | clips | **all predate the bench deletion and the T1 mirror — superseded, re-record** | |
-| T1 | mirrored to the **RIGHT** arm; full-path failures 49 -> 0 | `recordings/baselines/t1_layout_options.json` |
-| workspace marking | **170 mm stale in y** — it excludes both task targets | `docs/NEXT_SESSION.md` |
+| T1 | stage 1 is the **LEFT** arm, cubes on the left; N=10 full path, 0 IK failures, 0 waypoints inside the wearer clearance floor | `scripts/verify_t1_paths.py` |
+| wearer clearance | **the region and every T1 coordinate are now checked against the 150 mm floor GEOMETRICALLY.** `avoid_collisions` cannot see it — the SRDF excludes the pairs that matter — and the previous layout spent 70 of 143 waypoints inside it at 0 IK failures | `scripts/measure_clearance_region.py` |
+| workspace marking | re-surveyed 2026-08-15: the marking is now the **clearance-safe** cells, and the box runs to \|x\| = 1.00 (the old 0.70 was the survey box, not the arm) | `recordings/baselines/work_surface_region.json` |
+| what limits the workspace | forward and outboard: the **pinned wrist**. Inboard: **the wearer**. Down: the **table**. No direction is bound by a joint limit | `docs/TASK_SPEC.md` §2A |
 | grasp pose | pad offset IS applied — `PAD_OFFSET` in `clip_tasks.py`, tips +0.098 m along the tool axis | `recordings/baselines/pad_clearance.json` |
 | table height | owner exists and detects ±20 mm; **nothing calls `set_measured()` from depth** | `srl_experiments/work_surface.py` |
 | silent faults | 3–4 open, listed at the top of `03_real_robot_bringup.md` | `scripts/inject_lab_day_faults.py` |

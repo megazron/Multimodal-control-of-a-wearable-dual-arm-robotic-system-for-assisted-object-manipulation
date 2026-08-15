@@ -249,6 +249,94 @@ def check_t1(mods):
                           CS.WORKSPACE[M.T1_ARM]["y"][0],
                           CS.WORKSPACE[M.T1_ARM]["y"][1],
                           CS.REGION_STEP * 1000))
+
+    # ---- T1-8  the table is WHITE ----------------------------------------
+    # NEUTRALITY, not a specific RGB. "White" here means R = G = B and bright,
+    # which is also the property that keeps it out of every colour detector
+    # in verify_rviz_clips -- all of which key on channel DIFFERENCES.
+    r, g, b = CS.OAK[0], CS.OAK[1], CS.OAK[2]
+    neutral = max(abs(r - g), abs(g - b), abs(r - b)) <= 0.03
+    out["T1-8"] = ((PRESENT, "table top rgba %s: neutral and bright" % (CS.OAK,))
+                   if neutral and min(r, g, b) >= 0.80
+                   else (MISSING, "table top rgba %s is not a white" % (CS.OAK,)))
+
+    # ---- T1-9  stage 1 is the LEFT arm, cubes on the LEFT ----------------
+    left_cubes = [c for c in M.T1_CUBES if c[0] > 0]
+    out["T1-9"] = ((PRESENT, "T1_ARM=%s, %d of %d cubes at x > 0"
+                    % (M.T1_ARM, len(left_cubes), len(M.T1_CUBES)))
+                   if M.T1_ARM == "left" and len(left_cubes) == len(M.T1_CUBES)
+                   else (MISSING, "T1_ARM=%s, %d of %d cubes on the left"
+                         % (M.T1_ARM, len(left_cubes), len(M.T1_CUBES))))
+
+    # ---- T1-10  the planes are at the innermost SAFE column --------------
+    # It cannot check "as near the centre as possible" without re-measuring,
+    # so it checks the two things it CAN: the planes are inside the measured
+    # clearance-safe cells, and the distance off centre is stated rather than
+    # left for a reader to work out.
+    inner = min(abs(p[0]) for p in M.T1_PLANES)
+    region_inner = min(abs(c[0]) for c in CS.REGION_CELLS[M.T1_ARM])
+    spec = open(os.path.join(WS, "docs", "TASK_SPEC.md")).read()
+    stated = ("%d mm off centre" % round(inner * 1000)) in spec or \
+             ("%.3f" % inner) in spec
+    out["T1-10"] = ((PRESENT, "innermost plane |x| = %.3f against an innermost "
+                              "safe cell of %.3f; the offset is stated in the "
+                              "spec" % (inner, region_inner))
+                    if inner >= region_inner and stated
+                    else (MISSING, "innermost plane |x| = %.3f, innermost safe "
+                                   "cell %.3f, offset stated in the spec: %s"
+                          % (inner, region_inner, stated)))
+
+    # ---- T1-11  the clearance floor is measured, not assumed -------------
+    # The check is that the MEASUREMENT EXISTS and passed, not that a number
+    # in this file says so: the whole finding behind T1-11 is that a layout
+    # can be clean by every IK check and spend half its path inside the floor.
+    import glob as _glob
+    import json as _json
+    files = sorted(_glob.glob(os.path.join(
+        WS, "recordings", "baselines", "t1_paths_*.json")))
+    files = [f for f in files if "BEFORE" not in f]
+    tot_bad = tot_below = 0
+    seen = []
+    for f in files:
+        d = _json.load(open(f))
+        if d.get("refused"):
+            continue
+        if d.get("arm") != M.T1_ARM or d.get("cubes") != M.T1_CUBES:
+            continue                       # a run against a different layout
+        tot_bad += d.get("total_ik_failures", 0)
+        tot_below += d.get("total_waypoints_below_floor", 0)
+        seen.append(os.path.basename(f))
+    out["T1-11"] = ((PRESENT, "%d clearance runs on THIS layout: %d IK "
+                              "failures, %d waypoints inside the floor (%s)"
+                     % (len(seen), tot_bad, tot_below, ", ".join(seen)))
+                    if seen and tot_bad == 0 and tot_below == 0
+                    else (MISSING, "clearance over the full path is "
+                                   "unmeasured for this layout, or it failed: "
+                                   "%d runs, %d IK failures, %d waypoints "
+                                   "inside the floor"
+                          % (len(seen), tot_bad, tot_below)))
+
+    # ---- T1-12  stage 2 randomises the SIDE, and the seed is read --------
+    ra = open(os.path.join(WS, "src", "srl_experiments", "experiments", "abc",
+                           "run_abc.py")).read()
+    msrc = open(os.path.join(WS, "src", "srl_experiments", "experiments",
+                             "abc", "msc_clip_tasks.py")).read()
+    seed_read = 'build"](seed=a.seed)' in ra and \
+                M.TASKS["t1s2"].get("seeded") is True
+    sides = set()
+    for sd in range(12):
+        t = M.stage2_targets(sd)["cubes"]
+        if not (t["left"] and t["right"]):
+            sides = {"A DRAW PUT EVERY CUBE ON ONE SIDE"}
+            break
+        sides.add((len(t["left"]), len(t["right"])))
+    varies = len(sides) > 1 and all(isinstance(s, tuple) for s in sides)
+    out["T1-12"] = ((PRESENT, "seed reaches the layout; side splits over 12 "
+                              "seeds: %s" % sorted(sides))
+                    if seed_read and varies and "n_per_arm" not in
+                    msrc.split("def t1_stage2")[1][:200]
+                    else (MISSING, "seed read by the task: %s; side splits "
+                                   "seen: %s" % (seed_read, sorted(sides))))
     return out
 
 

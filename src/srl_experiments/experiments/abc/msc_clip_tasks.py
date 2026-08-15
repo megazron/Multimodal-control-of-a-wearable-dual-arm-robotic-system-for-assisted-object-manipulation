@@ -126,6 +126,28 @@ T1_CUBES = [[0.560, 0.120], [0.620, 0.120], [0.680, 0.120],
 # land on the other. Both slots (+/-SLOT_DY in y) stay inside rows the survey
 # measured clear: y 0.210 and 0.270 against clear rows at 0.200 and 0.275.
 T1_PLANES = [[0.450, 0.240], [0.610, 0.240]]
+# THE SAME TWO PADS, ONE PAIR PER SIDE, AND WHY THERE HAS TO BE A PAIR.
+#
+# Stage 2 used to place onto coordinates drawn from the arm's own surveyed
+# cells: arbitrary points, no colour, and nothing drawn on screen. So the two
+# stages of one task had different targets and stage 2 had no colour rule at
+# all, which is the thing T1 is about.
+#
+# They cannot literally share the two pads. Both sit at POSITIVE x, and the
+# right arm's innermost reachable-and-clear column is |x| = 0.450 -- it cannot
+# get to +0.450 at all, because that is 900 mm across the far side of a person.
+# So "the same pads" is honoured the only way the geometry permits: the SAME
+# pair, same colours, same spacing, same y, mirrored for the arm that has to
+# reach them. A cube goes to the pad of ITS OWN COLOUR on the side it landed
+# on, which is stage 1's rule with the side made random.
+T1_PLANES_BY_ARM = {
+    "left": [list(p) for p in T1_PLANES],
+    "right": [[-p[0], p[1]] for p in T1_PLANES],
+}
+# Cube index -> pad index, and therefore colour. Stage 1 declares this in
+# T1_PAIR below; stage 2 uses the same rule so the two stages agree about
+# which cube is blue.
+PLANE_COLOURS = ("blue", "green")
 T1_Z = CT.BENCH_TOP + CUBE_M / 2.0
 # T1 STAGE 1 RUNS ON THE LEFT ARM, on cubes on the LEFT side. See the note on
 # T1_CUBES for why the earlier move to the right arm no longer holds: it was
@@ -613,6 +635,23 @@ def stage2_targets(seed, n_cubes=STAGE2_N_CUBES, cells=None,
                                     max_draws))
 
 
+def _stage2_pad_index(arm, i, tgt):
+    """Which coloured pad this cube belongs on: 0 = blue, 1 = green.
+
+    The colour follows the cube's position in the WHOLE draw, not its position
+    within one arm's share, so a four-cube draw is always two blue and two
+    green however the sides fall. Anything keyed on the per-arm index would
+    give three blue and one green whenever the split is 3/1, which is a
+    different task from the one T1 declares.
+    """
+    order = [(a, k) for a in ("left", "right") for k in range(len(tgt[a]))]
+    try:
+        n = order.index((arm, i))
+    except ValueError:                                          # pragma: no cover
+        n = i
+    return T1_PAIR[n % len(T1_PAIR)]
+
+
 def t1_stage2(seed=0, n_cubes=STAGE2_N_CUBES):
     """Both arms pick and place their own cubes AT THE SAME TIME.
 
@@ -641,11 +680,24 @@ def t1_stage2(seed=0, n_cubes=STAGE2_N_CUBES):
 
         for i, cube in enumerate(tgt[arm]):
             pick = ee_for(cube, arm)
-            # ONE TARGET PER CUBE, from the arm's own measured cells. See
-            # stage2_targets: a single per-arm target stacked both of an
-            # arm's cubes on one coordinate and left the outermost one
-            # travelling 28 mm.
-            place_obj = list(plc[arm][i])
+            # THE PLACE IS THE COLOURED PAD, THE SAME ONE STAGE 1 USES.
+            #
+            # It used to be `plc[arm][i]` -- a coordinate drawn from the arm's
+            # own surveyed cells. That made stage 2 a different task from
+            # stage 1: arbitrary targets, no colour rule, and nothing on
+            # screen to place ONTO. T1 is "blue cube to blue pad, green cube
+            # to green pad" and stage 2 is the same task with the SIDE
+            # randomised, so the pads travel with it. The pad pair is mirrored
+            # for the right arm because the right arm cannot reach +0.450; see
+            # T1_PLANES_BY_ARM.
+            #
+            # The colour of a cube is its index parity, exactly as T1_PAIR
+            # declares for stage 1, so the two stages cannot disagree about
+            # which cube is blue.
+            pad_i = _stage2_pad_index(arm, i, tgt)
+            px, py = T1_PLANES_BY_ARM[arm][pad_i]
+            place_obj = [px, py, T1_Z]
+            _ = plc
             place = ee_for(place_obj, arm)
             add(_dense([[pick[0], pick[1], pick[2] + STANDOFF], pick]),
                 CT.OPEN, cube)
@@ -674,7 +726,12 @@ def t1_stage2(seed=0, n_cubes=STAGE2_N_CUBES):
     # remembering a default -- which is how the picture and the data came to
     # be able to disagree about where the cubes were.
     _T1S2["grip"], _T1S2["at"], _T1S2["targets"] = grips, ats, tgt
-    _T1S2["places"] = plc
+    _T1S2["places"] = {
+        a: [[T1_PLANES_BY_ARM[a][_stage2_pad_index(a, k, tgt)][0],
+             T1_PLANES_BY_ARM[a][_stage2_pad_index(a, k, tgt)][1], T1_Z]
+            for k in range(len(tgt[a]))] for a in ("left", "right")}
+    _T1S2["pads"] = {a: [list(p) for p in T1_PLANES_BY_ARM[a]]
+                     for a in ("left", "right")}
     _T1S2["seed"], _T1S2["n_cubes"] = seed, n_cubes
     _T1S2["per_side"] = {a: len(v) for a, v in tgt.items()}
     return paths

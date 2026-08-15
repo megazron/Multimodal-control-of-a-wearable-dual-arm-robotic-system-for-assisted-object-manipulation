@@ -1,0 +1,107 @@
+"""T1's two stages are ONE task, and they had drifted into two.
+
+Stage 1 places four cubes onto two coloured pads: blue cube to blue pad, green
+to green. Stage 2 is the same task with the SIDE of each cube randomised and
+both arms working. It was placing onto coordinates drawn from each arm's own
+surveyed cells -- arbitrary points, no colour rule, and nothing drawn on
+screen to place onto. Two stages of one task with different targets, and the
+half that is supposed to demonstrate divided attention had no colour matching
+in it at all.
+
+THE PADS CANNOT LITERALLY BE SHARED, and that is geometry rather than a
+choice. Both sit at positive x, and the right arm's innermost column that is
+reachable AND clear of the wearer is |x| = 0.450 -- it cannot reach +0.450,
+which is 900 mm across the far side of a person. So the pair is MIRRORED for
+the arm that has to reach it: same two colours, same 160 mm spacing, same y.
+
+WHAT IS CHECKED, all of it arithmetic on the task definitions:
+
+  * both stages use the same pad geometry, mirrored, with nothing invented;
+  * a four-cube draw is always two blue and two green however the sides fall,
+    because the colour follows the cube's place in the WHOLE draw. Keying it
+    on the per-arm index gives three blue and one green on a 3/1 split, which
+    is a different task;
+  * every cube's place target IS one of the pads, not a drawn coordinate;
+  * both arms always get work, which is stage 2's definition.
+"""
+import os
+import sys
+
+import pytest
+
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, os.path.join(ROOT, "src/srl_experiments/experiments/abc"))
+
+
+@pytest.fixture(scope="module")
+def MCT():
+    import msc_clip_tasks as m
+    return m
+
+
+def test_the_pads_are_the_same_pair_mirrored(MCT):
+    left = MCT.T1_PLANES_BY_ARM["left"]
+    right = MCT.T1_PLANES_BY_ARM["right"]
+    assert left == [list(p) for p in MCT.T1_PLANES]
+    assert len(right) == len(left)
+    for l_, r_ in zip(left, right):
+        assert abs(r_[0] + l_[0]) < 1e-12, (l_, r_)     # mirrored in x
+        assert abs(r_[1] - l_[1]) < 1e-12, (l_, r_)     # same row
+
+
+def test_the_pads_keep_their_spacing_on_both_sides(MCT):
+    for arm in ("left", "right"):
+        pads = MCT.T1_PLANES_BY_ARM[arm]
+        gap = abs(pads[1][0] - pads[0][0])
+        assert abs(gap - 0.160) < 1e-9, (arm, gap)
+
+
+def test_the_right_pads_are_on_the_right_arms_side(MCT):
+    """A pad the arm cannot reach is not a target. The right arm works at
+    negative x and its innermost safe column is 0.450."""
+    for x, _y in MCT.T1_PLANES_BY_ARM["right"]:
+        assert x < 0, x
+        assert abs(x) >= 0.450 - 1e-9, x
+
+
+@pytest.mark.parametrize("seed", [0, 1, 2, 3, 4])
+def test_every_stage2_place_is_a_pad_and_the_colours_split_two_two(MCT, seed):
+    MCT.t1_stage2(seed=seed)
+    st = MCT._T1S2
+    tgt, places = st["targets"], st["places"]
+    total = sum(len(v) for v in tgt.values())
+    assert total == MCT.STAGE2_N_CUBES
+    assert len(tgt["left"]) >= 1 and len(tgt["right"]) >= 1, (
+        "both arms must get work; that is what makes it stage 2")
+
+    pads = {a: [tuple(p) for p in MCT.T1_PLANES_BY_ARM[a]]
+            for a in ("left", "right")}
+    colours = []
+    for arm in ("left", "right"):
+        for k, p in enumerate(places[arm]):
+            assert (round(p[0], 6), round(p[1], 6)) in [
+                (round(q[0], 6), round(q[1], 6)) for q in pads[arm]], (
+                arm, k, p, "place target is not one of this arm's pads")
+            idx = [(round(q[0], 6), round(q[1], 6))
+                   for q in pads[arm]].index((round(p[0], 6), round(p[1], 6)))
+            colours.append(idx)
+    assert colours.count(0) == 2 and colours.count(1) == 2, (
+        seed, colours, "a four-cube draw must be two blue and two green")
+
+
+def test_the_colour_rule_is_the_same_one_stage_1_declares(MCT):
+    """Stage 1's T1_PAIR is the rule; stage 2 must not invent a second one."""
+    assert MCT.T1_PAIR == {0: 0, 1: 1, 2: 0, 3: 1}
+    tgt = {"left": [None, None], "right": [None, None]}
+    got = [MCT._stage2_pad_index(a, i, tgt)
+           for a in ("left", "right") for i in range(2)]
+    assert got == [MCT.T1_PAIR[n] for n in range(4)], got
+
+
+def test_a_three_one_split_still_gets_two_of_each_colour(MCT):
+    """The failure the whole-draw indexing exists to prevent."""
+    tgt = {"left": [None, None, None], "right": [None]}
+    got = [MCT._stage2_pad_index(a, i, tgt)
+           for a in ("left", "right") for i in range(len(tgt[a]))]
+    assert got.count(0) == 2 and got.count(1) == 2, got

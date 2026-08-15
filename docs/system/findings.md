@@ -4577,3 +4577,80 @@ hand is the problem, so the useful mitigations are ones that act on the
 COMMANDED POSE — the tangential slide, a speed limit that scales with
 clearance, or a hard stop that the operator can feel through the master. The
 elbow was never the thing in the way.
+
+---
+
+# 2026-08-15 (later still) — T2'S TRAY WAS ELASTIC AND T1'S TWO STAGES WERE TWO TASKS
+
+## THE TRAY DEFORMED TO FIT WHATEVER THE ARMS WERE DOING
+
+`clip_scene` drew T2's tray between the grippers with length **`span + 0.06`**,
+where `span` is the LIVE distance between them. Over the shipped clip set that
+ran **0.487 to 1.211 m against a 0.560 m spec** — from 73 mm short to 651 mm
+long, and held at both ends the whole way.
+
+That is not cosmetic. T2's two headline criteria are "tray held by BOTH
+grippers" and "ball visible ON the tray", and **neither could fail**: the board
+resized to reach whichever hands existed, and the ball rode a surface that was
+redefined every frame to stay underneath it. The same clips reached **23 deg of
+tilt with the ball still on**, against a declared drop angle of **6.8 deg**,
+which is 60 mm of height difference over 500 mm and is the entire failure
+criterion of the task.
+
+Fixed:
+
+* the tray is drawn at the SPEC length from `tasks.TASK_B` and **oriented along
+  the line between the grippers**, so a separation error is visible as what it
+  is — a rigid board that does not reach one of the hands, or one whose end
+  sticks out past it. `tray_fit_err_m` is recorded per tick beside the tilt;
+* the ball **falls off** past `fail_tilt_deg` and the drop **LATCHES**. A ball
+  that climbs back on when the tray levels turns a carry that failed in the
+  middle into a carry that passed, which is the same defect with the opposite
+  sign.
+
+**AND THE AUDIT'S OWN CHECKS COULD NOT FAIL EITHER.** T2-1 asked "is the tray
+drawn between both grippers", which an elastic tray satisfies by construction,
+and T2-2 asked "is a ball drawn on the tray top". Both now check the property
+that makes the criterion capable of failing: the tray must be RIGID at the spec
+length and must not contain the elastic expression, and the ball must have a
+tilt-conditioned, latching drop. 12 known-answer tests; the audit's own
+self-test still detects all 13 deliberate breaks.
+
+## T1'S TWO STAGES HAD DIFFERENT TARGETS, AND STAGE 2 HAD NO COLOUR RULE
+
+Stage 1 places four cubes onto two coloured pads: blue to blue, green to green.
+Stage 2 was placing onto **coordinates drawn from each arm's own surveyed
+cells** — arbitrary points, no colour, and **nothing drawn on screen to place
+onto**, because `clip_scene`'s pad block ran for `t1` only. The half of T1 that
+exists to demonstrate divided attention had no colour matching in it at all.
+
+**The pads cannot literally be shared, and that is geometry.** Both sit at
+positive x, and the right arm's innermost column that is reachable AND clear is
+\|x\| = 0.450 — it cannot reach +0.450, which is 900 mm across the far side of
+a person. So the pair is MIRRORED for the arm that has to reach it: same two
+colours, same 160 mm spacing, same y. A cube goes to the pad of **its own
+colour on the side it landed on**, which is stage 1's rule with the side made
+random.
+
+One subtlety worth the test it has: the colour follows the cube's place in the
+**whole draw**, not its place within one arm's share. Keyed on the per-arm
+index, a 3/1 split gives three blue and one green, which is a different task
+from the one T1 declares. 10 tests, including that split.
+
+## WHAT REMAINS BLOCKED IN T1, UNCHANGED AND RESTATED
+
+* **T1-1, cubes ON the table: still BLOCKED.** They float 150 mm above it.
+  Every support geometry was measured fatal, and the only lead is the
+  front-edge cell found on 2026-08-15 (x = 0.350, table top 1.00, near edge
+  0.530) which is one cell and not a layout for six objects.
+* **Top-down and table-height grasping remain mutually exclusive**, so the
+  brief's "grasp from above if the geometry permits" resolves to near-side:
+  measured **0 of 840 cells** for top-down on a surface at any table height
+  0.70–1.10 for either arm. The pinned wrist arrives from below, and every
+  teleop mode pins it.
+* **Cubes and pads in the CENTRE remains unreachable**, now for the third time
+  and by a third method: Part 1's posture sweep put the limit at the torso, not
+  the wearer's arms, with min \|x\| 0.300 even with the wearer's arms deleted.
+
+Audit after these changes: **45 PRESENT, 0 MISSING, 1 BLOCKED (T1-1), 1
+pixels-only.**

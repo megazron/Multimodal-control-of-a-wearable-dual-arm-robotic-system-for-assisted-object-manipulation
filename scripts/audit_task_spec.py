@@ -372,16 +372,38 @@ def check_t2(mods):
     between = ('gl, gr = self._grip("left"), self._grip("right")' in src and
                'ns="tray"' in src)
     sep_mm = TSK.TRAY_SEP * 1000.0
-    out["T2-1"] = ((PRESENT, "tray drawn between both grippers, grip "
-                             "separation %.0f mm" % sep_mm)
-                   if between and abs(sep_mm - 500.0) < 1.0
-                   else (MISSING, "between-grippers=%s separation %.0f mm"
-                         % (between, sep_mm)))
+    # "DRAWN BETWEEN BOTH GRIPPERS" WAS A CHECK THAT COULD NOT FAIL.
+    #
+    # It passed for a tray whose LENGTH was the live gripper separation plus a
+    # constant -- a board that stretched from 0.487 to 1.211 m to reach
+    # whatever the arms were doing, so of course it was always held at both
+    # ends. The criterion is that a RIGID tray of the spec length is held at
+    # both ends, and only the rigidity makes the criterion capable of failing.
+    rigid = 'spec_len = float(TSK.TASK_B["objects"]["tray"]["size"][0])' in src
+    elastic = "round(span + 0.06, 4)" in src
+    spec_len_m = float(TSK.TASK_B["objects"]["tray"]["size"][0])
+    out["T2-1"] = ((PRESENT, "tray drawn between both grippers at the SPEC "
+                             "length %.3f m (rigid), grip separation %.0f mm"
+                             % (spec_len_m, sep_mm))
+                   if between and rigid and not elastic
+                   and abs(sep_mm - 500.0) < 1.0
+                   else (MISSING,
+                         "between-grippers=%s rigid=%s elastic=%s "
+                         "separation %.0f mm" % (between, rigid, elastic,
+                                                 sep_mm)))
 
+    # AND THE BALL HAD TO BE ABLE TO FALL OFF. It was drawn on the tray
+    # unconditionally, so a carry that reached 23 deg -- against a declared
+    # 6.8 -- still showed a ball sitting on the surface.
     ball = 'ns="ball"' in src and "ball" in CS.fixtures_for("t2")
-    out["T2-2"] = ((PRESENT, "ball radius %.3f m drawn on the tray top"
-                    % TSK.BALL_R)
-                   if ball else (MISSING, "no ball fixture for t2"))
+    drops = 'self.ball_off = True' in src and 'fail_tilt' in src
+    latches = 'getattr(self, "ball_off", False)' in src
+    out["T2-2"] = ((PRESENT, "ball radius %.3f m on the tray, and it FALLS "
+                    "past %.1f deg and stays off"
+                    % (TSK.BALL_R, float(TSK.TASK_B.get("fail_tilt_deg", 6.8))))
+                   if ball and drops and latches
+                   else (MISSING, "ball=%s drops=%s latches=%s"
+                         % (ball, drops, latches)))
 
     # SAMPLED PER TICK, DUMPED AS A SERIES, AND REDUCED BY ARITHMETIC THAT
     # HAS A KNOWN-ANSWER TEST. Anything less than all three and the carry is

@@ -372,12 +372,16 @@ RED = (0.90, 0.15, 0.12, 1.0)
 SPHERE_RGBA = {"red": RED, "green": GREEN, "blue": BLUE, "yellow": YELLOW}
 
 
-def _m(ns, i, typ, xyz, scale, col, frame="world"):
+def _m(ns, i, typ, xyz, scale, col, frame="world", quat=None):
     m = Marker()
     m.header.frame_id = frame
     m.ns, m.id, m.type, m.action = ns, i, typ, Marker.ADD
     m.pose.position.x, m.pose.position.y, m.pose.position.z = xyz
-    m.pose.orientation.w = 1.0
+    if quat is None:
+        m.pose.orientation.w = 1.0
+    else:
+        (m.pose.orientation.x, m.pose.orientation.y,
+         m.pose.orientation.z, m.pose.orientation.w) = quat
     m.scale.x, m.scale.y, m.scale.z = scale
     m.color.r, m.color.g, m.color.b, m.color.a = col
     return m
@@ -1120,9 +1124,9 @@ class Scene(Node):
         A.markers.append(d)
         i = 0
 
-        def add(typ, xyz, scale, col, ns="scene"):
+        def add(typ, xyz, scale, col, ns="scene", quat=None):
             nonlocal i
-            A.markers.append(_m(ns, i, typ, xyz, scale, col))
+            A.markers.append(_m(ns, i, typ, xyz, scale, col, quat=quat))
             i += 1
 
         # ---- furniture, PER TASK ---------------------------------------
@@ -1299,7 +1303,7 @@ class Scene(Node):
                  lab.color.b, lab.color.a) = col
                 A.markers.append(lab)
                 i += 1
-        if self.task == "t1":
+        if self.task in ("t1", "t1s2"):
             # THE TWO COLOURED PLANES. T1 is "blue cube to blue plane, green
             # cube to green plane" and the planes had never been drawn, so the
             # task had no target on screen and a wrong-colour placement could
@@ -1311,9 +1315,26 @@ class Scene(Node):
             # cubes 1,3 -> plane 1 (GREEN). Drawn as MATS resting on their
             # lips, top flush with the bench-top plane, which is the plane a
             # placed cube's base sits on.
+            # STAGE 2 GETS THE PADS TOO, AND ONE PAIR PER SIDE.
+            #
+            # This block ran for `t1` only, so stage 2 -- the both-arms half of
+            # the same task -- had no pads drawn at all and placed onto bare
+            # coordinates. A colour-matching task with no colours on screen
+            # cannot be scored from a frame, which is the whole reason the pads
+            # were added to stage 1 in the first place.
             import msc_clip_tasks as _MCT
-            for pi, (px, py) in enumerate(_MCT.T1_PLANES):
-                name = "plane_%s" % ("blue" if pi == 0 else "green")
+            _pads = []
+            if self.task == "t1":
+                _pads = [(_MCT.T1_ARM, p) for p in _MCT.T1_PLANES]
+            else:
+                for _a in ("left", "right"):
+                    _pads += [(_a, p) for p in _MCT.T1_PLANES_BY_ARM[_a]]
+            for pi, (_arm_of_pad, (px, py)) in enumerate(_pads):
+                # the colour alternates within each side's pair, so both sides
+                # show one blue and one green
+                pi = pi % len(_MCT.T1_PLANES)
+                name = "plane_%s_%s" % ("blue" if pi == 0 else "green",
+                                        _arm_of_pad)
                 add(Marker.CUBE,
                     [px, py, CT.BENCH_TOP - PLANE_T / 2.0],
                     (PLANE_W, PLANE_D, PLANE_T),
@@ -1418,13 +1439,70 @@ class Scene(Node):
                 span = math.dist(gl, gr)
                 th = TSK.TASK_B["objects"]["tray"]["size"][2]
                 dep = TSK.TASK_B["objects"]["tray"]["size"][1]
-                add(Marker.CUBE, mid, (round(span + 0.06, 4), dep, th),
-                    TAN, ns="tray")
-                # THE BALL. It is the failure indicator: the tray tilting past
-                # 6.8 deg rolls it off, and without it a tilt has no visible
-                # consequence at all. Drawn ON the tray and carried WITH it.
-                bp = list(mid)
-                bp[2] += th / 2.0 + CT_BALL_R
+                # THE TRAY IS RIGID, AND IT WAS DRAWN ELASTIC.
+                #
+                # Its length was `span + 0.06`, the LIVE distance between the
+                # grippers plus a constant, so the tray grew and shrank to fit
+                # whatever the arms were doing. Measured over the shipped
+                # clips it ran 0.487 to 1.211 m against a 0.560 m spec: it
+                # stretched to nearly a quarter more than double its length
+                # and still looked held at both ends. That is why T2-1 ("held
+                # by BOTH grippers") and T2-2 ("ball visible ON the tray")
+                # could not fail -- not because the arms were coordinated, but
+                # because the prop deformed to match them, and the ball rode a
+                # surface that was redefined every frame to stay under it.
+                #
+                # It is drawn at the SPEC length now, from tasks.TASK_B, and
+                # oriented along the line between the grippers. A separation
+                # error is then visible as exactly what it is: a rigid board
+                # that does not reach one of the hands, or one whose end
+                # sticks out past it.
+                spec_len = float(TSK.TASK_B["objects"]["tray"]["size"][0])
+                dxv = [gr[k] - gl[k] for k in range(3)]
+                nrm = math.sqrt(sum(v * v for v in dxv)) or 1.0
+                ux = [v / nrm for v in dxv]
+                # yaw and pitch that take +x onto the gripper line; roll is
+                # left at zero so the tray stays level about its own long axis
+                yaw = math.atan2(ux[1], ux[0])
+                pitch = -math.asin(max(-1.0, min(1.0, ux[2])))
+                cy, sy = math.cos(yaw * 0.5), math.sin(yaw * 0.5)
+                cp, sp = math.cos(pitch * 0.5), math.sin(pitch * 0.5)
+                tray_q = (-sy * sp, cy * sp, sy * cp, cy * cp)
+                add(Marker.CUBE, mid, (spec_len, dep, th),
+                    TAN, ns="tray", quat=tray_q)
+                self.tray_span_m = round(span, 4)
+                self.tray_spec_m = round(spec_len, 4)
+                self.tray_fit_err_m = round(span - spec_len, 4)
+                # THE BALL, AND IT HAS TO BE ABLE TO FALL OFF.
+                #
+                # It was drawn ON the tray and carried WITH it, unconditionally
+                # and before the tilt was even computed, so it rode the tray
+                # through any angle at all. Measured over the shipped clips the
+                # carry reached 23 deg with the ball still sitting on the
+                # surface, against a declared drop angle of 6.8 -- which is
+                # 60 mm of height difference over 500 mm and is the whole
+                # failure criterion of the task. A failure indicator that
+                # cannot indicate failure is set dressing.
+                #
+                # It rolls off past `fail_tilt_deg` now, and the drop LATCHES:
+                # a ball that climbs back on when the tray levels again turns
+                # a carry that failed in the middle into a carry that passed,
+                # which is the same defect wearing the opposite sign.
+                dz = gl[2] - gr[2]
+                tilt = math.degrees(math.asin(
+                    max(-1.0, min(1.0, dz / span)))) if span > 1e-6 else 0.0
+                fail_tilt = float(TSK.TASK_B.get("fail_tilt_deg", 6.8))
+                if abs(tilt) > fail_tilt and not getattr(self, "ball_off", False):
+                    self.ball_off = True
+                    self.ball_off_tilt_deg = round(tilt, 2)
+                if getattr(self, "ball_off", False):
+                    # on the floor under the LOW end of the tray, which is
+                    # where it went
+                    low = gl if gl[2] <= gr[2] else gr
+                    bp = [low[0], low[1], TABLE_TOP + CT_BALL_R]
+                else:
+                    bp = list(mid)
+                    bp[2] += th / 2.0 + CT_BALL_R
                 add(Marker.SPHERE, bp, (2 * CT_BALL_R,) * 3, YELLOW, ns="ball")
                 for nm in ("tray", "ball"):
                     if nm not in self.fixtures:
@@ -1449,9 +1527,6 @@ class Scene(Node):
                 # of height difference over 500 mm, and taking the baseline
                 # from a constant while the arms drift apart reports an angle
                 # the tray is not at.
-                dz = gl[2] - gr[2]
-                tilt = math.degrees(math.asin(
-                    max(-1.0, min(1.0, dz / span)))) if span > 1e-6 else 0.0
                 if self.t0 is None:
                     self.t0 = self.get_clock().now().nanoseconds * 1e-9
                     self.t0_wall = time.time()
@@ -1461,7 +1536,9 @@ class Scene(Node):
                     tilt_deg=round(tilt, 3),
                     sep_m=round(span, 4),
                     sep_err_mm=round((span - TSK.TRAY_SEP) * 1000.0, 1),
-                    height_diff_mm=round(dz * 1000.0, 1)))
+                    height_diff_mm=round(dz * 1000.0, 1),
+                    tray_fit_err_m=self.tray_fit_err_m,
+                    ball_off=bool(getattr(self, "ball_off", False))))
 
         # ---- the graspable object --------------------------------------
         for name, it in self.items.items():

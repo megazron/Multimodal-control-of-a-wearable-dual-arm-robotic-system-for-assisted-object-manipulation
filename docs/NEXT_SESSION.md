@@ -1,3 +1,92 @@
+# RESUME POINT 2026-08-15 (evening) — THE SET IS COMPLETE; SIX THINGS LOOKING FOUND
+
+**25 of 25 cells recorded on the current geometry, every one opening on the
+presentation pose.** 28 clip dirs, 19 of 19 planned data cells, no real gaps.
+`verify_rviz_clips` 28 of 28 with all seven of its own controls correct.
+510 tests pass, 2 allowed failures (flake8, pep257, pre-existing).
+
+The instrument check the last resume note demanded was done first and passed:
+one clip, `ee_travel_m` left **3.0205 m**, four grasp/release cycles, four
+cubes closing at **0.0000 m**. Not a stationary arm.
+
+## READ THIS BEFORE CITING ANY NUMBER FROM THIS PROJECT
+
+`docs/system/clearance_gap_ledger.md` is new and is the ledger of which
+earlier workspace and clearance figures the SRDF gap invalidated and which
+stand. Every workspace figure up to 2026-08-15 was computed against a
+collision model that could not see the wearer where a shoulder-mounted arm
+threatens them. Most of those figures are not wrong — they are IK
+reachability, and they were quoted as usable space.
+
+## THE SIX FINDINGS, IN THE ORDER THEY MATTER
+
+1. **T2's tray is ELASTIC.** Drawn as `separation + 0.06` between the
+   grippers, so it runs 0.487–1.211 m against a rigid 0.560 m spec — a 2.5x
+   stretch. T2-1 and T2-2 therefore **cannot fail**, and the declared failure
+   mode never happens: under 06 the tray is past the 6.8 deg ball-drop angle
+   for **89% of the carry**, reaching 23.0 deg, and the ball stays on. The
+   task is NOT at fault — it commands exactly 0.500 m at all 21 waypoint
+   pairs. The renderer draws tracking error as elasticity. **Not fixed.**
+
+2. **`vr_pose_mapper` has two defects.** It HOLDS THE ARMS — isolated with a
+   control either side, staging arrives at 0.0000 rad without it and does not
+   move at all with it — and it DOES NOT RESET BETWEEN RUNS, which is what
+   made 02 fail every grasping task. The sweep works around both. **The mapper
+   itself is not fixed, and `run_abc` starts it once per SESSION**, so a real
+   trial block under 02 walks straight into it. Fix it in the node.
+
+3. **The robot does not perform identically across modes**, with no operator
+   present. TASK_SPEC section 1 is corrected. A mode difference in a trial
+   cannot be attributed to the operator until the no-operator difference is
+   subtracted, and nobody has measured it.
+
+4. **The marking runs 25 mm past the table's near edge** — 43 of 439 cells
+   over air, and stage 2 places cubes there. Deliberately not fixed mid-set.
+   **The next step is a measurement, not an edit**: the near edge at y = 0.100
+   was measured to cost 0 waypoint failures at a 0.95 top; 0.075 has not been.
+
+5. **Three verifiers the sweep runs were checking ZERO clips and exiting 0.**
+   They refuse now. `verify_object_attachment` is fixed as far as its depth
+   and then honestly reports 25 clips as NOT IMPLEMENTED, because its pixel
+   rules all belong to the archived nine-task set.
+
+6. **`named_places.py` still resolved spoken commands against the IK-only
+   cells** — mode 06's whole input path. Fixed; it refuses a region file with
+   no `clear_cells`.
+
+## WHAT TO DO NEXT, IN ORDER
+
+1. **Fix `vr_pose_mapper`**: make it reset per run, and stop it holding the
+   arm against a joint-space trajectory. Both are demonstrated above with
+   controls. This is the highest-value item because it is on a DATA path.
+2. **Decide what T2 is.** Either make the tray rigid and let the picture show
+   the coupling failing, or drop the coupling claim. As it stands T2-1 and
+   T2-2 are unfalsifiable and the ball cannot fall.
+3. **Measure the table's near edge at y = 0.075** and either move it or drop
+   the y = 0.075 row from `clear_cells`. One of the two, not neither.
+4. **Give T0, T2, T3 and the dance routines a geometric wearer-clearance
+   check.** `verify_t1_paths.py` is the only task-path clearance check and it
+   covers T1 and t1s2 only.
+5. **Characterise the no-operator mode difference** properly before any
+   participant is recruited. Finding 3 is five tasks deep, not a
+   characterisation.
+
+## THINGS THAT WILL BITE YOU
+
+* **The stack degrades over a long session.** Mode 04 failed two cells twice
+  on a stack that had been up through five sweeps, then recorded first time on
+  a fresh one. The symptom is `rc=2 no /joint_states` plus a stationary arm —
+  not an error message.
+* **A subset re-record used to wipe the progress ledger.** Fixed, but the
+  lesson stands: `--resume` decides what to SKIP, not what to REMEMBER.
+* **The sweep leaked its Xvfb displays between modes**, so its own
+  precondition refused every mode after the first. Fixed with a teardown at
+  each mode boundary.
+* **`check_channels.sh` cannot run on this host** — no Teensy, and it needs a
+  person sweeping the master arm 14 times.
+
+---
+
 # RESUME POINT 2026-08-15 — THE WORKSPACE WAS NEVER CHECKED AGAINST THE WEARER
 
 **Read this before anything else in this file. It changes what "verified"

@@ -99,7 +99,28 @@ def main():
     # conflated them: "direct" under the mannequin and "direct" under VR shared a
     # folder name. A glob that still assumes three levels matches NOTHING and
     # reports zero clips, which reads exactly like a clean pass.
-    for tp in sorted(glob.glob(os.path.join(OUT, "*/*/*/*/grip_trace.json"))):
+    _traces = sorted(glob.glob(os.path.join(OUT, "*/*/*/*/grip_trace.json")))
+    # ZERO INPUTS IS NOT A PASS, AND THE COMMENT ABOVE SAYS SO ITSELF.
+    #
+    # It warns that a glob assuming the wrong depth "matches NOTHING and
+    # reports zero clips, which reads exactly like a clean pass" -- and then
+    # the code below did exactly that and returned 0. MEASURED 2026-08-15:
+    # this ran in the sweep's VERIFYING step over 25 recorded cells, printed
+    # "0 of 0 clips show a GENUINE grasp" and exited 0.
+    #
+    # Two causes, both real: record_abc_sweep writes THREE path levels, not
+    # four; and NOTHING in the clip path writes grip_trace.json at all -- 0
+    # files on disk. Knowing the failure mode and still returning 0 for it is
+    # the gap this refusal closes.
+    if not _traces:
+        print("\nREFUSING TO REPORT A PASS: this checked ZERO clips.")
+        print("  looked for : */*/*/*/grip_trace.json under %s" % OUT)
+        print("  found      : 0")
+        print("  Nothing in the clip path writes grip_trace.json, and the")
+        print("  sweep writes <mode>/<task>/<scenario>, not four levels.")
+        print("  Fix the producer or the glob. 0 of 0 is not evidence.")
+        return 2
+    for tp in _traces:
         d = os.path.dirname(tp)
         mode, task, scen, cond = os.path.relpath(d, OUT).split(os.sep)[:4]
         if a.task and task != a.task:

@@ -406,7 +406,7 @@
     "task": "t0",
     "scenario": "D3_three_targets",
     "quad": true,
-    "opened_on": "home",
+    "opened_on": "presentation",
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",
@@ -426,7 +426,7 @@
     "task": "t1",
     "scenario": "S1_left_arm",
     "quad": true,
-    "opened_on": "home",
+    "opened_on": "presentation",
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",
@@ -446,7 +446,7 @@
     "task": "t1s2",
     "scenario": "S2_both_arms_random",
     "quad": true,
-    "opened_on": "home",
+    "opened_on": "presentation",
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",
@@ -466,7 +466,7 @@
     "task": "t2",
     "scenario": "S2_full_lift",
     "quad": true,
-    "opened_on": "home",
+    "opened_on": "presentation",
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",
@@ -486,7 +486,7 @@
     "task": "t3",
     "scenario": "S1_measure_cycle",
     "quad": true,
-    "opened_on": "home",
+    "opened_on": "presentation",
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",

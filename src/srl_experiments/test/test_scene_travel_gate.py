@@ -17,9 +17,17 @@ THE GROUND TRUTH IS CONSTRUCTED, not rendered: these are dictionaries written
 down in this file, which is the only kind of synthetic input CLAUDE.md allows
 for an instrument check.
 
-The two numbers used as the good case are MEASURED -- left 3.0205 m, right
-0.6010 m, from 01_master_teleop/T1/S1_left_arm recorded 2026-08-15 -- so the
-threshold is pinned against a real clip and not against taste.
+The numbers here are MEASURED, off the 25 clips recorded 2026-08-15, and the
+floor is a SEPARATION between two populations rather than a constant: above
+the staging move the scene node unavoidably counts (~0.24 m) and above the one
+clip that genuinely did not run (0.407 m), below the dimmest clip that did
+(1.072 m).
+
+That distinction is the point. The first floor was 0.05 m, set against a
+stationary arm reading 0.0000 -- and it would have passed a completely dead
+run, because clip_scene starts before the staging move and counts it. A gate
+written to catch a silently stationary arm that cannot catch one is the exact
+shape of failure this file exists to prevent.
 """
 
 import os
@@ -61,6 +69,32 @@ def test_a_crawl_below_the_floor_FAILS_TOO():
     """Not just exactly zero. 30 mm of drift is not a task being performed."""
     ok, _ = _verdict()({"ee_travel_m": {"left": 0.03, "right": 0.021}})
     assert ok is False
+
+
+def test_THE_STAGING_MOVE_ALONE_DOES_NOT_PASS():
+    """THE CASE THE FIRST FLOOR GOT WRONG.
+
+    clip_scene starts BEFORE the presentation-pose move, so its tf integral
+    includes it: 0.1903 m of hand travel left and 0.2351 m right. A clip whose
+    TASK never moved the arm still reports about that. With the original
+    0.05 m floor this passed -- the gate written to catch a silently
+    stationary arm could not have caught one.
+    """
+    ok, why = _verdict()({"ee_travel_m": {"left": 0.1903, "right": 0.2351}})
+    assert ok is False, why
+
+
+def test_THE_ONE_REAL_FAILURE_IN_THE_SET_IS_CAUGHT():
+    """04_vr_shared/T0, 2026-08-15: capture gated on timeout, runner exited 1,
+    scene read 0.4072 / 0.3297. Two other witnesses called it dead."""
+    ok, _ = _verdict()({"ee_travel_m": {"left": 0.4072, "right": 0.3297}})
+    assert ok is False
+
+
+def test_THE_DIMMEST_GOOD_CLIP_STILL_PASSES():
+    """01_master_teleop/T2, 1.075 / 1.007 m. The floor must not eat it."""
+    ok, _ = _verdict()({"ee_travel_m": {"left": 1.075, "right": 1.007}})
+    assert ok is True
 
 
 # ---- and the good clip it must not fail ---------------------------------
@@ -118,7 +152,16 @@ def test_one_arm_untracked_and_the_other_STILL_fails():
 # ---- the threshold is a parameter, and the default is the measured one ---
 def test_the_floor_is_where_it_says_it_is():
     import record_abc_sweep
-    assert record_abc_sweep.MIN_SCENE_TRAVEL_M == 0.05
+    assert record_abc_sweep.MIN_SCENE_TRAVEL_M == 0.60
     # Just under and just over, with the default floor.
-    assert _verdict()({"ee_travel_m": {"left": 0.049}})[0] is False
-    assert _verdict()({"ee_travel_m": {"left": 0.051}})[0] is True
+    assert _verdict()({"ee_travel_m": {"left": 0.599}})[0] is False
+    assert _verdict()({"ee_travel_m": {"left": 0.601}})[0] is True
+
+
+def test_the_floor_separates_the_two_MEASURED_populations():
+    """It is a separation, not a constant: above staging and the one real
+    failure, below every clip that did its task."""
+    import record_abc_sweep
+    f = record_abc_sweep.MIN_SCENE_TRAVEL_M
+    assert f > 0.4072, "would pass 04_vr_shared/T0, which did not run"
+    assert f < 1.072, "would reject the dimmest clip that did run"

@@ -1,0 +1,469 @@
+[
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 19.2,
+    "bright": 88.1,
+    "variety": 5465,
+    "delta": 2.22,
+    "objects": {
+      "msc_sphere_blue": 24,
+      "msc_sphere_green": 46
+    },
+    "angles_bad": [],
+    "mode": "01_master_teleop",
+    "task": "t0",
+    "scenario": "D3_three_targets",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 32.8,
+    "bright": 104.6,
+    "variety": 8597,
+    "delta": 1.93,
+    "objects": {
+      "msc_blue": 133,
+      "msc_green": 508
+    },
+    "angles_bad": [],
+    "mode": "01_master_teleop",
+    "task": "t1",
+    "scenario": "S1_left_arm",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 24.2,
+    "bright": 107.8,
+    "variety": 9498,
+    "delta": 2.74,
+    "objects": {
+      "msc_yellow_cube": 145,
+      "msc_teal_cube": 518
+    },
+    "angles_bad": [],
+    "mode": "01_master_teleop",
+    "task": "t1s2",
+    "scenario": "S2_both_arms_random",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 15.8,
+    "bright": 91.2,
+    "variety": 7734,
+    "delta": 3.19,
+    "objects": {
+      "msc_tray_tan": 1142,
+      "msc_ball_yellow": 759
+    },
+    "angles_bad": [],
+    "mode": "01_master_teleop",
+    "task": "t2",
+    "scenario": "S2_full_lift",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 20.3,
+    "bright": 103.3,
+    "variety": 9256,
+    "delta": 1.13,
+    "objects": {
+      "msc_green": 386,
+      "msc_meter_yellow": 86
+    },
+    "angles_bad": [],
+    "mode": "01_master_teleop",
+    "task": "t3",
+    "scenario": "S1_measure_cycle",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 29.4,
+    "bright": 87.7,
+    "variety": 5273,
+    "delta": 2.03,
+    "objects": {
+      "msc_sphere_blue": 25,
+      "msc_sphere_green": 42
+    },
+    "angles_bad": [],
+    "mode": "02_vr_teleop",
+    "task": "t0",
+    "scenario": "D3_three_targets",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 42.8,
+    "bright": 104.7,
+    "variety": 8624,
+    "delta": 2.3,
+    "objects": {
+      "msc_blue": 124,
+      "msc_green": 527
+    },
+    "angles_bad": [],
+    "mode": "02_vr_teleop",
+    "task": "t1",
+    "scenario": "S1_left_arm",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 33.8,
+    "bright": 107.5,
+    "variety": 9092,
+    "delta": 3.33,
+    "objects": {
+      "msc_yellow_cube": 137,
+      "msc_teal_cube": 524
+    },
+    "angles_bad": [],
+    "mode": "02_vr_teleop",
+    "task": "t1s2",
+    "scenario": "S2_both_arms_random",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 25.9,
+    "bright": 91.2,
+    "variety": 7500,
+    "delta": 1.64,
+    "objects": {
+      "msc_tray_tan": 761,
+      "msc_ball_yellow": 534
+    },
+    "angles_bad": [],
+    "mode": "02_vr_teleop",
+    "task": "t2",
+    "scenario": "S2_full_lift",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 30.9,
+    "bright": 103.3,
+    "variety": 8713,
+    "delta": 2.08,
+    "objects": {
+      "msc_green": 386,
+      "msc_meter_yellow": 85
+    },
+    "angles_bad": [],
+    "mode": "02_vr_teleop",
+    "task": "t3",
+    "scenario": "S1_measure_cycle",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 19.8,
+    "bright": 88.1,
+    "variety": 5394,
+    "delta": 2.39,
+    "objects": {
+      "msc_sphere_blue": 24,
+      "msc_sphere_green": 42
+    },
+    "angles_bad": [],
+    "mode": "03_shared_autonomy",
+    "task": "t0",
+    "scenario": "D3_three_targets",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 32.2,
+    "bright": 104.6,
+    "variety": 8811,
+    "delta": 1.9,
+    "objects": {
+      "msc_blue": 123,
+      "msc_green": 513
+    },
+    "angles_bad": [],
+    "mode": "03_shared_autonomy",
+    "task": "t1",
+    "scenario": "S1_left_arm",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 24.3,
+    "bright": 107.8,
+    "variety": 9634,
+    "delta": 2.79,
+    "objects": {
+      "msc_yellow_cube": 135,
+      "msc_teal_cube": 564
+    },
+    "angles_bad": [],
+    "mode": "03_shared_autonomy",
+    "task": "t1s2",
+    "scenario": "S2_both_arms_random",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 15.8,
+    "bright": 91.2,
+    "variety": 7407,
+    "delta": 4.75,
+    "objects": {
+      "msc_tray_tan": 1216,
+      "msc_ball_yellow": 1031
+    },
+    "angles_bad": [],
+    "mode": "03_shared_autonomy",
+    "task": "t2",
+    "scenario": "S2_full_lift",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 20.2,
+    "bright": 103.3,
+    "variety": 9161,
+    "delta": 1.7,
+    "objects": {
+      "msc_green": 421,
+      "msc_meter_yellow": 87
+    },
+    "angles_bad": [],
+    "mode": "03_shared_autonomy",
+    "task": "t3",
+    "scenario": "S1_measure_cycle",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 19.8,
+    "bright": 88.1,
+    "variety": 5497,
+    "delta": 2.29,
+    "objects": {
+      "msc_sphere_blue": 24,
+      "msc_sphere_green": 42
+    },
+    "angles_bad": [],
+    "mode": "04_vr_shared",
+    "task": "t0",
+    "scenario": "D3_three_targets",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 32.8,
+    "bright": 104.9,
+    "variety": 8740,
+    "delta": 3.36,
+    "objects": {
+      "msc_blue": 128,
+      "msc_green": 512
+    },
+    "angles_bad": [],
+    "mode": "04_vr_shared",
+    "task": "t1",
+    "scenario": "S1_left_arm",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 24.2,
+    "bright": 107.8,
+    "variety": 9443,
+    "delta": 2.73,
+    "objects": {
+      "msc_yellow_cube": 146,
+      "msc_teal_cube": 553
+    },
+    "angles_bad": [],
+    "mode": "04_vr_shared",
+    "task": "t1s2",
+    "scenario": "S2_both_arms_random",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 15.2,
+    "bright": 91.2,
+    "variety": 7554,
+    "delta": 4.09,
+    "objects": {
+      "msc_tray_tan": 1326,
+      "msc_ball_yellow": 1146
+    },
+    "angles_bad": [],
+    "mode": "04_vr_shared",
+    "task": "t2",
+    "scenario": "S2_full_lift",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 20.8,
+    "bright": 103.3,
+    "variety": 9157,
+    "delta": 1.72,
+    "objects": {
+      "msc_green": 429,
+      "msc_meter_yellow": 88
+    },
+    "angles_bad": [],
+    "mode": "04_vr_shared",
+    "task": "t3",
+    "scenario": "S1_measure_cycle",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 57.4,
+    "bright": 88.6,
+    "variety": 4871,
+    "delta": 2.54,
+    "objects": {},
+    "angles_bad": [],
+    "mode": "06_full_autonomy",
+    "task": "d1",
+    "scenario": "D1_flow",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 55.2,
+    "bright": 88.6,
+    "variety": 4693,
+    "delta": 1.71,
+    "objects": {},
+    "angles_bad": [],
+    "mode": "06_full_autonomy",
+    "task": "d2",
+    "scenario": "D2_pulse",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 79.7,
+    "bright": 88.5,
+    "variety": 4641,
+    "delta": 2.41,
+    "objects": {},
+    "angles_bad": [],
+    "mode": "06_full_autonomy",
+    "task": "d3",
+    "scenario": "D3_play",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 19.8,
+    "bright": 88.2,
+    "variety": 5281,
+    "delta": 2.02,
+    "objects": {
+      "msc_sphere_blue": 24,
+      "msc_sphere_green": 42
+    },
+    "angles_bad": [],
+    "mode": "06_full_autonomy",
+    "task": "t0",
+    "scenario": "D3_three_targets",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 32.9,
+    "bright": 104.6,
+    "variety": 8694,
+    "delta": 1.95,
+    "objects": {
+      "msc_blue": 123,
+      "msc_green": 512
+    },
+    "angles_bad": [],
+    "mode": "06_full_autonomy",
+    "task": "t1",
+    "scenario": "S1_left_arm",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 23.9,
+    "bright": 107.8,
+    "variety": 9518,
+    "delta": 2.71,
+    "objects": {
+      "msc_yellow_cube": 132,
+      "msc_teal_cube": 565
+    },
+    "angles_bad": [],
+    "mode": "06_full_autonomy",
+    "task": "t1s2",
+    "scenario": "S2_both_arms_random",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 15.3,
+    "bright": 91.3,
+    "variety": 7563,
+    "delta": 4.84,
+    "objects": {
+      "msc_tray_tan": 1391,
+      "msc_ball_yellow": 1172
+    },
+    "angles_bad": [],
+    "mode": "06_full_autonomy",
+    "task": "t2",
+    "scenario": "S2_full_lift",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 20.2,
+    "bright": 103.2,
+    "variety": 8917,
+    "delta": 1.3,
+    "objects": {
+      "msc_green": 427,
+      "msc_meter_yellow": 89
+    },
+    "angles_bad": [],
+    "mode": "06_full_autonomy",
+    "task": "t3",
+    "scenario": "S1_measure_cycle",
+    "condition": "-"
+  }
+]

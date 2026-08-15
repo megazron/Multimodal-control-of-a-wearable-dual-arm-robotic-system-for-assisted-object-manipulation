@@ -71,7 +71,7 @@ Re-measure rather than trust this table; each row names its command.
 
 | | state | check |
 | --- | --- | --- |
-| unit tests | see `scripts/check_tests.py` for the live count; 2 allowed failures (`test_flake8`, `test_pep257`, pre-existing: the package uses double quotes) | `python3 scripts/check_tests.py` |
+| unit tests | 509 pass, 2 allowed failures (`test_flake8`, `test_pep257`, pre-existing: the package uses double quotes). `check_tests.py` is the gate and knows the allowlist; `python3 -m pytest -q src/*/test` is the raw run | `python3 scripts/check_tests.py` |
 | task layer | the same waypoints are **COMMANDED** under every mode — `run_abc` builds them with no mode argument. **The robot does NOT perform identically**: measured 2026-08-15 with no operator, T0's left path 1.407 m under 01 against 2.034 m under 03 | `docs/system/findings.md` |
 | **02_vr_teleop** | **cannot grasp.** All three of its grasping tasks fail; the pads miss by 88 → 206 mm against a 30 mm gate, and the miss ACCUMULATES. The other four modes close at 0.0000 m | `recordings/verification/02_vr_teleop/T1/*/scene_events.json` |
 | **the VR mapper** | `vr_pose_mapper` **holds the arms**, so the staging move cannot execute while it runs. Isolated with a control either side. The sweep stops it for staging and re-isolates | `docs/system/findings.md` |

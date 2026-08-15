@@ -68,12 +68,30 @@ PROGRESS = os.path.join(OUT, "abc_sweep_progress.json")
 TASKS = ("a", "b", "c")
 
 # THE SECOND TRAVEL GATE, in metres, measured by the SCENE node rather than by
-# the runner. 0.05 is chosen from a good clip and a bad one, not from taste:
-# a healthy 01/T1 clip measured 3.0205 m (left) and 0.6010 m (right) on
-# 2026-08-15, and the failure this catches reports 0.0000 on both. There is
-# nothing between them to be careful about, so the number is set two orders of
-# magnitude below the good case and well above tf2 jitter.
-MIN_SCENE_TRAVEL_M = 0.05
+# the runner.
+#
+# IT MUST CLEAR THE STAGING MOVE, AND THE FIRST VERSION DID NOT.
+#
+# clip_scene is started BEFORE the presentation-pose move, so its tf integral
+# includes that move -- 0.1903 m of hand travel on the left and 0.2351 m on
+# the right, from presentation_pose.json. A clip whose TASK never moved the
+# arm therefore still reports about a quarter of a metre. The first floor here
+# was 0.05 m, set against a stationary arm reading 0.0000, and it would have
+# passed a completely dead run on the staging move alone. The gate written to
+# catch a silently stationary arm could not have caught one.
+#
+# Measured across the 25 clips recorded 2026-08-15, max over the two arms:
+#
+#     staging move alone (arithmetic, from the stored pose)   ~0.24 m
+#     04_vr_shared/T0, which FAILED and was caught             0.407 m
+#     the dimmest GOOD clip (02 and 01 T2)                     1.072 m
+#     the brightest                                            5.163 m
+#
+# 0.60 sits above the staging contribution and the one real failure, and well
+# below every clip that did the task. Re-derive it if the staging move or the
+# task set changes -- it is a separation between two measured populations, not
+# a constant.
+MIN_SCENE_TRAVEL_M = 0.60
 sys.path.insert(0, os.path.join(WS, "src/srl_experiments/experiments/abc"))
 import clip_tasks as CT                                      # noqa: E402
 import msc_clip_tasks as MCT
@@ -915,7 +933,30 @@ def _main_body():
                 # what this mode does not need, starts what it does, and
                 # RE-COUNTS the publishers on the follower input, so the run
                 # still begins from a verified graph.
-                _vr = [n[0] for n in MODES[mode]["needs"] if "vr" in n[0]]
+                # ONLY WHERE THE MAPPER IS THE FOLLOWER'S INPUT, and the
+                # scoping is measured, not tidy-minded.
+                #
+                # Both VR modes RUN the mapper, but only 02 is DRIVEN through
+                # it: 02's follower reads /master_arm_pose_*, which is the
+                # mapper's output, while 04's reads /autonomy/assist_pose_*
+                # and the mapper only carries the transport.
+                #
+                # Stopping and restarting it disturbs the graph, and that cost
+                # is only worth paying where it buys something. MEASURED, same
+                # code, same stack:
+                #
+                #   02  before  3 of 5 cells FAILED, no grasp in any of them
+                #       after   5 of 5 pass, all four cubes close at 0.0000 m
+                #   04  before  5 of 5 ran (all opened on home)
+                #       after   t0 and t1 FAILED, twice each, reproducibly
+                #
+                # So it is applied to 02 and not to 04. 04's clips open on the
+                # home pose and that is the better trade: a clip that opens on
+                # a known, documented pose and SHOWS THE TASK beats one that
+                # opens correctly and shows a stationary arm.
+                _vr = ([n[0] for n in MODES[mode]["needs"] if "vr" in n[0]]
+                       if "master_arm_pose" in MODES[mode]["follower_topic"]
+                       else [])
                 for _n in _vr:
                     _pat = "lib/srl_vr_teleop/%s" % _n
                     procscan.kill_all(_pat)

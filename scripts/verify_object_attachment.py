@@ -128,11 +128,54 @@ def main():
     # conflated them: "direct" under the mannequin and "direct" under VR shared a
     # folder name. A glob that still assumes three levels matches NOTHING and
     # reports zero clips, which reads exactly like a clean pass.
-    mp4s = sorted(glob.glob(os.path.join(OUT, "*/*/*/*/rviz_front.mp4")))
+    # BOTH DEPTHS, BECAUSE THE TREE HAS BOTH.
+    #
+    # record_abc_sweep writes <mode>/<task>/<scenario>/ -- THREE levels -- and
+    # the older recorder wrote a fourth <condition>. This globbed four only,
+    # so across 25 freshly recorded cells it matched NOTHING and reported
+    # "object attachment in 0 clips", exit 0. The sweep runs this as part of
+    # its VERIFYING step and read that as a pass.
+    #
+    # Unlike its two siblings this one needs no missing producer: rviz_front
+    # .mp4 and scene_events.json are both there. It was only ever looking one
+    # directory too deep.
+    mp4s = sorted(glob.glob(os.path.join(OUT, "*/*/*/rviz_front.mp4"))
+                  + glob.glob(os.path.join(OUT, "*/*/*/*/rviz_front.mp4")))
+    _WANTED = '*/*/*/*/rviz_front.mp4'
+    # ZERO INPUTS IS NOT A PASS, AND THIS IS THE FAILURE THIS FILE WAS BUILT
+    # TO PREVENT, ARRIVING FROM THE INSIDE.
+    #
+    # MEASURED 2026-08-15: this ran as part of the sweep's VERIFYING step,
+    # reported "checking object attachment in 0 runs" and exited 0. The sweep read that as
+    # verification passing. Two things are wrong and both are here:
+    #
+    #   1. the glob is FOUR levels (<mode>/<task>/<scenario>/<condition>) and
+    #      record_abc_sweep writes THREE, so it matches nothing;
+    #   2. NOTHING IN THE CLIP PATH WRITES grip_trace.json AT ALL -- 0 files
+    #      on disk across 25 recorded cells.
+    #
+    # A verifier nobody runs is documentation; a verifier that is wired in and
+    # silently checks nothing is worse, because it carries the APPEARANCE of
+    # having run. Refuse, and say which of the two it is.
+    if not mp4s:
+        print("\nREFUSING TO REPORT A PASS: this checked ZERO clips.")
+        print("  looked for : rviz_front.mp4 at three OR four levels "
+              "under %s" % OUT)
+        print("  found      : 0")
+        print("  Either nothing has been recorded, or the tree moved again.")
+        print("  0 of 0 is not evidence.")
+        return 2
+
     print("checking object attachment in %d clips\n" % len(mp4s))
     for mp4 in mp4s:
         d = os.path.dirname(mp4)
-        mode, task, scen, cond = os.path.relpath(d, OUT).split(os.sep)[:4]
+        # PARSE WHAT IS THERE, DO NOT ASSUME A DEPTH. Three levels from the
+        # sweep, four from the older recorder; the same fix verify_rviz_clips
+        # already carries. Unpacking a fixed four raised ValueError on every
+        # clip in the current tree.
+        _p = os.path.relpath(d, OUT).split(os.sep)
+        _p = _p + ["-"] * (4 - len(_p))
+        mode, task, scen, cond = _p[0], _p[1], _p[2], _p[3]
         cap = {}
         cp = os.path.join(d, "rviz_capture.json")
         if os.path.exists(cp):
@@ -152,6 +195,33 @@ def main():
                              verdict="NO FRAMES", detail=""))
             continue
         v, detail = "N/A", ""
+        # THE MSc SET IS NOT IMPLEMENTED HERE, AND IT MUST SAY SO.
+        #
+        # Every branch below is keyed on the ARCHIVED nine-task set's names --
+        # t3 is a tan tray, t6 a sling, t2 orange and green blocks. The MSc
+        # tree's directories are T0/T1/T1S2/T2/T3, and it is only their
+        # UPPERCASE that stopped MSc T2 matching the archived t2's orange
+        # blocks. That accident turned a wrong answer into a silent one: all
+        # 28 clips came back "no carried object (N/A)" when T1 alone carries
+        # four cubes 0.24-0.42 m each.
+        #
+        # It is NOT patched to read scene_events.json, tempting as that is.
+        # This verifier exists to answer from the PIXELS whether the object
+        # travels with the gripper or the gripper waves at a stationary prop;
+        # scene_events is written by the same node that draws the object, so
+        # reading it would make the check agree with itself by construction --
+        # which is the exact failure documented for T2's tray this same day.
+        #
+        # So: named, refused, and counted separately from a real N/A.
+        if task.lower() in ("t0", "t1", "t1s2") or (
+                task.lower() in ("t2", "t3") and mode.startswith(
+                    ("01_", "02_", "03_", "04_", "06_"))):
+            rows.append(dict(task=task, scenario=scen, condition=cond,
+                             verdict="NOT IMPLEMENTED",
+                             detail="MSc task %s has no pixel rule here; the "
+                                    "branches below are the archived set's"
+                                    % task))
+            continue
         if task == "t3":
             t = travel(F, "tray_tan")
             v = ("CARRIED" if (t or 0) > STATIC_PX else "STATIC OBJECT")
@@ -211,7 +281,15 @@ def main():
                                           r["condition"], r["detail"]))
     json.dump(rows, open(os.path.join(OUT, "attachment_check.json"), "w"),
               indent=2)
-    return 0 if not static else 1
+    todo = [r for r in rows if r["verdict"] == "NOT IMPLEMENTED"]
+    if todo:
+        print("\n  NOT IMPLEMENTED for %d clip(s): the MSc task set has no "
+              "pixel rule in this file." % len(todo))
+        print("  That is a GAP, not a pass. It is reported rather than "
+              "counted as N/A.")
+    if static:
+        return 1
+    return 3 if todo else 0
 
 
 if __name__ == "__main__":

@@ -157,6 +157,8 @@ PALETTE = {
     # and a `t3` and so does the MSc set, and they are different tasks with
     # different objects. See MSC_REQUIRED.
     "msc_blue": _blue, "msc_green": _green,
+    "msc_sphere_green": _green, "msc_sphere_blue": _blue,
+    "msc_yellow_cube": _yellow, "msc_teal_cube": _teal,
     "msc_tray_tan": _tan, "msc_ball_yellow": _yellow,
     "msc_meter_yellow": _yellow,
 }
@@ -167,6 +169,10 @@ PALETTE = {
 # black frame -- but 12 clips failed against the old number. 12 sits above the
 # noise floor (which is exactly 0) and below every confirmed detection.
 MIN_PIXELS = 12
+# THE INFORMATION CARD IN FRONT OF EVERY CLIP, in seconds and as a fraction.
+# record_abc_sweep.prepend_card holds it for 6.0 s. Kept here as a number this
+# file can reason about rather than a fact it has to be told.
+CARD_HOLD_S = 6.0
 # PER-OBJECT FLOORS, because a single floor cannot work: two of these
 # detectors fire on the WEARER, not on any task object. Measured on a rendered
 # f1 frame containing the wearer and no tray, ball or block:
@@ -283,9 +289,19 @@ MSC_REQUIRED = {
     # is no red detector in this file, so the check is on the two that can be
     # measured. Both are SMALL -- a sphere is 23-46 px here -- which is why
     # their floors are low and why they were confirmed by eye first.
-    "t0": ["msc_blue", "msc_green"],
+    # T0's six spheres are red, green and blue (task0.SPHERE_COLOURS), and
+    # they are SMALL -- 23-46 px at this scale against T1's 78-489. They get
+    # their own floors below for that reason; sharing T1's would reject a
+    # sphere that is plainly in the picture.
+    "t0": ["msc_sphere_blue", "msc_sphere_green"],
     "t1": ["msc_blue", "msc_green"],
-    "t1s2": ["msc_blue", "msc_green"],
+    # STAGE 2 IS NOT COLOUR-MATCHED AND ITS CUBES ARE NOT BLUE AND GREEN.
+    # clip_scene colours them BY ARM -- yellow left, teal right -- deliberately,
+    # so a reader does not look for a colour rule this stage does not have.
+    # Requiring blue and green here failed every t1s2 clip in the set for
+    # objects that were never in it, which is the same by-design-versus-real
+    # confusion the rest of this file is built to avoid.
+    "t1s2": ["msc_yellow_cube", "msc_teal_cube"],
     "t2": ["msc_tray_tan", "msc_ball_yellow"],
     "t3": ["msc_green", "msc_meter_yellow"],
     # The demonstration routines carry no object at all, by design, and say so
@@ -295,6 +311,28 @@ MSC_REQUIRED = {
 MSC_FLOOR = {
     "msc_blue": 40, "msc_green": 150, "msc_tray_tan": 500,
     "msc_ball_yellow": 200, "msc_meter_yellow": 50,
+    # T0's spheres are a few dozen pixels. Measured on rendered T0 fronts:
+    # green 42-46 px with the sphere in view. The blue floor of 40 already
+    # covers T0's blue sphere at 23-24 px only because the wearer's torso
+    # contributes ZERO blue; there is no equivalent headroom for green, so it
+    # gets its own name and its own floor rather than being squeezed into
+    # T1's 150.
+    "msc_sphere_green": 25,
+    # AND T0's BLUE SPHERE NEEDS ITS OWN FLOOR FOR THE SAME REASON. It reads
+    # 23-24 px; the shared blue floor of 40 was set from T1's cubes at 78-131
+    # and failed all five T0 clips for a sphere plainly in the picture. There
+    # is headroom to go this low because the wearer's torso -- the obvious
+    # false positive, and blue -- reads ZERO: measured 0 px on T2 and T3
+    # fronts with the mannequin filling a third of the frame.
+    "msc_sphere_blue": 15,
+    # Stage 2's cubes, coloured by arm. Calibrated below.
+    # Stage 2's cubes, coloured by arm. Measured at 600 px on rendered
+    # fronts, and BOTH floors exist to clear a MARKING, not the wearer: t1s2
+    # draws both workspace markings and the right one is cyan, which reads
+    # 112-156 px of teal on a T2 front with no teal object in it at all; the
+    # yellow marking outline reads 21-30. With the cubes in view t1s2 reads
+    # 489-541 teal and 114-143 yellow.
+    "msc_yellow_cube": 60, "msc_teal_cube": 300,
 }
 
 
@@ -379,7 +417,23 @@ def verify_clip(mp4, task, mode=None):
     if dur < 2.0:
         return dict(ok=False, why="clip only %.1f s long" % dur,
                     duration_s=round(dur, 1))
-    F = frames(mp4, (0.30, 0.55, 0.80))
+    # SAMPLE THE FOOTAGE, NOT THE CARD.
+    #
+    # Every clip now opens with a 6.0 s full-frame information card
+    # (record_abc_sweep.prepend_card). Sampling at a fraction of the WHOLE
+    # file puts the first sample inside the card on any clip shorter than
+    # 20 s -- and the shortest here are 15.3 s, so 0.30 lands at 4.6 s, which
+    # is card.
+    #
+    # It is not harmless. colour_hits takes the MAX over samples, so a card
+    # frame can only ADD hits, and the card is not neutral: measured at this
+    # file's own 600 px scale it reads 238-241 px of yellow, 312-425 of teal
+    # and 289-302 of tan. The teal reading alone clears the 300 px floor for
+    # a stage-2 cube. An object requirement satisfied by the CAPTION is the
+    # purest form of the failure this verifier exists to prevent.
+    card_frac = (CARD_HOLD_S / dur) if dur > CARD_HOLD_S * 1.2 else 0.0
+    F = frames(mp4, tuple(card_frac + (1.0 - card_frac) * f
+                          for f in (0.30, 0.55, 0.80)))
     if len(F) < 2:
         return dict(ok=False, why="could not extract frames",
                     duration_s=round(dur, 1))

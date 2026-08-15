@@ -100,6 +100,31 @@ def main():
     # folder name. A glob that still assumes three levels matches NOTHING and
     # reports zero clips, which reads exactly like a clean pass.
     dirs = sorted(glob.glob(os.path.join(OUT, "*/*/*/*/grip_trace.json")))
+    _WANTED = '*/*/*/*/grip_trace.json'
+    # ZERO INPUTS IS NOT A PASS, AND THIS IS THE FAILURE THIS FILE WAS BUILT
+    # TO PREVENT, ARRIVING FROM THE INSIDE.
+    #
+    # MEASURED 2026-08-15: this ran as part of the sweep's VERIFYING step,
+    # reported "checking gripper motion in 0 runs" and exited 0. The sweep read that as
+    # verification passing. Two things are wrong and both are here:
+    #
+    #   1. the glob is FOUR levels (<mode>/<task>/<scenario>/<condition>) and
+    #      record_abc_sweep writes THREE, so it matches nothing;
+    #   2. NOTHING IN THE CLIP PATH WRITES grip_trace.json AT ALL -- 0 files
+    #      on disk across 25 recorded cells.
+    #
+    # A verifier nobody runs is documentation; a verifier that is wired in and
+    # silently checks nothing is worse, because it carries the APPEARANCE of
+    # having run. Refuse, and say which of the two it is.
+    if not dirs:
+        print("\nREFUSING TO REPORT A PASS: this checked ZERO clips.")
+        print("  looked for : %s" % _WANTED)
+        print("  found      : 0")
+        print("  Nothing in the clip path writes grip_trace.json, and the")
+        print("  sweep writes <mode>/<task>/<scenario>, not four levels.")
+        print("  Fix the producer or the glob. 0 of 0 is not evidence.")
+        return 2
+
     print("checking gripper motion in %d runs\n" % len(dirs))
     for tp in dirs:
         d = os.path.dirname(tp)

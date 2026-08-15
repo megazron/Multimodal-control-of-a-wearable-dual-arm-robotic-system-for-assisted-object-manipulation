@@ -118,8 +118,8 @@ class FK(Node):
             for k in range(MG.SAMPLES + 1):
                 t2 = k / float(MG.SAMPLES)
                 pp = [a[j] + (b[j] - a[j]) * t2 for j in range(3)]
-                for name, kind, prm, ctr in MG.WEARER:
-                    d = MG.dist_point(pp, kind, prm, ctr) - MG.TUBE_R
+                for name, kind, prm, ctr, rpy in MG.WEARER:
+                    d = MG.dist_point(pp, kind, prm, ctr, rpy) - MG.TUBE_R
                     if d < worst:
                         worst, who = d, name
         return worst, who

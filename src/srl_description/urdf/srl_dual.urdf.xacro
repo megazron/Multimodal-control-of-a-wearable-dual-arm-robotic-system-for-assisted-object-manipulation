@@ -52,10 +52,24 @@
   <xacro:include filename="$(find kortex_description)/grippers/robotiq_2f_85/urdf/robotiq_2f_85_macro.xacro"/>
 
   <!-- LEFT arm.
-       initial_positions == the LEGACY REAL home, so sim and real start at the
-       SAME pose and enabling the sim->real bridge is a no-op rather than a
-       jump. Kortex 259.03/277.69/267.74/286.14/194.10/27.48/55.26.
-       Mirrors config/home_positions_left.txt; keep the two in step. -->
+       initial_positions == THE PRESENTATION POSE (set 2026-08-15), which is
+       now the home pose: wrist level, hand in front of the chest.
+       Kortex 225.18/294.52/333.89/281.93/208.01/321.90/166.67.
+       Mirrors config/home_positions_left.txt; KEEP THE TWO IN STEP.
+       One updated without the other is a documented trap in this project.
+
+       SIM AND REAL NOW DISAGREE, DELIBERATELY AND TEMPORARILY. The real arm
+       is still parked at the legacy Kortex home
+       259.03/277.69/267.74/286.14/194.10/27.48/55.26, so enabling the
+       sim->real bridge is NOT a no-op any more. It is not a jump either:
+       sim_to_real_bridge.enable() checks the real arm against
+       home_positions_left.txt and REFUSES, naming the joint and the size.
+       The pose is captured on the hardware next lab session (see
+       docs/NEXT_SESSION.md); until then the refusal is the design.
+
+       This value is baked at LAUNCH, so a colcon build is required before the
+       sim arms start here. Text files changed without a rebuild leave the
+       arms at the old pose while everything else says otherwise. -->
   <xacro:load_arm
       parent="left_mount"
       prefix="left_"
@@ -66,7 +80,7 @@
       gripper="robotiq_2f_85"
       gripper_joint_name="left_robotiq_85_left_knuckle_joint"
       use_internal_bus_gripper_comm="true"
-      initial_positions="${dict(joint_1=-1.7623,joint_2=-1.4366,joint_3=-1.6102,joint_4=-1.2891,joint_5=-2.8955,joint_6=0.4796,joint_7=0.9645)}">
+      initial_positions="${dict(joint_1=-2.3530,joint_2=-1.1429,joint_3=-0.4557,joint_4=-1.3626,joint_5=-2.6528,joint_6=-0.6649,joint_7=2.9090)}">
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:load_arm>
 
@@ -80,11 +94,19 @@
       moveit_active="true"/>
 
   <!-- RIGHT arm.
-       initial_positions == the LEGACY REAL home, same reasoning as the left.
-       This gives up the mirror symmetry the previous pose had; matching the
-       real arm matters more, because a mismatch is a commanded jump.
-       Kortex 303.65/77.06/98.57/58.57/317.14/36.39/154.71.
-       Mirrors config/home_positions_right.txt; keep the two in step. -->
+       initial_positions == THE PRESENTATION POSE, same reasoning as the left.
+       Kortex 309.40/100.81/96.22/78.88/11.47/330.88/265.75.
+       Mirrors config/home_positions_right.txt; KEEP THE TWO IN STEP.
+
+       joint_7 is -1.6450 rad here, NOT the 4.6382 the pose search returned.
+       joint_7 is continuous, so they are the same physical pose, but
+       ik_follower_node refuses to start on real hardware with a continuous
+       joint outside +/-pi and unwinds it in sim. The Kortex value is 265.75
+       either way, so the lab capture is unambiguous.
+
+       The real arm is still at the legacy Kortex home
+       303.65/77.06/98.57/58.57/317.14/36.39/154.71; the bridge refuses on
+       the difference rather than commanding it. -->
   <xacro:load_arm
       parent="right_mount"
       prefix="right_"
@@ -95,7 +117,7 @@
       gripper="robotiq_2f_85"
       gripper_joint_name="right_robotiq_85_left_knuckle_joint"
       use_internal_bus_gripper_comm="true"
-      initial_positions="${dict(joint_1=-0.9835,joint_2=1.3450,joint_3=1.7204,joint_4=1.0222,joint_5=-0.7480,joint_6=0.6351,joint_7=2.7002)}">
+      initial_positions="${dict(joint_1=-0.8831,joint_2=1.7594,joint_3=1.6794,joint_4=1.3767,joint_5=0.2002,joint_6=-0.5082,joint_7=-1.6450)}">
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:load_arm>
 

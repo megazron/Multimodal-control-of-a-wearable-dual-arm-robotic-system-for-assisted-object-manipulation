@@ -195,67 +195,260 @@
     <!-- ===================== HUMAN ARMS =====================
          The previous model had NONE - the render showed a torso with
          only the two Kinova arms, which is why the SRL arms read as the
-         wearer's arms. Upper arm / forearm / hand, hanging at rest,
-         shoulder line z=1.43 matching the top of the chest box. -->
-    <link name="human_left_upper_arm">
-      <collision><geometry><cylinder radius="0.050" length="0.30"/></geometry></collision>
-      <visual><geometry><cylinder radius="0.050" length="0.30"/></geometry>
-        <material name="shirt"/></visual>
-    </link>
-    <joint name="torso_to_human_left_upper_arm" type="fixed">
-      <parent link="torso"/><child link="human_left_upper_arm"/>
-      <origin xyz="0.21 0 0.23" rpy="0 0 0"/>
-    </joint>
+         wearer's arms. Upper arm / forearm / hand, shoulder line
+         z=1.43 matching the top of the chest box.
 
-    <link name="human_left_lower_arm">
-      <collision><geometry><cylinder radius="0.045" length="0.26"/></geometry></collision>
-      <visual><geometry><cylinder radius="0.045" length="0.26"/></geometry>
-        <material name="skin"/></visual>
-    </link>
-    <joint name="torso_to_human_left_lower_arm" type="fixed">
-      <parent link="torso"/><child link="human_left_lower_arm"/>
-      <origin xyz="0.21 0 -0.05" rpy="0 0 0"/>
-    </joint>
-
-    <link name="human_left_hand">
-      <collision><geometry><box size="0.09 0.05 0.18"/></geometry></collision>
-      <visual><geometry><box size="0.09 0.05 0.18"/></geometry>
-        <material name="skin"/></visual>
-    </link>
-    <joint name="torso_to_human_left_hand" type="fixed">
-      <parent link="torso"/><child link="human_left_hand"/>
-      <origin xyz="0.21 0 -0.27" rpy="0 0 0"/>
-    </joint>
-
-    <link name="human_right_upper_arm">
-      <collision><geometry><cylinder radius="0.050" length="0.30"/></geometry></collision>
-      <visual><geometry><cylinder radius="0.050" length="0.30"/></geometry>
-        <material name="shirt"/></visual>
-    </link>
-    <joint name="torso_to_human_right_upper_arm" type="fixed">
-      <parent link="torso"/><child link="human_right_upper_arm"/>
-      <origin xyz="-0.21 0 0.23" rpy="0 0 0"/>
-    </joint>
-
-    <link name="human_right_lower_arm">
-      <collision><geometry><cylinder radius="0.045" length="0.26"/></geometry></collision>
-      <visual><geometry><cylinder radius="0.045" length="0.26"/></geometry>
-        <material name="skin"/></visual>
-    </link>
-    <joint name="torso_to_human_right_lower_arm" type="fixed">
-      <parent link="torso"/><child link="human_right_lower_arm"/>
-      <origin xyz="-0.21 0 -0.05" rpy="0 0 0"/>
-    </joint>
-
-    <link name="human_right_hand">
-      <collision><geometry><box size="0.09 0.05 0.18"/></geometry></collision>
-      <visual><geometry><box size="0.09 0.05 0.18"/></geometry>
-        <material name="skin"/></visual>
-    </link>
-    <joint name="torso_to_human_right_hand" type="fixed">
-      <parent link="torso"/><child link="human_right_hand"/>
-      <origin xyz="-0.21 0 -0.27" rpy="0 0 0"/>
-    </joint>
+         THE POSTURE IS A VARIABLE, and the block below is GENERATED.
+         Edit src/srl_teleop/srl_teleop/wearer_posture.py and run
+         scripts/gen_wearer_posture_xacro.py; do not edit it here. The
+         same table feeds mount_guard_node's geometric clearance model,
+         and a posture that reaches one and not the other is a
+         measurement that reports the old answer under a new name. -->
+    <!-- BEGIN GENERATED WEARER ARMS - edit wearer_posture.py, not this -->
+    <!-- Which posture the wearer holds. See wearer_posture.py;
+         SRL_WEARER_ARMS to pick one. -->
+    <xacro:property name="wearer_arms" value="$(optenv SRL_WEARER_ARMS down)"/>
+    <!-- An unknown posture must STOP the build. A typo that silently
+         falls back to the default is a sweep that measures the same
+         wearer five times and reports it as five postures. -->
+    <xacro:unless value="${wearer_arms == 'behind' or wearer_arms == 'down' or wearer_arms == 'folded' or wearer_arms == 'none' or wearer_arms == 'out'}">
+      <!-- a property body is evaluated lazily and would never fire;
+           an attribute is substituted eagerly, so this one does. -->
+      <link name="unknown_wearer_arms_posture_${1/0}"/>
+    </xacro:unless>
+    <xacro:if value="${wearer_arms == 'behind'}">
+      <!-- clasped behind the back, hands crossed at the small of the back -->
+      <link name="human_left_upper_arm">
+        <collision><geometry><cylinder radius="0.05" length="0.3"/></geometry></collision>
+        <visual><geometry><cylinder radius="0.05" length="0.3"/></geometry>
+          <material name="shirt"/></visual>
+      </link>
+      <joint name="torso_to_human_left_upper_arm" type="fixed">
+        <parent link="torso"/><child link="human_left_upper_arm"/>
+        <origin xyz="0.196463 -0.063174 0.244627" rpy="0.434724 -3.04192 0"/>
+      </joint>
+      <link name="human_left_lower_arm">
+        <collision><geometry><cylinder radius="0.045" length="0.26"/></geometry></collision>
+        <visual><geometry><cylinder radius="0.045" length="0.26"/></geometry>
+          <material name="skin"/></visual>
+      </link>
+      <joint name="torso_to_human_left_lower_arm" type="fixed">
+        <parent link="torso"/><child link="human_left_lower_arm"/>
+        <origin xyz="0.0604803 -0.139374 0.067571" rpy="0.100369 -1.89892 0"/>
+      </joint>
+      <link name="human_left_hand">
+        <collision><geometry><box size="0.09 0.05 0.18"/></geometry></collision>
+        <visual><geometry><box size="0.09 0.05 0.18"/></geometry>
+          <material name="skin"/></visual>
+      </link>
+      <joint name="torso_to_human_left_hand" type="fixed">
+        <parent link="torso"/><child link="human_left_hand"/>
+        <origin xyz="-0.116158 -0.170464 -0.0436598" rpy="0.202086 -2.47965 0"/>
+      </joint>
+      <link name="human_right_upper_arm">
+        <collision><geometry><cylinder radius="0.05" length="0.3"/></geometry></collision>
+        <visual><geometry><cylinder radius="0.05" length="0.3"/></geometry>
+          <material name="shirt"/></visual>
+      </link>
+      <joint name="torso_to_human_right_upper_arm" type="fixed">
+        <parent link="torso"/><child link="human_right_upper_arm"/>
+        <origin xyz="-0.196463 -0.063174 0.244627" rpy="0.434724 3.04192 0"/>
+      </joint>
+      <link name="human_right_lower_arm">
+        <collision><geometry><cylinder radius="0.045" length="0.26"/></geometry></collision>
+        <visual><geometry><cylinder radius="0.045" length="0.26"/></geometry>
+          <material name="skin"/></visual>
+      </link>
+      <joint name="torso_to_human_right_lower_arm" type="fixed">
+        <parent link="torso"/><child link="human_right_lower_arm"/>
+        <origin xyz="-0.0604803 -0.139374 0.067571" rpy="0.100369 1.89892 0"/>
+      </joint>
+      <link name="human_right_hand">
+        <collision><geometry><box size="0.09 0.05 0.18"/></geometry></collision>
+        <visual><geometry><box size="0.09 0.05 0.18"/></geometry>
+          <material name="skin"/></visual>
+      </link>
+      <joint name="torso_to_human_right_hand" type="fixed">
+        <parent link="torso"/><child link="human_right_hand"/>
+        <origin xyz="0.116158 -0.170464 -0.0436598" rpy="0.202086 2.47965 0"/>
+      </joint>
+    </xacro:if>
+    <xacro:if value="${wearer_arms == 'down'}">
+      <!-- arms hanging at the sides (the shipped model) -->
+      <link name="human_left_upper_arm">
+        <collision><geometry><cylinder radius="0.05" length="0.3"/></geometry></collision>
+        <visual><geometry><cylinder radius="0.05" length="0.3"/></geometry>
+          <material name="shirt"/></visual>
+      </link>
+      <joint name="torso_to_human_left_upper_arm" type="fixed">
+        <parent link="torso"/><child link="human_left_upper_arm"/>
+        <origin xyz="0.21 0 0.23" rpy="0 3.14159 0"/>
+      </joint>
+      <link name="human_left_lower_arm">
+        <collision><geometry><cylinder radius="0.045" length="0.26"/></geometry></collision>
+        <visual><geometry><cylinder radius="0.045" length="0.26"/></geometry>
+          <material name="skin"/></visual>
+      </link>
+      <joint name="torso_to_human_left_lower_arm" type="fixed">
+        <parent link="torso"/><child link="human_left_lower_arm"/>
+        <origin xyz="0.21 0 -0.05" rpy="0 3.14159 0"/>
+      </joint>
+      <link name="human_left_hand">
+        <collision><geometry><box size="0.09 0.05 0.18"/></geometry></collision>
+        <visual><geometry><box size="0.09 0.05 0.18"/></geometry>
+          <material name="skin"/></visual>
+      </link>
+      <joint name="torso_to_human_left_hand" type="fixed">
+        <parent link="torso"/><child link="human_left_hand"/>
+        <origin xyz="0.21 0 -0.27" rpy="0 3.14159 0"/>
+      </joint>
+      <link name="human_right_upper_arm">
+        <collision><geometry><cylinder radius="0.05" length="0.3"/></geometry></collision>
+        <visual><geometry><cylinder radius="0.05" length="0.3"/></geometry>
+          <material name="shirt"/></visual>
+      </link>
+      <joint name="torso_to_human_right_upper_arm" type="fixed">
+        <parent link="torso"/><child link="human_right_upper_arm"/>
+        <origin xyz="-0.21 0 0.23" rpy="0 -3.14159 0"/>
+      </joint>
+      <link name="human_right_lower_arm">
+        <collision><geometry><cylinder radius="0.045" length="0.26"/></geometry></collision>
+        <visual><geometry><cylinder radius="0.045" length="0.26"/></geometry>
+          <material name="skin"/></visual>
+      </link>
+      <joint name="torso_to_human_right_lower_arm" type="fixed">
+        <parent link="torso"/><child link="human_right_lower_arm"/>
+        <origin xyz="-0.21 0 -0.05" rpy="0 -3.14159 0"/>
+      </joint>
+      <link name="human_right_hand">
+        <collision><geometry><box size="0.09 0.05 0.18"/></geometry></collision>
+        <visual><geometry><box size="0.09 0.05 0.18"/></geometry>
+          <material name="skin"/></visual>
+      </link>
+      <joint name="torso_to_human_right_hand" type="fixed">
+        <parent link="torso"/><child link="human_right_hand"/>
+        <origin xyz="-0.21 0 -0.27" rpy="0 -3.14159 0"/>
+      </joint>
+    </xacro:if>
+    <xacro:if value="${wearer_arms == 'folded'}">
+      <!-- folded across the chest (the forearms are IN the work volume) -->
+      <link name="human_left_upper_arm">
+        <collision><geometry><cylinder radius="0.05" length="0.3"/></geometry></collision>
+        <visual><geometry><cylinder radius="0.05" length="0.3"/></geometry>
+          <material name="shirt"/></visual>
+      </link>
+      <joint name="torso_to_human_left_upper_arm" type="fixed">
+        <parent link="torso"/><child link="human_left_upper_arm"/>
+        <origin xyz="0.217518 0.0270637 0.232653" rpy="-0.181418 3.09062 0"/>
+      </joint>
+      <link name="human_left_lower_arm">
+        <collision><geometry><cylinder radius="0.045" length="0.26"/></geometry></collision>
+        <visual><geometry><cylinder radius="0.045" length="0.26"/></geometry>
+          <material name="skin"/></visual>
+      </link>
+      <joint name="torso_to_human_left_lower_arm" type="fixed">
+        <parent link="torso"/><child link="human_left_lower_arm"/>
+        <origin xyz="0.101566 0.0905183 0.103502" rpy="-0.283721 -1.42448 0"/>
+      </joint>
+      <link name="human_left_hand">
+        <collision><geometry><box size="0.09 0.05 0.18"/></geometry></collision>
+        <visual><geometry><box size="0.09 0.05 0.18"/></geometry>
+          <material name="skin"/></visual>
+      </link>
+      <joint name="torso_to_human_left_hand" type="fixed">
+        <parent link="torso"/><child link="human_left_hand"/>
+        <origin xyz="-0.105478 0.140389 0.152252" rpy="-0.150341 -1.2203 0"/>
+      </joint>
+      <link name="human_right_upper_arm">
+        <collision><geometry><cylinder radius="0.05" length="0.3"/></geometry></collision>
+        <visual><geometry><cylinder radius="0.05" length="0.3"/></geometry>
+          <material name="shirt"/></visual>
+      </link>
+      <joint name="torso_to_human_right_upper_arm" type="fixed">
+        <parent link="torso"/><child link="human_right_upper_arm"/>
+        <origin xyz="-0.217518 0.0270637 0.232653" rpy="-0.181418 -3.09062 0"/>
+      </joint>
+      <link name="human_right_lower_arm">
+        <collision><geometry><cylinder radius="0.045" length="0.26"/></geometry></collision>
+        <visual><geometry><cylinder radius="0.045" length="0.26"/></geometry>
+          <material name="skin"/></visual>
+      </link>
+      <joint name="torso_to_human_right_lower_arm" type="fixed">
+        <parent link="torso"/><child link="human_right_lower_arm"/>
+        <origin xyz="-0.101566 0.0905183 0.103502" rpy="-0.283721 1.42448 0"/>
+      </joint>
+      <link name="human_right_hand">
+        <collision><geometry><box size="0.09 0.05 0.18"/></geometry></collision>
+        <visual><geometry><box size="0.09 0.05 0.18"/></geometry>
+          <material name="skin"/></visual>
+      </link>
+      <joint name="torso_to_human_right_hand" type="fixed">
+        <parent link="torso"/><child link="human_right_hand"/>
+        <origin xyz="0.105478 0.140389 0.152252" rpy="-0.150341 1.2203 0"/>
+      </joint>
+    </xacro:if>
+    <xacro:if value="${wearer_arms == 'none'}">
+      <!-- no wearer arms at all - the limit, not a posture -->
+      <!-- no links: the wearer has no arms in this configuration -->
+    </xacro:if>
+    <xacro:if value="${wearer_arms == 'out'}">
+      <!-- held out to the sides and back, elbows out, hands low and behind -->
+      <link name="human_left_upper_arm">
+        <collision><geometry><cylinder radius="0.05" length="0.3"/></geometry></collision>
+        <visual><geometry><cylinder radius="0.05" length="0.3"/></geometry>
+          <material name="shirt"/></visual>
+      </link>
+      <joint name="torso_to_human_left_upper_arm" type="fixed">
+        <parent link="torso"/><child link="human_left_upper_arm"/>
+        <origin xyz="0.307141 -0.0523068 0.278375" rpy="0.356197 2.37875 0"/>
+      </joint>
+      <link name="human_left_lower_arm">
+        <collision><geometry><cylinder radius="0.045" length="0.26"/></geometry></collision>
+        <visual><geometry><cylinder radius="0.045" length="0.26"/></geometry>
+          <material name="skin"/></visual>
+      </link>
+      <joint name="torso_to_human_left_lower_arm" type="fixed">
+        <parent link="torso"/><child link="human_left_lower_arm"/>
+        <origin xyz="0.497939 -0.169653 0.114313" rpy="0.523946 2.1588 0"/>
+      </joint>
+      <link name="human_left_hand">
+        <collision><geometry><box size="0.09 0.05 0.18"/></geometry></collision>
+        <visual><geometry><box size="0.09 0.05 0.18"/></geometry>
+          <material name="skin"/></visual>
+      </link>
+      <joint name="torso_to_human_left_hand" type="fixed">
+        <parent link="torso"/><child link="human_left_hand"/>
+        <origin xyz="0.654579 -0.28148 0.00778671" rpy="0.546699 2.18152 0"/>
+      </joint>
+      <link name="human_right_upper_arm">
+        <collision><geometry><cylinder radius="0.05" length="0.3"/></geometry></collision>
+        <visual><geometry><cylinder radius="0.05" length="0.3"/></geometry>
+          <material name="shirt"/></visual>
+      </link>
+      <joint name="torso_to_human_right_upper_arm" type="fixed">
+        <parent link="torso"/><child link="human_right_upper_arm"/>
+        <origin xyz="-0.307141 -0.0523068 0.278375" rpy="0.356197 -2.37875 0"/>
+      </joint>
+      <link name="human_right_lower_arm">
+        <collision><geometry><cylinder radius="0.045" length="0.26"/></geometry></collision>
+        <visual><geometry><cylinder radius="0.045" length="0.26"/></geometry>
+          <material name="skin"/></visual>
+      </link>
+      <joint name="torso_to_human_right_lower_arm" type="fixed">
+        <parent link="torso"/><child link="human_right_lower_arm"/>
+        <origin xyz="-0.497939 -0.169653 0.114313" rpy="0.523946 -2.1588 0"/>
+      </joint>
+      <link name="human_right_hand">
+        <collision><geometry><box size="0.09 0.05 0.18"/></geometry></collision>
+        <visual><geometry><box size="0.09 0.05 0.18"/></geometry>
+          <material name="skin"/></visual>
+      </link>
+      <joint name="torso_to_human_right_hand" type="fixed">
+        <parent link="torso"/><child link="human_right_hand"/>
+        <origin xyz="-0.654579 -0.28148 0.00778671" rpy="0.546699 -2.18152 0"/>
+      </joint>
+    </xacro:if>
+    <!-- END GENERATED WEARER ARMS -->
 
     <!-- ===================== HARNESS =====================
          Shoulder straps, so the pack reads as worn rather than stuck on. -->

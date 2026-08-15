@@ -254,11 +254,35 @@ def check_t1(mods):
     # NEUTRALITY, not a specific RGB. "White" here means R = G = B and bright,
     # which is also the property that keeps it out of every colour detector
     # in verify_rviz_clips -- all of which key on channel DIFFERENCES.
+    #
+    # AND THE BRIGHTNESS TEST IS ON THE RENDERED VALUE, NOT THE REQUESTED ONE.
+    # This check used to ask only whether CS.OAK was neutral and >= 0.80, and
+    # it passed the shipped (0.94, 0.94, 0.95) table for months while that
+    # table rendered at RGB(118,118,118) -- mid grey -- in every clip. The
+    # request was white; the picture was not. That is CLAUDE.md's own
+    # "matched requested RGB, not RENDERED colour" row, reached from the
+    # authoring side, and a spec item that says "the table is WHITE" is a
+    # claim about the picture.
+    #
+    # The bridge between the two is measured, not assumed: an up-facing
+    # marker face renders at 0.5 x colour and the table top is an up-facing
+    # face (scripts/probe_marker_shading.py, three controls correct, and the
+    # coefficient checked over five colours from 0.0 to 2.0). So the audit
+    # applies that coefficient and asks for a white PIXEL.
+    UP_FACING_COEFF = 0.5            # probe_marker_shading.py
+    WHITE_FLOOR_8BIT = 200           # below this a top reads grey on screen
     r, g, b = CS.OAK[0], CS.OAK[1], CS.OAK[2]
     neutral = max(abs(r - g), abs(g - b), abs(r - b)) <= 0.03
-    out["T1-8"] = ((PRESENT, "table top rgba %s: neutral and bright" % (CS.OAK,))
-                   if neutral and min(r, g, b) >= 0.80
-                   else (MISSING, "table top rgba %s is not a white" % (CS.OAK,)))
+    rendered = min(255.0, UP_FACING_COEFF * min(r, g, b) * 255.0)
+    out["T1-8"] = ((PRESENT, "table top rgba %s -> renders ~%.0f of 255 on an "
+                             "up-facing face: neutral and white"
+                             % (CS.OAK, rendered))
+                   if neutral and rendered >= WHITE_FLOOR_8BIT
+                   else (MISSING, "table top rgba %s renders ~%.0f of 255 "
+                                  "(want >= %d, neutral): %s"
+                                  % (CS.OAK, rendered, WHITE_FLOOR_8BIT,
+                                     "not neutral" if not neutral
+                                     else "too dark to read as white")))
 
     # ---- T1-9  stage 1 is the LEFT arm, cubes on the LEFT ----------------
     left_cubes = [c for c in M.T1_CUBES if c[0] > 0]

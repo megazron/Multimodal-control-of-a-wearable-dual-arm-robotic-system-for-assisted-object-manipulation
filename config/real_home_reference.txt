@@ -1,5 +1,17 @@
 # =====================================================================
 # REAL-ROBOT REFERENCE -- LEFT ARM. LIVE READING, 2026-07-31 18:21
+#
+# *** REFERENCE ONLY. NO CODE READS THIS FILE. ***
+#
+# Checked 2026-08-15: nothing in src/ or scripts/ opens it. It is a record
+# of a live hardware reading, kept so the conversion can be re-validated
+# against something that came off a real arm. THE AUTHORITATIVE POSE IS
+# config/home_positions_{arm}.txt, which five runtime consumers load --
+# sim_to_real_bridge (the enable gate), real_homing_node (where the REAL arm
+# is driven), ik_follower_node (the IK seed), mock_real_stack, session_manager.
+#
+# A file that looks authoritative and is ignored is its own hazard, so this
+# header says which it is.
 # =====================================================================
 # THE SIM HOME IS AUTHORITATIVE. The real arm is moved TO it, never the
 # reverse. Conversion lives only in srl_teleop/kortex_convention.py and is
@@ -11,18 +23,27 @@
 # =====================================================================
 
 # --- LEFT 192.168.1.10, live ---
+# WHERE THE ARM PHYSICALLY WAS on 2026-07-31. Still the only reading ever
+# taken off real hardware in this project.
 left_kortex_deg:   276.99  309.93   22.32  309.49   44.60  342.63  147.39
 left_ros_rad:     -1.44880 -0.87392  0.38950 -0.88151  0.77847 -0.30325  2.57251
 left_ros_deg:      -83.01  -50.07   22.32  -50.51   44.60  -17.37  147.39
-left_sim_home_deg: 150.00  -94.00  -53.00  -65.00 -123.00   41.00  121.00
-left_delta_deg:   -126.99  -43.93  -75.32  -14.49 -167.60   58.37  -26.39
-# worst joint_5 at 167.60 deg. At homing_vel 0.03 rad/s that is ~98 s.
-# EXCEEDS the 120 deg refusal -> needs allow_large_move:=true, set
-# deliberately per session (see real_homing_node).
+
+# --- THE DELTA LINES ARE GONE, AND THAT IS THE POINT ---
+# They compared the reading above against a sim home of
+#   150.00 -94.00 -53.00 -65.00 -123.00 41.00 121.00
+# which has been superseded TWICE since: by the legacy real home on
+# 2026-07-31, and by the presentation pose on 2026-08-15. A delta against a
+# pose that no longer exists is worse than no delta, because it looks like a
+# homing estimate. Compute it live instead:
+#
+#   python3 -c "import sys;sys.path.insert(0,'config');import home_positions \
+#     as hp;print(hp.load_home_degrees('left'))"
+#
+# and difference it against left_ros_deg above.
 
 # --- RIGHT 192.168.1.9 ---
 # NOT READ. The right arm cannot run its real driver at the same time as the
 # left: kortex_driver exports tcp/twist.* WITHOUT an arm prefix, so two real
 # components collide and abort the whole hardware load. Right is mock.
-# Its last known offset from sim home was 180.36 deg on joint_2 (a LIMITED
-# joint) -- that figure is from the legacy data and is UNVERIFIED.
+# No live reading has ever been taken from it.

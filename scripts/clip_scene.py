@@ -161,15 +161,14 @@ TABLE_FAR_Y = 0.72
 # is a scenery change; it is re-verified with the layout regardless.
 TABLE_HALF_X = 1.05
 TABLE_LEG = 0.055                # square section, at the four corners
+TABLE_LEG_INSET = 0.10           # how far in from the corner each leg sits.
+                                 # The top then OVERHANGS, which is most of
+                                 # what reads as a table top at a glance; at
+                                 # the old inset of one leg-width there was no
+                                 # overhang at all and it read as a box.
 TABLE_APRON = 0.06               # skirt depth under the top, so it reads as
                                  # a table rather than a floating slab
 # THE TABLE IS WHITE. Specified in TASK_SPEC section 2, T1-8.
-#
-# Three shades, not one, and the reason is the capture rather than taste: a
-# single flat white renders as one silhouette against the dark RViz
-# background (45,45,48) and the top, the apron and the risers merge into a
-# slab with no edges. The top is the white; the apron and risers step down so
-# the form still reads at 5-13 fps.
 #
 # WHITE IS SAFER FOR THE VERIFIER THAN OAK WAS, and that is worth stating
 # because a colour change near a colour-keyed check is normally a risk. Every
@@ -177,10 +176,69 @@ TABLE_APRON = 0.06               # skirt depth under the top, so it reads as
 # R-B > 45, _yellow R-B > 65, _green G-R > 45, _teal G-R > 40 -- and a
 # neutral has R = G = B, so it cannot fire any of them. Oak (0.68, 0.52,
 # 0.33) sat inside the _tan band and could leak into it; white cannot.
-OAK = (0.94, 0.94, 0.95, 1.0)        # the table top
-RISER = (0.80, 0.80, 0.82, 1.0)      # the posts under the raised surface
-APRON = (0.86, 0.86, 0.88, 1.0)      # the skirt under the top
-LEG = (0.70, 0.70, 0.73, 1.0)        # the four legs
+#
+# ==========================================================================
+# THE NUMBERS BELOW ARE SET FROM THE RENDERER'S MEASURED RESPONSE, NOT FROM
+# WHAT "WHITE" MEANS ON PAPER, and the two are a long way apart.
+# ==========================================================================
+# The shipped table asked for (0.94, 0.94, 0.95) and TASK_SPEC calls it
+# white. Sampled out of the 2026-08-15 T1 clip, the top renders at
+# RGB(118,118,118) -- mid grey -- while the arm's own meshes in the same
+# frame reach (208,207,210). Nothing here noticed, because the only check on
+# T1-8 (audit_task_spec) reads CS.OAK and asks whether the REQUESTED colour
+# is neutral and >= 0.80. It never looks at a pixel. That is CLAUDE.md's own
+# "matched requested RGB, not RENDERED colour" row, arrived at from the
+# authoring side instead of the verifying one.
+#
+# Measured directly (scripts/probe_marker_shading.py, one slab where the
+# table is, one frame per colour off the capture display, all three controls
+# correct):
+#
+#     requested        UP-FACING face      CAMERA-FACING face
+#     0.00                  0                    0
+#     0.94                119                  208
+#     1.00                127                  221
+#     1.50                190                  255
+#     2.00                253                  255
+#
+# TWO THINGS COME OUT OF THAT AND BOTH ARE NEEDED.
+#
+# 1. A MARKER'S MATERIAL TAKES AMBIENT = 0.5 x COLOUR, and the only light in
+#    the scene is a headlight on the camera. A face pointing AT the camera
+#    gets ambient plus diffuse and renders 0.87 x colour; a face pointing UP
+#    is grazed by that light and gets the ambient term alone, 0.5 x colour.
+#    The table top is an up-facing face. That is why a table asking for 0.94
+#    rendered 118 in the shipped clips: not the colour, the renderer.
+#
+# 2. RVIZ DOES NOT CLAMP THE COLOUR BEFORE IT REACHES THE MATERIAL.
+#    std_msgs/ColorRGBA is float32 with no stated upper bound, and the last
+#    two rows are the test: 1.5 and 2.0 render 190 and 253, exactly the
+#    0.5 x colour line continued past 1.0. So the ambient term CAN be driven
+#    to full and a white table top IS available -- it just cannot be written
+#    down as "white".
+#
+# The values below are therefore chosen as RENDERED targets and divided back
+# through the measured coefficients:
+#
+#     part    face seen     want   coefficient   requested
+#     top     up-facing      240      127.5         1.88
+#     apron   camera-facing  199      221           0.90
+#     riser   camera-facing  199      221           0.90
+#     legs    camera-facing  170      221           0.77
+#
+# IF ANOTHER RENDERER DOES CLAMP AT 1.0 this degrades to exactly the old
+# behaviour -- a 127 top -- rather than to anything broken, so the trick is
+# safe to depend on and its failure mode is the status quo.
+#
+# The top's OWN front face is camera-facing and saturates at 255. That is
+# wanted: it is a 35 mm bright line along the near edge, which is the edge
+# every front view looks straight at, and it comes free instead of needing a
+# separate rail coplanar with it.
+OAK = (1.88, 1.88, 1.89, 1.0)        # top, up-facing -> ~240 (near white);
+                                     # its own front face -> 255
+RISER = (0.90, 0.90, 0.91, 1.0)      # posts under the raised surface -> ~199
+APRON = (0.90, 0.90, 0.91, 1.0)      # skirt under the top -> ~199
+LEG = (0.77, 0.77, 0.78, 1.0)        # the four legs -> ~170
 
 # ==========================================================================
 # WORKSPACE MARKINGS -- the boundary each arm can actually reach, MEASURED
@@ -1075,31 +1133,77 @@ class Scene(Node):
         for _name, _xyz, _size, _col in solids:
             add(Marker.CUBE, list(_xyz), tuple(_size), _col)
         if any(s[0] == "table" for s in solids):
-            # LEGS, APRON AND RISER SUPPORTS -- drawn only, because none of
-            # them is anywhere the arm goes and a collision object that is
-            # never approached is cost without cover. Four corner legs, a
-            # skirt under the top and two posts carrying the raised work
-            # surface: what makes it read as a table rather than a slab.
+            # LEGS AND APRON -- drawn only, because none of them is anywhere
+            # the arm goes and a collision object that is never approached is
+            # cost without cover.
+            #
+            # WHAT A TABLE NEEDS TO READ AS ONE, and the shipped one had two
+            # of the three. It had a top and four legs; its skirt ran along
+            # the near and far edges ONLY, so from the ends the top floated on
+            # two rails, and the legs sat at the extreme corners with no
+            # overhang, which reads as a box rather than a table.
+            #
+            #   * the legs are INSET, so the top overhangs them on all four
+            #     sides. An overhang is most of what says "table top" at a
+            #     glance;
+            #   * the apron runs all the way round, four rails not two;
+            #   * a thin RAIL along the near edge, which is the edge every
+            #     front view looks straight down at and the one that carries
+            #     the silhouette.
+            #
+            # Nothing here moves the top, the near edge or the half-width:
+            # y = 0.100 is the measured edge (0 waypoint failures; 0.02 cost
+            # T1 four), |x| = 1.05 covers the marking out to 1.000, and the
+            # top at 0.95 is the highest slab that costs nothing.
             tyc = (TABLE_NEAR_Y + TABLE_FAR_Y) / 2.0
             tyd = TABLE_FAR_Y - TABLE_NEAR_Y
             for sx in (-1, 1):
-                for sy in (TABLE_NEAR_Y + TABLE_LEG, TABLE_FAR_Y - TABLE_LEG):
+                for sy in (TABLE_NEAR_Y + TABLE_LEG_INSET,
+                           TABLE_FAR_Y - TABLE_LEG_INSET):
                     add(Marker.CUBE,
-                        [sx * (TABLE_HALF_X - TABLE_LEG), sy,
+                        [sx * (TABLE_HALF_X - TABLE_LEG_INSET), sy,
                          (TABLE_TOP - TABLE_THICK) / 2.0],
                         (TABLE_LEG, TABLE_LEG, TABLE_TOP - TABLE_THICK),
                         LEG)
-            for sy in (TABLE_NEAR_Y + TABLE_THICK, TABLE_FAR_Y - TABLE_THICK):
+            z_apron = TABLE_TOP - TABLE_THICK - TABLE_APRON / 2.0
+            inset = TABLE_LEG_INSET - TABLE_LEG / 2.0
+            for sy in (TABLE_NEAR_Y + inset, TABLE_FAR_Y - inset):
+                add(Marker.CUBE, [0.0, sy, z_apron],
+                    (2 * (TABLE_HALF_X - inset), 0.022, TABLE_APRON), APRON)
+            for sx in (-1, 1):
                 add(Marker.CUBE,
-                    [0.0, sy, TABLE_TOP - TABLE_THICK - TABLE_APRON / 2.0],
-                    (2 * TABLE_HALF_X - 0.02, 0.02, TABLE_APRON), APRON)
-            gap = CT.BENCH_TOP - CT.BENCH_THICK - TABLE_TOP
-            for sx in (-0.60, 0.60):
-                add(Marker.CUBE,
-                    [sx, (CT.BENCH_NEAR_Y + CT.BENCH_FAR_Y) / 2.0,
-                     TABLE_TOP + gap / 2.0],
-                    (0.06, CT.BENCH_FAR_Y - CT.BENCH_NEAR_Y - 0.04, gap),
-                    RISER)
+                    [sx * (TABLE_HALF_X - inset), tyc, z_apron],
+                    (0.022, tyd - 2 * inset, TABLE_APRON), APRON)
+            # NO SEPARATE NEAR-EDGE RAIL, AND THE RENDER IS WHY. One was
+            # drawn here to give the front edge its own tone, 12 mm deep at
+            # y = 0.100. Its front face is then EXACTLY COPLANAR with the top
+            # slab's, which is z-fighting: measured, the slab won at the front
+            # camera angle, but which of two coincident faces wins is not
+            # something to leave to the depth buffer in a video.
+            #
+            # It bought nothing anyway. The top slab's OWN front face points
+            # at the camera and so takes the diffuse term the top face cannot:
+            # measured 221 of 255 at full white, against 127 for the top. The
+            # bright edge line is already there and it is free.
+            # THE RISERS CARRY THE BENCH, AND ONLY a/b/c HAS A BENCH.
+            #
+            # They were drawn whenever a table was, so T1, T1S2, T2 and T3 --
+            # every MSc clip -- showed two 110 mm posts standing on the table
+            # holding nothing, 60 mm short of the objects they appear to be
+            # under. One of them is visible in the front view of every T1
+            # clip in the 2026-08-15 set. A support under nothing invites a
+            # viewer to read the objects as resting on it, which is the one
+            # thing this scene must not imply: with the pinned wrist there is
+            # no support geometry an object can rest on and still be reached,
+            # and that absence is a recorded cost, not something to dress.
+            if any(s[0] == "bench" for s in solids):
+                gap = CT.BENCH_TOP - CT.BENCH_THICK - TABLE_TOP
+                for sx in (-0.60, 0.60):
+                    add(Marker.CUBE,
+                        [sx, (CT.BENCH_NEAR_Y + CT.BENCH_FAR_Y) / 2.0,
+                         TABLE_TOP + gap / 2.0],
+                        (0.06, CT.BENCH_FAR_Y - CT.BENCH_NEAR_Y - 0.04, gap),
+                        RISER)
 
         # ---- PER-TASK SCENE FIXTURES: the task's SUBJECT ----------------
         # Things the task is ABOUT that are not grasped. They belong here, not

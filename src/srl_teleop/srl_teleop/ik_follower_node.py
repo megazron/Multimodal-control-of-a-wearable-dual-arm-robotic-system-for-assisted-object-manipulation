@@ -626,7 +626,10 @@ class IKFollowerNode(Node):
     def _clearance_from(self, prefix):
         """Distal-link points relative to the wearer, from ONE frame tree."""
         pts = {}
-        for part in ("torso", "head", "hips"):
+        # Every part the model knows, not a hardcoded three. The wearer's own
+        # arms were added to ClearanceModel.PARTS and a fixed triple here would
+        # have kept them out of the live check while the model claimed them.
+        for part in self.clearance_model.PARTS:
             got = []
             for link in DISTAL_LINKS:
                 try:

@@ -1,0 +1,118 @@
+{
+  "published_down": {
+    "left": 0.325,
+    "right": 0.45
+  },
+  "rows": {
+    "down": {
+      "stage1": {
+        "left": 0.325,
+        "right": 0.45
+      },
+      "full": {
+        "left": 0.325,
+        "right": 0.45
+      },
+      "binds": {
+        "left": "torso",
+        "right": "torso"
+      },
+      "centre_cells": 0,
+      "home": {
+        "left": 0.161,
+        "right": 0.161
+      }
+    },
+    "behind": {
+      "stage1": {
+        "left": null,
+        "right": null
+      },
+      "full": {
+        "left": null,
+        "right": null
+      },
+      "binds": {
+        "left": null,
+        "right": null
+      },
+      "centre_cells": 0,
+      "home": {
+        "left": 0.1145,
+        "right": 0.1145
+      }
+    },
+    "folded": {
+      "stage1": {
+        "left": 0.375,
+        "right": 0.45
+      },
+      "full": {
+        "left": 0.4,
+        "right": 0.45
+      },
+      "binds": {
+        "left": "L-upperarm",
+        "right": "R-upperarm"
+      },
+      "centre_cells": 0,
+      "home": {
+        "left": 0.161,
+        "right": 0.161
+      }
+    },
+    "out": {
+      "stage1": {
+        "left": null,
+        "right": null
+      },
+      "full": {
+        "left": null,
+        "right": null
+      },
+      "binds": {
+        "left": null,
+        "right": null
+      },
+      "centre_cells": 0,
+      "home": {
+        "left": 0.0601,
+        "right": -0.0837
+      }
+    },
+    "none": {
+      "stage1": {
+        "left": 0.3,
+        "right": 0.375
+      },
+      "full": {
+        "left": 0.3,
+        "right": 0.375
+      },
+      "binds": {
+        "left": "torso",
+        "right": "torso"
+      },
+      "centre_cells": 0,
+      "home": {
+        "left": 0.161,
+        "right": 0.161
+      }
+    }
+  },
+  "down_reproduces_published": true,
+  "postures": {
+    "down": "arms hanging at the sides (the shipped model)",
+    "behind": "clasped behind the back, hands crossed at the small of the back",
+    "folded": "folded across the chest (the forearms are IN the work volume)",
+    "out": "held out to the sides and back, elbows out, hands low and behind",
+    "none": "no wearer arms at all -- the limit, not a posture"
+  },
+  "per_posture_files": {
+    "down": "recordings/baselines/centre_posture_down.json",
+    "behind": "recordings/baselines/centre_posture_behind.json",
+    "folded": "recordings/baselines/centre_posture_folded.json",
+    "out": "recordings/baselines/centre_posture_out.json",
+    "none": "recordings/baselines/centre_posture_none.json"
+  }
+}

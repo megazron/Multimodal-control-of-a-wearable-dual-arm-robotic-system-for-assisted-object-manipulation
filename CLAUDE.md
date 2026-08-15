@@ -72,15 +72,26 @@ Re-measure rather than trust this table; each row names its command.
 | | state | check |
 | --- | --- | --- |
 | unit tests | 509 pass, 2 allowed failures (`test_flake8`, `test_pep257`, pre-existing: the package uses double quotes). `check_tests.py` is the gate and knows the allowlist; `python3 -m pytest -q src/*/test` is the raw run | `python3 scripts/check_tests.py` |
+| **home pose** | **the presentation pose since 2026-08-15**: wrists level, hands in front of the chest. Task set re-measured first — with the ANCHOR unchanged every task performs exactly as before. **The real arms are still at the legacy home**; the bridge refuses to enable at 1.94 rad and says why | `recordings/baselines/home_change.json` |
+| **where home is stored** | **FIVE places, not two.** `config/home_positions_*.txt` is the SOURCE (5 live consumers incl. the bridge gate and the real homing target); the URDF's two blocks are where the sim spawns; `pot_bridge.py` and `srl_teleop_node.py` had their own hardcoded copies and now load it; `real_home_reference.txt` is reference-only and read by nothing | `test_home_has_one_source.py` |
 | task layer | the same waypoints are **COMMANDED** under every mode — `run_abc` builds them with no mode argument. **The robot does NOT perform identically**: measured 2026-08-15 with no operator, T0's left path 1.407 m under 01 against 2.034 m under 03 | `docs/system/findings.md` |
 | **02_vr_teleop** | **cannot grasp.** All three of its grasping tasks fail; the pads miss by 88 → 206 mm against a 30 mm gate, and the miss ACCUMULATES. The other four modes close at 0.0000 m | `recordings/verification/02_vr_teleop/T1/*/scene_events.json` |
 | **the VR mapper** | `vr_pose_mapper` **holds the arms**, so the staging move cannot execute while it runs. Isolated with a control either side. The sweep stops it for staging and re-isolates | `docs/system/findings.md` |
 | **T2's tray** | **elastic** — drawn as `separation + 0.06` between the grippers, so it runs 0.487–1.211 m against a rigid 0.560 m spec. T2-1 and T2-2 cannot fail, and the ball never drops | `scripts/clip_scene.py` ~1318 |
 | accuracy table | reproducible from committed data; grasp NOT uniformly 100% (06 reads 50%, VR 75%) | `scripts/accuracy_table.py` |
 | status | 25 clip dirs, 19/19 planned data cells | `scripts/status_table.py` |
-| clips | **re-recorded 2026-08-15 on the current geometry**: 25 cells, 5 tasks x 5 modes, eight angles and a card each | `scripts/status_table.py` |
+| clips | 25 cells, 5 tasks x 5 modes, eight angles and a card each — but **now STALE against the scene**: the table and the presentation pose both changed after they were recorded, so every clip shows a grey table, two risers holding nothing, and hands 80 mm low. Re-record before showing them | `scripts/status_table.py` |
+| **the table** | **WHITE in the picture, not just in the request**: renders 238 of 255 against the old 118. A marker's ambient is 0.5 x colour and RViz does not clamp, so the top asks for 1.88. The risers are gone from every MSc task | `scripts/probe_marker_shading.py` |
+| **grasp approach** | every grasp uses the **pinned near-side** wrist — `run_abc.send()` writes the anchor into every waypoint of every mode. Top-down is WORSE for T1 (loses all four place points on wearer clearance). **T3's circuit box presents 195 mm of box to an 85 mm hand and cannot close**; T2's right grip 114 mm | `recordings/baselines/grasp_approach.json` |
+| **wearer clearance, per task** | only T1 stage 1 is clean. **T0 breaches by ~142/137 mm (and 4 IK failures per arm), T2 by 150/147 and its LEFT arm now fails 1 waypoint, T3's left arm by 88, T1 stage 2 seed 0's right arm by up to 37** | `recordings/baselines/home_change_applied.json` |
+| **the centre, and WHY** | **the TORSO, not the wearer's arms.** The arm posture is now a variable (`SRL_WEARER_ARMS`, five settings, one source). With the wearer's arms deleted entirely the centre is still shut: min \|x\| 0.300 (L) / 0.375 (R), every column 0.125–0.300 binding on the torso, and −0.007/−0.013 m at \|x\| = 0.10. Arms clear buys 25 mm (L) and 75 mm (R). `folded` costs 75 mm; `behind` and `out` breach the floor at HOME | `recordings/baselines/centre_vs_wearer_posture.json` |
+| **the mount caps clearance** | `base_link` sits **0.1610 m** from the torso and no joint moves it, so the 150 mm floor has 11 mm of headroom before the arm does anything. A clearance reading of exactly 0.1610 is the MOUNT, not the arm | `wearer_posture.py` |
+| **innermost safe column** | **left 0.325, right 0.450** at z = 1.120, N=10 over the full path. The stored 0.425/0.400 in `centre_vs_height.json` is STALE: re-running that script unchanged returns 0.325/0.450 today, because the home change moved the IK seed | `scripts/measure_centre_vs_height.py` |
+| **the runtime wearer had no arms** | `clearance.py` — what the follower, homing node and bridge enforce — modelled torso, head and hips only. The wearer's arms are what bind the RIGHT arm inboard. Added, with a known-answer test | `test_wearer_posture_has_one_source.py` |
+| **centre, ON the surface** | **searched properly, 3360 cells, table height AND distance swept with objects resting on it: no configuration puts \|x\| <= 0.10 on the surface.** Closest confirmed at N=10: **x = 0.350** (left arm, table top 1.00, near edge 0.530, clearance 0.1524). Right arm reaches only 0.450, reach-only. **Every survivor needs the object at the very FRONT EDGE** — overhang 0.00 — because the pinned wrist arrives from below | `scripts/search_centre_on_surface.py` |
+| **top-down on a surface** | **0 of 840 cells**, any table height 0.70–1.10, either arm. Not a trade against centre-on-surface: centre-on-surface is achievable at 350–450 mm off centre, top-down-on-surface is not achievable at all | `recordings/baselines/centre_on_surface.json` |
 | workspace marking vs the table | the marking's nearest row (y = 0.075) is **25 mm in front of the table's near edge (0.100)** — 43 of 439 cells drawn over air, and stage 2 places cubes there | `scripts/clip_scene.py` `TABLE_NEAR_Y` |
-| T1 | stage 1 is the **LEFT** arm, cubes on the left; N=10 full path, 0 IK failures, 0 waypoints inside the wearer clearance floor | `scripts/verify_t1_paths.py` |
+| T1 | stage 1 is the **LEFT** arm, cubes on the left; N=10 full path, **0 IK failures**, 0 waypoints inside the floor. **Stage 2 seed 0's RIGHT arm now spends 25 of 98 waypoints inside the floor (worst 0.1135)** — new at the 2026-08-15 home change, via the IK seed; seeds 1 and 2 are clean | `scripts/verify_t1_paths.py` |
 | wearer clearance | **the region and every T1 coordinate are now checked against the 150 mm floor GEOMETRICALLY.** `avoid_collisions` cannot see it — the SRDF excludes the pairs that matter — and the previous layout spent 70 of 143 waypoints inside it at 0 IK failures | `scripts/measure_clearance_region.py` |
 | workspace marking | re-surveyed 2026-08-15: the marking is now the **clearance-safe** cells, and the box runs to \|x\| = 1.00 (the old 0.70 was the survey box, not the arm) | `recordings/baselines/work_surface_region.json` |
 | what limits the workspace | forward and outboard: the **pinned wrist**. Inboard: **the wearer**. Down: the **table**. No direction is bound by a joint limit | `docs/TASK_SPEC.md` §2A |
@@ -104,14 +115,23 @@ with no gravity compensation on someone who did not choose the motion.
 
 ## HARD CONSTRAINTS. Violating one of these causes real damage.
 
-0. **The home wrist points UP by +85 deg (left) and +79 deg (right). That is
-   REAL, read from the physical arms, and it is not a rendering fault.** The
-   anchor's 30.7 deg is a DIFFERENT quantity measured from the shoulder and
-   the two are not comparable. → `home_wrist_is_real.md`
-1. **Home joint angles are ground truth.** When the geometry looks wrong, the
-   mount is the suspect. Never change the home angles to fix a pose; the
-   sim→real bridge replays sim angles onto the real arm and any difference is
-   commanded as a jump. → `findings.md`
+0. **SIM AND REAL HOME DISAGREE ON PURPOSE, since 2026-08-15.** Sim home is
+   now the presentation pose (wrists LEVEL, hands in front of the chest); the
+   physical arms are still at the legacy Kortex home and the wrists there
+   point UP by +85/+79 deg. The bridge REFUSES to enable on the ~1.9 rad
+   difference rather than commanding it — verified in `enable()`. **Capture
+   the new pose on the arms before any real session**; values in Kortex
+   degrees are in `NEXT_SESSION.md`. → `home_wrist_is_real.md`
+1. **Home joint angles are ground truth, and the REAL arm's are the ones that
+   count.** The sim's were changed deliberately on 2026-08-15, after
+   re-measuring the whole task set; the arms' were not. Never change either to
+   make a pose look right without re-measuring first — the sim→real bridge
+   replays sim angles onto the real arm and any difference it does not catch
+   is commanded as a jump. **The ANCHOR is a DIFFERENT quantity**: the 30.7
+   deg approach direction is a stored constant that nothing recomputes from
+   home. Moving home cost nothing measurable; re-deriving `WORKSPACE_ORIENT`
+   to match a level home costs **T2 its right arm**, so never do it.
+   → `home_wrist_is_real.md`
 2. **The arm permits exactly ONE Kortex session.** SIGINT the bridge; SIGKILL
    leaks the session and the next run cannot connect. Grep for
    `kortex session closed cleanly`. → `wsl.md`
@@ -143,6 +163,13 @@ with no gravity compensation on someone who did not choose the motion.
     have the tube inside the person. Measure clearance geometrically, and do
     not cite a workspace figure without checking
     `docs/system/clearance_gap_ledger.md` for whether it survived.
+    **The WEARER'S POSTURE is part of the model and it is a variable now**
+    (`SRL_WEARER_ARMS`, default `down`). It has ONE source, `wearer_posture.py`,
+    which writes the URDF's arm block and builds `mount_guard_node.WEARER`; a
+    posture that reaches one and not the other measures the old wearer under a
+    new name. Do not tell a wearer to clasp their arms behind their back or
+    hold them out to the sides: with a BACK-mounted rig both put their own
+    limbs inside the floor at the HOME pose. → `findings.md`, 2026-08-15
 12. **Anonymity is enforced in code.** `write_manifest()` raises on `name`,
     `email`, `dob`, `address`, `phone`.
 13. **A demonstration is not evidence.** Demo clips carry that caveat in the
@@ -215,7 +242,7 @@ seems not to apply, suspect a stale PROCESS, not a stale install.
 | `docs/system/wsl.md` | mirrored networking, the cyclic-path finding, `/mnt/c`, `/dev/shm`, the Quest transport, x11grab and Xvfb capture |
 | `docs/system/architecture.md` | packages and topics, the IK follower, operating modes, VR stack, the three GUIs |
 | `docs/system/clearance_gap_ledger.md` | **which earlier workspace and clearance numbers the SRDF gap invalidated and which stand. Read before citing any workspace figure.** |
-| `docs/system/home_wrist_is_real.md` | why the home wrist points up, what changing it would cost, and why 30.7 deg is a different number |
+| `docs/system/home_wrist_is_real.md` | **the home pose CHANGED on 2026-08-15.** What moved, what deliberately did not, why the real arms are still at the old pose and what stops that becoming a jump |
 | `docs/system/03_real_robot_bringup.md` | **the lab-day fault table and the camera framing note. Read before hardware.** |
 | `docs/system/06_troubleshooting.md` | keyed by SYMPTOM |
 | `docs/NEXT_SESSION.md` | what to do next, in order |

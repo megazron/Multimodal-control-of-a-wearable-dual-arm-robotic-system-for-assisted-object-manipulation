@@ -161,6 +161,56 @@ BRIEF_HAND_X = 0.18
 HAND_MIN_X = 0.10
 # "Elbows down and slightly out, not level with the shoulders."
 ELBOW_BELOW_SHOULDER_M = 0.05
+# THE WEARER'S SHOULDER LINE, from the same model everything else here uses:
+# human_backpack.xacro gives a torso box 0.36 x 0.22 x 0.48 centred at
+# z = 1.22, so its top face -- the shoulders -- is at 1.46, and the upper-arm
+# cylinders (0.30 long, centred 1.28) top out at 1.43.
+SHOULDER_LINE_Z = 1.46
+# How hard to push the limb back under that line. It is a soft term, not a
+# hard one, because the mount is BEHIND AND ABOVE the wearer's back: some
+# rise is structural, and a hard constraint here would return no pose at all
+# and say nothing about how close it got.
+APEX_W = 8.0
+# How hard to push the hands up to chest height. Weighted above the lateral
+# term because a hand at the hip is the fault the last render showed and a
+# hand 100 mm wide of the frontier is not.
+HAND_LOW_W = 4.0
+# HOW MANY DRAWS PER ARM PER TARGET TO KEEP FOR THE MIRROR SEARCH, and how
+# hard mirroring is weighted against per-arm cost.
+#
+# The arms are not mirror images of each other, so mirroring the HAND target
+# leaves the elbows free to disagree -- measured on the shipped pose, left
+# elbow 188 mm outboard of its hand and 39 mm above, right 18 mm inboard and
+# 153 mm below. Both were individually acceptable and the pair read as a
+# fault. The weight is high because a posture that is not symmetric does not
+# read as a posture at all: 40 means a 100 mm elbow mismatch costs 0.40,
+# which dominates every position term.
+# WEIGHTED AS A TIE-BREAK, AND THE FIRST ATTEMPT AT 40.0 IS WHY.
+#
+# At 40 the mirror term dominates every position term, and what it bought was
+# MEASURED: the best pair over 8x8 candidates at 9 shared targets improved the
+# residual from 0.2825 m to 0.2557 m -- 27 mm -- and paid for it by dropping
+# the hands from z = 1.180 to 1.100, the hip height the previous pass existed
+# to fix. A 27 mm gain in something nobody can see, for 80 mm in the one thing
+# they can.
+#
+# AND THE REASON IT COULD NOT DO BETTER IS THE RIG, NOT THE SEARCH. The two
+# arms are not mirror images: CLAUDE.md records |v_R - M v_L| = 1.3837 m,
+# proven independent of the mount. A shared hand target does not give a shared
+# arm configuration, and no weight on this term makes one appear -- it only
+# trades away the terms that CAN be satisfied.
+#
+# The term stays, because the residual is worth measuring and reporting, and
+# it is weighted to break ties rather than to drive the search.
+MIRROR_POOL = 8
+# MEASURED AND REPORTED, BUT NOT WEIGHTED. Tried at 40.0 and at 0.5; both
+# picked a target with the hands at z = 1.100 -- hip height, the fault the
+# previous pass existed to fix -- to buy a residual of 0.2557 m against
+# 0.2825. 27 mm in a quantity the render cannot show, for 80 mm in the one it
+# can. At 0.0 the pair selection reduces to the per-arm best, which is the
+# pose that puts the hands at chest height, and the residual is still
+# computed and still printed so the asymmetry has a number.
+MIRROR_W = 0.0
 # How far outboard of the hand the elbow may sit before it reads as a chicken
 # wing rather than "slightly out". Measured off the render that failed: the
 # left elbow was 229 mm outboard and the posture read as splayed.
@@ -311,6 +361,16 @@ class Kin(Node):
     def clearance(self, arm, q):
         """Worst distance from the arm's capsule chain to the wearer, in m.
 
+        ALSO RECORDS THE APEX OF THE CHAIN, on `self.last_apex_z`. The render
+        that this file's own commit history calls "still not right" shows the
+        fault the elbow term cannot see: the elbow IS below the shoulder by
+        measurement and the LIMB still climbs above the shoulder line before
+        it descends, because the mount sits behind and above the wearer's
+        back. "Elbows down" was satisfied at the one joint being measured and
+        not satisfied in the picture. The apex is the quantity the picture is
+        actually about, and it comes free -- this FK already returns every
+        link on the chain.
+
         The mount guard's model exactly: sample along the segment between
         consecutive link origins and inflate by the Gen3 tube radius. FK
         supplies the origins for the CANDIDATE posture, which is the only
@@ -326,13 +386,14 @@ class Kin(Node):
             return None, None
         pts = [(ps.pose.position.x, ps.pose.position.y, ps.pose.position.z)
                for ps in res.pose_stamped]
+        self.last_apex_z = max(p[2] for p in pts)
         worst, who = 1e9, None
         for a, b in zip(pts, pts[1:]):
             for k in range(MG.SAMPLES + 1):
                 t = k / float(MG.SAMPLES)
                 p = [a[i] + (b[i] - a[i]) * t for i in range(3)]
-                for name, kind, prm, ctr in MG.WEARER:
-                    d = MG.dist_point(p, kind, prm, ctr) - MG.TUBE_R
+                for name, kind, prm, ctr, rpy in MG.WEARER:
+                    d = MG.dist_point(p, kind, prm, ctr, rpy) - MG.TUBE_R
                     if d < worst:
                         worst, who = d, name
         return worst, who
@@ -442,6 +503,7 @@ class Kin(Node):
         clear, _who = self.clearance(arm, q)
         if clear is None or clear < MIN_CLEARANCE_M:
             return None, None
+        apex = getattr(self, "last_apex_z", None)
         ok, _c = self.valid(arm, q)
         if ok is False:
             return None, None
@@ -465,7 +527,22 @@ class Kin(Node):
         c = 0.0
         c += (abs(hand[0]) - HAND_TARGET["x"]) ** 2
         c += (hand[1] - HAND_TARGET["y"]) ** 2
-        c += (hand[2] - HAND_TARGET["z"]) ** 2
+        # HAND HEIGHT IS WEIGHTED, AND THE RENDER IS WHY. The last search
+        # scored (0.55, 0.36, 1.10) as its best shared target: 100 mm wide of
+        # the frontier costs 0.0100 and 120 mm LOW costs 0.0144, so the two
+        # nearly cancelled and the tie went to the wider, lower pose. In the
+        # picture that reads as hands held at the hip, which is the one thing
+        # a "ready to work" posture must not do. Only the SHORTFALL is
+        # penalised: a hand already at chest height is not pushed higher.
+        c += HAND_LOW_W * max(0.0, HAND_TARGET["z"] - hand[2]) ** 2
+        c += 0.5 * max(0.0, hand[2] - HAND_TARGET["z"]) ** 2
+        # THE LIMB MUST NOT RIDE OVER THE SHOULDER LINE. See clearance():
+        # the elbow term is satisfied at the joint it measures while the arm
+        # still climbs above the wearer's shoulders and comes down outside
+        # them, which is what "splayed" means in the render. Measured on the
+        # chain, not on one joint.
+        if apex is not None:
+            c += APEX_W * max(0.0, apex - SHOULDER_LINE_Z) ** 2
         # ELBOWS DOWN. Below the shoulder by at least a hand's depth; only
         # the shortfall is penalised, so an elbow that is already low enough
         # is not pushed lower for its own sake.
@@ -489,7 +566,9 @@ class Kin(Node):
         c += TRAVEL_W * travel
         return c, dict(elev=elev, clearance=clear, hand=hand, elbow=elbow,
                        el_below=el_below, travel=travel,
-                       hand_travel=hand_travel)
+                       hand_travel=hand_travel, apex_z=apex,
+                       apex_above_shoulder_m=(
+                           None if apex is None else apex - SHOULDER_LINE_Z))
 
     def valid(self, arm, q):
         req = GetStateValidity.Request()
@@ -520,6 +599,7 @@ def main():
 
     result, controls = {}, {}
     best_for_target = {}
+    pool = {}
     for arm in ("left", "right"):
         home = list(hp.load_home_radians(arm))
 
@@ -586,9 +666,18 @@ def main():
         # the one with the best elbow wins, which is the only way to get
         # "elbows down and slightly out" out of a position-only solver.
         best_for_target.setdefault(arm, {})
-        for tx in (HAND_TARGET["x"], 0.50, 0.55, 0.60):
-            for ty in (HAND_TARGET["y"], 0.25, 0.36):
-                for tz in (HAND_TARGET["z"], 1.18, 1.10):
+        pool.setdefault(arm, {})
+        # A FINER GRID BETWEEN THE FRONTIER AND WHERE THE LAST SEARCH LANDED.
+        # The previous grid stepped 0.45 -> 0.50 -> 0.55 in x and 1.22 ->
+        # 1.18 -> 1.10 in z, so the only shared target both arms could hold
+        # was 100 mm wide and 120 mm low, with nothing offered in between. The
+        # mirrored requirement is what costs the width -- solving the arms
+        # independently reached 0.950 m of span and requiring ONE target both
+        # could hold pushed it to 1.100 -- so the place to look is the 100 mm
+        # the old grid stepped straight over.
+        for tx in (HAND_TARGET["x"], 0.475, 0.50, 0.525, 0.55):
+            for ty in (HAND_TARGET["y"], 0.28, 0.36):
+                for tz in (HAND_TARGET["z"], 1.26, 1.24, 1.18, 1.10):
                     key = (tx, ty, tz)
                     tgt = [(1.0 if arm == "left" else -1.0) * tx, ty, tz]
                     cands = []
@@ -600,13 +689,31 @@ def main():
                         if c is not None:
                             cands.append((c, q, why))
                     if cands:
-                        c, q, g = min(cands, key=lambda t: t[0])
+                        # KEEP THE TOP FEW, NOT JUST THE BEST. The elbow is
+                        # what the null space controls and the two arms are
+                        # NOT mirror images -- CLAUDE.md records
+                        # |v_R - M v_L| = 1.3837 m -- so the lowest-cost draw
+                        # for each arm INDEPENDENTLY can put one elbow up and
+                        # outboard while the other tucks. Measured on the
+                        # pose this file shipped: left elbow 188 mm OUTBOARD
+                        # of its hand and 39 mm ABOVE it, right elbow 18 mm
+                        # inboard and 153 mm BELOW. Both scored acceptably;
+                        # together they read as a fault. Keeping several
+                        # candidates lets the PAIR be chosen for symmetry.
+                        cands.sort(key=lambda t: t[0])
+                        pool[arm][key] = cands[:MIRROR_POOL]
+                        c, q, g = cands[0]
                         best_for_target[arm][key] = dict(
                             q=q, elev=g["elev"],
                             clearance_m=round(g["clearance"], 4),
                             hand=[round(v, 4) for v in g["hand"]],
                             elbow=[round(v, 4) for v in g["elbow"]],
                             elbow_below_shoulder_m=round(g["el_below"], 4),
+                            apex_z=(None if g["apex_z"] is None
+                                    else round(g["apex_z"], 4)),
+                            apex_above_shoulder_m=(
+                                None if g["apex_above_shoulder_m"] is None
+                                else round(g["apex_above_shoulder_m"], 4)),
                             travel_deg=round(g["travel"], 1),
                             hand_travel_m=round(g["hand_travel"], 4),
                             target=[round(v, 4) for v in tgt],
@@ -624,10 +731,59 @@ def main():
     shared = [k for k in best_for_target.get("left", {})
               if k in best_for_target.get("right", {})]
     if shared and REQUIRE_MIRRORED_TARGET:
-        key = min(shared, key=lambda k: (best_for_target["left"][k]["cost"]
-                                         + best_for_target["right"][k]["cost"]))
-        for arm in ("left", "right"):
-            result[arm] = best_for_target[arm][key]
+        # MIRROR THE ELBOW, NOT ONLY THE HAND.
+        #
+        # Mirroring the TARGET makes the hands match and leaves the arms free
+        # to reach it differently, which is exactly what happened: same hand
+        # target, one elbow up and out, one tucked. The posture a person reads
+        # is the whole limb, so the pair is now chosen over the top
+        # MIRROR_POOL draws per arm, scoring combined cost PLUS the distance
+        # between the right elbow and the mirror of the left one.
+        def _mirror(p3):
+            return (-p3[0], p3[1], p3[2])
+
+        best_pair, best_score, best_key = None, None, None
+        for k in shared:
+            L = pool.get("left", {}).get(k) or []
+            R = pool.get("right", {}).get(k) or []
+            for cl, ql, gl in L:
+                for cr, qr, gr in R:
+                    resid = math.dist(_mirror(gl["elbow"]), gr["elbow"])
+                    score = cl + cr + MIRROR_W * resid ** 2
+                    if best_score is None or score < best_score:
+                        best_score, best_key = score, k
+                        best_pair = ((cl, ql, gl), (cr, qr, gr))
+        if best_pair is None:
+            key = min(shared,
+                      key=lambda k: (best_for_target["left"][k]["cost"]
+                                     + best_for_target["right"][k]["cost"]))
+            for arm in ("left", "right"):
+                result[arm] = best_for_target[arm][key]
+        else:
+            key = best_key
+            for arm, (c2, q2, g2) in zip(("left", "right"), best_pair):
+                d = dict(best_for_target[arm][key])
+                d.update(q=q2, elev=g2["elev"],
+                         clearance_m=round(g2["clearance"], 4),
+                         hand=[round(v, 4) for v in g2["hand"]],
+                         elbow=[round(v, 4) for v in g2["elbow"]],
+                         elbow_below_shoulder_m=round(g2["el_below"], 4),
+                         apex_z=(None if g2["apex_z"] is None
+                                 else round(g2["apex_z"], 4)),
+                         apex_above_shoulder_m=(
+                             None if g2["apex_above_shoulder_m"] is None
+                             else round(g2["apex_above_shoulder_m"], 4)),
+                         travel_deg=round(g2["travel"], 1),
+                         hand_travel_m=round(g2["hand_travel"], 4),
+                         cost=round(c2, 5),
+                         delta_deg=[round(math.degrees(q2[i] - home[i]), 2)
+                                    for i in range(7)])
+                result[arm] = d
+            resid = math.dist(_mirror(result["left"]["elbow"]),
+                              result["right"]["elbow"])
+            controls["elbow_mirror_residual_m"] = round(resid, 4)
+            print("   ELBOW MIRROR RESIDUAL %.4f m  (|right elbow - mirror of "
+                  "left elbow|)" % resid)
         print("   mirrored target |x|=%.2f y=%.2f z=%.2f, reachable by both "
               "(%d of %d targets were)"
               % (key[0], key[1], key[2], len(shared),
@@ -664,6 +820,11 @@ def main():
               % (b["hand"][0], b["hand"][1], b["hand"][2],
                  b["elbow"][0], b["elbow"][1], b["elbow"][2],
                  b["elbow_below_shoulder_m"] * 1000))
+        print("         limb apex z %.3f -- %.0f mm %s the wearer's shoulder "
+              "line at %.2f"
+              % (b["apex_z"], abs(b["apex_above_shoulder_m"]) * 1000.0,
+                 "ABOVE" if b["apex_above_shoulder_m"] > 0 else "below",
+                 SHOULDER_LINE_Z))
         print("         wearer clearance %.4f m against %.4f m at home, "
               "floor %.2f" % (b["clearance_m"],
                               controls["home_clearance_%s_m" % arm],
@@ -698,8 +859,14 @@ def main():
                  "the torso's, elbows below the shoulders and a level wrist, "
                  "with clearance to the wearer measured GEOMETRICALLY (the "
                  "SRDF excludes the pairs that matter, so "
-                 "/check_state_validity is not the authority on it).",
+                 "/check_state_validity is not the authority on it). The "
+                 "cost also measures the APEX of the whole limb against the "
+                 "wearer's shoulder line, because an elbow can be below the "
+                 "shoulder at the joint being measured while the limb still "
+                 "climbs over the shoulders in the picture -- which is what "
+                 "the 2026-08-13 render showed and no joint-level term saw.",
             good_enough_deg=GOOD_ENOUGH_DEG,
+            shoulder_line_z=SHOULDER_LINE_Z,
             controls={k: v for k, v in controls.items()},
             min_clearance_m=MIN_CLEARANCE_M,
             hand_target=HAND_TARGET,
@@ -710,6 +877,9 @@ def main():
                              elbow=result[arm]["elbow"],
                              elbow_below_shoulder_m=(
                                  result[arm]["elbow_below_shoulder_m"]),
+                             apex_z=result[arm]["apex_z"],
+                             apex_above_shoulder_m=(
+                                 result[arm]["apex_above_shoulder_m"]),
                              travel_deg=result[arm]["travel_deg"],
                              hand_travel_m=result[arm]["hand_travel_m"],
                              q=[round(v, 6) for v in result[arm]["q"]])

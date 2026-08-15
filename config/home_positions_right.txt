@@ -1,30 +1,40 @@
-# RIGHT arm home == LEGACY REAL-ROBOT HOME (set 2026-07-31).
+# RIGHT arm home == THE PRESENTATION POSE (set 2026-08-15).
 #
-# Same reasoning as the left: the bridge replays SIM joint angles to the real
-# arm, so sim home and real home must be the SAME pose or enabling the bridge
-# commands a jump. See home_positions_left.txt.
+# Same reasoning as the left; see home_positions_left.txt and
+# docs/system/home_wrist_is_real.md. Wrist LEVEL (0.0 deg), hand in front of
+# the chest at (-0.550, 0.360, 1.180), limb apex 119 mm below the wearer's
+# shoulder line. This replaces the legacy real-robot home, which parked the
+# wrist +79 deg above horizontal.
 #
-# Legacy Kortex values converted through kortex_convention:
-#   Kortex deg : 303.65  77.06   98.57   58.57   317.14  36.39   154.71
-#   ROS deg    : -56.35  77.06   98.57   58.57   -42.86  36.39   154.71
-#   ROS rad    : -0.9835 1.3450  1.7204  1.0222  -0.7480 0.6351  2.7002
+# THE REAL ARM HAS NOT MOVED. Still at the legacy Kortex home
+#   303.65   77.06   98.57   58.57  317.14   36.39  154.71
+# The bridge REFUSES to enable on the difference rather than commanding it.
 #
-# NOTE. This REPLACES the mirror-optimised pose (28.9 / -103.3 / -107.3 /
-# 62.0 / -78.9 / 53.6 / 66.4) that had IK 100% over the task volume, seam
-# margin 1.27 rad and |right_P_HOME - mirror(left_P_HOME)| = 0.000 m. The
-# legacy pose is NOT the mirror of the legacy left pose, so mirror symmetry
-# is given up by this change. That is deliberate: matching the real arm
-# matters more than symmetry, because a mismatch is a commanded jump.
+# Presentation pose, converted through kortex_convention:
+#   Kortex deg : 309.40  100.81   96.22   78.88   11.47  330.88  265.75
+#   ROS deg    : -50.60  100.81   96.22   78.88   11.47  -29.12  -94.25
+#   ROS rad    : -0.8831  1.7594  1.6794  1.3767  0.2002 -0.5082 -1.6450
+#
+# JOINT_7 IS STORED WRAPPED, AND THAT IS NOT COSMETIC. The pose search
+# returned joint_7 = 265.75 deg (4.6382 rad). joint_7 is CONTINUOUS, so
+# -94.25 deg is the same physical pose -- but ik_follower_node refuses to
+# start on real hardware with a continuous joint outside +/-pi, and performs
+# an automatic unwind in sim. Stored unwrapped, every follower start would
+# either refuse (real) or execute a 360 deg unwind (sim).
+#
+# THE KORTEX VALUE IS 265.75 EITHER WAY, because Kortex reports 0..360. So the
+# capture target in the lab is unambiguous and the wrap is a ROS-side storage
+# detail only.
 #
 # The RIGHT arm stays MOCK for now (the two-arm tcp/twist.linear.x collision
 # blocks real bring-up), so these values are not yet exercised on hardware.
 #
 # Values are ROS degrees, joint_1..joint_7.
 
-joint_1: -56.35
-joint_2: 77.06
-joint_3: 98.57
-joint_4: 58.57
-joint_5: -42.86
-joint_6: 36.39
-joint_7: 154.71
+joint_1: -50.60
+joint_2: 100.81
+joint_3: 96.22
+joint_4: 78.88
+joint_5: 11.47
+joint_6: -29.12
+joint_7: -94.25

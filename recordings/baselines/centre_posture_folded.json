@@ -1,0 +1,1561 @@
+{
+  "posture": "folded",
+  "posture_doc": "folded across the chest (the forearms are IN the work volume)",
+  "zs": [
+    1.12
+  ],
+  "xs": [
+    0.0,
+    0.025,
+    0.05,
+    0.075,
+    0.1,
+    0.125,
+    0.15,
+    0.175,
+    0.2,
+    0.225,
+    0.25,
+    0.275,
+    0.3,
+    0.325,
+    0.35,
+    0.375,
+    0.4,
+    0.425,
+    0.45,
+    0.475,
+    0.5,
+    0.525,
+    0.55,
+    0.575,
+    0.6
+  ],
+  "ys": [
+    0.1,
+    0.15,
+    0.2,
+    0.25,
+    0.3,
+    0.35,
+    0.4,
+    0.45,
+    0.5,
+    0.55
+  ],
+  "step": 0.025,
+  "floor": 0.15,
+  "work_plane": 1.12,
+  "table_top": 0.95,
+  "full_repeats": 10,
+  "controls": {
+    "posture_is_in_the_urdf": {
+      "want": "True",
+      "got": "True (6 human arm joints match the folded table)"
+    },
+    "posture_is_in_the_clearance_model": {
+      "want": "folded",
+      "got": "folded"
+    },
+    "inside_torso_negative": {
+      "want": "< 0",
+      "got": -0.154
+    },
+    "outboard_cell_solves": {
+      "want": "True",
+      "got": "True (clearance 0.161 to torso)"
+    },
+    "left_clearance_is_not_a_constant": {
+      "want": "two cells, two values",
+      "got": "0.0348 vs 0.161"
+    },
+    "right_clearance_is_not_a_constant": {
+      "want": "two cells, two values",
+      "got": "0.0299 vs 0.161"
+    }
+  },
+  "outboard_probe": {
+    "x": 0.75,
+    "clearance_m": 0.161,
+    "to": "torso"
+  },
+  "inboard_vs_outboard": {
+    "left": {
+      "inboard": 0.0348,
+      "inboard_to": "L-upperarm",
+      "outboard": 0.161,
+      "outboard_to": "torso"
+    },
+    "right": {
+      "inboard": 0.0299,
+      "inboard_to": "R-upperarm",
+      "outboard": 0.161,
+      "outboard_to": "torso"
+    }
+  },
+  "home_clearance_m": {
+    "left": 0.161,
+    "right": 0.161
+  },
+  "innermost_safe_confirmed": {
+    "left": 0.4,
+    "right": 0.45
+  },
+  "solver_scatter": {
+    "left@1.120": {
+      "cell": [
+        0.375,
+        0.5,
+        1.12
+      ],
+      "n": 10,
+      "solved": 10,
+      "min": 0.1561,
+      "max": 0.1562,
+      "clears_every_time": true,
+      "values": [
+        0.1561,
+        0.1562,
+        0.1561,
+        0.1561,
+        0.1561,
+        0.1561,
+        0.1561,
+        0.1561,
+        0.1561,
+        0.1561
+      ]
+    },
+    "right@1.120": {
+      "cell": [
+        -0.45,
+        0.15,
+        1.12
+      ],
+      "n": 10,
+      "solved": 10,
+      "min": 0.1562,
+      "max": 0.1562,
+      "clears_every_time": true,
+      "values": [
+        0.1562,
+        0.1562,
+        0.1562,
+        0.1562,
+        0.1562,
+        0.1562,
+        0.1562,
+        0.1562,
+        0.1562,
+        0.1562
+      ]
+    }
+  },
+  "centre_cells": [],
+  "stage1": {
+    "1.120": {
+      "left": {
+        "outer_control_reachable": true,
+        "innermost_ik_x": 0.15,
+        "innermost_safe_x": 0.375,
+        "binds_at_innermost_safe": "L-upperarm",
+        "centreline_safe_rows": [],
+        "centreline_best_clearance_m": null,
+        "n_ik": 161,
+        "n_safe": 78,
+        "clearance": {
+          "+0.150,0.450": {
+            "clearance_m": -0.0034,
+            "to": "L-forearm"
+          },
+          "+0.150,0.500": {
+            "clearance_m": -0.0214,
+            "to": "L-upperarm"
+          },
+          "+0.175,0.450": {
+            "clearance_m": 0.0113,
+            "to": "L-forearm"
+          },
+          "+0.175,0.500": {
+            "clearance_m": 0.0057,
+            "to": "L-upperarm"
+          },
+          "+0.200,0.400": {
+            "clearance_m": -0.0035,
+            "to": "torso"
+          },
+          "+0.200,0.450": {
+            "clearance_m": 0.0263,
+            "to": "L-forearm"
+          },
+          "+0.200,0.500": {
+            "clearance_m": 0.0287,
+            "to": "L-upperarm"
+          },
+          "+0.225,0.250": {
+            "clearance_m": -0.0147,
+            "to": "L-forearm"
+          },
+          "+0.225,0.400": {
+            "clearance_m": 0.0145,
+            "to": "L-forearm"
+          },
+          "+0.225,0.450": {
+            "clearance_m": 0.0413,
+            "to": "L-forearm"
+          },
+          "+0.225,0.500": {
+            "clearance_m": 0.049,
+            "to": "L-upperarm"
+          },
+          "+0.250,0.100": {
+            "clearance_m": 0.0144,
+            "to": "L-forearm"
+          },
+          "+0.250,0.150": {
+            "clearance_m": 0.0046,
+            "to": "L-forearm"
+          },
+          "+0.250,0.200": {
+            "clearance_m": 0.003,
+            "to": "L-forearm"
+          },
+          "+0.250,0.250": {
+            "clearance_m": 0.0032,
+            "to": "L-forearm"
+          },
+          "+0.250,0.300": {
+            "clearance_m": 0.003,
+            "to": "L-forearm"
+          },
+          "+0.250,0.350": {
+            "clearance_m": 0.004,
+            "to": "L-forearm"
+          },
+          "+0.250,0.400": {
+            "clearance_m": 0.0253,
+            "to": "L-forearm"
+          },
+          "+0.250,0.450": {
+            "clearance_m": 0.0558,
+            "to": "L-forearm"
+          },
+          "+0.250,0.500": {
+            "clearance_m": 0.0675,
+            "to": "L-upperarm"
+          },
+          "+0.250,0.550": {
+            "clearance_m": 0.0403,
+            "to": "L-upperarm"
+          },
+          "+0.275,0.100": {
+            "clearance_m": 0.0255,
+            "to": "L-upperarm"
+          },
+          "+0.275,0.150": {
+            "clearance_m": 0.0241,
+            "to": "L-upperarm"
+          },
+          "+0.275,0.200": {
+            "clearance_m": 0.024,
+            "to": "L-upperarm"
+          },
+          "+0.275,0.250": {
+            "clearance_m": 0.0239,
+            "to": "L-upperarm"
+          },
+          "+0.275,0.300": {
+            "clearance_m": 0.024,
+            "to": "L-forearm"
+          },
+          "+0.275,0.350": {
+            "clearance_m": 0.0242,
+            "to": "L-forearm"
+          },
+          "+0.275,0.400": {
+            "clearance_m": 0.0397,
+            "to": "L-forearm"
+          },
+          "+0.275,0.450": {
+            "clearance_m": 0.0709,
+            "to": "L-forearm"
+          },
+          "+0.275,0.500": {
+            "clearance_m": 0.0857,
+            "to": "L-upperarm"
+          },
+          "+0.275,0.550": {
+            "clearance_m": 0.0699,
+            "to": "L-upperarm"
+          },
+          "+0.300,0.100": {
+            "clearance_m": 0.0378,
+            "to": "L-upperarm"
+          },
+          "+0.300,0.150": {
+            "clearance_m": 0.0347,
+            "to": "L-upperarm"
+          },
+          "+0.300,0.200": {
+            "clearance_m": 0.0348,
+            "to": "L-upperarm"
+          },
+          "+0.300,0.250": {
+            "clearance_m": 0.0347,
+            "to": "L-upperarm"
+          },
+          "+0.300,0.300": {
+            "clearance_m": 0.0346,
+            "to": "L-upperarm"
+          },
+          "+0.300,0.350": {
+            "clearance_m": 0.0412,
+            "to": "L-upperarm"
+          },
+          "+0.300,0.400": {
+            "clearance_m": 0.0579,
+            "to": "L-forearm"
+          },
+          "+0.300,0.450": {
+            "clearance_m": 0.0856,
+            "to": "L-upperarm"
+          },
+          "+0.300,0.500": {
+            "clearance_m": 0.1031,
+            "to": "L-upperarm"
+          },
+          "+0.300,0.550": {
+            "clearance_m": 0.0937,
+            "to": "L-upperarm"
+          },
+          "+0.325,0.100": {
+            "clearance_m": 0.054,
+            "to": "L-upperarm"
+          },
+          "+0.325,0.150": {
+            "clearance_m": 0.05,
+            "to": "L-upperarm"
+          },
+          "+0.325,0.200": {
+            "clearance_m": 0.0499,
+            "to": "L-upperarm"
+          },
+          "+0.325,0.250": {
+            "clearance_m": 0.0499,
+            "to": "L-upperarm"
+          },
+          "+0.325,0.300": {
+            "clearance_m": 0.0499,
+            "to": "L-upperarm"
+          },
+          "+0.325,0.350": {
+            "clearance_m": 0.0553,
+            "to": "L-upperarm"
+          },
+          "+0.325,0.400": {
+            "clearance_m": 0.0735,
+            "to": "L-upperarm"
+          },
+          "+0.325,0.450": {
+            "clearance_m": 0.1006,
+            "to": "L-upperarm"
+          },
+          "+0.325,0.500": {
+            "clearance_m": 0.1206,
+            "to": "L-upperarm"
+          },
+          "+0.325,0.550": {
+            "clearance_m": 0.1159,
+            "to": "L-upperarm"
+          },
+          "+0.350,0.100": {
+            "clearance_m": 0.0729,
+            "to": "L-upperarm"
+          },
+          "+0.350,0.150": {
+            "clearance_m": 0.0684,
+            "to": "L-upperarm"
+          },
+          "+0.350,0.200": {
+            "clearance_m": 0.0684,
+            "to": "L-upperarm"
+          },
+          "+0.350,0.250": {
+            "clearance_m": 0.0684,
+            "to": "L-upperarm"
+          },
+          "+0.350,0.300": {
+            "clearance_m": 0.0683,
+            "to": "L-upperarm"
+          },
+          "+0.350,0.350": {
+            "clearance_m": 0.0729,
+            "to": "L-upperarm"
+          },
+          "+0.350,0.400": {
+            "clearance_m": 0.0898,
+            "to": "L-upperarm"
+          },
+          "+0.350,0.450": {
+            "clearance_m": 0.1163,
+            "to": "L-upperarm"
+          },
+          "+0.350,0.500": {
+            "clearance_m": 0.1382,
+            "to": "L-upperarm"
+          },
+          "+0.350,0.550": {
+            "clearance_m": 0.1369,
+            "to": "L-upperarm"
+          },
+          "+0.375,0.100": {
+            "clearance_m": 0.0934,
+            "to": "L-upperarm"
+          },
+          "+0.375,0.150": {
+            "clearance_m": 0.0888,
+            "to": "L-upperarm"
+          },
+          "+0.375,0.200": {
+            "clearance_m": 0.0888,
+            "to": "L-upperarm"
+          },
+          "+0.375,0.250": {
+            "clearance_m": 0.0888,
+            "to": "L-upperarm"
+          },
+          "+0.375,0.300": {
+            "clearance_m": 0.0887,
+            "to": "L-upperarm"
+          },
+          "+0.375,0.350": {
+            "clearance_m": 0.0927,
+            "to": "L-upperarm"
+          },
+          "+0.375,0.400": {
+            "clearance_m": 0.1081,
+            "to": "L-upperarm"
+          },
+          "+0.375,0.450": {
+            "clearance_m": 0.133,
+            "to": "L-upperarm"
+          },
+          "+0.375,0.500": {
+            "clearance_m": 0.1561,
+            "to": "L-upperarm"
+          },
+          "+0.375,0.550": {
+            "clearance_m": 0.1558,
+            "to": "L-upperarm"
+          },
+          "+0.400,0.100": {
+            "clearance_m": 0.1149,
+            "to": "L-upperarm"
+          },
+          "+0.400,0.150": {
+            "clearance_m": 0.1105,
+            "to": "L-upperarm"
+          },
+          "+0.400,0.200": {
+            "clearance_m": 0.1105,
+            "to": "L-upperarm"
+          },
+          "+0.400,0.250": {
+            "clearance_m": 0.1105,
+            "to": "L-upperarm"
+          },
+          "+0.400,0.300": {
+            "clearance_m": 0.1104,
+            "to": "L-upperarm"
+          },
+          "+0.400,0.350": {
+            "clearance_m": 0.1139,
+            "to": "L-upperarm"
+          },
+          "+0.400,0.400": {
+            "clearance_m": 0.1279,
+            "to": "L-upperarm"
+          },
+          "+0.400,0.450": {
+            "clearance_m": 0.151,
+            "to": "L-upperarm"
+          },
+          "+0.400,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.400,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.425,0.100": {
+            "clearance_m": 0.1371,
+            "to": "L-upperarm"
+          },
+          "+0.425,0.150": {
+            "clearance_m": 0.133,
+            "to": "L-upperarm"
+          },
+          "+0.425,0.200": {
+            "clearance_m": 0.133,
+            "to": "L-upperarm"
+          },
+          "+0.425,0.250": {
+            "clearance_m": 0.133,
+            "to": "L-upperarm"
+          },
+          "+0.425,0.300": {
+            "clearance_m": 0.1329,
+            "to": "L-upperarm"
+          },
+          "+0.425,0.350": {
+            "clearance_m": 0.136,
+            "to": "L-upperarm"
+          },
+          "+0.425,0.400": {
+            "clearance_m": 0.1488,
+            "to": "L-upperarm"
+          },
+          "+0.425,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.425,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.425,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.450,0.100": {
+            "clearance_m": 0.16,
+            "to": "L-upperarm"
+          },
+          "+0.450,0.150": {
+            "clearance_m": 0.1561,
+            "to": "L-upperarm"
+          },
+          "+0.450,0.200": {
+            "clearance_m": 0.1561,
+            "to": "L-upperarm"
+          },
+          "+0.450,0.250": {
+            "clearance_m": 0.1561,
+            "to": "L-upperarm"
+          },
+          "+0.450,0.300": {
+            "clearance_m": 0.156,
+            "to": "L-upperarm"
+          },
+          "+0.450,0.350": {
+            "clearance_m": 0.1588,
+            "to": "L-upperarm"
+          },
+          "+0.450,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.450,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.450,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.450,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          }
+        }
+      },
+      "right": {
+        "outer_control_reachable": true,
+        "innermost_ik_x": 0.15,
+        "innermost_safe_x": 0.45,
+        "binds_at_innermost_safe": "R-upperarm",
+        "centreline_safe_rows": [],
+        "centreline_best_clearance_m": null,
+        "n_ik": 163,
+        "n_safe": 69,
+        "clearance": {
+          "-0.150,0.450": {
+            "clearance_m": -0.0144,
+            "to": "R-forearm"
+          },
+          "-0.150,0.500": {
+            "clearance_m": -0.0047,
+            "to": "R-forearm"
+          },
+          "-0.175,0.450": {
+            "clearance_m": -0.0075,
+            "to": "R-forearm"
+          },
+          "-0.175,0.500": {
+            "clearance_m": -0.0071,
+            "to": "R-forearm"
+          },
+          "-0.200,0.400": {
+            "clearance_m": -0.0107,
+            "to": "R-forearm"
+          },
+          "-0.200,0.450": {
+            "clearance_m": 0.0031,
+            "to": "R-forearm"
+          },
+          "-0.200,0.500": {
+            "clearance_m": 0.0055,
+            "to": "R-forearm"
+          },
+          "-0.200,0.550": {
+            "clearance_m": -0.0127,
+            "to": "R-upperarm"
+          },
+          "-0.225,0.300": {
+            "clearance_m": -0.0164,
+            "to": "R-forearm"
+          },
+          "-0.225,0.400": {
+            "clearance_m": 0.0014,
+            "to": "R-forearm"
+          },
+          "-0.225,0.450": {
+            "clearance_m": 0.0153,
+            "to": "R-forearm"
+          },
+          "-0.225,0.500": {
+            "clearance_m": 0.0459,
+            "to": "R-upperarm"
+          },
+          "-0.225,0.550": {
+            "clearance_m": -0.0037,
+            "to": "R-upperarm"
+          },
+          "-0.250,0.100": {
+            "clearance_m": -0.0114,
+            "to": "R-forearm"
+          },
+          "-0.250,0.150": {
+            "clearance_m": -0.0024,
+            "to": "R-forearm"
+          },
+          "-0.250,0.200": {
+            "clearance_m": 0.0055,
+            "to": "R-forearm"
+          },
+          "-0.250,0.250": {
+            "clearance_m": 0.0056,
+            "to": "R-forearm"
+          },
+          "-0.250,0.300": {
+            "clearance_m": 0.0054,
+            "to": "R-forearm"
+          },
+          "-0.250,0.350": {
+            "clearance_m": 0.0053,
+            "to": "R-forearm"
+          },
+          "-0.250,0.400": {
+            "clearance_m": 0.0177,
+            "to": "R-forearm"
+          },
+          "-0.250,0.450": {
+            "clearance_m": 0.0298,
+            "to": "R-forearm"
+          },
+          "-0.250,0.500": {
+            "clearance_m": 0.0289,
+            "to": "R-upperarm"
+          },
+          "-0.250,0.550": {
+            "clearance_m": 0.0235,
+            "to": "R-upperarm"
+          },
+          "-0.275,0.100": {
+            "clearance_m": 0.0089,
+            "to": "R-forearm"
+          },
+          "-0.275,0.150": {
+            "clearance_m": 0.015,
+            "to": "R-upperarm"
+          },
+          "-0.275,0.200": {
+            "clearance_m": 0.015,
+            "to": "R-upperarm"
+          },
+          "-0.275,0.250": {
+            "clearance_m": 0.015,
+            "to": "R-upperarm"
+          },
+          "-0.275,0.300": {
+            "clearance_m": 0.015,
+            "to": "R-upperarm"
+          },
+          "-0.275,0.350": {
+            "clearance_m": 0.0212,
+            "to": "R-upperarm"
+          },
+          "-0.275,0.400": {
+            "clearance_m": 0.0368,
+            "to": "R-forearm"
+          },
+          "-0.275,0.450": {
+            "clearance_m": 0.0452,
+            "to": "R-upperarm"
+          },
+          "-0.275,0.500": {
+            "clearance_m": 0.0354,
+            "to": "R-upperarm"
+          },
+          "-0.275,0.550": {
+            "clearance_m": -0.0131,
+            "to": "R-upperarm"
+          },
+          "-0.300,0.100": {
+            "clearance_m": 0.0224,
+            "to": "R-upperarm"
+          },
+          "-0.300,0.150": {
+            "clearance_m": 0.0292,
+            "to": "R-upperarm"
+          },
+          "-0.300,0.200": {
+            "clearance_m": 0.0299,
+            "to": "R-upperarm"
+          },
+          "-0.300,0.250": {
+            "clearance_m": 0.03,
+            "to": "R-upperarm"
+          },
+          "-0.300,0.300": {
+            "clearance_m": 0.0298,
+            "to": "R-upperarm"
+          },
+          "-0.300,0.350": {
+            "clearance_m": 0.0347,
+            "to": "R-upperarm"
+          },
+          "-0.300,0.400": {
+            "clearance_m": 0.048,
+            "to": "R-upperarm"
+          },
+          "-0.300,0.450": {
+            "clearance_m": 0.0537,
+            "to": "R-upperarm"
+          },
+          "-0.300,0.500": {
+            "clearance_m": 0.0416,
+            "to": "R-upperarm"
+          },
+          "-0.300,0.550": {
+            "clearance_m": 0.0121,
+            "to": "R-upperarm"
+          },
+          "-0.325,0.100": {
+            "clearance_m": 0.0383,
+            "to": "R-upperarm"
+          },
+          "-0.325,0.150": {
+            "clearance_m": 0.0468,
+            "to": "R-upperarm"
+          },
+          "-0.325,0.200": {
+            "clearance_m": 0.0487,
+            "to": "R-upperarm"
+          },
+          "-0.325,0.250": {
+            "clearance_m": 0.0486,
+            "to": "R-upperarm"
+          },
+          "-0.325,0.300": {
+            "clearance_m": 0.0486,
+            "to": "R-upperarm"
+          },
+          "-0.325,0.350": {
+            "clearance_m": 0.0526,
+            "to": "R-upperarm"
+          },
+          "-0.325,0.400": {
+            "clearance_m": 0.0615,
+            "to": "R-upperarm"
+          },
+          "-0.325,0.450": {
+            "clearance_m": 0.0648,
+            "to": "R-upperarm"
+          },
+          "-0.325,0.500": {
+            "clearance_m": 0.0578,
+            "to": "R-upperarm"
+          },
+          "-0.325,0.550": {
+            "clearance_m": 0.0376,
+            "to": "R-upperarm"
+          },
+          "-0.350,0.100": {
+            "clearance_m": 0.0575,
+            "to": "R-upperarm"
+          },
+          "-0.350,0.150": {
+            "clearance_m": 0.0668,
+            "to": "R-upperarm"
+          },
+          "-0.350,0.200": {
+            "clearance_m": 0.0697,
+            "to": "R-upperarm"
+          },
+          "-0.350,0.250": {
+            "clearance_m": 0.0696,
+            "to": "R-upperarm"
+          },
+          "-0.350,0.300": {
+            "clearance_m": 0.0696,
+            "to": "R-upperarm"
+          },
+          "-0.350,0.350": {
+            "clearance_m": 0.0728,
+            "to": "R-upperarm"
+          },
+          "-0.350,0.400": {
+            "clearance_m": 0.0799,
+            "to": "R-upperarm"
+          },
+          "-0.350,0.450": {
+            "clearance_m": 0.0841,
+            "to": "R-upperarm"
+          },
+          "-0.350,0.500": {
+            "clearance_m": 0.0791,
+            "to": "R-upperarm"
+          },
+          "-0.350,0.550": {
+            "clearance_m": 0.0626,
+            "to": "R-upperarm"
+          },
+          "-0.375,0.100": {
+            "clearance_m": 0.0782,
+            "to": "R-upperarm"
+          },
+          "-0.375,0.150": {
+            "clearance_m": 0.0882,
+            "to": "R-upperarm"
+          },
+          "-0.375,0.200": {
+            "clearance_m": 0.092,
+            "to": "R-upperarm"
+          },
+          "-0.375,0.250": {
+            "clearance_m": 0.0919,
+            "to": "R-upperarm"
+          },
+          "-0.375,0.300": {
+            "clearance_m": 0.0919,
+            "to": "R-upperarm"
+          },
+          "-0.375,0.350": {
+            "clearance_m": 0.0945,
+            "to": "R-upperarm"
+          },
+          "-0.375,0.400": {
+            "clearance_m": 0.1007,
+            "to": "R-upperarm"
+          },
+          "-0.375,0.450": {
+            "clearance_m": 0.1023,
+            "to": "R-upperarm"
+          },
+          "-0.375,0.500": {
+            "clearance_m": 0.1009,
+            "to": "R-upperarm"
+          },
+          "-0.375,0.550": {
+            "clearance_m": 0.0872,
+            "to": "R-upperarm"
+          },
+          "-0.400,0.100": {
+            "clearance_m": 0.1001,
+            "to": "R-upperarm"
+          },
+          "-0.400,0.150": {
+            "clearance_m": 0.1103,
+            "to": "R-upperarm"
+          },
+          "-0.400,0.200": {
+            "clearance_m": 0.1151,
+            "to": "R-upperarm"
+          },
+          "-0.400,0.250": {
+            "clearance_m": 0.115,
+            "to": "R-upperarm"
+          },
+          "-0.400,0.300": {
+            "clearance_m": 0.1149,
+            "to": "R-upperarm"
+          },
+          "-0.400,0.350": {
+            "clearance_m": 0.1171,
+            "to": "R-upperarm"
+          },
+          "-0.400,0.400": {
+            "clearance_m": 0.1225,
+            "to": "R-upperarm"
+          },
+          "-0.400,0.450": {
+            "clearance_m": 0.1261,
+            "to": "R-upperarm"
+          },
+          "-0.400,0.500": {
+            "clearance_m": 0.123,
+            "to": "R-upperarm"
+          },
+          "-0.400,0.550": {
+            "clearance_m": 0.1113,
+            "to": "R-upperarm"
+          },
+          "-0.425,0.100": {
+            "clearance_m": 0.1226,
+            "to": "R-upperarm"
+          },
+          "-0.425,0.150": {
+            "clearance_m": 0.1332,
+            "to": "R-upperarm"
+          },
+          "-0.425,0.200": {
+            "clearance_m": 0.1386,
+            "to": "R-upperarm"
+          },
+          "-0.425,0.250": {
+            "clearance_m": 0.1385,
+            "to": "R-upperarm"
+          },
+          "-0.425,0.300": {
+            "clearance_m": 0.1385,
+            "to": "R-upperarm"
+          },
+          "-0.425,0.350": {
+            "clearance_m": 0.1403,
+            "to": "R-upperarm"
+          },
+          "-0.425,0.400": {
+            "clearance_m": 0.1449,
+            "to": "R-upperarm"
+          },
+          "-0.425,0.450": {
+            "clearance_m": 0.1481,
+            "to": "R-upperarm"
+          },
+          "-0.425,0.500": {
+            "clearance_m": 0.1455,
+            "to": "R-upperarm"
+          },
+          "-0.425,0.550": {
+            "clearance_m": 0.1354,
+            "to": "R-upperarm"
+          },
+          "-0.450,0.100": {
+            "clearance_m": 0.1456,
+            "to": "R-upperarm"
+          },
+          "-0.450,0.150": {
+            "clearance_m": 0.1562,
+            "to": "R-upperarm"
+          },
+          "-0.450,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.450,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.450,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.450,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.450,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.450,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.450,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.450,0.550": {
+            "clearance_m": 0.1592,
+            "to": "R-upperarm"
+          },
+          "-0.475,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          }
+        }
+      }
+    }
+  },
+  "stage2": [
+    {
+      "z": 1.12,
+      "arm": "left",
+      "obj": [
+        0.375,
+        0.5,
+        1.12
+      ],
+      "reachable": true,
+      "worst_clearance_m": 0.1485,
+      "to": "L-upperarm",
+      "safe": false
+    },
+    {
+      "z": 1.12,
+      "arm": "left",
+      "obj": [
+        0.4,
+        0.5,
+        1.12
+      ],
+      "reachable": true,
+      "worst_clearance_m": 0.161,
+      "to": "torso",
+      "safe": true
+    },
+    {
+      "z": 1.12,
+      "arm": "left",
+      "obj": [
+        0.425,
+        0.45,
+        1.12
+      ],
+      "reachable": true,
+      "worst_clearance_m": 0.1555,
+      "to": "L-upperarm",
+      "safe": true
+    },
+    {
+      "z": 1.12,
+      "arm": "right",
+      "obj": [
+        -0.45,
+        0.2,
+        1.12
+      ],
+      "reachable": true,
+      "worst_clearance_m": 0.1539,
+      "to": "R-upperarm",
+      "safe": true
+    },
+    {
+      "z": 1.12,
+      "arm": "right",
+      "obj": [
+        -0.475,
+        0.1,
+        1.12
+      ],
+      "reachable": true,
+      "worst_clearance_m": 0.1599,
+      "to": "R-upperarm",
+      "safe": true
+    },
+    {
+      "z": 1.12,
+      "arm": "right",
+      "obj": [
+        -0.5,
+        0.1,
+        1.12
+      ],
+      "reachable": true,
+      "worst_clearance_m": 0.161,
+      "to": "torso",
+      "safe": true
+    }
+  ],
+  "ik_calls": 1522,
+  "method": "stage 1 grasp pose only N=1 (optimistic); stage 2 full pick path at N=full_repeats with furniture in and the wearer measured geometrically against the posture's own primitives"
+}

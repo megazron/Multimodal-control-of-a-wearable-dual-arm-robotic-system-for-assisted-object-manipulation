@@ -1,30 +1,47 @@
-# LEFT arm home == LEGACY REAL-ROBOT HOME (set 2026-07-31).
+# LEFT arm home == THE PRESENTATION POSE (set 2026-08-15).
 #
-# WHY THIS CHANGED. The bridge replays SIM joint angles to the real arm, so
-# the sim home and the real home MUST be the same pose. If they differ,
-# enabling the bridge commands the real arm to jump the difference in one
-# step. Previously the sim home was an optimised pose and the real arm's
-# legacy home was far away; that gap was the jump.
+# WHAT CHANGED. This was the LEGACY REAL-ROBOT HOME, which parked the wrist
+# +85 deg above horizontal with the gripper pointing almost straight up. It is
+# now the presentation pose: wrist LEVEL (0.0 deg), hand in front of the chest
+# at (0.550, 0.360, 1.180), limb apex 118 mm below the wearer's shoulder line.
 #
-# Legacy Kortex values converted through kortex_convention:
-#   Kortex deg : 259.03  277.69  267.74  286.14  194.10   27.48   55.26
-#   ROS deg    : -100.97 -82.31  -92.26  -73.86  -165.90  27.48   55.26
-#   ROS rad    : -1.7623 -1.4366 -1.6102 -1.2891 -2.8955  0.4796  0.9645
+# THE REAL ARM HAS NOT MOVED. It is still parked at the legacy Kortex home
+#   259.03  277.69  267.74  286.14  194.10   27.48   55.26
+# so sim and real DISAGREE until the pose below is captured on the hardware.
+# That is safe and it is checked: sim_to_real_bridge.enable() compares the
+# REAL arm against this file (require_homed, tolerance 0.05 rad) and REFUSES,
+# naming the joint and the size. The gap is ~1.9 rad, forty times the
+# tolerance. It refuses; it does not silently move. See NEXT_SESSION.md for
+# the capture, and docs/system/home_wrist_is_real.md for the whole story.
 #
-# SEAM RISK, joint_5. -165.90 deg is 14.10 deg (0.246 rad) from the +/-180
-# seam, inside the 0.3 rad margin used elsewhere in this project. A small
-# negative excursion wraps to +180 and a naive position controller would
-# execute that as a ~358 deg turn. The velocity homing path is immune (it
-# uses angle_diff, never a position setpoint), but ANY future position-mode
-# code touching joint_5 must go through kortex_convention.pose_delta_rad.
-# Value deliberately left as given -- flagged, not changed.
+# WHY IT WAS SAFE TO CHANGE. The task set was re-measured FIRST, N=10 over the
+# full path, wearer and furniture in scene, wearer clearance geometric:
+# with this pose as home and the ANCHOR LEFT ALONE, every task performs
+# exactly as it did before. The anchor -- master_calibration.WORKSPACE_ORIENT,
+# the 30.7 deg approach direction -- is a different quantity, it is read once
+# as a parameter default, and nothing recomputes it from home. A level home
+# does not force a level grasp. Re-deriving the anchor to match DOES break the
+# platform: T2 loses its right arm entirely. See recordings/baselines/
+# home_change.json.
+#
+# Presentation pose, converted through kortex_convention:
+#   Kortex deg : 225.18  294.52  333.89  281.93  208.01  321.90  166.67
+#   ROS deg    : -134.82 -65.48  -26.11  -78.07  -151.99 -38.10   166.67
+#   ROS rad    : -2.3530 -1.1429 -0.4557 -1.3626 -2.6528 -0.6649  2.9090
+#
+# SEAM MARGIN, joint_5: IMPROVED. The legacy home put joint_5 at -165.90 deg,
+# 14.10 deg from the +/-180 seam and inside the 0.3 rad margin this project
+# uses. This pose puts it at -151.99, which is 28.01 deg clear. The warning
+# still stands for any future position-mode code -- go through
+# kortex_convention.pose_delta_rad -- but the pose itself is further from the
+# seam than the one it replaces, not nearer.
 #
 # Values are ROS degrees, joint_1..joint_7.
 
-joint_1: -100.97
-joint_2: -82.31
-joint_3: -92.26
-joint_4: -73.86
-joint_5: -165.90
-joint_6: 27.48
-joint_7: 55.26
+joint_1: -134.82
+joint_2: -65.48
+joint_3: -26.11
+joint_4: -78.07
+joint_5: -151.99
+joint_6: -38.10
+joint_7: 166.67

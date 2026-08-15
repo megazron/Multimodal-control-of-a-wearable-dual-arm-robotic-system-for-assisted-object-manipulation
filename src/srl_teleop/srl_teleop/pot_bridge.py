@@ -9,6 +9,11 @@ from std_msgs.msg import String
 from builtin_interfaces.msg import Duration
 from srl_teleop.serial_port import find_port
 import math
+import os
+import sys
+
+sys.path.insert(0, os.path.expanduser("~/kortex_ws/config"))
+import home_positions  # loads from ~/kortex_ws/config/home_positions_<arm>.txt
 
 
 class PotBridge(Node):
@@ -20,10 +25,13 @@ class PotBridge(Node):
         self.declare_parameter("serial_port", "auto")
         self.declare_parameter("baud_rate", 115200)
         self.use_fake = self.get_parameter("use_fake").value
-        self.home = {
-            "left":  [-1.7623, -1.4366, -1.6102, -1.2891, -2.8955, 0.4796, 0.9645],
-            "right": [-0.9835,  1.345,   1.7204,  1.0222, -0.748,  0.6351, 2.7002],
-        }
+        # LOADED, NOT HARDCODED (2026-08-15). This was a copy of the legacy
+        # home in ROS radians, and this node publishes to the arm controllers,
+        # so after the home pose moved it would have driven the arms to the
+        # superseded pose. Same fix and same reason as srl_teleop_node: ONE
+        # source, config/home_positions_{arm}.txt.
+        self.home = {arm: list(home_positions.load_home_radians(arm))
+                     for arm in ("left", "right")}
         self.target = {"left": list(self.home["left"]), "right": list(self.home["right"])}
         self.connected_pots = {"k1j7": ("right", 3)}
         self.pot_noise_floor = 3.0

@@ -1,0 +1,1005 @@
+{
+  "posture": "out",
+  "posture_doc": "held out to the sides and back, elbows out, hands low and behind",
+  "zs": [
+    1.12
+  ],
+  "xs": [
+    0.0,
+    0.025,
+    0.05,
+    0.075,
+    0.1,
+    0.125,
+    0.15,
+    0.175,
+    0.2,
+    0.225,
+    0.25,
+    0.275,
+    0.3,
+    0.325,
+    0.35,
+    0.375,
+    0.4,
+    0.425,
+    0.45,
+    0.475,
+    0.5,
+    0.525,
+    0.55,
+    0.575,
+    0.6
+  ],
+  "ys": [
+    0.1,
+    0.15,
+    0.2,
+    0.25,
+    0.3,
+    0.35,
+    0.4,
+    0.45,
+    0.5,
+    0.55
+  ],
+  "step": 0.025,
+  "floor": 0.15,
+  "work_plane": 1.12,
+  "table_top": 0.95,
+  "full_repeats": 10,
+  "controls": {
+    "posture_is_in_the_urdf": {
+      "want": "True",
+      "got": "True (6 human arm joints match the out table)"
+    },
+    "posture_is_in_the_clearance_model": {
+      "want": "out",
+      "got": "out"
+    },
+    "inside_torso_negative": {
+      "want": "< 0",
+      "got": -0.154
+    },
+    "outboard_cell_solves": {
+      "want": "True",
+      "got": "True (clearance 0.0877 to L-hand)"
+    },
+    "clearance_map_is_not_a_constant": {
+      "want": ">= 3 distinct values per arm",
+      "got": "{'left@1.120': 96, 'right@1.120': 95}"
+    }
+  },
+  "outboard_probe": {
+    "x": 0.75,
+    "clearance_m": 0.0877,
+    "to": "L-hand"
+  },
+  "inboard_vs_outboard": {
+    "left": {
+      "inboard": null,
+      "inboard_to": null,
+      "outboard": 0.0532,
+      "outboard_to": "L-hand"
+    },
+    "right": {
+      "inboard": 0.0703,
+      "inboard_to": "R-upperarm",
+      "outboard": null,
+      "outboard_to": null
+    }
+  },
+  "home_clearance_m": {
+    "left": 0.0601,
+    "right": -0.0837
+  },
+  "innermost_safe_confirmed": {
+    "left": null,
+    "right": null
+  },
+  "solver_scatter": {},
+  "centre_cells": [],
+  "stage1": {
+    "1.120": {
+      "left": {
+        "outer_control_reachable": true,
+        "innermost_ik_x": 0.25,
+        "innermost_safe_x": null,
+        "binds_at_innermost_safe": null,
+        "centreline_safe_rows": [],
+        "centreline_best_clearance_m": null,
+        "n_ik": 111,
+        "n_safe": 0,
+        "clearance": {
+          "+0.250,0.100": {
+            "clearance_m": -0.0068,
+            "to": "L-hand"
+          },
+          "+0.275,0.300": {
+            "clearance_m": 0.0,
+            "to": "L-forearm"
+          },
+          "+0.275,0.350": {
+            "clearance_m": 0.0007,
+            "to": "L-forearm"
+          },
+          "+0.275,0.400": {
+            "clearance_m": -0.0021,
+            "to": "L-forearm"
+          },
+          "+0.300,0.100": {
+            "clearance_m": -0.0163,
+            "to": "L-hand"
+          },
+          "+0.300,0.300": {
+            "clearance_m": 0.0048,
+            "to": "L-forearm"
+          },
+          "+0.300,0.350": {
+            "clearance_m": 0.0091,
+            "to": "L-forearm"
+          },
+          "+0.300,0.400": {
+            "clearance_m": 0.0061,
+            "to": "L-forearm"
+          },
+          "+0.300,0.450": {
+            "clearance_m": -0.0005,
+            "to": "L-forearm"
+          },
+          "+0.325,0.200": {
+            "clearance_m": 0.0064,
+            "to": "L-forearm"
+          },
+          "+0.325,0.250": {
+            "clearance_m": -0.0004,
+            "to": "L-forearm"
+          },
+          "+0.325,0.300": {
+            "clearance_m": 0.0033,
+            "to": "L-forearm"
+          },
+          "+0.325,0.350": {
+            "clearance_m": 0.0039,
+            "to": "L-forearm"
+          },
+          "+0.325,0.400": {
+            "clearance_m": 0.001,
+            "to": "L-forearm"
+          },
+          "+0.325,0.450": {
+            "clearance_m": -0.0039,
+            "to": "L-forearm"
+          },
+          "+0.350,0.200": {
+            "clearance_m": 0.0037,
+            "to": "L-forearm"
+          },
+          "+0.350,0.250": {
+            "clearance_m": 0.0093,
+            "to": "L-forearm"
+          },
+          "+0.350,0.300": {
+            "clearance_m": 0.012,
+            "to": "L-forearm"
+          },
+          "+0.350,0.350": {
+            "clearance_m": 0.0114,
+            "to": "L-forearm"
+          },
+          "+0.350,0.400": {
+            "clearance_m": 0.0098,
+            "to": "L-forearm"
+          },
+          "+0.350,0.450": {
+            "clearance_m": 0.0035,
+            "to": "L-forearm"
+          },
+          "+0.350,0.500": {
+            "clearance_m": 0.0028,
+            "to": "L-forearm"
+          },
+          "+0.375,0.150": {
+            "clearance_m": 0.0063,
+            "to": "L-forearm"
+          },
+          "+0.375,0.200": {
+            "clearance_m": 0.0141,
+            "to": "L-forearm"
+          },
+          "+0.375,0.250": {
+            "clearance_m": -0.0005,
+            "to": "L-forearm"
+          },
+          "+0.375,0.300": {
+            "clearance_m": 0.0026,
+            "to": "L-forearm"
+          },
+          "+0.375,0.350": {
+            "clearance_m": 0.0025,
+            "to": "L-forearm"
+          },
+          "+0.375,0.400": {
+            "clearance_m": 0.0013,
+            "to": "L-forearm"
+          },
+          "+0.375,0.450": {
+            "clearance_m": -0.0035,
+            "to": "L-forearm"
+          },
+          "+0.375,0.500": {
+            "clearance_m": -0.0005,
+            "to": "L-forearm"
+          },
+          "+0.400,0.100": {
+            "clearance_m": -0.0144,
+            "to": "L-forearm"
+          },
+          "+0.400,0.150": {
+            "clearance_m": 0.0063,
+            "to": "L-forearm"
+          },
+          "+0.400,0.200": {
+            "clearance_m": 0.0045,
+            "to": "L-forearm"
+          },
+          "+0.400,0.250": {
+            "clearance_m": 0.0093,
+            "to": "L-forearm"
+          },
+          "+0.400,0.300": {
+            "clearance_m": 0.0114,
+            "to": "L-forearm"
+          },
+          "+0.400,0.350": {
+            "clearance_m": 0.0108,
+            "to": "L-forearm"
+          },
+          "+0.400,0.400": {
+            "clearance_m": 0.0085,
+            "to": "L-forearm"
+          },
+          "+0.400,0.450": {
+            "clearance_m": 0.0031,
+            "to": "L-forearm"
+          },
+          "+0.400,0.500": {
+            "clearance_m": 0.0009,
+            "to": "L-forearm"
+          },
+          "+0.425,0.150": {
+            "clearance_m": -0.0002,
+            "to": "L-forearm"
+          },
+          "+0.425,0.200": {
+            "clearance_m": 0.0092,
+            "to": "L-hand"
+          },
+          "+0.425,0.250": {
+            "clearance_m": 0.0193,
+            "to": "L-forearm"
+          },
+          "+0.425,0.300": {
+            "clearance_m": -0.0023,
+            "to": "L-forearm"
+          },
+          "+0.425,0.350": {
+            "clearance_m": 0.0003,
+            "to": "L-forearm"
+          },
+          "+0.425,0.400": {
+            "clearance_m": -0.0027,
+            "to": "L-forearm"
+          },
+          "+0.425,0.450": {
+            "clearance_m": 0.0093,
+            "to": "L-forearm"
+          },
+          "+0.425,0.500": {
+            "clearance_m": -0.0012,
+            "to": "L-forearm"
+          },
+          "+0.425,0.550": {
+            "clearance_m": -0.0026,
+            "to": "L-forearm"
+          },
+          "+0.450,0.150": {
+            "clearance_m": -0.0029,
+            "to": "L-forearm"
+          },
+          "+0.450,0.200": {
+            "clearance_m": 0.0008,
+            "to": "L-hand"
+          },
+          "+0.450,0.250": {
+            "clearance_m": 0.0032,
+            "to": "L-hand"
+          },
+          "+0.450,0.300": {
+            "clearance_m": 0.0065,
+            "to": "L-forearm"
+          },
+          "+0.450,0.350": {
+            "clearance_m": 0.0072,
+            "to": "L-forearm"
+          },
+          "+0.450,0.400": {
+            "clearance_m": 0.0038,
+            "to": "L-forearm"
+          },
+          "+0.450,0.450": {
+            "clearance_m": -0.0018,
+            "to": "L-forearm"
+          },
+          "+0.450,0.500": {
+            "clearance_m": 0.0043,
+            "to": "L-forearm"
+          },
+          "+0.450,0.550": {
+            "clearance_m": -0.0015,
+            "to": "L-forearm"
+          },
+          "+0.475,0.150": {
+            "clearance_m": -0.0116,
+            "to": "L-forearm"
+          },
+          "+0.475,0.200": {
+            "clearance_m": 0.0144,
+            "to": "L-hand"
+          },
+          "+0.475,0.250": {
+            "clearance_m": 0.015,
+            "to": "L-hand"
+          },
+          "+0.475,0.300": {
+            "clearance_m": 0.0176,
+            "to": "L-hand"
+          },
+          "+0.475,0.350": {
+            "clearance_m": 0.0141,
+            "to": "L-forearm"
+          },
+          "+0.475,0.400": {
+            "clearance_m": 0.0099,
+            "to": "L-forearm"
+          },
+          "+0.475,0.450": {
+            "clearance_m": 0.0033,
+            "to": "L-forearm"
+          },
+          "+0.475,0.500": {
+            "clearance_m": 0.0048,
+            "to": "L-forearm"
+          },
+          "+0.475,0.550": {
+            "clearance_m": 0.002,
+            "to": "L-forearm"
+          },
+          "+0.500,0.150": {
+            "clearance_m": -0.0094,
+            "to": "L-forearm"
+          },
+          "+0.500,0.200": {
+            "clearance_m": 0.0245,
+            "to": "L-forearm"
+          },
+          "+0.500,0.250": {
+            "clearance_m": 0.0262,
+            "to": "L-hand"
+          },
+          "+0.500,0.300": {
+            "clearance_m": 0.0256,
+            "to": "L-hand"
+          },
+          "+0.500,0.350": {
+            "clearance_m": 0.0207,
+            "to": "L-forearm"
+          },
+          "+0.500,0.400": {
+            "clearance_m": 0.0156,
+            "to": "L-forearm"
+          },
+          "+0.500,0.450": {
+            "clearance_m": 0.0078,
+            "to": "L-forearm"
+          },
+          "+0.500,0.500": {
+            "clearance_m": -0.0032,
+            "to": "L-forearm"
+          },
+          "+0.500,0.550": {
+            "clearance_m": 0.0083,
+            "to": "L-forearm"
+          },
+          "+0.525,0.150": {
+            "clearance_m": -0.0048,
+            "to": "L-forearm"
+          },
+          "+0.525,0.200": {
+            "clearance_m": 0.0306,
+            "to": "L-forearm"
+          },
+          "+0.525,0.250": {
+            "clearance_m": 0.0387,
+            "to": "L-hand"
+          },
+          "+0.525,0.300": {
+            "clearance_m": 0.0337,
+            "to": "L-forearm"
+          },
+          "+0.525,0.350": {
+            "clearance_m": 0.027,
+            "to": "L-forearm"
+          },
+          "+0.525,0.400": {
+            "clearance_m": 0.0207,
+            "to": "L-forearm"
+          },
+          "+0.525,0.450": {
+            "clearance_m": 0.0118,
+            "to": "L-forearm"
+          },
+          "+0.525,0.500": {
+            "clearance_m": -0.0005,
+            "to": "L-forearm"
+          },
+          "+0.525,0.550": {
+            "clearance_m": -0.0027,
+            "to": "L-forearm"
+          },
+          "+0.550,0.150": {
+            "clearance_m": 0.001,
+            "to": "L-forearm"
+          },
+          "+0.550,0.200": {
+            "clearance_m": 0.0365,
+            "to": "L-forearm"
+          },
+          "+0.550,0.250": {
+            "clearance_m": 0.0467,
+            "to": "L-hand"
+          },
+          "+0.550,0.300": {
+            "clearance_m": 0.0407,
+            "to": "L-hand"
+          },
+          "+0.550,0.350": {
+            "clearance_m": 0.0328,
+            "to": "L-forearm"
+          },
+          "+0.550,0.400": {
+            "clearance_m": 0.025,
+            "to": "L-forearm"
+          },
+          "+0.550,0.450": {
+            "clearance_m": 0.0144,
+            "to": "L-forearm"
+          },
+          "+0.550,0.500": {
+            "clearance_m": 0.0005,
+            "to": "L-forearm"
+          },
+          "+0.550,0.550": {
+            "clearance_m": 0.0017,
+            "to": "L-forearm"
+          },
+          "+0.575,0.150": {
+            "clearance_m": 0.0093,
+            "to": "L-forearm"
+          },
+          "+0.575,0.200": {
+            "clearance_m": 0.0434,
+            "to": "L-forearm"
+          },
+          "+0.575,0.250": {
+            "clearance_m": 0.0545,
+            "to": "L-hand"
+          },
+          "+0.575,0.300": {
+            "clearance_m": 0.0461,
+            "to": "L-hand"
+          },
+          "+0.575,0.350": {
+            "clearance_m": 0.0381,
+            "to": "L-forearm"
+          },
+          "+0.575,0.400": {
+            "clearance_m": 0.0285,
+            "to": "L-forearm"
+          },
+          "+0.575,0.450": {
+            "clearance_m": 0.0169,
+            "to": "L-forearm"
+          },
+          "+0.575,0.500": {
+            "clearance_m": 0.0006,
+            "to": "L-forearm"
+          },
+          "+0.575,0.550": {
+            "clearance_m": -0.0031,
+            "to": "L-forearm"
+          },
+          "+0.600,0.150": {
+            "clearance_m": 0.02,
+            "to": "L-forearm"
+          },
+          "+0.600,0.200": {
+            "clearance_m": 0.0525,
+            "to": "L-forearm"
+          },
+          "+0.600,0.250": {
+            "clearance_m": 0.0617,
+            "to": "L-hand"
+          },
+          "+0.600,0.300": {
+            "clearance_m": 0.0514,
+            "to": "L-hand"
+          },
+          "+0.600,0.350": {
+            "clearance_m": 0.0427,
+            "to": "L-forearm"
+          },
+          "+0.600,0.400": {
+            "clearance_m": 0.0316,
+            "to": "L-forearm"
+          },
+          "+0.600,0.450": {
+            "clearance_m": 0.0181,
+            "to": "L-forearm"
+          },
+          "+0.600,0.500": {
+            "clearance_m": -0.0024,
+            "to": "L-forearm"
+          },
+          "+0.600,0.550": {
+            "clearance_m": 0.0278,
+            "to": "L-forearm"
+          }
+        }
+      },
+      "right": {
+        "outer_control_reachable": true,
+        "innermost_ik_x": 0.15,
+        "innermost_safe_x": null,
+        "binds_at_innermost_safe": null,
+        "centreline_safe_rows": [],
+        "centreline_best_clearance_m": null,
+        "n_ik": 107,
+        "n_safe": 0,
+        "clearance": {
+          "-0.150,0.450": {
+            "clearance_m": -0.0133,
+            "to": "torso"
+          },
+          "-0.175,0.450": {
+            "clearance_m": 0.0031,
+            "to": "torso"
+          },
+          "-0.200,0.400": {
+            "clearance_m": 0.004,
+            "to": "torso"
+          },
+          "-0.200,0.450": {
+            "clearance_m": 0.0061,
+            "to": "R-forearm"
+          },
+          "-0.225,0.100": {
+            "clearance_m": -0.0018,
+            "to": "torso"
+          },
+          "-0.225,0.150": {
+            "clearance_m": 0.0087,
+            "to": "torso"
+          },
+          "-0.225,0.200": {
+            "clearance_m": 0.0199,
+            "to": "torso"
+          },
+          "-0.225,0.250": {
+            "clearance_m": 0.0238,
+            "to": "torso"
+          },
+          "-0.225,0.300": {
+            "clearance_m": 0.0238,
+            "to": "torso"
+          },
+          "-0.225,0.350": {
+            "clearance_m": 0.0238,
+            "to": "torso"
+          },
+          "-0.225,0.400": {
+            "clearance_m": 0.0273,
+            "to": "torso"
+          },
+          "-0.225,0.450": {
+            "clearance_m": 0.0109,
+            "to": "R-forearm"
+          },
+          "-0.250,0.100": {
+            "clearance_m": 0.0232,
+            "to": "torso"
+          },
+          "-0.250,0.150": {
+            "clearance_m": 0.0332,
+            "to": "torso"
+          },
+          "-0.250,0.200": {
+            "clearance_m": 0.0443,
+            "to": "torso"
+          },
+          "-0.250,0.250": {
+            "clearance_m": 0.0487,
+            "to": "torso"
+          },
+          "-0.250,0.300": {
+            "clearance_m": 0.0487,
+            "to": "torso"
+          },
+          "-0.250,0.350": {
+            "clearance_m": 0.0487,
+            "to": "torso"
+          },
+          "-0.250,0.400": {
+            "clearance_m": 0.0321,
+            "to": "R-forearm"
+          },
+          "-0.250,0.450": {
+            "clearance_m": 0.0129,
+            "to": "R-forearm"
+          },
+          "-0.275,0.100": {
+            "clearance_m": 0.0482,
+            "to": "torso"
+          },
+          "-0.275,0.150": {
+            "clearance_m": 0.0574,
+            "to": "torso"
+          },
+          "-0.275,0.200": {
+            "clearance_m": 0.0688,
+            "to": "torso"
+          },
+          "-0.275,0.250": {
+            "clearance_m": 0.0737,
+            "to": "torso"
+          },
+          "-0.275,0.300": {
+            "clearance_m": 0.0687,
+            "to": "R-forearm"
+          },
+          "-0.275,0.350": {
+            "clearance_m": 0.0506,
+            "to": "R-forearm"
+          },
+          "-0.275,0.400": {
+            "clearance_m": 0.0332,
+            "to": "R-forearm"
+          },
+          "-0.275,0.450": {
+            "clearance_m": 0.0142,
+            "to": "R-forearm"
+          },
+          "-0.300,0.100": {
+            "clearance_m": 0.0702,
+            "to": "R-upperarm"
+          },
+          "-0.300,0.150": {
+            "clearance_m": 0.0703,
+            "to": "R-upperarm"
+          },
+          "-0.300,0.200": {
+            "clearance_m": 0.073,
+            "to": "R-upperarm"
+          },
+          "-0.300,0.250": {
+            "clearance_m": 0.0866,
+            "to": "R-forearm"
+          },
+          "-0.300,0.300": {
+            "clearance_m": 0.0692,
+            "to": "R-forearm"
+          },
+          "-0.300,0.350": {
+            "clearance_m": 0.0511,
+            "to": "R-forearm"
+          },
+          "-0.300,0.400": {
+            "clearance_m": 0.0337,
+            "to": "R-forearm"
+          },
+          "-0.300,0.450": {
+            "clearance_m": 0.0147,
+            "to": "R-forearm"
+          },
+          "-0.325,0.100": {
+            "clearance_m": 0.0568,
+            "to": "R-forearm"
+          },
+          "-0.325,0.150": {
+            "clearance_m": 0.0572,
+            "to": "R-forearm"
+          },
+          "-0.325,0.200": {
+            "clearance_m": 0.0658,
+            "to": "R-forearm"
+          },
+          "-0.325,0.250": {
+            "clearance_m": 0.0815,
+            "to": "R-upperarm"
+          },
+          "-0.325,0.300": {
+            "clearance_m": 0.0689,
+            "to": "R-forearm"
+          },
+          "-0.325,0.350": {
+            "clearance_m": 0.0509,
+            "to": "R-forearm"
+          },
+          "-0.325,0.400": {
+            "clearance_m": 0.0335,
+            "to": "R-forearm"
+          },
+          "-0.325,0.450": {
+            "clearance_m": 0.0131,
+            "to": "R-forearm"
+          },
+          "-0.350,0.100": {
+            "clearance_m": 0.043,
+            "to": "R-forearm"
+          },
+          "-0.350,0.150": {
+            "clearance_m": 0.0444,
+            "to": "R-forearm"
+          },
+          "-0.350,0.200": {
+            "clearance_m": 0.0568,
+            "to": "R-forearm"
+          },
+          "-0.350,0.250": {
+            "clearance_m": 0.0779,
+            "to": "R-upperarm"
+          },
+          "-0.350,0.300": {
+            "clearance_m": 0.0652,
+            "to": "R-forearm"
+          },
+          "-0.350,0.350": {
+            "clearance_m": 0.0461,
+            "to": "R-forearm"
+          },
+          "-0.350,0.400": {
+            "clearance_m": 0.0269,
+            "to": "R-forearm"
+          },
+          "-0.350,0.450": {
+            "clearance_m": 0.0046,
+            "to": "R-forearm"
+          },
+          "-0.375,0.100": {
+            "clearance_m": 0.0291,
+            "to": "R-forearm"
+          },
+          "-0.375,0.150": {
+            "clearance_m": 0.0328,
+            "to": "R-forearm"
+          },
+          "-0.375,0.200": {
+            "clearance_m": 0.0493,
+            "to": "R-forearm"
+          },
+          "-0.375,0.250": {
+            "clearance_m": 0.0728,
+            "to": "R-forearm"
+          },
+          "-0.375,0.300": {
+            "clearance_m": 0.0568,
+            "to": "R-forearm"
+          },
+          "-0.375,0.350": {
+            "clearance_m": 0.0379,
+            "to": "R-forearm"
+          },
+          "-0.375,0.400": {
+            "clearance_m": 0.0179,
+            "to": "R-forearm"
+          },
+          "-0.375,0.450": {
+            "clearance_m": -0.0042,
+            "to": "R-forearm"
+          },
+          "-0.400,0.100": {
+            "clearance_m": 0.0153,
+            "to": "R-forearm"
+          },
+          "-0.400,0.150": {
+            "clearance_m": 0.0226,
+            "to": "R-forearm"
+          },
+          "-0.400,0.200": {
+            "clearance_m": 0.0437,
+            "to": "R-forearm"
+          },
+          "-0.400,0.250": {
+            "clearance_m": 0.066,
+            "to": "R-forearm"
+          },
+          "-0.400,0.300": {
+            "clearance_m": 0.0485,
+            "to": "R-forearm"
+          },
+          "-0.400,0.350": {
+            "clearance_m": 0.0298,
+            "to": "R-forearm"
+          },
+          "-0.400,0.400": {
+            "clearance_m": 0.0088,
+            "to": "R-forearm"
+          },
+          "-0.400,0.450": {
+            "clearance_m": -0.0043,
+            "to": "R-forearm"
+          },
+          "-0.425,0.100": {
+            "clearance_m": 0.0017,
+            "to": "R-forearm"
+          },
+          "-0.425,0.150": {
+            "clearance_m": 0.0141,
+            "to": "R-forearm"
+          },
+          "-0.425,0.200": {
+            "clearance_m": 0.0386,
+            "to": "R-forearm"
+          },
+          "-0.425,0.250": {
+            "clearance_m": 0.0577,
+            "to": "R-forearm"
+          },
+          "-0.425,0.300": {
+            "clearance_m": 0.0392,
+            "to": "R-forearm"
+          },
+          "-0.425,0.350": {
+            "clearance_m": 0.0203,
+            "to": "R-forearm"
+          },
+          "-0.425,0.400": {
+            "clearance_m": -0.0006,
+            "to": "R-forearm"
+          },
+          "-0.450,0.100": {
+            "clearance_m": -0.0105,
+            "to": "R-forearm"
+          },
+          "-0.450,0.150": {
+            "clearance_m": 0.008,
+            "to": "R-forearm"
+          },
+          "-0.450,0.200": {
+            "clearance_m": 0.0338,
+            "to": "R-forearm"
+          },
+          "-0.450,0.250": {
+            "clearance_m": 0.0498,
+            "to": "R-forearm"
+          },
+          "-0.450,0.300": {
+            "clearance_m": 0.0295,
+            "to": "R-forearm"
+          },
+          "-0.450,0.350": {
+            "clearance_m": 0.0105,
+            "to": "R-forearm"
+          },
+          "-0.450,0.400": {
+            "clearance_m": -0.0015,
+            "to": "R-forearm"
+          },
+          "-0.475,0.150": {
+            "clearance_m": 0.0031,
+            "to": "R-forearm"
+          },
+          "-0.475,0.200": {
+            "clearance_m": 0.0287,
+            "to": "R-forearm"
+          },
+          "-0.475,0.250": {
+            "clearance_m": 0.0409,
+            "to": "R-forearm"
+          },
+          "-0.475,0.300": {
+            "clearance_m": 0.0203,
+            "to": "R-forearm"
+          },
+          "-0.475,0.350": {
+            "clearance_m": 0.0001,
+            "to": "R-forearm"
+          },
+          "-0.500,0.150": {
+            "clearance_m": -0.0023,
+            "to": "R-forearm"
+          },
+          "-0.500,0.200": {
+            "clearance_m": 0.0232,
+            "to": "R-forearm"
+          },
+          "-0.500,0.250": {
+            "clearance_m": 0.0321,
+            "to": "R-forearm"
+          },
+          "-0.500,0.300": {
+            "clearance_m": 0.0114,
+            "to": "R-forearm"
+          },
+          "-0.500,0.350": {
+            "clearance_m": -0.0033,
+            "to": "R-forearm"
+          },
+          "-0.525,0.150": {
+            "clearance_m": -0.0089,
+            "to": "R-hand"
+          },
+          "-0.525,0.200": {
+            "clearance_m": 0.0134,
+            "to": "R-hand"
+          },
+          "-0.525,0.250": {
+            "clearance_m": 0.0218,
+            "to": "R-hand"
+          },
+          "-0.525,0.300": {
+            "clearance_m": 0.0003,
+            "to": "R-forearm"
+          },
+          "-0.525,0.350": {
+            "clearance_m": -0.0008,
+            "to": "R-forearm"
+          },
+          "-0.550,0.150": {
+            "clearance_m": -0.0134,
+            "to": "R-hand"
+          },
+          "-0.550,0.200": {
+            "clearance_m": 0.0029,
+            "to": "R-hand"
+          },
+          "-0.550,0.250": {
+            "clearance_m": 0.01,
+            "to": "R-hand"
+          },
+          "-0.550,0.300": {
+            "clearance_m": -0.003,
+            "to": "R-forearm"
+          },
+          "-0.575,0.150": {
+            "clearance_m": -0.0148,
+            "to": "R-hand"
+          },
+          "-0.575,0.200": {
+            "clearance_m": -0.01,
+            "to": "R-hand"
+          },
+          "-0.575,0.250": {
+            "clearance_m": -0.0042,
+            "to": "R-hand"
+          },
+          "-0.575,0.300": {
+            "clearance_m": -0.0059,
+            "to": "R-forearm"
+          },
+          "-0.600,0.200": {
+            "clearance_m": -0.0098,
+            "to": "R-hand"
+          },
+          "-0.600,0.250": {
+            "clearance_m": -0.0063,
+            "to": "R-hand"
+          }
+        }
+      }
+    }
+  },
+  "stage2": [],
+  "ik_calls": 740,
+  "method": "stage 1 grasp pose only N=1 (optimistic); stage 2 full pick path at N=full_repeats with furniture in and the wearer measured geometrically against the posture's own primitives"
+}

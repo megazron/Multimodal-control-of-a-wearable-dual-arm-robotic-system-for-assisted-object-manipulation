@@ -36,24 +36,22 @@ from std_msgs.msg import Bool, String
 
 import tf2_ros
 
-# Wearer collision primitives, in the WORLD frame, straight from
-# human_backpack.xacro. Kept here rather than parsed so the guard still works
+from . import wearer_posture
+
+# Wearer collision primitives, in the WORLD frame, as
+# (name, kind, dimensions, centre, rpy).
+#
+# They are BUILT here rather than parsed from the URDF so the guard still works
 # if the description fails to load — a guard that needs the thing it is
-# guarding is not a guard.
-WEARER = [
-    ('torso',      'box',      (0.36, 0.22, 0.48), (0.0, 0.0, 1.22)),
-    ('head',       'sphere',   (0.105,),           (0.0, 0.0, 1.645)),
-    ('neck',       'cylinder', (0.055, 0.16),      (0.0, 0.0, 1.50)),
-    ('hips',       'box',      (0.32, 0.21, 0.18), (0.0, 0.0, 0.94)),
-    ('L-thigh',    'cylinder', (0.075, 0.44),      (0.09, 0.0, 0.68)),
-    ('R-thigh',    'cylinder', (0.075, 0.44),      (-0.09, 0.0, 0.68)),
-    ('L-upperarm', 'cylinder', (0.050, 0.30),      (0.21, 0.0, 1.28)),
-    ('R-upperarm', 'cylinder', (0.050, 0.30),      (-0.21, 0.0, 1.28)),
-    ('L-forearm',  'cylinder', (0.045, 0.26),      (0.21, 0.0, 1.00)),
-    ('R-forearm',  'cylinder', (0.045, 0.26),      (-0.21, 0.0, 1.00)),
-    ('L-hand',     'box',      (0.09, 0.05, 0.18), (0.21, 0.0, 0.78)),
-    ('R-hand',     'box',      (0.09, 0.05, 0.18), (-0.21, 0.0, 0.78)),
-]
+# guarding is not a guard. They come from `wearer_posture`, which is also what
+# writes the URDF's arm block, so the two cannot drift: see
+# `test_wearer_posture_has_one_source`.
+#
+# THE ARM POSTURE IS A VARIABLE and this list follows it. `SRL_WEARER_ARMS`
+# picks it and the default is `down`, the arms-at-the-sides model every earlier
+# workspace number was measured against.
+POSTURE = wearer_posture.posture_from_env()
+WEARER = wearer_posture.wearer_model(POSTURE)
 
 # The arm as a CHAIN OF CAPSULES between consecutive link origins.
 #
@@ -76,8 +74,18 @@ TUBE_R = 0.050          # Gen3 tube is r=0.046; 4 mm of margin
 SAMPLES = 8             # points per segment
 
 
-def dist_point(p, kind, prm, ctr):
+def dist_point(p, kind, prm, ctr, rpy=(0.0, 0.0, 0.0)):
+    """Signed distance from point `p` to one wearer primitive.
+
+    `rpy` rotates the primitive. It used to be absent, which was fine while
+    every wearer link was axis-aligned and silently wrong the moment the arm
+    posture became a variable: a forearm folded across the chest is a cylinder
+    lying on its side, and an unrotated test measures a different solid.
+    """
     q = np.asarray(p, float) - np.asarray(ctr, float)
+    if any(abs(a) > 1e-12 for a in rpy):
+        R = np.asarray(wearer_posture.rot_matrix(rpy), float)
+        q = R.T @ q
     if kind == 'box':
         half = np.asarray(prm, float) * 0.5
         d = np.maximum(np.abs(q) - half, 0.0)
@@ -138,8 +146,8 @@ class MountGuard(Node):
                 ln, a = origins[i]
                 b = origins[i + 1][1] if i + 1 < len(origins) else a
                 pts = [a + (b - a) * (k / float(SAMPLES)) for k in range(SAMPLES + 1)]
-                for nm, kind, prm, ctr in WEARER:
-                    d = min(dist_point(q, kind, prm, ctr) for q in pts) - TUBE_R
+                for nm, kind, prm, ctr, rpy in WEARER:
+                    d = min(dist_point(q, kind, prm, ctr, rpy) for q in pts) - TUBE_R
                     pairs.append((d, arm, ln, nm))
         if missing and len(missing) == len(CHAIN) * len(self.arms):
             self.get_logger().warn(

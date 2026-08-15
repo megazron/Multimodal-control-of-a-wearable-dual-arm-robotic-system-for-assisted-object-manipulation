@@ -281,13 +281,29 @@ class SimToRealBridge(Node):
             d = pose_delta_rad(self.home, real, CONTINUOUS_IDX)
             worst = max(abs(x) for x in d)
             if worst > self.tol:
+                # SAY WHY, NOT JUST HOW FAR. On 2026-08-15 the SIM home was
+                # changed to the presentation pose and the real arms were not
+                # recaptured, so this refusal is the expected state of the rig
+                # rather than an operator error -- and a bare number reads
+                # like a fault to whoever meets it in the lab. The recapture
+                # is the fix; the runbook is named so nobody has to re-derive
+                # anything from a joint index.
                 return False, (
-                    "REFUSED: real arm is %.3f rad (%.2f deg) from home on "
-                    "joint_%d. The bridge replays sim angles starting at "
-                    "home, so enabling now would command that difference as "
-                    "a jump. Home the arm first."
-                    % (worst, math.degrees(worst),
-                       max(range(7), key=lambda i: abs(d[i])) + 1))
+                    "REFUSED: real %s arm is %.3f rad (%.2f deg) from the "
+                    "loaded home on joint_%d. The bridge replays sim angles "
+                    "starting at home, so enabling now would command that "
+                    "difference as a jump.\n"
+                    "  LIKELY CAUSE: the SIM home was changed (2026-08-15, to "
+                    "the presentation pose) and the REAL arms have not been "
+                    "recaptured yet. A gap of about 1.9 rad on joint_7 is "
+                    "exactly that case, not a mis-homed arm.\n"
+                    "  FIX: follow 'CAPTURE THE NEW HOME ON THE REAL ARMS' in "
+                    "docs/NEXT_SESSION.md -- it carries the target in Kortex "
+                    "degrees and radians. Then home the arm and retry.\n"
+                    "  The pose this bridge is comparing against is "
+                    "config/home_positions_%s.txt."
+                    % (self.arm, worst, math.degrees(worst),
+                       max(range(7), key=lambda i: abs(d[i])) + 1, self.arm))
         # AND the sim must already agree with the real arm. Checking the real
         # arm against home is not sufficient: the operator is driving the sim
         # the whole time the real arm is homing, so the sim can be a long way

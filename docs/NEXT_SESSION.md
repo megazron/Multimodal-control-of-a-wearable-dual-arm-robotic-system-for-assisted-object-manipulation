@@ -1,4 +1,200 @@
-# RESUME POINT 2026-08-15 (evening) — THE SET IS COMPLETE; SIX THINGS LOOKING FOUND
+# RESUME POINT 2026-08-15 (late) — HOME MOVED. CAPTURE IT ON THE ARMS.
+
+**THE FIRST TWO THINGS TO DO, BEFORE ANYTHING ELSE.**
+
+## 1. CAPTURE THE NEW HOME ON THE REAL ARMS
+
+The home pose is now the presentation pose: wrist level, hand in front of the
+chest. `config/home_positions_*.txt` and the URDF's two `initial_positions`
+blocks hold it. **The physical arms have not moved** and are still parked at
+the legacy Kortex home, so sim and real disagree until this is done.
+
+That is SAFE and it is checked, not hoped: `sim_to_real_bridge.enable()`
+compares the real arm against the loaded home (`require_homed`, tolerance
+0.05 rad) and REFUSES, naming the joint and the size. The gap is about
+1.9 rad — forty times the tolerance. A second gate compares the sim's delayed
+target against the real arm and refuses on the same gap. It refuses; it does
+not silently move.
+
+**The values to send, so nothing has to be re-derived on the day:**
+
+| | j1 | j2 | j3 | j4 | j5 | j6 | j7 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **LEFT, Kortex deg** | 225.18 | 294.52 | 333.89 | 281.93 | 208.01 | 321.90 | 166.67 |
+| LEFT, ROS deg | -134.82 | -65.48 | -26.11 | -78.07 | -151.99 | -38.10 | 166.67 |
+| LEFT, ROS rad | -2.3530 | -1.1429 | -0.4557 | -1.3626 | -2.6528 | -0.6649 | 2.9090 |
+| **RIGHT, Kortex deg** | 309.40 | 100.81 | 96.22 | 78.88 | 11.47 | 330.88 | 265.75 |
+| RIGHT, ROS deg | -50.60 | 100.81 | 96.22 | 78.88 | 11.47 | -29.12 | -94.25 |
+| RIGHT, ROS rad | -0.8831 | 1.7594 | 1.6794 | 1.3767 | 0.2002 | -0.5082 | -1.6450 |
+
+Two things about those rows:
+
+* **The right arm's joint_7 is stored WRAPPED** (-94.25 deg, not the 265.75
+  the pose search returned). joint_7 is continuous so it is the same physical
+  pose, but `ik_follower_node` refuses to start on real hardware with a
+  continuous joint outside ±π and unwinds 360 deg in sim. **The Kortex value
+  is 265.75 either way**, so what you send the robot is unambiguous.
+* **The left arm's joint_5 seam margin IMPROVED**, 14.10 → 28.01 deg from the
+  ±180 boundary. The old home was inside this project's own 0.3 rad margin;
+  this one is not. The warning about position-mode code on joint_5 still
+  stands, but the pose is further from the seam than the one it replaces.
+
+**Getting there is a ~312 deg (left) / ~283 deg (right) total joint move**,
+worst single joint 111 deg on joint_7. That is a large unattended motion over
+a person, so it is a decision taken in the room, with the wearer OUT of the
+rig, not from a script.
+
+### THE RECAPTURE PROCEDURE
+
+Nothing below needs re-deriving; every number is in the table above.
+
+1. **Wearer out of the rig.** The move is 111 deg on one joint and the arms
+   are shoulder-mounted. Nobody is in the harness for it.
+2. **One arm at a time.** `kortex_driver` exports `tcp/twist.*` without an arm
+   prefix, so two real components collide and abort the whole hardware load.
+   The right arm stays mock; only the left can run its real driver today.
+3. **Bring up the real stack** (`bash scripts/start_real.sh`, or `--mock`
+   first to rehearse the whole sequence with nothing at risk).
+4. **Confirm the bridge REFUSES before you start.** Call
+   `/bridge_enable_left`; it must come back refusing and naming joint_7 at
+   ~1.94 rad. If it does not refuse, stop — either the arm is already at the
+   new pose or something is reading a different home, and both need
+   explaining before anything moves.
+5. **Home the arm** with `real_homing_node`. It uses a velocity law
+   (`angle_diff`, never a position setpoint), so it is immune to the joint_5
+   seam. The move exceeds its 120 deg refusal, so it needs
+   `allow_large_move:=true` — set deliberately, for this session, with a hand
+   on the e-stop.
+6. **Watch joint_7.** It is the 111 deg joint and it is continuous. The stored
+   value is wrapped (-94.25 deg ROS); the Kortex reading should settle at
+   **265.75**.
+7. **Read the arm back** and compare against the table above in Kortex
+   degrees. Record the live reading in `config/real_home_reference.txt` —
+   that file is reference-only and no code reads it, so it cannot break
+   anything, and it is the only record of what the hardware actually did.
+8. **Re-run the enable gate.** `/bridge_enable_left` must now succeed. If it
+   still refuses, the arm is not where the readback says.
+9. **SIGINT, never SIGKILL,** when tearing down. The arm permits exactly one
+   Kortex session and SIGKILL leaks it; grep for `kortex session closed
+   cleanly`.
+
+If the recapture is abandoned part-way, the arms are left somewhere that is
+neither home. That is safe — the bridge refuses on any gap over 0.05 rad — but
+say so in the session notes, because the next person's first refusal will
+otherwise look like this same known issue and be waved through.
+
+## 2. `WORKSPACE_CENTRE` IS RE-DERIVED — FIRST MASTER SESSION MUST CHECK IT
+
+`master_calibration.WORKSPACE_CENTRE` is documented as `offset = P_HOME`, so
+it had to follow home. Applied 2026-08-15, read off TF with both arms verified
+at the loaded home:
+
+    was   left (0.6966, 0.2481, 1.1463)   right (-0.7627, 0.2979, 1.1788)
+    now   left (0.5500, 0.3600, 1.1800)   right (-0.5500, 0.3600, 1.1800)
+
+Left stale it would have put the first commanded teleop frame 0.188 m (left) /
+0.222 m (right) from where the arm rests, because `master_pose_node` seeds
+`pos_anchor`, `anchor_ref` and `last_pos` from it.
+
+**These values have never been exercised.** `run_abc` commands world poses
+directly and does not go through this mapping, and master teleop is blocked
+with 7 of 14 channels incoherent, so the first master session is the first
+test. Watch the very first commanded frame after clutch engage: it should not
+move the arm.
+
+`WORKSPACE_ORIENT` was deliberately NOT re-derived. Doing so would give a
+level tool axis, (-0.7071, 0, 0, 0.7071) both arms, and costs T2 its right
+arm. See `docs/system/home_wrist_is_real.md` §3.
+
+`WORKSPACE_ORIENT`, the pinned approach, is a DIFFERENT quantity and was
+deliberately left alone. Re-deriving it to match the level home costs T2 its
+right arm. See `docs/system/home_wrist_is_real.md`.
+
+## 3. RE-RECORD THE CLIP SET
+
+The 25 clips predate the white table, the riser removal, the raised hands and
+now the home change. Every one shows a grey table, two posts holding nothing,
+and an opening pose 80 mm low. They are stale against the scene.
+
+## 4. SETTLE THE NO-OPERATOR MODE DIFFERENCE BEFORE ANYONE IS RECRUITED
+
+This decides whether the study's core comparison is valid, and it is NOT a
+contradiction to be argued away — both halves are true and they are about
+different quantities:
+
+* **COMMANDED is mode-independent.** `run_abc.build()` takes no mode argument;
+  the same waypoint list is sent under all five modes. Enforced in code and
+  tested.
+* **ACHIEVED is not.** Measured 2026-08-15 with no operator anywhere in the
+  loop: T0's left-arm path 1.407 m under 01 against 2.034 m under 03; T3's
+  circuit box 21 mm under 01 against 161 mm under 06, against a same-mode
+  run-to-run spread of 3%.
+
+The command paths differ — follower, assist node, VR mapper — and they track
+with different lag, so what the arm ACHIEVES differs even with nobody driving.
+
+**The consequence: a difference between modes in a trial cannot be attributed
+to the operator until the no-operator difference has been subtracted.** That
+subtraction has never been characterised. The 2026-08-15 numbers are five
+tasks deep at N=1 and are an existence proof, not a characterisation.
+
+**What settling it requires**, stated so it can be planned rather than
+rediscovered:
+
+1. **N ≥ 5 scripted repeats per (mode, task) cell**, no operator, same seed —
+   25 cells, so 125 runs. The existing sweep already runs scripted; what is
+   missing is the repeat count and the per-run metric dump.
+2. **A per-run metric set that is comparable across modes**: EE path length
+   per arm, time to each waypoint, achieved-vs-commanded divergence, and the
+   grasp-gate distances already in `scene_events.json`.
+3. **Report the WITHIN-mode spread beside the BETWEEN-mode difference.** A
+   between-mode gap smaller than the within-mode spread is not a mode effect,
+   and the current single-run numbers cannot tell the two apart.
+4. **Then either** subtract the no-operator baseline from every trial metric
+   and say so in the analysis, **or** — if the no-operator difference turns
+   out to be the same size as the effect being looked for — record that the
+   mode comparison cannot be made on that metric at all. That is a legitimate
+   result and it is better found now than after recruitment.
+
+It is a compute-bound job, not a lab-bound one: it needs no hardware, no
+participants and no ethics approval, so there is nothing blocking it.
+
+## 5. WHAT THE HOME CHANGE COST — TWO DECISIONS NEEDED
+
+Verified on the applied tree, N=10 full path, wearer and furniture, clearance
+geometric. T1 stage 1 and T3 are unchanged and clean. Two things regressed:
+
+**(a) T1 stage 2, seed 0, RIGHT arm: 25 of 98 waypoints inside the 150 mm
+floor**, worst 0.1135. Seeds 1 and 2 are clean, so it is this draw, not the
+task. `verify_t1_paths.py` exits non-zero and names the waypoints.
+
+**(b) T2's LEFT arm now fails 1 of 11 waypoints** (1 of 10 draws), and sits at
+0.0000 m clearance. T2 was already the worst task on the floor, so this is a
+marginal pose getting marginally worse rather than something new breaking.
+
+**The mechanism is the IK seed**, and it is worth understanding before
+choosing a fix: the solver seeds from the live joint state, so the resting
+posture selects which null-space branch it lands in. The right arm's joint_7
+is additionally stored WRAPPED (-94.25 deg where the search returned 265.75) —
+the same physical pose, 2π apart as a seed. The wrap is not optional;
+`ik_follower_node` refuses to start on real hardware without it.
+
+**The choices, neither of which should be made by whoever notices this first:**
+
+* for stage 2 — re-draw seed 0, or filter the sampling pool against the
+  clearance floor at the new home. The second is more work and fixes the whole
+  class rather than one draw.
+* for T2 — the same conversation its elastic tray already needs. Do not fix
+  the waypoint in isolation.
+
+Do NOT quote the pre-change `t1_paths.json` numbers: "0 IK failures, 0
+waypoints inside the floor" was true at the legacy home and is no longer true
+of stage 2 seed 0.
+
+
+---
+
+# (earlier) RESUME POINT 2026-08-15 (evening) — THE SET IS COMPLETE; SIX THINGS LOOKING FOUND
 
 **25 of 25 cells recorded on the current geometry, every one opening on the
 presentation pose.** 28 clip dirs, 19 of 19 planned data cells, no real gaps.

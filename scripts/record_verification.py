@@ -91,10 +91,18 @@ WEARER_SPEC = [
     ("hips", (0, 0, 0.17), "box", (0.16, 0.105, 0.09)),
     ("left_leg", (0.02, 0, 0.36), "cyl", (0.075, 0.44)),
     ("right_leg", (-0.02, 0, 0.36), "cyl", (0.075, 0.44)),
-    ("human_left_upper_arm", (0, 0, -0.15), "cyl", (0.050, 0.30)),
-    ("human_right_upper_arm", (0, 0, -0.15), "cyl", (0.050, 0.30)),
-    ("human_left_lower_arm", (0, 0, -0.13), "cyl", (0.045, 0.26)),
-    ("human_right_lower_arm", (0, 0, -0.13), "cyl", (0.045, 0.26)),
+    # THE ARM OFFSETS WERE 150 mm AND 130 mm WRONG. They assumed the link
+    # frame sits at the shoulder with the cylinder hanging below it, which was
+    # true of some earlier model; human_backpack.xacro puts the collision at
+    # the link ORIGIN with no offset of its own, so the drawn upper arm sat
+    # 150 mm below the one the score used. Corrected, and the hands added,
+    # which were simply absent.
+    ("human_left_upper_arm", (0, 0, 0), "cyl", (0.050, 0.30)),
+    ("human_right_upper_arm", (0, 0, 0), "cyl", (0.050, 0.30)),
+    ("human_left_lower_arm", (0, 0, 0), "cyl", (0.045, 0.26)),
+    ("human_right_lower_arm", (0, 0, 0), "cyl", (0.045, 0.26)),
+    ("human_left_hand", (0, 0, 0), "box", (0.045, 0.025, 0.09)),
+    ("human_right_hand", (0, 0, 0), "box", (0.045, 0.025, 0.09)),
 ]
 # Pairs the SRDF excludes because they are bolted permanently adjacent. The
 # clearance figure must exclude them too or it reports a constant near-zero
@@ -226,7 +234,8 @@ def wearer_prims(dr):
 try:
     sys.path.insert(0, os.path.join(ROOT, "src/srl_teleop"))
     from srl_teleop.clearance import (TORSO_BODY, HEAD_BODY, HIPS_BODY,
-                                      DISTAL_LINKS, point_clearance)
+                                      WEARER_ARM_PARTS, DISTAL_LINKS,
+                                      point_clearance)
     _HAVE_SHIPPED = True
 except Exception:                                              # noqa: BLE001
     _HAVE_SHIPPED = False
@@ -248,7 +257,11 @@ def shipped_clearance(dr, arm):
     if not _HAVE_SHIPPED:
         return float("nan"), ""
     worst, who = float("inf"), ""
-    bodies = {"torso": TORSO_BODY, "head": HEAD_BODY, "hips": HIPS_BODY}
+    # The wearer's own arms belong here too. They were missing from
+    # clearance.py itself until 2026-08-15, so every clearance figure the
+    # recorder scored was against a torso, a head and a pair of hips.
+    bodies = dict({"torso": TORSO_BODY, "head": HEAD_BODY, "hips": HIPS_BODY},
+                  **WEARER_ARM_PARTS)
     for ln in DISTAL_LINKS:
         for wf, prims in bodies.items():
             try:

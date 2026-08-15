@@ -262,8 +262,8 @@ class Rig:
             for k in range(MG.SAMPLES + 1):
                 t = k / float(MG.SAMPLES)
                 p = [a[i] + (b[i] - a[i]) * t for i in range(3)]
-                for name, kind, prm, ctr in MG.WEARER:
-                    d = MG.dist_point(p, kind, prm, ctr) - MG.TUBE_R
+                for name, kind, prm, ctr, rpy in MG.WEARER:
+                    d = MG.dist_point(p, kind, prm, ctr, rpy) - MG.TUBE_R
                     if d < worst:
                         worst, who = d, name
         return worst, who

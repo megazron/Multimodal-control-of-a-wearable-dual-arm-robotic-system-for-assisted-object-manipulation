@@ -33,6 +33,33 @@ HIPS_BODY = [
     ("box", (0.32, 0.21, 0.18), (0.0, 0.0, 0.17)),
 ]
 
+# THE WEARER'S OWN ARMS, AND THEY WERE NOT HERE.
+#
+# This module is the check the LIVE stack runs -- ik_follower_node's hard
+# floor, real_homing_node and sim_to_real_bridge all import it -- and until
+# now it modelled a torso, a head and a pair of hips. The offline geometric
+# survey has always included the wearer's arms, and on the inboard side those
+# arms are the thing that binds: the forearm hangs at |x| = 0.21 and is what
+# every "innermost safe column" number in this project is measured against. So
+# the planner's wearer and the follower's wearer were different people, and the
+# follower's had no arms.
+#
+# Each primitive is expressed in ITS OWN LINK FRAME, where it sits at the
+# origin with its axis along z. That is why this table needs no posture: the
+# posture moves the LINK, TF carries it, and the shape in the link frame is the
+# same whatever the wearer is doing with their arms. The dimensions come from
+# `wearer_posture.SEGMENTS`, which is also what writes the URDF.
+_ARM_PRIMS = {}
+try:
+    from srl_teleop.wearer_posture import SEGMENTS as _SEGS
+except Exception:                                              # noqa: BLE001
+    from .wearer_posture import SEGMENTS as _SEGS
+for _name, _kind, _dims, _len, _mat in _SEGS:
+    for _side in ("left", "right"):
+        _ARM_PRIMS["human_%s_%s" % (_side, _name)] = [
+            (_kind, tuple(_dims), (0.0, 0.0, 0.0))]
+WEARER_ARM_PARTS = dict(_ARM_PRIMS)
+
 # Arm links that must stay clear. Proximal links are bolted to the harness
 # and are excluded in the SRDF, so checking them would only produce noise.
 DISTAL_LINKS = ["forearm_link", "spherical_wrist_1_link",
@@ -88,7 +115,8 @@ class ClearanceModel:
     has TF), so this stays pure geometry and is unit-testable.
     """
 
-    PARTS = {"torso": TORSO_BODY, "head": HEAD_BODY, "hips": HIPS_BODY}
+    PARTS = dict({"torso": TORSO_BODY, "head": HEAD_BODY, "hips": HIPS_BODY},
+                 **WEARER_ARM_PARTS)
 
     def clearance(self, points_by_part, pad=0.0):
         """points_by_part: {part_name: [p, ...]} in that part's frame."""

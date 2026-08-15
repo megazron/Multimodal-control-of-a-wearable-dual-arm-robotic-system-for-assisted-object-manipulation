@@ -1,0 +1,993 @@
+{
+  "trigger_m": 0.25,
+  "floor_m": 0.15,
+  "fan": 7,
+  "steps": 14,
+  "controls": {
+    "deep_inside_torso_negative": -0.154,
+    "fan_produces_distinct_solutions": 172,
+    "avoidance_never_reduces_clearance": true
+  },
+  "results": {
+    "head": {
+      "off": {
+        "rows": [
+          {
+            "step": 0,
+            "xyz": [
+              0.55,
+              0.36,
+              1.18
+            ],
+            "clearance": 0.161,
+            "part": "torso",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 1,
+            "xyz": [
+              0.5107,
+              0.3343,
+              1.2132
+            ],
+            "clearance": 0.161,
+            "part": "torso",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 2,
+            "xyz": [
+              0.4714,
+              0.3086,
+              1.2464
+            ],
+            "clearance": 0.161,
+            "part": "torso",
+            "action": "baseline",
+            "ee_resid": 1e-05,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 3,
+            "xyz": [
+              0.4321,
+              0.2829,
+              1.2796
+            ],
+            "clearance": 0.1503,
+            "part": "L-upperarm",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 4,
+            "xyz": [
+              0.3929,
+              0.2571,
+              1.3129
+            ],
+            "clearance": 0.1037,
+            "part": "L-upperarm",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 5,
+            "xyz": [
+              0.3536,
+              0.2314,
+              1.3461
+            ],
+            "clearance": 0.0572,
+            "part": "L-upperarm",
+            "action": "baseline",
+            "ee_resid": 1e-05,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 6,
+            "xyz": [
+              0.3143,
+              0.2057,
+              1.3793
+            ],
+            "clearance": 0.0111,
+            "part": "L-upperarm",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 7,
+            "xyz": [
+              0.275,
+              0.18,
+              1.4125
+            ],
+            "clearance": -0.0338,
+            "part": "L-upperarm",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 8,
+            "xyz": [
+              0.2357,
+              0.1543,
+              1.4457
+            ],
+            "clearance": -0.0378,
+            "part": "L-upperarm",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 9,
+            "xyz": [
+              0.1964,
+              0.1286,
+              1.4789
+            ],
+            "clearance": -0.0249,
+            "part": "torso",
+            "action": "baseline",
+            "ee_resid": 1e-05,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 10,
+            "xyz": [
+              0.1571,
+              0.1029,
+              1.5121
+            ],
+            "clearance": -0.0023,
+            "part": "torso",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 11,
+            "xyz": [
+              0.1179,
+              0.0771,
+              1.5454
+            ],
+            "clearance": -0.0007,
+            "part": "head",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 12,
+            "xyz": [
+              0.0786,
+              0.0514,
+              1.5786
+            ],
+            "clearance": -0.0521,
+            "part": "head",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 13,
+            "xyz": [
+              0.0393,
+              0.0257,
+              1.6118
+            ],
+            "clearance": -0.1035,
+            "part": "head",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 14,
+            "xyz": [
+              0.0,
+              0.0,
+              1.645
+            ],
+            "clearance": -0.155,
+            "part": "head",
+            "action": "baseline",
+            "ee_resid": 1e-05,
+            "solved": true,
+            "candidates": 1
+          }
+        ],
+        "n": 15,
+        "solved": 15,
+        "min_clearance": -0.155,
+        "avoided_steps": 0,
+        "refused_steps": 0,
+        "max_ee_residual_m": 1e-05,
+        "distinct_candidates": 0
+      },
+      "on": {
+        "rows": [
+          {
+            "step": 0,
+            "xyz": [
+              0.55,
+              0.36,
+              1.18
+            ],
+            "clearance": 0.161,
+            "baseline_clearance": 0.161,
+            "predicted_clearance": null,
+            "part": "torso",
+            "action": "clear",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 1,
+            "xyz": [
+              0.5107,
+              0.3343,
+              1.2132
+            ],
+            "clearance": 0.161,
+            "baseline_clearance": 0.161,
+            "predicted_clearance": 0.1037,
+            "part": "torso",
+            "action": "clear",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 2,
+            "xyz": [
+              0.4714,
+              0.3086,
+              1.2464
+            ],
+            "clearance": 0.161,
+            "baseline_clearance": 0.161,
+            "predicted_clearance": 0.0572,
+            "part": "torso",
+            "action": "clear",
+            "ee_resid": 1e-05,
+            "solved": true,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 3,
+            "xyz": [
+              0.4321,
+              0.2829,
+              1.2796
+            ],
+            "clearance": 0.1504,
+            "baseline_clearance": 0.1503,
+            "predicted_clearance": 0.0111,
+            "part": "L-upperarm",
+            "action": "avoided",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 4,
+            "xyz": [
+              0.3929,
+              0.2571,
+              1.3129
+            ],
+            "clearance": 0.1037,
+            "baseline_clearance": 0.1037,
+            "predicted_clearance": -0.0338,
+            "part": "L-upperarm",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 5,
+            "xyz": [
+              0.3536,
+              0.2314,
+              1.3461
+            ],
+            "clearance": 0.0572,
+            "baseline_clearance": 0.0572,
+            "predicted_clearance": -0.0376,
+            "part": "L-upperarm",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 6,
+            "xyz": [
+              0.3143,
+              0.2057,
+              1.3793
+            ],
+            "clearance": 0.0111,
+            "baseline_clearance": 0.0111,
+            "predicted_clearance": -0.0249,
+            "part": "L-upperarm",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 7,
+            "xyz": [
+              0.275,
+              0.18,
+              1.4125
+            ],
+            "clearance": -0.0337,
+            "baseline_clearance": -0.0338,
+            "predicted_clearance": -0.0023,
+            "part": "L-upperarm",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 8,
+            "xyz": [
+              0.2357,
+              0.1543,
+              1.4457
+            ],
+            "clearance": -0.0342,
+            "baseline_clearance": -0.0376,
+            "predicted_clearance": -0.0007,
+            "part": "L-upperarm",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 9,
+            "xyz": [
+              0.1964,
+              0.1286,
+              1.4789
+            ],
+            "clearance": -0.0249,
+            "baseline_clearance": -0.0249,
+            "predicted_clearance": -0.0521,
+            "part": "torso",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 10,
+            "xyz": [
+              0.1571,
+              0.1029,
+              1.5121
+            ],
+            "clearance": 0.0021,
+            "baseline_clearance": -0.0023,
+            "predicted_clearance": -0.1035,
+            "part": "torso",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 11,
+            "xyz": [
+              0.1179,
+              0.0771,
+              1.5454
+            ],
+            "clearance": -0.0007,
+            "baseline_clearance": -0.0007,
+            "predicted_clearance": -0.155,
+            "part": "head",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 12,
+            "xyz": [
+              0.0786,
+              0.0514,
+              1.5786
+            ],
+            "clearance": -0.0521,
+            "baseline_clearance": -0.0521,
+            "predicted_clearance": -0.1082,
+            "part": "head",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 13,
+            "xyz": [
+              0.0393,
+              0.0257,
+              1.6118
+            ],
+            "clearance": -0.1035,
+            "baseline_clearance": -0.1035,
+            "predicted_clearance": -0.062,
+            "part": "head",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 14,
+            "xyz": [
+              0.0,
+              0.0,
+              1.645
+            ],
+            "clearance": -0.155,
+            "baseline_clearance": -0.155,
+            "predicted_clearance": -0.0156,
+            "part": "head",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          }
+        ],
+        "n": 15,
+        "solved": 4,
+        "min_clearance": -0.155,
+        "avoided_steps": 1,
+        "refused_steps": 11,
+        "max_ee_residual_m": 1e-05,
+        "distinct_candidates": 90
+      }
+    },
+    "torso": {
+      "off": {
+        "rows": [
+          {
+            "step": 0,
+            "xyz": [
+              0.55,
+              0.36,
+              1.18
+            ],
+            "clearance": 0.161,
+            "part": "torso",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 1,
+            "xyz": [
+              0.5107,
+              0.3343,
+              1.1829
+            ],
+            "clearance": 0.161,
+            "part": "torso",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 2,
+            "xyz": [
+              0.4714,
+              0.3086,
+              1.1857
+            ],
+            "clearance": 0.161,
+            "part": "torso",
+            "action": "baseline",
+            "ee_resid": 1e-05,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 3,
+            "xyz": [
+              0.4321,
+              0.2829,
+              1.1886
+            ],
+            "clearance": 0.1503,
+            "part": "L-upperarm",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 4,
+            "xyz": [
+              0.3929,
+              0.2571,
+              1.1914
+            ],
+            "clearance": 0.1037,
+            "part": "L-upperarm",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 5,
+            "xyz": [
+              0.3536,
+              0.2314,
+              1.1943
+            ],
+            "clearance": 0.0572,
+            "part": "L-upperarm",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 6,
+            "xyz": [
+              0.3143,
+              0.2057,
+              1.1971
+            ],
+            "clearance": 0.0111,
+            "part": "L-upperarm",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 7,
+            "xyz": [
+              0.275,
+              0.18,
+              1.2
+            ],
+            "clearance": -0.0338,
+            "part": "L-upperarm",
+            "action": "baseline",
+            "ee_resid": 1e-05,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 8,
+            "xyz": [
+              0.2357,
+              0.1543,
+              1.2029
+            ],
+            "clearance": -0.0743,
+            "part": "L-upperarm",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 9,
+            "xyz": [
+              0.1964,
+              0.1286,
+              1.2057
+            ],
+            "clearance": -0.0864,
+            "part": "L-upperarm",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 10,
+            "xyz": [
+              0.1571,
+              0.1029,
+              1.2086
+            ],
+            "clearance": -0.0729,
+            "part": "torso",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 11,
+            "xyz": [
+              0.1179,
+              0.0771,
+              1.2114
+            ],
+            "clearance": -0.1121,
+            "part": "torso",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 12,
+            "xyz": [
+              0.0786,
+              0.0514,
+              1.2143
+            ],
+            "clearance": -0.1514,
+            "part": "torso",
+            "action": "baseline",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 13,
+            "xyz": [
+              0.0393,
+              0.0257,
+              1.2171
+            ],
+            "clearance": -0.1574,
+            "part": "torso",
+            "action": "baseline",
+            "ee_resid": 1e-05,
+            "solved": true,
+            "candidates": 1
+          },
+          {
+            "step": 14,
+            "xyz": [
+              0.0,
+              0.0,
+              1.22
+            ],
+            "clearance": null,
+            "part": null,
+            "action": "baseline",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 1
+          }
+        ],
+        "n": 15,
+        "solved": 14,
+        "min_clearance": -0.1574,
+        "avoided_steps": 0,
+        "refused_steps": 0,
+        "max_ee_residual_m": 1e-05,
+        "distinct_candidates": 0
+      },
+      "on": {
+        "rows": [
+          {
+            "step": 0,
+            "xyz": [
+              0.55,
+              0.36,
+              1.18
+            ],
+            "clearance": 0.161,
+            "baseline_clearance": 0.161,
+            "predicted_clearance": null,
+            "part": "torso",
+            "action": "clear",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 1,
+            "xyz": [
+              0.5107,
+              0.3343,
+              1.1829
+            ],
+            "clearance": 0.161,
+            "baseline_clearance": 0.161,
+            "predicted_clearance": 0.1037,
+            "part": "torso",
+            "action": "clear",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 2,
+            "xyz": [
+              0.4714,
+              0.3086,
+              1.1857
+            ],
+            "clearance": 0.161,
+            "baseline_clearance": 0.161,
+            "predicted_clearance": 0.0572,
+            "part": "torso",
+            "action": "clear",
+            "ee_resid": 1e-05,
+            "solved": true,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 3,
+            "xyz": [
+              0.4321,
+              0.2829,
+              1.1886
+            ],
+            "clearance": 0.1503,
+            "baseline_clearance": 0.1503,
+            "predicted_clearance": 0.0111,
+            "part": "L-upperarm",
+            "action": "avoided",
+            "ee_resid": 0.0,
+            "solved": true,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 4,
+            "xyz": [
+              0.3929,
+              0.2571,
+              1.1914
+            ],
+            "clearance": 0.1037,
+            "baseline_clearance": 0.1037,
+            "predicted_clearance": -0.0338,
+            "part": "L-upperarm",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 5,
+            "xyz": [
+              0.3536,
+              0.2314,
+              1.1943
+            ],
+            "clearance": 0.0572,
+            "baseline_clearance": 0.0572,
+            "predicted_clearance": -0.0743,
+            "part": "L-upperarm",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 6,
+            "xyz": [
+              0.3143,
+              0.2057,
+              1.1971
+            ],
+            "clearance": 0.0111,
+            "baseline_clearance": 0.0111,
+            "predicted_clearance": -0.0864,
+            "part": "L-upperarm",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 7,
+            "xyz": [
+              0.275,
+              0.18,
+              1.2
+            ],
+            "clearance": -0.0338,
+            "baseline_clearance": -0.0338,
+            "predicted_clearance": -0.0729,
+            "part": "L-upperarm",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 8,
+            "xyz": [
+              0.2357,
+              0.1543,
+              1.2029
+            ],
+            "clearance": -0.0742,
+            "baseline_clearance": -0.0743,
+            "predicted_clearance": -0.1121,
+            "part": "L-upperarm",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 9,
+            "xyz": [
+              0.1964,
+              0.1286,
+              1.2057
+            ],
+            "clearance": -0.0864,
+            "baseline_clearance": -0.0864,
+            "predicted_clearance": -0.1514,
+            "part": "L-upperarm",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 10,
+            "xyz": [
+              0.1571,
+              0.1029,
+              1.2086
+            ],
+            "clearance": -0.0729,
+            "baseline_clearance": -0.0729,
+            "predicted_clearance": -0.1574,
+            "part": "torso",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 11,
+            "xyz": [
+              0.1179,
+              0.0771,
+              1.2114
+            ],
+            "clearance": -0.1121,
+            "baseline_clearance": -0.1121,
+            "predicted_clearance": null,
+            "part": "torso",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 12,
+            "xyz": [
+              0.0786,
+              0.0514,
+              1.2143
+            ],
+            "clearance": -0.1514,
+            "baseline_clearance": -0.1514,
+            "predicted_clearance": null,
+            "part": "torso",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 4
+          },
+          {
+            "step": 13,
+            "xyz": [
+              0.0393,
+              0.0257,
+              1.2171
+            ],
+            "clearance": -0.1574,
+            "baseline_clearance": -0.1574,
+            "predicted_clearance": null,
+            "part": "torso",
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 7,
+            "distinct": 6
+          },
+          {
+            "step": 14,
+            "xyz": [
+              0.0,
+              0.0,
+              1.22
+            ],
+            "clearance": null,
+            "baseline_clearance": null,
+            "predicted_clearance": null,
+            "part": null,
+            "action": "refuse",
+            "ee_resid": null,
+            "solved": false,
+            "candidates": 1,
+            "distinct": 0
+          }
+        ],
+        "n": 15,
+        "solved": 4,
+        "min_clearance": -0.1574,
+        "avoided_steps": 1,
+        "refused_steps": 11,
+        "max_ee_residual_m": 1e-05,
+        "distinct_candidates": 82
+      }
+    }
+  },
+  "ik_calls": 263,
+  "caveat": "the avoider is exercised against the real solver and the real wearer model, but is NOT wired into ik_follower_node -- that node gates motion near a person and this validation comes first"
+}

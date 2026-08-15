@@ -33,13 +33,31 @@ from std_msgs.msg import String
 from builtin_interfaces.msg import Duration
 from srl_teleop.serial_port import find_port
 import math
+import os
 import sys
 
+sys.path.insert(0, os.path.expanduser("~/kortex_ws/config"))
+import home_positions  # loads from ~/kortex_ws/config/home_positions_<arm>.txt
+
 # ══════════════════════════════════════════════════════════════════════════════
-#  HOME POSITIONS — real Web App values (0-360 deg)
+#  HOME POSITIONS — LOADED, NOT HARDCODED (2026-08-15)
 # ══════════════════════════════════════════════════════════════════════════════
-LEFT_HOME_DEG  = [259.03, 277.69, 267.74, 286.14, 194.10, 27.48, 55.26]
-RIGHT_HOME_DEG = [303.65, 77.06, 98.57, 58.57, 317.14, 36.39, 154.71]
+# These were a hardcoded copy of the legacy Kortex web-app values,
+#   left  259.03 277.69 267.74 286.14 194.10 27.48 55.26
+#   right 303.65  77.06  98.57  58.57 317.14 36.39 154.71
+# and this node PUBLISHES TO THE ARM CONTROLLERS. When the home pose moved on
+# 2026-08-15 that copy did not, so running this node would have driven the
+# arms to the superseded pose while every other consumer used the new one.
+#
+# It is an installed executable (`ros2 run srl_teleop srl_teleop_node`) that
+# no launch file or script references, which is the worst combination: nothing
+# exercises it, so nothing would have caught the drift, and it is one command
+# away from being run by hand.
+#
+# There is now ONE source, config/home_positions_{arm}.txt, read the same way
+# the followers, the bridge and the homing node read it.
+_HOME_RAD = {arm: list(home_positions.load_home_radians(arm))
+             for arm in ("left", "right")}
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  CONTROLLER TOPICS — match MoveIt Setup Assistant output
@@ -104,10 +122,7 @@ class SrlTeleop(Node):
         self.declare_parameter("do_homing", True)
         self.do_homing = self.get_parameter("do_homing").value
 
-        self.home = {
-            "left":  [deg_to_rad(d) for d in LEFT_HOME_DEG],
-            "right": [deg_to_rad(d) for d in RIGHT_HOME_DEG],
-        }
+        self.home = {arm: list(_HOME_RAD[arm]) for arm in ("left", "right")}
         self.target = {
             "left":  list(self.home["left"]),
             "right": list(self.home["right"]),

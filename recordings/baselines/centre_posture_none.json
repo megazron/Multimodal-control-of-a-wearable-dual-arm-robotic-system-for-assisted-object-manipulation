@@ -1,0 +1,1625 @@
+{
+  "posture": "none",
+  "posture_doc": "no wearer arms at all -- the limit, not a posture",
+  "zs": [
+    1.12
+  ],
+  "xs": [
+    0.0,
+    0.025,
+    0.05,
+    0.075,
+    0.1,
+    0.125,
+    0.15,
+    0.175,
+    0.2,
+    0.225,
+    0.25,
+    0.275,
+    0.3,
+    0.325,
+    0.35,
+    0.375,
+    0.4,
+    0.425,
+    0.45,
+    0.475,
+    0.5,
+    0.525,
+    0.55,
+    0.575,
+    0.6
+  ],
+  "ys": [
+    0.1,
+    0.15,
+    0.2,
+    0.25,
+    0.3,
+    0.35,
+    0.4,
+    0.45,
+    0.5,
+    0.55
+  ],
+  "step": 0.025,
+  "floor": 0.15,
+  "work_plane": 1.12,
+  "table_top": 0.95,
+  "full_repeats": 10,
+  "controls": {
+    "posture_is_in_the_urdf": {
+      "want": "True",
+      "got": "True (no human arm joints, as 'none' requires)"
+    },
+    "posture_is_in_the_clearance_model": {
+      "want": "none",
+      "got": "none"
+    },
+    "inside_torso_negative": {
+      "want": "< 0",
+      "got": -0.154
+    },
+    "outboard_cell_solves": {
+      "want": "True",
+      "got": "True (clearance 0.161 to torso)"
+    },
+    "left_clearance_is_not_a_constant": {
+      "want": "two cells, two values",
+      "got": "0.0871 vs 0.161"
+    },
+    "right_clearance_is_not_a_constant": {
+      "want": "two cells, two values",
+      "got": "0.0875 vs 0.161"
+    }
+  },
+  "outboard_probe": {
+    "x": 0.75,
+    "clearance_m": 0.161,
+    "to": "torso"
+  },
+  "inboard_vs_outboard": {
+    "left": {
+      "inboard": 0.0871,
+      "inboard_to": "torso",
+      "outboard": 0.161,
+      "outboard_to": "torso"
+    },
+    "right": {
+      "inboard": 0.0875,
+      "inboard_to": "torso",
+      "outboard": 0.161,
+      "outboard_to": "torso"
+    }
+  },
+  "home_clearance_m": {
+    "left": 0.161,
+    "right": 0.161
+  },
+  "innermost_safe_confirmed": {
+    "left": 0.3,
+    "right": 0.375
+  },
+  "solver_scatter": {
+    "left@1.120": {
+      "cell": [
+        0.3,
+        0.55,
+        1.12
+      ],
+      "n": 10,
+      "solved": 10,
+      "min": 0.1554,
+      "max": 0.1559,
+      "clears_every_time": true,
+      "values": [
+        0.1555,
+        0.1559,
+        0.1554,
+        0.1554,
+        0.1554,
+        0.1554,
+        0.1554,
+        0.1554,
+        0.1554,
+        0.1554
+      ]
+    },
+    "right@1.120": {
+      "cell": [
+        -0.375,
+        0.15,
+        1.12
+      ],
+      "n": 10,
+      "solved": 10,
+      "min": 0.155,
+      "max": 0.155,
+      "clears_every_time": true,
+      "values": [
+        0.155,
+        0.155,
+        0.155,
+        0.155,
+        0.155,
+        0.155,
+        0.155,
+        0.155,
+        0.155,
+        0.155
+      ]
+    }
+  },
+  "centre_cells": [],
+  "stage1": {
+    "1.120": {
+      "left": {
+        "outer_control_reachable": true,
+        "innermost_ik_x": 0.125,
+        "innermost_safe_x": 0.3,
+        "binds_at_innermost_safe": "torso",
+        "centreline_safe_rows": [],
+        "centreline_best_clearance_m": null,
+        "n_ik": 170,
+        "n_safe": 106,
+        "clearance": {
+          "+0.125,0.450": {
+            "clearance_m": -0.0102,
+            "to": "torso"
+          },
+          "+0.125,0.500": {
+            "clearance_m": -0.0073,
+            "to": "torso"
+          },
+          "+0.150,0.450": {
+            "clearance_m": 0.0057,
+            "to": "torso"
+          },
+          "+0.150,0.500": {
+            "clearance_m": 0.0234,
+            "to": "torso"
+          },
+          "+0.175,0.450": {
+            "clearance_m": 0.0205,
+            "to": "torso"
+          },
+          "+0.175,0.500": {
+            "clearance_m": 0.0454,
+            "to": "torso"
+          },
+          "+0.200,0.250": {
+            "clearance_m": -0.0129,
+            "to": "torso"
+          },
+          "+0.200,0.300": {
+            "clearance_m": -0.0129,
+            "to": "torso"
+          },
+          "+0.200,0.350": {
+            "clearance_m": -0.0129,
+            "to": "torso"
+          },
+          "+0.200,0.400": {
+            "clearance_m": -0.0035,
+            "to": "torso"
+          },
+          "+0.200,0.450": {
+            "clearance_m": 0.0351,
+            "to": "torso"
+          },
+          "+0.200,0.500": {
+            "clearance_m": 0.065,
+            "to": "torso"
+          },
+          "+0.225,0.150": {
+            "clearance_m": 0.0121,
+            "to": "torso"
+          },
+          "+0.225,0.200": {
+            "clearance_m": 0.0121,
+            "to": "torso"
+          },
+          "+0.225,0.250": {
+            "clearance_m": 0.0121,
+            "to": "torso"
+          },
+          "+0.225,0.300": {
+            "clearance_m": 0.0121,
+            "to": "torso"
+          },
+          "+0.225,0.350": {
+            "clearance_m": 0.0121,
+            "to": "torso"
+          },
+          "+0.225,0.400": {
+            "clearance_m": 0.0181,
+            "to": "torso"
+          },
+          "+0.225,0.450": {
+            "clearance_m": 0.0497,
+            "to": "torso"
+          },
+          "+0.225,0.500": {
+            "clearance_m": 0.0833,
+            "to": "torso"
+          },
+          "+0.250,0.100": {
+            "clearance_m": 0.0371,
+            "to": "torso"
+          },
+          "+0.250,0.150": {
+            "clearance_m": 0.0371,
+            "to": "torso"
+          },
+          "+0.250,0.200": {
+            "clearance_m": 0.0371,
+            "to": "torso"
+          },
+          "+0.250,0.250": {
+            "clearance_m": 0.0371,
+            "to": "torso"
+          },
+          "+0.250,0.300": {
+            "clearance_m": 0.0371,
+            "to": "torso"
+          },
+          "+0.250,0.350": {
+            "clearance_m": 0.0371,
+            "to": "torso"
+          },
+          "+0.250,0.400": {
+            "clearance_m": 0.0415,
+            "to": "torso"
+          },
+          "+0.250,0.450": {
+            "clearance_m": 0.0669,
+            "to": "torso"
+          },
+          "+0.250,0.500": {
+            "clearance_m": 0.1014,
+            "to": "torso"
+          },
+          "+0.250,0.550": {
+            "clearance_m": 0.1063,
+            "to": "torso"
+          },
+          "+0.275,0.100": {
+            "clearance_m": 0.0621,
+            "to": "torso"
+          },
+          "+0.275,0.150": {
+            "clearance_m": 0.0621,
+            "to": "torso"
+          },
+          "+0.275,0.200": {
+            "clearance_m": 0.0621,
+            "to": "torso"
+          },
+          "+0.275,0.250": {
+            "clearance_m": 0.0621,
+            "to": "torso"
+          },
+          "+0.275,0.300": {
+            "clearance_m": 0.0621,
+            "to": "torso"
+          },
+          "+0.275,0.350": {
+            "clearance_m": 0.0621,
+            "to": "torso"
+          },
+          "+0.275,0.400": {
+            "clearance_m": 0.0655,
+            "to": "torso"
+          },
+          "+0.275,0.450": {
+            "clearance_m": 0.0866,
+            "to": "torso"
+          },
+          "+0.275,0.500": {
+            "clearance_m": 0.1193,
+            "to": "torso"
+          },
+          "+0.275,0.550": {
+            "clearance_m": 0.1326,
+            "to": "torso"
+          },
+          "+0.300,0.100": {
+            "clearance_m": 0.0871,
+            "to": "torso"
+          },
+          "+0.300,0.150": {
+            "clearance_m": 0.0871,
+            "to": "torso"
+          },
+          "+0.300,0.200": {
+            "clearance_m": 0.0871,
+            "to": "torso"
+          },
+          "+0.300,0.250": {
+            "clearance_m": 0.0871,
+            "to": "torso"
+          },
+          "+0.300,0.300": {
+            "clearance_m": 0.0871,
+            "to": "torso"
+          },
+          "+0.300,0.350": {
+            "clearance_m": 0.0871,
+            "to": "torso"
+          },
+          "+0.300,0.400": {
+            "clearance_m": 0.0899,
+            "to": "torso"
+          },
+          "+0.300,0.450": {
+            "clearance_m": 0.1077,
+            "to": "torso"
+          },
+          "+0.300,0.500": {
+            "clearance_m": 0.1375,
+            "to": "torso"
+          },
+          "+0.300,0.550": {
+            "clearance_m": 0.1554,
+            "to": "torso"
+          },
+          "+0.325,0.100": {
+            "clearance_m": 0.1121,
+            "to": "torso"
+          },
+          "+0.325,0.150": {
+            "clearance_m": 0.1121,
+            "to": "torso"
+          },
+          "+0.325,0.200": {
+            "clearance_m": 0.1121,
+            "to": "torso"
+          },
+          "+0.325,0.250": {
+            "clearance_m": 0.1121,
+            "to": "torso"
+          },
+          "+0.325,0.300": {
+            "clearance_m": 0.1121,
+            "to": "torso"
+          },
+          "+0.325,0.350": {
+            "clearance_m": 0.1121,
+            "to": "torso"
+          },
+          "+0.325,0.400": {
+            "clearance_m": 0.1145,
+            "to": "torso"
+          },
+          "+0.325,0.450": {
+            "clearance_m": 0.1299,
+            "to": "torso"
+          },
+          "+0.325,0.500": {
+            "clearance_m": 0.1565,
+            "to": "torso"
+          },
+          "+0.325,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.350,0.100": {
+            "clearance_m": 0.1371,
+            "to": "torso"
+          },
+          "+0.350,0.150": {
+            "clearance_m": 0.1371,
+            "to": "torso"
+          },
+          "+0.350,0.200": {
+            "clearance_m": 0.1371,
+            "to": "torso"
+          },
+          "+0.350,0.250": {
+            "clearance_m": 0.1371,
+            "to": "torso"
+          },
+          "+0.350,0.300": {
+            "clearance_m": 0.1371,
+            "to": "torso"
+          },
+          "+0.350,0.350": {
+            "clearance_m": 0.1371,
+            "to": "torso"
+          },
+          "+0.350,0.400": {
+            "clearance_m": 0.1392,
+            "to": "torso"
+          },
+          "+0.350,0.450": {
+            "clearance_m": 0.1527,
+            "to": "torso"
+          },
+          "+0.350,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.350,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.375,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.375,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.375,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.375,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.375,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.375,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.375,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.375,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.375,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.375,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.400,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.400,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.400,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.400,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.400,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.400,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.400,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.400,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.400,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.400,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.425,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.425,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.425,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.425,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.425,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.425,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.425,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.425,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.425,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.425,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.450,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.450,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.450,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.450,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.450,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.450,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.450,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.450,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.450,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.450,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.475,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.500,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.525,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.550,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.575,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "+0.600,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          }
+        }
+      },
+      "right": {
+        "outer_control_reachable": true,
+        "innermost_ik_x": 0.1,
+        "innermost_safe_x": 0.375,
+        "binds_at_innermost_safe": "torso",
+        "centreline_safe_rows": [],
+        "centreline_best_clearance_m": null,
+        "n_ik": 170,
+        "n_safe": 99,
+        "clearance": {
+          "-0.100,0.500": {
+            "clearance_m": -0.0135,
+            "to": "torso"
+          },
+          "-0.125,0.500": {
+            "clearance_m": -0.0041,
+            "to": "torso"
+          },
+          "-0.150,0.450": {
+            "clearance_m": -0.012,
+            "to": "torso"
+          },
+          "-0.150,0.500": {
+            "clearance_m": 0.0077,
+            "to": "torso"
+          },
+          "-0.175,0.450": {
+            "clearance_m": 0.0031,
+            "to": "torso"
+          },
+          "-0.175,0.500": {
+            "clearance_m": 0.021,
+            "to": "torso"
+          },
+          "-0.200,0.400": {
+            "clearance_m": 0.004,
+            "to": "torso"
+          },
+          "-0.200,0.450": {
+            "clearance_m": 0.0219,
+            "to": "torso"
+          },
+          "-0.200,0.500": {
+            "clearance_m": 0.0365,
+            "to": "torso"
+          },
+          "-0.200,0.550": {
+            "clearance_m": 0.0485,
+            "to": "torso"
+          },
+          "-0.225,0.100": {
+            "clearance_m": -0.0018,
+            "to": "torso"
+          },
+          "-0.225,0.150": {
+            "clearance_m": 0.0087,
+            "to": "torso"
+          },
+          "-0.225,0.200": {
+            "clearance_m": 0.0199,
+            "to": "torso"
+          },
+          "-0.225,0.250": {
+            "clearance_m": 0.0238,
+            "to": "torso"
+          },
+          "-0.225,0.300": {
+            "clearance_m": 0.0238,
+            "to": "torso"
+          },
+          "-0.225,0.350": {
+            "clearance_m": 0.0238,
+            "to": "torso"
+          },
+          "-0.225,0.400": {
+            "clearance_m": 0.0273,
+            "to": "torso"
+          },
+          "-0.225,0.450": {
+            "clearance_m": 0.0413,
+            "to": "torso"
+          },
+          "-0.225,0.500": {
+            "clearance_m": 0.0541,
+            "to": "torso"
+          },
+          "-0.225,0.550": {
+            "clearance_m": 0.0563,
+            "to": "torso"
+          },
+          "-0.250,0.100": {
+            "clearance_m": 0.0232,
+            "to": "torso"
+          },
+          "-0.250,0.150": {
+            "clearance_m": 0.0332,
+            "to": "torso"
+          },
+          "-0.250,0.200": {
+            "clearance_m": 0.0443,
+            "to": "torso"
+          },
+          "-0.250,0.250": {
+            "clearance_m": 0.0487,
+            "to": "torso"
+          },
+          "-0.250,0.300": {
+            "clearance_m": 0.0487,
+            "to": "torso"
+          },
+          "-0.250,0.350": {
+            "clearance_m": 0.0487,
+            "to": "torso"
+          },
+          "-0.250,0.400": {
+            "clearance_m": 0.0514,
+            "to": "torso"
+          },
+          "-0.250,0.450": {
+            "clearance_m": 0.0615,
+            "to": "torso"
+          },
+          "-0.250,0.500": {
+            "clearance_m": 0.0688,
+            "to": "torso"
+          },
+          "-0.250,0.550": {
+            "clearance_m": 0.0706,
+            "to": "torso"
+          },
+          "-0.275,0.100": {
+            "clearance_m": 0.0482,
+            "to": "torso"
+          },
+          "-0.275,0.150": {
+            "clearance_m": 0.0574,
+            "to": "torso"
+          },
+          "-0.275,0.200": {
+            "clearance_m": 0.0688,
+            "to": "torso"
+          },
+          "-0.275,0.250": {
+            "clearance_m": 0.0737,
+            "to": "torso"
+          },
+          "-0.275,0.300": {
+            "clearance_m": 0.0737,
+            "to": "torso"
+          },
+          "-0.275,0.350": {
+            "clearance_m": 0.0737,
+            "to": "torso"
+          },
+          "-0.275,0.400": {
+            "clearance_m": 0.0759,
+            "to": "torso"
+          },
+          "-0.275,0.450": {
+            "clearance_m": 0.0818,
+            "to": "torso"
+          },
+          "-0.275,0.500": {
+            "clearance_m": 0.0851,
+            "to": "torso"
+          },
+          "-0.275,0.550": {
+            "clearance_m": 0.077,
+            "to": "torso"
+          },
+          "-0.300,0.100": {
+            "clearance_m": 0.0732,
+            "to": "torso"
+          },
+          "-0.300,0.150": {
+            "clearance_m": 0.0819,
+            "to": "torso"
+          },
+          "-0.300,0.200": {
+            "clearance_m": 0.093,
+            "to": "torso"
+          },
+          "-0.300,0.250": {
+            "clearance_m": 0.0987,
+            "to": "torso"
+          },
+          "-0.300,0.300": {
+            "clearance_m": 0.0987,
+            "to": "torso"
+          },
+          "-0.300,0.350": {
+            "clearance_m": 0.0987,
+            "to": "torso"
+          },
+          "-0.300,0.400": {
+            "clearance_m": 0.0998,
+            "to": "torso"
+          },
+          "-0.300,0.450": {
+            "clearance_m": 0.1016,
+            "to": "torso"
+          },
+          "-0.300,0.500": {
+            "clearance_m": 0.0982,
+            "to": "torso"
+          },
+          "-0.300,0.550": {
+            "clearance_m": 0.0977,
+            "to": "torso"
+          },
+          "-0.325,0.100": {
+            "clearance_m": 0.0982,
+            "to": "torso"
+          },
+          "-0.325,0.150": {
+            "clearance_m": 0.1062,
+            "to": "torso"
+          },
+          "-0.325,0.200": {
+            "clearance_m": 0.1174,
+            "to": "torso"
+          },
+          "-0.325,0.250": {
+            "clearance_m": 0.119,
+            "to": "torso"
+          },
+          "-0.325,0.300": {
+            "clearance_m": 0.1171,
+            "to": "torso"
+          },
+          "-0.325,0.350": {
+            "clearance_m": 0.1151,
+            "to": "torso"
+          },
+          "-0.325,0.400": {
+            "clearance_m": 0.1119,
+            "to": "torso"
+          },
+          "-0.325,0.450": {
+            "clearance_m": 0.11,
+            "to": "torso"
+          },
+          "-0.325,0.500": {
+            "clearance_m": 0.1119,
+            "to": "torso"
+          },
+          "-0.325,0.550": {
+            "clearance_m": 0.127,
+            "to": "torso"
+          },
+          "-0.350,0.100": {
+            "clearance_m": 0.1232,
+            "to": "torso"
+          },
+          "-0.350,0.150": {
+            "clearance_m": 0.1305,
+            "to": "torso"
+          },
+          "-0.350,0.200": {
+            "clearance_m": 0.1417,
+            "to": "torso"
+          },
+          "-0.350,0.250": {
+            "clearance_m": 0.1376,
+            "to": "torso"
+          },
+          "-0.350,0.300": {
+            "clearance_m": 0.1335,
+            "to": "torso"
+          },
+          "-0.350,0.350": {
+            "clearance_m": 0.1315,
+            "to": "torso"
+          },
+          "-0.350,0.400": {
+            "clearance_m": 0.1307,
+            "to": "torso"
+          },
+          "-0.350,0.450": {
+            "clearance_m": 0.1338,
+            "to": "torso"
+          },
+          "-0.350,0.500": {
+            "clearance_m": 0.1391,
+            "to": "torso"
+          },
+          "-0.350,0.550": {
+            "clearance_m": 0.1436,
+            "to": "torso"
+          },
+          "-0.375,0.100": {
+            "clearance_m": 0.1482,
+            "to": "torso"
+          },
+          "-0.375,0.150": {
+            "clearance_m": 0.155,
+            "to": "torso"
+          },
+          "-0.375,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.375,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.375,0.300": {
+            "clearance_m": 0.1579,
+            "to": "torso"
+          },
+          "-0.375,0.350": {
+            "clearance_m": 0.1559,
+            "to": "torso"
+          },
+          "-0.375,0.400": {
+            "clearance_m": 0.1563,
+            "to": "torso"
+          },
+          "-0.375,0.450": {
+            "clearance_m": 0.158,
+            "to": "torso"
+          },
+          "-0.375,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.375,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.400,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.400,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.400,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.400,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.400,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.400,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.400,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.400,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.400,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.400,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.425,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.425,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.425,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.425,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.425,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.425,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.425,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.425,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.425,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.425,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.450,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.450,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.450,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.450,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.450,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.450,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.450,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.450,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.450,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.450,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.475,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.500,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.525,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.550,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.575,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.100": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.150": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.200": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.250": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.300": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.350": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.400": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.450": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.500": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          },
+          "-0.600,0.550": {
+            "clearance_m": 0.161,
+            "to": "torso"
+          }
+        }
+      }
+    }
+  },
+  "stage2": [
+    {
+      "z": 1.12,
+      "arm": "left",
+      "obj": [
+        0.3,
+        0.55,
+        1.12
+      ],
+      "reachable": true,
+      "worst_clearance_m": 0.1554,
+      "to": "torso",
+      "safe": true
+    },
+    {
+      "z": 1.12,
+      "arm": "left",
+      "obj": [
+        0.325,
+        0.55,
+        1.12
+      ],
+      "reachable": true,
+      "worst_clearance_m": 0.161,
+      "to": "torso",
+      "safe": true
+    },
+    {
+      "z": 1.12,
+      "arm": "left",
+      "obj": [
+        0.35,
+        0.5,
+        1.12
+      ],
+      "reachable": true,
+      "worst_clearance_m": 0.161,
+      "to": "torso",
+      "safe": true
+    },
+    {
+      "z": 1.12,
+      "arm": "right",
+      "obj": [
+        -0.375,
+        0.2,
+        1.12
+      ],
+      "reachable": true,
+      "worst_clearance_m": 0.1593,
+      "to": "torso",
+      "safe": true
+    },
+    {
+      "z": 1.12,
+      "arm": "right",
+      "obj": [
+        -0.4,
+        0.1,
+        1.12
+      ],
+      "reachable": true,
+      "worst_clearance_m": 0.161,
+      "to": "torso",
+      "safe": true
+    },
+    {
+      "z": 1.12,
+      "arm": "right",
+      "obj": [
+        -0.425,
+        0.1,
+        1.12
+      ],
+      "reachable": true,
+      "worst_clearance_m": 0.161,
+      "to": "torso",
+      "safe": true
+    }
+  ],
+  "ik_calls": 1538,
+  "method": "stage 1 grasp pose only N=1 (optimistic); stage 2 full pick path at N=full_repeats with furniture in and the wearer measured geometrically against the posture's own primitives"
+}

@@ -75,13 +75,27 @@ Four cubes, two blue and two green. One blue plane and one green plane. Each
 cube goes on the plane of its own colour.
 
 **The table is WHITE.** Everything else about it is unchanged: same top height
-(0.95), same near edge (y = 0.10), same legs, apron and risers. It is 1.05 m
+(0.95), same near edge (y = 0.10), same legs and apron. It is 1.05 m
 half-width rather than 0.90, because the marked region now reaches |x| = 1.00
-and a marking drawn over air is a marking that lies. Three shades of white —
-top, apron, legs — so the form still reads at 5–13 fps against the dark RViz
-background. White is *safer* for the clip verifier than the old oak: every
-detector keys on channel differences (`_tan` needs R−B > 45, `_green` needs
-G−R > 45) and a neutral has R = G = B, so it cannot fire any of them.
+and a marking drawn over air is a marking that lies. White is *safer* for the
+clip verifier than the old oak: every detector keys on channel differences
+(`_tan` needs R−B > 45, `_green` needs G−R > 45) and a neutral has R = G = B,
+so it cannot fire any of them.
+
+**"White" here is a claim about the PIXEL, and it did not use to be.** The
+table asked for (0.94, 0.94, 0.95) and rendered at RGB(118,118,118) in every
+shipped clip, because an RViz marker's material takes ambient = 0.5 × colour
+and the only light is a headlight on the camera — so an up-facing face, which
+is what a table top is, gets the ambient term alone. Measured in
+`scripts/probe_marker_shading.py`; the audit now applies that coefficient and
+asks for a white pixel rather than a white request. See
+`docs/system/findings.md`, 2026-08-15 (later still).
+
+**The two risers are gone from T1, T1S2, T2 and T3.** They carried the bench,
+which only tasks a/b/c have, and stood on the table holding nothing in every
+MSc clip — 60 mm short of the objects above them, inviting the one reading
+this scene must not invite. The legs are inset so the top overhangs, and the
+apron runs all four sides.
 
 **Stage 1** (`m1`) — **the LEFT arm only, with all four cubes on the LEFT
 side.** This reverses the 2026-08-12 mirror to the right arm. That mirror was
@@ -106,6 +120,35 @@ definition and not a preference.
 
 The brief asks for the two planes in the **centre** of the table, directly in
 front of the person. **That is not reachable, and the shortfall is 450 mm.**
+
+> **CORRECTED 2026-08-15 (later). Two numbers in this section are stale and one
+> conclusion in it was never tested.**
+>
+> **The columns moved when home moved.** Re-running `measure_centre_vs_height.py`
+> unchanged at z = 1.120 today returns **left 0.325, right 0.450**, confirmed
+> over the full path at N=10, against the 0.425 / 0.400 recorded below. The
+> solver seeds from the live joint state, so the 2026-08-15 home change moved
+> which null-space branch it lands in. The left arm gained 100 mm inboard and
+> the right lost 50 mm, and nothing re-ran the sweep after home moved.
+>
+> **"The thing occupying the centre is the wearer" is right, and it is not
+> their arms.** The wearer's arm posture is now a variable
+> (`wearer_posture.py`), and the sweep was re-run in four postures plus the
+> limit case of no arms at all: `recordings/baselines/centre_vs_wearer_posture.json`.
+> With the wearer's arms **deleted entirely**, min \|x\| is still 0.300 (left)
+> and 0.375 (right), every column from 0.125 to 0.300 binds on the **TORSO**,
+> and at \|x\| = 0.10 the clearance is −0.007 / −0.013 m, which is the arm
+> inside the person's chest. Holding the arms clear buys 25 mm on the left and
+> 75 mm on the right. Folding them across the chest costs 75 mm; clasping them
+> behind the back or holding them out to the sides puts the wearer's own limbs
+> in the BACK-mounted robot's envelope and breaches the floor at the **home
+> pose**, before anything has been asked of the arm.
+>
+> **And `base_link` caps every clearance figure at 0.1610 m.** It is a link no
+> joint moves, and against the shipped wearer it sits 0.1610 m from the torso.
+> That is why so many clearance numbers here read exactly 0.1610: it is the
+> mount's clearance, not the arm's, and the 150 mm floor has 11 mm of headroom
+> before any joint moves. See `docs/system/findings.md`, 2026-08-15.
 Measured (`recordings/baselines/centre_reach.json`, z = 1.120, N=3, wearer and
 furniture in scene, four controls correct):
 
@@ -116,6 +159,30 @@ furniture in scene, four controls correct):
 | x = 0.00, asked directly | no y from 0.10 to 0.55 | no y from 0.10 to 0.55 |
 | x = ±0.10, asked directly | no y from 0.10 to 0.55 | y 0.425–0.475 only |
 | what stops it going further in | **the wearer's own arm**, 23 mm inside | the wearer / orientation |
+
+**Asked again across every work height, and the answer does not move.** The
+fair objection to the table above is that it was taken at ONE height,
+z = 1.120, while `band_vs_work_height.json` shows forward reach climbing from
+0.025 m to 0.500 m as the plane rises. Crossed (`measure_centre_vs_height.py`,
+ten heights 1.12–1.55, both arms, stage 1 grasp-pose-only and stage 2 the full
+pick path at N=10 with the wearer measured geometrically, all five controls
+correct):
+
+| work plane | innermost SAFE column, left | right | height above the table |
+| --- | --- | --- | --- |
+| **1.120 (now)** | **0.425** | **0.400** | 170 mm |
+| 1.250 | 0.400 | 0.350 | 300 mm |
+| 1.350 | 0.400 | 0.300 | 400 mm |
+| 1.550 | 0.350 | 0.250 (reach only) | 600 mm |
+
+At \|x\| ≤ 0.10 **no height works.** IK reaches the centreline easily — the
+right arm solves at x = 0.025 — and not one of those cells clears the 150 mm
+floor at any height. Asked again with the wrist UNPINNED to top-down, in case
+the pinned wrist was what closed it: same answer, and every stage-1 survivor
+at \|x\| = 0.300 turned out to be reach-only once the whole path was walked.
+Height buys 75 mm inboard for the left arm and 150 mm for the right, at the
+price of standing the work 430 mm further up in the air. The 1.120 row
+reproduces `centre_reach.json` exactly, which is the cross-check that matters.
 
 The planes therefore sit at **x = 0.450 and 0.610, y = 0.240** — the innermost
 clearance-safe column plus the project's own 20 mm margin, and 160 mm apart so
@@ -170,6 +237,29 @@ Bimanual **BY ROLE**, not coupling — two objects, two places.
 
 Approach differs per object: the box needs **top-down**, the meter needs
 **near-side**. That is measured, not a preference.
+
+**And neither is what the code does.** `run_abc.send()` writes the pinned
+anchor into every waypoint of every task under every mode, so there is no
+per-grasp approach anywhere in the code — every grasp in the set is a
+near-side one. Measured per object over the full path at N=10, with the
+closing axis read from FK on the two finger-tip links
+(`scripts/measure_grasp_approach.py`, eight controls including the pad offset
+reproducing `PAD_OFFSET_BY_ARM` to 0.1 mm):
+
+| object | pinned | top-down | the hand opens 85 mm |
+| --- | --- | --- | --- |
+| T1 cube (40 mm) | 49.0 mm across the closing axis | 40.0 mm | both fit; pinned closes across a DIAGONAL, not a face |
+| T2 tray, left grip | 83.4 mm | no yaw solves it | fits by 1.6 mm |
+| T2 tray, right grip | **113.9 mm** | no yaw solves it | **does not fit** |
+| **T3 circuit box** | **195.0 mm** | **170.0 mm** | **does not fit under either approach** |
+| T3 multimeter | 42.4 mm | 30.0 mm | both fit |
+
+The box is reachable and clear of the wearer under both approaches, and the
+hand is aimed squarely at its 170 mm width. What it needs is a ROLL about the
+approach axis to close on the 50 mm height — not a different approach and not
+a different position. **No reachability check in this repository asks this
+question**, which is why a grasp that cannot physically close has verified
+clean for as long as it has existed.
 
 **MUST BE TRUE**
 
@@ -239,7 +329,7 @@ then read FURNITURE.
 | --- | --- | --- | --- |
 | forward (+y) | 0.300 m, to y = 0.425 | **ORIENTATION** — the pinned wrist | 0.132 (L) / 0.116 (R) — **already under the floor** |
 | outboard | 0.600 m, to \|x\| = 0.950 | **ORIENTATION** — the pinned wrist | 0.161 / 0.161 |
-| inboard | 0.125 m (L) / 0.150 m (R) | **THE WEARER** — their own forearm | 0.023 / 0.016 |
+| inboard | 0.125 m (L) / 0.150 m (R) | **THE WEARER** — see the correction below | 0.023 / 0.016 |
 | down (−z) | 0.100 m (L) / 0.125 m (R) | **FURNITURE** — the table top | 0.121 / 0.136 |
 | up (+z) | not bounded within 0.700 m | — | 0.161 / 0.068 |
 | back (−y) | not bounded within 0.700 m | — (behind the person; not usable space) | 0.161 / 0.161 |
@@ -248,6 +338,17 @@ then read FURNITURE.
 KINEMATIC except the 1.6 m control. Forward and outboard are bound by the
 pinned wrist, inboard by the wearer on **both** arms — 0 mm inside the left
 forearm and 8 mm inside the right — and down by the table.
+
+**"The wearer" inboard means the TORSO on the left arm and the ARM on the
+right, and that distinction was never made because the arms could not move.**
+Re-measured 2026-08-15 with the wearer's arm posture as a variable: the left
+arm's limiting wearer part is the torso at every column from 0.175 to 0.300,
+the right arm's is its own forearm and upper arm. Deleting the wearer's arms
+outright moves the left limit by 25 mm and the right by 75 mm and leaves the
+centre shut. Full table in `docs/system/findings.md`, and the operating
+consequence is in the corrected block under T1 above: the useful wearer
+instruction is "arms down at your sides", which is what the model already
+assumed.
 
 **Read the last column with the third one.** The IK boundary and the safe
 boundary are not the same boundary, and in four of the six directions the
@@ -308,15 +409,20 @@ which is exact for kinematics and wrong for wearer collision, because the
 wearer does not tilt with the mount. Every clearance figure in this document
 would have to be re-measured before a single number of it could be believed.
 
-What it invalidates, with the current geometry: `P_HOME` for both arms (the
-home wrist points up by +85°/+79°, read from the physical arms, and it is the
-anchor every task coordinate is derived from); the pinned anchor orientation
-and therefore `PAD_OFFSET_BY_ARM`, which is measured off TF at home; every
-T0–T3 coordinate, all of them derived through `ee_for()` from that anchor; the
-presentation pose (tool axis +30.8 → +6.5° left, +22.1 → +7.5° right, and
-0.1610 m of clearance against a 0.15 floor — an 11 mm margin that a mount
-rotation would move); and all 579 cells of the region above. It is a
-re-derivation of the whole platform, and the arms have never been run.
+What it invalidates, with the current geometry: `P_HOME` for both arms; the
+pinned anchor orientation and therefore `PAD_OFFSET_BY_ARM`, which is measured
+off TF at the anchor; every T0–T3 coordinate, all of them derived through
+`ee_for()` from that anchor; the home pose itself, now the presentation pose
+with the wrists level and 0.1610 m of clearance against a 0.15 floor; and all
+579 cells of the region above. It is a re-derivation of the whole platform,
+and the arms have never been run.
+
+**A mount change is not what the 2026-08-15 home change was, and the two must
+not be confused.** Moving home moved where the arm RESTS and nothing else:
+the anchor is a stored constant that nothing recomputes from home, so no task
+coordinate and no clearance figure moved, and the task set was re-measured to
+prove it. A mount change moves the anchor itself, which is what makes it a
+re-derivation. See `docs/system/home_wrist_is_real.md`.
 
 ### The cheap options, priced
 
@@ -509,8 +615,26 @@ pick paths densified to 30 mm):
 | **1.100 — cubes resting on it** | **46** |
 | slab through the objects *(control, must be > 0)* | 54 |
 
-**So T1-1 cannot be satisfied.** The highest slab that costs nothing is
-exactly where the table already is.
+**So T1-1 cannot be satisfied WITH THE TABLE WHERE IT IS**, and that
+qualifier turns out to matter. The highest slab that costs nothing is exactly
+where the table already is — but every candidate above holds the table at its
+current distance and raises it under the objects.
+
+**A SEARCH THAT MOVED THE TABLE INSTEAD FOUND A CELL, 2026-08-15.**
+`scripts/search_centre_on_surface.py` swept table height AND distance with the
+objects RESTING ON the surface: 3360 cells, three controls correct including
+an object buried in the slab that must fail. The survivors all share one
+property — **overhang 0.00, the object at the very front edge** — because the
+pinned wrist arrives from the near side and below, and the only place with no
+table under the approach is the edge. The best confirmed cell is x = 0.350,
+table top 1.00, near edge 0.530, reachable and clear over the full pick path
+at N=10 with clearance 0.1524 m.
+
+**That is a lead, not a result.** One cell is not a layout: four cubes and two
+pads all have to fit along that front edge and all have to verify. But it is
+the first evidence in this project that objects on the surface are reachable
+at all, and it means T1-1 is blocked by the table's POSITION rather than by
+the platform. See `docs/system/findings.md`.
 
 And the cause is now separated from the symptom. With the wrist positions
 re-derived for a **top-down** hand, the same slab at 1.100 costs **12 of 54**

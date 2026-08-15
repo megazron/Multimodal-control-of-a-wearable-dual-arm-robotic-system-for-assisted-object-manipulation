@@ -3556,3 +3556,774 @@ so the CLIPS are sound. The mapper itself still accumulates, and the DATA path
 but starts the mapper once per session -- so a real trial block under 02 would
 walk into exactly this. That is the next thing to fix and it belongs in
 `vr_pose_mapper`, not in the harness.
+
+---
+
+# 2026-08-15 (later still) — THE OPENING POSE, THE APPROACH, AND A WHITE THAT WAS NEVER WHITE
+
+Three changes were asked for. Two of them contradicted measurements already in
+this repository, so both were re-measured before anything moved. One of the
+two survived the re-measurement and was therefore refused; the other turned
+out to be measuring the wrong quantity.
+
+## 1. THE OPENING FRAME IS THE PRESENTATION POSE, AND ITS WRISTS WERE ALREADY LEVEL
+
+"Wrists up and elbows splayed" names TWO poses, and they cost different
+things:
+
+| what is seen | which pose | where |
+| --- | --- | --- |
+| elbows splayed, hands low and wide | **PRESENTATION** | the opening frame of all 25 clips; `opened_on: "presentation"` in every `scene_events.json` |
+| wrists up +85 / +79 deg | **HOME** | `docs/img/rviz/home_pose_labelled.png`, RViz/GUI before staging, and any clip where the staging move did not execute |
+
+`presentation_pose.json` recorded `elevation_deg: 0.0` for BOTH arms before
+this session touched anything. The presentation pose's wrists have been level
+since it was built. So the half of the complaint that is about wrists is about
+HOME, and the half that is about splay is about the presentation pose — which
+is free to change, because it is a camera decision that no coordinate depends
+on.
+
+### What changed, and a claim from 2026-08-13 that does NOT survive measurement
+
+The 2026-08-13 commit left three faults recorded and unfixed: the hands were
+LOW, the posture was WIDE, and — it said — "the upper arms ride over the
+shoulder line ... the limb still rises above the shoulder before descending".
+The elbow term could not see the third, because it measured one joint
+(`shoulder_link.z - forearm_link.z`) rather than the limb, so a term was added
+for the APEX of the whole mount-guard capsule chain against the wearer's
+shoulder line at z = 1.46 (the top face of the 0.36 x 0.22 x 0.48 torso box).
+It was free: `clearance()` already FKs every link on that chain.
+
+**The new term found nothing, and that is the result.** Scored on the same
+instrument (`scripts/score_pose.py`, all three controls correct):
+
+| | hand z | wrist | elbow below shoulder | limb apex | clearance |
+| --- | --- | --- | --- | --- | --- |
+| OLD left | 1.100 | -0.0 deg | 188 mm | 1.342, **118 mm below** 1.46 | 0.1610 |
+| NEW left | **1.180** | -0.0 deg | 79 mm | 1.342, 118 mm below | 0.1610 |
+| OLD right | 1.100 | -0.0 deg | 292 mm | 1.341, **119 mm below** | 0.1610 |
+| NEW right | **1.180** | +0.0 deg | 272 mm | 1.341, 119 mm below | 0.1610 |
+
+The apex is IDENTICAL before and after and it was already 118 mm under the
+shoulder line. So the limb was never riding over the shoulders: that bullet
+was an impression taken off a render, the geometry does not support it, and it
+is withdrawn. Inflating the chain by the 50 mm tube radius still tops out
+around 1.39, under the 1.46 line. What reads as "over the shoulder" in the
+picture is the arm being nearer the camera than the wearer is.
+
+**The one thing that did change is the one thing that was really wrong: the
+hands are 80 mm higher**, 1.100 (hip) to 1.180 (chest). Wrists stay level at
+0.0 deg and wearer clearance stays 0.1610 m, which is the ceiling — nothing on
+the arm can be further from the wearer than the arm's own base, so 0.1610 is
+"as clear as this platform gets" rather than a middling score.
+
+**The cost, stated:** total joint travel from home rises 279.1 -> 311.9 deg
+(left) and 263.6 -> 283.0 (right), against a 320 deg cap, so the left arm now
+has 8 deg of margin. The travel that the file says actually matters — the
+HAND's path through space, because that is the motion a person sees sweeping
+over them — went DOWN, 0.190 -> 0.188 m and 0.235 -> 0.222 m.
+
+### WHAT DID NOT CHANGE, AND WHY IT CANNOT
+
+The hand span is still 1.100 m against a 0.360 m torso, 3.1x. That is HARD
+CONSTRAINT 11 and not a search failure: measured geometrically, a hand at
+|x| = 0.18 puts the arm 16 mm INSIDE the torso and |x| = 0.45 is the nearest
+either hand comes with the 150 mm floor intact. Requiring one mirrored target
+both arms can hold pushes that to 0.55 — narrower and lopsided, or wider and
+symmetric, and the floor does not allow both.
+
+## 2. THE HOME ANGLES WERE NOT TOUCHED, AND HERE IS THE BILL
+
+Refused pending an explicit decision, and the cost is larger than the file
+already records:
+
+* the stored home IS the legacy real-robot home, so changing it starts with a
+  physical recapture on arms this repository has never run;
+* `P_HOME`, `WORKSPACE_CENTRE` (offset = P_HOME) and `WORKSPACE_ORIENT` —
+  and `WORKSPACE_ORIENT` is the quaternion `run_abc.send()` writes into
+  **every waypoint of every task under every mode**, so it is not only the
+  anchor, it is the study's independent variable;
+* `PAD_OFFSET_BY_ARM`, measured off TF at home, with three consumers
+  including the gate that decides when the hand closes;
+* every T0-T3 coordinate through `ee_for()`, every clearance figure, all 579
+  region cells, and the presentation pose itself, which is stored as a DELTA
+  from home;
+* **and the jump is measurable.** The presentation pose is a level-wrist,
+  hands-forward posture and it sits 311.9 deg (left) and 283.0 deg (right) of
+  total joint travel from home. That is the order of what the sim-to-real
+  bridge would command in one step if the sim home moved there and the real
+  arm were not recaptured. `home_positions_left.txt` additionally records
+  joint_5 at 14.10 deg from the +/-180 seam.
+
+## 3. GRASP APPROACH: MEASURED PER OBJECT, AND TOP-DOWN IS WORSE FOR T1
+
+`scripts/measure_grasp_approach.py`, N=10 over the full path, furniture in
+scene, wearer measured geometrically, eight controls including the pad offset
+reproducing `PAD_OFFSET_BY_ARM` to 0.1 mm.
+
+**Every grasp in the set uses the pinned near-side approach**, because
+`run_abc.send()` writes the anchor into every waypoint. There is no per-grasp
+approach in the code at all.
+
+### T1, and this REPLACES the 0/4-vs-0/4 row in `09_task2_grasping_finding.md`
+
+That row was taken on the old RIGHT-arm layout with pedestals, which no longer
+exists. Re-taken on the layout T1 actually runs:
+
+| | pinned near-side | top-down |
+| --- | --- | --- |
+| 4 cubes | **4/4, clearance 0.1610** | 4/4, clearance 0.1610 |
+| 4 place points | **4/4, clearance 0.1610** | 4/4 reachable, clearance **0.012 / 0.042 / 0.085 / 0.115** |
+
+**Top-down keeps the picks and loses every one of the places on wearer
+clearance** — down to 12 mm against a 150 mm floor. So top-down is not the
+better approach for T1; it is strictly worse, and the approach is unchanged.
+
+### Does the wrist present the fingers to the object? Measured from FK on the two pads
+
+The closing axis is read from the two finger-tip links, and the object's
+extent ALONG that axis is compared with the hand's 85 mm opening:
+
+| task | object | pinned | top-down | verdict |
+| --- | --- | --- | --- | --- |
+| T1 | 40 mm cube | 49.0 mm | 40.0 mm | both fit; the pinned hand closes across a DIAGONAL of the cube, not a face |
+| T2 | tray, left grip | 83.4 mm | no yaw solves it | fits by **1.6 mm** |
+| T2 | tray, right grip | **113.9 mm** | no yaw solves it | **does not fit an 85 mm hand** |
+| T3 | circuit box | **195.0 mm** | **170.0 mm** | **does not fit under either approach** |
+| T3 | multimeter | 42.4 mm | 30.0 mm | both fit |
+
+T3's box is the clean case: it is reachable and clear of the wearer under both
+approaches and the hand is aimed squarely at its 170 mm width. What it needs
+is a ROLL about the approach axis to close on the 50 mm height — not a
+different approach, and not a different position.
+
+**An instrument defect on the way, and it is this project's own pattern.** The
+first version of the presentation test asked only whether the pads were
+CENTRED on the object and duly reported 195 mm of circuit box lying across an
+85 mm hand as PRESENTED. A verdict that cannot fail on an ungraspable object
+is not a verdict; the aperture is now part of it and a 200 mm control object
+proves it can fail.
+
+### AND THE TASKS' OWN PATHS: THREE OF FOUR BREACH THE WEARER FLOOR
+
+Only T1 has ever had the geometric wearer pass. Taken for the others, on the
+waypoint list the recorder actually sends:
+
+| task | arm | IK failures | worst clearance | |
+| --- | --- | --- | --- | --- |
+| T0 | left / right | **4 / 4** | 0.0086 / 0.0176 | breaches by 141 / 132 mm |
+| T1 | left / right | 0 / 0 | 0.1610 / 0.1610 | clean |
+| T2 | left / right | 0 / 0 | 0.0046 / 0.0904 | breaches by 145 / 60 mm |
+| T3 | left / right | 0 / 0 | 0.0618 / 0.1610 | left breaches by 88 mm |
+
+Reported, not fixed: each is a layout change with its own re-verification, and
+T2's is entangled with the elastic-tray finding above.
+
+## 4. THE PADS STAY 450 mm OFF CENTRE, AND HEIGHT DOES NOT RESCUE THEM
+
+`scripts/measure_centre_vs_height.py`. The standing objection to
+`centre_reach.json` was fair — it was taken at ONE work height, z = 1.120,
+while `band_vs_work_height.json` shows forward reach climbing from 0.025 m to
+0.500 m as the plane rises. So the two were crossed: ten heights from 1.12 to
+1.55, both arms, stage 1 grasp-pose-only (optimistic) and stage 2 the full
+pick path at N=10 with the wearer measured geometrically.
+
+**At |x| <= 0.10 there is no height that works.** IK reaches the centreline
+easily — the right arm solves at x = 0.025 — and not one of those cells clears
+the 150 mm floor at any height. Asked again with a TOP-DOWN wrist, in case the
+pinned wrist was the thing closing it: same answer, and every stage-1 survivor
+at |x| = 0.300 turned out to be reach-only once the whole path was walked.
+
+The innermost SAFE column, confirmed over the full path:
+
+| work plane | left | right | height above the table |
+| --- | --- | --- | --- |
+| **1.120 (now)** | **0.425** | **0.400** | 170 mm |
+| 1.250 | 0.400 | 0.350 | 300 mm |
+| 1.350 | 0.400 | 0.300 | 400 mm |
+| 1.550 | 0.350 | 0.250 (reach only) | 600 mm |
+
+Height buys 75 mm of inboard reach for the left arm and 150 mm for the right,
+and it costs 430 mm of standing the work up in the air. The pads stay at
+x = 0.450 and 0.610. The 1.120 row reproduces `centre_reach.json` exactly,
+which is the cross-check that matters: two instruments, built for different
+questions, agreeing on the boundary.
+
+## 5. THE TABLE WAS NEVER WHITE IN THE PICTURE, AND NOTHING COULD HAVE NOTICED
+
+TASK_SPEC T1-8 says the table is WHITE. `clip_scene.OAK` asked for
+(0.94, 0.94, 0.95). Sampled out of the shipped 2026-08-15 T1 clip, the top
+renders at **RGB(118,118,118)** — mid grey — while the arm's own meshes in the
+same frame reach (208,207,210).
+
+**The audit passed it every time**, because `audit_task_spec` read `CS.OAK`
+and asked whether the REQUESTED colour was neutral and >= 0.80. It never
+looked at a pixel. That is CLAUDE.md's "matched requested RGB, not RENDERED
+colour" row arrived at from the authoring side instead of the verifying one.
+
+`scripts/probe_marker_shading.py` measures the renderer's actual response, one
+slab where the table is, one frame per colour, three controls:
+
+| requested | up-facing face | camera-facing face |
+| --- | --- | --- |
+| 0.00 | 0 | 0 |
+| 0.94 | 119 | 208 |
+| 1.00 | 127 | 221 |
+| 1.50 | 190 | 255 |
+| 2.00 | 253 | 255 |
+
+Two things fall out. A marker's material takes **ambient = 0.5 x colour** and
+the only light is a headlight on the camera, so an UP-FACING face — which is
+what a table top is — gets the ambient term alone. And **RViz does not clamp
+the colour before it reaches the material**: 1.5 and 2.0 continue the same
+line to 190 and 253, so the ambient term can be driven to full and a white
+table top IS available. It just cannot be written down as "white".
+
+The table top is now (1.88, 1.88, 1.89), which renders ~240. If a renderer
+ever does clamp at 1.0 this degrades to the old 127 rather than to anything
+broken. T1-8 now applies the measured coefficient and asks for a white PIXEL,
+and the audit's 13-probe self-test still detects every break.
+
+**And the table lost two things that were never furniture.** Two 110 mm posts
+stood on it in every T1, T1S2, T2 and T3 clip, carrying the bench — which only
+tasks a/b/c have. They held nothing, stopped 60 mm short of the objects above
+them, and invited exactly the reading this scene must not invite: that the
+objects rest on something. They are drawn only when a bench is. The legs are
+also inset now so the top overhangs, and the apron runs all four sides instead
+of two.
+
+## 6. AND ONE THING THAT LOOKED LIKE A DEFECT AND WAS A CAPTURE ORDERING FAULT
+
+The first render of the white table came back with the table present and the
+workspace marking, the cubes and the mats ALL MISSING. The obvious reading was
+that an out-of-range colour had broken the marker array — plausible, and it
+would have made the whole approach unusable.
+
+It is not what happened. `clip_scene` was publishing 220 markers at 10 Hz
+throughout: 9 `scene` (one table, four legs, four apron rails), 197
+`workspace`, 4 `planes`, 8 `item`, measured by subscribing and counting. What
+was wrong was the ORDER: the scene node was started before RViz existed, so
+"the marking is missing" and "the renderer was not up yet" produced the same
+picture. Displays first, then the scene, then the grab, and the same colours
+render the whole scene correctly — table top at 238 of 255 against the old
+118, near edge 255, legs 170.
+
+Recorded because it is a fresh instance of an old pattern: the render is an
+instrument too, and a missing thing in a picture is evidence about the
+capture until the capture has been cleared.
+
+**A CONSEQUENCE FOR THE RECORDED SET.** The 25 clips were recorded before any
+of this. Every one of them shows a grey table, two risers holding nothing, and
+an opening pose with the hands 80 mm low. They are stale against the scene and
+need re-recording before they are shown to anyone.
+
+---
+
+# 2026-08-15 (last) — THE PRESENTATION POSE BECAME HOME, AND THE ANCHOR DID NOT
+
+The request was to make the presentation pose the actual home rather than a
+pose clips open on. The standing objection was this project's own: the
+wrist-up orientation is the approach that reaches the table. **That objection
+turns out to be about a different quantity, and the difference is the whole
+result.**
+
+## THE CHANGE IS TWO CHANGES, AND ONLY ONE OF THEM IS DANGEROUS
+
+Home is the origin of two things that sound like one:
+
+* **where the arm rests** — `config/home_positions_*.txt` and the URDF's
+  `initial_positions`. This is the picture.
+* **the pinned ANCHOR** — `master_calibration.WORKSPACE_ORIENT`, the
+  quaternion `run_abc.send()` writes into every waypoint of every task under
+  every mode. It is the approach direction, 30.7 deg (left) / 22.1 (right)
+  above horizontal, and it was MEASURED at home.
+
+**They are separable in the code, and nothing had noticed.** `WORKSPACE_ORIENT`
+and `WORKSPACE_CENTRE` are read ONCE, in `master_pose_node.__init__`, to seed
+ROS parameters. Nothing recomputes them from the live home. So a level home
+does not force a level grasp: the arm rests level and rotates its wrist to the
+pinned approach on the way to the work — exactly what
+`home_wrist_is_real.md` had always claimed about the two numbers, now
+demonstrated by moving one and watching the other stay.
+
+## MEASURED, NOT ARGUED
+
+`scripts/measure_home_change.py`, N=10 over every distinct waypoint of each
+task's OWN builder, wearer and furniture in scene, wearer clearance from the
+mount guard's capsule model. The arms are STAGED into each pose and arrival is
+verified off `/joint_states`, not off the staging script's report. IK failures:
+
+| task | home STORED / anchor STORED | home PRES / anchor STORED | home PRES / anchor LEVEL |
+| --- | --- | --- | --- |
+| T0 | 8 | 8 | 6 |
+| T1 | 0 | **0** | 0 |
+| T1 stage 2 | 0 | **0** | 1 |
+| T2 | 0 | **0** | **4 — the right arm is lost** |
+| T3 | 0 | **0** | 0 |
+
+**With the anchor kept, every task performs exactly as it does today.** T0's
+eight failures are not caused by this change — they are there in the shipped
+platform too, and they are the first time anyone has walked T0's own waypoint
+list against collision-aware IK.
+
+**With the anchor re-derived to level, T2 loses its right arm.** The near-side
+approach is what reaches the tray, and 0/2 under top-down was already on
+record. So the approach is load-bearing and the resting pose is not.
+
+The level-anchor paths are not a rotation applied to the old wrist poses: the
+pad offset is only valid at the anchor orientation, so every waypoint is
+shifted by `(R_stored - R_level) @ pad_offset_in_ee_frame` — exact, because
+the orientation is constant along a path — which holds the finger PADS on the
+trajectory the task declares and moves the wrist to wherever the new
+orientation puts it.
+
+**THE KNOWN-ANSWER CONTROL IS WHAT MAKES THE ABOVE WORTH READING.** The
+stored/stored cell has to reproduce the committed 2026-08-15 numbers on eight
+task/arm pairs, and it does.
+
+## THE ONE THING THAT GOT WORSE
+
+**T1 stage 2's RIGHT arm loses 59 mm of wearer clearance**, 0.1610 → 0.1016
+against a 150 mm floor, measured worst-over-N. It still solves every waypoint.
+The mechanism is the IK SEED: `ik_follower_node` seeds from home and the
+solver seeds from the live joint state, so a different resting posture lands
+the solver in a different null-space branch. T2's right arm moves 0.0799 →
+0.0027, but T2 was already 70 mm inside the floor, so that is worse-of-a-bad-
+thing rather than new. T1, T3 and T1 stage 2's left arm do not move.
+
+## AN INSTRUMENT DEFECT, CAUGHT BY A CONTROL, FIXED, AND WORTH RECORDING TWICE
+
+The first version took the clearance of whichever solve happened to run LAST
+per waypoint — one sample of a null space TRAC-IK re-seeds randomly, and the
+seed is precisely what this experiment changes. Corrected to the worst over
+all N. The known-answer control then flagged T2's right arm as DISAGREEING at
+0.0799 against a committed 0.0904 — which is the correction working, not a
+fault, because worst-over-N can only be lower. The control was made one-sided
+rather than the measurement being tuned to pass it.
+
+And on one run the middle cell was REFUSED outright: the staging move from the
+stored home to the presentation pose is 1.94 rad and did not arrive inside the
+default deadline, so the script reported nothing rather than reporting numbers
+for a pose the arms were not in. That refusal is the reason the numbers above
+can be believed; the transition is intermittent and is now retried at a longer
+deadline.
+
+## WHAT MOVED, WHAT DID NOT, AND WHAT IS OWED
+
+**Moved:** `config/home_positions_{left,right}.txt`; both `initial_positions`
+blocks of `srl_dual.urdf.xacro`. A new test,
+`test_home_lives_in_two_places.py`, fails if the two ever drift apart or if a
+continuous joint is stored outside ±π — it was a comment in both files saying
+"keep the two in step", and a comment cannot fail.
+
+**The right arm's joint_7 is stored WRAPPED**, -94.25 deg rather than the
+265.75 the search returned. Same physical pose — joint_7 is continuous — but
+`ik_follower_node` refuses to start on real hardware with a continuous joint
+outside ±π and unwinds 360 deg in sim. The Kortex value is 265.75 either way,
+so the lab capture is unambiguous. The left arm's joint_5 seam margin
+IMPROVED, 14.10 → 28.01 deg.
+
+**Did not move, and must not:** `WORKSPACE_ORIENT`, per the table above. No
+task coordinate, no clearance figure, none of the 579 region cells —
+they derive from the anchor, and nothing computes them from home at runtime.
+The coupling to home is by derivation HISTORY, not live computation.
+
+**Owed:** `WORKSPACE_CENTRE` is documented as `offset = P_HOME` and is now
+stale by 0.188 m (left) / 0.222 m (right). `master_pose_node` seeds
+`pos_anchor`, `anchor_ref` and `last_pos` from it, so the first commanded
+teleop frame would move the arm that far. The replacement values are in the
+file, ready to paste, and deliberately not applied: changing it changes what
+live teleoperation DOES, which is the study's baseline condition.
+
+**And the real arms have not moved.** They are still at the legacy Kortex
+home. `sim_to_real_bridge.enable()` compares the real arm against the loaded
+home (`require_homed`, 0.05 rad) and REFUSES, naming the joint and the size;
+the gap is ~1.9 rad, forty times the tolerance, and a second gate refuses on
+the sim-to-real gap behind it. **It refuses; it does not silently move.**
+Getting the arms there is ~312 deg (left) / ~283 (right) of total joint
+travel — a large unattended motion over a person, and a decision to take in
+the room rather than from a script.
+
+---
+
+# 2026-08-15 (applied) — THE HOME POSE HAS FIVE STORAGE SITES, NOT TWO
+
+The "update both places" trap is quoted repeatedly in this project. **It
+undercounts, and the two sites nobody names are the dangerous ones.**
+
+| site | live? | who reads it |
+| --- | --- | --- |
+| `config/home_positions_{arm}.txt` | **THE SOURCE, and the most live thing here** | `sim_to_real_bridge` (the enable gate), `real_homing_node` (where the REAL arm is driven), `ik_follower_node` (the IK seed), `mock_real_stack`, `session_manager` |
+| `srl_dual.urdf.xacro` x2 blocks | live | where the SIM arm spawns; baked at launch |
+| `pot_bridge.py` | **live, and it had its own hardcoded copy** | publishes to the arm controllers |
+| `srl_teleop_node.py` | **live, and it had its own hardcoded copy** | publishes to the arm controllers |
+| `config/real_home_reference.txt` | **reference only — no code reads it** | nothing |
+
+**Both hardcoded copies are installed executables that no launch file or
+script references.** `ros2 run srl_teleop pot_bridge` and `ros2 run srl_teleop
+srl_teleop_node` both work and both publish joint trajectories. Nothing
+exercises them, so nothing would have caught the drift, and after the home
+change each was one command away from driving an arm to the superseded pose.
+They now load `home_positions` like everything else.
+
+`real_home_reference.txt` is the one that genuinely *is* reference-only, and it
+had gone stale in the way that matters: it carried a `left_sim_home_deg` line
+and per-joint deltas computed against a sim home superseded TWICE since, so it
+read like a homing estimate and was arithmetic against a pose that no longer
+exists. The deltas are removed rather than updated — the live reading is real
+data worth keeping, the deltas are recomputable in one line — and the header
+now says plainly that no code reads the file.
+
+## THE GUARD, AND TWO GOES AT MAKING IT ABLE TO FAIL
+
+`test_home_has_one_source.py` covers all of it: URDF against config, no node
+carrying its own copy, every arm-commanding node actually loading the source,
+continuous joints inside ±π, and `--` never appearing inside an XML comment.
+
+Getting the "no hardcoded copy" check to work took two corrections, both found
+by trying to break it:
+
+* **v1** anchored on `home... = [` and MISSED the dict form the real code used
+  — `self.home = {"left": [ ...seven... ], "right": [...]}`. It passed a
+  deliberately broken input, which makes it not a check.
+* **v2** matched any seven-float list with "home" within 200 characters and
+  FALSE-POSITIVED on `mock_real_stack.start_offset_deg`, which is an offset
+  *from* home sitting under a comment that mentions it.
+* **v3** parses the file and asks the only question that matters: is a literal
+  seven-element pose assigned to something named `home`? That is a question
+  about the syntax tree, not about characters, and it fails on both the dict
+  form and the flat form while leaving the offset alone.
+
+## AND THE XML COMMENT RULE, WHICH COST THE WHOLE DESCRIPTION
+
+`--` cannot appear inside an XML comment. A comment added beside the home
+change used it the way every Python file here does, and xacro refused
+`srl_dual.urdf.xacro` outright: "not well-formed (invalid token)". That takes
+out the arms, the wearer, MoveIt and everything reading `/robot_description`,
+and the error names a line and column rather than the mistake. Caught by
+generating the URDF and diffing all fourteen `initial_value` entries against
+the config — which is also the check that confirms the change took.
+
+## WHAT THE HOME CHANGE ACTUALLY COST, VERIFIED ON THE APPLIED TREE
+
+Re-verified after applying, N=10 full path, wearer and furniture, clearance
+geometric, arms confirmed at the loaded home to 0.0001 rad:
+
+| task | IK failures | worst clearance | vs the legacy home |
+| --- | --- | --- | --- |
+| T0 | 8 (4 per arm) | 0.0078 / 0.0126 | unchanged; pre-existing |
+| T1 stage 1 | **0** | 0.1571 (174 waypoints), **0 below the floor** | unchanged, clean |
+| T1 stage 2 | 0 | seed 0 right **0.1135** | **REGRESSED: 25 of 98 waypoints inside the floor.** Seeds 1 and 2 clean |
+| T2 | **1** (left) | 0.0000 / 0.0026 | **REGRESSED: left arm now fails a waypoint** |
+| T3 | 0 | 0.0618 / 0.1610 | unchanged |
+
+**So the change is not free, and the earlier "every task performs exactly as
+before" needs the qualifier it now has.** That statement was measured on IK
+failures alone and it holds for T1, T1s2 and T3; T2's left arm has since
+turned up one marginal failure, and T1 stage 2's seed 0 right arm has lost its
+clearance margin.
+
+**THE MECHANISM IS THE IK SEED, AND THE JOINT_7 WRAP IS PART OF IT.** The
+solver seeds from the live joint state, so the resting posture selects which
+null-space branch it lands in. The right arm's joint_7 is additionally stored
+WRAPPED (-94.25 deg) where the pose search returned 265.75 — the same physical
+pose, 2π apart as a seed. Both effects push the right arm into a different
+branch, and on T1 stage 2's seed-0 layout that branch runs 37 mm inside the
+wearer floor.
+
+**Neither is fixed here, because both are layout decisions rather than bugs.**
+The options for stage 2 are to re-draw seed 0, or to filter the sampling pool
+against the floor at the new home; the option for T2 is the same conversation
+its elastic tray already needs. Both are in `docs/NEXT_SESSION.md`. What must
+not happen is the numbers being quoted from the pre-change run: `verify_t1_paths`
+exits non-zero on the floor breach and says which waypoints.
+
+---
+
+# 2026-08-15 — CAN THE WORK BE IN THE CENTRE, ON THE SURFACE? SEARCHED PROPERLY.
+
+`scripts/search_centre_on_surface.py`. The earlier answer swept the WORK PLANE
+above a table fixed at 0.95 and lifted the objects into the air, which is what
+the brief does not want. This sweeps the TABLE and requires the objects to
+REST ON it: table top 0.70–1.10, object distance out 0.10–0.55, overhang 0.00
+or 0.05, |x| 0.00–0.45, both arms, pinned and top-down. 3360 cells screened at
+the grasp pose, survivors re-walked over the full pick path at N=10 with the
+wearer measured geometrically. Three controls, all correct — including an
+object BURIED in the slab, which must fail or the table is not in the scene.
+
+"The wearer stands further back" and "the table moves forward" are the same
+degree of freedom, so the y sweep covers both. A NARROWER table is free and is
+not swept: nothing about the approach depends on how far the table extends
+sideways past the object.
+
+## THE ANSWER: NO. AND THE CLOSEST IS 350 mm.
+
+**No configuration puts |x| ≤ 0.10 on the surface.** 22 of 3360 cells survive
+the screen, and the structure of those 22 is the finding:
+
+| | |
+| --- | --- |
+| nearest the centreline, LEFT arm | **x = 0.350**, table top 1.00, near edge 0.530, confirmed over the full path at N=10, clearance 0.1524 |
+| nearest the centreline, RIGHT arm | **x = 0.450**, and it is *reach only* — 0.1381 against a 0.150 floor |
+| **every survivor has overhang 0.00** | the object must sit at the VERY FRONT EDGE. Not one cell with the object 50 mm back survives |
+| table height | barely matters — 0.80, 0.90, 0.95, 1.00 and 1.10 all appear |
+| what does matter | how far FORWARD the table is: every survivor is at y 0.400–0.550, near edge 0.380–0.530 |
+| **top-down** | **0 of 840 cells**, at any table height, either arm |
+
+**The overhang result is the mechanism, and it is the same one this repository
+already has.** The pinned wrist's tool axis is 30.7° ABOVE horizontal, so the
+hand arrives from the near side and from BELOW; over a slab that trailing
+volume is inside the slab. The only place an object on a table can be grasped
+is where there is no table under the approach — the front edge.
+
+## TWO THINGS THIS CHANGES
+
+**1. T1-1 may be unblockable after all, and not by the route that was tried.**
+The audit records T1-1 (cubes rest on the table) as BLOCKED on the evidence
+that raising a slab under the objects costs 46 of 54 waypoints. That held the
+table where it is. Moving the table FORWARD to a near edge of ~0.53 and
+putting the objects at its front edge gives a cell that is reachable and clear
+over the full path at N=10. **This is one cell, not a layout** — four cubes and
+two pads all have to fit along that front edge and all have to verify — so it
+is a lead, not a result. It is the first evidence in this project that objects
+on the surface are reachable at all.
+
+**2. Top-down with objects on a surface is not available anywhere.** Not at
+any table height from 0.70 to 1.10, not at any distance, not on either arm.
+So "top-down and centre-on-surface" is not a trade between two achievable
+things: centre-on-surface is achievable at 350–450 mm off centre, and
+top-down-on-surface is not achievable at all. Combined with the earlier
+measurement — top-down reaches T1's four place points but breaches the wearer
+floor at all four — the pinned near-side approach is the only one that both
+reaches and stays clear.
+
+---
+
+# 2026-08-15 — PREDICTIVE AVOIDANCE: THE NULL-SPACE HALF DOES NOT WORK, MEASURED
+
+The brief asked for an arm that sees a near-collision coming and moves the
+ELBOW out of the way through the null space while the gripper pose is
+unchanged, instead of refusing and holding. **Built, tested, and the
+null-space half is measurably useless on this arm.** Recording that is worth
+more than shipping it.
+
+## WHAT WAS BUILT
+
+`srl_teleop/predictive_avoidance.py`, 16 unit tests on constructed inputs:
+
+* **LOOKAHEAD** — straight-line extrapolation of the commanded pose over a
+  0.30 s horizon, with a staleness guard so a paused master predicts NO
+  motion rather than flying on its last velocity. "No estimate" and "an
+  estimate of no motion" are different returns, deliberately.
+* **NULL-SPACE SAMPLER** — the same EE pose requested from a symmetric fan of
+  seeds around joints 3, 4 and 6, every solution scored by wearer clearance,
+  the clearest chosen. Not a Jacobian projection: this follower has a
+  `/compute_ik` service, not a local Jacobian, and the docstring says so
+  rather than borrowing the name.
+* **choose()** — clear of the trigger, use the unperturbed solution so the
+  operator feels nothing; inside it, take the clearest; refuse only when
+  nothing clears the floor.
+
+## AND THEN IT WAS DRIVEN AT THE WEARER, WHICH IS THE POINT
+
+`scripts/verify_predictive_avoidance.py` marches the commanded EE from the
+home hand position straight into the head and then the torso, 15 steps, with
+avoidance off and on, against the real solver and the real wearer model.
+
+| | min clearance OFF | min clearance ON | best gain anywhere |
+| --- | --- | --- | --- |
+| head | −0.1550 | **−0.1550** | **+0.0044 m** |
+| torso | −0.1574 | **−0.1574** | **+0.0001 m** |
+
+**The fan is not the problem.** Its own control passed: 90 and 82 DISTINCT
+joint solutions were found and scored. The null space is being searched; it
+simply does not contain anything better. At 12 of 15 steps (head) and 13 of 14
+(torso) the chosen solution's clearance equals the baseline's to four decimal
+places.
+
+## WHY, AND WHAT WOULD ACTUALLY WORK
+
+Two mechanisms, and both matter:
+
+1. **Where the EE itself is inside the wearer, no null space can help** — by
+   construction, since the family holds the EE pose fixed. Refusing is the
+   correct answer there and it is what happened. The harness drives the hand
+   INTO the head, so the late steps could never have been rescued.
+2. **Where the hand is still clear, re-seeding TRAC-IK does not select a
+   different ELBOW branch.** The returned solutions differ in joint space —
+   90 of them — while the limiting link stays put, so they differ in the
+   wrist rather than in the swivel. Seed sampling is not a redundancy
+   resolution.
+
+**The real implementation is an explicit elbow-swivel parameterisation**:
+compute the elbow circle about the shoulder-wrist axis analytically for the
+Gen3, choose the swivel angle that maximises wearer clearance, and solve the
+remaining joints from it. That is a different and larger piece of work, and it
+is the honest next step rather than a tuning of this one.
+
+## WHAT IS TRUE OF IT TODAY
+
+* the EE residual is **0.00001 m** — the operator could not feel the
+  avoidance, which is trivially true because nothing meaningful moved;
+* it **never hung**: every step returned a decision. It refused 11 of 15 while
+  the hand was being driven into a person's head, which is the right answer,
+  not a lockup;
+* `avoidance never reduces clearance` — its own control — held at every step;
+* the clearance floor is untouched and is still the last resort.
+
+**NOT WIRED INTO `ik_follower_node`.** That node gates motion near a person's
+chest, and wiring in a strategy measured to add 4 mm would be worse than
+leaving it out. `srl_console`'s "tangential" and "null-space" display labels
+were already removed in an earlier pass for naming stages that did not exist;
+nothing here re-adds them.
+
+---
+
+# 2026-08-15 — THE CENTRE, ASKED AGAIN WITH THE WEARER'S ARMS MOVED. IT IS THE TORSO.
+
+The project's answer to "why can the work not be in the centre, in front of the
+person" has been **the wearer's own forearm**, and that answer was measured
+against a mannequin whose arms hang rigidly at its sides. That is a MODELLING
+CHOICE and not a fact about people: a person standing in a rig with two robot
+arms working in front of their chest will move their arms, and asking them to
+is an ordinary operating instruction rather than a platform change.
+
+So the posture was made a variable and the sweep re-run. **The centre does not
+open in any posture, and with the wearer's arms deleted entirely the binding
+constraint is the TORSO.**
+
+## THE POSTURE IS NOW A VARIABLE, WITH ONE SOURCE
+
+`src/srl_teleop/srl_teleop/wearer_posture.py` holds the table. Two consumers
+read it and they share no file: `human_backpack.xacro`, which is what MoveIt
+plans against, and `mount_guard_node.WEARER`, which is what the 150 mm floor is
+measured against geometrically. A posture applied to one and not the other does
+not error — it produces a sweep that runs five times, changes nothing, and
+reports the shipped answer under five new labels. So the xacro's arm block is
+GENERATED (`scripts/gen_wearer_posture_xacro.py`) and
+`test_wearer_posture_has_one_source` regenerates it and fails on drift.
+
+    SRL_WEARER_ARMS=folded ros2 launch srl_moveit_config demo.launch.py
+
+`down` reproduces the shipped centres to the millimetre, which is the
+regression control; an unknown posture name stops the xacro build rather than
+falling back to the default. `dist_point` gained a rotation argument, which it
+did not need while every wearer link was axis-aligned and needed the moment a
+forearm could lie on its side.
+
+## THE ANSWER, z = 1.120, floor 150 mm, N=2 grasp pose and N=10 over the full path
+
+| posture | left, min \|x\| | right | home clearance | what happens |
+| --- | --- | --- | --- | --- |
+| **down** (shipped) | **0.325** | **0.450** | 0.1610 | left binds on the TORSO from 0.175 out; right binds on its own forearm and upper arm |
+| **behind** | **nothing anywhere** | **nothing anywhere** | **0.1145, inside the floor** | the upper arm rotates back into the MOUNT |
+| **folded** | 0.400 | 0.450 | 0.1610 | worse, as it must be: the forearms are in the work volume |
+| **out** | **nothing anywhere** | **nothing anywhere** | **0.0601 / −0.0837** | the hands sit in the arms' own outboard space; the RIGHT arm is INSIDE the wearer's hand at the home pose |
+| **none** *(no arms at all)* | **0.300** | **0.375** | 0.1610 | every column 0.125–0.300 binds on the TORSO |
+
+`recordings/baselines/centre_vs_wearer_posture.json` and one
+`centre_posture_<name>.json` per posture.
+
+**Read the `none` row as the whole of the result.** It is not a posture, it is
+the LIMIT: the wearer has no arms, so nothing about their arms can bind. The
+centre is still shut, min \|x\| is still 300 mm (left) and 375 mm (right), and
+at \|x\| = 0.10 the clearance is **−0.007 m (left) and −0.013 m (right)** — the
+arm is inside the person's chest. Holding the arms clear is worth **25 mm on
+the left and 75 mm on the right**. Real, and nowhere near the 300 mm needed.
+
+**So the constraint is the torso, and the answer to "arms or torso or mount" is:
+the torso for the working end, the mount for the floor itself.**
+
+## THE MOUNT SETS A CEILING ON EVERY CLEARANCE FIGURE, AND IT IS 0.1610 m
+
+`base_link` is a link no joint moves. Measured directly against each posture's
+wearer:
+
+| posture | base_link's nearest wearer part | clearance |
+| --- | --- | --- |
+| down / folded / out | torso | **0.1610** |
+| behind | the wearer's own upper arm | **0.1145** |
+
+Under the shipped wearer, **the 150 mm floor has 11 mm of headroom before any
+joint moves at all**, which is why so many clearance figures in this project
+read exactly 0.1610: that is not the arm's clearance, it is the mount's, and
+it is the minimum over the whole chain. Under `behind` the same constant falls
+to 0.1145 and every pose in the workspace is inside the floor, including home.
+No software can move it. A mount change can, and that is the re-derivation
+priced in TASK_SPEC §2A.
+
+## TWO INSTRUMENT FAULTS FOUND ON THE WAY, AND BOTH WERE LIVE
+
+**1. The runtime wearer had no arms.** `srl_teleop/clearance.py` is what
+`ik_follower_node`, `real_homing_node` and `sim_to_real_bridge` enforce, and it
+modelled a torso, a head and a pair of hips. The offline survey has always
+included the wearer's arms, and on the inboard side those arms are exactly what
+binds the right arm. **The planner's wearer and the follower's wearer were
+different people, and the follower's had no arms.** Fixed: the six arm
+primitives are expressed in their own link frames, so the table needs no
+posture — the posture moves the LINK and TF carries it. `_clearance_from` now
+iterates `ClearanceModel.PARTS` instead of a hardcoded triple, because a fixed
+list there would have kept the arms out of the live check while the model
+claimed them. Known-answer test added.
+
+**2. `record_verification.py` drew the wearer's arms 150 mm low.** Its
+`WEARER_SPEC` applied a (0, 0, −0.15) offset to the upper arm and (0, 0, −0.13)
+to the forearm, which assumes the link frame sits at the shoulder. The xacro
+puts the collision at the link origin with no offset, so the drawn upper arm
+sat 150 mm below the one the score used, and the hands were absent entirely.
+Both corrected, and the scoring path now includes the arms as well.
+
+## THE PUBLISHED 0.425 / 0.400 IS STALE, AND THE RECONCILIATION SAYS SO
+
+This sweep's `down` row returned 0.325 / 0.450 where
+`recordings/baselines/centre_vs_height.json` records **0.425 / 0.400** at the
+same height. A result that contradicts an earlier measurement is an instrument
+check until the two are reconciled, so `measure_centre_vs_height.py` was re-run
+UNCHANGED at z = 1.120 over the same x range: it returns **left 0.325 (y =
+0.525), right 0.450 (y = 0.100)**, confirmed over the full path at N=10.
+
+The two instruments agree with each other and disagree with the stored file.
+The likeliest cause is the 2026-08-15 home change: the solver seeds from the
+live joint state, so moving where the arm RESTS moves which null-space branch
+it lands in, which is the same mechanism that cost T1 stage 2 seed 0 its
+clearance. **The left arm gained 100 mm inboard and the right arm lost 50 mm,
+and neither was noticed because nothing re-ran the sweep after the home moved.**
+TASK_SPEC §2 is corrected accordingly.
+
+## TWO CONTROLS I GOT WRONG, RECORDED BECAUSE THEY COST TWO POSTURES A REPORT
+
+* **A control whose ground truth moves with the thing under test is an outcome
+  in disguise.** The fixed-wearer sweep requires the outboard cell to CLEAR the
+  floor and requires clearance to FALL as x goes to zero. Both hold for a
+  wearer whose arms hang down; under `behind` and `out` the wearer's own arm
+  moves toward that cell, so both failed and two postures refused to report —
+  on exactly the postures the sweep exists to measure. They are results now.
+  What survives is: the cell SOLVES (the loop ran), and the clearance MAP has
+  at least three distinct values (it is not a dead channel). Asked of the map
+  rather than of two hand-picked cells, because under `out` the wearer's hand
+  sits at \|x\| = 0.655 and one of those cells stops solving.
+* **Two stacks ran at once and a measurement talked to the wrong one.** A
+  malformed shell line left an orphaned runner, so a second `move_group` came
+  up beside the queue's. The `out` run then read a `robot_description` holding
+  the `down` posture while its own process reported `out`. **The URDF control
+  caught it** — it compares the loaded description's human-arm origins against
+  the posture table — and that is the whole reason it exists. HARD CONSTRAINT 3
+  is about measurements as much as about serial ports.
+
+## WHAT THIS MEANS FOR THE BRIEF
+
+The work cannot be in the centre of the table in front of the person, and no
+instruction to the wearer changes that. The nearest the shipped configuration
+gets is **325 mm off centre on the left arm and 450 mm on the right**, and the
+best any posture can offer is 300 / 375 with the wearer having no arms at all.
+Asking the wearer to hold their arms clear is worth 25–75 mm, is worth stating
+as an operating requirement for the RIGHT arm specifically, and is not a route
+to the centre.
+
+`folded` is the posture people actually adopt when told to keep their arms out
+of the way, and it is the WORST of the usable ones. `behind` and `out` are not
+merely unhelpful: with a BACK-mounted rig they put the wearer's own limbs into
+the robot's mounting envelope, and both breach the floor at the home pose
+before the robot has been asked to do anything. If a wearer instruction is
+given, it must be "arms down at your sides", which is what the model already
+assumed and what nobody had checked was the best of the options.

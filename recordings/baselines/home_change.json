@@ -1,0 +1,473 @@
+{
+  "repeats": 10,
+  "seed": 0,
+  "floor": 0.15,
+  "anchors": {
+    "stored": {
+      "left": [
+        -0.0896,
+        0.486,
+        0.8693,
+        0.0032
+      ],
+      "right": [
+        0.1335,
+        0.5423,
+        0.8288,
+        0.0345
+      ]
+    },
+    "level": {
+      "left": [
+        -0.707108,
+        1e-06,
+        2e-06,
+        0.707105
+      ],
+      "right": [
+        -0.707107,
+        -0.0,
+        0.0,
+        0.707107
+      ]
+    }
+  },
+  "level_anchor_wrist_shift_m": {
+    "left": [
+      -0.015,
+      -0.0152,
+      0.0503
+    ],
+    "right": [
+      0.0254,
+      -0.0108,
+      0.037
+    ]
+  },
+  "known_answer_control_agrees": true,
+  "staged_ok": {
+    "stored_home/stored_anchor": true,
+    "presentation_home/stored_anchor": true,
+    "presentation_home/level_anchor": true
+  },
+  "cells": {
+    "stored_home/stored_anchor": {
+      "staged": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "tasks": {
+        "t0": {
+          "left": {
+            "waypoints": 25,
+            "ik_failures": 4,
+            "worst_clearance_m": 0.0076,
+            "to": "L-upperarm",
+            "at": [
+              0.24496923076923077,
+              0.44322307692307694,
+              1.5663153846153846
+            ],
+            "performable": false,
+            "clears_floor": false
+          },
+          "right": {
+            "waypoints": 25,
+            "ik_failures": 4,
+            "worst_clearance_m": 0.0147,
+            "to": "R-upperarm",
+            "at": [
+              -0.2723785714285714,
+              0.45763571428571426,
+              1.3064071428571429
+            ],
+            "performable": false,
+            "clears_floor": false
+          }
+        },
+        "t1": {
+          "left": {
+            "waypoints": 86,
+            "ik_failures": 0,
+            "worst_clearance_m": 0.1609,
+            "to": "L-upperarm",
+            "at": [
+              0.4671,
+              0.1155,
+              1.1128
+            ],
+            "performable": true,
+            "clears_floor": true
+          },
+          "right": {
+            "waypoints": 1,
+            "ik_failures": 0,
+            "worst_clearance_m": 0.161,
+            "to": "torso",
+            "at": [
+              -0.6,
+              0.125,
+              1.28
+            ],
+            "performable": true,
+            "clears_floor": true
+          }
+        },
+        "t1s2": {
+          "left": {
+            "waypoints": 46,
+            "ik_failures": 0,
+            "worst_clearance_m": 0.161,
+            "to": "torso",
+            "at": [
+              0.6921,
+              0.1305,
+              1.1628
+            ],
+            "performable": true,
+            "clears_floor": true
+          },
+          "right": {
+            "waypoints": 54,
+            "ik_failures": 0,
+            "worst_clearance_m": 0.161,
+            "to": "torso",
+            "at": [
+              -0.4289,
+              0.2255,
+              1.1779000000000002
+            ],
+            "performable": true,
+            "clears_floor": true
+          }
+        },
+        "t2": {
+          "left": {
+            "waypoints": 11,
+            "ik_failures": 0,
+            "worst_clearance_m": 0.0031,
+            "to": "L-upperarm",
+            "at": [
+              0.25,
+              0.35,
+              1.32
+            ],
+            "performable": true,
+            "clears_floor": false
+          },
+          "right": {
+            "waypoints": 11,
+            "ik_failures": 0,
+            "worst_clearance_m": 0.0834,
+            "to": "R-upperarm",
+            "at": [
+              -0.25,
+              0.35,
+              1.32
+            ],
+            "performable": true,
+            "clears_floor": false
+          }
+        },
+        "t3": {
+          "left": {
+            "waypoints": 8,
+            "ik_failures": 0,
+            "worst_clearance_m": 0.0618,
+            "to": "L-upperarm",
+            "at": [
+              0.3571,
+              0.0955,
+              1.1653
+            ],
+            "performable": true,
+            "clears_floor": false
+          },
+          "right": {
+            "waypoints": 8,
+            "ik_failures": 0,
+            "worst_clearance_m": 0.161,
+            "to": "torso",
+            "at": [
+              -0.5689,
+              0.0705,
+              1.1829
+            ],
+            "performable": true,
+            "clears_floor": true
+          }
+        }
+      }
+    },
+    "presentation_home/stored_anchor": {
+      "staged": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "tasks": {
+        "t0": {
+          "left": {
+            "waypoints": 25,
+            "ik_failures": 4,
+            "worst_clearance_m": 0.0088,
+            "to": "L-upperarm",
+            "at": [
+              0.24496923076923077,
+              0.44322307692307694,
+              1.5663153846153846
+            ],
+            "performable": false,
+            "clears_floor": false
+          },
+          "right": {
+            "waypoints": 25,
+            "ik_failures": 4,
+            "worst_clearance_m": 0.0084,
+            "to": "R-upperarm",
+            "at": [
+              -0.25915,
+              0.45075,
+              1.42015
+            ],
+            "performable": false,
+            "clears_floor": false
+          }
+        },
+        "t1": {
+          "left": {
+            "waypoints": 86,
+            "ik_failures": 0,
+            "worst_clearance_m": 0.1609,
+            "to": "L-upperarm",
+            "at": [
+              0.4671,
+              0.1155,
+              1.1428
+            ],
+            "performable": true,
+            "clears_floor": true
+          },
+          "right": {
+            "waypoints": 1,
+            "ik_failures": 0,
+            "worst_clearance_m": 0.161,
+            "to": "torso",
+            "at": [
+              -0.6,
+              0.125,
+              1.28
+            ],
+            "performable": true,
+            "clears_floor": true
+          }
+        },
+        "t1s2": {
+          "left": {
+            "waypoints": 46,
+            "ik_failures": 0,
+            "worst_clearance_m": 0.161,
+            "to": "torso",
+            "at": [
+              0.6921,
+              0.1305,
+              1.1628
+            ],
+            "performable": true,
+            "clears_floor": true
+          },
+          "right": {
+            "waypoints": 54,
+            "ik_failures": 0,
+            "worst_clearance_m": 0.1016,
+            "to": "R-forearm",
+            "at": [
+              -0.4289,
+              0.2255,
+              1.1779000000000002
+            ],
+            "performable": true,
+            "clears_floor": false
+          }
+        },
+        "t2": {
+          "left": {
+            "waypoints": 11,
+            "ik_failures": 1,
+            "worst_clearance_m": 0.0,
+            "to": "L-upperarm",
+            "at": [
+              0.25,
+              0.35,
+              1.3760000000000001
+            ],
+            "performable": false,
+            "clears_floor": false
+          },
+          "right": {
+            "waypoints": 11,
+            "ik_failures": 0,
+            "worst_clearance_m": 0.0027,
+            "to": "R-upperarm",
+            "at": [
+              -0.25,
+              0.35,
+              1.3760000000000001
+            ],
+            "performable": true,
+            "clears_floor": false
+          }
+        },
+        "t3": {
+          "left": {
+            "waypoints": 8,
+            "ik_failures": 0,
+            "worst_clearance_m": 0.0618,
+            "to": "L-upperarm",
+            "at": [
+              0.3571,
+              0.0955,
+              1.1653
+            ],
+            "performable": true,
+            "clears_floor": false
+          },
+          "right": {
+            "waypoints": 8,
+            "ik_failures": 0,
+            "worst_clearance_m": 0.161,
+            "to": "torso",
+            "at": [
+              -0.5689,
+              0.0705,
+              1.1829
+            ],
+            "performable": true,
+            "clears_floor": true
+          }
+        }
+      }
+    },
+    "presentation_home/level_anchor": {
+      "staged": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "tasks": {
+        "t0": {
+          "left": {
+            "waypoints": 25,
+            "ik_failures": 1,
+            "worst_clearance_m": 0.0413,
+            "to": "L-forearm",
+            "at": [
+              0.3013888510098787,
+              0.2686118507985177,
+              1.0294993250581483
+            ],
+            "performable": false,
+            "clears_floor": false
+          },
+          "right": {
+            "waypoints": 25,
+            "ik_failures": 5,
+            "worst_clearance_m": -0.0001,
+            "to": "R-upperarm",
+            "at": [
+              -0.271642162250677,
+              0.4226951098044909,
+              1.2101080044221624
+            ],
+            "performable": false,
+            "clears_floor": false
+          }
+        },
+        "t1": {
+          "left": {
+            "waypoints": 86,
+            "ik_failures": 64,
+            "worst_clearance_m": 0.1421,
+            "to": "L-upperarm",
+            "at": [
+              0.4520888510098787,
+              0.1003118507985177,
+              1.139765991724815
+            ],
+            "performable": false,
+            "clears_floor": false
+          },
+          "right": {
+            "waypoints": 1,
+            "ik_failures": 1,
+            "worst_clearance_m": null,
+            "to": null,
+            "at": null,
+            "performable": false,
+            "clears_floor": false
+          }
+        },
+        "t1s2": {
+          "left": {
+            "waypoints": 46,
+            "ik_failures": 46,
+            "worst_clearance_m": null,
+            "to": null,
+            "at": null,
+            "performable": false,
+            "clears_floor": false
+          },
+          "right": {
+            "waypoints": 54,
+            "ik_failures": 54,
+            "worst_clearance_m": null,
+            "to": null,
+            "at": null,
+            "performable": false,
+            "clears_floor": false
+          }
+        },
+        "t2": {
+          "left": {
+            "waypoints": 11,
+            "ik_failures": 11,
+            "worst_clearance_m": null,
+            "to": null,
+            "at": null,
+            "performable": false,
+            "clears_floor": false
+          },
+          "right": {
+            "waypoints": 11,
+            "ik_failures": 11,
+            "worst_clearance_m": null,
+            "to": null,
+            "at": null,
+            "performable": false,
+            "clears_floor": false
+          }
+        },
+        "t3": {
+          "left": {
+            "waypoints": 8,
+            "ik_failures": 8,
+            "worst_clearance_m": null,
+            "to": null,
+            "at": null,
+            "performable": false,
+            "clears_floor": false
+          },
+          "right": {
+            "waypoints": 8,
+            "ik_failures": 8,
+            "worst_clearance_m": null,
+            "to": null,
+            "at": null,
+            "performable": false,
+            "clears_floor": false
+          }
+        }
+      }
+    }
+  },
+  "ik_calls": 6226,
+  "method": "every distinct waypoint of the task's own builder, N=repeats, avoid_collisions with the task furniture applied, wearer clearance from the mount guard's capsule model on the returned solution; the level-anchor paths are shifted per arm so the finger PADS stay on the trajectory the task declares"
+}

@@ -57,7 +57,45 @@ WORKSPACE_SCALE = 1.0   # DEAD -- see quarantine note above
 #            both EEs in front of the wearer at working height
 #   BUT IK over a frontal task volume is 18.8% / 18.8% (live /compute_ik).
 #   Clearance and reach are in DIRECT CONFLICT at this scale - see CLAUDE.md.
-WORKSPACE_CENTRE= {"left":(0.6966,0.2481,1.1463), "right":(-0.7627,0.2979,1.1788)}
+# ==========================================================================
+# 2026-08-15: HOME MOVED AND THESE DID NOT. READ THIS BEFORE RUNNING TELEOP.
+# ==========================================================================
+# The home pose became the PRESENTATION POSE -- wrist level, hand in front of
+# the chest. The two constants below are affected very differently and only
+# one of them is a problem.
+#
+# WORKSPACE_ORIENT -- the pinned APPROACH direction, 30.7 deg (left) / 22.1
+# (right) above horizontal. DELIBERATELY UNCHANGED. Re-deriving it from the
+# new home would give (-0.7071, 0, 0, 0.7071) for both arms -- a level tool
+# axis, 0.00 deg -- and that is measured to break the platform, not laziness:
+# measured N=10 over the full path with the wearer and furniture in scene,
+# keeping it means every task performs exactly as before, while re-deriving it
+# to match the new level home makes T2 LOSE ITS RIGHT ARM ENTIRELY (4 IK
+# failures) and costs T0 and T1 stage 2 as well. A level home does not force a
+# level grasp; the arm rotates its wrist on the way to the work. See
+# recordings/baselines/home_change.json and docs/system/home_wrist_is_real.md.
+#
+# WORKSPACE_CENTRE -- RE-DERIVED 2026-08-15, because it MUST follow home.
+# It is documented right here as `offset = P_HOME`: the world point the
+# master's rest maps to. master_pose_node seeds pos_anchor, pos_anchor_base,
+# anchor_ref and last_pos from it, and its own comment says "wherever the
+# master is at startup maps to the arm's home". Left at the old values it
+# would have put the FIRST commanded teleop frame 0.188 m (left) and 0.222 m
+# (right) from where the arm actually rests.
+#
+#     was   left (0.6966, 0.2481, 1.1463)   right (-0.7627, 0.2979, 1.1788)
+#     now   left (0.5500, 0.3600, 1.1800)   right (-0.5500, 0.3600, 1.1800)
+#
+# Read off TF with both arms verified at the loaded home, exactly as the
+# originals were; raw output in recordings/baselines/home_rederive.json.
+#
+# THIS CHANGES WHAT LIVE MASTER TELEOP DOES, and that is stated rather than
+# buried: the mapping origin moves with the arm's rest position, which is the
+# property the constant exists to have. Nothing in the recorded set exercises
+# it -- run_abc commands world poses directly and does not go through this
+# mapping -- and master teleop is blocked on the lab with 7 of 14 channels
+# incoherent, so the first exercise of these values will be a lab session.
+WORKSPACE_CENTRE= {"left":(0.5500,0.3600,1.1800), "right":(-0.5500,0.3600,1.1800)}
 WORKSPACE_ORIENT= {"left":(-0.0896,0.4860,0.8693,0.0032),
                    "right":(0.1335,0.5423,0.8288,0.0345)}
 DEFAULT_SIGNS   = [1,1,1,1,1,1,1]

@@ -1,0 +1,1981 @@
+{
+  "repeats": 10,
+  "floor": 0.15,
+  "aperture_m": 0.085,
+  "controls": {
+    "pad_offset_left": {
+      "want": "< 0.005 m from PAD_OFFSET_BY_ARM",
+      "got": "0.0001 m  (measured [-0.0171, 0.0946, 0.0572])"
+    },
+    "pad_offset_right": {
+      "want": "< 0.005 m from PAD_OFFSET_BY_ARM",
+      "got": "0.0001 m  (measured [0.0289, 0.0995, 0.0421])"
+    },
+    "topdown_is_down": {
+      "want": "< 1 deg from straight down",
+      "got": 0.0
+    },
+    "inside_torso_negative": {
+      "want": "< 0",
+      "got": -0.1569
+    },
+    "shipped_t1_cube0_reachable": {
+      "want": "True",
+      "got": true
+    },
+    "far_target_unreachable": {
+      "want": "False / False",
+      "got": "False / False"
+    },
+    "extent_along_pad_axis": {
+      "want": "30.0 mm across x, 70.0 across y",
+      "got": "30.0 / 70.0"
+    },
+    "too_wide_is_not_presented": {
+      "want": "presented False, pads_centred True",
+      "got": "False / True"
+    }
+  },
+  "grasps": [
+    {
+      "task": "T1",
+      "name": "cube_0",
+      "arm": "left",
+      "obj": [
+        0.56,
+        0.12,
+        1.12
+      ],
+      "size": [
+        0.04,
+        0.04,
+        0.04
+      ],
+      "kind": "pick",
+      "approaches": {
+        "pinned_near_side": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.5771,
+              0.0254,
+              1.0628
+            ],
+            "object_at": [
+              0.56,
+              0.12,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 49.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.5771,
+              0.0254,
+              1.0628
+            ],
+            "object_at": [
+              0.56,
+              0.12,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 49.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        },
+        "top_down_yaw0": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.56,
+              0.12,
+              1.2318
+            ],
+            "object_at": [
+              0.56,
+              0.12,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "object_extent_along_closing_axis_mm": 40.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.56,
+              0.12,
+              1.2318
+            ],
+            "object_at": [
+              0.56,
+              0.12,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                0.0,
+                -0.0
+              ],
+              "object_extent_along_closing_axis_mm": 40.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        }
+      },
+      "anchor_deg_from_down": 120.76
+    },
+    {
+      "task": "T1",
+      "name": "cube_1",
+      "arm": "left",
+      "obj": [
+        0.62,
+        0.12,
+        1.12
+      ],
+      "size": [
+        0.04,
+        0.04,
+        0.04
+      ],
+      "kind": "pick",
+      "approaches": {
+        "pinned_near_side": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.6371,
+              0.0254,
+              1.0628
+            ],
+            "object_at": [
+              0.62,
+              0.12,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 49.0,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.6371,
+              0.0254,
+              1.0628
+            ],
+            "object_at": [
+              0.62,
+              0.12,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 49.0,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        },
+        "top_down_yaw0": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.62,
+              0.12,
+              1.2318
+            ],
+            "object_at": [
+              0.62,
+              0.12,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                0.0,
+                -0.0
+              ],
+              "object_extent_along_closing_axis_mm": 40.0,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.62,
+              0.12,
+              1.2318
+            ],
+            "object_at": [
+              0.62,
+              0.12,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                0.0,
+                -0.0
+              ],
+              "object_extent_along_closing_axis_mm": 40.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        }
+      },
+      "anchor_deg_from_down": 120.76
+    },
+    {
+      "task": "T1",
+      "name": "cube_2",
+      "arm": "left",
+      "obj": [
+        0.68,
+        0.12,
+        1.12
+      ],
+      "size": [
+        0.04,
+        0.04,
+        0.04
+      ],
+      "kind": "pick",
+      "approaches": {
+        "pinned_near_side": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.6971,
+              0.0254,
+              1.0628
+            ],
+            "object_at": [
+              0.68,
+              0.12,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 49.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.6971,
+              0.0254,
+              1.0628
+            ],
+            "object_at": [
+              0.68,
+              0.12,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 49.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        },
+        "top_down_yaw0": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.68,
+              0.12,
+              1.2318
+            ],
+            "object_at": [
+              0.68,
+              0.12,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                0.0,
+                -0.0
+              ],
+              "object_extent_along_closing_axis_mm": 40.0,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.68,
+              0.12,
+              1.2318
+            ],
+            "object_at": [
+              0.68,
+              0.12,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                -0.0,
+                -0.0
+              ],
+              "object_extent_along_closing_axis_mm": 40.0,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        }
+      },
+      "anchor_deg_from_down": 120.76
+    },
+    {
+      "task": "T1",
+      "name": "cube_3",
+      "arm": "left",
+      "obj": [
+        0.74,
+        0.12,
+        1.12
+      ],
+      "size": [
+        0.04,
+        0.04,
+        0.04
+      ],
+      "kind": "pick",
+      "approaches": {
+        "pinned_near_side": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.7571,
+              0.0254,
+              1.0628
+            ],
+            "object_at": [
+              0.74,
+              0.12,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 49.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.7571,
+              0.0254,
+              1.0628
+            ],
+            "object_at": [
+              0.74,
+              0.12,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 49.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        },
+        "top_down_yaw0": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.74,
+              0.12,
+              1.2318
+            ],
+            "object_at": [
+              0.74,
+              0.12,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                -0.0,
+                0.0
+              ],
+              "object_extent_along_closing_axis_mm": 40.0,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.74,
+              0.12,
+              1.2318
+            ],
+            "object_at": [
+              0.74,
+              0.12,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "object_extent_along_closing_axis_mm": 40.0,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        }
+      },
+      "anchor_deg_from_down": 120.76
+    },
+    {
+      "task": "T1",
+      "name": "place_0",
+      "arm": "left",
+      "obj": [
+        0.45,
+        0.21,
+        1.12
+      ],
+      "size": [
+        0.04,
+        0.04,
+        0.04
+      ],
+      "kind": "place",
+      "approaches": {
+        "pinned_near_side": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.4671,
+              0.1154,
+              1.0628
+            ],
+            "object_at": [
+              0.45,
+              0.21,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 49.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.4671,
+              0.1154,
+              1.0628
+            ],
+            "object_at": [
+              0.45,
+              0.21,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 49.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        },
+        "top_down_yaw0": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.45,
+              0.21,
+              1.2318
+            ],
+            "object_at": [
+              0.45,
+              0.21,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.1149,
+            "clearance_to": "L-upperarm",
+            "clears_floor": false,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                -0.0,
+                0.0
+              ],
+              "object_extent_along_closing_axis_mm": 40.0,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.45,
+              0.21,
+              1.2318
+            ],
+            "object_at": [
+              0.45,
+              0.21,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.0822,
+            "clearance_to": "L-upperarm",
+            "clears_floor": false,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "object_extent_along_closing_axis_mm": 40.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        }
+      },
+      "anchor_deg_from_down": 120.76
+    },
+    {
+      "task": "T1",
+      "name": "place_1",
+      "arm": "left",
+      "obj": [
+        0.61,
+        0.21,
+        1.12
+      ],
+      "size": [
+        0.04,
+        0.04,
+        0.04
+      ],
+      "kind": "place",
+      "approaches": {
+        "pinned_near_side": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.6271,
+              0.1154,
+              1.0628
+            ],
+            "object_at": [
+              0.61,
+              0.21,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 49.0,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.6271,
+              0.1154,
+              1.0628
+            ],
+            "object_at": [
+              0.61,
+              0.21,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 49.0,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        },
+        "top_down_yaw0": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.61,
+              0.21,
+              1.2318
+            ],
+            "object_at": [
+              0.61,
+              0.21,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.0419,
+            "clearance_to": "L-upperarm",
+            "clears_floor": false,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                -0.0,
+                0.0
+              ],
+              "object_extent_along_closing_axis_mm": 40.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.61,
+              0.21,
+              1.2318
+            ],
+            "object_at": [
+              0.61,
+              0.21,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.0496,
+            "clearance_to": "L-upperarm",
+            "clears_floor": false,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                0.0,
+                -0.0
+              ],
+              "object_extent_along_closing_axis_mm": 40.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        }
+      },
+      "anchor_deg_from_down": 120.76
+    },
+    {
+      "task": "T1",
+      "name": "place_2",
+      "arm": "left",
+      "obj": [
+        0.45,
+        0.27,
+        1.12
+      ],
+      "size": [
+        0.04,
+        0.04,
+        0.04
+      ],
+      "kind": "place",
+      "approaches": {
+        "pinned_near_side": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.4671,
+              0.1754,
+              1.0628
+            ],
+            "object_at": [
+              0.45,
+              0.27,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 49.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.4671,
+              0.1754,
+              1.0628
+            ],
+            "object_at": [
+              0.45,
+              0.27,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 49.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        },
+        "top_down_yaw0": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.45,
+              0.27,
+              1.2318
+            ],
+            "object_at": [
+              0.45,
+              0.27,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.0122,
+            "clearance_to": "L-upperarm",
+            "clears_floor": false,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                -0.0,
+                -0.0
+              ],
+              "object_extent_along_closing_axis_mm": 40.0,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.45,
+              0.27,
+              1.2318
+            ],
+            "object_at": [
+              0.45,
+              0.27,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.0126,
+            "clearance_to": "L-upperarm",
+            "clears_floor": false,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                -0.0,
+                0.0
+              ],
+              "object_extent_along_closing_axis_mm": 40.0,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        }
+      },
+      "anchor_deg_from_down": 120.76
+    },
+    {
+      "task": "T1",
+      "name": "place_3",
+      "arm": "left",
+      "obj": [
+        0.61,
+        0.27,
+        1.12
+      ],
+      "size": [
+        0.04,
+        0.04,
+        0.04
+      ],
+      "kind": "place",
+      "approaches": {
+        "pinned_near_side": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.6271,
+              0.1754,
+              1.0628
+            ],
+            "object_at": [
+              0.61,
+              0.27,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 49.0,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.6271,
+              0.1754,
+              1.0628
+            ],
+            "object_at": [
+              0.61,
+              0.27,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 49.0,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        },
+        "top_down_yaw0": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.61,
+              0.27,
+              1.2318
+            ],
+            "object_at": [
+              0.61,
+              0.27,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.0845,
+            "clearance_to": "L-upperarm",
+            "clears_floor": false,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                -0.0,
+                0.0
+              ],
+              "object_extent_along_closing_axis_mm": 40.0,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.61,
+              0.27,
+              1.2318
+            ],
+            "object_at": [
+              0.61,
+              0.27,
+              1.12
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.0833,
+            "clearance_to": "L-upperarm",
+            "clears_floor": false,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "object_extent_along_closing_axis_mm": 40.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        }
+      },
+      "anchor_deg_from_down": 120.76
+    },
+    {
+      "task": "T2",
+      "name": "tray_left",
+      "arm": "left",
+      "obj": [
+        0.25,
+        0.35,
+        1.32
+      ],
+      "size": [
+        0.06,
+        0.26,
+        0.02
+      ],
+      "kind": "hold",
+      "approaches": {
+        "top_down": {
+          "reachable": false,
+          "note": "no yaw of straight down solves the grasp pose at all"
+        },
+        "pinned_near_side": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.25,
+              0.35,
+              1.32
+            ],
+            "object_at": [
+              0.2329,
+              0.4446,
+              1.3772
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.0017,
+            "clearance_to": "L-upperarm",
+            "clears_floor": false,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 83.4,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.25,
+              0.35,
+              1.32
+            ],
+            "object_at": [
+              0.2329,
+              0.4446,
+              1.3772
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.0017,
+            "clearance_to": "L-upperarm",
+            "clears_floor": false,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 83.4,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        }
+      },
+      "anchor_deg_from_down": 120.76
+    },
+    {
+      "task": "T2",
+      "name": "tray_right",
+      "arm": "right",
+      "obj": [
+        -0.25,
+        0.35,
+        1.32
+      ],
+      "size": [
+        0.06,
+        0.26,
+        0.02
+      ],
+      "kind": "hold",
+      "approaches": {
+        "top_down": {
+          "reachable": false,
+          "note": "no yaw of straight down solves the grasp pose at all"
+        },
+        "pinned_near_side": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              -0.25,
+              0.35,
+              1.32
+            ],
+            "object_at": [
+              -0.2211,
+              0.4495,
+              1.3621
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.0863,
+            "clearance_to": "R-upperarm",
+            "clears_floor": false,
+            "achieved_tool_deg_from_down": 112.1,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.962,
+                0.2021,
+                0.1839
+              ],
+              "object_extent_along_closing_axis_mm": 113.9,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": false,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": false,
+              "why": "the object is 114 mm across the closing axis against an 85 mm hand"
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 10,
+            "ee": [
+              -0.25,
+              0.35,
+              1.32
+            ],
+            "object_at": [
+              -0.2211,
+              0.4495,
+              1.3621
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.0559,
+            "clearance_to": "R-upperarm",
+            "clears_floor": false,
+            "achieved_tool_deg_from_down": 112.1,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.962,
+                0.2021,
+                0.1839
+              ],
+              "object_extent_along_closing_axis_mm": 113.9,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": false,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": false,
+              "why": "the object is 114 mm across the closing axis against an 85 mm hand"
+            }
+          }
+        }
+      },
+      "anchor_deg_from_down": 112.1
+    },
+    {
+      "task": "T3",
+      "name": "circuit_box",
+      "arm": "right",
+      "obj": [
+        -0.54,
+        0.17,
+        1.125
+      ],
+      "size": [
+        0.17,
+        0.11,
+        0.05
+      ],
+      "kind": "pick",
+      "approaches": {
+        "pinned_near_side": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              -0.5689,
+              0.0705,
+              1.0829
+            ],
+            "object_at": [
+              -0.54,
+              0.17,
+              1.125
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 112.1,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.962,
+                0.2021,
+                0.1839
+              ],
+              "object_extent_along_closing_axis_mm": 195.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": false,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": false,
+              "why": "the object is 195 mm across the closing axis against an 85 mm hand"
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 10,
+            "ee": [
+              -0.5689,
+              0.0705,
+              1.0829
+            ],
+            "object_at": [
+              -0.54,
+              0.17,
+              1.125
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 112.1,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.962,
+                0.2021,
+                0.1839
+              ],
+              "object_extent_along_closing_axis_mm": 195.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": false,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": false,
+              "why": "the object is 195 mm across the closing axis against an 85 mm hand"
+            }
+          }
+        },
+        "top_down_yaw0": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              -0.54,
+              0.17,
+              1.2368
+            ],
+            "object_at": [
+              -0.54,
+              0.17,
+              1.125
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                -0.0,
+                -0.0
+              ],
+              "object_extent_along_closing_axis_mm": 170.0,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": false,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": false,
+              "why": "the object is 170 mm across the closing axis against an 85 mm hand"
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              -0.54,
+              0.17,
+              1.2368
+            ],
+            "object_at": [
+              -0.54,
+              0.17,
+              1.125
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.161,
+            "clearance_to": "torso",
+            "clears_floor": true,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                -0.0,
+                -0.0
+              ],
+              "object_extent_along_closing_axis_mm": 170.0,
+              "pad_mid_offset_along_mm": -0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": false,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": false,
+              "why": "the object is 170 mm across the closing axis against an 85 mm hand"
+            }
+          }
+        }
+      },
+      "anchor_deg_from_down": 112.1
+    },
+    {
+      "task": "T3",
+      "name": "multimeter",
+      "arm": "left",
+      "obj": [
+        0.34,
+        0.19,
+        1.1225
+      ],
+      "size": [
+        0.03,
+        0.07,
+        0.045
+      ],
+      "kind": "pick",
+      "approaches": {
+        "pinned_near_side": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.3571,
+              0.0954,
+              1.0653
+            ],
+            "object_at": [
+              0.34,
+              0.19,
+              1.1225
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.0618,
+            "clearance_to": "L-upperarm",
+            "clears_floor": false,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 42.4,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.3571,
+              0.0954,
+              1.0653
+            ],
+            "object_at": [
+              0.34,
+              0.19,
+              1.1225
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.0572,
+            "clearance_to": "L-forearm",
+            "clears_floor": false,
+            "achieved_tool_deg_from_down": 120.76,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                -0.9839,
+                -0.0816,
+                -0.1589
+              ],
+              "object_extent_along_closing_axis_mm": 42.4,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        },
+        "top_down_yaw0": {
+          "as_commanded": {
+            "shape": "as_commanded",
+            "waypoints": 11,
+            "ee": [
+              0.34,
+              0.19,
+              1.2343
+            ],
+            "object_at": [
+              0.34,
+              0.19,
+              1.1225
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.0413,
+            "clearance_to": "L-upperarm",
+            "clears_floor": false,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "object_extent_along_closing_axis_mm": 30.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          },
+          "along_axis": {
+            "shape": "along_axis",
+            "waypoints": 11,
+            "ee": [
+              0.34,
+              0.19,
+              1.2343
+            ],
+            "object_at": [
+              0.34,
+              0.19,
+              1.1225
+            ],
+            "reachable": true,
+            "worst_clearance_m": 0.0334,
+            "clearance_to": "L-upperarm",
+            "clears_floor": false,
+            "achieved_tool_deg_from_down": 0.0,
+            "presentation": {
+              "pad_span_mm": 51.5,
+              "closing_axis": [
+                1.0,
+                0.0,
+                0.0
+              ],
+              "object_extent_along_closing_axis_mm": 30.0,
+              "pad_mid_offset_along_mm": 0.0,
+              "pad_mid_offset_perp_mm": 0.0,
+              "fits_in_aperture": true,
+              "pads_centred": true,
+              "aperture_mm": 85.0,
+              "presented": true,
+              "why": ""
+            }
+          }
+        }
+      },
+      "anchor_deg_from_down": 120.76
+    }
+  ],
+  "task_paths": {
+    "T0": {
+      "left": {
+        "waypoints": 25,
+        "ik_failures": 4,
+        "worst_clearance_m": 0.0086,
+        "to": "L-upperarm",
+        "at": [
+          0.24496923076923077,
+          0.44322307692307694,
+          1.5663153846153846
+        ],
+        "clears_floor": false
+      },
+      "right": {
+        "waypoints": 25,
+        "ik_failures": 4,
+        "worst_clearance_m": 0.0176,
+        "to": "R-upperarm",
+        "at": [
+          -0.27899285714285715,
+          0.4610785714285714,
+          1.2495357142857144
+        ],
+        "clears_floor": false
+      }
+    },
+    "T1": {
+      "left": {
+        "waypoints": 86,
+        "ik_failures": 0,
+        "worst_clearance_m": 0.161,
+        "to": "torso",
+        "at": [
+          0.5771,
+          0.0255,
+          1.1628
+        ],
+        "clears_floor": true
+      },
+      "right": {
+        "waypoints": 1,
+        "ik_failures": 0,
+        "worst_clearance_m": 0.161,
+        "to": "torso",
+        "at": [
+          -0.6,
+          0.125,
+          1.28
+        ],
+        "clears_floor": true
+      }
+    },
+    "T2": {
+      "left": {
+        "waypoints": 11,
+        "ik_failures": 0,
+        "worst_clearance_m": 0.0046,
+        "to": "L-upperarm",
+        "at": [
+          0.25,
+          0.35,
+          1.348
+        ],
+        "clears_floor": false
+      },
+      "right": {
+        "waypoints": 11,
+        "ik_failures": 0,
+        "worst_clearance_m": 0.0904,
+        "to": "R-upperarm",
+        "at": [
+          -0.25,
+          0.35,
+          1.32
+        ],
+        "clears_floor": false
+      }
+    },
+    "T3": {
+      "left": {
+        "waypoints": 8,
+        "ik_failures": 0,
+        "worst_clearance_m": 0.0618,
+        "to": "L-upperarm",
+        "at": [
+          0.3571,
+          0.0955,
+          1.1653
+        ],
+        "clears_floor": false
+      },
+      "right": {
+        "waypoints": 8,
+        "ik_failures": 0,
+        "worst_clearance_m": 0.161,
+        "to": "torso",
+        "at": [
+          -0.5689,
+          0.0705,
+          1.1829
+        ],
+        "clears_floor": true
+      }
+    }
+  },
+  "ik_calls": 5395,
+  "pad_offset_in_ee_frame": {
+    "left": [
+      -0.0,
+      0.0,
+      0.1118
+    ],
+    "right": [
+      -0.0,
+      -0.0,
+      0.1118
+    ]
+  },
+  "method": "full path (standoff, grasp, lift) at N=repeats, avoid_collisions with the task furniture applied, wearer clearance from the mount guard's capsule model on every returned solution; pad offset rotated per approach rather than taken from the anchor"
+}

@@ -889,26 +889,71 @@ def _main_body():
                 # picture, and losing the whole clip over the opening frame
                 # would be the worse trade. It is logged either way, so a
                 # clip that opened on home is identifiable afterwards.
-                # TWO ATTEMPTS, AND THE SECOND IS NOT SUPERSTITION.
+                # THE VR MAPPER HOLDS THE ARMS, SO IT IS STOPPED FOR THE
+                # STAGING MOVE AND STARTED AGAIN BEFORE THE RUN.
                 #
-                # MEASURED on the 2026-08-15 sweep: the FIRST clip of a run
-                # failed with rc=1 (did not arrive inside 8 s) and every clip
-                # after it staged first time, on the same stack, from the same
-                # home pose. The script already has a discovery LOOP for
-                # /joint_states for exactly this reason -- a fresh subprocess
-                # against a stack that has just come up is not the same as a
-                # warm one -- and the arrival timeout is the half that did not
-                # get one.
+                # ISOLATED BY EXPERIMENT on 2026-08-15, one variable, on one
+                # stack, with a control either side:
                 #
-                # A retry is honest here because the operation is idempotent:
-                # it commands an absolute joint-space pose and waits. It is
-                # NOT a blanket retry -- both attempts are logged, and a
-                # second failure is still a failure.
+                #   vr_pose_mapper absent   --home ARRIVED, 0.0000 / 0.0000 rad
+                #   vr_pose_mapper RUNNING  DID NOT ARRIVE, 2.076 / 1.924 rad
+                #   vr_pose_mapper killed   ARRIVED, 0.0000 / 0.0000 rad
+                #
+                # and in the sweep itself it cost SEVEN clips their opening
+                # pose: all five of 04_vr_shared and two of 02_vr_teleop, the
+                # only two modes that run the mapper. Modes 01, 03 and 06
+                # staged first time on the same stack.
+                #
+                # The arm does not move AT ALL while the mapper is up -- the
+                # reported joint error is identical before and after the whole
+                # deadline, and identical again on the next clip -- so this is
+                # not a move that needs longer. It is the project's own
+                # one-source-at-a-time rule at the CONTROLLER level, with a
+                # publisher the follower's own pause does not silence.
+                #
+                # isolate() is reused rather than reimplemented: it tears down
+                # what this mode does not need, starts what it does, and
+                # RE-COUNTS the publishers on the follower input, so the run
+                # still begins from a verified graph.
+                _vr = [n[0] for n in MODES[mode]["needs"] if "vr" in n[0]]
+                for _n in _vr:
+                    _pat = "lib/srl_vr_teleop/%s" % _n
+                    procscan.kill_all(_pat)
+                    started.pop(_pat, None)
+                if _vr:
+                    log("      stopped %s for the staging move"
+                        % ", ".join(_vr))
+                    # TEN SECONDS, NOT FOUR, AND THE NUMBER IS NOT A GUESS.
+                    #
+                    # isolate() already sleeps 8.0 s after tearing an upstream
+                    # down, for a measured reason: the RMW's graph cache
+                    # outlives the process, and a participant created into the
+                    # gap sees a domain that is still being reaped. Four
+                    # seconds was tried here first and the staging subprocess
+                    # came back rc=2 -- "no /joint_states after 15.0 s" -- on
+                    # a stack that was plainly up, which is the poisoned-
+                    # participant failure sim_session.wait_ready() documents
+                    # at length. It is a DIFFERENT failure from the one this
+                    # block exists to fix, introduced by the fix.
+                    time.sleep(10.0)
+
+                # TWO ATTEMPTS. The retry is cheap and the operation is
+                # idempotent -- it commands an absolute joint-space pose and
+                # waits -- but it is NOT a blanket retry: both attempts are
+                # logged and a second failure is still a failure. It was added
+                # when the cause was thought to be a cold stack; that was
+                # wrong, and it is kept only because a retry costs seconds.
                 for _try in (1, 2):
                     _st = subprocess.run(
                         [sys.executable,
                          os.path.join(WS, "scripts",
-                                      "stage_presentation_pose.py")],
+                                      "stage_presentation_pose.py"),
+                         # LONGER DISCOVERY WHEN AN UPSTREAM WAS JUST KILLED.
+                         # The default 15 s is for a settled graph; this
+                         # subprocess is deliberately created moments after a
+                         # participant left, which is the slowest case there
+                         # is on this host.
+                         "--discover-s", "30" if _vr else "15"],
                         capture_output=True, text=True)
                     if _st.returncode == 0:
                         if _try == 2:
@@ -919,6 +964,37 @@ def _main_body():
                         log("      presentation pose: attempt 1 rc=%d, "
                             "retrying once" % _st.returncode)
                 staged = _st.returncode == 0
+                if _vr:
+                    _iok, _iwhy = isolate(mode, graph, started)
+                    log("      restarted %s: %s" % (", ".join(_vr), _iwhy))
+                    if not _iok:
+                        # NOT A WARNING. Recording now would film this mode
+                        # through a graph that failed its own publisher count,
+                        # which is the state isolate() exists to refuse.
+                        log("      SKIPPING THIS CLIP -- the graph did not "
+                            "come back to a verified state after staging.")
+                        # THE SCENE NODE WAS ALREADY STARTED. Skipping without
+                        # it would leak one clip_scene per skipped cell, and
+                        # two scene publishers is the same one-source-at-a-time
+                        # fault this branch exists to respect.
+                        try:
+                            os.killpg(os.getpgid(scene_p.pid), 15)
+                            scene_p.wait(timeout=15)
+                        except Exception:                     # noqa: BLE001
+                            try:
+                                os.killpg(os.getpgid(scene_p.pid), 9)
+                            except Exception:                 # noqa: BLE001
+                                pass
+                        prog[pkey] = dict(
+                            ok=False,
+                            msg="upstream restart after staging failed: %s"
+                                % _iwhy,
+                            mode=mode, task=task, scenario=scen, quad=False,
+                            opened_on=("presentation" if staged else "home"),
+                            files=[], dir=os.path.relpath(out_dir, WS))
+                        save_progress(prog)
+                        failed += 1
+                        continue
                 if staged and _try == 1:
                     log("      presentation pose: OK")
                 elif not staged:

@@ -69,6 +69,60 @@ POSE_FILE = os.path.join(ROOT, "recordings", "baselines",
                          "presentation_pose.json")
 ARRIVE_TOL_RAD = 0.02          # ~1.1 deg per joint
 
+# HOW FAST THE STAGING MOVE IS ALLOWED TO BE, in rad/s per joint.
+#
+# BOUNDED BY A MEASUREMENT, not chosen. On 2026-08-15 a 1.0315 rad move was
+# given 2.5 s -- 0.41 rad/s -- and DID NOT ARRIVE. So whatever the true limit
+# is, it is below 0.41, and this sits under it with margin. It is deliberately
+# slow anyway: a joint-space move commanded with the followers paused, near a
+# person, that is not part of any task.
+#
+# STILL TO CONFIRM: 2.5 s was measured insufficient, and that bounds the rate
+# from above. Nothing here has measured it from BELOW -- what the arm can
+# actually sustain -- so this number is a safe bound and not a characterisation.
+STAGE_RATE_RAD_S = 0.30
+
+
+def move_seconds(worst_rad, floor_s=2.5, rate_rad_s=STAGE_RATE_RAD_S,
+                 ceiling_s=30.0):
+    """How long to give a staging move, FROM HOW FAR IT HAS TO GO.
+
+    THE BUG THIS FIXES. The trajectory was one point with a FIXED 2.5 s
+    time_from_start whatever the distance, so a move of 2.23 rad asked for
+    0.89 rad/s sustained and did not arrive. MEASURED on the 2026-08-15 sweep,
+    printed by this script itself:
+
+        left  presentation pose, worst joint error 1.0315 rad
+        right presentation pose, worst joint error 2.2282 rad
+        DID NOT ARRIVE within 8.0 s
+
+    A fixed duration is only ever right for a fixed distance, and this one is
+    not fixed: the arm starts wherever the previous task left it. So the
+    scaling is right on its own terms.
+
+    **IT IS NOT WHAT CAUSED THE 2026-08-15 CLIPS TO OPEN ON HOME, and saying
+    so here matters more than the fix does.** With the scaling in, mode 04's
+    right arm was given 8.8 s and a 12.8 s deadline and reported the SAME
+    2.6506 rad error at the end as at the start -- unchanged to four decimals,
+    and identical again on the next clip. An arm that has not moved at all is
+    not an arm that was rushed. The real cause is upstream of this file: in
+    the two VR modes something holds the arm while the followers are paused,
+    which is this project's own one-source-at-a-time rule appearing at the
+    CONTROLLER level, exactly as recorded in docs/NEXT_SESSION.md. Modes 01,
+    03 and 06 stage first time on the same stack.
+
+    This function therefore removes one real defect and leaves the visible
+    symptom untouched. Do not read a green staging line as evidence that the
+    controller contention is fixed.
+
+    `worst_rad` may be None -- the joint state has not arrived -- and then the
+    floor is used, because guessing a long move from no information would
+    make every clip wait.
+    """
+    if worst_rad is None:
+        return floor_s
+    return max(floor_s, min(ceiling_s, abs(worst_rad) / rate_rad_s))
+
 
 # THE SHM REAPER IS REMOVED, AND THE REASONING IS WORTH KEEPING.
 #
@@ -318,8 +372,20 @@ def main():
         n.destroy_node()
         rclpy.shutdown()
         return 2
+    # DURATION FROM DISTANCE, PER ARM, and the deadline from the duration.
+    secs = {}
     for arm in ("left", "right"):
-        n.send(arm, want[arm], a.move_s)
+        secs[arm] = move_seconds(n.worst_error(arm, want[arm]), a.move_s)
+        n.send(arm, want[arm], secs[arm])
+    longest = max(secs.values())
+    if longest > a.move_s + 0.01:
+        print("   %s move: %.1f s (left) / %.1f s (right) -- scaled from the "
+              "distance, not the default %.1f"
+              % (what, secs["left"], secs["right"], a.move_s))
+    # THE DEADLINE MUST OUTLAST THE MOVE IT IS WAITING FOR. Leaving it at a
+    # flat 8 s meant a legitimately 12 s move was reported as a failure to
+    # arrive, and the clip opened on home for a move that was still running.
+    deadline_s = max(a.timeout_s, longest + 4.0)
 
     # A CRASH BETWEEN HERE AND THE RESTORE LEAVES THE FOLLOWERS DISARMED,
     # which is the SAFE direction -- motion off, not motion on -- but it is
@@ -327,7 +393,7 @@ def main():
     # of thing that costs a morning. So the restore runs on every exit path.
     t0 = time.time()
     ok = {}
-    while time.time() - t0 < a.timeout_s:
+    while time.time() - t0 < deadline_s:
         n.spin(0.2)
         # `x or 9.9` READS A PERFECT ARRIVAL AS A FAILURE, because 0.0 is
         # falsy. Measured: an arm already sitting exactly on the pose
@@ -362,7 +428,7 @@ def main():
     if all(ok.values()):
         return 0
     print("DID NOT ARRIVE within %.1f s: %s. Capture would open on a "
-          "half-finished move." % (a.timeout_s,
+          "half-finished move." % (deadline_s,
                                    [k for k, v in ok.items() if not v]))
     return 1
 

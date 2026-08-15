@@ -65,17 +65,21 @@ Target: 12 or more of 14 coherent.
 
 ---
 
-## CURRENT STATE, 2026-08-12
+## CURRENT STATE, 2026-08-15
 
 Re-measure rather than trust this table; each row names its command.
 
 | | state | check |
 | --- | --- | --- |
-| unit tests | 435 pass, 2 fail (`test_flake8`, `test_pep257`, pre-existing: the package uses double quotes) | `python3 -m pytest -q src/*/test` |
-| task layer | mode-independent BY CONSTRUCTION — `run_abc` builds waypoints from the task spec with no mode argument | `02_baseline_and_hypotheses.md` |
+| unit tests | see `scripts/check_tests.py` for the live count; 2 allowed failures (`test_flake8`, `test_pep257`, pre-existing: the package uses double quotes) | `python3 scripts/check_tests.py` |
+| task layer | the same waypoints are **COMMANDED** under every mode — `run_abc` builds them with no mode argument. **The robot does NOT perform identically**: measured 2026-08-15 with no operator, T0's left path 1.407 m under 01 against 2.034 m under 03 | `docs/system/findings.md` |
+| **02_vr_teleop** | **cannot grasp.** All three of its grasping tasks fail; the pads miss by 88 → 206 mm against a 30 mm gate, and the miss ACCUMULATES. The other four modes close at 0.0000 m | `recordings/verification/02_vr_teleop/T1/*/scene_events.json` |
+| **the VR mapper** | `vr_pose_mapper` **holds the arms**, so the staging move cannot execute while it runs. Isolated with a control either side. The sweep stops it for staging and re-isolates | `docs/system/findings.md` |
+| **T2's tray** | **elastic** — drawn as `separation + 0.06` between the grippers, so it runs 0.487–1.211 m against a rigid 0.560 m spec. T2-1 and T2-2 cannot fail, and the ball never drops | `scripts/clip_scene.py` ~1318 |
 | accuracy table | reproducible from committed data; grasp NOT uniformly 100% (06 reads 50%, VR 75%) | `scripts/accuracy_table.py` |
 | status | 25 clip dirs, 19/19 planned data cells | `scripts/status_table.py` |
-| clips | **all predate the bench deletion and the T1 mirror — superseded, re-record** | |
+| clips | **re-recorded 2026-08-15 on the current geometry**: 25 cells, 5 tasks x 5 modes, eight angles and a card each | `scripts/status_table.py` |
+| workspace marking vs the table | the marking's nearest row (y = 0.075) is **25 mm in front of the table's near edge (0.100)** — 43 of 439 cells drawn over air, and stage 2 places cubes there | `scripts/clip_scene.py` `TABLE_NEAR_Y` |
 | T1 | stage 1 is the **LEFT** arm, cubes on the left; N=10 full path, 0 IK failures, 0 waypoints inside the wearer clearance floor | `scripts/verify_t1_paths.py` |
 | wearer clearance | **the region and every T1 coordinate are now checked against the 150 mm floor GEOMETRICALLY.** `avoid_collisions` cannot see it — the SRDF excludes the pairs that matter — and the previous layout spent 70 of 143 waypoints inside it at 0 IK failures | `scripts/measure_clearance_region.py` |
 | workspace marking | re-surveyed 2026-08-15: the marking is now the **clearance-safe** cells, and the box runs to \|x\| = 1.00 (the old 0.70 was the survey box, not the arm) | `recordings/baselines/work_surface_region.json` |

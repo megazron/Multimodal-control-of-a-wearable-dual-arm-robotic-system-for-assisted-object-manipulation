@@ -3345,18 +3345,44 @@ tick. Measured over the recorded clips:
 * **T2-2, "ball visible ON the tray", cannot fail either.** The ball is
   redrawn at the tray's midpoint every tick and "carried WITH it".
 * **The declared failure mode never happens.** TASK_SPEC: "tilt past 6.8
-  degrees drops the ball". Under 06 the tray spent **10.77 s above 6.8 deg
-  and reached 23.0 deg**, and the ball stayed on it.
+  degrees drops the ball". Scoped to the CARRY -- the samples where the hands
+  are within 100 mm of the 500 mm tray, which is the only window in which the
+  word "carry" means anything:
+
+  | | 01_master_teleop | 06_full_autonomy |
+  | --- | --- | --- |
+  | carry window | 44.6 - 56.7 s | 60.0 - 68.1 s |
+  | tilt max | 6.85 deg | **23.04 deg** |
+  | tilt rms | 2.28 deg | **20.18 deg** |
+  | share of the carry above the 6.8 deg drop tilt | 1% | **89%** |
+
+  Under full autonomy the tray is past the ball-drop angle for **89% of the
+  carry** and the ball never moves. Scoping it to the carry made the result
+  stronger, not weaker: the unscoped number (10.77 s) mixed in the approach.
 * **The coupling premise is not represented.** T2 is "bimanual by COUPLING:
   one body, two grips, neither arm's pose free given the other's." A body
   that resizes to fit the hands constrains neither arm.
 
-The honest signal is already in the data and is the thing to read instead:
-`sep_err_rms_mm` is **557** and `sep_err_max_mm` is **651** on a 500 mm tray.
-The hands are not at tray separation for most of the run, and the renderer is
-what hides it. The previous bug here was the opposite error -- a rigid 560 mm
-tray pinned to ONE arm's pads, so the right arm held air -- and the fix
-replaced a wrong-but-rigid tray with a right-looking elastic one.
+**THE TASK IS NOT AT FAULT, AND THIS IS THE PART THAT HAD TO BE CHECKED.**
+`msc_clip_tasks` commands a hand separation of **exactly 0.500 m at every one
+of the 21 waypoint pairs** -- the coupling IS commanded. What varies is what
+the arms ACHIEVE, and the renderer draws the tray at the achieved separation.
+So the stretch is a TRACKING ERROR being rendered as elasticity instead of as
+error. Inside the carry window the achieved separation error still reaches
+**81.6 mm (01)** and **67.9 mm (06)** on a rigid 500 mm body.
+
+The previous bug here was the opposite error -- a rigid 560 mm tray pinned to
+ONE arm's pads, so the right arm held air -- and the fix replaced a
+wrong-but-rigid tray with a right-looking elastic one.
+
+**A correction to an earlier reading in this same pass, recorded because the
+instrument rule applies to me as well as to the scripts.** The front view of
+06/T2 shows the tray crossing the wearer's head, and it does not: at the
+highest waypoint pair the tray segment passes at y = 0.35, clearing the head
+sphere by **248 mm**. The overlap is projection. It was checked because a
+marker is not a collision object and `avoid_collisions` would not have
+objected if it HAD been true -- which is the same gap as the SRDF one, and
+worth re-checking whenever a marker and a person share a frame.
 
 **T2 also records no GRASPED or RELEASED events at all** (`items` is `{}`;
 tray and ball are fixtures), which is deliberate and documented -- but it
@@ -3424,3 +3450,109 @@ T3's card says both arms hold still while a reading is taken. Under
 **0.29 s**, and the circuit box travels **21 mm** -- it is never held up. Under
 06 the same waypoints give 4.49 s and 161 mm. The clip is not wrong about
 anything it claims; it simply does not show the thing the card describes.
+
+## 5. THE VR MAPPER HOLDS THE ARMS, AND IT COST SEVEN CLIPS THEIR OPENING POSE
+
+Seven of the twenty-five clips opened on the HOME pose instead of the
+presentation pose: **all five of 04_vr_shared and two of 02_vr_teleop** -- the
+only two modes that run `vr_pose_mapper`. Modes 01, 03 and 06 staged first
+time on the same stack.
+
+**Isolated by experiment, one variable, with a control on either side.** Same
+stack, same arms, same target pose, nothing else touched:
+
+| | `vr_pose_mapper` | result |
+| --- | --- | --- |
+| 1 | absent | `--home` **ARRIVED**, worst joint error 0.0000 / 0.0000 rad |
+| 2 | **started, scale 1.0, exactly as `isolate()` starts it** | **DID NOT ARRIVE**, 2.076 / 1.924 rad |
+| 3 | killed again, nothing else changed | **ARRIVED**, 0.0000 / 0.0000 rad |
+
+**The arm does not move at all while the mapper is up.** In the sweep the
+reported joint error was identical at the start and the end of the whole
+deadline, and identical again on the next clip -- 2.6506 rad then 2.6462 rad
+for 04's right arm. That is a held arm, not a slow one.
+
+The follower's own pause is not enough. `stage_presentation_pose` sets
+`motion_enabled` false on both followers and restores it -- the log shows both
+-- and the arm still does not move. So the publisher that wins is not one the
+follower's pause silences. This is the project's one-source-at-a-time rule at
+the CONTROLLER level, which `docs/NEXT_SESSION.md` already records in a
+different guise.
+
+**Fixed in the sweep, not in the follower**: the mapper is stopped for the
+staging move and `isolate()` is called again to restart it and RE-COUNT the
+publishers on the follower input, so the run still begins from a verified
+graph. If that re-isolation fails the clip is skipped rather than filmed
+through an unverified graph. The underlying contention is untouched and is
+still the right thing to fix at the source.
+
+### A wrong hypothesis, recorded because it was acted on
+
+The first explanation was that the staging trajectory was a single point with
+a FIXED 2.5 s duration whatever the distance, so a 2.23 rad move demanded
+0.89 rad/s and could not arrive. That defect is real and is fixed --
+`move_seconds()` scales the duration from the distance, with seven known
+answers -- **and it is not what was happening.** With the scaling in, mode 04's
+right arm was given 8.8 s and a 12.8 s deadline and finished exactly where it
+started. A fix that removes a real defect can still leave the symptom, and
+reporting the symptom as fixed because a plausible cause was addressed is how
+this project's standing rule gets broken from the inside.
+
+## 6. 02_vr_teleop CANNOT GRASP, AND IT IS EVERY GRASPING TASK
+
+Three of twenty-five cells failed. **All three are 02_vr_teleop, and they are
+exactly its three tasks that record a grasp**: T1, T1 stage 2 and T3. Its
+other two -- T0, which has nothing to grasp, and T2, whose tray is a fixture
+with no grasp event by design -- pass.
+
+T1, closest the pads ever came to each cube, against a **30 mm** capture gate:
+
+| cube | x | 01 | 03 | 06 | **02** |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 0.56 | 0.0 mm | 0.0 | 0.0 | **88.1 mm** |
+| 1 | 0.62 | 0.0 mm | 0.0 | 0.0 | **115.4** |
+| 2 | 0.68 | 0.0 mm | 0.0 | 0.0 | **156.2** |
+| 3 | 0.74 | 0.0 mm | 0.0 | 0.0 | **205.9** |
+
+The other three modes close on all four cubes at **0.0000 m** and place each
+on the mat of its colour. 02 never touches one, and all four cubes are still
+in their starting row in the final frame.
+
+**The miss ACCUMULATES: increments of 27.3, 40.8, 49.7 mm.** That is the
+diagnostic. A constant offset repeats one number -- which is how the 2026-08-13
+"three cubes reporting an identical 0.0314" was traced to a perpendicular
+offset, and how the earlier mapper `scale:=0.5` bug was traced to a constant
+factor by the SAME 0.189 m appearing on two runs. A growing miss is neither:
+the arm falls further behind on every cube.
+
+### AND IT IS THE MAPPER'S LIFETIME. FIXED, AND THE FIX IS THE EVIDENCE
+
+Re-recorded with one change -- `vr_pose_mapper` is now stopped for the staging
+move and restarted by `isolate()` before each run, so every clip gets a FRESH
+mapper instead of one shared across the mode's five clips. **All five of
+02_vr_teleop then passed, including all three that had failed**, and T1's four
+cubes closed at **0.0000 m** and landed on the mat of their own colour:
+
+| | first run, one mapper for the mode | re-run, a fresh mapper per clip |
+| --- | --- | --- |
+| T1 | NO GRASP; 88.1 / 115.4 / 156.2 / 205.9 mm | **0.0 / 0.0 / 0.0 / 0.0 mm**, placed 32 mm from target |
+| T1 stage 2 | NO GRASP | OK |
+| T3 | NO GRASP | OK |
+| left EE travel on T1 | 2.760 m | 3.703 m |
+
+**So the mapper does not reset between runs, and what it carries over is
+enough to lose every grasp.** The ordering in the failed run says the same
+thing: its FIRST clip (T0, on a mapper seconds old) passed, and every clip
+after it failed. The miss growing WITHIN a run -- 27.3, then 40.8, then
+49.7 mm per cube -- is the same accumulation on a shorter timescale.
+
+It also explains the shape of the 2026-08-15 (earlier) failure that this
+session inherited, where 02 lost only the LAST cube by 44 mm: less had
+accumulated by then.
+
+**What is fixed and what is not.** The sweep now restarts the mapper per clip,
+so the CLIPS are sound. The mapper itself still accumulates, and the DATA path
+(`run_abc`, which a study session drives) shares `mode_upstreams.isolate()`
+but starts the mapper once per session -- so a real trial block under 02 would
+walk into exactly this. That is the next thing to fix and it belongs in
+`vr_pose_mapper`, not in the harness.

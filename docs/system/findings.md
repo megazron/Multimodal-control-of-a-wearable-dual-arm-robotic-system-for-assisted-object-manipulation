@@ -4454,3 +4454,126 @@ for hands 100 mm nearer the chest and one elbow 91 mm lower.
    /compute_ik" while `move_group` was up and answering; with it exported the
    same query returned immediately. **A transport mismatch reads exactly like
    a dead stack**, and this cost two full measurement runs before it was found.
+
+---
+
+# 2026-08-15 (later) — PREDICTIVE AVOIDANCE: THE NULL SPACE IS NOW REAL, AND IT STILL CANNOT HELP
+
+An earlier pass built a seed-fan "null-space" sampler, measured it worth 4.4 mm
+at the head, and said plainly that seed sampling is not redundancy resolution
+and that the real answer is an explicit parameterisation. **That was built.**
+The conclusion did not change, and it is now a much stronger statement.
+
+## WHAT WAS BUILT
+
+`srl_teleop/predictive_avoidance.py`, additions:
+
+* `jacobian(fk, q)` — a 6 x n end-effector Jacobian by central differences from
+  ANY forward-kinematics callable, so the same code runs against `/compute_fk`
+  offline and a local KDL chain in a follower;
+* `null_projector(J)` — N = I − J⁺J, verified idempotent and symmetric;
+* `clearance_gradient(...)` — d(clearance)/dq, returning None if ANY probe is
+  None, because half a gradient points somewhere nobody chose;
+* `NullSpaceRetreat.retreat(...)` — integrates q̇ = N ∇c with a **task-space
+  correction each step**;
+* `tangential_target(...)` — strips the INTO-the-wearer component of the
+  operator's step and keeps the across component.
+
+**THE TASK-SPACE CORRECTION IS NOT COSMETIC.** N ∇c is tangent to the
+constraint, so a FINITE step along it leaves the manifold. Measured on the
+constructed planar arm: **5.5 mm of hand drift** over eight steps of 0.05 rad,
+which an operator would feel. One Newton step of −J⁺·pose_error per iteration
+takes the residual to **under 0.1 mm**, and the test asserts it.
+
+**TESTED ON A CONSTRUCTED ARM, NOT ON THE ROBOT.** A three-link planar arm has
+a known one-dimensional null space, so "J q̇ = 0 leaves the end effector alone"
+is checkable to machine precision. If the retreat moved the elbow on the Gen3
+that would be evidence about the Gen3, not about the arithmetic. 27 tests.
+
+## AND THEN IT WAS DRIVEN AT THE WEARER, WHICH IS THE POINT
+
+`scripts/verify_predictive_avoidance.py`, THREE targets and FOUR conditions.
+The third target is new and it exists to be FAIR: `head` and `torso` drive the
+hand straight at the wearer, which is the right worst case for the floor and
+the worst possible case for a stage that works by keeping the across-the-body
+part of a motion. `across` sweeps over the front of the chest instead.
+
+| target | off | seed fan | **null space** | tangential |
+| --- | --- | --- | --- | --- |
+| head | 15/15 | 4/15 | **4/15** | 5/15 |
+| torso | 14/15 | 4/15 | **4/15** | 5/15 |
+| across | 9/15 | 3/15 | **3/15** | 4/15 |
+| best single-step clearance gain | — | — | **0.0045 / 0.0000 / 0.0056 m** | — |
+
+**The genuine projection is worth the same as the sampler it replaced: nothing.**
+Between 0.0 and 5.6 mm.
+
+## AND HERE IS WHY, WHICH IS THE PART WORTH KEEPING
+
+Every refusal was made to name the ARM LINK, not only the wearer part. Across
+all three targets and 28 refusals, the closest link is the same one **every
+single time**:
+
+    left_end_effector_link  <->  head    11 refusals, worst -0.1550 m
+    left_end_effector_link  <->  torso   17 refusals, worst -0.1343 m
+
+**The HAND is what is inside the person. Not the elbow, not the forearm.** And
+the null space is, by definition, the family of postures that hold the HAND'S
+POSE FIXED. So no amount of correct redundancy resolution can help: the
+offending link is the one the method holds still. Refusing is the right answer
+and it is right for the right reason.
+
+This retires the earlier hypothesis. It was not that TRAC-IK re-seeding failed
+to find the elbow circle; the elbow circle is not where the problem is.
+
+## WHAT DOES HELP, AND BY HOW LITTLE
+
+The tangential stage moves the thing the null space cannot: the commanded
+target. It rescues **exactly one step per target**, sliding the hand 47 to
+57 mm across the wearer instead of stopping. In these scenarios the operator's
+motion ends up purely inward, and a purely inward step has no across component
+to keep, so the stage runs out. That is a real limit of the method and not an
+implementation defect.
+
+## THE NUMBERS THE BRIEF ASKS FOR BY NAME
+
+* **lookahead**: 0.30 s, straight-line, with a staleness guard so a paused
+  master predicts NO motion rather than flying on its last velocity;
+* **achieved loop rate**: median **0.131 to 0.153 s per commanded pose**, so
+  about **7 Hz**, for the whole decision including the fan, the projection and
+  the clearance evaluation, through the SERVICE-based solver. A follower with a
+  local IK library would be faster and this figure does not pretend otherwise;
+* **EE residual**: **0.00001 m**. The operator cannot feel the avoidance,
+  which in this case is trivially true because nothing meaningful moved;
+* **never locks up**: every step returned a decision under every avoidance
+  condition. The only "no decision at all" steps in the whole run were under
+  **avoidance OFF**, where the baseline solver simply failed to solve;
+* **the floor stayed last**: unchanged, and it caught a bug of mine — see below.
+
+## A BUG OF MINE THAT THE NUMBERS CAUGHT
+
+The first integration accepted the projection's result whenever it beat the
+fan's clearance and marked the step COMPLETED. That bypassed the floor.
+Measured, it reported **10 of 15 torso steps completed while the projection's
+best clearance gain for that target was 0.0000 m** — a completion rate produced
+by the bookkeeping rather than by the robot. A result that improves clearance
+without reaching the floor is still a refusal, and it is recorded as one now.
+The corrected number is 4 of 15.
+
+The summary also printed "lockups N" where N was the count of REFUSED steps,
+against this file's own definition, and compared only two of the conditions.
+Both fixed.
+
+## STILL NOT WIRED INTO `ik_follower_node`, AND NOW FOR A BETTER REASON
+
+Not because it is unvalidated — it is validated. Because it is **measured to be
+worth nothing on the failure it was built for**. `srl_console` names three
+stages (collision-aware IK, redundancy re-seeding, the hard floor) and those
+are still exactly the three the live stack runs; nothing here re-adds a label
+for a stage the follower does not execute.
+
+**What would actually help is a smaller claim than redundancy resolution:** the
+hand is the problem, so the useful mitigations are ones that act on the
+COMMANDED POSE — the tangential slide, a speed limit that scales with
+clearance, or a hard stop that the operator can feel through the master. The
+elbow was never the thing in the way.

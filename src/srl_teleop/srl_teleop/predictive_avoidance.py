@@ -165,3 +165,224 @@ def choose(candidates, floor_m, trigger_m):
 def ee_residual(a, b):
     """Straight-line distance between two EE positions, in metres."""
     return math.dist(a, b)
+
+
+# ---------------------------------------------------------------------------
+# THE NULL SPACE, FOR REAL THIS TIME
+#
+# The sampler above is honest about what it is, and it was MEASURED and found
+# useless: driven at the wearer it bought 4.4 mm at the head and 0.1 mm at the
+# torso, because re-seeding TRAC-IK returns solutions that differ in the WRIST
+# rather than in the elbow swivel. Seed sampling is not redundancy resolution.
+# `docs/system/findings.md`, 2026-08-15.
+#
+# This is the redundancy resolution. For a 7-DOF arm the end-effector task is
+# 6-dimensional, so the Jacobian J (6 x 7) has a one-dimensional null space:
+# joint velocities qdot with J qdot = 0 move the arm WITHOUT moving the hand.
+# Project a clearance gradient into that null space and integrate:
+#
+#     qdot = N grad(clearance),      N = I - pinv(J) J
+#
+# and every step moves the elbow away from the wearer while the gripper pose
+# is unchanged to first order. The residual is not assumed: it is measured with
+# forward kinematics after each step and reported, which is what (b) of the
+# brief asks for.
+#
+# NO ANALYTIC JACOBIAN IS NEEDED AND NONE IS CLAIMED. J is built by finite
+# differences from whatever forward-kinematics callable the caller passes, so
+# this module still depends on nothing but arithmetic, and the same code runs
+# against /compute_fk offline and against a local KDL chain in the follower.
+# The cost is 7 extra FK evaluations per Jacobian, and the achieved rate is
+# reported by the verification rather than promised here.
+
+
+def _rotvec(R):
+    """Rotation matrix to rotation vector, for orientation differences."""
+    import numpy as np
+    c = max(-1.0, min(1.0, (float(np.trace(R)) - 1.0) * 0.5))
+    ang = math.acos(c)
+    if ang < 1e-9:
+        return np.zeros(3)
+    if abs(math.pi - ang) < 1e-6:                       # near pi, use the
+        w, V = np.linalg.eigh(R)                        # eigenvector for +1
+        axis = np.real(V[:, int(np.argmax(np.real(w)))])
+        return axis / (np.linalg.norm(axis) or 1.0) * ang
+    v = np.array([R[2, 1] - R[1, 2], R[0, 2] - R[2, 0], R[1, 0] - R[0, 1]])
+    return v * (ang / (2.0 * math.sin(ang)))
+
+
+def pose_error(a, b):
+    """6-vector from pose b to pose a, as (position, rotation vector).
+
+    Poses are (position(3), rotation matrix(3x3)). Used both for the Jacobian
+    columns and for measuring how far the hand actually moved.
+    """
+    import numpy as np
+    dp = np.asarray(a[0], float) - np.asarray(b[0], float)
+    dR = _rotvec(np.asarray(a[1], float) @ np.asarray(b[1], float).T)
+    return np.concatenate([dp, dR])
+
+
+def jacobian(fk, q, h=1e-5):
+    """6 x n end-effector Jacobian by central differences.
+
+    `fk(q)` returns (position, rotation matrix) for the end effector.
+    """
+    import numpy as np
+    q = np.asarray(q, float)
+    cols = []
+    for i in range(len(q)):
+        qp, qm = q.copy(), q.copy()
+        qp[i] += h
+        qm[i] -= h
+        cols.append(pose_error(fk(qp), fk(qm)) / (2.0 * h))
+    return np.column_stack(cols)
+
+
+def null_projector(J, rcond=1e-6):
+    """N = I - pinv(J) J. Projects a joint velocity onto ker(J)."""
+    import numpy as np
+    Jp = np.linalg.pinv(np.asarray(J, float), rcond=rcond)
+    n = np.asarray(J).shape[1]
+    return np.eye(n) - Jp @ np.asarray(J, float)
+
+
+def clearance_gradient(clearance_fn, q, h=1e-4):
+    """d(clearance)/dq by central differences, as a vector.
+
+    `clearance_fn(q)` returns the worst clearance in metres, or None. A None
+    anywhere makes the whole gradient None: half a gradient points somewhere
+    nobody chose.
+    """
+    import numpy as np
+    q = np.asarray(q, float)
+    g = np.zeros(len(q))
+    for i in range(len(q)):
+        qp, qm = q.copy(), q.copy()
+        qp[i] += h
+        qm[i] -= h
+        cp, cm = clearance_fn(qp), clearance_fn(qm)
+        if cp is None or cm is None:
+            return None
+        g[i] = (cp - cm) / (2.0 * h)
+    return g
+
+
+class NullSpaceRetreat:
+    """Move the ELBOW away from the wearer with the gripper pose unchanged.
+
+    Iterates qdot = N grad(clearance) with a step size chosen so the joint
+    move per step is bounded, stopping when the clearance target is met, the
+    gradient dies, or the step budget runs out. Every step measures the ACTUAL
+    end-effector displacement by forward kinematics and abandons a step that
+    moves the hand more than `max_ee_drift_m`, because an avoidance the
+    operator can feel is a different failure from a collision but it is still a
+    failure.
+    """
+
+    def __init__(self, max_steps=8, step_rad=0.05, max_ee_drift_m=0.0005,
+                 joint_limits=None):
+        self.max_steps = int(max_steps)
+        self.step_rad = float(step_rad)
+        self.max_ee_drift_m = float(max_ee_drift_m)
+        self.joint_limits = joint_limits
+
+    def retreat(self, fk, clearance_fn, q0, target_m):
+        """Returns (q, clearance, ee_residual_m, steps_taken, why_stopped)."""
+        import numpy as np
+        q = np.asarray(q0, float).copy()
+        p0 = fk(q)
+        c = clearance_fn(q)
+        if c is None:
+            return list(q), None, 0.0, 0, "no clearance estimate"
+        why = "budget"
+        steps = 0
+        for _ in range(self.max_steps):
+            if c >= target_m:
+                why = "target met"
+                break
+            g = clearance_gradient(clearance_fn, q)
+            if g is None:
+                why = "gradient unavailable"
+                break
+            d = null_projector(jacobian(fk, q)) @ g
+            nrm = float(np.linalg.norm(d))
+            if nrm < 1e-9:
+                why = "null space offers no direction"
+                break
+            trial = q + d * (self.step_rad / nrm)
+            if self.joint_limits is not None:
+                lo, hi = self.joint_limits
+                trial = np.clip(trial, lo, hi)
+            # PULL THE HAND BACK. N grad is tangent to the constraint, so a
+            # FINITE step along it leaves the manifold and the hand drifts --
+            # measured on the constructed planar arm, 5.5 mm over eight steps
+            # of 0.05 rad, which an operator would feel. One Newton correction
+            # in the task space per step removes it:
+            #
+            #     q <- q - pinv(J) * pose_error(fk(q), p0)
+            #
+            # This is the difference between an open-loop null-space step and
+            # a closed-loop one, and it is why the residual below is microns
+            # rather than millimetres.
+            for _ in range(2):
+                err = pose_error(fk(trial), p0)
+                if float(np.linalg.norm(err[:3])) < 1e-7:
+                    break
+                trial = trial - np.linalg.pinv(
+                    jacobian(fk, trial), rcond=1e-6) @ err
+                if self.joint_limits is not None:
+                    lo, hi = self.joint_limits
+                    trial = np.clip(trial, lo, hi)
+            drift = float(np.linalg.norm(
+                np.asarray(fk(trial)[0]) - np.asarray(p0[0])))
+            if drift > self.max_ee_drift_m:
+                why = "would move the hand %.4f m" % drift
+                break
+            c_new = clearance_fn(trial)
+            if c_new is None or c_new <= c + 1e-6:
+                why = "no improvement"
+                break
+            q, c = trial, c_new
+            steps += 1
+        resid = float(np.linalg.norm(
+            np.asarray(fk(q)[0]) - np.asarray(p0[0])))
+        return list(q), c, resid, steps, why
+
+
+def tangential_target(xyz, step, away, max_into_m=0.0):
+    """Slide ALONG the wearer instead of stopping dead in front of them.
+
+    THE STAGE THIS MAKES REAL. `srl_console` used to display "tangential" as
+    an avoidance stage and nothing computed one; the label was removed rather
+    than faked, and the console now names only the stages that exist. This is
+    the stage, so it can be named again.
+
+    WHAT IT DOES. `step` is the motion the operator asked for and `away` is the
+    unit direction from the nearest wearer point toward the arm -- the
+    direction clearance increases in. Split the step into the part along
+    `away` and the part perpendicular to it, and keep the perpendicular part
+    plus at most `max_into_m` of the inward part. The hand then travels ACROSS
+    the person rather than into them, which is what lets the task keep going
+    when refusing would end it.
+
+    WHY IT IS THE LAST STAGE AND NOT THE FIRST. It changes the commanded pose,
+    so the operator gets something they did not ask for; the null-space stage
+    does not, and is always tried first. This runs only when the null space has
+    nothing left, and it is still bounded underneath by the floor -- a slide
+    that would breach it is refused like anything else.
+
+    Returns the adjusted target position.
+    """
+    import numpy as np
+    p = np.asarray(xyz, float)
+    d = np.asarray(step, float)
+    a = np.asarray(away, float)
+    n = float(np.linalg.norm(a))
+    if n < 1e-9:
+        return tuple(p + d)
+    a = a / n
+    into = float(np.dot(d, a))            # negative means heading INTO them
+    tang = d - into * a
+    keep = into if into >= 0.0 else max(into, -abs(max_into_m))
+    return tuple(p + tang + keep * a)

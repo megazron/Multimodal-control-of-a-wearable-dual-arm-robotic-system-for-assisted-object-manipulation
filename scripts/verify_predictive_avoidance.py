@@ -60,11 +60,24 @@ from measure_what_binds import Rig, CLEAR_FLOOR              # noqa: E402
 from measure_grasp_approach import (FK, link_names, as_msg,  # noqa: E402
                                     as_tuple)
 from srl_teleop.predictive_avoidance import (                # noqa: E402
-    Lookahead, choose, ee_residual, seed_fan)
+    Lookahead, NullSpaceRetreat, choose, ee_residual, seed_fan,
+    tangential_target)
 
 OUT = os.path.join(ROOT, "recordings/baselines/predictive_avoidance.json")
 # From mount_guard_node.WEARER, in world: the two things the brief names.
-TARGETS = {"head": (0.0, 0.0, 1.645), "torso": (0.0, 0.0, 1.22)}
+# THE THIRD TARGET IS THE FAIR TEST FOR THE TANGENTIAL STAGE.
+#
+# head and torso drive the commanded hand STRAIGHT at the wearer, which is the
+# right worst case for the floor and the WORST POSSIBLE case for a stage that
+# works by keeping the across-the-body part of the operator's motion: a purely
+# inward step has no across part to keep, so sliding cannot manufacture
+# progress and the stage can only hold. `across` sweeps the hand over the front
+# of the chest instead -- oblique, with a real inward component and a real
+# tangential one, which is what an operator reaching past someone actually
+# does. Reporting only the head-on cases would understate the stage in a way
+# that would then need a paragraph of excuse; this measures it instead.
+TARGETS = {"head": (0.0, 0.0, 1.645), "torso": (0.0, 0.0, 1.22),
+           "across": (-0.35, 0.20, 1.18)}
 TRIGGER_M = 0.25          # start avoiding here; well above the floor
 FAN_N = 7
 
@@ -133,12 +146,107 @@ def solve_with_clearance(rig, fk, arm, xyz, quat, seed):
     return j, c, part, resid
 
 
+def quat_matrix(q):
+    """(x, y, z, w) to a rotation matrix, for the Jacobian's orientation rows."""
+    import numpy as np
+    x, y, z, w = q
+    return np.array([
+        [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+        [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+        [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]])
+
+
+def projection_retreat(rig, fk, arm, seed_solution, target_m):
+    """The REAL null-space stage: project a clearance gradient into ker(J).
+
+    The seed fan above samples solutions and was measured to move the elbow by
+    millimetres. This moves it deliberately: build the Jacobian by finite
+    differences from /compute_fk, project the clearance gradient onto its null
+    space, step, and correct the hand back onto its pose each step. Returns
+    (joints, clearance, ee_residual_m, steps, why, seconds).
+    """
+    import time as _t
+    links = ["%s_end_effector_link" % arm]
+
+    def _fk(q):
+        p = fk.poses(arm, list(q), links)
+        if p is None:
+            raise RuntimeError("FK failed inside the null-space step")
+        pos, quat = p[links[0]]
+        return (pos, quat_matrix(quat))
+
+    def _clear(q):
+        c, _part = rig.clearance(arm, list(q))
+        return c
+
+    t0 = _t.monotonic()
+    q, c, resid, steps, why = NullSpaceRetreat(
+        max_steps=6, step_rad=0.06, max_ee_drift_m=0.0005).retreat(
+            _fk, _clear, seed_solution, target_m)
+    return q, c, resid, steps, why, _t.monotonic() - t0
+
+
+def closest_arm_link(rig, fk, arm, q):
+    """WHICH ARM LINK is nearest the wearer, and how near. Named on refusal.
+
+    `Rig.clearance` returns the wearer PART, which answers "near what" and not
+    "what of ours". The brief asks a refusal to name the link and the distance,
+    so both ends of the closest pair are reported: without the arm link, a
+    refusal says a person was nearly hit and not what nearly hit them.
+    """
+    import numpy as np
+    from srl_teleop import mount_guard_node as MG
+    pts = fk.poses(arm, list(q), link_names(arm))
+    if pts is None:
+        return None, None, None
+    named = [(ln, pts[ln][0]) for ln in link_names(arm) if ln in pts]
+    worst = (1e9, None, None)
+    for (ln, a_), (_, b_) in zip(named, named[1:] + named[-1:]):
+        for k in range(MG.SAMPLES + 1):
+            t = k / float(MG.SAMPLES)
+            p = [a_[i] + (b_[i] - a_[i]) * t for i in range(3)]
+            for nm, kind, prm, ctr, rpy in MG.WEARER:
+                d = MG.dist_point(p, kind, prm, ctr, rpy) - MG.TUBE_R
+                if d < worst[0]:
+                    worst = (d, ln, nm)
+    _ = np
+    return worst[1], worst[2], round(float(worst[0]), 4)
+
+
+def wearer_distance(p):
+    """Distance from a world point to the wearer, and the direction AWAY.
+
+    The direction is the gradient of that distance, by central differences.
+    Cheap (six evaluations of a closed-form primitive set) and exact enough to
+    project a step onto, which is all the tangential stage needs.
+    """
+    import numpy as np
+    from srl_teleop import mount_guard_node as MG
+
+    def d(q):
+        return min(MG.dist_point(q, k, prm, c, r)
+                   for _n, k, prm, c, r in MG.WEARER)
+
+    p = np.asarray(p, float)
+    h = 1e-4
+    g = np.zeros(3)
+    for i in range(3):
+        a_, b_ = p.copy(), p.copy()
+        a_[i] += h
+        b_[i] -= h
+        g[i] = (d(a_) - d(b_)) / (2 * h)
+    n = float(np.linalg.norm(g))
+    return d(p), (g / n if n > 1e-9 else g)
+
+
 def march(rig, fk, arm, start, target, quat, steps, avoid_on):
     """Walk the commanded EE from `start` to `target`. Returns per-step rows."""
     rows = []
     la = Lookahead(horizon_s=0.30)
     t = 0.0
+    import time as _t
     for k in range(steps + 1):
+        _step_t0 = _t.monotonic()
         f = k / float(steps)
         xyz = tuple(start[i] + f * (target[i] - start[i]) for i in range(3))
         t += 0.1
@@ -154,7 +262,8 @@ def march(rig, fk, arm, start, target, quat, steps, avoid_on):
                              part=base[2], action="baseline",
                              ee_resid=None if base[3] is None
                              else round(base[3], 5),
-                             solved=base[0] is not None, candidates=1))
+                             solved=base[0] is not None, candidates=1,
+                             seconds=round(_t.monotonic() - _step_t0, 4)))
             continue
         # LOOKAHEAD: if the PREDICTED pose is the one that gets close, the
         # avoider should already be working by the time the arm is there.
@@ -172,7 +281,88 @@ def march(rig, fk, arm, start, target, quat, steps, avoid_on):
                     if max(abs(cj[0][i] - base[0][i]) for i in range(7)) > 1e-3:
                         distinct += 1
         d = choose(cands, CLEAR_FLOOR, TRIGGER_M)
-        rows.append(dict(step=k, xyz=[round(v, 4) for v in xyz],
+        # THE REAL NULL-SPACE STAGE, tried on top of the fan's answer.
+        #
+        # It runs only when something is actually near the wearer, for the
+        # same reason the fan does: avoidance that fires in free space is
+        # jitter the operator can feel, and (b) of the brief says they must
+        # not. Reported SEPARATELY from the fan so the two can be compared
+        # rather than blended -- the fan was measured worth 4.4 mm and a
+        # number that mixes them would hide which half did the work.
+        proj = None
+        if (avoid_on == "projection" and base[0] is not None
+                and base[1] is not None and base[1] < TRIGGER_M):
+            try:
+                pq, pc, presid, psteps, pwhy, psec = projection_retreat(
+                    rig, fk, arm, base[0], TRIGGER_M)
+                proj = dict(clearance=None if pc is None else round(pc, 4),
+                            gain_m=None if (pc is None or base[1] is None)
+                            else round(pc - base[1], 4),
+                            ee_resid=round(presid, 6), steps=psteps,
+                            why=pwhy, seconds=round(psec, 3))
+                # THE FLOOR IS NOT OPTIONAL AND THIS BYPASSED IT.
+                #
+                # The first version accepted the projection whenever it beat
+                # the fan's clearance and set the action to "avoided", which
+                # marked the step COMPLETED even when the result was still
+                # under the floor. Measured, that reported 10 of 15 torso
+                # steps completed while the projection's best clearance gain
+                # for that target was 0.0000 m -- a completion rate produced
+                # by the bookkeeping and not by the robot. A result that
+                # improves clearance without reaching the floor is still a
+                # refusal, and it is recorded as one.
+                if (pc is not None and pc >= CLEAR_FLOOR
+                        and (d.clearance is None or pc > d.clearance)):
+                    d.clearance = pc
+                    d.ee_residual_m = presid
+                    d.action = "avoided" if psteps else d.action
+                    d.joints = pq
+                elif pc is not None and d.clearance is not None and pc > d.clearance:
+                    # better, but still under the floor: keep the number,
+                    # keep the refusal
+                    d.clearance = pc
+            except Exception as exc:                       # noqa: BLE001
+                proj = dict(error=str(exc)[:120])
+        # A REFUSAL HAS TO SAY WHAT IT REFUSED ON. Only computed on refusal:
+        # it walks the whole chain against the whole wearer and is far too
+        # expensive to run on every step that is going fine.
+        refusal = None
+        if d.action == "refuse" and base[0] is not None:
+            ln, part, dist = closest_arm_link(rig, fk, arm, base[0])
+            refusal = dict(arm_link=ln, wearer_part=part, clearance_m=dist)
+        # THE TANGENTIAL STAGE: reroute rather than refuse.
+        #
+        # Every refusal above names `end_effector_link` -- the HAND is what is
+        # inside the person, not the elbow. No null space can help with that,
+        # because the null space holds the hand's pose FIXED by definition. The
+        # only thing that can is moving the commanded target, which is what
+        # this does: strip the component of the operator's step that heads INTO
+        # the wearer and keep the component that runs across them. The hand
+        # then slides along the person instead of stopping in front of them,
+        # and the cost -- how far the achieved pose ends up from the one asked
+        # for -- is reported rather than hidden.
+        slide = None
+        if avoid_on == "tangential" and d.action == "refuse":
+            step_vec = tuple(
+                xyz[i] - (rows[-1]["xyz"][i] if rows else start[i])
+                for i in range(3))
+            dist, away = wearer_distance(xyz)
+            new_xyz = tangential_target(
+                (rows[-1]["xyz"] if rows else list(start)), step_vec, away)
+            sj = solve_with_clearance(rig, fk, arm, new_xyz, quat, seed)
+            slide = dict(from_xyz=[round(v, 4) for v in xyz],
+                         to_xyz=[round(float(v), 4) for v in new_xyz],
+                         moved_m=round(float(sum(
+                             (new_xyz[i] - xyz[i]) ** 2
+                             for i in range(3)) ** 0.5), 4),
+                         clearance=None if sj[1] is None else round(sj[1], 4),
+                         wearer_distance_m=round(float(dist), 4))
+            if sj[1] is not None and sj[1] >= CLEAR_FLOOR:
+                d.action = "rerouted"
+                d.clearance = sj[1]
+                d.joints = sj[0]
+        rows.append(dict(step=k, projection=proj, refusal=refusal, slide=slide,
+                         xyz=[round(v, 4) for v in xyz],
                          clearance=None if d.clearance is None
                          else round(d.clearance, 4),
                          baseline_clearance=None if base[1] is None
@@ -183,7 +373,8 @@ def march(rig, fk, arm, start, target, quat, steps, avoid_on):
                          ee_resid=None if d.ee_residual_m is None
                          else round(d.ee_residual_m, 5),
                          solved=d.action != "refuse",
-                         candidates=len(cands), distinct=distinct))
+                         candidates=len(cands), distinct=distinct,
+                         seconds=round(_t.monotonic() - _step_t0, 4)))
     return rows
 
 
@@ -232,8 +423,16 @@ def main():
           % a.steps)
     for name, tgt in TARGETS.items():
         res[name] = {}
-        for mode in ("off", "on"):
-            rows = march(rig, fk, arm, start, tgt, quat, a.steps, mode == "on")
+        # THREE CONDITIONS, NOT TWO. "on" is the seed fan, which is the
+        # strategy already measured at 4.4 mm; "projection" is the real
+        # null-space stage. Reporting them side by side is the only way to say
+        # which one earned the improvement.
+        for mode in ("off", "on", "projection", "tangential"):
+            rows = march(rig, fk, arm, start, tgt, quat, a.steps,
+                         False if mode == "off" else mode)
+            for r in rows:
+                if r.get("action") == "rerouted":
+                    r["solved"] = True
             solved = [r for r in rows if r["solved"]]
             clears = [r["clearance"] for r in rows if r["clearance"] is not None]
             resids = [r["ee_resid"] for r in rows if r.get("ee_resid")]
@@ -244,7 +443,29 @@ def main():
                 min_clearance=None if not clears else round(min(clears), 4),
                 avoided_steps=len(acted), refused_steps=len(refused),
                 max_ee_residual_m=None if not resids else round(max(resids), 5),
-                distinct_candidates=sum(r.get("distinct", 0) for r in rows))
+                distinct_candidates=sum(r.get("distinct", 0) for r in rows),
+                # THE ACHIEVED LOOP RATE, which the brief asks for by name.
+                # It is the whole decision per commanded pose, against the
+                # SERVICE-based solver -- a follower with a local IK library
+                # would be faster and this number does not pretend otherwise.
+                refusals=[r["refusal"] for r in rows if r.get("refusal")],
+                rerouted_steps=len([r for r in rows
+                                    if r.get("action") == "rerouted"]),
+                max_slide_m=max([r["slide"]["moved_m"] for r in rows
+                                 if r.get("slide")] or [None]),
+                seconds_per_step_median=(
+                    sorted(r["seconds"] for r in rows if "seconds" in r)
+                    [len([r for r in rows if "seconds" in r]) // 2]
+                    if any("seconds" in r for r in rows) else None),
+                projection_gain_m=max(
+                    [r["projection"]["gain_m"] for r in rows
+                     if r.get("projection")
+                     and r["projection"].get("gain_m") is not None] or [None]),
+                projection_seconds=max(
+                    [r["projection"]["seconds"] for r in rows
+                     if r.get("projection")
+                     and r["projection"].get("seconds") is not None]
+                    or [None]))
             r = res[name][mode]
             print("   %-6s avoidance %-3s  min clearance %-8s  solved %2d/%2d "
                   " avoided %2d  refused %2d  max EE residual %s"
@@ -273,17 +494,46 @@ def main():
     print("\n" + "=" * 72)
     print("ANSWER")
     print("=" * 72)
+    # THREE CONDITIONS, AND A REFUSAL IS NOT A LOCKUP.
+    #
+    # The first version of this summary printed "lockups N" where N was the
+    # number of REFUSED steps, while this file's own docstring says a refusal
+    # is the correct answer when the hand is being driven into a person's head
+    # and only "nothing at all is publishable" is a lockup. It also compared
+    # off against the seed fan and never mentioned the projection, which is
+    # the stage that did the work. Both fixed: a lockup is a step that
+    # returned no decision, and all three conditions are shown.
     for t in TARGETS:
-        off, on = res[t]["off"], res[t]["on"]
-        print("   %-6s min clearance %s -> %s   solved %d/%d -> %d/%d   "
-              "lockups %d"
-              % (t,
+        off = res[t]["off"]
+        print("   %-6s  %-11s min clearance %s  completed %2d/%2d  "
+              "avoided %2d  refused %2d  max EE residual %s m"
+              % (t, "off",
                  "----" if off["min_clearance"] is None
                  else "%.4f" % off["min_clearance"],
-                 "----" if on["min_clearance"] is None
-                 else "%.4f" % on["min_clearance"],
-                 off["solved"], off["n"], on["solved"], on["n"],
-                 on["refused_steps"]))
+                 off["solved"], off["n"], off["avoided_steps"],
+                 off["refused_steps"],
+                 "----" if off["max_ee_residual_m"] is None
+                 else "%.5f" % off["max_ee_residual_m"]))
+        for mode, label in (("on", "seed fan"), ("projection", "null space"),
+                            ("tangential", "tangential")):
+            d = res[t][mode]
+            print("   %-6s  %-11s min clearance %s  completed %2d/%2d  "
+                  "avoided %2d  refused %2d  max EE residual %s m%s"
+                  % ("", label,
+                     "----" if d["min_clearance"] is None
+                     else "%.4f" % d["min_clearance"],
+                     d["solved"], d["n"], d["avoided_steps"],
+                     d["refused_steps"],
+                     "----" if d["max_ee_residual_m"] is None
+                     else "%.5f" % d["max_ee_residual_m"],
+                     "" if d.get("projection_gain_m") is None
+                     else "   best single-step gain %.4f m"
+                     % d["projection_gain_m"]))
+        lock = [m for m in ("off", "on", "projection")
+                if res[t][m]["n"] != (res[t][m]["solved"]
+                                      + res[t][m]["refused_steps"])]
+        print("   %-6s  LOCKUPS (a step that returned no decision at all): "
+              "%s" % ("", "none" if not lock else ",".join(lock)))
     print("\n   The EE residual is the number that says the operator cannot "
           "feel it.")
 

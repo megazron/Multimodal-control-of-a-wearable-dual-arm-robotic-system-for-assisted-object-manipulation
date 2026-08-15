@@ -1,0 +1,120 @@
+{
+  "home_from_config_rad": {
+    "left": [
+      -2.353053,
+      -1.142842,
+      -0.455705,
+      -1.362579,
+      -2.652726,
+      -0.66497,
+      2.90894
+    ],
+    "right": [
+      -0.883137,
+      1.759466,
+      1.679356,
+      1.376716,
+      0.200189,
+      -0.50824,
+      -1.644973
+    ]
+  },
+  "arms": {
+    "left": {
+      "shoulder": [
+        0.3473,
+        -0.3407,
+        1.2983
+      ],
+      "elbow_forearm_link": [
+        0.7377,
+        -0.0567,
+        1.219
+      ],
+      "elbow_half_arm_2": [
+        0.6013,
+        -0.2049,
+        1.2803
+      ],
+      "hand": [
+        0.55,
+        0.36,
+        1.18
+      ],
+      "elbow_below_shoulder_m": 0.0793,
+      "elbow_alt_below_shoulder_m": 0.0181,
+      "elbow_outboard_of_hand_m": 0.1877,
+      "tool_axis": [
+        -0.0,
+        1.0,
+        -0.0001
+      ],
+      "tool_elevation_deg": -0.01,
+      "hand_forward_of_torso_m": 0.25
+    },
+    "right": {
+      "shoulder": [
+        -0.3473,
+        -0.3407,
+        1.2983
+      ],
+      "elbow_forearm_link": [
+        -0.532,
+        -0.0815,
+        1.0268
+      ],
+      "elbow_half_arm_2": [
+        -0.4964,
+        -0.2147,
+        1.1858
+      ],
+      "hand": [
+        -0.55,
+        0.36,
+        1.18
+      ],
+      "elbow_below_shoulder_m": 0.2715,
+      "elbow_alt_below_shoulder_m": 0.1125,
+      "elbow_outboard_of_hand_m": -0.018,
+      "tool_axis": [
+        -0.0,
+        1.0,
+        -0.0
+      ],
+      "tool_elevation_deg": -0.0,
+      "hand_forward_of_torso_m": 0.25
+    }
+  },
+  "controls": {
+    "tf_answers_for_every_link": {
+      "want": "[]",
+      "got": "0 missing"
+    },
+    "joint_state_matches_the_home_source": {
+      "want": "< 1e-4 rad",
+      "got": "{'left': 7.4e-05, 'right': 6.6e-05}"
+    },
+    "mirror_can_be_nonzero": {
+      "want": "> 0.10 reflecting the LEFT arm against itself",
+      "got": 1.4753
+    }
+  },
+  "tf_missing": [],
+  "mirror_residual_m": {
+    "shoulder_link": 0.0,
+    "half_arm_1_link": 0.0016,
+    "half_arm_2_link": 0.1416,
+    "forearm_link": 0.2826,
+    "spherical_wrist_1_link": 0.0955,
+    "spherical_wrist_2_link": 0.0002,
+    "bracelet_link": 0.0,
+    "end_effector_link": 0.0
+  },
+  "mirror_residual_worst_m": 0.2826,
+  "controls_pass": true,
+  "shots": {
+    "front": "/tmp/claude-1000/-home-gausms-kortex-ws/c84decd7-9c2f-4f25-acda-f81139b6218a/scratchpad/rviz/home_front.png",
+    "left": "/tmp/claude-1000/-home-gausms-kortex-ws/c84decd7-9c2f-4f25-acda-f81139b6218a/scratchpad/rviz/home_left.png",
+    "iso": "/tmp/claude-1000/-home-gausms-kortex-ws/c84decd7-9c2f-4f25-acda-f81139b6218a/scratchpad/rviz/home_iso.png"
+  }
+}

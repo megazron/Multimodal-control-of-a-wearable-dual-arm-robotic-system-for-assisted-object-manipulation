@@ -58,6 +58,21 @@ unset _srl_had_u
 export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-0}"
 export RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
 export ROS_AUTOMATIC_DISCOVERY_RANGE="${ROS_AUTOMATIC_DISCOVERY_RANGE:-SUBNET}"
+# THE ONE HARD CONSTRAINT 5 CALLS MANDATORY, AND IT WAS NOT IN HERE.
+#
+# CLAUDE.md names this file the single source of environment truth and rule 5
+# says FASTDDS_BUILTIN_TRANSPORTS=SHM is "NOT optional" because UDP discovery
+# is dead on this host. It was set in exactly one place: the shells
+# sim_session.py opens for the LAUNCH. So a stack started through sim_session
+# ran with SHM and any shell that sourced this file ran without it, and the
+# two could not see each other.
+#
+# MEASURED, against a healthy stack: with SHM unset, `ros2 service list` hung
+# past 30 s and a measurement process reported "no /compute_ik -- is the sim
+# up?" while move_group was running and answering. With it exported, the same
+# query returned /compute_ik immediately. The failure reads as a dead stack
+# and is a mismatched transport.
+export FASTDDS_BUILTIN_TRANSPORTS="${FASTDDS_BUILTIN_TRANSPORTS:-SHM}"
 
 # See "ON ROS_LOCALHOST_ONLY" above. If a shell inherited one from somewhere
 # (a stale export, a terminal profile), drop it and say so -- a silent

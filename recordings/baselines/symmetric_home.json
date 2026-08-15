@@ -1,0 +1,323 @@
+{
+  "controls": {
+    "shipped_home_reproduces": {
+      "want": "left elbow 0.0793 below, right 0.2715, clearance 0.1610",
+      "got": "{\"left\": {\"elbow_below_shoulder_m\": 0.0793, \"hand\": [0.55, 0.36, 1.18], \"clearance_m\": 0.161, \"to\": \"torso\"}, \"right\": {\"elbow_below_shoulder_m\": 0.2715, \"hand\": [-0.55, 0.36, 1.18], \"clearance_m\": 0.161, \"to\": \"torso\"}}"
+    },
+    "target_inside_the_torso_finds_nothing": {
+      "want": "None",
+      "got": "None"
+    },
+    "seed_fan_finds_more_than_one_elbow": {
+      "want": "> 1",
+      "got": 28
+    }
+  },
+  "shipped": {
+    "left": {
+      "elbow_below_shoulder_m": 0.0793,
+      "hand": [
+        0.55,
+        0.36,
+        1.18
+      ],
+      "clearance_m": 0.161,
+      "to": "torso"
+    },
+    "right": {
+      "elbow_below_shoulder_m": 0.2715,
+      "hand": [
+        -0.55,
+        0.36,
+        1.18
+      ],
+      "clearance_m": 0.161,
+      "to": "torso"
+    }
+  },
+  "rows": [
+    {
+      "x": 0.45,
+      "y": 0.36,
+      "z": 1.18,
+      "ok": true,
+      "left": {
+        "q": [
+          -2.235228,
+          -1.42239,
+          -0.77867,
+          -1.394229,
+          -2.699139,
+          -0.734845,
+          3.367914
+        ],
+        "elbow_below_shoulder_m": 0.1704,
+        "elbow": [
+          0.6522,
+          -0.0425,
+          1.1279
+        ],
+        "clearance_m": 0.161,
+        "to": "torso"
+      },
+      "right": {
+        "q": [
+          -0.870459,
+          1.915305,
+          1.601182,
+          1.401145,
+          -0.130423,
+          -0.530245,
+          -1.424824
+        ],
+        "elbow_below_shoulder_m": 0.2759,
+        "elbow": [
+          -0.4664,
+          -0.0791,
+          1.0225
+        ],
+        "clearance_m": 0.1572,
+        "to": "R-forearm"
+      },
+      "clearance_m": 0.1572,
+      "mirror_residual_m": 0.2168
+    },
+    {
+      "x": 0.5,
+      "y": 0.36,
+      "z": 1.18,
+      "ok": true,
+      "left": {
+        "q": [
+          -2.220613,
+          -1.32993,
+          -0.777945,
+          -1.391575,
+          -2.721139,
+          -0.660888,
+          3.325541
+        ],
+        "elbow_below_shoulder_m": 0.1586,
+        "elbow": [
+          0.6867,
+          -0.0572,
+          1.1397
+        ],
+        "clearance_m": 0.161,
+        "to": "torso"
+      },
+      "right": {
+        "q": [
+          -0.873552,
+          1.872272,
+          1.695552,
+          1.398437,
+          0.069901,
+          -0.524862,
+          -1.62604
+        ],
+        "elbow_below_shoulder_m": 0.2756,
+        "elbow": [
+          -0.4846,
+          -0.0793,
+          1.0227
+        ],
+        "clearance_m": 0.161,
+        "to": "torso"
+      },
+      "clearance_m": 0.161,
+      "mirror_residual_m": 0.2346
+    },
+    {
+      "x": 0.55,
+      "y": 0.36,
+      "z": 1.18,
+      "ok": true,
+      "left": {
+        "q": [
+          -2.210823,
+          -1.241914,
+          -0.770881,
+          -1.369521,
+          -2.725594,
+          -0.576921,
+          3.262638
+        ],
+        "elbow_below_shoulder_m": 0.1442,
+        "elbow": [
+          0.7174,
+          -0.0723,
+          1.1542
+        ],
+        "clearance_m": 0.161,
+        "to": "torso"
+      },
+      "right": {
+        "q": [
+          -0.875112,
+          1.800825,
+          1.74685,
+          1.376421,
+          0.242802,
+          -0.522153,
+          -1.756027
+        ],
+        "elbow_below_shoulder_m": 0.2725,
+        "elbow": [
+          -0.5144,
+          -0.0792,
+          1.0258
+        ],
+        "clearance_m": 0.161,
+        "to": "torso"
+      },
+      "clearance_m": 0.161,
+      "mirror_residual_m": 0.2402
+    }
+  ],
+  "pairs": [
+    {
+      "x": 0.45,
+      "y": 0.36,
+      "z": 1.18,
+      "mirror_residual_m": 0.1633,
+      "worst_elbow_drop_m": 0.1701,
+      "n_left": 31,
+      "n_right": 4,
+      "left": {
+        "q": [
+          -2.235797,
+          -1.42179,
+          -0.777321,
+          -1.394188,
+          -2.699029,
+          -0.735249,
+          3.366378
+        ],
+        "elbow_below_shoulder_m": 0.1701,
+        "elbow": [
+          0.6524,
+          -0.0424,
+          1.1282
+        ],
+        "clearance_m": 0.161,
+        "to": "torso"
+      },
+      "right": {
+        "q": [
+          -0.865409,
+          1.77467,
+          1.386862,
+          1.400821,
+          -0.262718,
+          -0.561312,
+          -1.065503
+        ],
+        "elbow_below_shoulder_m": 0.2667,
+        "elbow": [
+          -0.5246,
+          -0.0745,
+          1.0317
+        ],
+        "clearance_m": 0.161,
+        "to": "torso"
+      }
+    },
+    {
+      "x": 0.5,
+      "y": 0.36,
+      "z": 1.18,
+      "mirror_residual_m": 0.1644,
+      "worst_elbow_drop_m": 0.1583,
+      "n_left": 31,
+      "n_right": 28,
+      "left": {
+        "q": [
+          -2.221247,
+          -1.329279,
+          -0.776416,
+          -1.391559,
+          -2.720839,
+          -0.661333,
+          3.323733
+        ],
+        "elbow_below_shoulder_m": 0.1583,
+        "elbow": [
+          0.6869,
+          -0.0571,
+          1.1401
+        ],
+        "clearance_m": 0.161,
+        "to": "torso"
+      },
+      "right": {
+        "q": [
+          -0.877929,
+          1.685783,
+          1.407156,
+          1.398437,
+          -0.13279,
+          -0.524792,
+          -1.123362
+        ],
+        "elbow_below_shoulder_m": 0.2626,
+        "elbow": [
+          -0.5618,
+          -0.0799,
+          1.0358
+        ],
+        "clearance_m": 0.161,
+        "to": "torso"
+      }
+    },
+    {
+      "x": 0.55,
+      "y": 0.36,
+      "z": 1.18,
+      "mirror_residual_m": 0.1616,
+      "worst_elbow_drop_m": 0.1443,
+      "n_left": 30,
+      "n_right": 31,
+      "left": {
+        "q": [
+          -2.210668,
+          -1.242092,
+          -0.771311,
+          -1.369507,
+          -2.725762,
+          -0.576796,
+          3.263193
+        ],
+        "elbow_below_shoulder_m": 0.1443,
+        "elbow": [
+          0.7174,
+          -0.0724,
+          1.1541
+        ],
+        "clearance_m": 0.161,
+        "to": "torso"
+      },
+      "right": {
+        "q": [
+          -0.886417,
+          1.592254,
+          1.416907,
+          1.376644,
+          -0.002021,
+          -0.478166,
+          -1.172535
+        ],
+        "elbow_below_shoulder_m": 0.2543,
+        "elbow": [
+          -0.5999,
+          -0.0866,
+          1.0441
+        ],
+        "clearance_m": 0.161,
+        "to": "torso"
+      }
+    }
+  ],
+  "floor": 0.15,
+  "ik_calls": 434
+}

@@ -75,7 +75,13 @@ from record_verification import (Driver, densify, clearance_all,      # noqa: E4
                                  wearer_prims, BIM, OUT, FFMPEG)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCRATCH = "/tmp/claude-1000/-home-gausms-kortex-ws/3732aa29-5a7e-4c8e-b77e-379233bdc9c9/scratchpad"
+# SCRATCH WAS A HARDCODED PATH FROM ONE SESSION and that session's directory is
+# gone, so every render check, config cache and frame grab wrote into nothing.
+# It is derived now, and created if absent. Override with SRL_SCRATCH.
+SCRATCH = os.environ.get(
+    "SRL_SCRATCH",
+    os.path.join(os.environ.get("TMPDIR", "/tmp"), "srl_rviz_scratch"))
+os.makedirs(SCRATCH, exist_ok=True)
 RVIZ_CFG = os.path.join(ROOT, "src/srl_experiments/config/verification_capture.rviz")
 # FOUR SIMULTANEOUS VIEWS, one RViz per virtual display, all watching the same
 # ROS graph -- so the four recordings are frame-for-frame the same trial, not

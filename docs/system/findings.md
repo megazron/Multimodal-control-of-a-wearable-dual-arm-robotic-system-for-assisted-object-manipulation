@@ -4327,3 +4327,130 @@ the robot's mounting envelope, and both breach the floor at the home pose
 before the robot has been asked to do anything. If a wearer instruction is
 given, it must be "arms down at your sides", which is what the model already
 assumed and what nobody had checked was the best of the options.
+
+---
+
+# 2026-08-15 — THE HOME POSE: THE RENDER WAS RIGHT AND THE NUMBERS WERE ABOUT SOMETHING ELSE
+
+Reported: "both elbows 0.14 m below the shoulders, wrists level, symmetric to
+1e-16." Rendered: both elbows at shoulder height and the wrists angled down.
+Both cannot be true, so the thing the picture is DRAWN FROM was measured.
+
+## WHAT THE STACK ACTUALLY BOOTS INTO, read from /tf
+
+`scripts/measure_home_render.py`, three RViz stills from the same boot of the
+same stack (`recordings/baselines/home_render.json`):
+
+| | left | right |
+| --- | --- | --- |
+| elbow (`forearm_link`) below its shoulder | **0.0793 m** | **0.2715 m** |
+| elbow (`half_arm_2`) below its shoulder | 0.0181 m | 0.1125 m |
+| elbow OUTBOARD of its own hand | **+0.188 m** | −0.018 m |
+| tool axis elevation | **−0.01 deg** | **−0.00 deg** |
+| hand | (0.55, 0.36, 1.18) | (−0.55, 0.36, 1.18) |
+
+Mirror residual, the left arm reflected through x = 0 against the right:
+**0.2826 m at the forearm**, 0.1416 at half_arm_2, 0.0955 at wrist_1, and
+**0.0000 m at the shoulder, the bracelet and the hand**.
+
+**The wrists were never the problem** — the tool axis is level to a hundredth
+of a degree, pointing straight forward. **The elbows are**: not symmetric, not
+down, and on the left arm the elbow is 188 mm further out than the hand it
+belongs to. The hands are 1.10 m apart against a 0.36 m torso.
+
+## IT IS NOT A CACHED CONFIG, WHICH IS WHAT THIS LOOKED LIKE
+
+The live joint state matches `config/home_positions_*.txt` to **7.4e-05 rad**.
+The stack is at the pose the source file stores. The stored pose is the
+asymmetric one.
+
+## WHERE THE "0.14 m, SYMMETRIC TO 1e-16" CAME FROM
+
+Two quantities, each renamed on the way out:
+
+* `presentation_pose.json` records `apex_above_shoulder_m = -0.1176` — the
+  limb APEX below the **WEARER'S shoulder line at z = 1.46**. That is the
+  0.14-ish number, and it is not the elbow, and it is not measured against the
+  robot's shoulder.
+* The exact symmetry is of the **HAND TARGETS**, (±0.55, 0.36, 1.18), which do
+  mirror to 0.0000 m. The same file's own `elbow_mirror_residual_m` says
+  **0.2825**, and that number was in the file the whole time.
+
+A pose is not symmetric because its hands are. Nothing here was fabricated;
+two measurements were reported under names that belong to different things,
+which is the same class of error as quoting an IK boundary as a clearance
+boundary.
+
+## CAN IT BE FIXED? PARTLY, AND THE REST IS THE PLATFORM
+
+`scripts/find_symmetric_home.py`. Mirrored hand targets, wrist held at the
+level-forward orientation the pose already has, each target solved from a fan
+of 31 seeds over the shoulder and elbow joints, every solution scored on
+wearer clearance geometrically. Controls: the shipped home reproduces exactly
+under this scorer (0.0793 / 0.2715 / 0.161), a target inside the torso finds
+nothing, and the fan returns 26 to 28 DISTINCT elbow heights, so it is really
+searching.
+
+**Only three hand columns work at all** — |x| = 0.450, 0.500 and 0.550. Inboard
+of 0.450 no pose is both reachable by both arms and clear of the 150 mm floor.
+
+| hand column | left elbow drop | right elbow drop | best mirror residual | branches L x R |
+| --- | --- | --- | --- | --- |
+| 0.450 | **0.1701 m** | 0.2667 m | **0.1633 m** | 31 x 4 |
+| 0.500 | 0.1583 | 0.2626 | 0.1644 | 31 x 28 |
+| 0.550 *(shipped)* | 0.1443 | 0.2543 | 0.1616 | 30 x 31 |
+| shipped pose itself | 0.0793 | 0.2715 | 0.2826 | — |
+
+**Two of the five things asked for are not achievable on this rig:**
+
+1. **"Hands in front of the chest at torso width" — no.** The innermost column
+   that works is **450 mm off centre** against a torso half-width of 0.18 m.
+   This is the same constraint Part 1 found: the TORSO, not the wearer's arms.
+2. **"Both arms symmetric" — no.** The best mirror residual is **0.161 to
+   0.164 m and it does not improve with more choices**: at x = 0.500 the right
+   arm offers 28 distinct clearing branches instead of 4 and the answer moves
+   by 1 mm. That is a structural floor, not a search that gave up. The two
+   mounts' base axes ARE exact mirrors, and their full rotations differ by
+   **168 deg about that axis**; joint_1 can absorb a rotation about the base
+   axis, but the arm's link offsets perpendicular to it do not mirror, so two
+   identical (non-mirrored) arms on mirrored mounts cannot hold mirror-image
+   postures.
+
+**Three of them can be had, and one was already true:**
+
+* wrists level and forward — **already true**, and was before this started;
+* elbows DOWN — the left elbow drops from 0.0793 m to **0.1701 m** below its
+  shoulder, a 91 mm improvement; the right barely moves (0.2715 to 0.2667);
+* elbows IN — the hands come in 100 mm per side, 0.550 to 0.450.
+
+**NOT APPLIED AS HOME.** HARD CONSTRAINT 1 says the task set is re-measured
+BEFORE home moves, which is what was done for the 2026-08-15 change, and the
+improvement here does not meet the acceptance criteria it was asked to meet.
+The candidate is recorded in `recordings/baselines/symmetric_home.json` and
+photographed (`x450_front.png`) so the decision can be taken on the evidence
+rather than re-derived. Moving home to it is a re-verification of every task,
+for hands 100 mm nearer the chest and one elbow 91 mm lower.
+
+## FOUR INSTRUMENT FAULTS FOUND ON THE WAY, AND ALL FOUR WOULD HAVE HIT THE RECORDING
+
+1. **`record_rviz.py`'s scratch directory was a dead path.** `SCRATCH` was
+   hardcoded to one session's `/tmp` directory, which no longer exists, so
+   every render check, cached config and frame grab wrote into nothing. It is
+   derived now and overridable with `SRL_SCRATCH`.
+2. **A blank white frame was reported as captured.** The first still came back
+   as a path to an empty viewport and the code called it a shot. The check now
+   measures the fraction of viewport pixels differing from the modal colour and
+   refuses below 2%; the known-blank frame scores **0.0003**, and the chrome
+   has to be cropped first because the whole window scores 0.132 on menus and
+   the status bar alone.
+3. **A TF read reported "mirror residual 0.0000 m" from sixteen failed
+   lookups.** Perfect symmetry and an empty loop are the same picture. It
+   spins and retries now, and the missing-frame control is what caught it.
+4. **`scripts/env.sh` never exported `FASTDDS_BUILTIN_TRANSPORTS=SHM`** — the
+   one variable HARD CONSTRAINT 5 calls "NOT optional". It was set only in the
+   shells `sim_session.py` opens for the launch, so a stack started that way
+   and any process started by hand could not see each other. Measured: with it
+   unset, `ros2 service list` hung past 30 s and a measurement reported "no
+   /compute_ik" while `move_group` was up and answering; with it exported the
+   same query returned immediately. **A transport mismatch reads exactly like
+   a dead stack**, and this cost two full measurement runs before it was found.

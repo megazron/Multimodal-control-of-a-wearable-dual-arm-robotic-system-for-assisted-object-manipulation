@@ -4827,3 +4827,57 @@ the person who owns that path rather than guessed at.
 its clock and appended nothing. An empty file and a stationary gripper are
 precisely the two things these verifiers exist to tell apart. The clock starts
 for every task now.
+
+---
+
+# 2026-08-15 (part 6) — "0 OF 10 GENUINE GRASPS" WAS A MISSING FILE AND A PINNED WRIST
+
+With the grip trace produced, `verify_grasp_quality` ran for the first time on
+the MSc set and reported **0 of 10 clips show a GENUINE grasp by all four
+criteria**. The scene's own record says otherwise, and it is not ambiguous. T1
+under 03, from `scene_events.json`:
+
+    GRASPED cube_0 knuckle 0.383 (needed 0.3812)  ... RELEASED carried 0.2675 m
+    GRASPED cube_1 knuckle 0.3945 ...              RELEASED carried 0.2310 m
+    GRASPED cube_2 knuckle 0.3912 ...              RELEASED carried 0.4026 m
+    GRASPED cube_3 ...                             RELEASED carried 0.3445 m
+
+with `min_pad_obj_m = 0.0` on every cube — the pads touching the object — and
+all four finishing on their pads. Four grasps, four carries, four places.
+
+## CRITERION 4 READ A FILE THAT DOES NOT EXIST
+
+`attach` is `cap.get("grasp_planned") and the knuckle entered the holding
+band`, where `cap` is `rviz_capture.json` — the LEGACY recorder's file. The MSc
+sweep does not write it, so `cap` was `{}` and criterion 4 was **False for
+every clip whatever the fingers did**.
+
+It falls back to the scene's own record now, reading "planned" as THE TASK
+DECLARES A GRASPABLE OBJECT. That is a statement about the task; reading it
+from the GRASPED events instead would make the criterion test itself. After
+the fix: `attach` is True for t1, t1s2 and t3, and False for t0 (no graspable
+object, which is by design) and for t2 (the open-gripper defect above).
+
+## AND CRITERION 2 ASKS THE PINNED WRIST FOR SOMETHING IT CANNOT DO
+
+t1 and t1s2 still fail, on **wrist**, which requires the gripper's principal
+axis to rotate more than 8 degrees during the clip. Measured: **0.3 to 2.1
+degrees.**
+
+That is not a defect, it is the platform. `run_abc.send()` writes the pinned
+anchor into every waypoint of every task under every mode, so the wrist does
+not rotate during a T1 pick and place — it is held at the 30.7 degree approach
+for the whole path. A criterion that treats wrist rotation as evidence of a
+genuine grasp cannot be satisfied by a system whose defining feature is a
+pinned wrist, and the file's own comment already suspected it: *"stationary by
+construction and its measured axis barely moves -- it reported 2.9 deg on a
+grasp whose wrist was correctly aligned."*
+
+**Read the score with that attached**: 2 of 10 GENUINE is t3 twice, where the
+meter presentation does turn the wrist; t1 and t1s2 satisfy fingers, approach
+and attach and fail only the criterion the platform forbids; t2 fails on a real
+defect; t0 has no grasp at all and should not be counted.
+
+Not silently weakened. The criterion is right for an arm that can rotate its
+wrist during a grasp and wrong for this one, and which of those is true is a
+platform decision rather than a verifier tuning parameter.

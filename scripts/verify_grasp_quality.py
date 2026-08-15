@@ -149,6 +149,26 @@ def main():
             continue
         cap = json.load(open(os.path.join(d, "rviz_capture.json"))) \
             if os.path.exists(os.path.join(d, "rviz_capture.json")) else {}
+        # `grasp_planned` COMES FROM A FILE THE MSc SWEEP NEVER WRITES.
+        #
+        # Criterion 4 is `cap.get("grasp_planned") and the knuckle entered the
+        # holding band`, and rviz_capture.json is the LEGACY recorder's file.
+        # Absent it, `cap` is {} and criterion 4 is False for every clip
+        # whatever the fingers did -- which is how ten clips that grasp four
+        # cubes each came to report "0 of 10 show a GENUINE grasp".
+        #
+        # Fall back to the scene's own record. "Planned" is read as THE TASK
+        # DECLARES A GRASPABLE OBJECT, which is a statement about the task and
+        # not about the outcome; reading it from the GRASPED events instead
+        # would make the criterion test itself.
+        if "grasp_planned" not in cap:
+            _se = os.path.join(d, "scene_events.json")
+            if os.path.exists(_se):
+                try:
+                    _d = json.load(open(_se))
+                    cap = dict(cap, grasp_planned=bool(_d.get("items")))
+                except Exception:                              # noqa: BLE001
+                    pass
         tr = json.load(open(tp))
         arm = max(("left", "right"),
                   key=lambda x: (max([v[x] for v in tr if v.get(x) is not None] or [0])

@@ -173,12 +173,12 @@
     "ok": true,
     "why": "",
     "duration_s": 19.8,
-    "bright": 88.1,
-    "variety": 5394,
-    "delta": 2.39,
+    "bright": 88.2,
+    "variety": 5496,
+    "delta": 2.51,
     "objects": {
-      "msc_sphere_blue": 24,
-      "msc_sphere_green": 42
+      "msc_sphere_blue": 26,
+      "msc_sphere_green": 44
     },
     "angles_bad": [],
     "mode": "03_shared_autonomy",
@@ -189,13 +189,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 32.2,
-    "bright": 104.6,
-    "variety": 8811,
-    "delta": 1.9,
+    "duration_s": 32.9,
+    "bright": 125.7,
+    "variety": 8587,
+    "delta": 2.47,
     "objects": {
-      "msc_blue": 123,
-      "msc_green": 513
+      "msc_blue": 125,
+      "msc_green": 506
     },
     "angles_bad": [],
     "mode": "03_shared_autonomy",
@@ -206,13 +206,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 24.3,
-    "bright": 107.8,
-    "variety": 9634,
-    "delta": 2.79,
+    "duration_s": 23.3,
+    "bright": 130.3,
+    "variety": 10321,
+    "delta": 2.4,
     "objects": {
-      "msc_yellow_cube": 135,
-      "msc_teal_cube": 564
+      "msc_yellow_cube": 137,
+      "msc_teal_cube": 456
     },
     "angles_bad": [],
     "mode": "03_shared_autonomy",
@@ -223,13 +223,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 15.8,
-    "bright": 91.2,
-    "variety": 7407,
-    "delta": 4.75,
+    "duration_s": 15.2,
+    "bright": 101.3,
+    "variety": 8557,
+    "delta": 4.53,
     "objects": {
-      "msc_tray_tan": 1216,
-      "msc_ball_yellow": 1031
+      "msc_tray_tan": 948,
+      "msc_ball_yellow": 687
     },
     "angles_bad": [],
     "mode": "03_shared_autonomy",
@@ -240,12 +240,12 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 20.2,
-    "bright": 103.3,
-    "variety": 9161,
-    "delta": 1.7,
+    "duration_s": 20.4,
+    "bright": 119.5,
+    "variety": 9080,
+    "delta": 0.87,
     "objects": {
-      "msc_green": 421,
+      "msc_green": 425,
       "msc_meter_yellow": 87
     },
     "angles_bad": [],

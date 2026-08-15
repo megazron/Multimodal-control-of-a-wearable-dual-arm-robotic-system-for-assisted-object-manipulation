@@ -127,7 +127,21 @@ def main():
         return 2
     for tp in _traces:
         d = os.path.dirname(tp)
-        mode, task, scen, cond = os.path.relpath(d, OUT).split(os.sep)[:4]
+        # THREE OR FOUR LEVELS. The MSc sweep writes
+        # <mode>/<task>/<scenario> and the legacy A/B/C recorder wrote a
+        # fourth <condition>. Unpacking four from a three-level path raises,
+        # which is a crash rather than a finding.
+        _parts = os.path.relpath(d, OUT).split(os.sep)
+        if len(_parts) >= 4:
+            mode, task, scen, cond = _parts[:4]
+        else:
+            mode, task, scen = _parts[:3]
+            cond = "-"
+        # THE PATH SPELLS THE TASK IN CAPITALS and every table in these files
+        # is keyed in lower case, so `task in GRASP_TASKS` was False for every
+        # MSc clip and all four grasping tasks were classified as non-grasp.
+        # That is how "5 runs checked" and "0 grasp clips" appear together.
+        task = task.lower()
         if a.task and task != a.task:
             continue
         gv = os.path.join(d, "rviz_gripper.mp4")

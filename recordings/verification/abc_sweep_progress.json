@@ -346,7 +346,7 @@
     "task": "t1s2",
     "scenario": "S2_both_arms_random",
     "quad": true,
-    "opened_on": "presentation",
+    "opened_on": "home",
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",

@@ -4766,3 +4766,64 @@ the refusal is that verifier telling the truth about itself. **Its refusal is
 correct behaviour**: it will not print a count when a control says the
 instrument is wrong. What it needs is A_PICK re-derived at the current home,
 which is a job for whoever next needs the A/B/C set.
+
+---
+
+# 2026-08-15 (part 6) — T2 CARRIES THE TRAY WITH ITS HANDS OPEN
+
+Three verifiers had been failing for the whole life of the MSc clip set:
+`verify_gripper_motion`, `verify_grasp_quality`, `verify_object_attachment`.
+Their own source carried the right diagnosis — *"NOTHING IN THE CLIP PATH
+WRITES grip_trace.json AT ALL, 0 files on disk across 25 recorded cells"* — and
+they refused to report a pass on zero inputs, which is correct and was ignored
+because it looked like tooling noise.
+
+**The missing piece was the PRODUCER, not the check.** `clip_scene` now writes
+`grip_trace.json` beside `scene_events.json`: the knuckle angle per arm per
+tick, the same signal the attach gate already uses. Two more things had to be
+fixed before the verifiers could speak:
+
+* their glob knew only the legacy FOUR-level path
+  (`<mode>/<task>/<scenario>/<condition>`); the MSc sweep writes THREE;
+* they unpacked four path components and **crashed** on a three-level path;
+* and `GRASP_TASKS` held only retired names in lower case while the path
+  spells the task in CAPITALS, so `task in GRASP_TASKS` was False for every
+  MSc clip. That is how "checking gripper motion in 5 runs" and "grasp clips:
+  0" appeared together.
+
+## AND THEN IT SPOKE
+
+| task | arm | knuckle range | open | close | release | pixels |
+| --- | --- | --- | --- | --- | --- | --- |
+| t1 | left | 0.00–0.42 | yes | yes | yes | 186879 → 16265 **OK** |
+| t1s2 | left | 0.00–0.42 | yes | yes | yes | 188853 → 26690 **OK** |
+| t3 | left | 0.00–0.52 | yes | yes | yes | 183622 → 10346 **OK** |
+| **t2** | — | **0.00–0.00** | **no** | **no** | **no** | — **CHECK** |
+
+**T2's grippers are fully OPEN for all 992 samples of the carry, on both arms.**
+
+The task's own schedule commands the opposite: `grip=lambda n: {"left":
+[CT.grip_for(30)] * n, "right": [CT.grip_for(30)] * n}` — closed to the tray's
+grip block width on **every** waypoint, with a comment saying "both grippers
+are already closed on the tray and STAY closed". The other three tasks cycle
+their grippers correctly through the same command path, so the path works; T2
+specifically is commanded closed and recorded open.
+
+**So T2-1, "tray held by BOTH grippers", is false in the pixels.** It has been
+false for as long as the task has existed, and it was invisible because the
+tray was DRAWN between the two grip points whether or not anything was
+gripping — the elastic-tray defect fixed earlier today. Rigid or elastic, a
+board drawn between two open hands still looks held.
+
+Not fixed here. The schedule is right, the command path works for three other
+tasks, and the defect is somewhere between `run_abc`'s gripper publishing and a
+constant-valued schedule — plausibly an only-on-change publish, since T2 is the
+one task whose commanded grip never varies. It is named, evidenced and left for
+the person who owns that path rather than guessed at.
+
+## ALSO FIXED: T0 WROTE AN EMPTY TRACE
+
+`self.t0` was set inside the T2 branch, so a task with no carry never started
+its clock and appended nothing. An empty file and a stationary gripper are
+precisely the two things these verifiers exist to tell apart. The clock starts
+for every task now.

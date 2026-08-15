@@ -53,8 +53,13 @@ HOLD_MIN, FREE_AIR = 0.10, 0.74
 # "not a grasp clip", which reports 0 grasp clips and reads like a clean pass
 # rather than like a broken filter -- which is exactly what happened when the
 # mode level was added and this list was not revisited.
-GRASP_TASKS = ("t2", "t3", "t5", "t6",          # retired nine-task names
-               "f2", "f3", "f4")                # current five-task names
+# THE MSc SET GRASPS IN FOUR OF ITS FIVE TASKS and none of its names was
+# here: t1 and t1s2 pick and place, t2 carries a tray, t3 holds a box and a
+# meter. t0 is target reaching and has no gripper action at all, which is a
+# by-design absence and not a gap.
+GRASP_TASKS = ("t1", "t1s2", "t2", "t3",        # the MSc set
+               "t5", "t6",                      # retired nine-task names
+               "f2", "f3", "f4")                # the abc five-task names
 
 
 def frame_at(mp4, t):
@@ -133,7 +138,21 @@ def main():
     print("checking gripper motion in %d runs\n" % len(dirs))
     for tp in dirs:
         d = os.path.dirname(tp)
-        mode, task, scen, cond = os.path.relpath(d, OUT).split(os.sep)[:4]
+        # THREE OR FOUR LEVELS. The MSc sweep writes
+        # <mode>/<task>/<scenario> and the legacy A/B/C recorder wrote a
+        # fourth <condition>. Unpacking four from a three-level path raises,
+        # which is a crash rather than a finding.
+        _parts = os.path.relpath(d, OUT).split(os.sep)
+        if len(_parts) >= 4:
+            mode, task, scen, cond = _parts[:4]
+        else:
+            mode, task, scen = _parts[:3]
+            cond = "-"
+        # THE PATH SPELLS THE TASK IN CAPITALS and every table in these files
+        # is keyed in lower case, so `task in GRASP_TASKS` was False for every
+        # MSc clip and all four grasping tasks were classified as non-grasp.
+        # That is how "5 runs checked" and "0 grasp clips" appear together.
+        task = task.lower()
         tr = json.load(open(tp))
         cap = {}
         cp = os.path.join(d, "rviz_capture.json")

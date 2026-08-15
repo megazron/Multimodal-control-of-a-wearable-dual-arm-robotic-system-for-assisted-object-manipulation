@@ -1122,6 +1122,14 @@ class Scene(Node):
         self.grip_trace = getattr(self, "grip_trace", [])
         try:
             _t_now = self.get_clock().now().nanoseconds * 1e-9
+            # T0 WROTE AN EMPTY TRACE because `self.t0` is set inside the T2
+            # branch, so a task with no carry never started its clock and the
+            # trace never appended. An empty file and a stationary gripper are
+            # exactly the two things these verifiers exist to tell apart, so
+            # the clock starts here for every task.
+            if self.t0 is None:
+                self.t0 = _t_now
+                self.t0_wall = time.time()
             if self.t0 is not None:
                 self.grip_trace.append(dict(
                     t=round(_t_now - self.t0, 2),

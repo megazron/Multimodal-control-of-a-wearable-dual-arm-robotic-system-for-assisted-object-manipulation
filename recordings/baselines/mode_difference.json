@@ -1,0 +1,292 @@
+{
+  "T0": {
+    "equal_duration_unequal_travel": [
+      [
+        19.83,
+        33.9,
+        [
+          "03_shared_autonomy",
+          "04_vr_shared",
+          "06_full_autonomy"
+        ]
+      ]
+    ],
+    "identical_net_groups": {
+      "(0.2738, 0.2314)": [
+        "01_master_teleop",
+        "04_vr_shared"
+      ],
+      "(0.211, 0.3827)": [
+        "03_shared_autonomy",
+        "06_full_autonomy"
+      ]
+    },
+    "per_mode": {
+      "01_master_teleop": {
+        "travel_l": 1.4071,
+        "travel_r": 1.4167,
+        "net_l": 0.2738,
+        "net_r": 0.2314,
+        "samples": null,
+        "duration_s": 19.25
+      },
+      "02_vr_teleop": {
+        "travel_l": 1.4649,
+        "travel_r": 1.3584,
+        "net_l": 0.216,
+        "net_r": 0.2314,
+        "samples": null,
+        "duration_s": 29.42
+      },
+      "03_shared_autonomy": {
+        "travel_l": 2.0338,
+        "travel_r": 1.6908,
+        "net_l": 0.211,
+        "net_r": 0.3827,
+        "samples": null,
+        "duration_s": 19.83
+      },
+      "04_vr_shared": {
+        "travel_l": 1.5188,
+        "travel_r": 1.3771,
+        "net_l": 0.2738,
+        "net_r": 0.2314,
+        "samples": null,
+        "duration_s": 19.83
+      },
+      "06_full_autonomy": {
+        "travel_l": 2.0324,
+        "travel_r": 1.6693,
+        "net_l": 0.211,
+        "net_r": 0.3827,
+        "samples": null,
+        "duration_s": 19.83
+      }
+    }
+  },
+  "T1": {
+    "equal_duration_unequal_travel": [],
+    "identical_net_groups": {
+      "(0.3768, 0.4306)": [
+        "01_master_teleop",
+        "03_shared_autonomy",
+        "06_full_autonomy"
+      ]
+    },
+    "per_mode": {
+      "01_master_teleop": {
+        "travel_l": 3.1056,
+        "travel_r": 0.5956,
+        "net_l": 0.3768,
+        "net_r": 0.4306,
+        "samples": null,
+        "duration_s": null
+      },
+      "02_vr_teleop": {
+        "travel_l": 3.7029,
+        "travel_r": 0.7405,
+        "net_l": 0.3832,
+        "net_r": 0.4306,
+        "samples": null,
+        "duration_s": null
+      },
+      "03_shared_autonomy": {
+        "travel_l": 3.6954,
+        "travel_r": 0.5899,
+        "net_l": 0.3768,
+        "net_r": 0.4306,
+        "samples": null,
+        "duration_s": null
+      },
+      "04_vr_shared": {
+        "travel_l": 2.9751,
+        "travel_r": 0.7089,
+        "net_l": 0.1018,
+        "net_r": 0.2581,
+        "samples": null,
+        "duration_s": null
+      },
+      "06_full_autonomy": {
+        "travel_l": 3.6817,
+        "travel_r": 0.5966,
+        "net_l": 0.3768,
+        "net_r": 0.4306,
+        "samples": null,
+        "duration_s": null
+      }
+    }
+  },
+  "T1S2": {
+    "equal_duration_unequal_travel": [],
+    "identical_net_groups": {
+      "(0.1901, 0.1374)": [
+        "01_master_teleop",
+        "02_vr_teleop",
+        "03_shared_autonomy",
+        "06_full_autonomy"
+      ]
+    },
+    "per_mode": {
+      "01_master_teleop": {
+        "travel_l": 2.012,
+        "travel_r": 1.9336,
+        "net_l": 0.1901,
+        "net_r": 0.1374,
+        "samples": null,
+        "duration_s": null
+      },
+      "02_vr_teleop": {
+        "travel_l": 1.9868,
+        "travel_r": 1.9283,
+        "net_l": 0.1901,
+        "net_r": 0.1374,
+        "samples": null,
+        "duration_s": null
+      },
+      "03_shared_autonomy": {
+        "travel_l": 1.9985,
+        "travel_r": 1.9185,
+        "net_l": 0.1901,
+        "net_r": 0.1374,
+        "samples": null,
+        "duration_s": null
+      },
+      "04_vr_shared": {
+        "travel_l": 1.7779,
+        "travel_r": 1.5933,
+        "net_l": 0.3601,
+        "net_r": 0.3356,
+        "samples": null,
+        "duration_s": null
+      },
+      "06_full_autonomy": {
+        "travel_l": 1.9967,
+        "travel_r": 1.9099,
+        "net_l": 0.1901,
+        "net_r": 0.1374,
+        "samples": null,
+        "duration_s": null
+      }
+    }
+  },
+  "T2": {
+    "equal_duration_unequal_travel": [
+      [
+        15.83,
+        27.0,
+        [
+          "01_master_teleop",
+          "03_shared_autonomy"
+        ]
+      ]
+    ],
+    "identical_net_groups": {
+      "(0.6286, 0.6565)": [
+        "01_master_teleop",
+        "02_vr_teleop"
+      ]
+    },
+    "per_mode": {
+      "01_master_teleop": {
+        "travel_l": 1.0747,
+        "travel_r": 1.0071,
+        "net_l": 0.6286,
+        "net_r": 0.6565,
+        "samples": null,
+        "duration_s": 15.83
+      },
+      "02_vr_teleop": {
+        "travel_l": 1.0718,
+        "travel_r": 1.0465,
+        "net_l": 0.6286,
+        "net_r": 0.6565,
+        "samples": null,
+        "duration_s": 25.92
+      },
+      "03_shared_autonomy": {
+        "travel_l": 1.3652,
+        "travel_r": 0.9462,
+        "net_l": 0.6357,
+        "net_r": 0.6527,
+        "samples": null,
+        "duration_s": 15.83
+      },
+      "04_vr_shared": {
+        "travel_l": 1.97,
+        "travel_r": 1.2237,
+        "net_l": 0.5617,
+        "net_r": 0.6565,
+        "samples": null,
+        "duration_s": 15.25
+      },
+      "06_full_autonomy": {
+        "travel_l": 1.0721,
+        "travel_r": 1.217,
+        "net_l": 0.6286,
+        "net_r": 0.7533,
+        "samples": null,
+        "duration_s": 15.33
+      }
+    }
+  },
+  "T3": {
+    "equal_duration_unequal_travel": [
+      [
+        20.25,
+        6.4,
+        [
+          "03_shared_autonomy",
+          "06_full_autonomy"
+        ]
+      ]
+    ],
+    "identical_net_groups": {
+      "(0.6018, 0.5948)": [
+        "01_master_teleop",
+        "02_vr_teleop"
+      ]
+    },
+    "per_mode": {
+      "01_master_teleop": {
+        "travel_l": 1.2575,
+        "travel_r": 1.2239,
+        "net_l": 0.6018,
+        "net_r": 0.5948,
+        "samples": null,
+        "duration_s": null
+      },
+      "02_vr_teleop": {
+        "travel_l": 1.2506,
+        "travel_r": 1.3881,
+        "net_l": 0.6018,
+        "net_r": 0.5948,
+        "samples": null,
+        "duration_s": null
+      },
+      "03_shared_autonomy": {
+        "travel_l": 1.3352,
+        "travel_r": 1.3061,
+        "net_l": 0.6034,
+        "net_r": 0.5942,
+        "samples": null,
+        "duration_s": 20.25
+      },
+      "04_vr_shared": {
+        "travel_l": 1.1115,
+        "travel_r": 1.2407,
+        "net_l": 0.5179,
+        "net_r": 0.5948,
+        "samples": null,
+        "duration_s": 20.75
+      },
+      "06_full_autonomy": {
+        "travel_l": 1.2554,
+        "travel_r": 1.5353,
+        "net_l": 0.6018,
+        "net_r": 0.7043,
+        "samples": null,
+        "duration_s": 20.25
+      }
+    }
+  }
+}

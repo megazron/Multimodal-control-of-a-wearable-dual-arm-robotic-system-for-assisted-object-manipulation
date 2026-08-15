@@ -1108,6 +1108,21 @@ class Scene(Node):
         self.ee_track = getattr(self, "ee_track", {"left": None, "right": None})
         self.ee_travel = getattr(self, "ee_travel", {"left": 0.0, "right": 0.0})
         self.ee_first = getattr(self, "ee_first", {})
+        self.ee_samples = getattr(self, "ee_samples", {"left": 0, "right": 0})
+        # THE SAMPLE COUNT TRAVELS WITH THE PATH LENGTH.
+        #
+        # `ee_travel_m` is a sum of |dp| over TICKS, so it is a property of how
+        # long and how often the recorder watched as much as of how the arm
+        # moved: more ticks over a stationary arm still accumulates sensor
+        # noise, and a run observed for longer reads as a longer path. The
+        # count is written out now so any comparison between runs can be
+        # normalised and audited instead of assumed comparable.
+        #
+        # `ee_first` is likewise the FIRST POSE THIS NODE HAPPENED TO SEE, not
+        # the pose the task started from, so `ee_net_m` is anchored on the
+        # recorder's start-up rather than on the motion. Both are reported
+        # with that caveat attached in scene_events.json rather than left for
+        # a reader to discover. See findings.md, 2026-08-15, finding 3.
         for _arm in ("left", "right"):
             _p = self._ee(_arm)
             if _p is None:
@@ -1116,6 +1131,7 @@ class Scene(Node):
             _prev = self.ee_track[_arm]
             if _prev is not None:
                 self.ee_travel[_arm] += math.dist(_prev, _p)
+                self.ee_samples[_arm] += 1
             self.ee_track[_arm] = list(_p)
 
         A = MarkerArray()
@@ -1812,6 +1828,14 @@ def main():
                            # integral over the clip, and the straight-line
                            # net. A few centimetres of travel means the task
                            # geometry is too tight to see.
+                           ee_samples=getattr(n, "ee_samples", {}),
+                           ee_metric_caveat=(
+                               "ee_travel_m is a sum of |dp| over TICKS and "
+                               "ee_net_m is anchored on the first pose this "
+                               "node saw, so both depend on the observation "
+                               "window. Compare only against runs with a "
+                               "comparable ee_samples, and see findings.md "
+                               "2026-08-15 finding 3."),
                            ee_travel_m={a2: round(v, 4) for a2, v
                                         in getattr(n, "ee_travel",
                                                    {}).items()},

@@ -34,6 +34,28 @@ no-operator difference has been subtracted.** It has never been measured;
 `docs/system/findings.md`, 2026-08-15, is the first measurement and it is
 five tasks deep, not a characterisation.
 
+**SETTLED 2026-08-15 (later): the difference is REAL, and its SIZE is still
+unknown.** The two ways it could have been an artefact were tested against the
+recorded set (`scripts/analyse_mode_difference.py`):
+
+* **not recording length** — runs of IDENTICAL duration differ in path length:
+  27% between 01 and 03 at 15.83 s on T2, 34% between 03 and 04 at 19.83 s on
+  T0, 6.4% between 03 and 06 at 20.25 s on T3;
+* **not run-to-run noise** — on T1S2 four modes share a net displacement of
+  (0.1901, 0.1374) **exactly**, and two modes do the same on T2 and on T3.
+  Independent noise does not agree to four decimal places.
+
+What the archived set **cannot** settle is the magnitude, for two reasons that
+are properties of the instrument rather than of the robot: every cell is a
+single run, and both metrics depend on the observation window —
+`ee_travel_m` sums |dp| over recorder TICKS, and `ee_net_m` is anchored on the
+first pose the scene node happened to see, not on the pose the task started
+from. The sample count is now written into `scene_events.json` beside them,
+with that caveat, so the next comparison can be normalised instead of assumed
+comparable. The magnitude needs N >= 5 repeats per cell and a metric that
+starts when the TASK starts; `docs/research/02_baseline_and_hypotheses.md`
+section 5.0 carries the requirement.
+
 ### Five modes. The naming is 01, 02, 03, 04, 06. There is no 05.
 
 | key | name | input | assistance |

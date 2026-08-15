@@ -4654,3 +4654,66 @@ from the one T1 declares. 10 tests, including that split.
 
 Audit after these changes: **45 PRESENT, 0 MISSING, 1 BLOCKED (T1-1), 1
 pixels-only.**
+
+---
+
+# 2026-08-15 (later still) — FINDING 3 SETTLED: THE MODE DIFFERENCE IS REAL, ITS SIZE IS NOT KNOWN
+
+Finding 3 above reports that scripted clips with no operator show different
+achieved motion by mode, on a SINGLE run per cell against a 3% same-mode spread
+taken from the one cell recorded twice. A single repeat is not a measurement,
+so the two ways it could have been an artefact were tested directly against the
+recorded set. `scripts/analyse_mode_difference.py`,
+`recordings/baselines/mode_difference.json`.
+
+## THE TWO ALTERNATIVES, BOTH REFUTED
+
+**1. It is the recording length.** `ee_travel_m` is a sum of \|dp\| over ticks,
+so a run watched for longer accumulates more path over the same motion. Refuted
+by runs of IDENTICAL duration:
+
+| task | duration | modes | travel | difference |
+| --- | --- | --- | --- | --- |
+| T2 | 15.83 s | 01 vs 03 | 1.075 vs 1.365 | **27%** |
+| T0 | 19.83 s | 03 vs 04 | 2.034 vs 1.519 | **34%** |
+| T3 | 20.25 s | 03 vs 06 | 1.335 vs 1.255 | **6.4%** |
+
+**2. It is run-to-run noise.** Refuted by exact agreement. On T1S2, modes 01,
+02, 03 and 06 share a net displacement of **(0.1901, 0.1374) to four decimal
+places**; on T2, 01 and 02 share (0.6286, 0.6565); on T3, 01 and 02 share
+(0.6018, 0.5948). Four modes agreeing to 0.1 mm is not what independent noise
+looks like — it is what running the same thing looks like.
+
+**So the difference is real, and finding 3 stands. TASK_SPEC section 1 keeps
+its correction.**
+
+## AND HERE IS WHAT THE SET CANNOT SETTLE, WHICH IS THE SIZE
+
+Both metrics are properties of the OBSERVATION WINDOW as much as of the motion:
+
+* `ee_travel_m` sums over recorder ticks, so it counts sensor noise at a
+  stationary arm and grows with how often and how long the node watched;
+* `ee_net_m` is `dist(ee_first, ee_track)` where **`ee_first` is the first pose
+  the scene node happened to see** — not the pose the task started from. That
+  is why several modes share it exactly: those runs caught the same window, and
+  the number is partly about the recorder starting up.
+
+That is enough to say the difference is not noise and not duration. It is not
+enough to give the difference a trustworthy magnitude, and the magnitude is
+what a baseline subtraction needs.
+
+Fixed here: `ee_samples` is written into `scene_events.json` beside the two
+metrics, together with a caveat naming this problem, so the next comparison can
+normalise by sample count rather than assume two runs are comparable. Not fixed
+here: anchoring the path metric on the first COMMANDED waypoint rather than the
+first observed pose, which changes what every recorded clip measured and so
+belongs with the re-record rather than half way through one.
+
+## WHAT IS STILL REQUIRED, AND IT IS NOT BLOCKED ON ANYTHING
+
+N >= 5 scripted repeats per (mode, task) cell, no operator, same seed; a metric
+that starts when the task starts; and the WITHIN-mode spread reported beside
+the BETWEEN-mode difference. It needs no hardware, no participants and no
+ethics approval. `docs/research/02_baseline_and_hypotheses.md` section 5.0 now
+carries it as a threat to validity ahead of fatigue, because it bears on every
+hypothesis that compares conditions.

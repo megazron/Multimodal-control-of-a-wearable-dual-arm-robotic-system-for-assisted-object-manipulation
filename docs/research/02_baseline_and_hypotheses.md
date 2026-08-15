@@ -540,6 +540,59 @@ happens.
 
 ## 5. Threats to validity
 
+### 5.0 THE PLATFORM ITSELF DIFFERS BY CONDITION, WITH NO OPERATOR PRESENT
+
+**This one is not a risk, it is a measured fact, and it is placed first because
+it bears on every hypothesis in section 3 that compares conditions.**
+
+The task layer is condition-independent by construction: `run_abc` builds the
+waypoint list with no mode argument, the same waypoints are commanded under
+every mode, and that is enforced in code and tested. **It does not follow that
+the robot performs identically, and it does not.** Measured on the scripted
+clip set, with no operator anywhere in the loop:
+
+| task | quantity | 01_master_teleop | 03_shared_autonomy | 06_full_autonomy |
+| --- | --- | --- | --- | --- |
+| T0 | left EE path | 1.407 m | 2.034 m | 2.032 m |
+| T1 | left EE path | 3.106 m | 3.695 m | 3.682 m |
+| T3 | circuit box carried | 0.021 m | — | 0.161 m |
+
+**Two alternative explanations were tested and both are refuted**
+(`scripts/analyse_mode_difference.py`, `recordings/baselines/mode_difference.json`):
+
+* **recording length.** Runs of IDENTICAL duration differ in path length: at
+  15.83 s on T2, 01 and 03 differ by 27%; at 20.25 s on T3, 03 and 06 differ by
+  6.4%; at 19.83 s on T0, 03 and 04 differ by 34%. Watching for longer is not
+  what produced it.
+* **run-to-run noise.** On T1S2 four modes share a net displacement of
+  (0.1901, 0.1374) **exactly**, to four decimal places, and on T2 and T3 two
+  modes do the same. Independent noise does not agree to four decimals.
+
+**The consequence for every between-condition hypothesis.** A difference
+measured between conditions in a trial is the sum of an operator effect and a
+platform effect, and only the first is the thing being tested. **No hypothesis
+in section 3 that compares conditions can be evaluated until the no-operator
+difference has been measured and subtracted**, and it has not been: every cell
+above is a SINGLE run, so the difference is established as real but its
+magnitude is not characterised.
+
+**What is required before recruitment**, and it needs no hardware, no
+participants and no ethics approval:
+
+1. N >= 5 scripted repeats per (condition, task) cell, no operator, same seed;
+2. a per-run metric set that is comparable across conditions, and a path metric
+   that starts when the TASK starts. The current `ee_travel_m` sums over
+   recorder ticks and `ee_net_m` is anchored on the first pose the recorder
+   happened to see, so both are partly properties of the observation window;
+3. the WITHIN-condition spread reported beside the BETWEEN-condition
+   difference. A between-condition gap smaller than the within-condition spread
+   is not a condition effect;
+4. then either subtract the no-operator baseline from every trial metric and
+   say so in the analysis, **or**, if the no-operator difference turns out to
+   be the size of the effect being looked for, record that the comparison
+   cannot be made on that metric. That is a legitimate result and it is far
+   better found now than after recruitment.
+
 ### 5.1 Fatigue, and its interaction with condition order
 
 **The threat.** Holding a mannequin master arm up is a mid-air interaction, and mid-air

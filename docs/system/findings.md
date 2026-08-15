@@ -4923,3 +4923,69 @@ the measured clear region runs to |x| = 1.00 on both sides.
 
 Re-verified: **d1 0 of 382, d2 0 of 356, d3 0 of 560, over 3898 IK calls, 0
 failures.** The routines are filmable now and were not before.
+
+---
+
+# 2026-08-16 (part 7) — WHAT THE NEW CLIPS SHOW, LOOKED AT
+
+Frames pulled from the re-recorded set and read against the MUST BE TRUE lists.
+Stills kept in `docs/img/home_render/`. Answers below are from the PIXELS
+first, with the measurement that agrees beside them.
+
+## THE SIX THINGS THE BRIEF ASKED TO SEE
+
+| asked | seen | |
+| --- | --- | --- |
+| symmetric home, elbows down | **no** | elbows 0.0793 (L) and 0.2715 (R) below their shoulders, forearm mirror residual 0.2826 m. Best achievable 0.1633 m, and it does not improve with more IK branches |
+| objects ON the table | **no** | they float. Visible in T1, T1S2 and T3: the markings and every object sit above the white top |
+| pads and cubes in the CENTRE | **no** | they are at the two ends. min \|x\| 0.325 (L) / 0.450 (R), and 0.300 / 0.375 even with the wearer's arms deleted |
+| arms working in FRONT of the person | **no** | T1S2 shows both arms out at the table's ends, for the same reason |
+| the tray RIGID | **yes** | and see below, because making it rigid showed something |
+| the elbow moving aside near the wearer | **no** | not wired into the follower, and measured worth 0.0 to 5.6 mm because the HAND is what breaches, not the elbow |
+
+## THE TRAY WAS THE POINT OF THE EXERCISE
+
+T2's frame shows a **rigid slab of fixed length across the wearer with NEITHER
+GRIPPER ON IT** — the left hand is down beside the left mat, the right is up
+near the shoulder, and the tray floats between them touching nothing. The ball
+is lying on the table where it fell.
+
+That is the change working exactly as the brief intended: *"draw it rigid at
+spec length so separation error becomes visible as the tray not fitting, which
+is what the task measures."* The elastic tray hid this by stretching to meet
+whichever hands existed. The grip trace says the same thing in numbers — 0.00
+knuckle for all 992 samples on both arms — and the picture now agrees with the
+data instead of contradicting it.
+
+## WHAT IS RIGHT, AND WORTH SAYING BECAUSE IT WAS NOT ALWAYS
+
+* **the table is WHITE in the pixels**, not merely requested;
+* **the card comes first and reads like a person wrote it**: "Pick up four
+  cubes and place each one on the mat of its colour. Watch the fingers close on
+  the cube, not above it." No em dashes, no banned words, no tricolon;
+* **every clip opens on the presentation pose** — `opened_on: presentation`
+  recorded per cell and confirmed in the opening frames;
+* **one marking per arm in a one-arm task and two in a both-arm task**, with
+  every object inside the marked cells;
+* **stage 2 now has coloured pads on BOTH sides**, which it never had: the
+  frame shows a blue and a green mat in each arm's region;
+* **T1 grasps for real** — four GRASPED and four RELEASED events, knuckle
+  0.383 to 0.395 against a needed 0.3812, pad-to-object distance 0.0 m,
+  carried 0.23 to 0.40 m, all four landing on their pads;
+* **the routines read as choreography again**: D1's frame has both arms in the
+  same mirrored shape, reaching, with no table in the scene. Before today's
+  envelope move, d1 and d3 had 94 unreachable waypoints between them and would
+  have stalled on camera.
+
+## THE HONEST SUMMARY
+
+Four of the six things asked for cannot be shown, and none of the four is a
+recording fault. Three of them — objects on the table, work in the centre, arms
+in front of the person — are the same measured constraint arriving from three
+directions, and part 1 established that it is the WEARER'S TORSO and the MOUNT
+rather than anything software can move. The fourth, the elbow retreat, is a
+strategy measured to be worth nothing on this arm because the offending link is
+the one it holds still.
+
+The two that can be shown are shown, and the rigid tray immediately exposed a
+defect that had been invisible for the life of the task.

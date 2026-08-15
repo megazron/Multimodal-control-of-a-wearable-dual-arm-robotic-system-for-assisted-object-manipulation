@@ -1107,6 +1107,33 @@ def _main_body():
                        ", quad" if quad else ""))
                 done += bool(good)
                 failed += (not good)
+            # TEAR THE DISPLAYS DOWN AT THE END OF EACH MODE.
+            #
+            # WITHOUT THIS, A SWEEP CAN ONLY EVER RECORD ONE MODE. The eight
+            # Xvfb servers are created per clip and reused, and until now they
+            # were only torn down when the PROCESS exited -- while
+            # preconditions() is re-checked before every mode and refuses on a
+            # live Xvfb or a stale lock. MEASURED on 2026-08-15: a run over
+            # five modes recorded the first one, then aborted the other four
+            # with sixteen PRECONDITION FAILED lines each, naming displays its
+            # own previous mode had left running. It reported "5 recorded, 20
+            # failed" for a machine that was working perfectly.
+            #
+            # The refusal is RIGHT -- a sweep that starts on top of dead
+            # servers renders black and passes -- so the fix belongs here, at
+            # the point where the displays are genuinely finished with, not in
+            # the check.
+            #
+            # THIS DOES NOT BREAK ensure_display's "nothing is ever killed"
+            # rule. That rule is about the MIDDLE of a sweep, where killing an
+            # Xvfb two RViz instances share produced seven black clips. Here
+            # every capture for this mode has stopped, which is the same state
+            # the end-of-process teardown runs in.
+            try:
+                rr.teardown_displays(verbose=False)
+            except Exception as _e:                           # noqa: BLE001
+                log("   display teardown after %s raised %s -- the next "
+                    "mode's precondition will name what is left" % (mode, _e))
     finally:
         for pat, p in started.items():
             try:

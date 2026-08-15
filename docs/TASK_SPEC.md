@@ -16,9 +16,23 @@ and has never been sufficient.
 Two Kinova Gen3 arms on a backpack worn by one person, operated remotely by a
 second person. Four tasks, five control modes.
 
-The task layer is **mode-independent by design**: the same waypoints go out
-under every mode, so robot performance is identical across modes and every
-measured difference comes from the operator.
+The task layer is **mode-independent by design**: the same waypoints are
+COMMANDED under every mode. `run_abc` builds them from the task spec with no
+mode argument, and that is enforced in code and tested.
+
+**It does not follow that the robot performs identically, and it does not.**
+This document said so until 2026-08-15, when the scripted clips — no operator
+anywhere in the loop — measured the achieved motion per mode and found T0's
+left-arm path at 1.407 m under 01 against 2.034 m under 03, and T3's circuit
+box carried 21 mm under 01 against 161 mm under 06, against a same-mode
+run-to-run spread of 3%. The command paths differ (follower, assist node, VR
+mapper) and they track with different lag, so what the arm ACHIEVES differs.
+
+The consequence for the study is the part that matters: **a difference
+between modes in a trial cannot be attributed to the operator until the
+no-operator difference has been subtracted.** It has never been measured;
+`docs/system/findings.md`, 2026-08-15, is the first measurement and it is
+five tasks deep, not a characterisation.
 
 ### Five modes. The naming is 01, 02, 03, 04, 06. There is no 05.
 

@@ -3313,3 +3313,114 @@ with no travel field is **UNANSWERED, not failed** — by_design.py's rule.
 Floor 0.05 m, from measurement rather than taste: the good clip recorded
 minutes earlier reads left 3.0205 m, right 0.6010 m, and the failure reads
 0.0000 on both. There is nothing between them.
+
+---
+
+# 2026-08-15 (recording) — WHAT LOOKING FOUND THAT THE CHECKS DID NOT
+
+The clips were re-recorded on the current geometry and then examined frame by
+frame against each task's MUST BE TRUE list. Everything below passed every
+automatic check in this repository.
+
+## 1. T2's TRAY IS ELASTIC, AND THAT MAKES T2-1 AND T2-2 UNFALSIFIABLE
+
+`clip_scene.py` draws T2's tray as a CUBE spanning between the two grippers:
+
+    span = math.dist(gl, gr)
+    add(Marker.CUBE, mid, (round(span + 0.06, 4), dep, th), TAN, ns="tray")
+
+So the tray's length is *the hand separation plus 60 mm*, recomputed every
+tick. Measured over the recorded clips:
+
+| | gripper separation | tray as DRAWN | spec |
+| --- | --- | --- | --- |
+| 01_master_teleop | 0.427 … 1.151 m | **0.487 … 1.211 m** | one RIGID tray, 0.560 m, grips 0.500 m apart |
+| 06_full_autonomy | 0.456 … 1.151 m | **0.516 … 1.211 m** | " |
+
+**A 2.5x stretch.** The consequences are not cosmetic:
+
+* **T2-1, "tray held by BOTH grippers", cannot fail.** The tray IS the segment
+  between the grippers, so every frame shows it held whatever the arms do.
+  It is not evidence of coupling; it is a definition.
+* **T2-2, "ball visible ON the tray", cannot fail either.** The ball is
+  redrawn at the tray's midpoint every tick and "carried WITH it".
+* **The declared failure mode never happens.** TASK_SPEC: "tilt past 6.8
+  degrees drops the ball". Under 06 the tray spent **10.77 s above 6.8 deg
+  and reached 23.0 deg**, and the ball stayed on it.
+* **The coupling premise is not represented.** T2 is "bimanual by COUPLING:
+  one body, two grips, neither arm's pose free given the other's." A body
+  that resizes to fit the hands constrains neither arm.
+
+The honest signal is already in the data and is the thing to read instead:
+`sep_err_rms_mm` is **557** and `sep_err_max_mm` is **651** on a 500 mm tray.
+The hands are not at tray separation for most of the run, and the renderer is
+what hides it. The previous bug here was the opposite error -- a rigid 560 mm
+tray pinned to ONE arm's pads, so the right arm held air -- and the fix
+replaced a wrong-but-rigid tray with a right-looking elastic one.
+
+**T2 also records no GRASPED or RELEASED events at all** (`items` is `{}`;
+tray and ball are fixtures), which is deliberate and documented -- but it
+means the carry series is not anchored to a carry. `tilt_max_deg` and
+`sep_err_max_mm` are computed over the WHOLE clip, approach and retreat
+included, so they are not carry statistics and must not be quoted as ones.
+
+## 2. THE WORKSPACE MARKING RUNS 25 mm PAST THE TABLE'S NEAR EDGE
+
+`work_surface_region.json`'s clear cells start at **y = 0.075**.
+`clip_scene.TABLE_NEAR_Y` is **0.100**. So the whole nearest row of the
+marking -- **43 of 439 cells, 9.8%** -- is drawn over air, on the wearer's
+side of the table edge.
+
+This is the same defect the table widening fixed in x and left unfixed in y.
+TASK_SPEC's own words for why the table went to +-1.05: *a marking drawn over
+air is a marking that lies.*
+
+**And stage 2 puts objects there.** In all three modes recorded, `cube_left_0`
+came to rest at **y = 0.076**, 24 mm beyond the table's front edge, because
+the stage-2 sampler draws from `clear_cells` and nothing in that pool knows
+where the furniture is. It is visible from the front view.
+
+Not fixed here, deliberately: moving the table's near edge is a scene change,
+and changing scenery half way through a recorded set is worse than the defect.
+The edge at y = 0.100 was measured to cost 0 waypoint failures at a 0.95 top;
+0.075 has NOT been measured and must be before it is moved.
+
+## 3. ACHIEVED MOTION IS NOT THE SAME ACROSS MODES, WITH NO OPERATOR PRESENT
+
+TASK_SPEC section 1 says: *"the same waypoints go out under every mode, so
+robot performance is identical across modes and every measured difference
+comes from the operator."*
+
+The first clause is true and is enforced in code. **The second does not
+follow, and these clips disprove it** -- they are scripted, with no operator
+anywhere in the loop, and the achieved motion still differs by mode:
+
+| task | quantity | 01_master_teleop | 03_shared_autonomy | 06_full_autonomy |
+| --- | --- | --- | --- | --- |
+| T0 | left EE path | 1.407 m | 2.034 m | 2.032 m |
+| T1 | left EE path | 3.106 m | 3.695 m | 3.682 m |
+| T3 | circuit box carried | **0.021 m** | — | **0.161 m** |
+| T3 | both objects held at once | **0.29 s** | — | **4.49 s** |
+
+Run-to-run noise is bounded by the one cell recorded twice on the same day:
+T1 under 01 read 3.021 m and 3.106 m, a 3% spread. T0's 44% and T3's 7.7x are
+far outside it.
+
+The mechanism is not mysterious -- the follower, the assist node and the VR
+mapper are different command paths with different tracking lag, and the scene
+node measures what the arm ACHIEVED, not what was commanded. That is a
+reasonable thing for the platform to do. What is not reasonable is the
+inference: **a mode difference in a trial cannot be attributed to the operator
+until the no-operator difference has been subtracted**, and it has never been
+measured. These fifteen clips are the first measurement of it.
+
+The claim should read: the same waypoints are COMMANDED under every mode. It
+should not say the robot performs identically, because it does not.
+
+## 4. T3's MEASUREMENT HOLD IS 0.29 s UNDER 01
+
+T3's card says both arms hold still while a reading is taken. Under
+01_master_teleop the window in which BOTH objects are held at once is
+**0.29 s**, and the circuit box travels **21 mm** -- it is never held up. Under
+06 the same waypoints give 4.49 s and 161 mm. The clip is not wrong about
+anything it claims; it simply does not show the thing the card describes.

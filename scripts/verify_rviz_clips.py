@@ -23,6 +23,7 @@ watching from 87 clips to the ones that fail.
 import glob
 import json
 import random
+import re
 import shutil
 import tempfile
 import os
@@ -123,10 +124,41 @@ def _green(a):
             & (a[:, :, 1] - a[:, :, 0] > 45) & (a[:, :, 1] - a[:, :, 2] > 45))
 
 
+def _blue(a):
+    """T1's cubes and its blue mat. CALIBRATED, on rendered frames, 2026-08-15.
+
+    The obvious worry is the WEARER: the mannequin's torso is blue, and two
+    detectors in this file already fire on the mannequin rather than on any
+    task object. Measured at this verifier's own 600 px scale, on front views
+    with the wearer filling a third of the frame:
+
+        T2 front (tray, ball, wearer, NO blue object)        0 px
+        T3 front (box, meter, wearer, NO blue object)        0 px
+        T0 front (wearer + the small BLUE SPHERE)           23-24 px
+        T1 front (wearer + two blue cubes and the mat)     78-131 px
+        T1 top   (the same objects, seen from above)      607-637 px
+
+    So the torso does not fire it at all -- it is a desaturated navy and this
+    keys on saturation, not on hue alone -- and the only small readings are a
+    genuine small object. That is why the floor is low: there is no wearer
+    leak to clear, and T0's sphere is 23 px of true positive that must not be
+    thrown away.
+    """
+    r, g, b = a[:, :, 0], a[:, :, 1], a[:, :, 2]
+    return (b > 140) & (b - r > 90) & (b - g > 70)
+
+
 PALETTE = {
     "tray_tan": _tan, "sling_orange": _tan, "ball_yellow": _yellow,
     "container_teal": _teal, "block_orange": _orange,
     "block_green": _green, "target_green": _green,
+    # THE MSc SET'S OWN NAMES. Deliberately prefixed, because the two task
+    # families collide on bare keys: the archived nine-task set has a `t2`
+    # and a `t3` and so does the MSc set, and they are different tasks with
+    # different objects. See MSC_REQUIRED.
+    "msc_blue": _blue, "msc_green": _green,
+    "msc_tray_tan": _tan, "msc_ball_yellow": _yellow,
+    "msc_meter_yellow": _yellow,
 }
 # RECALIBRATED for the four-view layout. The threshold of 25 was set when the
 # capture was one 1600x1000 window; each view is now 800x500, so an object
@@ -168,7 +200,15 @@ MIN_PIXELS = 12
 FLOOR = {"tray_tan": 120, "sling_orange": 120, "ball_yellow": 20}
 
 
-def floor_for(name):
+def floor_for(name, floors=None):
+    """The pixel floor for one object, from ITS OWN namespace's table.
+
+    A shared floor across the two task families is what let `_tan`'s archived
+    floor of 120 -- calibrated against a scene with a small wearer -- be
+    applied to MSc frames where the mannequin's skin alone reads 288-352.
+    """
+    if floors and name in floors:
+        return floors[name]
     return FLOOR.get(name, MIN_PIXELS)
 # what each task MUST show at least one of
 REQUIRED = {
@@ -200,6 +240,75 @@ REQUIRED = {
     # NOT met by them and must not be claimed.
     "a": [], "b": [], "c": [],
 }
+
+# ===========================================================================
+#  THE MSc SET, AND WHY IT NEEDS ITS OWN TABLE
+# ===========================================================================
+# THE TWO TASK FAMILIES COLLIDE ON BARE KEYS. The archived nine-task set has
+# `t2` (a teal container and an orange block) and `t3` (a tan tray and a
+# yellow ball). The MSc set ALSO has a T2 and a T3, and they are different
+# tasks with different objects: MSc T2 is the bimanual tray carry and MSc T3
+# is the circuit box and multimeter.
+#
+# The tree is parsed as <mode>/<task>/<scenario>, task lowercased -- so an
+# MSc T2 clip was looked up as "t2" and checked for a TEAL CONTAINER and an
+# ORANGE BLOCK, neither of which is in that scene or ever could be. It is the
+# substring/prefix family from CLAUDE.md's instrument table: two namespaces,
+# one key space, and every symptom looks like a real object failure.
+#
+# The two trees are distinguishable without guessing, because they are shaped
+# differently: the MSc and A/B/C sweeps write <mode>/<task>/..., and the mode
+# is always NN_name. requirements_for() reads that shape.
+#
+# FLOORS ARE MEASURED, NOT CHOSEN, at this file's own 600 px sample scale, on
+# rendered front views from 01_master_teleop recorded 2026-08-15. Each floor
+# sits above the highest confirmed FALSE reading and below the lowest
+# confirmed TRUE one:
+#
+#   detector          wearer/other only        the object present     floor
+#   msc_blue          0 (T2, T3 fronts)        78-131 (T1)              40
+#   msc_green         0 (T2 front)             333-489 (T1, T3)        150
+#   msc_tray_tan      288-352 (T1/T3 SKIN)     753-889 (T2)            500
+#   msc_ball_yellow   21-30 (T1 marking)       515-963 (T2)            200
+#   msc_meter_yellow  21-30 (T1 marking)       75-83  (T3)              50
+#
+# TWO THINGS IN THAT TABLE ARE THE WHOLE REASON IT IS MEASURED. `_tan` reads
+# 288-352 px on a frame with NO tray in it, because it fires on the
+# mannequin's skin -- the archived floor of 120 would have passed every MSc
+# clip whether the tray rendered or not. And the yellow floor cannot be one
+# number: the ball is ten times the meter's pixel count, so a floor that
+# clears the ball's noise would reject the meter outright.
+MSC_REQUIRED = {
+    # T0's six spheres are red, green and blue (task0.SPHERE_COLOURS). There
+    # is no red detector in this file, so the check is on the two that can be
+    # measured. Both are SMALL -- a sphere is 23-46 px here -- which is why
+    # their floors are low and why they were confirmed by eye first.
+    "t0": ["msc_blue", "msc_green"],
+    "t1": ["msc_blue", "msc_green"],
+    "t1s2": ["msc_blue", "msc_green"],
+    "t2": ["msc_tray_tan", "msc_ball_yellow"],
+    "t3": ["msc_green", "msc_meter_yellow"],
+    # The demonstration routines carry no object at all, by design, and say so
+    # rather than being given a requirement they happen to meet.
+    "d1": [], "d2": [], "d3": [],
+}
+MSC_FLOOR = {
+    "msc_blue": 40, "msc_green": 150, "msc_tray_tan": 500,
+    "msc_ball_yellow": 200, "msc_meter_yellow": 50,
+}
+
+
+def requirements_for(mode, task):
+    """(list-or-None, floors) for this clip. None means NOT KNOWN, not empty.
+
+    The distinction is the point: an unknown task must not resolve to "no
+    objects required", which is the 0-of-0 shape that reads exactly like a
+    clean pass. verify_clip() already refuses that; this must not hand it an
+    empty list instead.
+    """
+    if re.match(r"^\d\d_", mode or ""):
+        return MSC_REQUIRED.get(task), MSC_FLOOR
+    return REQUIRED.get(task), {}
 
 
 def duration(mp4):
@@ -259,7 +368,7 @@ def colour_hits(img, name):
     return int(below_hud(PALETTE[name](img)).sum())
 
 
-def verify_clip(mp4, task):
+def verify_clip(mp4, task, mode=None):
     """Judge ONE clip. Returns a dict; `ok` is the verdict.
 
     Split out of main() so the negative control can drive the SAME code the
@@ -278,7 +387,7 @@ def verify_clip(mp4, task):
     variety = int(np.mean([len(np.unique(f.reshape(-1, 3), axis=0))
                            for f in F]))
     changed = float(np.abs(F[0] - F[-1]).mean())
-    want = REQUIRED.get(task)
+    want, floors = requirements_for(mode, task)
     why = []
     if want is None:
         # A TASK THIS VERIFIER DOES NOT KNOW IS NOT A PASS. Before this, an
@@ -290,7 +399,7 @@ def verify_clip(mp4, task):
                    "nothing was checked" % task)
         want = []
     found = {k: max(colour_hits(f, k) for f in F) for k in want}
-    missing = [k for k, v in found.items() if v < floor_for(k)]
+    missing = [k for k, v in found.items() if v < floor_for(k, floors)]
     if bright < 8:
         why.append("picture is black (mean %.1f)" % bright)
     if variety < 500:
@@ -506,7 +615,9 @@ def self_test(verbose=True):
     try:
         for name, painter, task, must_pass, why in CONTROLS:
             mp4 = _clip(os.path.join(tmp, name, "rviz_front.mp4"), painter)
-            r = verify_clip(mp4, task)
+            # mode=None -> the LEGACY namespace, which is what CONTROLS is
+            # written against. The MSc namespace gets its own controls below.
+            r = verify_clip(mp4, task, None)
             good = (r["ok"] == must_pass)
             ok_all &= good
             if verbose:
@@ -581,7 +692,7 @@ def main():
         parts = parts + ["-"] * (4 - len(parts))
         mode, task, scen, cond = parts[0], parts[1], parts[2], parts[3]
         task = task.lower()
-        r = verify_clip(mp4, task)
+        r = verify_clip(mp4, task, mode)
 
         # EVERY ANGLE, NOT JUST THE FRONT.
         #

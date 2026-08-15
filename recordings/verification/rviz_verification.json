@@ -385,9 +385,9 @@
     "ok": true,
     "why": "",
     "duration_s": 19.8,
-    "bright": 88.2,
-    "variety": 5281,
-    "delta": 2.02,
+    "bright": 88.1,
+    "variety": 5455,
+    "delta": 2.35,
     "objects": {
       "msc_sphere_blue": 24,
       "msc_sphere_green": 42
@@ -401,13 +401,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 32.9,
-    "bright": 104.6,
-    "variety": 8694,
-    "delta": 1.95,
+    "duration_s": 32.8,
+    "bright": 125.7,
+    "variety": 8603,
+    "delta": 2.42,
     "objects": {
-      "msc_blue": 123,
-      "msc_green": 512
+      "msc_blue": 124,
+      "msc_green": 513
     },
     "angles_bad": [],
     "mode": "06_full_autonomy",
@@ -418,13 +418,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 23.9,
-    "bright": 107.8,
-    "variety": 9518,
-    "delta": 2.71,
+    "duration_s": 23.8,
+    "bright": 130.3,
+    "variety": 10474,
+    "delta": 2.41,
     "objects": {
-      "msc_yellow_cube": 132,
-      "msc_teal_cube": 565
+      "msc_yellow_cube": 149,
+      "msc_teal_cube": 463
     },
     "angles_bad": [],
     "mode": "06_full_autonomy",
@@ -435,13 +435,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 15.3,
-    "bright": 91.3,
-    "variety": 7563,
-    "delta": 4.84,
+    "duration_s": 15.8,
+    "bright": 101.2,
+    "variety": 8174,
+    "delta": 4.49,
     "objects": {
-      "msc_tray_tan": 1391,
-      "msc_ball_yellow": 1172
+      "msc_tray_tan": 948,
+      "msc_ball_yellow": 705
     },
     "angles_bad": [],
     "mode": "06_full_autonomy",
@@ -453,12 +453,12 @@
     "ok": true,
     "why": "",
     "duration_s": 20.2,
-    "bright": 103.2,
-    "variety": 8917,
-    "delta": 1.3,
+    "bright": 119.5,
+    "variety": 8953,
+    "delta": 0.9,
     "objects": {
-      "msc_green": 427,
-      "msc_meter_yellow": 89
+      "msc_green": 426,
+      "msc_meter_yellow": 88
     },
     "angles_bad": [],
     "mode": "06_full_autonomy",

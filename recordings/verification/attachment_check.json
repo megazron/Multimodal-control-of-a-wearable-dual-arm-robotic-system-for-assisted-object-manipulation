@@ -1,5 +1,26 @@
 [
   {
+    "task": "D1",
+    "scenario": "D1_flow",
+    "condition": "-",
+    "verdict": "N/A",
+    "detail": ""
+  },
+  {
+    "task": "D2",
+    "scenario": "D2_pulse",
+    "condition": "-",
+    "verdict": "N/A",
+    "detail": ""
+  },
+  {
+    "task": "D3",
+    "scenario": "D3_play",
+    "condition": "-",
+    "verdict": "N/A",
+    "detail": ""
+  },
+  {
     "task": "T0",
     "scenario": "D3_three_targets",
     "condition": "-",

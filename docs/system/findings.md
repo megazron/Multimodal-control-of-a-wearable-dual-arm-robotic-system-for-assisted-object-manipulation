@@ -4881,3 +4881,45 @@ defect; t0 has no grasp at all and should not be counted.
 Not silently weakened. The criterion is right for an arm that can rotate its
 wrist during a grasp and wrong for this one, and which of those is true is a
 platform decision rather than a verifier tuning parameter.
+
+---
+
+# 2026-08-15 (part 6) — THE DANCE ROUTINES COULD NOT BE FILMED, AND THE CHECK THAT KNEW IT CRASHED
+
+`verify_dance_paths.py` exits non-zero on the current geometry, and for two
+reasons stacked on top of each other.
+
+**First, it crashed instead of reporting.** The line that prints an example
+failure is `"   e.g. %s" % worst[0]`, where `worst[0]` is a 3-tuple, so Python
+tries to fill one conversion from three arguments and raises TypeError. That
+line only runs WHEN THERE IS A FAILURE TO REPORT, so the verifier threw an
+exception exactly when it had something to say and printed a clean table the
+rest of the time. Fixed with `% (worst[0],)`.
+
+**Then it spoke, and the envelope was wrong:**
+
+| routine | before | e.g. |
+| --- | --- | --- |
+| d1 flow | **45 of 382 waypoints FAIL** | right arm at x = −0.28 |
+| d2 pulse | 0 of 356 | — |
+| d3 play | **49 of 554 FAIL** | left arm at x = +0.272 |
+
+The choreography's box was `|x| ∈ [0.26, 0.50]`, taken from task0's free-space
+anchors with NO FURNITURE and no wearer clearance floor. The columns each arm
+can actually work — reachable AND clear of the 150 mm floor at the current home
+— are **0.325 on the left and 0.450 on the right**. Most of that box is inboard
+of the right arm's limit, which is why the right arm failed at −0.28 and the
+left at +0.272.
+
+**One symmetric band, not two.** A per-arm band would let the left arm work
+125 mm further in than the right, and these routines are built on unison, canon
+and mirroring, so an asymmetric envelope makes the arms trace visibly different
+shapes and the choreography stops reading. Both arms use the RIGHT arm's limit
+plus the project's 20 mm margin, and the outer edge moves out to keep the span:
+the measured clear region runs to |x| = 1.00 on both sides.
+
+    X_IN, X_MID, X_OUT   0.28, 0.38, 0.48  ->  0.48, 0.60, 0.72
+    BOX |x|              0.26 .. 0.50      ->  0.47 .. 0.76
+
+Re-verified: **d1 0 of 382, d2 0 of 356, d3 0 of 560, over 3898 IK calls, 0
+failures.** The routines are filmable now and were not before.

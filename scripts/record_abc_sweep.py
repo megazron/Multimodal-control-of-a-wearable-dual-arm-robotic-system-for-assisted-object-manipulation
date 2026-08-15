@@ -768,7 +768,22 @@ def _main_body():
             "A sweep that films the wrong tasks looks entirely normal until "
             "somebody watches it." % (", ".join(wrong), a.taskset))
         return 2
-    prog = load_progress() if a.resume else {}
+    # THE LEDGER IS ALWAYS LOADED. --resume DECIDES WHAT TO SKIP, NOT WHAT TO
+    # REMEMBER, AND CONFLATING THE TWO DESTROYS EVIDENCE.
+    #
+    # This was `load_progress() if a.resume else {}`, so a run over a SUBSET
+    # -- `--only <mode> --tasks t0`, which is what a re-record of one bad clip
+    # is -- started from an empty dict and `save_progress()` then wrote that
+    # empty dict plus the one new cell over the whole file. MEASURED on
+    # 2026-08-15: mode 01 recorded 5 of 5, one clip was re-recorded to fix its
+    # opening pose, and the ledger afterwards held ONE entry. The other four
+    # clips were still on disk and had been erased from the only record of
+    # what they are -- including `opened_on`, which cannot be recovered by
+    # looking at the directory.
+    #
+    # Nothing downstream could have caught it: status_table.py reads this
+    # file, so the set would simply have reported itself as one clip.
+    prog = load_progress()
 
     log("=" * 74)
     log("ABC SWEEP -- %d modes x %d tasks x %d angles"
@@ -874,17 +889,54 @@ def _main_body():
                 # picture, and losing the whole clip over the opening frame
                 # would be the worse trade. It is logged either way, so a
                 # clip that opened on home is identifiable afterwards.
-                _st = subprocess.run(
-                    [sys.executable,
-                     os.path.join(WS, "scripts",
-                                  "stage_presentation_pose.py")],
-                    capture_output=True, text=True)
-                log("      presentation pose: %s"
-                    % ("OK" if _st.returncode == 0
-                       else "NOT STAGED (rc=%d) -- this clip opens on HOME: %s"
-                       % (_st.returncode,
-                          (_st.stdout or _st.stderr).strip()[:120])))
+                # TWO ATTEMPTS, AND THE SECOND IS NOT SUPERSTITION.
+                #
+                # MEASURED on the 2026-08-15 sweep: the FIRST clip of a run
+                # failed with rc=1 (did not arrive inside 8 s) and every clip
+                # after it staged first time, on the same stack, from the same
+                # home pose. The script already has a discovery LOOP for
+                # /joint_states for exactly this reason -- a fresh subprocess
+                # against a stack that has just come up is not the same as a
+                # warm one -- and the arrival timeout is the half that did not
+                # get one.
+                #
+                # A retry is honest here because the operation is idempotent:
+                # it commands an absolute joint-space pose and waits. It is
+                # NOT a blanket retry -- both attempts are logged, and a
+                # second failure is still a failure.
+                for _try in (1, 2):
+                    _st = subprocess.run(
+                        [sys.executable,
+                         os.path.join(WS, "scripts",
+                                      "stage_presentation_pose.py")],
+                        capture_output=True, text=True)
+                    if _st.returncode == 0:
+                        if _try == 2:
+                            log("      presentation pose: OK on attempt 2 "
+                                "(the first did not arrive in time)")
+                        break
+                    if _try == 1:
+                        log("      presentation pose: attempt 1 rc=%d, "
+                            "retrying once" % _st.returncode)
                 staged = _st.returncode == 0
+                if staged and _try == 1:
+                    log("      presentation pose: OK")
+                elif not staged:
+                    # THE WHOLE OUTPUT, NOT 120 CHARACTERS OF IT.
+                    #
+                    # The staging script prints the per-arm joint error and
+                    # then the reason, in that order, and the truncation cut
+                    # the message off inside the FOLLOWER-PAUSE line -- so a
+                    # failure whose diagnosis was three lines further down
+                    # reached the log as "paused (motion_enabled true ->" and
+                    # nothing else. A failure path that cannot report is worse
+                    # than no failure path, which is written eight functions
+                    # up this file about a different truncation.
+                    log("      presentation pose: NOT STAGED (rc=%d) -- this "
+                        "clip opens on HOME" % _st.returncode)
+                    for _ln in ((_st.stdout or "") + (_st.stderr or "")
+                                ).strip().splitlines():
+                        log("        | %s" % _ln)
                 time.sleep(a.settle_s)
                 good, msg, grabs, gate, grab_t0 = run_one(
                     app, gui, task, mode, out_dir, graph=graph,

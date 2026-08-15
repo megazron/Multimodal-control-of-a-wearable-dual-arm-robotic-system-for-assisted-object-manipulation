@@ -3238,3 +3238,78 @@ in x. It is not — the left arm's row at y = 0.30 fails at x = 0.55 and
 succeeds at 0.25..0.50 — so the scan reported "nothing at this y" for a row
 with eleven working columns in it. Same family as the 62%-of-its-bounding-box
 result that made the marking be drawn as cells.
+
+---
+
+# 2026-08-15 (later) — THE GAP HAD A THIRD CONSUMER, AND THE TABLE POINTED AT THE WRONG COLUMN
+
+Two contradictions found while writing `docs/system/clearance_gap_ledger.md`,
+which is the ledger of which earlier numbers the SRDF clearance gap
+invalidated. `docs/TASK_SPEC.md` says a contradiction gets fixed and recorded
+here, so both are here.
+
+## 1. `named_places.py` still resolved spoken commands against the IK set
+
+`clip_scene.py` and `msc_clip_tasks.py` were switched from `cells` to
+`clear_cells` when the clearance region was measured. `srl_autonomy/
+named_places.py` was not, and it is the module that turns **"move to the left
+side"** into a pose for `autonomy_executive` — the whole of mode 06's input
+path. Three consumers read that survey and two were changed.
+
+It was safe, and it was safe **by luck**. The centroid of the IK set,
+(0.625, 0.175), happens to clear the floor; the centroid of the clear set is
+(0.725, 0.175). Nothing in the code preferred the safe one — a re-survey that
+moved the centroid inboard would have returned a pose inside the wearer and
+no check anywhere would have disagreed, because the only check the pose ever
+faced was the `avoid_collisions` one that cannot see it. The `n_cells` it
+reported alongside overstated the usable region by exactly the 72 left and 68
+right cells that breach the floor.
+
+It now reads `clear_cells` and **refuses** a file without them rather than
+falling back, which the 2026-08-13 survey still on disk demonstrates:
+
+    work_surface_region_PRE20260815.json has no `clear_cells`: it predates
+    the wearer-clearance measurement ... I will not resolve a spoken place
+    against an unchecked region.
+
+Resolved poses move outboard 100 mm (left) and 75 mm (right); reported counts
+drop 265 -> 193 and 314 -> 246. The **"front centre is unreachable"** answer
+is unchanged, because it is 0 cells at |x| <= 0.10 in both sets — which is
+worth saying, because it means that finding never depended on the gap.
+
+## 2. TASK_SPEC's region table quoted the safe boundary against the unsafe count
+
+The table in section 2A read
+
+    left   265 cells, x +0.425...+1.000   |  193 cells
+
+Measured from the file, the IK set runs from x = **0.250** and the clear set
+from 0.425; on the right, −0.225 and −0.400. So the x-range printed in the
+IK column was the CLEAR set's range. The row therefore quoted the safe
+boundary while counting the unsafe cells, and the 175 mm inboard strip that is
+the entire subject of the measurement did not appear in the table at all.
+
+This is the "everything matches" row of CLAUDE.md's instrument table wearing
+a new hat: two numbers from the same measurement, printed side by side,
+looking consistent because one of them was copied from the other's source.
+
+## 3. And the sweep had only one witness for a moving arm
+
+Not a clearance finding, but found in the same pass. `record_abc_sweep`
+decided a clip was good from `run_abc`'s exit code, which carries its own
+`--min-travel-m` gate. Both measure EE travel, in different processes, off
+different tf2 listeners — so the runner can see motion the scene node never
+received, and on 2026-08-15 that is what got filed: clips reporting
+`TRAVEL L 0.00 R 0.00` with four cubes carried 0.000 m, recorded OK.
+
+`scene_travel_verdict()` is a second gate reading the scene node's own
+`ee_travel_m`, extracted as a function so it can be handed a broken input —
+the old gate lived inside a 300-line loop that needs a stack, an Xvfb and four
+minutes to reach, which is the same reason a check nobody can break is a check
+nobody has tested. 13 known answers, including the two a naive version gets
+wrong: **one arm still is correct** for the three one-armed tasks, and a clip
+with no travel field is **UNANSWERED, not failed** — by_design.py's rule.
+
+Floor 0.05 m, from measurement rather than taste: the good clip recorded
+minutes earlier reads left 3.0205 m, right 0.6010 m, and the failure reads
+0.0000 on both. There is nothing between them.

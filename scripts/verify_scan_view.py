@@ -105,18 +105,35 @@ def main():
             # exact match against the requested colour fails on frames whose
             # object is plainly visible. Here the mock paints flat colour, but
             # the same rule is used so the two verifiers cannot disagree.
-            bench = int(((r > 150) & (g > 120) & (b < 130)
-                         & (r > b + 40)).sum())
+            # THE TABLE IS WHITE NOW, AND THIS DETECTOR WAS LOOKING FOR OAK.
+            #
+            # It required b < 130 and r > b + 40. The table top renders at
+            # (240, 240, 242) -- clip_scene.OAK, which kept its name and lost
+            # its colour on 2026-08-15 -- so BOTH conditions are unsatisfiable
+            # and `surface_ok` could only ever be False. This script would
+            # have reported "the camera cannot see the work surface" for a
+            # frame filled with it.
+            #
+            # The same colour change is SAFE for the object detectors and
+            # BREAKS this one, for one reason: a neutral has R = G = B, so it
+            # cannot fire a channel-difference test. The objects are found by
+            # channel difference and must not match the table; the table is
+            # the thing that must match. So it is keyed on what a neutral
+            # actually is -- bright, and nearly equal in all three -- rather
+            # than on a hue it no longer has.
+            lo = np.minimum(np.minimum(r, g), b)
+            hi = np.maximum(np.maximum(r, g), b)
+            surface = int(((lo > 150) & (hi - lo < 25)).sum())
             blue = int(((b > 120) & (b > r + 60) & (b > g + 60)).sum())
             green = int(((g > 120) & (g > r + 60) & (g > b + 40)).sum())
             tot = a.shape[0] * a.shape[1]
             # HOW MANY T1 OBJECTS ARE ON THIS ARM'S SIDE AT ALL? T1 is a
-            # ONE-ARM task and the side is msc_clip_tasks.T1_ARM, currently
-            # the RIGHT arm with all four cubes at negative x -- so the LEFT
-            # camera correctly frames a work surface with nothing on it. (This
-            # comment said the opposite for a while, from before the layout
-            # moved; the code below has always read the coordinates rather
-            # than a side, which is why it kept working.) Demanding objects in
+            # ONE-ARM task, so the camera on the OTHER side correctly frames a
+            # work surface with nothing on it. THE SIDE IS NOT NAMED HERE --
+            # the code below reads MCT.T1_CUBES, which is why it kept working
+            # through two layout moves while this comment named the wrong arm
+            # each time. It said RIGHT until 2026-08-15, by which point stage
+            # 1 had been back on the LEFT for three days. Demanding objects in
             # both views would fail a working scan pose for the layout's
             # reason, which is the by-design-versus-real-gap confusion the
             # status table just had to be fixed for.
@@ -134,20 +151,22 @@ def main():
                  if any(x * (1.0 if a == "left" else -1.0) > 0
                         for x, _y in MCT.T1_CUBES)},
                 label="the T1 layout",
-                reason="T1 is a left-arm task -- all 4 cubes at positive x")
+                reason=("T1 is a one-arm task -- all %d cubes on one side, "
+                        "read from MCT.T1_CUBES" % len(MCT.T1_CUBES)))
             verdict, why = obj_exp.classify(arm, present=bool(blue or green))
-            surface_ok = bench > 0.02 * tot
+            surface_ok = surface > 0.02 * tot
             if n_obj:
                 ok = surface_ok and blue > 0 and green > 0
-                det = ("bench/table %.1f%% of frame, blue %d px, green %d px "
+                det = ("white table %.1f%% of frame, blue %d px, green %d px "
                        "(%d T1 objects this side)"
-                       % (100.0 * bench / tot, blue, green, n_obj))
+                       % (100.0 * surface / tot, blue, green, n_obj))
             else:
                 ok = surface_ok
-                det = ("bench/table %.1f%% of frame; NO T1 objects on this "
-                       "side by design (T1 is a left-arm task, all 4 cubes "
-                       "at positive x) -- surface framing verified, object "
-                       "visibility n/a" % (100.0 * bench / tot))
+                det = ("white table %.1f%% of frame; NO T1 objects on this "
+                       "side by design (T1 is a one-arm task and all %d "
+                       "cubes are on the other side) -- surface framing "
+                       "verified, object visibility n/a"
+                       % (100.0 * surface / tot, len(MCT.T1_CUBES)))
             rows.append((arm, ok, det))
         finally:
             try:

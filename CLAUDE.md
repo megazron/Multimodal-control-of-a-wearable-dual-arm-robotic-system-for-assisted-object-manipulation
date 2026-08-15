@@ -134,6 +134,11 @@ with no gravity compensation on someone who did not choose the motion.
 11. **The wearer is in the collision model and the clearance floor is the last
     thing between the arms and a person's chest.** Do not lower it globally.
     An SRDF exclusion silences an alarm; it does not move the metal.
+    **`avoid_collisions` IS NOT THE WEARER CHECK** — the SRDF excludes the 44
+    proximal pairs a shoulder mount actually threatens, so a `valid` pose can
+    have the tube inside the person. Measure clearance geometrically, and do
+    not cite a workspace figure without checking
+    `docs/system/clearance_gap_ledger.md` for whether it survived.
 12. **Anonymity is enforced in code.** `write_manifest()` raises on `name`,
     `email`, `dob`, `address`, `phone`.
 13. **A demonstration is not evidence.** Demo clips carry that caveat in the
@@ -205,6 +210,7 @@ seems not to apply, suspect a stale PROCESS, not a stale install.
 | `docs/system/hardware.md` | Teensy and serial, channel health, spherical position and AXIS_MAP, gyro azimuth, calibration, clutch, grippers, degraded mode, the virtual Teensy |
 | `docs/system/wsl.md` | mirrored networking, the cyclic-path finding, `/mnt/c`, `/dev/shm`, the Quest transport, x11grab and Xvfb capture |
 | `docs/system/architecture.md` | packages and topics, the IK follower, operating modes, VR stack, the three GUIs |
+| `docs/system/clearance_gap_ledger.md` | **which earlier workspace and clearance numbers the SRDF gap invalidated and which stand. Read before citing any workspace figure.** |
 | `docs/system/home_wrist_is_real.md` | why the home wrist points up, what changing it would cost, and why 30.7 deg is a different number |
 | `docs/system/03_real_robot_bringup.md` | **the lab-day fault table and the camera framing note. Read before hardware.** |
 | `docs/system/06_troubleshooting.md` | keyed by SYMPTOM |

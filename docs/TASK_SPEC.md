@@ -179,10 +179,17 @@ nothing if one fails.
 
 | | IK-reachable, full pick path | **also clear of the wearer** |
 | --- | --- | --- |
-| left | 265 cells, x +0.425…+1.000 | **193 cells** |
-| right | 314 cells, x −1.000…−0.400 | **246 cells** |
+| left | 265 cells, x +0.250…+1.000 | **193 cells, x +0.425…+1.000** |
+| right | 314 cells, x −1.000…−0.225 | **246 cells, x −1.000…−0.400** |
 | both arms | 0 | 0 |
 | \|x\| ≤ 0.10 (front centre) | **0** | **0** |
+
+**Read the x-ranges as the whole of the difference.** The two columns stop in
+the same place outboard and 175 mm apart inboard, and that inboard strip is
+the strip the SRDF could not see. An earlier version of this table printed
+the clearance-safe range against the IK column, which quoted the safe
+boundary while counting the unsafe cells; corrected 2026-08-15 against
+`work_surface_region.json` and recorded in `docs/system/findings.md`.
 
 `recordings/baselines/work_surface_region.json`, 25 mm cells, full pick path,
 merged from three clearance surveys. **Two things about it are new and both

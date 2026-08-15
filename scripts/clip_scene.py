@@ -1109,6 +1109,28 @@ class Scene(Node):
         self.ee_travel = getattr(self, "ee_travel", {"left": 0.0, "right": 0.0})
         self.ee_first = getattr(self, "ee_first", {})
         self.ee_samples = getattr(self, "ee_samples", {"left": 0, "right": 0})
+        # THE GRIP TRACE, WHICH NOTHING HAS EVER WRITTEN.
+        #
+        # `verify_gripper_motion`, `verify_object_attachment` and
+        # `verify_grasp_quality` all read `grip_trace.json` and all three have
+        # been refusing to report for the whole life of the MSc set, with the
+        # correct diagnosis in their own source: "NOTHING IN THE CLIP PATH
+        # WRITES grip_trace.json AT ALL -- 0 files on disk across 25 recorded
+        # cells". They were right, they were loud, and the missing piece was
+        # the PRODUCER rather than the check. This is it: the knuckle angle
+        # per arm per tick, which is the same signal the attach gate uses.
+        self.grip_trace = getattr(self, "grip_trace", [])
+        try:
+            _t_now = self.get_clock().now().nanoseconds * 1e-9
+            if self.t0 is not None:
+                self.grip_trace.append(dict(
+                    t=round(_t_now - self.t0, 2),
+                    left=(None if self.knuck.get("left") is None
+                          else round(float(self.knuck["left"]), 4)),
+                    right=(None if self.knuck.get("right") is None
+                           else round(float(self.knuck["right"]), 4))))
+        except Exception:                                      # noqa: BLE001
+            pass
         # THE SAMPLE COUNT TRAVELS WITH THE PATH LENGTH.
         #
         # `ee_travel_m` is a sum of |dp| over TICKS, so it is a property of how
@@ -1859,6 +1881,15 @@ def main():
                            pad_off=getattr(n, "pad_off", None),
                            pad_off_by_arm=getattr(n, "pad_off_by_arm", None)),
                       open(n.out, "w"), indent=2)
+        # grip_trace.json, BESIDE scene_events.json and named what its three
+        # readers already look for. Written even when empty, because "the
+        # gripper never moved" and "nobody recorded whether it moved" are
+        # different facts and the verifiers are built to tell them apart.
+        try:
+            _gt = os.path.join(os.path.dirname(n.out), "grip_trace.json")
+            json.dump(getattr(n, "grip_trace", []), open(_gt, "w"))
+        except Exception:                                      # noqa: BLE001
+            pass
         try:
             remove_furniture(n)
         except Exception:                                      # noqa: BLE001

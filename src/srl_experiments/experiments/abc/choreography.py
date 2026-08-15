@@ -141,10 +141,32 @@ V_MAX = 0.30
 # waypoint through /compute_ik with avoid_collisions before anything is
 # filmed, with controls, because an envelope taken from another task's
 # verification is an inference until it is measured here.
-X_IN, X_MID, X_OUT = 0.28, 0.38, 0.48
+# MOVED OUTBOARD 2026-08-15, AND THE OLD BOX WAS NOT FILMABLE.
+#
+# The anchors above come from task0's verification with NO FURNITURE and no
+# wearer clearance floor, so they are free-space reach and not workspace. Run
+# through `verify_dance_paths.py`, which asks /compute_ik with
+# avoid_collisions and the wearer in the scene, the old envelope
+# (|x| 0.26..0.50) failed **45 of 382 waypoints in d1 and 49 of 554 in d3** --
+# the right arm at x = -0.28 and the left at x = +0.272. d2 was clean because
+# it happens to stay outboard.
+#
+# The reason is the same one parts 1 and 2 found: the innermost column each arm
+# can reach AND keep the 150 mm wearer floor is **0.325 on the left and 0.450
+# on the right**, re-measured over the full path at N=10 at the current home.
+# Most of the old box was inboard of the right arm's limit.
+#
+# ONE SYMMETRIC BAND, NOT TWO. A per-arm band would let the left arm work
+# 125 mm further in than the right, and these routines are built on unison,
+# canon and mirroring -- an envelope that is not symmetric makes the two arms
+# do visibly different shapes and the choreography stops reading. So both arms
+# use the RIGHT arm's limit, plus the project's own 20 mm margin, and the outer
+# edge moves out to keep the span: the measured clear region runs to |x| = 1.00
+# on both sides, so there is room.
+X_IN, X_MID, X_OUT = 0.48, 0.60, 0.72
 Y_NEAR, Y_MID, Y_FAR = 0.24, 0.33, 0.42
 Z_LOW, Z_MID, Z_HIGH, Z_TOP = 1.06, 1.22, 1.38, 1.54
-BOX = ((0.26, 0.50), (0.22, 0.44), (1.02, 1.58))     # |x|, y, z
+BOX = ((0.47, 0.76), (0.22, 0.44), (1.02, 1.58))     # |x|, y, z
 
 
 # ------------------------------------------------------------------ easing

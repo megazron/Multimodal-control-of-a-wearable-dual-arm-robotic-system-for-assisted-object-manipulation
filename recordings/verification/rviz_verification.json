@@ -2,13 +2,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 19.2,
-    "bright": 88.1,
-    "variety": 5465,
-    "delta": 2.22,
+    "duration_s": 19.8,
+    "bright": 88.2,
+    "variety": 5503,
+    "delta": 2.64,
     "objects": {
       "msc_sphere_blue": 24,
-      "msc_sphere_green": 46
+      "msc_sphere_green": 42
     },
     "angles_bad": [],
     "mode": "01_master_teleop",
@@ -19,13 +19,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 32.8,
-    "bright": 104.6,
-    "variety": 8597,
-    "delta": 1.93,
+    "duration_s": 33.3,
+    "bright": 125.7,
+    "variety": 8582,
+    "delta": 2.43,
     "objects": {
-      "msc_blue": 133,
-      "msc_green": 508
+      "msc_blue": 122,
+      "msc_green": 509
     },
     "angles_bad": [],
     "mode": "01_master_teleop",
@@ -36,13 +36,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 24.2,
-    "bright": 107.8,
-    "variety": 9498,
-    "delta": 2.74,
+    "duration_s": 23.2,
+    "bright": 130.3,
+    "variety": 10247,
+    "delta": 2.37,
     "objects": {
       "msc_yellow_cube": 145,
-      "msc_teal_cube": 518
+      "msc_teal_cube": 445
     },
     "angles_bad": [],
     "mode": "01_master_teleop",
@@ -54,12 +54,12 @@
     "ok": true,
     "why": "",
     "duration_s": 15.8,
-    "bright": 91.2,
-    "variety": 7734,
-    "delta": 3.19,
+    "bright": 101.1,
+    "variety": 8515,
+    "delta": 3.76,
     "objects": {
-      "msc_tray_tan": 1142,
-      "msc_ball_yellow": 759
+      "msc_tray_tan": 960,
+      "msc_ball_yellow": 677
     },
     "angles_bad": [],
     "mode": "01_master_teleop",
@@ -70,13 +70,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 20.3,
-    "bright": 103.3,
-    "variety": 9256,
-    "delta": 1.13,
+    "duration_s": 20.8,
+    "bright": 119.6,
+    "variety": 9091,
+    "delta": 1.41,
     "objects": {
-      "msc_green": 386,
-      "msc_meter_yellow": 86
+      "msc_green": 424,
+      "msc_meter_yellow": 88
     },
     "angles_bad": [],
     "mode": "01_master_teleop",

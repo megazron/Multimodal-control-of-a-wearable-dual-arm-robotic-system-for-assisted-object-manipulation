@@ -99,7 +99,12 @@ def main():
     # conflated them: "direct" under the mannequin and "direct" under VR shared a
     # folder name. A glob that still assumes three levels matches NOTHING and
     # reports zero clips, which reads exactly like a clean pass.
-    dirs = sorted(glob.glob(os.path.join(OUT, "*/*/*/*/grip_trace.json")))
+    dirs = sorted((sorted(glob.glob(os.path.join(OUT, "*/*/*/*/grip_trace.json")))
+         # THREE levels is the MSc sweep, FOUR is the legacy A/B/C
+         # recorder. Accept both: the tree carries both sets and a
+         # glob that knows only one of them reports zero for the
+         # other, which reads exactly like a clean pass.
+         + sorted(glob.glob(os.path.join(OUT, "*/*/*/grip_trace.json")))))
     _WANTED = '*/*/*/*/grip_trace.json'
     # ZERO INPUTS IS NOT A PASS, AND THIS IS THE FAILURE THIS FILE WAS BUILT
     # TO PREVENT, ARRIVING FROM THE INSIDE.

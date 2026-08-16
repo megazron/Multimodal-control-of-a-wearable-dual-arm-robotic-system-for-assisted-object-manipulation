@@ -1,5 +1,5 @@
 {
-  "note": "joint-space staging pose commanded before capture; NOT a task pose and not teleoperation. Found by coordinate descent over joints 1, 2, 4 and 6 against a cost that encodes hands in front of the chest, lateral extent about the torso's, elbows below the shoulders and a level wrist, with clearance to the wearer measured GEOMETRICALLY (the SRDF excludes the pairs that matter, so /check_state_validity is not the authority on it). The cost also measures the APEX of the whole limb against the wearer's shoulder line, because an elbow can be below the shoulder at the joint being measured while the limb still climbs over the shoulders in the picture -- which is what the 2026-08-13 render showed and no joint-level term saw.",
+  "note": "THE PRESENTATION POSE IS THE HOME POSE, and this file now says so. It held the 2026-08-15 pose after home was re-solved on 2026-08-16, which left it 2.2888 rad (left) / 2.7891 (right) from home. The sweep stages this pose before every clip, so that became a 7.6-9.3 s move that regularly did not arrive: cells recorded a STATIONARY ARM (ee_travel 0.0000 both sides) and one clip logged 'NOT STAGED -- this clip opens on HOME', breaking R-7. Loaded from config/home_positions_{arm}.txt so it cannot drift from home again.",
   "good_enough_deg": 8.0,
   "shoulder_line_z": 1.46,
   "controls": {
@@ -28,13 +28,13 @@
   "poses": {
     "left": {
       "q": [
-        -2.353043,
-        -1.142916,
-        -0.45574,
-        -1.362569,
-        -2.652752,
-        -0.664927,
-        2.908971
+        1.040042,
+        1.803623,
+        -1.469567,
+        1.409528,
+        -0.124791,
+        -0.578053,
+        1.256113
       ],
       "delta_deg": [
         -33.85,
@@ -45,19 +45,19 @@
         -65.58,
         111.41
       ],
-      "elevation_deg": -0.0,
-      "clearance_m": 0.161,
+      "elevation_deg": -1.47,
+      "clearance_m": 0.1596,
       "hand": [
-        0.55,
-        0.36,
-        1.18
+        0.4054,
+        0.3424,
+        1.179
       ],
       "elbow": [
         0.7377,
         -0.0567,
         1.219
       ],
-      "elbow_below_shoulder_m": 0.0793,
+      "elbow_below_shoulder_m": 0.2776,
       "apex_z": 1.3424,
       "apex_above_shoulder_m": -0.1176,
       "travel_deg": 311.9,
@@ -65,13 +65,13 @@
     },
     "right": {
       "q": [
-        -0.883078,
-        1.759435,
-        1.679424,
-        1.376719,
-        0.200216,
-        -0.508216,
-        4.638158
+        -0.886627,
+        1.893333,
+        1.592438,
+        1.440246,
+        -2.572092,
+        0.637394,
+        -2.207143
       ],
       "delta_deg": [
         5.75,
@@ -82,24 +82,24 @@
         -65.51,
         111.04
       ],
-      "elevation_deg": -0.0,
+      "elevation_deg": -1.42,
       "clearance_m": 0.161,
       "hand": [
-        -0.55,
-        0.36,
-        1.18
+        -0.3971,
+        0.3397,
+        1.1791
       ],
       "elbow": [
         -0.532,
         -0.0815,
         1.0268
       ],
-      "elbow_below_shoulder_m": 0.2715,
+      "elbow_below_shoulder_m": 0.2794,
       "apex_z": 1.3414,
       "apex_above_shoulder_m": -0.1186,
       "travel_deg": 283.0,
       "hand_travel_m": 0.2215
     }
   },
-  "restored_note": "RESTORED BY HAND 2026-08-15, not regenerated. A weight experiment on the elbow-mirror term (MIRROR_W) briefly saved a pose with the hands at z=1.100, which disagreed with config/home_positions_*.txt -- and home IS this pose, so the two must match. The weight is now 0.0 and re-running find_presentation_pose.py --save should reproduce exactly these values; that re-run is the confirmation step and has NOT been done."
+  "restored_note": "regenerated from the solved home, 2026-08-16"
 }

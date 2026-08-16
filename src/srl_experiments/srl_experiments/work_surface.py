@@ -31,7 +31,32 @@ error is the difference between a grasp and a miss, so 20 mm has to be loud.
 """
 
 # The height the sim builds and every task coordinate was verified against.
-DECLARED_M = 0.95
+#
+# STAYS AT 0.950, AND A 2026-08-16 ATTEMPT TO RAISE IT IS RECORDED BELOW.
+# TASK_SPEC T1-1 asks for the cubes to REST on the table. They cannot: with
+# the cubes at z = 1.120, `measure_objects_on_the_table.py` walks T1's six pick
+# paths at N=5 with both controls correct and finds
+#
+#     slab top 0.950 / 1.000 / 1.020    0 of 54 waypoints lost
+#     slab top 1.040                   12 of 54
+#     slab top 1.100 (cubes RESTING)   38 of 54
+#
+# reading 1.020 as the highest surface that costs nothing. IT WAS BUILT AND IT
+# BROKE T1, and the reason is an instrument fault worth recording: the sweep
+# solves through `measure_what_binds.Rig`, whose `self.quat` is the LIVE
+# end-effector orientation read off TF at construction -- the HOME wrist -- and
+# NOT `WORKSPACE_ORIENT`, the pinned 30.7 deg near-side anchor that
+# `run_abc.send()` writes into every waypoint. Measured at the anchor instead,
+# a table at 1.020 puts its top 43 mm under the pads' place-down wrist
+# (z = 1.0628 = the pad at 1.120 minus the 0.0572 m pad offset) and T1 loses
+# 14 waypoints, all of them at the two pad slots.
+#
+# So the surface stays where every verified coordinate was measured against
+# it. The cubes stand 170 mm clear of it and T1-1 remains BLOCKED, which is
+# what TASK_SPEC section 9 already records. What blocks it is the pinned
+# wrist: the anchor sits 30.7 deg above horizontal, so the hand arrives from
+# the near side and BELOW, through the volume a table top occupies.
+DECLARED_M = 0.950
 
 # Past this, a measured surface disagrees with the declared one loudly enough
 # to stop a session rather than be absorbed. See the module docstring.

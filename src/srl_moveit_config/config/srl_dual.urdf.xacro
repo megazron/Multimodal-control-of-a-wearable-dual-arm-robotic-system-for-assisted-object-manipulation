@@ -1,14 +1,47 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="srl_dual">
-    <xacro:arg name="initial_positions_file" default="initial_positions.yaml" />
 
-    <!-- Import srl_dual urdf file -->
+    <!-- Import srl_dual urdf file.
+
+         THIS ALREADY BRINGS ITS OWN ros2_control. `load_arm` in
+         kortex_description emits one system per arm
+         (left_KortexMultiInterfaceHardware, right_KortexMultiInterfaceHardware)
+         declaring all seven joints of that arm, and `load_gripper` emits one
+         per gripper. Between them every joint in the robot is covered, with
+         the arms' initial positions taken from the URDF's `initial_positions`
+         blocks, which are the home pose. -->
     <xacro:include filename="$(find srl_description)/urdf/srl_dual.urdf.xacro" />
 
-    <!-- Import control_xacro -->
-    <xacro:include filename="srl_dual.ros2_control.xacro" />
+    <!-- THE SETUP ASSISTANT `FakeSystem` BLOCK IS DELETED, 2026-08-16, AND
+         THIS COMMENT IS WHY.
 
+         It was Setup Assistant boilerplate: a second ros2_control system
+         re-declaring all fourteen arm joints, with their initial positions
+         read from `initial_positions.yaml`, a file holding FOURTEEN ZEROS. It
+         was a SIXTH copy of the home pose, holding the wrong value, and
+         `test_home_has_one_source` did not know it existed because it lives
+         in a different package.
 
-    <xacro:srl_dual_ros2_control name="FakeSystem" initial_positions_file="$(arg initial_positions_file)"/>
+         It never took effect, and the reason it never took effect is the
+         problem. Measured on every boot:
+
+             controller_manager: Loading hardware 'FakeSystem'
+             [WARN] Tried to insert StateInterface with already existing key.
+                    Insert[left_joint_1/position]        ... 29 of these
+             [ERROR] Tried to insert CommandInterface with already existing
+                     key. Insert[right_joint_7/position]
+
+         The per-arm blocks load FIRST, claim the interfaces, and FakeSystem's
+         duplicates are rejected one by one. So the home pose survived BY LOAD
+         ORDER, on a warning, with an error alongside it. Had the ordering
+         gone the other way, all fourteen joints would have come up at 0.000,
+         which is failure mode 1 in docs/system/home_wrist_is_real.md ("a
+         stray publisher makes every joint read 0.000, which is also
+         plausible") and which three sessions spent their time looking for.
+
+         Removing it costs nothing: every joint it declared is declared by a
+         block that is actually used, and the boot is now clean. The
+         `initial_positions_file` argument goes with it; nothing else in
+         srl_* referenced either. -->
 
 </robot>

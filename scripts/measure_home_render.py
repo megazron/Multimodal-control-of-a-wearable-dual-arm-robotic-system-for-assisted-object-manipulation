@@ -81,6 +81,23 @@ TOOL = "end_effector_link"
 CHAIN = [SHOULDER, "half_arm_1_link", ELBOW_ALT, ELBOW, WRIST,
          "spherical_wrist_2_link", "bracelet_link", TOOL]
 
+# ADDED 2026-08-16, and the reason is the whole of why the pose kept looking
+# wrong while the numbers looked right.
+#
+# This file measured the tool AXIS elevation and called it "wrists level". It
+# was 0.00 deg and it was correct. But the ROLL about that axis was measured
+# by nothing at all, and it had landed with the wrist camera 56.4 mm BELOW the
+# fingertips on both arms, which is a hand upside down. The camera is the
+# thing that pins the roll, so it is now read from TF like everything else.
+#
+# `camera_link` hangs off `end_effector_link` at +0.0564 m along the EE frame's
+# own y axis, so "camera above the fingers" is a real, checkable world-z
+# comparison rather than a statement about a quaternion.
+CAMERA = "camera_link"
+FINGERS = ["robotiq_85_left_finger_tip_link",
+           "robotiq_85_right_finger_tip_link"]
+EXTRA = [CAMERA] + FINGERS
+
 
 def quat_axis(q, axis=2):
     """A column of the rotation matrix for quaternion (x, y, z, w)."""
@@ -240,7 +257,7 @@ def main():
     per = {}
     for arm in ("left", "right"):
         d = {}
-        for ln in CHAIN:
+        for ln in CHAIN + EXTRA:
             p, q = n.pose_of("%s_%s" % (arm, ln))
             if p is None:
                 missing.append("%s_%s" % (arm, ln))
@@ -276,7 +293,33 @@ def main():
         tool_p, tool_q = d[TOOL]
         axis = quat_axis(tool_q, 2)
         elev = math.degrees(math.asin(max(-1.0, min(1.0, axis[2]))))
+        # (a) the forearm as a viewer sees it, elbow to hand, against the
+        # wearer's facing direction (+y).
+        v = tool_p - el
+        nv = float(np.linalg.norm(v))
+        fwd_deg = math.degrees(math.acos(max(-1.0, min(
+            1.0, float(v[1] / nv) if nv > 1e-9 else 1.0))))
+        # (d) THE CAMERA, AS AN ANGLE. A height difference is too weak: a
+        # camera out to the SIDE of the gripper clears "higher than the
+        # fingertips" easily. What pins the roll is the DIRECTION from the
+        # end-effector origin to the camera, against world +z: 0 deg is
+        # directly on top, 90 deg is flat out to the side.
+        cam = d[CAMERA][0]
+        fing = sum(d[f][0] for f in FINGERS) / float(len(FINGERS))
+        cvec = cam - tool_p
+        cam_off_top = math.degrees(math.acos(max(-1.0, min(
+            1.0, float(cvec[2] / max(1e-9, np.linalg.norm(cvec)))))))
+        fvec = cam - fing
+        cam_off_top_fing = math.degrees(math.acos(max(-1.0, min(
+            1.0, float(fvec[2] / max(1e-9, np.linalg.norm(fvec)))))))
+
         report["arms"][arm] = dict(
+            forearm_off_forward_deg=round(fwd_deg, 2),
+            camera=[round(v2, 4) for v2 in cam],
+            fingertips_mid=[round(v2, 4) for v2 in fing],
+            camera_off_top_deg=round(cam_off_top, 2),
+            camera_from_fingertips_off_top_deg=round(cam_off_top_fing, 2),
+            camera_above_fingers_m=round(float(cam[2] - fing[2]), 4),
             shoulder=[round(v, 4) for v in sh],
             elbow_forearm_link=[round(v, 4) for v in el],
             elbow_half_arm_2=[round(v, 4) for v in el2],
@@ -334,6 +377,16 @@ def main():
               % d["elbow_outboard_of_hand_m"])
         print("     tool axis %s -> elevation %+.2f deg"
               % (d["tool_axis"], d["tool_elevation_deg"]))
+        print("     forearm (elbow->hand) %+.2f deg off the wearer's facing"
+              % d["forearm_off_forward_deg"])
+        print("     camera %s vs fingertips %s"
+              % (d["camera"], d["fingertips_mid"]))
+        print("     camera direction %+.2f deg off world +z   <-- THE ROLL "
+              "(0 = on top, 90 = out to the side)" % d["camera_off_top_deg"])
+        print("     ... measured from the gripper centre instead: %+.2f deg"
+              % d["camera_from_fingertips_off_top_deg"])
+        print("     camera is %+.4f m above the fingertips"
+              % d["camera_above_fingers_m"])
         print("     hand is %+.4f m in front of the torso face"
               % d["hand_forward_of_torso_m"])
     print("\n  MIRROR RESIDUAL, left reflected through x = 0 against right")

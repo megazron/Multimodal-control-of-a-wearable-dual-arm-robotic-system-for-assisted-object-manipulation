@@ -1,0 +1,374 @@
+{
+  "fov_deg": [
+    54.904853899534764,
+    42.5549512569508
+  ],
+  "min_depth_m": 0.25,
+  "option_a": {
+    "rows": [
+      {
+        "arm": "left",
+        "cube": 0,
+        "waypoint": "standoff",
+        "off_axis_deg": 65.81,
+        "range_m": 0.1553,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "left",
+        "cube": 0,
+        "waypoint": "mid",
+        "off_axis_deg": 47.94,
+        "range_m": 0.1332,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "left",
+        "cube": 0,
+        "waypoint": "grasp",
+        "off_axis_deg": 26.15,
+        "range_m": 0.1279,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "left",
+        "cube": 0,
+        "waypoint": "lift",
+        "off_axis_deg": 59.32,
+        "range_m": 0.1448,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "left",
+        "cube": 1,
+        "waypoint": "standoff",
+        "off_axis_deg": 65.81,
+        "range_m": 0.1553,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "left",
+        "cube": 1,
+        "waypoint": "mid",
+        "off_axis_deg": 47.94,
+        "range_m": 0.1332,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "left",
+        "cube": 1,
+        "waypoint": "grasp",
+        "off_axis_deg": 26.15,
+        "range_m": 0.1279,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "left",
+        "cube": 1,
+        "waypoint": "lift",
+        "off_axis_deg": 59.32,
+        "range_m": 0.1448,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "left",
+        "cube": 2,
+        "waypoint": "standoff",
+        "off_axis_deg": 65.81,
+        "range_m": 0.1553,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "left",
+        "cube": 2,
+        "waypoint": "mid",
+        "off_axis_deg": 47.94,
+        "range_m": 0.1332,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "left",
+        "cube": 2,
+        "waypoint": "grasp",
+        "off_axis_deg": 26.15,
+        "range_m": 0.1279,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "left",
+        "cube": 2,
+        "waypoint": "lift",
+        "off_axis_deg": 59.32,
+        "range_m": 0.1448,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "left",
+        "cube": 3,
+        "waypoint": "standoff",
+        "off_axis_deg": 65.81,
+        "range_m": 0.1553,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "left",
+        "cube": 3,
+        "waypoint": "mid",
+        "off_axis_deg": 47.94,
+        "range_m": 0.1332,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "left",
+        "cube": 3,
+        "waypoint": "grasp",
+        "off_axis_deg": 26.15,
+        "range_m": 0.1279,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "left",
+        "cube": 3,
+        "waypoint": "lift",
+        "off_axis_deg": 59.32,
+        "range_m": 0.1448,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "right",
+        "cube": 0,
+        "waypoint": "standoff",
+        "off_axis_deg": 62.48,
+        "range_m": 0.1672,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "right",
+        "cube": 0,
+        "waypoint": "mid",
+        "off_axis_deg": 46.76,
+        "range_m": 0.1403,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "right",
+        "cube": 0,
+        "waypoint": "grasp",
+        "off_axis_deg": 26.13,
+        "range_m": 0.128,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "right",
+        "cube": 0,
+        "waypoint": "lift",
+        "off_axis_deg": 56.85,
+        "range_m": 0.1551,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "right",
+        "cube": 1,
+        "waypoint": "standoff",
+        "off_axis_deg": 62.48,
+        "range_m": 0.1672,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "right",
+        "cube": 1,
+        "waypoint": "mid",
+        "off_axis_deg": 46.76,
+        "range_m": 0.1403,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "right",
+        "cube": 1,
+        "waypoint": "grasp",
+        "off_axis_deg": 26.13,
+        "range_m": 0.128,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "right",
+        "cube": 1,
+        "waypoint": "lift",
+        "off_axis_deg": 56.85,
+        "range_m": 0.1551,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "right",
+        "cube": 2,
+        "waypoint": "standoff",
+        "off_axis_deg": 62.48,
+        "range_m": 0.1672,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "right",
+        "cube": 2,
+        "waypoint": "mid",
+        "off_axis_deg": 46.76,
+        "range_m": 0.1403,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "right",
+        "cube": 2,
+        "waypoint": "grasp",
+        "off_axis_deg": 26.13,
+        "range_m": 0.128,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "right",
+        "cube": 2,
+        "waypoint": "lift",
+        "off_axis_deg": 56.85,
+        "range_m": 0.1551,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "right",
+        "cube": 3,
+        "waypoint": "standoff",
+        "off_axis_deg": 62.48,
+        "range_m": 0.1672,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "right",
+        "cube": 3,
+        "waypoint": "mid",
+        "off_axis_deg": 46.76,
+        "range_m": 0.1403,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "right",
+        "cube": 3,
+        "waypoint": "grasp",
+        "off_axis_deg": 26.13,
+        "range_m": 0.128,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      },
+      {
+        "arm": "right",
+        "cube": 3,
+        "waypoint": "lift",
+        "off_axis_deg": 56.85,
+        "range_m": 0.1551,
+        "in_frame": false,
+        "in_depth_range": false,
+        "usable": false
+      }
+    ],
+    "usable": 0,
+    "total": 32,
+    "closest_off_axis_deg": 26.13
+  },
+  "option_b": {
+    "right_watches_left": {
+      "found": true,
+      "q": [
+        2.8400094940798066,
+        2.24,
+        -0.4450491539263349,
+        1.165824734178804,
+        -2.579514637383946,
+        -0.5899817133791648,
+        1.012162572965655
+      ],
+      "worst_u": 0.126,
+      "worst_v": 0.34,
+      "min_range_m": 0.6231,
+      "max_range_m": 0.8545,
+      "clearance_m": 0.1523,
+      "straight_transit_worst_m": -0.1176,
+      "total_joint_travel_deg": 621.0
+    },
+    "left_watches_right": {
+      "found": true,
+      "q": [
+        0.6741153507475051,
+        -2.24,
+        0.24283755816188302,
+        -1.3199723700412749,
+        -0.11326980087318422,
+        -0.18074012674715417,
+        0.04267199658087456
+      ],
+      "worst_u": 0.224,
+      "worst_v": 0.064,
+      "min_range_m": 0.58,
+      "max_range_m": 0.8637,
+      "clearance_m": 0.161,
+      "straight_transit_worst_m": 0.1596,
+      "total_joint_travel_deg": 600.1
+    }
+  }
+}

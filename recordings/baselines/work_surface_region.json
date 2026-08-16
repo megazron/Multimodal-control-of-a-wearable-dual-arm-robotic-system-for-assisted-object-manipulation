@@ -2995,10 +2995,6 @@
         0.275
       ],
       [
-        0.9,
-        0.3
-      ],
-      [
         0.925,
         0.075
       ],
@@ -3634,19 +3630,7 @@
       ],
       [
         -0.675,
-        0.25
-      ],
-      [
-        -0.675,
         0.275
-      ],
-      [
-        -0.675,
-        0.3
-      ],
-      [
-        -0.675,
-        0.325
       ],
       [
         -0.65,
@@ -3670,26 +3654,6 @@
       ],
       [
         -0.65,
-        0.2
-      ],
-      [
-        -0.65,
-        0.225
-      ],
-      [
-        -0.65,
-        0.25
-      ],
-      [
-        -0.65,
-        0.275
-      ],
-      [
-        -0.65,
-        0.3
-      ],
-      [
-        -0.65,
         0.325
       ],
       [
@@ -3702,23 +3666,7 @@
       ],
       [
         -0.625,
-        0.125
-      ],
-      [
-        -0.625,
         0.15
-      ],
-      [
-        -0.625,
-        0.175
-      ],
-      [
-        -0.625,
-        0.2
-      ],
-      [
-        -0.625,
-        0.225
       ],
       [
         -0.625,
@@ -3726,15 +3674,7 @@
       ],
       [
         -0.625,
-        0.275
-      ],
-      [
-        -0.625,
         0.3
-      ],
-      [
-        -0.625,
-        0.325
       ],
       [
         -0.6,
@@ -3749,46 +3689,6 @@
         0.125
       ],
       [
-        -0.6,
-        0.15
-      ],
-      [
-        -0.6,
-        0.175
-      ],
-      [
-        -0.6,
-        0.2
-      ],
-      [
-        -0.6,
-        0.225
-      ],
-      [
-        -0.6,
-        0.25
-      ],
-      [
-        -0.6,
-        0.275
-      ],
-      [
-        -0.6,
-        0.3
-      ],
-      [
-        -0.6,
-        0.325
-      ],
-      [
-        -0.575,
-        0.075
-      ],
-      [
-        -0.575,
-        0.1
-      ],
-      [
         -0.575,
         0.125
       ],
@@ -3798,39 +3698,7 @@
       ],
       [
         -0.575,
-        0.175
-      ],
-      [
-        -0.575,
-        0.2
-      ],
-      [
-        -0.575,
         0.225
-      ],
-      [
-        -0.575,
-        0.25
-      ],
-      [
-        -0.575,
-        0.275
-      ],
-      [
-        -0.575,
-        0.3
-      ],
-      [
-        -0.575,
-        0.325
-      ],
-      [
-        -0.55,
-        0.075
-      ],
-      [
-        -0.55,
-        0.1
       ],
       [
         -0.55,
@@ -3838,19 +3706,7 @@
       ],
       [
         -0.55,
-        0.15
-      ],
-      [
-        -0.55,
         0.175
-      ],
-      [
-        -0.55,
-        0.2
-      ],
-      [
-        -0.55,
-        0.225
       ],
       [
         -0.55,
@@ -3863,10 +3719,6 @@
       [
         -0.55,
         0.3
-      ],
-      [
-        -0.55,
-        0.325
       ],
       [
         -0.525,
@@ -3902,15 +3754,7 @@
       ],
       [
         -0.525,
-        0.275
-      ],
-      [
-        -0.525,
         0.3
-      ],
-      [
-        -0.525,
-        0.325
       ],
       [
         -0.5,
@@ -5969,5 +5813,301 @@
       "ik_calls": 1119
     }
   ],
-  "note": "MERGED by scripts/merge_work_surface_region.py from clearance surveys run 2026-08-15. Two changes from every earlier version of this file. (1) `clear_cells` is new: the cells that keep the 0.15 m wearer clearance floor as well as solving IK. The floor is NOT an IK constraint -- the SRDF excludes the wearer pairs a shoulder-mounted arm actually threatens, so collision-aware IK returns poses with the tube inside the person -- so it has to be measured separately and it never had been. (2) the box now runs to |x| = 1.00; the old |x| <= 0.70 was where the survey stopped looking, not where the arm stops."
+  "note": "MERGED by scripts/merge_work_surface_region.py from clearance surveys run 2026-08-15. Two changes from every earlier version of this file. (1) `clear_cells` is new: the cells that keep the 0.15 m wearer clearance floor as well as solving IK. The floor is NOT an IK constraint -- the SRDF excludes the wearer pairs a shoulder-mounted arm actually threatens, so collision-aware IK returns poses with the tube inside the person -- so it has to be measured separately and it never had been. (2) the box now runs to |x| = 1.00; the old |x| <= 0.70 was where the survey stopped looking, not where the arm stops.",
+  "revalidated": {
+    "date": "2026-08-16",
+    "repeats": 10,
+    "z": 1.12,
+    "floor": 0.15,
+    "orientation": "WORKSPACE_ORIENT (the pinned anchor)",
+    "dropped": {
+      "left": 1,
+      "right": 38
+    },
+    "dropped_cells": {
+      "left": [
+        {
+          "x": 0.9,
+          "y": 0.3,
+          "reachable": false,
+          "clearance_m": null,
+          "to": null
+        }
+      ],
+      "right": [
+        {
+          "x": -0.675,
+          "y": 0.25,
+          "reachable": true,
+          "clearance_m": 0.147,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.675,
+          "y": 0.3,
+          "reachable": true,
+          "clearance_m": 0.1491,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.675,
+          "y": 0.325,
+          "reachable": true,
+          "clearance_m": 0.1395,
+          "to": "R-upperarm"
+        },
+        {
+          "x": -0.65,
+          "y": 0.2,
+          "reachable": true,
+          "clearance_m": 0.1404,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.65,
+          "y": 0.225,
+          "reachable": true,
+          "clearance_m": 0.1256,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.65,
+          "y": 0.25,
+          "reachable": true,
+          "clearance_m": 0.132,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.65,
+          "y": 0.275,
+          "reachable": true,
+          "clearance_m": 0.1484,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.65,
+          "y": 0.3,
+          "reachable": true,
+          "clearance_m": 0.1142,
+          "to": "R-upperarm"
+        },
+        {
+          "x": -0.625,
+          "y": 0.125,
+          "reachable": true,
+          "clearance_m": 0.1347,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.625,
+          "y": 0.175,
+          "reachable": true,
+          "clearance_m": 0.1008,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.625,
+          "y": 0.2,
+          "reachable": true,
+          "clearance_m": 0.0949,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.625,
+          "y": 0.225,
+          "reachable": true,
+          "clearance_m": 0.1357,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.625,
+          "y": 0.275,
+          "reachable": true,
+          "clearance_m": 0.1473,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.625,
+          "y": 0.325,
+          "reachable": true,
+          "clearance_m": 0.1354,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.6,
+          "y": 0.15,
+          "reachable": true,
+          "clearance_m": 0.1131,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.6,
+          "y": 0.175,
+          "reachable": true,
+          "clearance_m": 0.1169,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.6,
+          "y": 0.2,
+          "reachable": true,
+          "clearance_m": 0.0964,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.6,
+          "y": 0.225,
+          "reachable": true,
+          "clearance_m": 0.1464,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.6,
+          "y": 0.25,
+          "reachable": true,
+          "clearance_m": 0.1046,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.6,
+          "y": 0.275,
+          "reachable": true,
+          "clearance_m": 0.1053,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.6,
+          "y": 0.3,
+          "reachable": true,
+          "clearance_m": 0.1202,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.6,
+          "y": 0.325,
+          "reachable": true,
+          "clearance_m": 0.0845,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.575,
+          "y": 0.075,
+          "reachable": true,
+          "clearance_m": 0.0932,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.575,
+          "y": 0.1,
+          "reachable": true,
+          "clearance_m": 0.1344,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.575,
+          "y": 0.175,
+          "reachable": true,
+          "clearance_m": 0.0868,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.575,
+          "y": 0.2,
+          "reachable": true,
+          "clearance_m": 0.1432,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.575,
+          "y": 0.25,
+          "reachable": true,
+          "clearance_m": 0.0813,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.575,
+          "y": 0.275,
+          "reachable": true,
+          "clearance_m": 0.0781,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.575,
+          "y": 0.3,
+          "reachable": true,
+          "clearance_m": 0.1131,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.575,
+          "y": 0.325,
+          "reachable": true,
+          "clearance_m": 0.1016,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.55,
+          "y": 0.075,
+          "reachable": true,
+          "clearance_m": 0.1476,
+          "to": "torso"
+        },
+        {
+          "x": -0.55,
+          "y": 0.1,
+          "reachable": true,
+          "clearance_m": 0.1393,
+          "to": "torso"
+        },
+        {
+          "x": -0.55,
+          "y": 0.15,
+          "reachable": true,
+          "clearance_m": 0.1476,
+          "to": "torso"
+        },
+        {
+          "x": -0.55,
+          "y": 0.2,
+          "reachable": true,
+          "clearance_m": 0.1215,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.55,
+          "y": 0.225,
+          "reachable": true,
+          "clearance_m": 0.1358,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.55,
+          "y": 0.325,
+          "reachable": true,
+          "clearance_m": 0.1438,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.525,
+          "y": 0.275,
+          "reachable": true,
+          "clearance_m": 0.1433,
+          "to": "R-forearm"
+        },
+        {
+          "x": -0.525,
+          "y": 0.325,
+          "reachable": true,
+          "clearance_m": 0.1478,
+          "to": "R-forearm"
+        }
+      ]
+    },
+    "controls": {
+      "deep_inside_the_wearer_rejected": "False / None",
+      "far_outboard_kept": "True / 0.161",
+      "inside_torso_negative": -0.1569
+    },
+    "note": "re-walked from the 2026-08-16 home at the pinned anchor; the 2026-08-15 survey solved at the live home wrist and is stale on both counts"
+  }
 }

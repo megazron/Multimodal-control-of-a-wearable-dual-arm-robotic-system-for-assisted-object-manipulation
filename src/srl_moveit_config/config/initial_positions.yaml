@@ -1,17 +1,23 @@
-# Default initial positions for srl_dual's ros2_control fake system
-
-initial_positions:
-  left_joint_1: 0
-  left_joint_2: 0
-  left_joint_3: 0
-  left_joint_4: 0
-  left_joint_5: 0
-  left_joint_6: 0
-  left_joint_7: 0
-  right_joint_1: 0
-  right_joint_2: 0
-  right_joint_3: 0
-  right_joint_4: 0
-  right_joint_5: 0
-  right_joint_6: 0
-  right_joint_7: 0
+# NOT THE HOME POSE. NOT READ BY ANYTHING. DO NOT PUT JOINT ANGLES HERE.
+#
+# This file used to carry `initial_positions:` with all fourteen arm joints at
+# ZERO, and it was wired into a duplicate `FakeSystem` ros2_control block in
+# config/srl_dual.urdf.xacro. That made it a SIXTH copy of the home pose,
+# holding the wrong value, in a package `test_home_has_one_source` does not
+# look at. It was inert only because its block loaded last and the
+# controller_manager rejected its interfaces one by one, with 29 warnings and
+# one error on every boot. See the comment in config/srl_dual.urdf.xacro.
+#
+# The block is gone (2026-08-16) and so is the `initial_positions` key. The
+# key is REMOVED RATHER THAN CORRECTED on purpose: anything that loads this
+# file expecting joint angles should fail loudly, not silently receive a pose
+# that has to be kept in step with four other places.
+#
+# THE HOME POSE LIVES IN:
+#   config/home_positions_{left,right}.txt          the SOURCE, loaded at
+#                                                   runtime by five consumers
+#   src/srl_description/urdf/srl_dual.urdf.xacro    two `initial_positions`
+#                                                   blocks, baked at launch
+#   srl_teleop/master_calibration.WORKSPACE_CENTRE  offset = P_HOME
+#
+# `test_home_has_one_source.py` is what keeps the first two in step.

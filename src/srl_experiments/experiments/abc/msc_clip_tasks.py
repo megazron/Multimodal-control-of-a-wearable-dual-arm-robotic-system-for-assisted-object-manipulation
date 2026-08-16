@@ -125,24 +125,89 @@ T1_CUBES = [[0.560, 0.120], [0.620, 0.120], [0.680, 0.120],
 # 160 mm apart, against a 140 mm plane, so a cube released over one cannot
 # land on the other. Both slots (+/-SLOT_DY in y) stay inside rows the survey
 # measured clear: y 0.210 and 0.270 against clear rows at 0.200 and 0.275.
-T1_PLANES = [[0.450, 0.240], [0.610, 0.240]]
-# THE SAME TWO PADS, ONE PAIR PER SIDE, AND WHY THERE HAS TO BE A PAIR.
+T1_PLANES = [[0.595, 0.215], [0.825, 0.215]]
+# RE-MEASURED AT THE ANCHOR FROM THE 2026-08-16 HOME, AND THE INNER COLUMN
+# COMES BACK TO 0.450 -- where it already was.
 #
-# Stage 2 used to place onto coordinates drawn from the arm's own surveyed
-# cells: arbitrary points, no colour, and nothing drawn on screen. So the two
-# stages of one task had different targets and stage 2 had no colour rule at
-# all, which is the thing T1 is about.
+# `scripts/measure_pad_columns.py`, N=10 over the full place path, wearer and
+# furniture in scene, clearance geometric, three controls correct, and BOTH
+# per-cube slots (+/-SLOT_DY in y) tested rather than the pad centre alone:
 #
-# They cannot literally share the two pads. Both sit at POSITIVE x, and the
-# right arm's innermost reachable-and-clear column is |x| = 0.450 -- it cannot
-# get to +0.450 at all, because that is 900 mm across the far side of a person.
-# So "the same pads" is honoured the only way the geometry permits: the SAME
-# pair, same colours, same spacing, same y, mirrored for the arm that has to
-# reach them. A cube goes to the pad of ITS OWN COLOUR on the side it landed
-# on, which is stage 1's rule with the side made random.
+#     arm     innermost column reachable AND clear of the 150 mm floor
+#     left    |x| = 0.450   y = 0.240, slots 0.210/0.270, clearance 0.1610 m
+#     right   |x| = 0.400   y = 0.300, slots 0.270/0.330, clearance 0.1579 m
+#
+# THE PAD CENTRE IS 0.605, NOT 0.450, AND THE 155 mm IS THE MARKING, NOT REACH.
+#
+# 0.450 is where the GRIPPER can go, and the place slots at 0.450 are measured
+# reachable and clear. But a pad is not a point: it is 0.18 m wide and 0.12
+# deep, and T1-7 requires the marking to ENCLOSE the objects. A participant is
+# told to work inside that boundary, so a pad painted partly outside it invites
+# a cube to be put where the arm is measurably inside the wearer.
+#
+# The drawn marking is the 193 clearance-safe cells and it is NOT a rectangle.
+# Its shape, per 25 mm column (see `clip_scene.REGION_CELLS`):
+#
+#     x 0.425          y 0.225..0.300      a narrow inner pocket, high in y
+#     x 0.450..0.500   y widens 0.200..0.300
+#     x 0.525..0.925   y 0.075..0.275      the usable body of the region
+#     x 0.950..1.000   y shrinks again
+#
+# The largest axis-aligned rectangle inside it is x 0.5125..0.9375,
+# y 0.0625..0.2875. Two pads 0.18 wide with a 20 mm gap need 0.38 of the
+# 0.425 available, so the inner pad centre is 0.5125 + 0.09 = 0.6025, rounded
+# to 0.605, and the outer sits 200 mm beyond at 0.805.
+#
+# y = 0.215 rather than 0.240: the pad has to clear the CUBES, which sit at
+# y = 0.120 spanning 0.100..0.140, and it has to stay inside y <= 0.2875. At
+# 0.215 the footprint spans 0.155..0.275 and the two place slots land at 0.185
+# and 0.245, both inside the span the sweep measured safe.
+#
+# THE COST IS STATED: the pads are 605 mm off centre, 155 mm further out than
+# the arm alone requires. Narrowing them to 0.14 would buy 20 mm back. The
+# binding constraint is the painted footprint against the marking, not reach.
+#
+# TWO WRONG ANSWERS WERE PRODUCED BEFORE THIS ONE AND BOTH ARE WORTH RECORDING,
+# because each looked like a measurement:
+#
+#   1. |x| = 0.425 with the pad CENTRE tested. The centre passed and the near
+#      slot 30 mm away did not; T1 lost 8 waypoints. A pad is not a point.
+#   2. |x| = 0.425, y = 0.270, with both slots tested -- still wrong, because
+#      `measure_what_binds.Rig` solves at `node.ee_quat(arm)`, the LIVE
+#      end-effector orientation read off TF at construction, and NOT at
+#      `WORKSPACE_ORIENT`, the pinned 30.7 deg near-side anchor that
+#      `run_abc.send()` writes into every waypoint. With the 2026-08-16 home
+#      the wrist rests LEVEL and FORWARD, so the two orientations are a long
+#      way apart and the sweep was answering a question no task asks. T1 lost
+#      14 waypoints, all of them at the two pad slots. The sweep now overrides
+#      rig.quat to the anchor.
+#
+# THE CENTRE IS STILL SHUT. At z = 1.120 the left arm cannot put a pad inside
+# |x| = 0.450 and the right cannot inside 0.400, so the pads are 450 mm off
+# centre and that number is stated rather than hidden, per T1-10.
 T1_PLANES_BY_ARM = {
     "left": [list(p) for p in T1_PLANES],
-    "right": [[-p[0], p[1]] for p in T1_PLANES],
+    # THE RIGHT ARM'S PADS ARE NOT A MIRROR OF THE LEFT'S, AND THAT IS A
+    # MEASUREMENT RATHER THAN A CHOICE. Mirroring x was correct while both
+    # arms' clearance-safe regions were the same shape. They are not: after
+    # `revalidate_region.py` re-walked every cell at the pinned anchor from
+    # the 2026-08-16 home, the right arm LOST 38 of its 246 cells and what is
+    # left is ragged -- the columns from |x| 0.525 to 0.675 are full of holes,
+    # while 0.700..0.875 is a clean 11-row band. The left lost 1 of 193.
+    #
+    # Searched over both regions with the WHOLE pad footprint required to lie
+    # on surveyed cells (corners alone are not enough: a pad can span a ragged
+    # column between two valid corners), the largest pair each arm can host:
+    #
+    #     left    0.210 x 0.130 m   |x| = 0.595 and 0.825   y = 0.215
+    #     right   0.100 x 0.160 m   |x| = 0.740 and 0.860   y = 0.230
+    #
+    # A single MIRRORED pair that fits both is 0.110 x 0.130 at |x| 0.745 and
+    # 0.875 -- barely larger than the 0.14 x 0.10 it replaces, and 745 mm off
+    # centre. Sizing each arm to its own region gives stage 1 (LEFT only, and
+    # the clip anyone actually watches) pads at 1.95x the old area, and keeps
+    # every pad inside the boundary a participant is told to work within.
+    "right": [[-0.740, 0.230], [-0.860, 0.230]],
 }
 # Cube index -> pad index, and therefore colour. Stage 1 declares this in
 # T1_PAIR below; stage 2 uses the same rule so the two stages agree about
@@ -217,7 +282,7 @@ _T1_GRIP_AT = []
 SLOT_DY = 0.030
 
 
-def t1():
+def t1(cubes=None):
     """Pick each cube, place it on the plane of its own colour.
 
     Colour pairing: cubes 0 and 2 are blue -> plane 0; cubes 1 and 3 are
@@ -255,11 +320,28 @@ def t1():
     # and the planes already sit at its inboard edge: measured, the reachable
     # band is x 0.30..0.70 and y 0.05..0.20, so +/-0.03 in y stays well inside
     # it while +/-0.035 in x would put the inboard slot at 0.265, outside.
-    slot = {0: -SLOT_DY, 2: +SLOT_DY, 1: -SLOT_DY, 3: +SLOT_DY}
-    for i, (cx, cy) in enumerate(T1_CUBES):
+    # WHERE THE CUBES ARE, AND WHAT COLOUR THEY ARE, CAN COME FROM THE CAMERA.
+    #
+    # `cubes=None` keeps the declared layout: T1_CUBES for position, T1_PAIR
+    # for colour. Passing a list of (x, y, pad_index) -- which is what
+    # `vision_grasp.observe_and_detect()` returns -- builds the SAME path from
+    # what was SEEN instead. One builder, two sources, so the recorded clip
+    # and the verified layout cannot diverge into separate code paths.
+    #
+    # The slot is assigned by ORDER OF ARRIVAL at each pad rather than from a
+    # fixed {0:-, 2:+, 1:-, 3:+} table, because a detected set has no fixed
+    # indices. For the declared layout it reproduces that table exactly.
+    if cubes is None:
+        items = [(cx, cy, T1_PAIR[i]) for i, (cx, cy) in enumerate(T1_CUBES)]
+    else:
+        items = [(float(c[0]), float(c[1]), int(c[2])) for c in cubes]
+    _used = {}
+    for i, (cx, cy, _pad_i) in enumerate(items):
+        _k = _used.get(_pad_i, 0)
+        _used[_pad_i] = _k + 1
         pick = ee_for([cx, cy, T1_Z], T1_ARM)
-        px, py = T1_PLANES[T1_PAIR[i]]
-        py = round(py + slot[i], 4)
+        px, py = T1_PLANES[_pad_i]
+        py = round(py + (-SLOT_DY if _k == 0 else +SLOT_DY), 4)
         place = ee_for([px, py, T1_Z], T1_ARM)
         cube_obj = [cx, cy, T1_Z]
         plane_obj = [px, py, T1_Z]

@@ -396,6 +396,15 @@ def main(argv=None):
     # to agree.
     ap.add_argument("--seed", type=int,
                     default=int(os.environ.get("SRL_TASK_SEED", "0")))
+    ap.add_argument("--vision", default=None, metavar="CUBES_JSON",
+                    help="T1: build the path from DETECTED cubes instead of "
+                         "T1_CUBES / T1_PAIR. Takes the file written by "
+                         "scripts/stage_observe_and_detect.py, which does the "
+                         "looking during STAGING -- the look cannot happen "
+                         "inside the run because it would put a second "
+                         "publisher on the arm controller alongside "
+                         "ik_follower_node. Refuses loudly rather than "
+                         "falling back to the declaration.")
     ap.add_argument("--isolate", action="store_true",
                     help="start this mode's upstreams first, exactly as the "
                          "clip sweep does -- see scripts/mode_upstreams.py")
@@ -468,8 +477,54 @@ def main(argv=None):
         return 0
 
     rclpy.init()
+
+    # ---- LOOK BEFORE GRASPING -------------------------------------------
+    #
+    # This is the join that was missing. `spec["build"]()` above produced the
+    # path from T1_CUBES and T1_PAIR -- a declared position and a declared
+    # colour -- so every recorded clip of a COLOUR-MATCHED task was made
+    # without a camera being consulted. With --vision the same builder is fed
+    # what the camera SAW instead.
+    #
+    # IT REFUSES RATHER THAN FALLING BACK. A blind pick that quietly reverts to
+    # the declared coordinate is indistinguishable from a working perception
+    # path, which is exactly the failure TASK_SPEC P-4 forbids.
+    vision_info = None
+    if a.vision:
+        if a.taskset != "msc" or _MSC_KEY.get(key) not in ("t1",):
+            raise SystemExit(
+                "--vision is implemented for M1 (t1) only; %s builds its "
+                "layout from a per-trial seed and needs its own join." % key)
+        if not os.path.exists(a.vision):
+            raise SystemExit(
+                "REFUSING TO RECORD: no detections at %s. Run "
+                "scripts/stage_observe_and_detect.py during staging. A "
+                "fallback to the declared coordinates here would look exactly "
+                "like a working camera." % a.vision)
+        vd = json.load(open(a.vision))
+        cubes = [tuple(c) for c in vd["cubes"]]
+        if len(cubes) != len(MCT.T1_CUBES):
+            raise SystemExit(
+                "REFUSING TO RECORD: the look saw %d cubes, the task expects "
+                "%d." % (len(cubes), len(MCT.T1_CUBES)))
+        # THE DETECTIONS MUST BE OF THIS LAYOUT. A stale file from an earlier
+        # layout would build a path to where the cubes USED to be, and every
+        # check downstream would pass it.
+        want = [list(c) for c in MCT.T1_CUBES]
+        if vd.get("layout", {}).get("T1_CUBES") != want:
+            raise SystemExit(
+                "REFUSING TO RECORD: %s was written against a different "
+                "layout. Re-run the staged detection." % a.vision)
+        vision_info = vd.get("timing")
+        wp = MCT.t1(cubes=cubes)
+        grip_sched = spec["grip"](len(wp["left"]))
+        print("[vision] %d cubes SEEN (staged) -> %s" % (len(cubes), cubes),
+              flush=True)
+
     n = Runner(a)
     n._wire_logging()
+    if vision_info is not None:
+        n.vision_info = vision_info
     # THE SAME ISOLATION THE CLIP PATH USES, from the same module.
     #
     # 02_vr_teleop's data run recorded 0.0000 m of EE travel on both arms

@@ -1,25 +1,25 @@
 {
-  "arm": "right",
+  "arm": "left",
   "repeats": 5,
   "tested_waypoints": 54,
   "object_z": 1.12,
   "resting_base_z": 1.1,
   "controls": {
     "no_slab": 0,
-    "slab_through": 54,
+    "slab_through": 46,
     "topdown_no_slab": 0
   },
-  "topdown_failures_at_resting": 12,
+  "topdown_failures_at_resting": 24,
   "failures_by_slab_top": {
     "0.950": 0,
-    "1.000": 4,
-    "1.020": 4,
-    "1.040": 16,
-    "1.050": 24,
-    "1.060": 28,
-    "1.070": 28,
-    "1.080": 40,
-    "1.100": 46
+    "1.000": 0,
+    "1.020": 0,
+    "1.040": 12,
+    "1.050": 14,
+    "1.060": 20,
+    "1.070": 24,
+    "1.080": 28,
+    "1.100": 38
   },
-  "ik_calls": 2486
+  "ik_calls": 2686
 }

@@ -204,11 +204,48 @@ def task_specs():
                      "03_shared_autonomy", "04_vr_shared",
                      "06_full_autonomy"):
             short = mode.split("_", 1)[1].replace("_", " ")
+            # T1 LOOKS BEFORE IT GRASPS, AND THE BUTTON SAYS SO.
+            #
+            # T1 is a COLOUR-MATCHED task and its colour used to be read from
+            # T1_PAIR -- a declaration -- so every clip of it was produced
+            # without a camera being consulted. With --vision, run_abc moves
+            # to the observe pose, detects each cube, and builds the SAME path
+            # from the seen position and the seen colour.
+            #
+            # IT REFUSES RATHER THAN FALLING BACK if no camera is publishing,
+            # which is deliberate: a silent revert to the declared coordinate
+            # is indistinguishable from a working perception path. The sweep
+            # therefore starts `mock_rgbd_camera` for this task, and on real
+            # hardware the wrist camera has to be streaming.
+            #
+            # T1 LOOKS BEFORE IT GRASPS, AND THE LOOK HAPPENS IN STAGING.
+            #
+            # THE ONE-SOURCE RULE IS WHY. `vision_grasp.observe_and_detect` commands the observe
+            # pose by publishing a JointTrajectory to
+            # /<arm>_arm_controller/joint_trajectory -- which is the topic
+            # `ik_follower_node` publishes to (ik_follower_node.py:260). Under
+            # a mode the follower owns that topic, so the observe move and the
+            # follower fight for the arm. Measured: through the sweep the cell
+            # recorded 8.90 m of travel, placed 101 mm from target and took no
+            # grasp at all; run standalone with master_pose_node also live it
+            # recorded 0.0000 m, because the follower was tracking the master
+            # rather than the runner.
+            #
+            # So the look runs in STAGING, next to stage_presentation_pose.py
+            # which the sweep already drives as a subprocess before pressing
+            # the button. `stage_observe_and_detect.py` looks, detects, returns
+            # the arm home and writes the cubes; --vision READS that file and
+            # does no arm motion at all, so the follower stays the only
+            # publisher on the arm controller.
+            #
+            # m1s2 does NOT get it yet: stage 2 draws its layout from a
+            # per-trial seed across BOTH arms and needs its own join.
+            _extra = (["--vision", DETECTIONS_FILE] if k == "m1" else [])
             out.append(Spec(
                 "msc_%s_%s" % (k, mode),
                 "%s  [%s]" % (lab, short), "task",
                 _sh("run_experiment.sh", k, "--mode", mode, "--taskset",
-                    "msc", "--participant", "PILOT", "--scripted"),
+                    "msc", "--participant", "PILOT", "--scripted", *_extra),
                 needs_stack=True,
                 disabled_reason=(
                     None if k in accepted else
@@ -259,6 +296,11 @@ def task_specs():
         raise AssertionError("duplicate button labels %s" % dl)
 
     return out
+
+
+# Where the staged detection lands. One path, so the stage step and the run
+# cannot disagree about which file carries the cubes.
+DETECTIONS_FILE = "/tmp/srl_t1_detections.json"
 
 
 def all_specs():

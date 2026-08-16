@@ -1,0 +1,219 @@
+{
+  "rows": [
+    {
+      "cube": "cube_0",
+      "truth": "blue",
+      "seen": "blue",
+      "error_m": 0.002,
+      "outcome": "OK"
+    },
+    {
+      "cube": "cube_1",
+      "truth": "green",
+      "seen": "green",
+      "error_m": 0.0035,
+      "outcome": "OK"
+    },
+    {
+      "cube": "cube_2",
+      "truth": "blue",
+      "seen": "blue",
+      "error_m": 0.0026,
+      "outcome": "OK"
+    },
+    {
+      "cube": "cube_3",
+      "truth": "green",
+      "seen": "green",
+      "error_m": 0.0036,
+      "outcome": "OK"
+    }
+  ],
+  "n": 4,
+  "correct": 4,
+  "wrong_colour": 0,
+  "missed": 0,
+  "spurious": 0,
+  "accuracy": 1.0,
+  "worst_localisation_m": 0.0036,
+  "controls": {
+    "arms_arrived": {
+      "want": "<= 0.02 rad",
+      "got": 0.0
+    },
+    "score_can_fail": {
+      "want": "accuracy collapses on swapped truth",
+      "got": "1.00 -> 0.00"
+    }
+  },
+  "controls_pass": true,
+  "observe_pose_q": [
+    -1.557801538508152,
+    1.5499171358259627,
+    -0.6208844564679808,
+    -1.2944178753490245,
+    2.8393195624727547,
+    1.8079043748334134,
+    -0.780181832827879
+  ],
+  "detections": [
+    {
+      "colour": "green",
+      "u": 344.5993788819876,
+      "v": 278.1218944099379,
+      "area": 1288,
+      "depth_m": 0.739,
+      "hsv_median": [
+        68,
+        224,
+        204
+      ],
+      "hsv_margin_low": [
+        28,
+        144,
+        144
+      ],
+      "hsv_margin_high": [
+        17,
+        31,
+        51
+      ],
+      "blob_px": 44.0,
+      "expected_px": 33.3,
+      "hsv_margin_min": [
+        17,
+        31,
+        51
+      ],
+      "world": [
+        0.7427681695262703,
+        0.12122936736182,
+        1.1180434518473452
+      ]
+    },
+    {
+      "colour": "green",
+      "u": 245.23116883116884,
+      "v": 287.8188311688312,
+      "area": 1540,
+      "depth_m": 0.719,
+      "hsv_median": [
+        68,
+        224,
+        204
+      ],
+      "hsv_margin_low": [
+        28,
+        144,
+        144
+      ],
+      "hsv_margin_high": [
+        17,
+        31,
+        51
+      ],
+      "blob_px": 47.0,
+      "expected_px": 34.2,
+      "hsv_margin_min": [
+        17,
+        31,
+        51
+      ],
+      "world": [
+        0.6204627542019565,
+        0.12165708715021345,
+        1.1169166044955305
+      ]
+    },
+    {
+      "colour": "blue",
+      "u": 295.71569370735403,
+      "v": 282.855193328279,
+      "area": 1319,
+      "depth_m": 0.728,
+      "hsv_median": [
+        112,
+        227,
+        229
+      ],
+      "hsv_margin_low": [
+        17,
+        107,
+        169
+      ],
+      "hsv_margin_high": [
+        18,
+        28,
+        26
+      ],
+      "blob_px": 44.0,
+      "expected_px": 33.8,
+      "hsv_margin_min": [
+        17,
+        28,
+        26
+      ],
+      "world": [
+        0.6816563394904521,
+        0.12111069043463485,
+        1.1183829858920455
+      ]
+    },
+    {
+      "colour": "blue",
+      "u": 193.36749116607774,
+      "v": 292.8374558303887,
+      "area": 1415,
+      "depth_m": 0.707,
+      "hsv_median": [
+        112,
+        227,
+        229
+      ],
+      "hsv_margin_low": [
+        17,
+        107,
+        169
+      ],
+      "hsv_margin_high": [
+        18,
+        28,
+        26
+      ],
+      "blob_px": 45.0,
+      "expected_px": 34.8,
+      "hsv_margin_min": [
+        17,
+        28,
+        26
+      ],
+      "world": [
+        0.5592497702890318,
+        0.12104913960150648,
+        1.118428424005197
+      ]
+    }
+  ],
+  "rejected_by_size_gate": [
+    {
+      "colour": "green",
+      "u": 389.4,
+      "v": 215.1,
+      "blob_px": 168.0,
+      "depth_m": 0.825,
+      "expected_px": 29.8,
+      "why": "not cube-sized at its own range"
+    },
+    {
+      "colour": "blue",
+      "u": 214.5,
+      "v": 228.0,
+      "blob_px": 170.0,
+      "depth_m": 0.786,
+      "expected_px": 31.3,
+      "why": "not cube-sized at its own range"
+    }
+  ],
+  "transfers_to_real_cameras": false,
+  "note": "RENDERED colour only. HSV thresholds need recalibration against real photographs; see mock_rgbd_camera.py."
+}

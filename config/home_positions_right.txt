@@ -1,40 +1,68 @@
-# RIGHT arm home == THE PRESENTATION POSE (set 2026-08-15).
+# RIGHT arm home == THE SOLVED PRESENTATION POSE (set 2026-08-16).
 #
-# Same reasoning as the left; see home_positions_left.txt and
-# docs/system/home_wrist_is_real.md. Wrist LEVEL (0.0 deg), hand in front of
-# the chest at (-0.550, 0.360, 1.180), limb apex 119 mm below the wearer's
-# shoulder line. This replaces the legacy real-robot home, which parked the
-# wrist +79 deg above horizontal.
+# NOT HAND-PICKED. Same solver run, same constraint set and same column as the
+# left; see config/home_positions_left.txt for the full account, including why
+# constraints (c2), (d) and (h) are worded the way they are.
+#
+# WHAT IT ACHIEVES (right arm), measured from LIVE TF on a booted stack:
+#
+#   (a)  forearm points forward     22.91 deg off the wearer's facing  <= 25
+#   (b)  elbow below the shoulder   0.2794 m below                     >= 0.10
+#   (c)  wrist level                approach elevation -1.42 deg       <= 2.0
+#   (c2) wrist FACES FORWARD        21.83 deg off +y                   <= 25
+#   (d)  gripper camera ON TOP      12.05 deg off world +z             <= 15
+#   (e)  hand in front of the chest (-0.3971, 0.3397, 1.1791), which is
+#                                   0.2297 m in front of the torso face
+#   (f)  wearer clearance           0.1610 m                           >= 0.15
+#   (g)  mirror symmetry            end effectors 0.0087 m             <= 0.02
+#   (h)  seam margin                0.569 rad from +/-pi               >= 0.30
+#
+# THE ELBOWS NOW MATCH: 0.2776 m (left) and 0.2794 m (right) below their own
+# shoulders, a difference of 1.8 mm. The pose this replaces had 0.0793 and
+# 0.2715, a factor of 3.4, which is what "the left elbow is thrown up" was.
+#
+# THE TWO ARMS ARE NOT PERFECTLY MIRRORED AND CANNOT BE. The mounts are not
+# mirror images: reflecting the LEFT mount through x = 0 leaves it 168.00 deg
+# of roll from the RIGHT mount, measured off the URDF. Two identical arms on
+# mounts differing by 168 deg cannot hold mirrored postures exactly.
+#
+# BUT THE PREVIOUSLY REPORTED FLOOR OF 0.161 m WAS NOT THAT LIMIT. It came
+# from `find_symmetric_home.py`, which pinned each arm to its OWN current
+# end-effector quaternion. That froze the roll -- the degree of freedom
+# constraint (d) is about -- and handed the two arms targets that were not
+# mirror images of each other, so no pair of solutions could have mirrored.
+# Searched over the full joint space with mirrored targets, the residual is
+# 0.0272 m over shoulder..end_effector against 0.2826 m before.
 #
 # THE REAL ARM HAS NOT MOVED. Still at the legacy Kortex home
 #   303.65   77.06   98.57   58.57  317.14   36.39  154.71
 # The bridge REFUSES to enable on the difference rather than commanding it.
 #
-# Presentation pose, converted through kortex_convention:
-#   Kortex deg : 309.40  100.81   96.22   78.88   11.47  330.88  265.75
-#   ROS deg    : -50.60  100.81   96.22   78.88   11.47  -29.12  -94.25
-#   ROS rad    : -0.8831  1.7594  1.6794  1.3767  0.2002 -0.5082 -1.6450
+# THE RIGHT ARM HAS NEVER BEEN READ FROM HARDWARE AT ALL. kortex_driver
+# exports tcp/twist.* without an arm prefix, so two real components collide
+# and abort the hardware load; right stays MOCK. `config/real_home_reference
+# .txt` holds a live LEFT reading only, and that is a snapshot of where the
+# arm happened to be at 18:21 on 2026-07-31, not a home: scored against these
+# constraints it puts the hand 0.586 m BEHIND the torso face with the approach
+# axis pitched 65 deg down.
 #
-# JOINT_7 IS STORED WRAPPED, AND THAT IS NOT COSMETIC. The pose search
-# returned joint_7 = 265.75 deg (4.6382 rad). joint_7 is CONTINUOUS, so
-# -94.25 deg is the same physical pose -- but ik_follower_node refuses to
-# start on real hardware with a continuous joint outside +/-pi, and performs
-# an automatic unwind in sim. Stored unwrapped, every follower start would
-# either refuse (real) or execute a 360 deg unwind (sim).
+# Solved pose, converted through kortex_convention:
+#   Kortex deg : 309.20  108.48   91.24   82.52  212.63   36.52  233.54
+#   ROS deg    : -50.80  108.48   91.24   82.52 -147.37   36.52 -126.46
+#   ROS rad    : -0.886624 +1.893289 +1.592394 +1.440260 -2.572133
+#                +0.637466 -2.207126
 #
-# THE KORTEX VALUE IS 265.75 EITHER WAY, because Kortex reports 0..360. So the
-# capture target in the lab is unambiguous and the wrap is a ROS-side storage
-# detail only.
-#
-# The RIGHT arm stays MOCK for now (the two-arm tcp/twist.linear.x collision
-# blocks real bring-up), so these values are not yet exercised on hardware.
+# Continuous joints (1/3/5/7) are inside +/-pi and clear of the seam by 0.569
+# rad. No hand wrapping was needed this time: the solver's search box for a
+# continuous joint IS +/-pi. Limited joints (2/4/6) are inside their hard
+# stops.
 #
 # Values are ROS degrees, joint_1..joint_7.
 
-joint_1: -50.60
-joint_2: 100.81
-joint_3: 96.22
-joint_4: 78.88
-joint_5: 11.47
-joint_6: -29.12
-joint_7: -94.25
+joint_1: -50.80
+joint_2: 108.48
+joint_3: 91.24
+joint_4: 82.52
+joint_5: -147.37
+joint_6: 36.52
+joint_7: -126.46

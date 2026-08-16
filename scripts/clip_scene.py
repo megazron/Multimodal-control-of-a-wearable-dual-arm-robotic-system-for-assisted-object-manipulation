@@ -120,7 +120,24 @@ DARK = (0.18, 0.19, 0.21, 1.0)
 # object: a printed target is not something the gripper must avoid, and
 # making it one would refuse the very placement the task is about. What IS a
 # collision object is the LIP that holds it out over the bench edge.
-PLANE_W, PLANE_D, PLANE_T = 0.14, 0.10, 0.004
+# THE PADS ARE LARGE, 2026-08-16. 0.14 x 0.10 read as coasters next to a
+# 1.05 m half-width table; the brief asks for two LARGE colour pads. 0.18 x
+# 0.12 is 1.54x the area and still leaves a 20 mm gap between the two at the
+# measured 200 mm column spacing (T1_PLANES). Both slots the place path uses
+# (+/-SLOT_DY = 0.030 in y) sit 30 mm inside the pad's near and far edges, so
+# a cube released over one lands on the pad rather than its rim.
+#
+# THE DEPTH IS 0.12 AND NOT 0.14 BECAUSE OF THE MARKING, not the reach. The
+# drawn workspace marking is the 193 clearance-safe cells, which stop at
+# y = 0.300. A pad centred on the measured-safe row y = 0.240 with a 0.14
+# depth puts its far edge at 0.310 -- 10 mm outside the boundary a participant
+# is told to work inside, which is T1-7 broken by a decoration.
+# ONE SIZE PER ARM, BECAUSE THE TWO ARMS' REGIONS ARE DIFFERENT SHAPES.
+# PLANE_W/PLANE_D are the LEFT arm's, which is what stage 1 draws; the right
+# arm's pair is smaller and PLANE_SIZE_BY_ARM carries both. See the block
+# above T1_PLANES in msc_clip_tasks for the measurement.
+PLANE_W, PLANE_D, PLANE_T = 0.210, 0.130, 0.004
+PLANE_SIZE_BY_ARM = {"left": (0.210, 0.130), "right": (0.100, 0.160)}
 
 # THE TABLE UNDER THE WORK SURFACE. Top at 0.95 and reaching forward to
 # y = 0.10, which is under the whole measured reachable region (y 0.05..0.20)
@@ -236,9 +253,29 @@ TABLE_APRON = 0.06               # skirt depth under the top, so it reads as
 # separate rail coplanar with it.
 OAK = (1.88, 1.88, 1.89, 1.0)        # top, up-facing -> ~240 (near white);
                                      # its own front face -> 255
-RISER = (0.90, 0.90, 0.91, 1.0)      # posts under the raised surface -> ~199
-APRON = (0.90, 0.90, 0.91, 1.0)      # skirt under the top -> ~199
-LEG = (0.77, 0.77, 0.78, 1.0)        # the four legs -> ~170
+# FULL WHITE, 2026-08-16. The apron and legs used to render 199 and 170 --
+# light grey furniture under a white top, which is what "the table is white"
+# had come to mean. The brief asks for a table that is white all through, so
+# every part is now driven to render in the 224..240 band.
+#
+# The REQUESTS still differ per part, and they have to: RViz shades by face
+# orientation, so an up-facing face gets ambient alone (0.5 x colour, 127.5
+# per unit) while a camera-facing face gets ambient plus diffuse (221 per
+# unit). One request for every part would either leave the top grey or blow
+# the sides to 255 and flatten the whole thing into a silhouette. Driving
+# each part to a RENDERED target keeps the geometry legible -- the small
+# 232/224 split between apron and legs is what stops the underframe reading
+# as one mass -- while every part is white.
+#
+#     part        face seen        want   coefficient   requested
+#     top         up-facing         240      127.5         1.88
+#     apron       camera-facing     232      221           1.05
+#     legs        camera-facing     224      221           1.01
+#     stretchers  camera-facing     224      221           1.01
+RISER = (1.01, 1.01, 1.02, 1.0)      # posts under a raised surface -> ~224
+APRON = (1.05, 1.05, 1.06, 1.0)      # skirt under the top -> ~232
+LEG = (1.01, 1.01, 1.02, 1.0)        # the four legs -> ~224
+STRETCHER = LEG                      # the lower rails that tie the legs
 
 # ==========================================================================
 # WORKSPACE MARKINGS -- the boundary each arm can actually reach, MEASURED
@@ -834,7 +871,23 @@ class Scene(Node):
                         arm=arm, width_mm=40,
                         pos=CT.ee_for(cube, arm),
                         size=(0.04,) * 3,
-                        col=(YELLOW if arm == "left" else TEAL),
+                        # THE CUBE'S COLOUR IS ITS PAD, NOT ITS ARM.
+                        #
+                        # This drew YELLOW for the left arm and TEAL for the
+                        # right, so stage 2 -- the both-arms half of a
+                        # COLOUR-MATCHED pick and place -- put no task colour
+                        # on any cube. The pads were blue and green, the cubes
+                        # were yellow and teal, and "each cube ended on the pad
+                        # of its own colour" could not be judged from a frame
+                        # at all: there was no own colour. The task layer was
+                        # never confused -- `t1_stage2` routes every cube to
+                        # `T1_PLANES_BY_ARM[arm][_stage2_pad_index(...)]` --
+                        # only the picture was.
+                        #
+                        # Same rule as the task, from the same function, so the
+                        # two cannot disagree about which cube is blue.
+                        col=(BLUE if _MCT._stage2_pad_index(arm, i, tgt) == 0
+                             else GREEN),
                         held=False, graspable=True)
             return out
         if task == "t2":
@@ -1224,6 +1277,23 @@ class Scene(Node):
                 add(Marker.CUBE,
                     [sx * (TABLE_HALF_X - inset), tyc, z_apron],
                     (0.022, tyd - 2 * inset, TABLE_APRON), APRON)
+            # LOWER STRETCHERS. After the overhang, a rail tying the legs
+            # together low down is the strongest thing that reads as real
+            # furniture rather than a slab on four posts -- it is what the eye
+            # uses to place the legs in depth. Set at 0.28 of the leg height,
+            # which is where a joiner would put them and, more usefully here,
+            # is 700 mm below the top and nowhere near the approach cone: the
+            # arm never descends past the table top, so nothing about them can
+            # touch a verified waypoint.
+            z_str = (TABLE_TOP - TABLE_THICK) * 0.28
+            lx = TABLE_HALF_X - TABLE_LEG_INSET
+            for sy in (TABLE_NEAR_Y + TABLE_LEG_INSET,
+                       TABLE_FAR_Y - TABLE_LEG_INSET):
+                add(Marker.CUBE, [0.0, sy, z_str],
+                    (2 * lx, 0.030, 0.030), STRETCHER)
+            for sx in (-1, 1):
+                add(Marker.CUBE, [sx * lx, tyc, z_str],
+                    (0.030, tyd - 2 * TABLE_LEG_INSET, 0.030), STRETCHER)
             # NO SEPARATE NEAR-EDGE RAIL, AND THE RENDER IS WHY. One was
             # drawn here to give the front edge its own tone, 12 mm deep at
             # y = 0.100. Its front face is then EXACTLY COPLANAR with the top
@@ -1376,6 +1446,7 @@ class Scene(Node):
                 for _a in ("left", "right"):
                     _pads += [(_a, p) for p in _MCT.T1_PLANES_BY_ARM[_a]]
             for pi, (_arm_of_pad, (px, py)) in enumerate(_pads):
+                _pw, _pd = PLANE_SIZE_BY_ARM[_arm_of_pad]
                 # the colour alternates within each side's pair, so both sides
                 # show one blue and one green
                 pi = pi % len(_MCT.T1_PLANES)
@@ -1383,13 +1454,13 @@ class Scene(Node):
                                         _arm_of_pad)
                 add(Marker.CUBE,
                     [px, py, CT.BENCH_TOP - PLANE_T / 2.0],
-                    (PLANE_W, PLANE_D, PLANE_T),
+                    (_pw, _pd, PLANE_T),
                     BLUE if pi == 0 else GREEN, ns="planes")
                 # an outline, so the mat reads as a target and not as a
                 # shadow on the bench
                 add(Marker.CUBE,
                     [px, py, CT.BENCH_TOP - PLANE_T / 2.0],
-                    (PLANE_W * 1.10, PLANE_D * 1.14, PLANE_T * 0.5),
+                    (_pw * 1.06, _pd * 1.08, PLANE_T * 0.5),
                     ((BLUE if pi == 0 else GREEN)[0],
                      (BLUE if pi == 0 else GREEN)[1],
                      (BLUE if pi == 0 else GREEN)[2], 0.35), ns="planes")

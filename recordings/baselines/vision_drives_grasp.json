@@ -1,0 +1,59 @@
+{
+  "arm": "left",
+  "cubes": [
+    [
+      0.5592,
+      0.121,
+      0
+    ],
+    [
+      0.6205,
+      0.1217,
+      1
+    ],
+    [
+      0.6817,
+      0.1211,
+      0
+    ],
+    [
+      0.7428,
+      0.1212,
+      1
+    ]
+  ],
+  "timing": {
+    "move_to_observe_s": 24.12,
+    "detect_s": 0.399,
+    "return_home_s": 24.13,
+    "cubes": [
+      [
+        0.5592,
+        0.121,
+        0
+      ],
+      [
+        0.6205,
+        0.1217,
+        1
+      ],
+      [
+        0.6817,
+        0.1211,
+        0
+      ],
+      [
+        0.7428,
+        0.1212,
+        1
+      ]
+    ],
+    "rejected_by_size": 2,
+    "added_total_s": 48.65,
+    "added_per_pick_s": 12.16
+  },
+  "declared_place_x": 0.8421,
+  "vision_place_x": 0.6121,
+  "separation_m": 0.23,
+  "vision_drives_the_grasp": true
+}

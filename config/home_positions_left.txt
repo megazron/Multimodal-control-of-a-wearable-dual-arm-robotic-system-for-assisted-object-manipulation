@@ -1,47 +1,97 @@
-# LEFT arm home == THE PRESENTATION POSE (set 2026-08-15).
+# LEFT arm home == THE SOLVED PRESENTATION POSE (set 2026-08-16).
 #
-# WHAT CHANGED. This was the LEGACY REAL-ROBOT HOME, which parked the wrist
-# +85 deg above horizontal with the gripper pointing almost straight up. It is
-# now the presentation pose: wrist LEVEL (0.0 deg), hand in front of the chest
-# at (0.550, 0.360, 1.180), limb apex 118 mm below the wearer's shoulder line.
+# NOT HAND-PICKED. Produced by `scripts/solve_home_pose.py`, which states the
+# pose as NINE geometric constraints and searches the 14-dimensional joint
+# space for them. Raw output, every achieved value and the whole column sweep:
+# recordings/baselines/home_solved.json.
+#
+# WHAT IT ACHIEVES (left arm), measured from LIVE TF on a booted stack by
+# `scripts/measure_home_render.py`, not from the solver's own arithmetic:
+#
+#   (a)  forearm points forward     23.51 deg off the wearer's facing  <= 25
+#   (b)  elbow below the shoulder   0.2776 m below                     >= 0.10
+#   (c)  wrist level                approach elevation -1.47 deg       <= 2.0
+#   (c2) wrist FACES FORWARD        9.57 deg off +y                    <= 25
+#   (d)  gripper camera ON TOP      12.05 deg off world +z             <= 15
+#   (e)  hand in front of the chest (0.4054, 0.3424, 1.1790), which is
+#                                   0.2324 m in front of the torso face
+#   (f)  wearer clearance           0.1596 m                           >= 0.15
+#   (g)  mirror symmetry            end effectors 0.0087 m             <= 0.02
+#   (h)  seam margin                1.672 rad from +/-pi               >= 0.30
+#
+# Whole-chain mirror residual 0.0272 m over shoulder..end_effector. The pose
+# this replaces scored 0.2826 m on the same measure.
+#
+# THREE CONSTRAINTS HERE WERE LEARNED THE HARD WAY, IN ORDER.
+#
+# (d) WAS MISSING ENTIRELY for three sessions. The pose was reported as
+# "wrists level" and the tool AXIS elevation genuinely was 0.00 deg -- but
+# nothing constrained the ROLL about that axis, and it had landed with the
+# wrist camera 56.4 mm BELOW the fingertips on both arms. The hand was upside
+# down. A level axis says nothing about which way up a hand is.
+#
+# (c2) WAS LEARNED FROM A RENDER. Solved with (c) alone -- "level with the
+# ground", an ELEVATION constraint -- the search put both approach axes along
+# x, pointing inward: two grippers facing each other across the wearer's
+# chest, level, symmetric and useless. Elevation says nothing about which way
+# round the horizon a hand is aimed.
+#
+# (d) WAS THEN TOO WEAK. Written as "camera higher than the fingertips by
+# 0.02 m", it passed on a camera sitting out to the SIDE of the gripper, 61.86
+# deg off vertical, and the render showed it. It is now an ANGLE on the
+# direction from the wrist to the camera: 0 deg is directly on top, 90 is flat
+# out to the side.
+#
+# THE SAME IDEA MEASURED FROM THE GRIPPER CENTRE reads 63.00 deg here, and
+# that is NOT a failure. It cannot go below about 63 deg while the approach
+# axis is level, because the fingertips are 0.1118 m forward along the
+# approach while the camera is only 0.0564 m up from the wrist. A tight target
+# on THAT vector would demand a wrist pitched ~60 deg down and would
+# contradict (c). That is the genuine (c)/(d) conflict; constraining the
+# offset DIRECTION avoids it, which is why the constraint is written the way
+# it is.
+#
+# WHAT COULD NOT BE MET, said plainly. "Hands at roughly torso width" is NOT
+# ACHIEVABLE. The torso is 0.36 m wide, so torso width means |x| = 0.18. The
+# innermost column at which every constraint holds is |x| = 0.400, which is
+# 0.220 m short of it. What binds is (a): bringing the hands inboard swings
+# the forearm across the body, and it passes 25 deg off forward between
+# |x| = 0.400 and 0.360. Measured per column in home_solved.json.
 #
 # THE REAL ARM HAS NOT MOVED. It is still parked at the legacy Kortex home
 #   259.03  277.69  267.74  286.14  194.10   27.48   55.26
-# so sim and real DISAGREE until the pose below is captured on the hardware.
-# That is safe and it is checked: sim_to_real_bridge.enable() compares the
-# REAL arm against this file (require_homed, tolerance 0.05 rad) and REFUSES,
-# naming the joint and the size. The gap is ~1.9 rad, forty times the
-# tolerance. It refuses; it does not silently move. See NEXT_SESSION.md for
-# the capture, and docs/system/home_wrist_is_real.md for the whole story.
+# `sim_to_real_bridge.enable()` compares the REAL arm against this file
+# (require_homed, tolerance 0.05 rad) and REFUSES, naming the joint and the
+# size. See docs/NEXT_SESSION.md for the capture.
 #
-# WHY IT WAS SAFE TO CHANGE. The task set was re-measured FIRST, N=10 over the
-# full path, wearer and furniture in scene, wearer clearance geometric:
-# with this pose as home and the ANCHOR LEFT ALONE, every task performs
-# exactly as it did before. The anchor -- master_calibration.WORKSPACE_ORIENT,
-# the 30.7 deg approach direction -- is a different quantity, it is read once
-# as a parameter default, and nothing recomputes it from home. A level home
-# does not force a level grasp. Re-deriving the anchor to match DOES break the
-# platform: T2 loses its right arm entirely. See recordings/baselines/
-# home_change.json.
+# THE ANCHOR IS NOT TOUCHED, AND MUST NOT BE.
+# `master_calibration.WORKSPACE_ORIENT` -- the 30.7 deg approach direction --
+# is a DIFFERENT quantity, read once as a parameter default, and nothing
+# recomputes it from home. Re-deriving it to match costs T2 its right arm.
+# CLAUDE.md hard constraint 1. `WORKSPACE_CENTRE` DID have to follow, because
+# it is documented as `offset = P_HOME`; it now reads the hand above.
 #
-# Presentation pose, converted through kortex_convention:
-#   Kortex deg : 225.18  294.52  333.89  281.93  208.01  321.90  166.67
-#   ROS deg    : -134.82 -65.48  -26.11  -78.07  -151.99 -38.10   166.67
-#   ROS rad    : -2.3530 -1.1429 -0.4557 -1.3626 -2.6528 -0.6649  2.9090
+# Solved pose, converted through kortex_convention:
+#   Kortex deg :  59.59  103.34  275.80   80.76  352.85  326.88   71.97
+#   ROS deg    :  59.59  103.34  -84.20   80.76   -7.15  -33.12   71.97
+#   ROS rad    : +1.040034 +1.803680 -1.469605 +1.409511 -0.124860
+#                -0.578111 +1.256200
 #
-# SEAM MARGIN, joint_5: IMPROVED. The legacy home put joint_5 at -165.90 deg,
-# 14.10 deg from the +/-180 seam and inside the 0.3 rad margin this project
-# uses. This pose puts it at -151.99, which is 28.01 deg clear. The warning
-# still stands for any future position-mode code -- go through
-# kortex_convention.pose_delta_rad -- but the pose itself is further from the
-# seam than the one it replaces, not nearer.
+# Continuous joints (1/3/5/7) are inside +/-pi AND clear of the seam by 1.672
+# rad. An earlier candidate parked joint_5 at exactly 180.00 deg -- 0.00 rad
+# of margin -- which nothing downstream would have caught, because
+# test_home_has_one_source checks joints are INSIDE +/-pi and pi is inside.
+# Constraint (h) exists because of that.
+#
+# THE URDF'S COPY IS DERIVED FROM THESE DEGREES, not from the solver's
+# full-precision answer, so the two carriers cannot drift by rounding.
 #
 # Values are ROS degrees, joint_1..joint_7.
 
-joint_1: -134.82
-joint_2: -65.48
-joint_3: -26.11
-joint_4: -78.07
-joint_5: -151.99
-joint_6: -38.10
-joint_7: 166.67
+joint_1: 59.59
+joint_2: 103.34
+joint_3: -84.20
+joint_4: 80.76
+joint_5: -7.15
+joint_6: -33.12
+joint_7: 71.97

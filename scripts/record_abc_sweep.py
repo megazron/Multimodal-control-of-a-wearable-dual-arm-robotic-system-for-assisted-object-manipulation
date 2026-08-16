@@ -876,6 +876,25 @@ def _main_body():
                      "--out", os.path.join(out_dir, "scene_events.json")],
                     start_new_session=True, stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL)
+                # THE WRIST CAMERA, FOR THE TASKS THAT LOOK BEFORE GRASPING.
+                #
+                # T1 records with `--vision`: run_abc moves to the observe
+                # pose, detects each cube and builds the path from the SEEN
+                # colour. It REFUSES to run if nothing is publishing on
+                # /<arm>_camera, which is the correct behaviour and also means
+                # the sweep has to provide a publisher. One per task, torn
+                # down with the scene node.
+                cam_p = None
+                if task in ("t1",):
+                    procscan.kill_all("mock_rgbd_camera")
+                    _cam_arm = ts["mod"].TASKS[task].get("arm") or \
+                        getattr(ts["mod"], "T1_ARM", "left")
+                    cam_p = subprocess.Popen(
+                        ["ros2", "run", "srl_perception", "mock_rgbd_camera",
+                         "--ros-args", "-p", "arm:=%s" % _cam_arm,
+                         "-p", "task:=%s" % task],
+                        start_new_session=True, stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL)
                 time.sleep(3.0)
                 # WHICH ARM THE GRIPPER VIEW FOLLOWS. Taken from the task's
                 # own grip schedule rather than a hardcoded list, so a new
@@ -1005,6 +1024,26 @@ def _main_body():
                         log("      presentation pose: attempt 1 rc=%d, "
                             "retrying once" % _st.returncode)
                 staged = _st.returncode == 0
+                # THE LOOK, IN STAGING. T1 records with --vision, which reads
+                # detections from a file rather than moving the arm itself --
+                # a look inside the run would put a second publisher on the
+                # arm controller alongside ik_follower_node. This is where the
+                # arm actually goes and looks.
+                if staged and task in ("t1",):
+                    from srl_teleop import gui_launch_specs as _gls
+                    _det = subprocess.run(
+                        [sys.executable, os.path.join(
+                            WS, "scripts", "stage_observe_and_detect.py"),
+                         "--out", _gls.DETECTIONS_FILE],
+                        capture_output=True, text=True)
+                    for _ln in (_det.stdout or "").strip().splitlines()[-2:]:
+                        log("      %s" % _ln)
+                    if _det.returncode != 0:
+                        log("      SKIPPING THIS CLIP -- the staged detection "
+                            "failed (rc=%d). Recording now would film a task "
+                            "whose colours came from the file."
+                            % _det.returncode)
+                        staged = False
                 if _vr:
                     _iok, _iwhy = isolate(mode, graph, started)
                     log("      restarted %s: %s" % (", ".join(_vr), _iwhy))
@@ -1018,14 +1057,17 @@ def _main_body():
                         # it would leak one clip_scene per skipped cell, and
                         # two scene publishers is the same one-source-at-a-time
                         # fault this branch exists to respect.
-                        try:
-                            os.killpg(os.getpgid(scene_p.pid), 15)
-                            scene_p.wait(timeout=15)
-                        except Exception:                     # noqa: BLE001
+                        for _p in (scene_p, cam_p):
+                            if _p is None:
+                                continue
                             try:
-                                os.killpg(os.getpgid(scene_p.pid), 9)
+                                os.killpg(os.getpgid(_p.pid), 15)
+                                _p.wait(timeout=15)
                             except Exception:                 # noqa: BLE001
-                                pass
+                                try:
+                                    os.killpg(os.getpgid(_p.pid), 9)
+                                except Exception:             # noqa: BLE001
+                                    pass
                         prog[pkey] = dict(
                             ok=False,
                             msg="upstream restart after staging failed: %s"
@@ -1088,6 +1130,18 @@ def _main_body():
                         os.killpg(os.getpgid(scene_p.pid), 9)
                     except Exception:                         # noqa: BLE001
                         pass
+                # The wrist camera goes with it. Left running it would publish
+                # into the NEXT cell's graph, and two publishers on one camera
+                # topic is the same one-source-at-a-time fault as two scenes.
+                if cam_p is not None:
+                    try:
+                        os.killpg(os.getpgid(cam_p.pid), 15)
+                        cam_p.wait(timeout=10)
+                    except Exception:                         # noqa: BLE001
+                        try:
+                            os.killpg(os.getpgid(cam_p.pid), 9)
+                        except Exception:                     # noqa: BLE001
+                            pass
 
                 # DID THE GRASP HAPPEN INSIDE THE VIDEO?
                 #

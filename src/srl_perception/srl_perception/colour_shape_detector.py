@@ -38,6 +38,44 @@ from std_msgs.msg import String
 from vision_msgs.msg import (BoundingBox3D, Detection3D, Detection3DArray,
                              ObjectHypothesisWithPose)
 
+# SIZE AT RANGE -- the gate that stops a PAD being called a CUBE.
+#
+# Added 2026-08-16 after a measured failure. T1's coloured pads are 210 x 130
+# mm in exactly the colours of the 40 mm cubes, and this detector had a
+# `min_area_px` FLOOR with no upper bound and no size check of any kind. At the
+# observe pose it locked onto the pads and scored 0 of 4 cubes: one wrong
+# colour and three missed, because the pads are the biggest blobs of cube
+# colour in the frame.
+#
+# The check is not "is the blob small". It is "is the blob the size this object
+# WOULD BE at the range it appears to be at". Two forms, because two callers
+# have different information:
+#
+#   NO DEPTH (this node). Range is derived from the apparent size of an
+#   ASSUMED width, so a size test against that range is circular. What is NOT
+#   circular is the range itself: a 210 mm pad read as a 40 mm cube yields
+#   z = fx * 0.04 / 184 = 0.134 m, i.e. "a cube 134 mm from the lens". Reject
+#   anything whose implied range falls outside the window the arm actually
+#   works in and the pad disappears, while a real cube at 0.5 m (49 px,
+#   z = 0.502) passes untouched.
+#
+#   WITH DEPTH (verify_colour_vision). Compare the blob's pixel size against
+#   fx * size / measured_depth directly. That is the honest test and it is what
+#   the harness uses.
+EXPECTED_PX_TOL = (0.55, 1.80)
+
+
+def expected_px(fx, object_size_m, range_m):
+    """How many pixels across an object of this size should be at this range."""
+    return float(fx) * float(object_size_m) / max(1e-6, float(range_m))
+
+
+def size_at_range_ok(px, fx, object_size_m, range_m, tol=EXPECTED_PX_TOL):
+    """Is a blob of `px` across the right size for `object_size_m` at `range_m`?"""
+    e = expected_px(fx, object_size_m, range_m)
+    return tol[0] * e <= float(px) <= tol[1] * e
+
+
 # (name, HSV low, HSV high). Two red bands because red wraps the hue circle.
 DEFAULT_COLOURS = [
     ("red", (0, 120, 70), (10, 255, 255)),
@@ -57,6 +95,12 @@ class ColourShapeDetector(Node):
         self.declare_parameter("camera_info_topic", "")
         self.declare_parameter("object_width_m", 0.05)
         self.declare_parameter("min_area_px", 400)
+        # THE WORKING RANGE WINDOW. A blob whose IMPLIED range falls outside
+        # this is not the object it claims to be -- see the note on
+        # size_at_range_ok. Defaults span the wrist camera's usable band: the
+        # depth module is blind below 0.25 m and the arm cannot hold anything
+        # further than ~1.5 m from its own wrist.
+        self.declare_parameter("range_window_m", [0.25, 1.50])
         # Hard ceiling. AprilTag detections routinely exceed this, so the
         # tracker's max() fusion will always prefer a tag when one exists.
         self.declare_parameter("max_confidence", 0.45)
@@ -70,6 +114,8 @@ class ColourShapeDetector(Node):
         self.enabled = bool(self.get_parameter("enabled").value)
         self.width = float(self.get_parameter("object_width_m").value)
         self.min_area = int(self.get_parameter("min_area_px").value)
+        self.range_window = [float(v) for v in
+                             self.get_parameter("range_window_m").value]
         self.max_conf = float(self.get_parameter("max_confidence").value)
         self.min_aspect_for_yaw = float(
             self.get_parameter("min_aspect_for_yaw").value)
@@ -126,6 +172,12 @@ class ColourShapeDetector(Node):
                 # Range from apparent size of an ASSUMED physical width. If the
                 # assumption is wrong, so is the range, linearly.
                 z = fx * self.width / px
+                # SIZE AT RANGE. Reject a blob whose implied range is outside
+                # the band this camera can work in: that means it is not an
+                # object of `object_width_m` at all. This is what stops the
+                # 210 mm pads being reported as 40 mm cubes.
+                if not (self.range_window[0] <= z <= self.range_window[1]):
+                    continue
                 x = (cx - self.K[0, 2]) * z / fx
                 y = (cy - self.K[1, 2]) * z / self.K[1, 1]
                 d = Detection3D()

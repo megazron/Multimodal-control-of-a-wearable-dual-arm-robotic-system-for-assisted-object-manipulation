@@ -92,6 +92,65 @@ more than 0.15 m from its scan pose, rather than accumulating nothing quietly.
 read off any of this.** Detection at working distance remains UNMEASURED.
 
 
+### COLOUR ON CAMERA DAY — the numbers to bring, measured 2026-08-16
+
+The T1 colour classifier works on the render: **4 of 4 cubes**, 0 wrong
+colour, 0 missed, localisation worst 3.6 mm. **None of that transfers.** What
+follows is what you will actually need when the Kinova cameras are streaming.
+
+**1. The renderer is not the problem — it reproduces the request.** Measured
+off the observe-pose frame with the declared values beside them:
+
+| | declared | rendered | offset |
+| --- | --- | --- | --- |
+| blue cube | (26, 76, 230) | (25, 76, 229) | **1 count per channel** |
+| green cube | (26, 204, 77) | (25, 204, 76) | **1 count** |
+
+So any colour trouble on real hardware is the CAMERA and the LIGHT, not a
+pipeline that mangles colour on the way through. There is no systematic
+rendering bias to subtract.
+
+**2. There WAS a systematic offset, and it was a code duplication.**
+`mock_rgbd_camera` carried its own literals for the cube colours instead of
+importing `clip_scene`'s. Blue matched exactly; **green was 25 counts of G and
+25 of B away** from the green the clips actually show, so the detector was
+being exercised against a colour no viewer ever sees. Fixed — the mock now
+reads `CS.BLUE` / `CS.GREEN`. Worth knowing because it is the shape of fault
+to expect between the real driver's colour pipeline and the scene: not noise,
+a second copy of a constant.
+
+**3. THE MARGIN IS WHAT DECIDES WHETHER THE THRESHOLDS SURVIVE.** A pass/fail
+rate says nothing about robustness; how much room each blob had inside its HSV
+band does. Measured, per channel, as the smaller of the distance to the band's
+low and high edges (OpenCV ranges: H 0-179, S and V 0-255):
+
+| cube | median H,S,V | margin H,S,V | tightest |
+| --- | --- | --- | --- |
+| blue | 113, 226, 230 | **17, 29, 25** | **hue, 17 counts** |
+| green (scene value) | 64, 226, 230 | **21, 29, 25** | **hue, 21 counts** |
+
+**Hue is the tightest channel on both, at 17-21 counts of a 180-count scale.**
+That is roughly 10 degrees of hue. White balance on a real camera moves hue by
+more than that between daylight and the lab's fluorescents, so **expect to
+recalibrate `DEFAULT_COLOURS` before trusting a single real classification.**
+Value has only 25 counts of headroom at the top, so an over-exposed frame will
+push a saturated cube straight out of the band.
+
+**4. What to do on the day, in order.** Photograph both cubes and both pads
+under the actual lab light at the observe pose; read their HSV medians; widen
+`colour_shape_detector.DEFAULT_COLOURS` around the measured medians rather than
+around the rendered ones; then re-run `scripts/verify_colour_vision.py`, whose
+score-can-fail control will tell you whether the comparison still means
+anything.
+
+**5. Two things the size gate depends on and the real camera changes.** The
+gate rejects a blob unless it is the size that object would be at the range it
+appears to be at, using `fx` from CameraInfo — so the REAL intrinsics must
+reach it, not the mock's nominal 615. And the cube/pad separation depends on a
+DEPTH step: `colour_shape_detector` subscribes to colour only, so on real
+hardware it needs the depth image wired in, or pads in non-cube colours.
+
+
 LEFT `192.168.1.10`, RIGHT `192.168.1.9`, port 10000, `admin`/`admin`.
 
 Work through in order. **Every step has an abort condition — if it trips,

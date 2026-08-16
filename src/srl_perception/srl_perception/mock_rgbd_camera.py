@@ -220,7 +220,7 @@ class MockRGBD(Node):
                     out.append(dict(
                         xyz=[px, py, CT.BENCH_TOP + CS.PLANE_T / 2.0],
                         size=[CS.PLANE_W, CS.PLANE_D, CS.PLANE_T],
-                        rgb=(0.1, 0.3, 0.9) if i == 0 else (0.1, 0.8, 0.3),
+                        rgb=CS.BLUE[:3] if i == 0 else CS.GREEN[:3],
                         name="plane_%d" % i))
             except Exception as e:
                 self.get_logger().warn("no plane geometry: %s" % e)
@@ -235,7 +235,24 @@ class MockRGBD(Node):
                     out.append(dict(
                         xyz=[px, py, CT.BENCH_TOP + MCT.CUBE_M / 2.0],
                         size=[MCT.CUBE_M] * 3,
-                        rgb=(0.1, 0.3, 0.9) if i % 2 == 0 else (0.1, 0.8, 0.3),
+                        # THE SCENE'S OWN COLOURS, NOT A SECOND COPY.
+                        #
+                        # These were literals here, and they had already
+                        # drifted: clip_scene draws GREEN as (0.1, 0.9, 0.2)
+                        # and this rendered (0.1, 0.8, 0.3) -- 25 counts of G
+                        # and 25 of B apart at 8-bit. So the detector was
+                        # being exercised against a green the clips never
+                        # show, which is the whole class of fault this file
+                        # avoids elsewhere by importing clip_scene rather than
+                        # restating the scene. Blue happened to match exactly,
+                        # which is how it went unnoticed.
+                        #
+                        # Checked before changing: the scene's green sits
+                        # inside the detector's HSV band with margins
+                        # H,S,V = 21, 29, 25 against the old 17, 32, 51, so
+                        # the hue margin IMPROVES and the value margin drops
+                        # to the same 25 the blue cube already had.
+                        rgb=CS.BLUE[:3] if i % 2 == 0 else CS.GREEN[:3],
                         name="cube_%d" % i))
             except Exception as e:
                 self.get_logger().warn("no cube geometry: %s" % e)

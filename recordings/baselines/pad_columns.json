@@ -1,0 +1,437 @@
+{
+  "controls": {
+    "deep_inside_the_wearer_fails": {
+      "want": "not reachable-and-clear",
+      "got": "False / None"
+    },
+    "far_outboard_passes": {
+      "want": "reachable and >= floor",
+      "got": "True / 0.161"
+    },
+    "inside_torso_negative": {
+      "want": "< 0",
+      "got": -0.1534
+    }
+  },
+  "floor": 0.15,
+  "z": 1.12,
+  "ys": [
+    0.2,
+    0.24,
+    0.28,
+    0.32
+  ],
+  "repeats": 10,
+  "rows": {
+    "left": [
+      {
+        "x": 0.25,
+        "y": 0.2,
+        "reachable": false,
+        "clearance_m": null,
+        "to": null
+      },
+      {
+        "x": 0.25,
+        "y": 0.24,
+        "reachable": false,
+        "clearance_m": null,
+        "to": null
+      },
+      {
+        "x": 0.25,
+        "y": 0.28,
+        "reachable": false,
+        "clearance_m": null,
+        "to": null
+      },
+      {
+        "x": 0.25,
+        "y": 0.32,
+        "reachable": true,
+        "clearance_m": -0.0034,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.275,
+        "y": 0.2,
+        "reachable": true,
+        "clearance_m": -0.0016,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.275,
+        "y": 0.24,
+        "reachable": true,
+        "clearance_m": 0.005,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.275,
+        "y": 0.28,
+        "reachable": true,
+        "clearance_m": 0.0116,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.275,
+        "y": 0.32,
+        "reachable": true,
+        "clearance_m": 0.0208,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.3,
+        "y": 0.2,
+        "reachable": true,
+        "clearance_m": 0.023,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.3,
+        "y": 0.24,
+        "reachable": true,
+        "clearance_m": 0.0297,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.3,
+        "y": 0.28,
+        "reachable": true,
+        "clearance_m": 0.0363,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.3,
+        "y": 0.32,
+        "reachable": true,
+        "clearance_m": 0.0451,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.325,
+        "y": 0.2,
+        "reachable": true,
+        "clearance_m": 0.0478,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.325,
+        "y": 0.24,
+        "reachable": true,
+        "clearance_m": 0.0544,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.325,
+        "y": 0.28,
+        "reachable": true,
+        "clearance_m": 0.0611,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.325,
+        "y": 0.32,
+        "reachable": true,
+        "clearance_m": 0.0696,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.35,
+        "y": 0.2,
+        "reachable": true,
+        "clearance_m": 0.0723,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.35,
+        "y": 0.24,
+        "reachable": true,
+        "clearance_m": 0.079,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.35,
+        "y": 0.28,
+        "reachable": true,
+        "clearance_m": 0.0856,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.35,
+        "y": 0.32,
+        "reachable": true,
+        "clearance_m": 0.0939,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.375,
+        "y": 0.2,
+        "reachable": true,
+        "clearance_m": 0.097,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.375,
+        "y": 0.24,
+        "reachable": true,
+        "clearance_m": 0.1036,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.375,
+        "y": 0.28,
+        "reachable": true,
+        "clearance_m": 0.1102,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.375,
+        "y": 0.32,
+        "reachable": true,
+        "clearance_m": 0.1181,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.4,
+        "y": 0.2,
+        "reachable": true,
+        "clearance_m": 0.1217,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.4,
+        "y": 0.24,
+        "reachable": true,
+        "clearance_m": 0.1283,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.4,
+        "y": 0.28,
+        "reachable": true,
+        "clearance_m": 0.135,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.4,
+        "y": 0.32,
+        "reachable": true,
+        "clearance_m": 0.1424,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.425,
+        "y": 0.2,
+        "reachable": true,
+        "clearance_m": 0.1463,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.425,
+        "y": 0.24,
+        "reachable": true,
+        "clearance_m": 0.1529,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.425,
+        "y": 0.28,
+        "reachable": true,
+        "clearance_m": 0.1596,
+        "to": "L-upperarm"
+      },
+      {
+        "x": 0.425,
+        "y": 0.32,
+        "reachable": true,
+        "clearance_m": 0.161,
+        "to": "torso"
+      }
+    ],
+    "right": [
+      {
+        "x": 0.25,
+        "y": 0.2,
+        "reachable": true,
+        "clearance_m": 0.0015,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.25,
+        "y": 0.24,
+        "reachable": true,
+        "clearance_m": 0.0162,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.25,
+        "y": 0.28,
+        "reachable": true,
+        "clearance_m": 0.0311,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.25,
+        "y": 0.32,
+        "reachable": true,
+        "clearance_m": 0.0323,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.275,
+        "y": 0.2,
+        "reachable": true,
+        "clearance_m": 0.0245,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.275,
+        "y": 0.24,
+        "reachable": true,
+        "clearance_m": 0.0395,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.275,
+        "y": 0.28,
+        "reachable": true,
+        "clearance_m": 0.0544,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.275,
+        "y": 0.32,
+        "reachable": true,
+        "clearance_m": 0.0568,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.3,
+        "y": 0.2,
+        "reachable": true,
+        "clearance_m": 0.0477,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.3,
+        "y": 0.24,
+        "reachable": true,
+        "clearance_m": 0.0626,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.3,
+        "y": 0.28,
+        "reachable": true,
+        "clearance_m": 0.0775,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.3,
+        "y": 0.32,
+        "reachable": true,
+        "clearance_m": 0.0817,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.325,
+        "y": 0.2,
+        "reachable": true,
+        "clearance_m": 0.0709,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.325,
+        "y": 0.24,
+        "reachable": true,
+        "clearance_m": 0.0858,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.325,
+        "y": 0.28,
+        "reachable": true,
+        "clearance_m": 0.1007,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.325,
+        "y": 0.32,
+        "reachable": true,
+        "clearance_m": 0.1065,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.35,
+        "y": 0.2,
+        "reachable": true,
+        "clearance_m": 0.0941,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.35,
+        "y": 0.24,
+        "reachable": true,
+        "clearance_m": 0.1091,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.35,
+        "y": 0.28,
+        "reachable": true,
+        "clearance_m": 0.1239,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.35,
+        "y": 0.32,
+        "reachable": true,
+        "clearance_m": 0.1313,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.375,
+        "y": 0.2,
+        "reachable": true,
+        "clearance_m": 0.1174,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.375,
+        "y": 0.24,
+        "reachable": true,
+        "clearance_m": 0.1322,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.375,
+        "y": 0.28,
+        "reachable": true,
+        "clearance_m": 0.1472,
+        "to": "R-upperarm"
+      },
+      {
+        "x": 0.375,
+        "y": 0.32,
+        "reachable": true,
+        "clearance_m": 0.1573,
+        "to": "R-upperarm"
+      }
+    ]
+  },
+  "innermost": {
+    "left": {
+      "x": 0.425,
+      "y": 0.24,
+      "clearance_m": 0.1529,
+      "to": "L-upperarm"
+    },
+    "right": {
+      "x": 0.375,
+      "y": 0.32,
+      "clearance_m": 0.1573,
+      "to": "R-upperarm"
+    }
+  }
+}

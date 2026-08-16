@@ -249,6 +249,66 @@ the other's. Tilt past **6.8 degrees** drops the ball.
 | T2-3 | tilt logged continuously through the carry, not pass/fail at the end |
 | T2-4 | separation logged continuously through the carry, not pass/fail at the end |
 
+#### T2 AND THE 2026-08-16 HOME CHANGE — the honest record, including a scare
+
+The home pose was re-solved from geometric constraints on 2026-08-16. Every
+figure below was measured **on the same day with the same instrument**, N=10
+over the full path, wearer and furniture in the scene, clearance geometric —
+the old home was re-measured rather than quoted, because a regression against
+a number from a different run is not a regression.
+
+| | old home (2026-08-15) | intermediate candidate | **shipped 2026-08-16** |
+| --- | --- | --- | --- |
+| T2 left | **2** of 11 unsolvable | 0 | 0 |
+| T2 right | 0 | **8** of 11 | **2** of 11 |
+| T2 total | **2** | **8** | **2 — unchanged** |
+
+**An intermediate candidate did regress T2 from 2 to 8, and the pose that
+shipped does not.** The cause is the IK seed: `/compute_ik` seeds from the
+live joint state, so moving home moves which null-space branch the solver
+lands in. Two candidates that satisfy the same geometric constraints can
+therefore differ by six waypoints on a task neither of them touches. That is
+worth knowing on its own: **T2's IK count is a property of the seed, not of
+the task**, and any future home change must re-measure it rather than reason
+about it.
+
+The candidate that regressed it had a continuous joint resting **on the ±π
+seam** (left joint_5 at exactly 180.00 deg, 0.00 rad of margin against the
+0.30 rad this project keeps). A seam-margin constraint was added to the solver
+and the re-solved pose both clears the seam by 0.57 rad and leaves T2 where it
+was.
+
+**READ BOTH NUMBERS ON TOP OF THE OPEN-GRIPPER DEFECT.** T2's grip trace reads
+0.00 knuckle for all 992 samples on both arms while the schedule commands
+`grip_for(30)` on every waypoint: **the task has never actually held the
+tray**, under either home. Its right grip also presents 113.9 mm to an 85 mm
+hand, which cannot close, and its wearer clearance is 0.0026 m against a
+0.150 m floor — a breach of 147 mm — under the old home as well as the new.
+
+So T2 was not performable before this change and is not performable after it,
+and its unchanged IK count says nothing about whether it works. T2 is tracked
+as its own task: the gripper must actually close, the right-hand grip must
+fit, and the wearer floor must be respected, before its IK failure count means
+anything.
+
+#### What the 2026-08-16 home change did to the other four, measured
+
+Same run, same instrument, old home re-measured the same day:
+
+| task | old home | new home | |
+| --- | --- | --- | --- |
+| T0 | 9 IK failures (5 L / 4 R) | **7** (4 L / 3 R) | improved; still not performable, and it was not performable before either |
+| T1 | 0 failures, clearance 0.1610 | **0**, 0.1610 | unchanged |
+| T1 stage 2 | 0 failures, right-arm worst clearance **0.1405** | **0**, right-arm worst clearance **0.1024** | IK unchanged; the clearance breach **deepened by 38 mm** |
+| T3 | 0 failures, 0.0618 / 0.1610 | **0**, 0.0618 / 0.1610 | unchanged |
+
+**T1 stage 2's right arm is the one thing that got worse and it must not be
+buried.** It has 0 IK failures under both homes, so every IK-based check calls
+it clean; measured geometrically it sits 0.1024 m from the wearer against a
+0.150 m floor, where before it sat at 0.1405 m. Both are breaches. This is the
+SRDF gap again — `avoid_collisions` cannot see these pairs — and it is exactly
+the class of defect `docs/system/clearance_gap_ledger.md` exists to track.
+
 ### T3 — CIRCUIT BOX AND MULTIMETER
 
 One circuit box with four measurement points, one multimeter
@@ -512,6 +572,142 @@ Build the mock camera path so the whole pipeline is exercised **to the camera
 boundary**, wire yaw into the fingerprint **and the grasp**, wire
 `set_measured` from depth, and then **list explicitly what still needs real
 cameras**.
+
+---
+
+## 4A. THE PERCEPTION-DRIVEN GRASP — measured and built, 2026-08-16.
+
+**The robot cannot pick what it has not seen.** Every grasp in this repository
+used to be computed from a coordinate written into the task file. This section
+records what was measured and what now works.
+
+### THREE CLAIMS THAT WENT ROUND AND ARE FALSE. Do not design against them.
+
+They were relayed from an earlier report, checked, and contradicted by
+measurement. They are written down here **because a wrong constraint that
+survives gets designed around later**, which costs more than the original
+error.
+
+| claim | measured |
+| --- | --- |
+| "the camera is mounted 88.4 deg off the tool axis" | the mount OFFSET direction is **93.10 deg** — and that is where the camera SITS, not where it LOOKS |
+| "camera-on-top and wrist-level are mutually exclusive" | **both hold at once in the shipped home**: approach elevation −1.47 / −1.42 deg with the camera **12.05 deg off vertical**, on both arms |
+| "look-then-grasp is not available on this rig" | **both arms have a verified-USABLE observe pose** — `/compute_ik` 10 of 10, clearance 0.1610 m, transit clean at 0.1587 / 0.1599 m via a via point |
+
+`camera_color_frame` sits at rpy (pi, pi, 0) from `end_effector_link`, which is
+diag(−1, −1, 1): the optical axis IS the tool axis, to **0.00 deg**. The camera
+looks exactly where the gripper points, by construction.
+
+### BUILT AND MEASURED, 2026-08-16: look-then-grasp runs end to end
+
+`scripts/verify_look_then_grasp.py`, left arm, mock wrist camera, N=10 on every
+planned waypoint:
+
+| step | result |
+| --- | --- |
+| home -> via -> observe | 24.1 s, arrives to 0.017 rad |
+| detect + classify | **0.31 s**, 4 cubes, 2 pad-blobs rejected by the size gate |
+| classification | **4 of 4 correct**, 0 wrong colour, 0 missed, worst localisation **3.6 mm** |
+| plan derived from detections | 4 picks, destination pad chosen by the SEEN colour |
+| **control P-B** | declared cube coordinates shifted **0.25 m** in memory -> **plan unchanged**, so it is reading the detection and not the file |
+| added time | **48.6 s per look**, **12.1 s per pick** (one look serves all four cubes) |
+
+**THREE THINGS HAD TO BE FIXED AND ONLY ONE WAS THE OBVIOUS ONE.**
+
+1. **Size at range.** The pads are 210 x 130 mm in the cubes' own colours and
+   `colour_shape_detector` had a `min_area_px` FLOOR with no upper bound. It
+   locked onto the pads: 0 of 4. A blob is now rejected unless it is the size
+   that object would be at the range it appears to be at -- 170 px where a cube
+   would be 31 px.
+2. **A depth step, because COLOUR ALONE CANNOT DO IT.** The cubes touch the
+   same-coloured pads in projection, so 8-connectivity merges them into one
+   blob. Two attempts failed first and are recorded in the code: a single depth
+   threshold recovered one of two cubes (the pad is tilted and spans ~40 mm of
+   depth across its own width), and a morphological closing was worse still,
+   because the cubes protrude past the pad's EDGE rather than sitting inside
+   its silhouette. What works is cutting the mask at the depth DISCONTINUITY.
+   **This means the separation REQUIRES DEPTH**; `colour_shape_detector`
+   subscribes to colour only, so on the real rig it needs the depth image or
+   pads in non-cube colours.
+3. **A scorer bug of my own.** The match tolerance was 80 mm against a 60 mm
+   cube pitch, so each cube was given its NEIGHBOUR's detection -- and since
+   the colours alternate, two detections sitting 3.5 mm from truth with the
+   right colours scored as wrong-colour. Matching is now globally nearest-pair
+   and capped at 30 mm, half the pitch.
+
+**THE GRASP MUST BE PLANNED AFTER RETURNING HOME, NOT FROM THE OBSERVE POSE.**
+`/compute_ik` seeds from the live joint state, so where the arm stands when the
+grasp is planned decides which null-space branch comes back. Same 24 waypoints,
+same targets, both with 0 IK failures:
+
+| planned from | worst wearer clearance |
+| --- | --- |
+| the observe pose (where the arm is when the frame is taken) | **0.0017 m — a 148 mm breach** |
+| home, after returning | **0.1610 m — clean** |
+
+The obvious sequencing (look, then grasp from where you looked) is the unsafe
+one, and no IK-based check catches it: both plans solve every waypoint.
+
+### What the wrist camera actually does today, measured
+
+`camera_link` hangs off `end_effector_link` at (0, 0.05639, −0.00305) with
+rpy (π, π, 0), which makes the camera frame `diag(−1, −1, 1)` in the EE frame.
+So **the optical axis is the tool axis** — the camera looks exactly where the
+gripper is going, 0.7 deg off on the left arm and 0.0 on the right. That part
+is right by construction and needs no work.
+
+**But the approach is not along the tool axis, and that is the problem.**
+`run_abc.send()` pins the wrist at the anchor for every waypoint, so the
+orientation is CONSTANT through a reach while the PATH is a vertical descent
+from a 0.10 m standoff (`msc_clip_tasks.STANDOFF`). The anchor points 30.8 deg
+(left) / 22.1 (right) above horizontal. Measured against T1's own geometry:
+
+| | left | right |
+| --- | --- | --- |
+| camera to cube, at the pre-grasp standoff | 0.155 m | 0.167 m |
+| camera to cube, at the grasp | 0.128 m | 0.128 m |
+| **cube's angle off the optical axis at the standoff** | **65.8 deg** | **62.5 deg** |
+
+**So the answer to "is the cube in frame at the pre-grasp standoff" is NO.**
+At 62–66 deg off-axis it is outside the horizontal field of view of any
+RealSense-class module (roughly ±32 deg), and it only enters the frame as the
+hand drops onto it. And for the whole of that descent the object is nearer
+than **0.25 m**, the minimum range of the depth module the Gen3 vision head
+uses — so depth is unusable exactly where the object finally becomes visible.
+The cube is never simultaneously in frame and in depth range.
+
+**None of this was a designed choice.** The camera points wherever the pinned
+wrist lands, and the pinned wrist was chosen for reach, not for seeing.
+
+### What it would take
+
+| # | requirement |
+| --- | --- |
+| P-1 | a **LOOK pose** per pick, distinct from the pre-grasp standoff: object on the optical axis to within the FOV margin, and at **≥ 0.25 m** so depth is valid. It is a new pose to solve for, with the same wearer-clearance floor as everything else, and it must be reachable over the full path |
+| P-2 | the sequence becomes **look → DETECT → compute the grasp from what was seen → approach → grasp**. Today it is approach → grasp, with the coordinate read from a file |
+| P-3 | the grasp must be computed from the DETECTION, not from the task file. `grasp_generator` already reports `yaw_source`; the pose it consumes has to come from the tracker rather than from `msc_clip_tasks` |
+| P-4 | a **fallback when detection fails**, stated and logged, because a blind pick that silently falls back to the file coordinate is indistinguishable from a working perception path — the exact failure mode this document's audit log is full of |
+| P-5 | the descent must not lose the object: either re-detect from the LOOK pose and move open-loop, or accept that no visual servoing is possible inside 0.25 m and say so |
+
+### What already exists, and what is missing
+
+| piece | state |
+| --- | --- |
+| mock RGB-D publisher | EXISTS, wired behind `mock_camera:=true` (U-1, closed) |
+| detector + tracker + yaw | EXISTS, `verify_detection_path.py` runs the chain (U-2, closed) |
+| table height from depth | EXISTS, `work_surface_node` (U-3, closed) |
+| known-dimension depth fit | EXISTS |
+| **a pose from which the object is visible AND in depth range** | **MISSING** |
+| **any consumer that computes a grasp from a detection** | **MISSING** |
+| **a detection-failure branch** | **MISSING** |
+
+**MUST BE TRUE, when it is built**
+
+| # | criterion |
+| --- | --- |
+| P-A | the object is in frame and within depth range at the LOOK pose, measured from the rendered camera, not asserted |
+| P-B | the grasp pose used is provably the DETECTED one — change the file coordinate and the arm still goes to the object |
+| P-C | detection failure is visible in the trial record and does not silently become a file-coordinate pick |
 
 ---
 

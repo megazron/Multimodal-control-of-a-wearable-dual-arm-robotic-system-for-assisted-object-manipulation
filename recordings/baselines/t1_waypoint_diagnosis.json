@@ -1,0 +1,30 @@
+{
+  "task": "t1s2",
+  "repeats": 10,
+  "floor": 0.15,
+  "arms": {
+    "left": {
+      "n": 88,
+      "failures": [],
+      "worst_clearance_m": 0.161,
+      "worst_index": 0
+    },
+    "right": {
+      "n": 88,
+      "failures": [
+        {
+          "index": 65,
+          "xyz": [
+            -0.6376,
+            0.108,
+            1.1579
+          ],
+          "solved": true,
+          "clearance_m": 0.1171
+        }
+      ],
+      "worst_clearance_m": 0.1171,
+      "worst_index": 65
+    }
+  }
+}

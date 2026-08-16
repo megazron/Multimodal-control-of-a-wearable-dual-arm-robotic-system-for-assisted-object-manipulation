@@ -1,0 +1,90 @@
+{
+  "left": {
+    "q": [
+      -1.557801538508152,
+      1.5499171358259627,
+      -0.6208844564679808,
+      -1.2944178753490245,
+      2.8393195624727547,
+      1.8079043748334134,
+      -0.780181832827879
+    ],
+    "ee_pose": [
+      0.5798274898142334,
+      -0.2167178752707645,
+      1.7750468945625637
+    ],
+    "pose_commandable": "10/10",
+    "clearance_m": 0.161,
+    "clearance_to": "torso",
+    "state_valid": true,
+    "transit": {
+      "samples": 62,
+      "step_rad": 0.05,
+      "via": [
+        -0.25037880522741435,
+        1.5702711457333383,
+        -1.0407389066230377,
+        0.057554527174361894,
+        1.3572637733711264,
+        0.6149251761800095,
+        0.23796532780978388
+      ],
+      "largest_joint_move_deg": 84.92,
+      "total_joint_travel_deg": 790.14,
+      "ee_path_m": 1.3188,
+      "worst_clearance_m": 0.1587,
+      "worst_sample": 28,
+      "invalid_samples": [],
+      "ik_failures": 0
+    },
+    "usable": true
+  },
+  "right": {
+    "q": [
+      1.541424704994305,
+      1.48671815689908,
+      0.11004110866385035,
+      -1.2455274472781246,
+      0.6464049887856442,
+      -1.9720245517381814,
+      0.2896907372574872
+    ],
+    "ee_pose": [
+      -0.6501686552766505,
+      -0.286496814708196,
+      1.7723368092773018
+    ],
+    "pose_commandable": "10/10",
+    "clearance_m": 0.161,
+    "clearance_to": "torso",
+    "state_valid": true,
+    "transit": {
+      "samples": 67,
+      "step_rad": 0.05,
+      "via": [
+        0.32474086170924005,
+        1.595945072063162,
+        0.8347371918890796,
+        0.0656189189271362,
+        -0.9248085558115519,
+        -0.6981530268485446,
+        -0.9292199157502634
+      ],
+      "largest_joint_move_deg": 94.38,
+      "total_joint_travel_deg": 878.21,
+      "ee_path_m": 1.4957,
+      "worst_clearance_m": 0.1599,
+      "worst_sample": 31,
+      "invalid_samples": [],
+      "ik_failures": 0
+    },
+    "usable": true
+  },
+  "controls": {
+    "state_validity_service": true,
+    "a_config_swung_into_the_wearer": -0.1204,
+    "bad_transit_rejected": -0.1599
+  },
+  "all_usable": true
+}

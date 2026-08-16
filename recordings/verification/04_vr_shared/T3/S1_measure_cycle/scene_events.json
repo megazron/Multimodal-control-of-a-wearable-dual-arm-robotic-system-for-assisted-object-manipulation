@@ -2,12 +2,12 @@
   "task": "t3",
   "events": [
     {
-      "t": 53.85,
-      "wall": 1786831103.2142074,
+      "t": 49.71,
+      "wall": 1786918307.8851109,
       "ev": "GRASPED",
       "item": "circuit_box",
       "arm": "right",
-      "knuckle": 0.3001,
+      "knuckle": 0.3111,
       "needed": 0.2965,
       "at": [
         -0.54,
@@ -16,12 +16,12 @@
       ]
     },
     {
-      "t": 54.35,
-      "wall": 1786831103.7076702,
+      "t": 50.12,
+      "wall": 1786918308.29602,
       "ev": "GRASPED",
       "item": "multimeter",
       "arm": "left",
-      "knuckle": 0.4709,
+      "knuckle": 0.4821,
       "needed": 0.4659,
       "at": [
         0.34,
@@ -30,8 +30,8 @@
       ]
     },
     {
-      "t": 59.16,
-      "wall": 1786831108.5182989,
+      "t": 54.62,
+      "wall": 1786918312.7929897,
       "ev": "RELEASED",
       "item": "multimeter",
       "arm": "left",
@@ -43,12 +43,12 @@
       ]
     },
     {
-      "t": 59.52,
-      "wall": 1786831108.880344,
+      "t": 54.92,
+      "wall": 1786918313.0940962,
       "ev": "RELEASED",
       "item": "circuit_box",
       "arm": "right",
-      "carried_m": 0.1601,
+      "carried_m": 0.1605,
       "at": [
         -0.54,
         0.17,
@@ -61,7 +61,7 @@
       "item": "circuit_box",
       "arm": "right",
       "width_mm": 50,
-      "carried_m": 0.1601,
+      "carried_m": 0.1605,
       "final": [
         -0.54,
         0.17,
@@ -69,7 +69,7 @@
       ],
       "still_held": false,
       "min_pad_obj_m": 0.0,
-      "min_pad_obj_knuckle": 0.329,
+      "min_pad_obj_knuckle": 0.3294,
       "min_pad_obj_closed_m": 0.0,
       "grasp_near_m": 0.03
     },
@@ -85,7 +85,7 @@
       ],
       "still_held": false,
       "min_pad_obj_m": 0.0,
-      "min_pad_obj_knuckle": 0.4996,
+      "min_pad_obj_knuckle": 0.5176,
       "min_pad_obj_closed_m": 0.0,
       "grasp_near_m": 0.03
     }
@@ -100,19 +100,19 @@
     "table"
   ],
   "ee_samples": {
-    "left": 643,
-    "right": 643
+    "left": 611,
+    "right": 611
   },
   "ee_metric_caveat": "ee_travel_m is a sum of |dp| over TICKS and ee_net_m is anchored on the first pose this node saw, so both depend on the observation window. Compare only against runs with a comparable ee_samples, and see findings.md 2026-08-15 finding 3.",
   "ee_travel_m": {
-    "left": 1.2519,
-    "right": 0.9701
+    "left": 0.8002,
+    "right": 0.9262
   },
   "ee_net_m": {
-    "left": 0.6018,
-    "right": 0.3414
+    "left": 0.211,
+    "right": 0.3827
   },
-  "t0_wall": 1786831049.3592424,
+  "t0_wall": 1786918258.1779366,
   "carry_series": [],
   "carry_summary": null,
   "pad_off": [

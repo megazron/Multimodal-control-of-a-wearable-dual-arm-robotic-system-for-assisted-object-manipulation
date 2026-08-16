@@ -12,19 +12,19 @@
   ],
   "furniture": [],
   "ee_samples": {
-    "left": 600,
-    "right": 600
+    "left": 563,
+    "right": 563
   },
   "ee_metric_caveat": "ee_travel_m is a sum of |dp| over TICKS and ee_net_m is anchored on the first pose this node saw, so both depend on the observation window. Compare only against runs with a comparable ee_samples, and see findings.md 2026-08-15 finding 3.",
   "ee_travel_m": {
-    "left": 1.5608,
-    "right": 1.2728
+    "left": 1.2206,
+    "right": 1.2532
   },
   "ee_net_m": {
-    "left": 0.3173,
-    "right": 0.281
+    "left": 0.2264,
+    "right": 0.2034
   },
-  "t0_wall": 1786830653.0613103,
+  "t0_wall": 1786918178.1731791,
   "carry_series": [],
   "carry_summary": null,
   "pad_off": null,

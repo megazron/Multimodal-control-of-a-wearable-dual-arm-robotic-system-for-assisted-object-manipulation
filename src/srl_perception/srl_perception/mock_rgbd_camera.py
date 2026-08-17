@@ -81,6 +81,7 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
+from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import CameraInfo, Image
 from tf2_ros import Buffer, TransformListener
 
@@ -166,6 +167,25 @@ class MockRGBD(Node):
         self.pub_i = self.create_publisher(CameraInfo,
                                            base + "/color/camera_info", q)
         self.pub_d = self.create_publisher(Image, base + "/depth/image_raw", q)
+        # THE POSE THIS FRAME WAS RENDERED FROM, published with the frame's own
+        # timestamp.
+        #
+        # WHY IT EXISTS. A consumer that deprojects a pixel needs the camera
+        # pose the pixel was TAKEN from, and the only way to get it off TF is
+        # to look it up again later and hope the arm has not moved. Measured
+        # inside the recording sweep on 2026-08-17, it had: the four T1 cubes
+        # came back 31.7, 32.7, 34.0 and 35.7 mm from truth against a 30 mm
+        # capture gate, so NONE of the four was grasped -- and the pad miss at
+        # closure was 31.6, 32.6, 33.9 and 35.6 mm, the SAME NUMBERS to
+        # 0.1 mm. The whole grasp failure was the deprojection reading a pose
+        # the frame did not come from. Standalone on the same stack, with
+        # nothing else loading the machine, the same code returned 1.3-3.0 mm,
+        # which is why it looked intermittent.
+        #
+        # Publishing it is the fix that cannot be got wrong later: the pose
+        # travels WITH the frame, so a consumer either uses the right one or
+        # has to ignore a message that is sitting there.
+        self.pub_p = self.create_publisher(PoseStamped, base + "/render_pose", q)
 
         self.tfb = Buffer()
         self.tfl = TransformListener(self.tfb, self)
@@ -360,6 +380,40 @@ class MockRGBD(Node):
         m.data = arr.tobytes()
         return m
 
+    @staticmethod
+    def _quat_from_R(R):
+        """Rotation matrix -> (x, y, z, w). Shepperd's branch, so the trace
+        term is never the one being divided by when it is near zero."""
+        t = R[0][0] + R[1][1] + R[2][2]
+        if t > 0.0:
+            s2 = np.sqrt(t + 1.0) * 2.0
+            return ((R[2][1] - R[1][2]) / s2, (R[0][2] - R[2][0]) / s2,
+                    (R[1][0] - R[0][1]) / s2, 0.25 * s2)
+        if R[0][0] > R[1][1] and R[0][0] > R[2][2]:
+            s2 = np.sqrt(1.0 + R[0][0] - R[1][1] - R[2][2]) * 2.0
+            return (0.25 * s2, (R[0][1] + R[1][0]) / s2,
+                    (R[0][2] + R[2][0]) / s2, (R[2][1] - R[1][2]) / s2)
+        if R[1][1] > R[2][2]:
+            s2 = np.sqrt(1.0 + R[1][1] - R[0][0] - R[2][2]) * 2.0
+            return ((R[0][1] + R[1][0]) / s2, 0.25 * s2,
+                    (R[1][2] + R[2][1]) / s2, (R[0][2] - R[2][0]) / s2)
+        s2 = np.sqrt(1.0 + R[2][2] - R[0][0] - R[1][1]) * 2.0
+        return ((R[0][2] + R[2][0]) / s2, (R[1][2] + R[2][1]) / s2,
+                0.25 * s2, (R[1][0] - R[0][1]) / s2)
+
+    def _render_pose(self, stamp, p_cam, R_wc):
+        m = PoseStamped()
+        m.header.stamp = stamp
+        m.header.frame_id = "world"
+        m.pose.position.x = float(p_cam[0])
+        m.pose.position.y = float(p_cam[1])
+        m.pose.position.z = float(p_cam[2])
+        qx, qy, qz, qw = self._quat_from_R(np.asarray(R_wc, float))
+        (m.pose.orientation.x, m.pose.orientation.y,
+         m.pose.orientation.z, m.pose.orientation.w) = (
+            float(qx), float(qy), float(qz), float(qw))
+        return m
+
     def tick(self):
         p_cam, R_wc = self._cam_pose()
         if p_cam is None:
@@ -387,6 +441,7 @@ class MockRGBD(Node):
         self.pub_i.publish(info)
         self.pub_c.publish(self._img(stamp, col, "rgb8", W * 3))
         self.pub_d.publish(self._img(stamp, dep, "16UC1", W * 2))
+        self.pub_p.publish(self._render_pose(stamp, p_cam, R_wc))
         self.n_pub += 1
         if self.n_pub == 1 or self.n_pub % 300 == 0:
             self.get_logger().info(

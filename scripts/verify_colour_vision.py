@@ -66,6 +66,7 @@ import rclpy
 import rclpy.time
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
+from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import CameraInfo, Image, JointState
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
@@ -100,6 +101,10 @@ class Vision(Node):
         self.rgb = None
         self.depth = None
         self.info = None
+        # THE POSE THE CURRENT FRAME WAS RENDERED FROM, if the publisher sends
+        # one. See `cam_pose()` for why looking it up off live TF instead cost
+        # a whole clip set.
+        self.render_pose = None
         q = QoSProfile(depth=2)
         q.reliability = ReliabilityPolicy.BEST_EFFORT
         base = "/%s_camera" % arm
@@ -110,6 +115,8 @@ class Vision(Node):
                                  self._depth, q)
         self.create_subscription(CameraInfo, base + "/color/camera_info",
                                  self._info, q)
+        self.create_subscription(PoseStamped, base + "/render_pose",
+                                 self._render_pose, q)
         self.pub = self.create_publisher(
             JointTrajectory, "/%s_arm_controller/joint_trajectory" % arm, 5)
         self.buf = tf2_ros.Buffer()
@@ -126,6 +133,9 @@ class Vision(Node):
 
     def _info(self, m):
         self.info = m
+
+    def _render_pose(self, m):
+        self.render_pose = m
 
     def spin(self, s):
         t0 = time.monotonic()
@@ -173,6 +183,39 @@ class Vision(Node):
         return a.reshape(self.depth.height, self.depth.width) / 1000.0
 
     def cam_pose(self):
+        """The pose the CURRENT FRAME was taken from, not the pose now.
+
+        MEASURED, 2026-08-17, inside the recording sweep. This used to be a
+        fresh TF lookup, which answers "where is the camera at the moment you
+        asked" -- a different question from "where was the camera when this
+        pixel was captured", and the same question only while the arm is
+        perfectly still. It was not still: `Vision.stage()` returns as soon as
+        every joint is within 0.02 rad and `ik_follower_node` streams to the
+        same controller, so the arm drifts inside that tolerance while the
+        frame is being taken.
+
+        The cost was the whole T1 clip set. The four cubes deprojected 31.7,
+        32.7, 34.0 and 35.7 mm from truth against a 30 mm capture gate, so
+        NONE of the four was grasped -- and the pad miss at closure was 31.6,
+        32.6, 33.9 and 35.6 mm, the same numbers to 0.1 mm. Standalone on the
+        same stack the identical code returned 1.3-3.0 mm, which is why it
+        read as flaky rather than as a bug.
+
+        `mock_rgbd_camera` now publishes the pose it RENDERED from alongside
+        each frame. Where that is available it is used; the TF lookup remains
+        as the fallback for a real camera that does not publish one, and
+        `frame_pose_is_stamped` says which happened so a run cannot quietly be
+        the old behaviour.
+        """
+        if self.render_pose is not None:
+            tr = self.render_pose.pose.position
+            r = self.render_pose.pose.orientation
+            x, y, z, w = r.x, r.y, r.z, r.w
+            R = np.array([
+                [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+                [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+                [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]])
+            return np.array([tr.x, tr.y, tr.z]), R
         t = self.buf.lookup_transform(
             "world", "%s_camera_color_frame" % self.arm, rclpy.time.Time())
         tr, r = t.transform.translation, t.transform.rotation

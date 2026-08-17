@@ -5116,3 +5116,231 @@ sweep runs `stage_observe_and_detect` for — so the five modes recorded on
 2026-08-16 are unaffected. T1S2 and T2 are still on the 2026-08-15 geometry
 and still need re-recording; T1S2 uses the same vision path and is blocked
 behind the same fix.
+
+# 2026-08-17 (later) — "THE EXPERIMENT STARTS FROM THE OLD HOME": IT DOES NOT, AND WHAT DOES HAPPEN IS WORSE FOR THE DATA
+
+The report was "RViz boots into the new pose, but a task run starts from the
+old one." It is half right, and the half that is wrong matters, because the
+place the pose is actually lost is not the place the report points at.
+
+## WHAT WAS MEASURED
+
+A watcher subscribed to `/joint_states` and to the mode's own entry topic, and
+recorded the joint state at the instant the FIRST waypoint was published on it
+— the actual start of a run, not the xacro. Compared against
+`config/home_positions_{arm}.txt` with the difference taken WRAPPED, so a
+continuous joint a whole turn out does not read as 6.28 rad.
+
+Fresh teleop stack, T1 under `01_master_teleop`, `--vision` with a staged
+detection, worst per-joint distance from home:
+
+| | left | right |
+| --- | --- | --- |
+| at boot | **0.0000** | **0.0000** |
+| after `stage_presentation_pose.py` | 0.0000 | 0.0000 |
+| after `stage_observe_and_detect.py` | 0.0000 | 0.0000 |
+| **run 1, first commanded waypoint** | **0.0000** | **0.0000** |
+| between runs — nothing else ran | **1.2338** (joint_6) | **0.6248** (joint_4) |
+| **run 2, first commanded waypoint** | **1.2338** | **0.6248** |
+
+Run 1 was measured twice, once through the recording sweep's full staging
+sequence and once with no staging at all, and both read 0.0000.
+
+## SO THE STRETCH THE REPORT NAMED IS CLEAN, AND EVERY CANDIDATE IN IT WAS CLEARED
+
+* the URDF's two `initial_positions` blocks hold the solved pose and the sim
+  spawns on it — the boot reading is the proof, and it matches the source file
+  to 0.0000 rad;
+* `config/home_positions_*.txt` is read by five runtime consumers and all five
+  read the same file. **It is not the file "reported READ BY NOTHING" — that
+  is `config/real_home_reference.txt`, and it is still read by nothing**, in
+  `src/` or in `scripts/`;
+* `recordings/baselines/presentation_pose.json` — the pose the sweep stages to
+  — was already regenerated from the solved home on 2026-08-16 and matches it
+  to 1e-4 rad. It was the obvious suspect and it is not the cause;
+* `stage_observe_and_detect.py` returns the arm home and REFUSES if it cannot,
+  and it reported 0.0000 rad;
+* `ik_follower_node`'s startup unwind only wraps continuous joints into ±π; it
+  cannot move the arm to another pose;
+* `srl_moveit_config/config/initial_positions.yaml` is inert — the
+  `initial_positions` key was removed on 2026-08-16 and the ros2_control macro
+  that read it is no longer invoked.
+
+## WHERE IT IS ACTUALLY LOST
+
+**Between trials.** Nothing returns the arms to home when a run ends, and
+nothing looked at where they were when the next one started.
+`record_abc_sweep.py` stages before every clip, so the recorded set was never
+affected — which is exactly why this survived. Every run driven from the GUI
+or from `run_experiment.sh` starts wherever the previous task stopped, from
+the second run of a session onward.
+
+**And it is not only the working arm.** T1 is a left-arm task and it left the
+RIGHT arm 0.6248 rad out, because the runner parks the idle arm at
+`park(±PARK_X)` and never brings it back. "The task did not use that arm" is
+not the same as "that arm is where it started".
+
+## THE FIX, AND WHY IT IS IN THE RUNNER
+
+`run_abc.require_home()` runs before the task commands anything. It is:
+
+* **before `--isolate`**, and that order is not cosmetic — `isolate()` starts
+  `vr_pose_mapper`, which holds the arms against a joint-space trajectory
+  (measured 2026-08-15, with a control either side), so staging after it would
+  lose to it;
+* **idempotent** — an arm within 0.05 rad is left alone, no subprocess and no
+  publisher, so the sweep pays nothing;
+* **not its own staging move.** It shells out to
+  `scripts/stage_presentation_pose.py`, which is this repository's one
+  staging move: it pauses the followers by lowering `motion_enabled`, scales
+  the duration from the distance, waits for arrival rather than sleeping,
+  restores the followers on every exit path and refuses to touch an arm in
+  real_robot mode. A second copy would drift from it;
+* **a refusal, not a guess.** `--allow-unhomed` is the deliberate override and
+  says so loudly. The measured start error goes into the run summary and the
+  trial manifest either way, so a run that started off home is identifiable
+  rather than assumed comparable — the same reason the sweep records
+  `opened_on`.
+
+Proved live: with the arms at 1.2345 / 0.6248 rad, the next run staged and its
+first commanded waypoint read **0.0000 / 0.0000**.
+
+## THE SECOND DEFECT, FOUND ON THE WAY, AND IT IS THE MORE INSTRUCTIVE ONE
+
+`session_manager._js()` read `from srl_experiments import home_positions`.
+**There is no such module.** The home source is
+`config/home_positions_{arm}.txt` and it is loaded by path. So every
+`/joint_states` callback raised ImportError, the bare `except` set
+`home_err = None`, and the readiness panel reported "home reference not
+loaded" for the life of the node.
+
+It is the G-3 failure the panel exists to prevent, and it survived because it
+never went green on a wrong answer. UNKNOWN is a legitimate reading for a gate
+with no data yet; this gate had no data ever, and nothing distinguishes those
+two states from the outside. **A gate that can only ever say UNKNOWN is worth
+a test of its own**, and it now has one: a constructed joint state displaced
+by a known amount must come back as that amount.
+
+## WHAT IS STILL OPEN
+
+The arms are still left off home at the END of a run. Fixing the start was the
+smaller and safer change — a homing move after the task would run inside the
+capture window of any clip that has not stopped recording yet — but it means
+every second run pays a staging move it did not used to. If that becomes a
+cost, the place to fix it is the end of `run_abc`, not the sweep.
+
+
+# 2026-08-17 (later still) — T1 FROM A TYPED SENTENCE, AND WHAT THE SHIPPED GRAMMAR DID WITH ITS OWN TASK
+
+T1 is "each cube goes on the plane of its own colour". Asked to say that in
+English, the shipped parser could not — and one of the three phrasings failed
+in the dangerous direction.
+
+| utterance | shipped parser |
+| --- | --- |
+| "pick up the blue cube and put it on the blue pad" | `grab` / target `blue cube` / **destination None** — the place clause SILENTLY DROPPED |
+| "put the green ones on the green mat" | refused, "no known verb" |
+| "move that blue block to its colour" | refused, "heard 'move to' but no place I know" |
+
+The first is the shape this repository's language sweep calls MISUNDERSTOOD:
+the grammar matched a verb and a noun that were really there and discarded the
+words that said what to do with them. Executing it grabs a cube and stops, and
+the operator has heard an acknowledgement.
+
+## WHAT WAS BUILT, AND THE THREE THINGS THAT HAD TO BE RIGHT
+
+**One verb, `put_on`, not a second parser.** It sits above `place` and `goto`
+in the pattern list because both would otherwise claim these sentences, and it
+only fires when a destination can actually be EXTRACTED — so "put it down"
+still reaches `place` and "move to the front centre" still reaches `goto` and
+its measured refusal.
+
+**1. The target must be read from the HEAD, not the sentence.**
+`extract_target` takes the FIRST colour it finds. On "put it on the blue pad"
+that is the DESTINATION's colour, and the arm would have gone looking for a
+blue object nobody named. The place clause is split off first and the target is
+extracted from what is left.
+
+**2. The two-targets check had to be scoped to the head as well.** It counts
+distinct colours and nouns and refuses on more than one. "pick up the blue cube
+and put it on the GREEN pad" names one object and one place, and counting the
+place's colour as a second target refused an ordinary instruction. Surfaces
+(`pad`, `mat`, `plane`, `square`, …) are deliberately NOT added to `NOUNS` for
+the same reason.
+
+**3. Typo repair, and the mistake that made it interesting.** A token is
+repaired only when it is not already vocabulary, is four characters or more,
+and is one Damerau-Levenshtein edit from EXACTLY ONE candidate. Damerau rather
+than Levenshtein because `bleu` → `blue` is a transposition, which is one edit
+there and two under plain Levenshtein, and it is the commonest colour typo
+there is. A TIE is left alone and named back to the operator: `gren` is one
+edit from both `green` and `grey`, and breaking that tie would be a confident
+answer to a question nobody asked.
+
+**Verbs are never repaired.** That is this repository's own measured rule —
+at distance 1, `top` is a STOP and `crop` is a DROP, and
+`test_verbs_are_matched_EXACTLY_and_here_is_why` pins it. **The first attempt
+implemented it by dropping verbs from the vocabulary entirely, and that broke
+ten tests at once**: a CORRECTLY spelled `grab` is one edit from `gray`, so
+with verbs no longer counted as words it was repaired into a colour. "Never
+repair a verb" and "never touch a verb" are different rules and both are
+needed. Two sets now: `_known()` (leave alone) and `_repair_targets()` (a
+strict subset, may repair into).
+
+## THE GROUNDING LAYER NEVER READS THE DECLARED COLOUR
+
+`experiments/abc/t1_instruction.py` is the join between the sentence and the
+detections and the only place they meet. `msc_clip_tasks.T1_PAIR` — the
+declared colour of each cube — does not appear in it, checked behaviourally
+and by a source assertion.
+
+Live, against the mock wrist camera, with **every declaration in T1_PAIR
+flipped**: "put every cube where it belongs" produced a byte-identical plan and
+sent each cube to the pad of its RENDERED colour. The pre-existing mislabel
+control on the direct path also holds — declared and vision paths place the
+mislabelled cube 0.230 m apart, which is the pad separation.
+
+## ASK IS AN OUTCOME, AND THE SINGULAR IS LOAD-BEARING
+
+"put the blue cube on the blue pad" against **two** blue cubes must ASK. First,
+nearest and leftmost are all defensible and all guesses, and this arm is bolted
+to a person. "put the blue ONES on the blue pad" must not ask. The difference
+lives in `Intent.quantity`, read off the words, not in a heuristic about how
+many things happen to match — which is why the sweep's scene has two cubes of
+each colour rather than one.
+
+A destination that is NOT the cube's own colour ("put the blue ones on the
+green pad") is HONOURED rather than quietly colour-matched. Overruling the
+operator there would be the same class of error as dropping a negation.
+
+## MEASURED, 40 PHRASINGS
+
+`scripts/sweep_t1_instructions.py`, five harness controls that must pass before
+anything is reported (including one that proves the scorer can SAY
+misunderstood):
+
+| | shipped | now |
+| --- | --- | --- |
+| CORRECT | 0 | **16** |
+| ASKED | 2 | 5 |
+| REFUSED | 38 | 19 |
+| **MISUNDERSTOOD** | **0** | **0** |
+
+"shipped" is the same 40 cases with `put_on` removed and nothing else changed,
+so the columns differ by the feature and by nothing else.
+
+The adversarial and misspelling blocks were written from the PARSER'S
+STRUCTURE rather than alongside it, which is the lesson
+`sweep_language_vision.py` already records: negation before and after the verb,
+two targets, two actions, relational reference, stacking, a colour with no pad,
+an object not in the scene, a question, a statement, a bare `stop`, an unknown
+place, a misspelled VERB, a two-edit misspelling, and the `gren` tie.
+
+**It measures GROUNDING, not detection.** The scene is arithmetic, so the
+ground truth is constructed rather than rendered. Whether the camera can see
+four cubes at working distance is a different measurement and remains
+UNMEASURED on real hardware.
+
+The 40-phrase `sweep_language_vision.py` reproduces its committed
+10 / 6 / 24 / 0 exactly, which is the control that says the shipped grammar was
+not disturbed.

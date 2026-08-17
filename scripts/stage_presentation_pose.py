@@ -65,6 +65,8 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "config"))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import follower_pause as _FP                                 # noqa: E402
 POSE_FILE = os.path.join(ROOT, "recordings", "baselines",
                          "presentation_pose.json")
 ARRIVE_TOL_RAD = 0.02          # ~1.1 deg per joint
@@ -181,96 +183,27 @@ class Stager(Node):
         self.pub[arm].publish(m)
 
     # ---------------------------------------------------------- follower
-    FOLLOWERS = ("/ik_follower_left", "/ik_follower_right")
+    #
+    # THE IMPLEMENTATION MOVED TO scripts/follower_pause.py, unchanged, because
+    # the OBSERVE move needs exactly the same thing and a second copy of a
+    # routine whose restore failure disarms an arm is not a copy worth having.
+    # See that module for the whole account.
+    FOLLOWERS = _FP.FOLLOWERS
 
     def _params(self, node, names):
-        from rcl_interfaces.srv import GetParameters
-        cli = self.create_client(GetParameters, node + "/get_parameters")
-        if not cli.wait_for_service(timeout_sec=3.0):
-            return None
-        req = GetParameters.Request(names=list(names))
-        fut = cli.call_async(req)
-        t = time.time()
-        while not fut.done() and time.time() - t < 5.0:
-            rclpy.spin_once(self, timeout_sec=0.02)
-        return fut.result()
+        return _FP._params(self, node, names)
 
     def _set_bool(self, node, name, value):
-        from rcl_interfaces.msg import Parameter, ParameterValue
-        from rcl_interfaces.srv import SetParameters
-        cli = self.create_client(SetParameters, node + "/set_parameters")
-        if not cli.wait_for_service(timeout_sec=3.0):
-            return False
-        p = Parameter(name=name,
-                      value=ParameterValue(type=1, bool_value=bool(value)))
-        fut = cli.call_async(SetParameters.Request(parameters=[p]))
-        t = time.time()
-        while not fut.done() and time.time() - t < 5.0:
-            rclpy.spin_once(self, timeout_sec=0.02)
-        r = fut.result()
-        return bool(r and r.results and r.results[0].successful)
+        return _FP._set_bool(self, node, name, value)
 
     def pause_followers(self):
-        """Lower `motion_enabled` on both followers, remembering the value.
-
-        Returns {node: note} describing what was done to each, so the caller
-        can print it -- a pause that happened silently is one nobody can tell
-        from a pause that did not.
-        """
-        out = {}
-        for node in self.FOLLOWERS:
-            res = self._params(node, ["motion_enabled", "real_robot"])
-            if res is None or len(res.values) < 2:
-                out[node] = "not reachable; left alone"
-                continue
-            was, real = res.values[0].bool_value, res.values[1].bool_value
-            if real:
-                # HARD CONSTRAINT 8. Motion on real hardware is armed by a
-                # person, never by a script tidying up after itself.
-                out[node] = ("real_robot mode -- REFUSING to touch "
-                             "motion_enabled")
-                continue
-            if not was:
-                out[node] = "motion_enabled already false; left alone"
-                continue
-            out[node] = ("paused (motion_enabled true -> false)"
-                         if self._set_bool(node, "motion_enabled", False)
-                         else "COULD NOT PAUSE -- the follower may win")
-        return out
+        """Lower `motion_enabled` on both followers, remembering the value."""
+        return _FP.pause(self)
 
     def resume_followers(self, paused, tries=10):
-        """Restore exactly what was lowered, and VERIFY IT BY READ-BACK.
-
-        A FAILED RESTORE LEAVES THE ARM DISARMED, which is the one outcome
-        this helper must never produce. It happened: one clip logged
-        "paused (motion_enabled true -> false), RESTORE FAILED" and every
-        later clip in that mode failed, because the follower it had silenced
-        never spoke again. The single set_parameters call was believed on its
-        return value alone.
-
-        So: retry, then read the value back and retry again if it is still
-        false. Restoring is worth more effort than pausing, because the
-        failure modes are not symmetric -- a pause that does not happen costs
-        one badly framed clip, and a restore that does not happen costs every
-        clip after it.
-        """
-        for node, note in paused.items():
-            if not note.startswith("paused"):
-                continue
-            good = False
-            for _ in range(tries):
-                self._set_bool(node, "motion_enabled", True)
-                res = self._params(node, ["motion_enabled"])
-                if res and res.values and res.values[0].bool_value:
-                    good = True
-                    break
-                time.sleep(0.5)
-            paused[node] = note + (", restored" if good else
-                                   ", RESTORE FAILED -- THIS ARM IS "
-                                   "DISARMED, re-arm it before recording "
-                                   "anything else")
-            if not good:
-                self._restore_failed = True
+        """Restore exactly what was lowered, and verify it by read-back."""
+        if not _FP.resume(self, paused, tries=tries):
+            self._restore_failed = True
 
     def worst_error(self, arm, q):
         if self.js is None:

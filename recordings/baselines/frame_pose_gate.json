@@ -1,0 +1,29 @@
+{
+ "arm": "left",
+ "displacement_m": [
+  0.03,
+  -0.02,
+  0.01
+ ],
+ "A_errors_mm": [
+  1.28,
+  1.77,
+  2.02,
+  3.05
+ ],
+ "A_worst_mm": 3.05,
+ "frame_pose_is_stamped": true,
+ "frame_pose_drift_m": 0.0,
+ "observe_arrival_rad": 0.01684,
+ "B_n_detections": 4,
+ "B_worst_shift_residual_m": 0.0,
+ "B_mean_shift_m": [
+  0.03,
+  -0.02,
+  0.01
+ ],
+ "C_accepts_a_still_frame": true,
+ "C_refused": true,
+ "C_message": "the camera moved 0.0500 m between rendering this frame and now (tolerance 0.0040 m), so the arm was not still when it was taken. Deprojecting it would return a confident wrong answer -- the 2026-08-17",
+ "pass": true
+}

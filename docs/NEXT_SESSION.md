@@ -1,3 +1,97 @@
+# RESUME POINT 2026-08-17 (later) — THE VISION FAULT IS FIXED AT ITS CAUSE
+
+## THE ONE-PARAGRAPH VERSION
+
+The T1 blocker recorded in the resume point below was reproduced exactly, and
+it was **worse than recorded**. Inside the sweep the four cubes deprojected
+**31.7 / 32.7 / 34.0 / 35.7 mm** from truth against a 30 mm capture gate, so
+**none of the four was grasped** — not just `cube_3` — and the pad miss at
+closure was **31.6 / 32.6 / 33.9 / 35.6 mm, the same numbers to 0.1 mm**. The
+grasp failure IS the detection error, one to one, and that correspondence is
+the strongest evidence in the file that nothing else is wrong with T1.
+
+**Two causes, and either one alone would have let it come back.**
+
+1. **The follower was fighting the observe move.** `Vision.stage()` publishes
+   a joint trajectory to the same controller `ik_follower_node` streams
+   position commands to, and returns as soon as every joint is within
+   0.02 rad. The arm then drifts inside that tolerance while the frame is
+   taken. **Fixed:** the look now pauses the followers for its whole
+   duration, through `scripts/follower_pause.py` — which is the same
+   implementation `stage_presentation_pose.py` uses, extracted so there is one
+   of it rather than two.
+2. **The deprojection read the camera pose off LIVE TF afterwards.** That
+   answers "where is the camera now", not "where was it when this pixel was
+   captured". **Fixed:** `mock_rgbd_camera` publishes
+   `/<arm>_camera/render_pose` — the pose it rendered from — with each frame's
+   own timestamp, and `Vision.cam_pose()` prefers it. The TF lookup stays as
+   the fallback for a real camera that does not publish one, and the run
+   records `frame_pose_is_stamped` so it cannot quietly be the old path.
+
+**And a third thing, which is what stops it being recorded silently again:** a
+frame whose render pose disagrees with live TF by more than 4 mm is REFUSED.
+Using the frame's own pose makes a settled-but-slightly-wrong arm harmless; it
+does not make a MOVING arm harmless, and this is the check for that.
+
+## THE KNOWN-ANSWER TEST THE LAST RESUME NOTE ASKED FOR
+
+`scripts/verify_frame_pose_gate.py`, three parts:
+
+* **A** the pipeline at the observe pose — error must be small;
+* **B** the SAME frame deprojected from a pose displaced by a known vector —
+  every point must move by exactly that vector. Constructed ground truth:
+  deprojection is `p_cam + R_wc·ray`, so translating `p_cam` is a rigid
+  translation of the answer. If the measured shift is not the commanded one,
+  the deprojection is not using the pose it is given;
+* **C** the stillness gate, exercised against a deliberately faked render pose
+  50 mm from the live camera. It must raise. A check that cannot fail is not a
+  check.
+
+`src/srl_perception/test/test_frame_carries_its_pose.py` is its offline half
+(10 cases, quaternion round trip at the ±π seam included).
+
+## ALSO DONE THIS SESSION
+
+* **A run starts from HOME.** It did not, from the SECOND run of a session
+  onward — measured 1.2338 (left) / 0.6248 (right) rad from home at the first
+  commanded waypoint, because nothing returned the arms at the end of a run
+  and nothing looked at the start. `run_abc.require_home()` stages first, is
+  idempotent, and REFUSES rather than running from an unknown pose. The sweep
+  always staged, so no recorded clip was affected. Full account in
+  `docs/system/findings.md`, 2026-08-17 (later).
+* **T1 from a typed sentence, grounded on the camera.** `run_abc --instruct`,
+  or `scripts/instruct_t1.py "put the green ones on the green mat"` for the
+  whole look → parse → ground → run path in one command. 40 phrasings:
+  **16 correct / 5 asked / 19 refused / 0 MISUNDERSTOOD**, against
+  0 / 2 / 38 / 0 for the shipped grammar on the same cases. The mislabel
+  control now runs through the instruction layer too: with every declaration
+  in `T1_PAIR` flipped, the plan is byte-identical and every cube goes to the
+  pad of its RENDERED colour.
+
+## WHAT TO DO NEXT, IN ORDER
+
+1. **Re-record T1 in all five modes** and check `min_pad_obj_closed_m` per cube
+   per clip. It is the single number that says whether the vision fix held: it
+   must be 0.0000, and anything near 0.030 is the fault returning.
+2. **T1S2 uses the same vision path** and is unblocked by the same fix, but its
+   layout is still on the 2026-08-15 geometry.
+3. The arms are still left off home at the END of a run. See the findings note
+   for why that was left alone.
+
+## THE PROTOCOL THAT WORKS, UNCHANGED
+
+One mode per invocation, through `sim_session.py --stack teleop --keep-up --
+python3 scripts/record_abc_sweep.py --taskset msc --only <mode> --tasks t1`.
+
+**Two traps worth keeping, and a third.** `pkill -f mock_rgbd_camera` matches
+the killing shell's own command line and kills it — kill explicit PIDs, and
+note that a `pgrep`/`ps | grep` waiter loop has the same problem in reverse: a
+shell waiting on `pgrep -f "run_abc.py --task m1"` matches itself and waits for
+ever. Churning processes against a live stack degrades the DDS graph until a
+FRESH process receives nothing; `sim_session.py` clears it.
+
+---
+
 # RESUME POINT 2026-08-17 — THE T1 RE-RECORD IS BLOCKED IN THE VISION PATH
 
 **Read this before re-recording T1, T1S2 or anything else that looks before it

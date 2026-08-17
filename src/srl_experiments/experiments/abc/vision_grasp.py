@@ -194,8 +194,65 @@ class DetectionUnavailable(RuntimeError):
     the failure mode TASK_SPEC P-4 exists to forbid."""
 
 
+def check_frame_still(n, p_cam, tol_m=0.004):
+    """Was the arm still when this frame was taken? Returns the drift, or None.
+
+    Raises DetectionUnavailable if the camera has moved more than `tol_m`
+    between the pose the FRAME was rendered from and the pose the camera is at
+    NOW.
+
+    WHY THIS IS A FUNCTION AND NOT FOUR LINES INSIDE THE LOOK. It is the check
+    that makes the 2026-08-17 fault impossible to record silently, and a check
+    that has never been seen to fire is not a check. Inline, it could only be
+    exercised by getting a real arm to move at the right instant;
+    `scripts/verify_frame_pose_gate.py` calls it directly with a deliberately
+    faked render pose and asserts it raises.
+
+    Using the frame's own pose (see `Vision.cam_pose`) already makes a
+    SETTLED-but-slightly-wrong arm harmless -- the deprojection is then
+    self-consistent and correct. What it cannot fix is an arm still MOVING:
+    the render pose is stale by the time the frame is processed and the image
+    is smeared across poses anyway. This is the check for that, and it is
+    separate on purpose.
+
+    Returns None when there is nothing to compare -- a real camera that does
+    not stamp a render pose, or no TF. UNKNOWN, never a quiet zero.
+    """
+    if getattr(n, "render_pose", None) is None:
+        return None
+    try:
+        live, _R = _live_cam_pose(n)
+    except Exception:                                            # noqa: BLE001
+        return None
+    drift = float(np.linalg.norm(np.asarray(p_cam, float)
+                                 - np.asarray(live, float)))
+    if drift > tol_m:
+        raise DetectionUnavailable(
+            "the camera moved %.4f m between rendering this frame and now "
+            "(tolerance %.4f m), so the arm was not still when it was taken. "
+            "Deprojecting it would return a confident wrong answer -- the "
+            "2026-08-17 fault, refused rather than recorded."
+            % (drift, tol_m))
+    return round(drift, 6)
+
+
+def _live_cam_pose(n):
+    """The camera pose from LIVE TF, whatever `cam_pose()` decides to use.
+
+    `Vision.cam_pose()` now prefers the pose stamped onto the frame, which is
+    the right answer for deprojection and the wrong one for "has the arm
+    moved". Both are needed and they must come from different places, so this
+    reaches past it deliberately.
+    """
+    import rclpy.time
+    t = n.buf.lookup_transform("world", "%s_camera_color_frame" % n.arm,
+                               rclpy.time.Time())
+    tr = t.transform.translation
+    return np.array([tr.x, tr.y, tr.z]), t.transform.rotation
+
+
 def observe_and_detect(arm, node=None, settle_s=6.0, expect=None,
-                       return_home=True):
+                       return_home=True, frame_pose_tol_m=0.004):
     """Move to the observe pose, take one frame, come back, report cubes.
 
     Returns (cubes, info) where cubes is [(x, y, pad_index)] ordered by x and
@@ -226,12 +283,41 @@ def observe_and_detect(arm, node=None, settle_s=6.0, expect=None,
     own = node is None
     n = Vision(arm) if own else node
     t = {}
+    # ---- PAUSE THE FOLLOWER FOR THE WHOLE LOOK -------------------------
+    #
+    # `Vision.stage()` publishes a joint trajectory to the SAME controller
+    # `ik_follower_node` streams position commands to, so once the follower
+    # has a target it fights the observe move and the arm drifts inside
+    # `stage()`'s 0.02 rad-per-joint arrival tolerance while the frame is
+    # being taken.
+    #
+    # MEASURED, 2026-08-17, inside the recording sweep: the four T1 cubes came
+    # back 31.7 / 32.7 / 34.0 / 35.7 mm from truth against a 30 mm capture
+    # gate, so NONE of the four was grasped, and the pad miss at closure was
+    # 31.6 / 32.6 / 33.9 / 35.6 mm -- the same numbers to 0.1 mm. Standalone
+    # on the same stack, with nothing else loading the machine, the identical
+    # code returned 1.3-3.0 mm, which is why it read as flaky.
+    #
+    # Two things were wrong and BOTH are fixed, because either alone leaves a
+    # way for the failure to come back:
+    #   * the arm was not holding the pose -- fixed here, by pausing;
+    #   * the deprojection read the camera pose LATER off live TF instead of
+    #     the pose the frame came from -- fixed in `Vision.cam_pose()`, which
+    #     now uses the pose `mock_rgbd_camera` stamps onto each frame.
+    #
+    # It is the same treatment `stage_presentation_pose.py` already gives the
+    # staging move, through the same module, so there is one implementation.
+    sys.path.insert(0, os.path.join(_ROOT, "scripts"))
+    import follower_pause as FP
+    paused = FP.pause(n)
+    t["followers"] = dict(paused)
     try:
         n.spin(4.0)
         t0 = time.time()
         ok1, _e1 = n.stage(q_via, secs=3.0)
-        ok2, _e2 = n.stage(q_obs, secs=3.0)
+        ok2, e_obs = n.stage(q_obs, secs=3.0)
         t["move_to_observe_s"] = round(time.time() - t0, 2)
+        t["observe_arrival_rad"] = None if e_obs is None else round(e_obs, 5)
         if not (ok1 and ok2):
             raise DetectionUnavailable(
                 "the %s arm did not reach the observe pose" % arm)
@@ -247,6 +333,21 @@ def observe_and_detect(arm, node=None, settle_s=6.0, expect=None,
         t0 = time.time()
         img, dep = n.image(), n.depth_m()
         p_cam, R_wc = n.cam_pose()
+        t["frame_pose_is_stamped"] = n.render_pose is not None
+        # THE ARM MUST HAVE BEEN STILL WHEN THE FRAME WAS TAKEN.
+        #
+        # Using the frame's own render pose fixes the deprojection for an arm
+        # that has settled somewhere slightly wrong -- the answer is then
+        # self-consistent and correct. What it cannot fix is an arm that is
+        # still MOVING: the render pose is then already stale by the time the
+        # frame is processed, and the picture is smeared across poses anyway.
+        #
+        # So compare the pose the FRAME came from against the pose the camera
+        # is at NOW. Still arm: they agree to microns. Moving arm: they do not,
+        # and the look is refused instead of returning a confident wrong
+        # answer. This is the check that makes the 2026-08-17 fault impossible
+        # to record silently, which is why it is here as well as the pause.
+        t["frame_pose_drift_m"] = check_frame_still(n, p_cam, frame_pose_tol_m)
         dets, rejected = classify(img, dep, n.info)
         for d in dets:
             d["world"] = [float(v) for v in deproject(d, n.info, p_cam, R_wc)]
@@ -260,6 +361,10 @@ def observe_and_detect(arm, node=None, settle_s=6.0, expect=None,
             except Exception:                                    # noqa: BLE001
                 pass
             t["return_home_s"] = round(time.time() - t0, 2)
+        # ALWAYS, ON EVERY EXIT PATH. A failed restore disarms the arm, which
+        # is the safe direction and also the one that costs every run after it.
+        FP.resume(n, paused)
+        t["followers"] = dict(paused)
         if own:
             n.destroy_node()
 

@@ -45,6 +45,16 @@ for _ in range(6):
         break
     _ROOT = os.path.dirname(_ROOT)
 BASE = os.path.join(_ROOT, "recordings", "baselines")
+
+# HOW FAR OFF THE WORK PLANE A DETECTION MAY BE AND STILL BE A CUBE.
+#
+# ONE CUBE, and the number is measured rather than picked. Inside the sweep the
+# four real cubes deprojected to z 1.1118..1.1191 against a work plane at
+# 1.1200 -- within 9 mm -- while five spurious detections, fragments of the
+# same-coloured pads split by the cubes standing in front of them, landed at
+# 0.9576..0.9601, i.e. 160 mm low. 40 mm is an order of magnitude clear of the
+# real spread and four times clear of nothing else in the frame.
+PLANE_WINDOW_M = 0.040
 for _p in (os.path.join(_ROOT, "config"),
            os.path.join(_ROOT, "src", "srl_perception")):
     if _p not in sys.path:
@@ -390,6 +400,101 @@ def observe_and_detect(arm, node=None, settle_s=6.0, expect=None,
         dets, rejected = classify(img, dep, n.info)
         for d in dets:
             d["world"] = [float(v) for v in deproject(d, n.info, p_cam, R_wc)]
+        # ==============================================================
+        # A CUBE IS ON THE WORK PLANE. A FRAGMENT OF A PAD IS NOT.
+        # ==============================================================
+        # THE PADS ARE THE CUBES' OWN COLOURS, which is what makes the task
+        # judgeable from a frame and also means the only thing separating a
+        # cube from a piece of pad is blob SIZE at range. That is not enough:
+        # two cubes standing in front of a 210 x 130 mm pad split it into
+        # several connected fragments, the big one is rejected as too large and
+        # the leftovers are cube-sized. Measured inside the sweep, this refused
+        # T1 twice with "saw 8 cubes" and "saw 9 cubes" while the same code
+        # standalone on the same stack saw 4 -- an intermittency that is really
+        # a sensitivity to exactly where the arm settled.
+        #
+        # The nine split cleanly by DEPTH, and that is the discriminator the
+        # size test was missing:
+        #
+        #     4 detections   z 1.1118 .. 1.1191    <-  T1_Z is 1.1200
+        #     5 detections   z 0.9576 .. 0.9601    <-  160 mm low
+        #
+        # so the real cubes land within 9 mm of the plane they rest on and the
+        # spurious ones are 160 mm off. A 40 mm window -- one cube -- sits an
+        # order of magnitude clear of both.
+        #
+        # THIS IS A PHYSICAL FACT, NOT A FUDGE. T1's cubes rest on the work
+        # plane; `work_surface.WORK_PLANE_M` owns where that is, and a cube
+        # 160 mm below it is not a cube the arm can pick. It is also a check
+        # that CAN fail on a good input -- move a cube off the plane and it is
+        # rejected and named -- which is the property the size test alone had
+        # for size but not for height. See test_cube_must_be_on_work_plane.py.
+        on_plane, off_plane = [], []
+        for d in dets:
+            dz = float(d["world"][2]) - M.T1_Z
+            d["dz_from_work_plane_m"] = round(dz, 4)
+            (on_plane if abs(dz) <= PLANE_WINDOW_M
+             else off_plane).append(d)
+        for d in off_plane:
+            rejected.append(dict(
+                d, why="not on the work plane: %+.1f mm from z = %.4f "
+                       "(window +/-%.0f mm) -- a fragment of a same-coloured "
+                       "pad, not a cube"
+                       % (d["dz_from_work_plane_m"] * 1000.0, M.T1_Z,
+                          PLANE_WINDOW_M * 1000.0)))
+        dets = on_plane
+        t["rejected_off_work_plane"] = len(off_plane)
+        # ==============================================================
+        # TWO 40 mm CUBES CANNOT BE 25 mm APART. ONE OF THEM IS THE PAD.
+        # ==============================================================
+        # The work-plane window above removes pad fragments that are far BELOW
+        # the plane. It cannot remove the ones that are level with it, and they
+        # exist: the blue pad sits 95 mm behind the cube row and 20 mm below it,
+        # and from a camera looking down at the observe pose those two offsets
+        # very nearly cancel in RANGE. Measured -- the sliver of blue pad
+        # showing just above the green cube at x = 0.620:
+        #
+        #     green cube    world [0.6198, 0.1179, 1.1178]   39 px   depth 0.7160
+        #     blue sliver   world [0.6222, 0.1431, 1.1220]   33 px   depth 0.7240
+        #
+        # 2.4 mm apart in x, both within 5 mm of the work plane. No height or
+        # size test can separate those, and the pair is what made the detector
+        # report five cubes.
+        #
+        # But they cannot both be cubes. The cubes are 40 mm wide on a 60 mm
+        # pitch, so ANY two detections closer together than one cube width are
+        # the same physical object seen twice -- once as itself and once as a
+        # piece of whatever is behind it. The one with the larger blob is the
+        # object; a sliver is by definition the smaller.
+        #
+        # PURELY PERCEPTUAL, ON PURPOSE. This uses the cubes' own SIZE and
+        # nothing about where they are declared to be, so it does not weaken
+        # the claim that vision drives the grasp: the mislabel control still
+        # flips every declared colour and the plan is unchanged. Applying the
+        # pads' declared footprint as an image mask would have worked too, and
+        # was not done for exactly that reason.
+        dets.sort(key=lambda z: -float(z.get("blob_px", 0)))
+        kept, merged = [], []
+        for d in dets:
+            near = next((k for k in kept
+                         if math.dist(d["world"][:2], k["world"][:2])
+                         < M.CUBE_M), None)
+            if near is None:
+                kept.append(d)
+            else:
+                merged.append(dict(
+                    d, why="a duplicate of the %s detection %.1f mm away "
+                           "(%.0f px against %.0f px) -- two %.0f mm cubes "
+                           "cannot be that close, so the smaller blob is a "
+                           "sliver of the object behind it"
+                           % (near.get("colour"),
+                              math.dist(d["world"][:2],
+                                        near["world"][:2]) * 1000.0,
+                              d.get("blob_px", 0), near.get("blob_px", 0),
+                              M.CUBE_M * 1000.0)))
+        rejected.extend(merged)
+        dets = sorted(kept, key=lambda z: z["world"][0])
+        t["rejected_as_duplicates"] = len(merged)
         t["detect_s"] = round(time.time() - t0, 3)
     finally:
         if return_home:

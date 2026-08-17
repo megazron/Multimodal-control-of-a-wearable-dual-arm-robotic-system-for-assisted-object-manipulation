@@ -221,6 +221,53 @@
     "scenario": "S1_left_arm",
     "quad": true,
     "opened_on": "presentation",
+    "started_from_home": {
+      "task": "m1",
+      "mode": "06_full_autonomy",
+      "tol_rad": 0.05,
+      "per_arm": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "worst_rad": 0.0,
+      "at_home": true,
+      "measured_at": "before approach-the-start",
+      "after_approach": {
+        "at": "at waypoint 0 (after the approach)",
+        "per_arm": {
+          "left": 0.812,
+          "right": 0.6249
+        },
+        "worst_rad": 0.812
+      },
+      "trail": [
+        {
+          "at": "after require_home",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "before approach-the-start",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "at waypoint 0 (after the approach)",
+          "per_arm": {
+            "left": 0.812,
+            "right": 0.6249
+          },
+          "worst_rad": 0.812
+        }
+      ],
+      "allow_unhomed": false
+    },
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",
@@ -241,6 +288,53 @@
     "scenario": "S2_both_arms_random",
     "quad": true,
     "opened_on": "presentation",
+    "started_from_home": {
+      "task": "m1s2",
+      "mode": "06_full_autonomy",
+      "tol_rad": 0.05,
+      "per_arm": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "worst_rad": 0.0,
+      "at_home": true,
+      "measured_at": "before approach-the-start",
+      "after_approach": {
+        "at": "at waypoint 0 (after the approach)",
+        "per_arm": {
+          "left": 0.9148,
+          "right": 1.2631
+        },
+        "worst_rad": 1.2631
+      },
+      "trail": [
+        {
+          "at": "after require_home",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "before approach-the-start",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "at waypoint 0 (after the approach)",
+          "per_arm": {
+            "left": 0.9148,
+            "right": 1.2631
+          },
+          "worst_rad": 1.2631
+        }
+      ],
+      "allow_unhomed": false
+    },
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",

@@ -5551,3 +5551,94 @@ this cannot be recorded silently again. It is why no re-recorded T1 set was
 committed this session: the mode 01 clip was recorded, failed this check, and
 the previously committed clip was restored rather than replaced with one whose
 arms are 0.80 rad off home.
+
+---
+
+# 2026-08-17 (later still, 4) — THE MARKING WAS BELOW THE WORK IT BOUNDS
+
+## My own regression, and the argument that caused it
+
+The previous session moved the workspace marking from the work plane DOWN to the
+table, on the argument that "paint goes on the thing it is painted on". That is
+a good argument about paint and the wrong argument about this marking. It is the
+boundary a participant is told to keep the **work** inside, and drawing it under
+the work put the whole task outside its own boundary. Measured, both arms, both
+tasks: marking **0.9815**, pad top **1.1000** — the boundary sat **116.5 mm**
+below the thing it encloses. The frame showed it plainly.
+
+It is back at the work plane and derived **per arm** through
+`clip_scene.work_top_for(arm, task)`, from that arm's own pads rather than from a
+shared constant. Both arms come out equal today; they are equal *because they are
+measured from the same thing* rather than by coincidence. The label follows the
+marking — a label floating 116 mm under the boundary it names is the same defect.
+Now: marking 1.1015 against a pad top of 1.1000, 1.5 mm proud of the plane it
+encloses, both arms, T1 and T1S2.
+
+**A number I could not reproduce, said so rather than rounded to.** The report
+was "left 0.945 against a pad at 0.987, right the same" — a 42 mm gap. The code
+has ONE marking height and ONE pad height and they measured 0.9815 and 1.0980, so
+the gap is 116.5 mm and identical for both arms. The only 42 in the geometry is
+`PAD_OFFSET_BY_ARM["right"][2]` = 0.0421. The defect was real regardless.
+
+## The check's SUBJECT was wrong for T1S2
+
+`verify_objects_on_table.objects_for` read
+
+    cubes = MCT.T1_CUBES if task == "t1" else MCT.T1_CUBES
+
+— a ternary with the same answer on both sides. So asking it about T1S2 measured
+stage **one's** four cubes and stage one's single-arm pad pair. Stage 2 draws over
+BOTH arms from its own seed and has a pad pair per arm; none of it had ever been
+looked at. One task credited with another task's geometry, in a file written the
+same day as the `status_table` fix for the same fault. It now reads stage 2's real
+layout and follows the seed the sweep records.
+
+## The check can fail on the real scene, and can pass
+
+"It reports BLOCKED today" is not evidence that it can report anything else.
+`--inject-float-mm` displaces every object and the marking with them, so one
+instrument answers three ways about one scene:
+
+| displacement | gap | verdict | exit |
+| --- | --- | --- | --- |
+| 0 mm | 120.0 mm | BLOCKED | 3 |
+| +5 mm | 125.0 mm | DRIFT | 1 |
+| −120 mm | 0.0 mm | **PASS** | 0 |
+
+The last row is the one that matters: if the scene were ever fixed, this check
+would notice. Pinned for t1, t1s2 and t3 in
+`test_objects_on_table_can_fail.py`.
+
+Two ordering bugs in my own control, both caught by running it: the work plane
+was shifted *after* the objects were checked, so +5 mm reported BAD_GEOMETRY
+instead of DRIFT and −120 mm reported BAD_GEOMETRY instead of PASS.
+
+## Support geometry, re-priced at the anchor: FIVE TIMES WORSE
+
+`SUPPORTS_ENABLED`'s note invited a re-measurement, and it needed one — every
+number in it was solved through `Rig` at the HOME wrist. With the lips really in
+the planning scene, `verify_t1_paths --part path --repeats 10` at the anchor over
+the full 171-waypoint path:
+
+    cube lips + plane lips, 75% of depth     109 of 171 IK failures
+    no supports                                0 of 171
+
+The old table called the same geometry 22. The conclusion is unchanged and the
+margin is five times larger: a shelf whose top is flush with the object's base is
+exactly where the fingers close, and the cube lips are 20 mm wider than the cube
+in x — 10 mm each side, which is the pads.
+
+**So T1-1 is now blocked by four independent anchor measurements**, all listed at
+`SUPPORTS_ENABLED`: 0 of 3360 resting cells; every (top, edge) cell failing for
+T1's own x including an edge at y = 0; best free pair 0.980/0.100 leaving 120 mm;
+and supports at 109 of 171. The objects cannot rest on the table, and the
+verifier says so at exit 3 instead of calling it a pass.
+
+## T1S2 re-recorded, all five modes
+
+AT HOME 0.0000 rad on both arms at the pre-approach instant in every cell, 4 of 4
+closures at 0.0000 m in every cell, 37 of 37 clips passing `verify_rviz_clips`.
+One mode aborted first time: the virtual display would not render after three
+restarts and `record_rviz` REFUSED rather than filing a black view — two orphaned
+`rviz2` processes were holding the display. The per-mode cleanup now kills
+viewers as well as displays.

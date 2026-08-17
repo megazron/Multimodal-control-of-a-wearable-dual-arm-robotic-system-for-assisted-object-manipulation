@@ -91,7 +91,7 @@
     "released": true,
     "joint_ok": true,
     "spread_open": 189043.0,
-    "spread_shut": 20986.0,
+    "spread_shut": 20782.0,
     "pixel_ok": true,
     "grasp_task": true
   },
@@ -202,8 +202,8 @@
     "closed_on_object": true,
     "released": true,
     "joint_ok": true,
-    "spread_open": 188857.0,
-    "spread_shut": 20811.0,
+    "spread_open": 188853.0,
+    "spread_shut": 20777.0,
     "pixel_ok": true,
     "grasp_task": true
   },
@@ -314,8 +314,8 @@
     "closed_on_object": true,
     "released": true,
     "joint_ok": true,
-    "spread_open": 188505.0,
-    "spread_shut": 21002.0,
+    "spread_open": 188502.0,
+    "spread_shut": 20791.0,
     "pixel_ok": true,
     "grasp_task": true
   },
@@ -426,8 +426,8 @@
     "closed_on_object": true,
     "released": true,
     "joint_ok": true,
-    "spread_open": 188539.0,
-    "spread_shut": 20698.0,
+    "spread_open": 188572.0,
+    "spread_shut": 20289.0,
     "pixel_ok": true,
     "grasp_task": true
   },
@@ -538,8 +538,8 @@
     "closed_on_object": true,
     "released": true,
     "joint_ok": true,
-    "spread_open": 188528.0,
-    "spread_shut": 20994.0,
+    "spread_open": 188521.0,
+    "spread_shut": 20726.0,
     "pixel_ok": true,
     "grasp_task": true
   },

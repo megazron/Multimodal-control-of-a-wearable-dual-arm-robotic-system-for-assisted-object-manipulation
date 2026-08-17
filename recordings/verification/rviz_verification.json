@@ -78,13 +78,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 23.8,
-    "bright": 130.7,
-    "variety": 8701,
-    "delta": 3.08,
+    "duration_s": 23.2,
+    "bright": 131.7,
+    "variety": 9081,
+    "delta": 2.84,
     "objects": {
-      "msc_blue": 198,
-      "msc_green": 1139
+      "msc_blue": 153,
+      "msc_green": 1069
     },
     "angles_bad": [],
     "mode": "01_master_teleop",
@@ -191,13 +191,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 33.4,
-    "bright": 130.9,
-    "variety": 8310,
-    "delta": 3.16,
+    "duration_s": 33.3,
+    "bright": 131.7,
+    "variety": 8563,
+    "delta": 2.78,
     "objects": {
-      "msc_blue": 194,
-      "msc_green": 1141
+      "msc_blue": 157,
+      "msc_green": 1087
     },
     "angles_bad": [],
     "mode": "02_vr_teleop",
@@ -305,12 +305,12 @@
     "ok": true,
     "why": "",
     "duration_s": 23.2,
-    "bright": 131.0,
-    "variety": 8913,
-    "delta": 2.82,
+    "bright": 131.7,
+    "variety": 9102,
+    "delta": 2.97,
     "objects": {
-      "msc_blue": 196,
-      "msc_green": 1137
+      "msc_blue": 154,
+      "msc_green": 1079
     },
     "angles_bad": [],
     "mode": "03_shared_autonomy",
@@ -417,13 +417,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 24.4,
-    "bright": 130.9,
-    "variety": 8853,
-    "delta": 3.14,
+    "duration_s": 21.7,
+    "bright": 131.7,
+    "variety": 9015,
+    "delta": 1.87,
     "objects": {
-      "msc_blue": 199,
-      "msc_green": 1143
+      "msc_blue": 149,
+      "msc_green": 1077
     },
     "angles_bad": [],
     "mode": "04_vr_shared",
@@ -545,12 +545,12 @@
     "ok": true,
     "why": "",
     "duration_s": 23.8,
-    "bright": 130.9,
-    "variety": 8939,
-    "delta": 2.93,
+    "bright": 131.7,
+    "variety": 9009,
+    "delta": 3.06,
     "objects": {
-      "msc_blue": 193,
-      "msc_green": 1139
+      "msc_blue": 156,
+      "msc_green": 1089
     },
     "angles_bad": [],
     "mode": "06_full_autonomy",

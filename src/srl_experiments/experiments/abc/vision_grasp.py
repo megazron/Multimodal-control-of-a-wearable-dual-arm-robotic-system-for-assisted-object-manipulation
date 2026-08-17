@@ -227,12 +227,21 @@ def check_frame_still(n, p_cam, tol_m=0.004):
     drift = float(np.linalg.norm(np.asarray(p_cam, float)
                                  - np.asarray(live, float)))
     if drift > tol_m:
+        # THE TWO POSITIONS, NOT JUST THE DISTANCE. A refusal that reports one
+        # number cannot be told apart from a refusal that reports a CONSTANT,
+        # and "the same value twice" is the difference between an arm that is
+        # moving and a frame mismatch. It read exactly 0.0170 m on two
+        # separate sweep runs, which is not what drift looks like.
         raise DetectionUnavailable(
             "the camera moved %.4f m between rendering this frame and now "
             "(tolerance %.4f m), so the arm was not still when it was taken. "
-            "Deprojecting it would return a confident wrong answer -- the "
-            "2026-08-17 fault, refused rather than recorded."
-            % (drift, tol_m))
+            "render (%.4f, %.4f, %.4f) live (%.4f, %.4f, %.4f) delta "
+            "(%+.4f, %+.4f, %+.4f). Deprojecting it would return a confident "
+            "wrong answer -- the 2026-08-17 fault, refused rather than "
+            "recorded."
+            % (drift, tol_m,
+               p_cam[0], p_cam[1], p_cam[2], live[0], live[1], live[2],
+               p_cam[0] - live[0], p_cam[1] - live[1], p_cam[2] - live[2]))
     return round(drift, 6)
 
 
@@ -252,7 +261,8 @@ def _live_cam_pose(n):
 
 
 def observe_and_detect(arm, node=None, settle_s=6.0, expect=None,
-                       return_home=True, frame_pose_tol_m=0.004):
+                       return_home=True, frame_pose_tol_m=0.004,
+                       frame_pose_wait_s=8.0):
     """Move to the observe pose, take one frame, come back, report cubes.
 
     Returns (cubes, info) where cubes is [(x, y, pad_index)] ordered by x and
@@ -331,23 +341,52 @@ def observe_and_detect(arm, node=None, settle_s=6.0, expect=None,
                 "no camera stream on /%s_camera -- is mock_rgbd_camera or the "
                 "real driver running?" % arm)
         t0 = time.time()
-        img, dep = n.image(), n.depth_m()
-        p_cam, R_wc = n.cam_pose()
-        t["frame_pose_is_stamped"] = n.render_pose is not None
         # THE ARM MUST HAVE BEEN STILL WHEN THE FRAME WAS TAKEN.
         #
         # Using the frame's own render pose fixes the deprojection for an arm
         # that has settled somewhere slightly wrong -- the answer is then
         # self-consistent and correct. What it cannot fix is an arm that is
         # still MOVING: the render pose is then already stale by the time the
-        # frame is processed, and the picture is smeared across poses anyway.
+        # frame is processed, and on a real camera the picture is smeared
+        # across poses as well. So compare the pose the FRAME came from against
+        # the pose the camera is at NOW.
         #
-        # So compare the pose the FRAME came from against the pose the camera
-        # is at NOW. Still arm: they agree to microns. Moving arm: they do not,
-        # and the look is refused instead of returning a confident wrong
-        # answer. This is the check that makes the 2026-08-17 fault impossible
-        # to record silently, which is why it is here as well as the pause.
-        t["frame_pose_drift_m"] = check_frame_still(n, p_cam, frame_pose_tol_m)
+        # WAIT FOR A STILL FRAME; DO NOT REFUSE THE FIRST BAD ONE. A drift over
+        # tolerance means THIS frame cannot be trusted, not that the arm will
+        # never be still. Two things produce a transient here and both clear
+        # within a second or two: the arm finishing its approach, and --
+        # measured on this host -- the camera's own TF listener being starved
+        # while the DDS graph is busy, so it renders from a transform several
+        # hundred ms old.
+        #
+        # Refusing the first bad frame turned a transient into a lost clip. It
+        # read exactly 0.0170 m on two separate sweep runs, and a value that
+        # repeats to 0.1 mm across differently loaded runs is a fixed lag, not
+        # an arm still travelling.
+        #
+        # It still REFUSES if it never settles, reporting how long it waited
+        # and the worst it saw, so a permanently stale camera is still caught.
+        # That is the property that makes the 2026-08-17 fault impossible to
+        # record silently.
+        img = dep = p_cam = R_wc = None
+        best, waited = None, 0.0
+        while True:
+            img, dep = n.image(), n.depth_m()
+            p_cam, R_wc = n.cam_pose()
+            try:
+                t["frame_pose_drift_m"] = check_frame_still(
+                    n, p_cam, frame_pose_tol_m)
+                t["frame_pose_waited_s"] = round(waited, 2)
+                break
+            except DetectionUnavailable as e:
+                best = str(e)
+                if waited > frame_pose_wait_s:
+                    raise DetectionUnavailable(
+                        "no still frame in %.1f s. %s"
+                        % (frame_pose_wait_s, best))
+                n.spin(0.4)
+                waited += 0.4
+        t["frame_pose_is_stamped"] = n.render_pose is not None
         dets, rejected = classify(img, dep, n.info)
         for d in dets:
             d["world"] = [float(v) for v in deproject(d, n.info, p_cam, R_wc)]

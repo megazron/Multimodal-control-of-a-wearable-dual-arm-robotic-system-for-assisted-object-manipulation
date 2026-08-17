@@ -21,22 +21,13 @@
   },
   "01_master_teleop/t1/S1_left_arm": {
     "ok": false,
-    "msg": "run exited 0; NO GRASP RECORDED at all",
+    "msg": "staged detection failed (rc=5): STAGE-DETECT REFUSED: the camera moved 0.0170 m between rendering this frame and now (tolerance 0.0040 m), so the arm was not still when it was taken. Deprojecting it would return a confident wrong answer -- the 2026-08-17 fault, refused rather than recorded.",
     "mode": "01_master_teleop",
     "task": "t1",
     "scenario": "S1_left_arm",
-    "quad": true,
-    "opened_on": "home",
-    "files": [
-      "rviz_back.mp4",
-      "rviz_front.mp4",
-      "rviz_gripper.mp4",
-      "rviz_iso.mp4",
-      "rviz_left.mp4",
-      "rviz_quad.mp4",
-      "rviz_right.mp4",
-      "rviz_top.mp4"
-    ],
+    "quad": false,
+    "opened_on": "presentation",
+    "files": [],
     "dir": "recordings/verification/01_master_teleop/T1/S1_left_arm"
   },
   "01_master_teleop/t1s2/S2_both_arms_random": {

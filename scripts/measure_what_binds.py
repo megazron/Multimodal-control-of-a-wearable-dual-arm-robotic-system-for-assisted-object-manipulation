@@ -106,11 +106,50 @@ def _remove(node, cli, ids):
 class Rig:
     """One place that knows how to ask each of the four questions."""
 
-    def __init__(self, node, scene="t1", repeats=3):
+    # WHICH ORIENTATION A MEASUREMENT IS TAKEN AT. Not a style choice -- it
+    # was silently wrong, and every consumer of this class inherited it.
+    #
+    # `self.quat` was the LIVE end-effector orientation read off TF at
+    # construction, i.e. the HOME wrist. The tasks do not command that: every
+    # waypoint of every mode is sent with `master_calibration.WORKSPACE_ORIENT`
+    # written into it by `run_abc.send()` -- the pinned near-side anchor.
+    # Measured at the current home, 2026-08-17, the two are
+    #
+    #     left    home tool axis -1.47 deg elevation, anchor +30.77   32.26 deg apart
+    #     right   home           -1.42                        +22.10  24.14 deg apart
+    #
+    # so `verify_t1_paths.py` -- the instrument CLAUDE.md cites for T1's
+    # "0 IK failures over 7522 IK calls" -- was walking T1's waypoints at an
+    # orientation the task never sends, on the very arm T1 runs on. TASK_SPEC
+    # section 9 records this fault for `search_centre_on_surface`, which works
+    # around it locally by passing its own anchor to `solve()`; the fault was
+    # never fixed in `Rig`, and `solve_joints()` had no way to pass one at all.
+    #
+    # ANCHOR IS NOW THE DEFAULT, because it is what runs. `anchor="home"`
+    # keeps the old behaviour for the one thing that legitimately wants it --
+    # asking what the arm can do from the pose it is actually in -- and says so
+    # by name rather than by accident.
+    def __init__(self, node, scene="t1", repeats=3, anchor="workspace"):
         self.n = node
         self.repeats = repeats
         self.calls = 0
-        self.quat = {a: node.ee_quat(a) for a in ("left", "right")}
+        self.anchor = anchor
+        if anchor == "workspace":
+            # AS A MESSAGE, not as the 4-tuple WORKSPACE_ORIENT stores. Every
+            # reader of self.quat -- _fan(), measure_grasp_approach.as_tuple()
+            # -- uses attribute access, and a tuple here fails far from here.
+            from srl_teleop import master_calibration as _mc
+            self.quat = {}
+            for a in ("left", "right"):
+                q = Quaternion()
+                q.x, q.y, q.z, q.w = (float(v) for v in _mc.WORKSPACE_ORIENT[a])
+                self.quat[a] = q
+        elif anchor == "home":
+            self.quat = {a: node.ee_quat(a) for a in ("left", "right")}
+        else:
+            raise ValueError("anchor must be 'workspace' or 'home', not %r"
+                             % anchor)
+        self.home_quat = {a: node.ee_quat(a) for a in ("left", "right")}
         self.cli = node.create_client(ApplyPlanningScene,
                                       "/apply_planning_scene")
         self.cli.wait_for_service(timeout_sec=20.0)
@@ -180,8 +219,12 @@ class Rig:
                 return False
         return True
 
-    def solve_joints(self, arm, p, avoid=True):
+    def solve_joints(self, arm, p, avoid=True, quat=None):
         """THIS ARM'S seven, by name -- never positions[:7].
+
+        `quat` defaults to this Rig's anchor (see __init__). It had no such
+        argument, so a caller that wanted the orientation the task commands
+        could not ask for it and got the home wrist instead.
 
         The first version of this method sliced the response, which is the
         LEFT arm's joints for every query. The right arm therefore measured
@@ -192,8 +235,9 @@ class Rig:
         before the number was used, rather than after.
         """
         self.calls += 1
-        return self.n.solve_arm_joints(arm, list(p), self.quat[arm],
-                                       avoid=avoid, tries=6)
+        return self.n.solve_arm_joints(
+            arm, list(p), self.quat[arm] if quat is None else quat,
+            avoid=avoid, tries=6)
 
     def orient_free(self, arm, p, avoid=False):
         """Any of a fan of approach orientations, including straight down."""

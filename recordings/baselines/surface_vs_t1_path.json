@@ -1,0 +1,258 @@
+{
+  "arm": "left",
+  "waypoints": 171,
+  "repeats": 3,
+  "anchor": "workspace",
+  "floor": 0.15,
+  "controls": {
+    "no_slab": 0,
+    "slab_through_objects": 171,
+    "shipped_0p950_edge_0p100": 0
+  },
+  "failures_by_top_and_edge": {
+    "0.95": {
+      "0.05": {
+        "failures": 7,
+        "worst_clearance": 0.161,
+        "first_failures": [
+          160,
+          161,
+          162,
+          163,
+          164,
+          165,
+          166
+        ]
+      },
+      "0.062": {
+        "failures": 0,
+        "worst_clearance": 0.161,
+        "first_failures": []
+      },
+      "0.08": {
+        "failures": 0,
+        "worst_clearance": 0.161,
+        "first_failures": []
+      },
+      "0.1": {
+        "failures": 0,
+        "worst_clearance": 0.161,
+        "first_failures": []
+      }
+    },
+    "0.98": {
+      "0.05": {
+        "failures": 16,
+        "worst_clearance": 0.161,
+        "first_failures": [
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          159,
+          160,
+          161,
+          162,
+          163
+        ]
+      },
+      "0.062": {
+        "failures": 14,
+        "worst_clearance": 0.161,
+        "first_failures": [
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          160,
+          161,
+          162,
+          163,
+          164
+        ]
+      },
+      "0.08": {
+        "failures": 14,
+        "worst_clearance": 0.161,
+        "first_failures": [
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          160,
+          161,
+          162,
+          163,
+          164
+        ]
+      },
+      "0.1": {
+        "failures": 0,
+        "worst_clearance": 0.161,
+        "first_failures": []
+      }
+    },
+    "1.0": {
+      "0.05": {
+        "failures": 33,
+        "worst_clearance": 0.161,
+        "first_failures": [
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          74,
+          75,
+          76,
+          77,
+          78
+        ]
+      },
+      "0.062": {
+        "failures": 18,
+        "worst_clearance": 0.161,
+        "first_failures": [
+          116,
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          124,
+          159,
+          160,
+          161
+        ]
+      },
+      "0.08": {
+        "failures": 14,
+        "worst_clearance": 0.161,
+        "first_failures": [
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          160,
+          161,
+          162,
+          163,
+          164
+        ]
+      },
+      "0.1": {
+        "failures": 14,
+        "worst_clearance": 0.161,
+        "first_failures": [
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          160,
+          161,
+          162,
+          163,
+          164
+        ]
+      }
+    },
+    "1.02": {
+      "0.05": {
+        "failures": 36,
+        "worst_clearance": 0.161,
+        "first_failures": [
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          74,
+          75,
+          76,
+          77,
+          78
+        ]
+      },
+      "0.062": {
+        "failures": 36,
+        "worst_clearance": 0.161,
+        "first_failures": [
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          74,
+          75,
+          76,
+          77,
+          78
+        ]
+      },
+      "0.08": {
+        "failures": 32,
+        "worst_clearance": 0.161,
+        "first_failures": [
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          74,
+          75,
+          76,
+          77,
+          78
+        ]
+      },
+      "0.1": {
+        "failures": 18,
+        "worst_clearance": 0.161,
+        "first_failures": [
+          116,
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          124,
+          159,
+          160,
+          161
+        ]
+      }
+    }
+  },
+  "best": {
+    "top": 0.98,
+    "near_y": 0.1,
+    "gap_m": 0.12
+  }
+}

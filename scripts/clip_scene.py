@@ -168,6 +168,25 @@ TABLE_THICK = 0.035
 # anything measured -- T1 went to 4 waypoint failures on the items and 7 on the
 # clip path while T0, T2 and T3 stayed at 0. Extrapolating past the last
 # measured point is how a verified layout stops being verified.
+# DERIVED FROM THE MARKING, NOT WRITTEN DOWN, and reassigned once the survey
+# has loaded (see below REGION_CELLS). This value is the pre-survey placeholder
+# and nothing should read it before then.
+#
+# WHY IT MOVED FORWARD FROM 0.100. With the top now at the objects' own height
+# the near edge does two jobs at once, and they pull in opposite directions:
+#
+#   * it must be BEHIND every wrist. The pinned anchor puts the wrist at
+#     y_obj - 0.0946, z = 1.0628 -- 37 mm below the top -- so a near edge in
+#     front of that buries the wrist in the slab.
+#   * it must be IN FRONT OF the whole workspace marking. 20 of T1's 192
+#     marked cells were entirely off the old table and the front two rows of
+#     the rest were over air: a boundary a participant is instructed to work
+#     inside, drawn on a surface that is not there.
+#
+# The marking's own front edge is the forward-most thing that has to be
+# supported, so it sets the edge. The wrist constraint is then checked rather
+# than assumed -- `verify_objects_on_table.py` reports the margin per object
+# and `search_t1_layout_on_surface.py` refuses a layout that closes it.
 TABLE_NEAR_Y = 0.10
 TABLE_FAR_Y = 0.72
 # 1.05, NOT 0.90. The measured clearance-safe region runs to |x| = 1.000 --
@@ -400,6 +419,115 @@ def in_region(arm, x, y):
                for cx, cy in REGION_CELLS[arm])
 MARK_T = 0.003                   # a painted line, not a kerb
 MARK_W = 0.012
+
+
+def region_outline(cells, step, width=None):
+    """The BOUNDARY of a set of grid cells, as merged bars. Not a bounding box.
+
+    WHY AN OUTLINE AND NOT TILES. The marking was drawn as one filled square
+    per measured cell -- 192 of them for T1's left arm, 21 mm each at 30%
+    alpha -- which is an honest description of the region and an unreadable
+    picture of it: a dense grid laid over the two coloured pads and the four
+    cubes, so the thing the marking exists to communicate (where the boundary
+    is) competed with the thing the task exists to show (a cube going onto a
+    pad). The comment above the drawing loop still claimed "four thin bars
+    rather than a filled patch", which is what it had been two rewrites
+    earlier.
+
+    THE OUTLINE IS NOT A SIMPLIFICATION. It is the same set: an edge is drawn
+    exactly where a cell in the set adjoins a cell that is not, so a concave
+    region is drawn concave and a hole is drawn as a hole. The bounding box --
+    which WAS a simplification, and asserted a third of the right arm's box
+    that was never measured reachable -- is gone with it. Fewer markers, and
+    strictly more information per marker.
+
+    Returns [(cx, cy, sx, sy)] in metres. Collinear runs are merged, so a
+    straight side of the region is ONE bar rather than one per cell, and the
+    bars are extended by half a width at each end so corners close.
+    """
+    w = MARK_W if width is None else width
+    # Integer grid, so adjacency is exact rather than a float comparison.
+    key = {}
+    for cx, cy in cells:
+        key[(int(round(cx / step)), int(round(cy / step)))] = (cx, cy)
+    have = set(key)
+    bars = []
+    # Horizontal edges: group by (row, side), merge consecutive columns.
+    for dj, side in ((-1, "s"), (1, "n")):
+        runs = {}
+        for (i, j) in have:
+            if (i, j + dj) not in have:
+                runs.setdefault(j, []).append(i)
+        for j, iss in runs.items():
+            for i0, i1 in _runs(sorted(iss)):
+                x0 = (i0 - 0.5) * step
+                x1 = (i1 + 0.5) * step
+                y = (j + dj * 0.5) * step
+                bars.append((round((x0 + x1) / 2.0, 5), round(y, 5),
+                             round(x1 - x0 + w, 5), round(w, 5)))
+    # Vertical edges: group by (column, side), merge consecutive rows.
+    for di, side in ((-1, "w"), (1, "e")):
+        runs = {}
+        for (i, j) in have:
+            if (i + di, j) not in have:
+                runs.setdefault(i, []).append(j)
+        for i, jss in runs.items():
+            for j0, j1 in _runs(sorted(jss)):
+                y0 = (j0 - 0.5) * step
+                y1 = (j1 + 0.5) * step
+                x = (i + di * 0.5) * step
+                bars.append((round(x, 5), round((y0 + y1) / 2.0, 5),
+                             round(w, 5), round(y1 - y0 + w, 5)))
+    return bars
+
+
+def _runs(sorted_ints):
+    """[(first, last)] for each maximal run of consecutive integers."""
+    out = []
+    for v in sorted_ints:
+        if out and v == out[-1][1] + 1:
+            out[-1][1] = v
+        else:
+            out.append([v, v])
+    return [(a, b) for a, b in out]
+
+
+# THE TABLE NOW REACHES THE MARKING. See the note at the TABLE_NEAR_Y
+# placeholder above: with the surface at working height the forward-most thing
+# that has to be supported is the marking's own front edge, over ALL arms, so
+# the footprint is derived from the marking and is not a literal. Rounded
+# outward to the millimetre so a rounding error cannot leave a sliver of paint
+# over air.
+#
+# THE PAD IS MARK_W, NOT ZERO, and that is not cosmetic. `region_outline`
+# extends each bar by half a line width at both ends so corners close, so the
+# drawn marking is MARK_W/2 larger than the cells it describes -- and the first
+# version of this derivation used the cell extents, which left three outline
+# bars hanging over the near edge. The check caught it. One full MARK_W of pad
+# leaves the paint comfortably on the surface.
+_MARK_PAD = MARK_W
+# THE NEAR EDGE IS MEASURED, NOT DERIVED FROM THE MARKING. Deriving it from the
+# marking was the first attempt and it is backwards: it put the edge at 0.050,
+# which costs T1 16 of 171 waypoints. `sweep_surface_vs_t1_path.py` prices the
+# height and the edge TOGETHER and 0.100 is as far forward as 0.980 may come.
+# So the surface is what it can be and the MARKING is clipped to it -- see
+# `cells_on_surface`, which prints how many cells that costs. Paint follows the
+# table; the table does not follow the paint.
+try:
+    from srl_experiments.work_surface import DECLARED_NEAR_Y as _near
+    TABLE_NEAR_Y = float(_near)
+except Exception:                                       # pragma: no cover
+    import warnings as _w2
+    _w2.warn("work_surface.DECLARED_NEAR_Y unavailable; the table's near edge "
+             "is falling back to a HARDCODED value.", RuntimeWarning)
+    TABLE_NEAR_Y = 0.100
+TABLE_FAR_Y = max(TABLE_FAR_Y, math.ceil(1000.0 * (max(
+    cy + REGION_STEP / 2.0
+    for cells in REGION_CELLS.values() for _, cy in cells) + _MARK_PAD)) / 1000.0)
+TABLE_HALF_X = max(TABLE_HALF_X, math.ceil(1000.0 * (max(
+    abs(cx) + REGION_STEP / 2.0
+    for cells in REGION_CELLS.values() for cx, _ in cells) + _MARK_PAD)) / 1000.0)
+
 MARK_RGBA = {"left": (0.95, 0.75, 0.10, 0.85),
              "right": (0.20, 0.75, 0.95, 0.85)}
 
@@ -656,6 +784,29 @@ def furniture_boxes(task):
     return out
 
 
+def cells_on_surface(task, arm):
+    """(cells whose whole square is over a work surface, count dropped).
+
+    The marking is painted ON the surface, so a cell with no surface under it
+    is a line on the floor of a room telling a participant to work in mid-air.
+    Whole-square, not centre: a cell half over the edge is half a lie.
+    """
+    tops = [(s[1][2] + s[2][2] / 2.0,
+             s[1][0] - s[2][0] / 2.0, s[1][0] + s[2][0] / 2.0,
+             s[1][1] - s[2][1] / 2.0, s[1][1] + s[2][1] / 2.0)
+            for s in furniture_boxes(task)]
+    h = REGION_STEP / 2.0
+    keep, off = [], 0
+    for cx, cy in REGION_CELLS[arm]:
+        if any(sx0 - 1e-9 <= cx - h and cx + h <= sx1 + 1e-9
+               and sy0 - 1e-9 <= cy - h and cy + h <= sy1 + 1e-9
+               for _tz, sx0, sx1, sy0, sy1 in tops):
+            keep.append((cx, cy))
+        else:
+            off += 1
+    return keep, off
+
+
 def fixtures_for(task):
     """Names of the NON-GRASPABLE subjects tick() draws for this task.
 
@@ -735,6 +886,9 @@ class Scene(Node):
         # scored as grasped-and-carried-and-delivered rather than as the arm
         # having moved somewhere near an object.
         self.events = []
+        # Said once per arm, not once per tick: tick() runs at 20 Hz and a
+        # per-tick notice about the marking would bury everything else.
+        self._said_off_surface = {}
         # T2's carry trace. One row per tick for the whole clip, so tilt and
         # separation are a SERIES and not a verdict. Empty for every other
         # task, and empty is meaningful: it says the task has no coupling.
@@ -1373,37 +1527,60 @@ class Scene(Node):
                 if label not in self.fixtures:
                     self.fixtures.append(label)
         if marked_arms(self.task):
-            # THE MARKED REACHABLE REGION, on the surface, per arm. Drawn as
-            # four thin bars rather than a filled patch so it reads as a
-            # boundary and does not hide what is standing inside it.
-            # ONLY THE ARMS THIS TASK USES. T1 runs on one arm, and drawing
-            # the other one's marking put a large empty rectangle in the
-            # middle of every T1 frame -- which is what the front view was
-            # centring on while the actual work sat at the edge of the shot.
+            # THE MARKED REACHABLE REGION, drawn as ITS OUTLINE.
+            #
+            # It was 192 filled 21 mm tiles at 30% alpha, one per measured
+            # cell, PLUS a heavy bounding box -- a dense grid laid over the two
+            # coloured pads and the four cubes, so the picture's subject
+            # competed with its own annotation. (The comment that used to sit
+            # here claimed "four thin bars rather than a filled patch", which
+            # it had been two rewrites earlier. It is gone.)
+            #
+            # The outline is the SAME SET, not a simplification: `region_outline`
+            # draws an edge exactly where a cell in the set adjoins one that is
+            # not, so concave stays concave. The BOUNDING BOX was the
+            # simplification -- it asserted a third of the right arm's box that
+            # was never measured reachable -- and it is dropped.
+            #
+            # ONLY THE ARMS THIS TASK USES. T1 runs on one arm, and drawing the
+            # other one's marking put a large empty rectangle in the middle of
+            # every T1 frame.
             for arm in marked_arms(self.task):
                 col = MARK_RGBA[arm]
-                zt = CT.BENCH_TOP + MARK_T / 2.0
-                # THE MEASURED CELLS, drawn as cells. The bounding box was
-                # what used to be drawn and the right arm's cells fill only
-                # 62% of it, so the box asserted a third of a region that
-                # was never measured reachable.
-                cell = REGION_STEP - 0.004        # a hairline between tiles
-                for cx, cy in REGION_CELLS[arm]:
-                    add(Marker.CUBE, [cx, cy, zt], (cell, cell, MARK_T),
-                        (col[0], col[1], col[2], 0.30), ns="workspace")
-                # A heavier outline on the bounding box, so the region reads
-                # as one shape from across the room and the cells give it
-                # its true edge close up.
-                x0, x1 = WORKSPACE[arm]["x"]
-                y0, y1 = WORKSPACE[arm]["y"]
-                x0, x1 = x0 - REGION_STEP / 2.0, x1 + REGION_STEP / 2.0
-                y0, y1 = y0 - REGION_STEP / 2.0, y1 + REGION_STEP / 2.0
-                for yy in (y0, y1):
-                    add(Marker.CUBE, [(x0 + x1) / 2.0, yy, zt],
-                        (x1 - x0, MARK_W, MARK_T), col, ns="workspace")
-                for xx in (x0, x1):
-                    add(Marker.CUBE, [xx, (y0 + y1) / 2.0, zt],
-                        (MARK_W, y1 - y0, MARK_T), col, ns="workspace")
+                # ON THE SURFACE, NOT ON THE WORK PLANE. It was drawn at
+                # BENCH_TOP, which is where the OBJECTS are -- so the marking
+                # was floating 150 mm above the table along with everything
+                # else. A painted boundary is paint: it goes on the thing it is
+                # painted on. This also means the marking is at a different
+                # height from the objects it bounds, which is correct and is
+                # the vertical gap made visible rather than hidden.
+                zt = TABLE_TOP + MARK_T / 2.0
+                # ONLY WHERE THERE IS A SURFACE TO PAINT IT ON, and the count
+                # dropped is printed rather than absorbed. A boundary a
+                # participant is told to work inside, drawn over air, is worse
+                # than no boundary: 20 of T1's 192 cells were entirely off the
+                # old table and the front rows of the rest were over its edge.
+                cells, off = cells_on_surface(self.task, arm)
+                if off and not self._said_off_surface.get(arm):
+                    self._said_off_surface[arm] = True
+                    print("[scene] %s arm marking: %d of %d measured cells "
+                          "are NOT over the work surface and are not drawn "
+                          "(reachable and clear, but nothing to work on)."
+                          % (arm, off, off + len(cells)))
+                for bx, by, sx, sy in region_outline(cells, REGION_STEP):
+                    add(Marker.CUBE, [bx, by, zt], (sx, sy, MARK_T), col,
+                        ns="workspace")
+                # THE LABEL SITS ON THE CELLS THAT ARE DRAWN, not on a bounding
+                # box -- there is no longer a bounding box, and taking its
+                # corners is what silently killed the whole marker publication
+                # for one render: tick() raised NameError on the first frame, so
+                # the scene came up with no table, no cubes, no pads and no
+                # marking, and the still was filed with 18% ink because the
+                # WEARER is 18% of the frame. An ink check answers "is anything
+                # drawn", not "is the scene drawn".
+                x0 = min(cx for cx, _ in cells) - REGION_STEP / 2.0
+                x1 = max(cx for cx, _ in cells) + REGION_STEP / 2.0
+                y0 = min(cy for _, cy in cells) - REGION_STEP / 2.0
                 lab = Marker()
                 lab.header.frame_id = "world"
                 lab.ns, lab.id = "workspace_labels", i
@@ -1412,7 +1589,7 @@ class Scene(Node):
                 lab.text = "%s arm reach (measured)" % arm
                 lab.pose.position.x = float((x0 + x1) / 2.0)
                 lab.pose.position.y = float(y0 - 0.03)
-                lab.pose.position.z = float(CT.BENCH_TOP + 0.02)
+                lab.pose.position.z = float(TABLE_TOP + 0.02)
                 lab.pose.orientation.w = 1.0
                 lab.scale.z = 0.030
                 (lab.color.r, lab.color.g,

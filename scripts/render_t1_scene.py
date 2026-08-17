@@ -57,6 +57,51 @@ def shoot(name, task, out_dir, settle=22):
     return (png if frac >= 0.02 else None), frac
 
 
+def _expected_namespaces(task):
+    """Marker namespaces this task's scene MUST publish, from the scene's own
+    task tables rather than a list written here."""
+    sys.path.insert(0, os.path.join(ROOT, "src/srl_experiments/experiments/abc"))
+    import clip_scene as CS
+    # "scene" is add()'s default namespace and is what the furniture goes out
+    # under; the names are read off clip_scene rather than guessed, because a
+    # namespace this function invents would make the guard always red.
+    want = {"scene"} if CS.furniture_boxes(task) else set()
+    if CS.marked_arms(task):
+        want.add("workspace")
+    if task in ("t1", "t1s2"):
+        want |= {"item", "planes"}
+    return want
+
+
+def _scene_namespaces(timeout_s=20.0):
+    """Namespaces seen on /task_objects, by actually SUBSCRIBING.
+
+    Not `ros2 topic list`: stale /dev/shm segments have twice produced a graph
+    where the topic is listed and no subscriber ever receives a message, which
+    is indistinguishable from a dead publisher unless you subscribe.
+    """
+    import rclpy
+    from rclpy.node import Node
+    from rclpy.qos import DurabilityPolicy, QoSProfile
+    from visualization_msgs.msg import MarkerArray
+    seen = set()
+    own = not rclpy.ok()
+    if own:
+        rclpy.init()
+    n = Node("render_scene_probe")
+    qos = QoSProfile(depth=4, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+    n.create_subscription(
+        MarkerArray, "/task_objects",
+        lambda m: seen.update(k.ns for k in m.markers), qos)
+    end = time.time() + timeout_s
+    while time.time() < end and not seen:
+        rclpy.spin_once(n, timeout_sec=0.2)
+    n.destroy_node()
+    if own:
+        rclpy.shutdown()
+    return seen
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", default="t1")
@@ -78,6 +123,30 @@ def main():
     print("clip_scene up for task %s; settling" % a.task)
     time.sleep(12)
     try:
+        # IS THE SCENE ACTUALLY PUBLISHING? ASK, BEFORE SHOOTING.
+        #
+        # The ink check below is not this check and cannot be. tick() raised
+        # NameError on its first frame once, so clip_scene came up with NO
+        # table, NO cubes, NO pads and NO marking -- and all three views were
+        # filed as OK at 18% ink, because the WEARER is 18% of the frame. With
+        # the scene actually publishing the same views read 46-50%. An ink
+        # fraction answers "is anything drawn"; nothing was asking "is the
+        # scene drawn".
+        #
+        # So: count the markers on /task_objects and refuse if the task's own
+        # expected namespaces are missing. This is a check that CAN fail on a
+        # deliberately broken input -- delete a namespace from tick() and it
+        # goes red -- which is the property the ink check lacked.
+        got = _scene_namespaces(timeout_s=20.0)
+        want = _expected_namespaces(a.task)
+        missing = sorted(want - got)
+        print("   /task_objects namespaces: %s" % (sorted(got) or "NONE"))
+        if missing:
+            print("\nREFUSING TO SHOOT: clip_scene is not publishing %s. A "
+                  "still taken now would show the wearer and nothing else, "
+                  "and would pass an ink check. Look for an exception in "
+                  "clip_scene's tick()." % ", ".join(missing))
+            return 4
         for v in a.views:
             png, frac = shoot(v, a.task, a.out)
             print("   %-8s %-6s ink %.3f%%  %s"

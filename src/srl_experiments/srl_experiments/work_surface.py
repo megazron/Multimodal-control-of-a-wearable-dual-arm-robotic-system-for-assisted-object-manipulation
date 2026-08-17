@@ -56,7 +56,113 @@ error is the difference between a grasp and a miss, so 20 mm has to be loud.
 # what TASK_SPEC section 9 already records. What blocks it is the pinned
 # wrist: the anchor sits 30.7 deg above horizontal, so the hand arrives from
 # the near side and BELOW, through the volume a table top occupies.
-DECLARED_M = 0.950
+#
+# ==========================================================================
+# 1.100 SINCE 2026-08-17, AND IT IS NOW THE ONLY SURFACE HEIGHT IN THE REPO.
+# ==========================================================================
+# The note above is kept because its measurement stands and its CONCLUSION was
+# wrong for a reason worth naming. Everything above swept the SLAB while
+# holding the table's near edge at 0.100, under the whole approach -- and
+# `measure_what_binds.Rig`, which every one of those sweeps solves through,
+# was asking IK for the HOME wrist rather than for `WORKSPACE_ORIENT`, the
+# anchor `run_abc.send()` actually commands. Measured 2026-08-17 the two tool
+# axes are 32.26 deg apart on the left arm, which is the arm T1 runs on. So
+# "raising the table costs 46 of 54 waypoints" was priced at an orientation
+# the task never sends. Rig now defaults to the anchor.
+#
+# WITH THE ARITHMETIC DONE AT THE ANCHOR THE ANSWER IS EXACT AND NEEDS NO IK.
+# `clip_tasks.ee_for()` puts the wrist at `obj - PAD_OFFSET`, so for the left
+# arm's offset (-0.0171, +0.0946, +0.0572) an object at y sits over a wrist at
+#
+#     y_wrist = y_obj - 0.0946      z_wrist = 1.0628
+#
+# 37 mm BELOW a top at 1.100. So the wrist is inside the slab unless it is in
+# front of the near edge E, and the object is off the table unless its near
+# face is behind E:
+#
+#     y_obj - 0.0946  <  E  <=  y_obj - depth/2
+#
+# A window 74.6 mm wide for a 40 mm cube, and it is NOT empty -- which is the
+# thing the earlier sweeps concluded. What made it look empty is the PADS: for
+# a pad of depth D whose far placement slot is +SLOT_DY, the same two
+# inequalities require
+#
+#     D/2 + SLOT_DY  <  0.0946
+#
+# and the shipped pad was 0.130 deep with SLOT_DY 0.030 -- 0.0950, over by
+# 0.4 mm. The pads could not rest on any surface their own far slot could be
+# reached over, by four tenths of a millimetre, and every sweep that raised a
+# slab under them was measuring that. See `search_t1_layout_on_surface.py`.
+#
+# AND THEN THE MEASUREMENT AT THE FIXED ANCHOR SAID NO. Both sweeps were
+# re-run with `Rig` asking for `WORKSPACE_ORIENT`, every control correct:
+#
+#   `search_centre_on_surface.py`  x 0.00..0.45, y 0.10..0.55, top 0.70..1.10,
+#     overhang 0 and 0.05, BOTH arms, pinned AND top-down, objects RESTING:
+#     **0 of 3360 cells** survive the full pick path. The 22 hits this file's
+#     earlier note called "a lead" were the home-wrist artefact; the baseline
+#     that recorded them is superseded.
+#   `search_t1_layout_on_surface.py`  T1's own x = 0.560, tops 0.900..1.100,
+#     object 20..60 mm behind the edge, objects RESTING: **every cell fails.**
+#     Not the near edge -- an edge at y = 0 fails too. The slab occupies the
+#     volume the ARM needs, which is the bench finding at full size.
+#   `measure_objects_on_the_table.py`  objects held at 1.120, slab swept:
+#     0.950 / 1.000 / 1.020 cost **0 of 54**; 1.040 costs 12; 1.100 costs 38.
+#     Controls: no slab 0, slab through the objects 46.
+#
+# AND THEN THAT LAST SWEEP TURNED OUT TO BE MEASURING THE WRONG PATH, which is
+# worth the space because it cost a wrong value that was committed for an hour.
+# It walks T1's SIX PICK PATHS. The path T1 sends is 171 waypoints and also
+# contains the two PAD PLACEMENTS, the transits and the standoffs -- and a
+# surface can delete a placement while costing every pick nothing. Acting on
+# "1.020 costs 0 of 54" put `verify_t1_paths.py` at **36 IK failures of 171**.
+#
+# `sweep_surface_vs_t1_path.py` walks the WHOLE path, height and near edge
+# together, N=3, controls correct (no slab 0, slab through the objects 171,
+# shipped 0.950/0.100 zero):
+#
+#     top \ near edge   0.050   0.062   0.080   0.100
+#     0.950                 7       0       0       0
+#     0.980                16      14      14       0
+#     1.000                33      18      14      14
+#     1.020                36      36      32      18
+#
+# TWO THINGS THIS SAYS THAT THE PICK SWEEP COULD NOT. Height and forward reach
+# TRADE against each other -- the pick sweep held the edge still, so it saw a
+# one-dimensional slice of a two-dimensional constraint and read the best cell
+# off the wrong axis. And the highest surface that costs the full path nothing
+# is **0.980 with its near edge at 0.100**, not 1.020.
+#
+# SO THE TWO HEIGHTS ARE DIFFERENT ON PURPOSE, AND THAT IS NOW SAID OUT LOUD
+# RATHER THAN BEING TWO LITERALS IN TWO FILES. `WORK_PLANE_M` is where the
+# objects are and it does not move -- every verified T1 coordinate is measured
+# against it. `DECLARED_M` is the surface a viewer reads as the work surface,
+# and it is at the HIGHEST value that costs T1 nothing. The remaining
+# `FLOAT_GAP_M` is the honest residual: T1-1 is BLOCKED, by the pinned wrist,
+# and `test_one_work_surface_height.py` pins all three numbers so that closing
+# the gap has to be a measurement and not an edit.
+#
+# 150 mm -> 120 mm. Nothing here makes the cubes rest on the table; it stops
+# them hanging further above it than they have to, and it makes the residual a
+# number with a measurement behind it instead of an accident.
+WORK_PLANE_M = 1.100
+DECLARED_M = 0.980
+FLOAT_GAP_M = round(WORK_PLANE_M - DECLARED_M, 4)
+# The near edge is MEASURED too, and it is not free: at 0.980 the edge may come
+# to 0.100 at no cost and 0.080 already costs 14 of 171. It lives here with the
+# height because the two are one measurement, and `clip_scene` reads it.
+DECLARED_NEAR_Y = 0.100
+
+
+def work_plane():
+    """The plane the task's objects sit on. NOT the drawn surface height.
+
+    Kept separate from `table_top()` because they are separate facts and
+    collapsing them is what produced a 150 mm gap nothing could see: every
+    object was positioned against one and the only geometry was drawn against
+    the other, with no consumer comparing them.
+    """
+    return WORK_PLANE_M
 
 # Past this, a measured surface disagrees with the declared one loudly enough
 # to stop a session rather than be absorbed. See the module docstring.

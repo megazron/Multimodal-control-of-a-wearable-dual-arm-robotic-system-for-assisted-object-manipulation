@@ -946,6 +946,38 @@ def main(argv=None):
 
     n_sent = 0
     for k in range(len(wp["left"])):
+        if k == 0:
+            # WHERE THE ARMS ACTUALLY ARE AT THE FIRST COMMANDED WAYPOINT.
+            #
+            # `require_home()` above measures and stages BEFORE the run, and
+            # that is not the same claim. Between it and this line the scene
+            # node is brought up, the trial logger writes its manifest, and for
+            # mode 06 `Vision.stage()` drives the arm to an observe pose -- any
+            # of which can leave the arms somewhere else by the time the task
+            # commands anything. A recorded clip whose arms are visibly not at
+            # home, taken two hours AFTER require_home() landed, is what this
+            # is for: the pre-run check passed and the frame still showed the
+            # old pose, because nothing measured the moment that matters.
+            #
+            # Measured here, published in the trial summary, and printed on a
+            # single greppable line so the recording sweep and
+            # `verify_run_starts_from_home.py` can both assert on it.
+            n.spin(0.4)
+            _e0 = home_error(n)
+            n.first_wp_home_err = (
+                None if _e0 is None
+                else {aa: round(vv[0], 4) for aa, vv in _e0.items()})
+            _w0 = (None if _e0 is None
+                   else max(vv[0] for vv in _e0.values()))
+            print("[home] FIRST WAYPOINT: %s"
+                  % ("no /joint_states -- pose UNKNOWN" if _w0 is None else
+                     "worst %.4f rad from home (%s), tol %.2f -> %s"
+                     % (_w0,
+                        ", ".join("%s %.4f (%s)" % (aa, vv[0], vv[1])
+                                  for aa, vv in sorted(_e0.items())),
+                        HOME_TOL_RAD,
+                        "AT HOME" if _w0 <= HOME_TOL_RAD else "NOT AT HOME")),
+                  flush=True)
         # RE-SEND THE SAME TARGET AT 20 Hz FOR THE WHOLE HOLD, rather than
         # once per waypoint. A single publish followed by a 0.45 s pause is a
         # 0.45 s silence on the topic, and vr_pose_mapper's tracking watchdog
@@ -1128,6 +1160,15 @@ def main(argv=None):
             straight_line_m=round(net["left"] or 0.0, 4),
             path_ratio=(round((net["left"] or 0.0) / travel["left"], 4)
                         if travel["left"] else ""),
+            # THE POSE AT THE FIRST COMMANDED WAYPOINT, in the data rather than
+            # only in the console. `start_home_err_rad` in the manifest is the
+            # PRE-RUN check; this is the moment the task actually commanded
+            # something, which is the only one a clip can be compared against.
+            first_wp_home_err_rad=getattr(n, "first_wp_home_err", None),
+            first_wp_at_home=int(
+                bool(getattr(n, "first_wp_home_err", None))
+                and max(getattr(n, "first_wp_home_err").values())
+                <= HOME_TOL_RAD),
             grasp_success=int(bool(moved)))
         print("[data] %d sample rows -> %s" % (tl._rows, tl.dir), flush=True)
         # A RUN THAT WROTE NOTHING IS A FAILURE, LOUDLY. Zero rows with exit 0

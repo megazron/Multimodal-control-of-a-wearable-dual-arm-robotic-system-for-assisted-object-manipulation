@@ -88,7 +88,30 @@ def _hold(pt, n):
 # at chest height, and the log's own conclusion is "the tray needs a stand,
 # not a table". The surface is therefore placed under the objects rather than
 # the objects dropped onto a table they cannot reach.
-BENCH_TOP = 1.10
+# READ FROM THE ONE OWNER, NOT DECLARED HERE. This was the literal `1.10` and
+# `clip_scene.TABLE_TOP` was the literal `0.950`, and the two drifted 150 mm
+# apart without anything noticing, because nothing compared them: every cube,
+# pad and marking tile is positioned against THIS constant and the only surface
+# with geometry is drawn against the other. The raised bench that used to close
+# the gap was deleted as scenery ("THE BENCH IS GONE. ONE TABLE.") and the
+# objects were left in the air. `srl_experiments.work_surface` is the owner and
+# both now read it, so they cannot diverge again --
+# `test_one_work_surface_height.py` asserts they are the same number.
+try:
+    import sys as _sys, os as _os
+    _sys.path.insert(0, _os.path.join(
+        _os.path.dirname(_os.path.dirname(_os.path.dirname(
+            _os.path.dirname(_os.path.abspath(__file__)))))), )
+    from srl_experiments.work_surface import work_plane as _work_plane
+    BENCH_TOP = _work_plane()
+except Exception as _e:                                  # pragma: no cover
+    # LOUD. A silent fallback here re-creates the exact defect: a second
+    # surface height that nothing compares to the first.
+    import warnings as _w
+    _w.warn("work_surface unavailable (%s); BENCH_TOP is falling back to a "
+            "HARDCODED height. This is the two-surfaces defect returning."
+            % _e, RuntimeWarning)
+    BENCH_TOP = 1.10
 # 0.245, MEASURED. The gripper reaches up into the object from in front, so
 # its body ends up BELOW the bench top -- free space only ahead of the edge.
 # Swept against the real collision bench: at 0.275 the bin release and both

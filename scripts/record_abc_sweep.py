@@ -1039,11 +1039,49 @@ def _main_body():
                     for _ln in (_det.stdout or "").strip().splitlines()[-2:]:
                         log("      %s" % _ln)
                     if _det.returncode != 0:
+                        # IT SAID SKIPPING AND IT DID NOT SKIP, until
+                        # 2026-08-17. All this branch did was set
+                        # `staged = False`, which only decides whether the clip
+                        # is recorded as having opened on the presentation pose
+                        # -- the recording went ahead regardless, with
+                        # `--vision` reading whatever was left in
+                        # DETECTIONS_FILE by an EARLIER run.
+                        #
+                        # Measured the day it was found: the look refused
+                        # because the camera had moved 17.0 mm between
+                        # rendering the frame and using it, and the sweep then
+                        # filmed T1 from a stale detection file and reported
+                        # "NO GRASP RECORDED at all". The refusal was correct,
+                        # the log said the right thing, and the clip was made
+                        # anyway. A message that describes an action nobody
+                        # took is worse than no message.
                         log("      SKIPPING THIS CLIP -- the staged detection "
                             "failed (rc=%d). Recording now would film a task "
-                            "whose colours came from the file."
+                            "whose colours came from a STALE detection file."
                             % _det.returncode)
-                        staged = False
+                        for _p in (scene_p, cam_p):
+                            if _p is None:
+                                continue
+                            try:
+                                os.killpg(os.getpgid(_p.pid), 15)
+                                _p.wait(timeout=15)
+                            except Exception:                 # noqa: BLE001
+                                try:
+                                    os.killpg(os.getpgid(_p.pid), 9)
+                                except Exception:             # noqa: BLE001
+                                    pass
+                        prog[pkey] = dict(
+                            ok=False,
+                            msg="staged detection failed (rc=%d): %s"
+                                % (_det.returncode,
+                                   (_det.stdout or "").strip().splitlines()[-1]
+                                   if (_det.stdout or "").strip() else ""),
+                            mode=mode, task=task, scenario=scen, quad=False,
+                            opened_on="presentation" if staged else "home",
+                            files=[], dir=os.path.relpath(out_dir, WS))
+                        save_progress(prog)
+                        failed += 1
+                        continue
                 if _vr:
                     _iok, _iwhy = isolate(mode, graph, started)
                     log("      restarted %s: %s" % (", ".join(_vr), _iwhy))

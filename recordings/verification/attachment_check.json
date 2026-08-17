@@ -56,39 +56,18 @@
     "detail": "MSc task T3 has no pixel rule here; the branches below are the archived set's"
   },
   {
-    "task": "T0",
-    "scenario": "D3_three_targets",
+    "task": "D1",
+    "scenario": "D1_flow",
     "condition": "-",
-    "verdict": "NOT IMPLEMENTED",
-    "detail": "MSc task T0 has no pixel rule here; the branches below are the archived set's"
+    "verdict": "N/A",
+    "detail": ""
   },
   {
-    "task": "T1",
-    "scenario": "S1_left_arm",
+    "task": "D2",
+    "scenario": "D2_pulse",
     "condition": "-",
-    "verdict": "NOT IMPLEMENTED",
-    "detail": "MSc task T1 has no pixel rule here; the branches below are the archived set's"
-  },
-  {
-    "task": "T1S2",
-    "scenario": "S2_both_arms_random",
-    "condition": "-",
-    "verdict": "NOT IMPLEMENTED",
-    "detail": "MSc task T1S2 has no pixel rule here; the branches below are the archived set's"
-  },
-  {
-    "task": "T2",
-    "scenario": "S2_full_lift",
-    "condition": "-",
-    "verdict": "NOT IMPLEMENTED",
-    "detail": "MSc task T2 has no pixel rule here; the branches below are the archived set's"
-  },
-  {
-    "task": "T3",
-    "scenario": "S1_measure_cycle",
-    "condition": "-",
-    "verdict": "NOT IMPLEMENTED",
-    "detail": "MSc task T3 has no pixel rule here; the branches below are the archived set's"
+    "verdict": "N/A",
+    "detail": ""
   },
   {
     "task": "T0",
@@ -124,6 +103,69 @@
     "condition": "-",
     "verdict": "NOT IMPLEMENTED",
     "detail": "MSc task T3 has no pixel rule here; the branches below are the archived set's"
+  },
+  {
+    "task": "D1",
+    "scenario": "D1_flow",
+    "condition": "-",
+    "verdict": "N/A",
+    "detail": ""
+  },
+  {
+    "task": "D2",
+    "scenario": "D2_pulse",
+    "condition": "-",
+    "verdict": "N/A",
+    "detail": ""
+  },
+  {
+    "task": "T0",
+    "scenario": "D3_three_targets",
+    "condition": "-",
+    "verdict": "NOT IMPLEMENTED",
+    "detail": "MSc task T0 has no pixel rule here; the branches below are the archived set's"
+  },
+  {
+    "task": "T1",
+    "scenario": "S1_left_arm",
+    "condition": "-",
+    "verdict": "NOT IMPLEMENTED",
+    "detail": "MSc task T1 has no pixel rule here; the branches below are the archived set's"
+  },
+  {
+    "task": "T1S2",
+    "scenario": "S2_both_arms_random",
+    "condition": "-",
+    "verdict": "NOT IMPLEMENTED",
+    "detail": "MSc task T1S2 has no pixel rule here; the branches below are the archived set's"
+  },
+  {
+    "task": "T2",
+    "scenario": "S2_full_lift",
+    "condition": "-",
+    "verdict": "NOT IMPLEMENTED",
+    "detail": "MSc task T2 has no pixel rule here; the branches below are the archived set's"
+  },
+  {
+    "task": "T3",
+    "scenario": "S1_measure_cycle",
+    "condition": "-",
+    "verdict": "NOT IMPLEMENTED",
+    "detail": "MSc task T3 has no pixel rule here; the branches below are the archived set's"
+  },
+  {
+    "task": "D1",
+    "scenario": "D1_flow",
+    "condition": "-",
+    "verdict": "N/A",
+    "detail": ""
+  },
+  {
+    "task": "D2",
+    "scenario": "D2_pulse",
+    "condition": "-",
+    "verdict": "N/A",
+    "detail": ""
   },
   {
     "task": "T0",

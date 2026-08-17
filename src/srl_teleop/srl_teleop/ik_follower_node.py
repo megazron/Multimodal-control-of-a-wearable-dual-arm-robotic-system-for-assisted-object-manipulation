@@ -211,6 +211,36 @@ class IKFollowerNode(Node):
         # makes things slower and stricter, never the reverse.
         self.declare_parameter("motion_enabled", not self.real_robot)
         self.motion_enabled = bool(self.get_parameter("motion_enabled").value)
+        # `motion_enabled` IS READ LIVE, AND UNTIL 2026-08-17 IT WAS NOT.
+        #
+        # The value above was snapshotted into `self.motion_enabled` at
+        # construction and nothing ever re-read it. `set_parameters` therefore
+        # changed the parameter server's copy and the follower carried on
+        # publishing -- so every caller that "paused the follower" by lowering
+        # this parameter paused nothing, and the blocker's own recovery text
+        # ("ros2 param set motion_enabled true") could not work either.
+        #
+        # MEASURED, with both controls, on a live stack:
+        #     followers ARMED   commanded +60 mm -> the arm moved 0.0600 m
+        #     followers PAUSED  commanded -60 mm -> the arm moved 0.0600 m
+        # The pause reported success on both followers and changed nothing.
+        #
+        # WHAT IT COST. `stage_presentation_pose.py` has documented this pause
+        # since 2026-08-15 as its answer to "the follower wins", and
+        # `vision_grasp.observe_and_detect` was given the same treatment for
+        # T1's look. Neither worked. The arm settled at the edge of
+        # `Vision.stage()`'s 0.02 rad tolerance in a tug of war with the
+        # follower and never stopped moving, which is why T1's cubes
+        # deprojected 31.7-35.7 mm off inside the sweep and 1.3-3.0 mm
+        # standalone on a fresh stack -- on a fresh stack the follower has no
+        # target yet, so there is nothing to fight.
+        #
+        # HARD CONSTRAINT 8 IS SERVED BY THIS, NOT BREACHED BY IT. The rule is
+        # that real_robot mode must be armed BY HAND; the parameter is that
+        # hand, and honouring it is what makes the documented arming path
+        # real. Every transition is logged at WARN, in both directions, so an
+        # arm that was disarmed by a script and not restored says so.
+        self.add_on_set_parameters_callback(self._on_set_parameters)
         if self.real_robot:
             # Real arms move next to a person: slower, wider margins, and a
             # ramp so the first seconds after arming are gentler still.
@@ -515,6 +545,37 @@ class IKFollowerNode(Node):
         self.reject_count = 0
         self.slew_count = 0
         self.direct_count = 0
+
+    # ---------------- live parameters ----------------
+
+    def _on_set_parameters(self, params):
+        """Honour a live change to `motion_enabled`. See the note where the
+        callback is registered for what a snapshot cost.
+
+        ONLY `motion_enabled` is applied. Every other parameter in this node
+        is read once at construction, some of them into derived values that a
+        late change could not reach consistently -- `max_vel` is clamped by
+        real_robot mode one line after it is read, and re-applying the raw
+        value would silently discard that clamp, which is a bug this file has
+        already had once. Anything else is reported as ignored rather than
+        accepted and dropped.
+        """
+        from rcl_interfaces.msg import SetParametersResult
+        for p in params:
+            if p.name != "motion_enabled":
+                self.get_logger().warn(
+                    "parameter %r is read at startup only; setting it now has "
+                    "NO EFFECT on this node. Restart it to change %s."
+                    % (p.name, p.name))
+                continue
+            want = bool(p.value)
+            if want != self.motion_enabled:
+                self.get_logger().warn(
+                    "[MOTION] %s -> %s"
+                    % ("ENABLED" if self.motion_enabled else "DISABLED",
+                       "ENABLED" if want else "DISABLED"))
+            self.motion_enabled = want
+        return SetParametersResult(successful=True)
 
     # ---------------- startup unwind ----------------
 

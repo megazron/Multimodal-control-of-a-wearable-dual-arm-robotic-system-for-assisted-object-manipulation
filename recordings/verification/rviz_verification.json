@@ -44,13 +44,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 19.8,
+    "duration_s": 19.9,
     "bright": 88.1,
-    "variety": 5475,
-    "delta": 2.48,
+    "variety": 5573,
+    "delta": 2.47,
     "objects": {
-      "msc_sphere_blue": 24,
-      "msc_sphere_green": 42
+      "msc_sphere_blue": 23,
+      "msc_sphere_green": 43
     },
     "angles_bad": [],
     "mode": "01_master_teleop",
@@ -62,12 +62,12 @@
     "ok": true,
     "why": "",
     "duration_s": 32.8,
-    "bright": 125.7,
-    "variety": 8576,
-    "delta": 2.3,
+    "bright": 126.9,
+    "variety": 8643,
+    "delta": 1.58,
     "objects": {
-      "msc_blue": 121,
-      "msc_green": 512
+      "msc_blue": 115,
+      "msc_green": 774
     },
     "angles_bad": [],
     "mode": "01_master_teleop",
@@ -112,13 +112,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 20.9,
-    "bright": 119.5,
-    "variety": 8955,
-    "delta": 1.13,
+    "duration_s": 20.3,
+    "bright": 119.6,
+    "variety": 8884,
+    "delta": 2.26,
     "objects": {
-      "msc_green": 429,
-      "msc_meter_yellow": 87
+      "msc_green": 421,
+      "msc_meter_yellow": 86
     },
     "angles_bad": [],
     "mode": "01_master_teleop",
@@ -129,13 +129,41 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 28.8,
-    "bright": 87.8,
-    "variety": 5340,
+    "duration_s": 66.3,
+    "bright": 88.7,
+    "variety": 4698,
+    "delta": 1.83,
+    "objects": {},
+    "angles_bad": [],
+    "mode": "02_vr_teleop",
+    "task": "d1",
+    "scenario": "D1_flow",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 64.4,
+    "bright": 88.9,
+    "variety": 4535,
     "delta": 2.25,
+    "objects": {},
+    "angles_bad": [],
+    "mode": "02_vr_teleop",
+    "task": "d2",
+    "scenario": "D2_pulse",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 29.2,
+    "bright": 87.7,
+    "variety": 5078,
+    "delta": 1.88,
     "objects": {
-      "msc_sphere_blue": 25,
-      "msc_sphere_green": 42
+      "msc_sphere_blue": 24,
+      "msc_sphere_green": 43
     },
     "angles_bad": [],
     "mode": "02_vr_teleop",
@@ -198,12 +226,12 @@
     "ok": true,
     "why": "",
     "duration_s": 30.2,
-    "bright": 119.6,
-    "variety": 8704,
-    "delta": 1.86,
+    "bright": 119.4,
+    "variety": 8512,
+    "delta": 1.21,
     "objects": {
-      "msc_green": 426,
-      "msc_meter_yellow": 84
+      "msc_green": 421,
+      "msc_meter_yellow": 85
     },
     "angles_bad": [],
     "mode": "02_vr_teleop",
@@ -214,13 +242,41 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 19.8,
-    "bright": 88.2,
-    "variety": 5496,
-    "delta": 2.51,
+    "duration_s": 55.9,
+    "bright": 88.7,
+    "variety": 4756,
+    "delta": 2.54,
+    "objects": {},
+    "angles_bad": [],
+    "mode": "03_shared_autonomy",
+    "task": "d1",
+    "scenario": "D1_flow",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 53.3,
+    "bright": 88.7,
+    "variety": 4708,
+    "delta": 1.82,
+    "objects": {},
+    "angles_bad": [],
+    "mode": "03_shared_autonomy",
+    "task": "d2",
+    "scenario": "D2_pulse",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 19.2,
+    "bright": 88.1,
+    "variety": 5378,
+    "delta": 2.4,
     "objects": {
-      "msc_sphere_blue": 26,
-      "msc_sphere_green": 44
+      "msc_sphere_blue": 25,
+      "msc_sphere_green": 43
     },
     "angles_bad": [],
     "mode": "03_shared_autonomy",
@@ -282,13 +338,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 20.4,
+    "duration_s": 20.2,
     "bright": 119.5,
-    "variety": 9080,
-    "delta": 0.87,
+    "variety": 8778,
+    "delta": 2.03,
     "objects": {
-      "msc_green": 425,
-      "msc_meter_yellow": 87
+      "msc_green": 426,
+      "msc_meter_yellow": 92
     },
     "angles_bad": [],
     "mode": "03_shared_autonomy",
@@ -299,13 +355,41 @@
   {
     "ok": true,
     "why": "",
+    "duration_s": 55.4,
+    "bright": 88.7,
+    "variety": 4681,
+    "delta": 2.49,
+    "objects": {},
+    "angles_bad": [],
+    "mode": "04_vr_shared",
+    "task": "d1",
+    "scenario": "D1_flow",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
+    "duration_s": 52.8,
+    "bright": 88.8,
+    "variety": 4827,
+    "delta": 2.31,
+    "objects": {},
+    "angles_bad": [],
+    "mode": "04_vr_shared",
+    "task": "d2",
+    "scenario": "D2_pulse",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
     "duration_s": 19.8,
-    "bright": 88.1,
-    "variety": 5463,
-    "delta": 2.42,
+    "bright": 88.0,
+    "variety": 5474,
+    "delta": 2.02,
     "objects": {
-      "msc_sphere_blue": 26,
-      "msc_sphere_green": 43
+      "msc_sphere_blue": 25,
+      "msc_sphere_green": 42
     },
     "angles_bad": [],
     "mode": "04_vr_shared",
@@ -367,13 +451,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 20.8,
-    "bright": 119.6,
-    "variety": 8968,
-    "delta": 1.18,
+    "duration_s": 20.2,
+    "bright": 119.4,
+    "variety": 8698,
+    "delta": 0.86,
     "objects": {
-      "msc_green": 427,
-      "msc_meter_yellow": 87
+      "msc_green": 441,
+      "msc_meter_yellow": 88
     },
     "angles_bad": [],
     "mode": "04_vr_shared",
@@ -384,10 +468,10 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 57.4,
-    "bright": 88.6,
-    "variety": 4871,
-    "delta": 2.54,
+    "duration_s": 55.8,
+    "bright": 88.7,
+    "variety": 4705,
+    "delta": 2.51,
     "objects": {},
     "angles_bad": [],
     "mode": "06_full_autonomy",
@@ -398,10 +482,10 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 55.2,
-    "bright": 88.6,
-    "variety": 4693,
-    "delta": 1.71,
+    "duration_s": 52.8,
+    "bright": 88.8,
+    "variety": 4719,
+    "delta": 2.13,
     "objects": {},
     "angles_bad": [],
     "mode": "06_full_autonomy",
@@ -426,13 +510,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 19.8,
+    "duration_s": 19.9,
     "bright": 88.1,
-    "variety": 5455,
-    "delta": 2.35,
+    "variety": 5296,
+    "delta": 2.37,
     "objects": {
       "msc_sphere_blue": 24,
-      "msc_sphere_green": 42
+      "msc_sphere_green": 44
     },
     "angles_bad": [],
     "mode": "06_full_autonomy",
@@ -495,11 +579,11 @@
     "ok": true,
     "why": "",
     "duration_s": 20.2,
-    "bright": 119.5,
-    "variety": 8953,
-    "delta": 0.9,
+    "bright": 119.6,
+    "variety": 9056,
+    "delta": 2.35,
     "objects": {
-      "msc_green": 426,
+      "msc_green": 436,
       "msc_meter_yellow": 88
     },
     "angles_bad": [],

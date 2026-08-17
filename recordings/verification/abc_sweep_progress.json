@@ -20,13 +20,13 @@
     "dir": "recordings/verification/01_master_teleop/T0/D3_three_targets"
   },
   "01_master_teleop/t1/S1_left_arm": {
-    "ok": true,
-    "msg": "run exited 0",
+    "ok": false,
+    "msg": "run exited 0; NO GRASP RECORDED at all",
     "mode": "01_master_teleop",
     "task": "t1",
     "scenario": "S1_left_arm",
     "quad": true,
-    "opened_on": "presentation",
+    "opened_on": "home",
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",

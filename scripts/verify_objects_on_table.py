@@ -89,6 +89,69 @@ def _top(solid):
             xyz[1] - size[1] / 2.0, xyz[1] + size[1] / 2.0)
 
 
+PASS, BLOCK, DRIFT, BADGEOM = "PASS", "BLOCKED", "DRIFT", "BAD_GEOMETRY"
+# exit codes, one per state. 0 is reserved for RESTING and nothing else.
+CODES = {PASS: 0, BLOCK: 3, DRIFT: 1, BADGEOM: 1}
+
+
+def verdict_for(gap_m, geometry_ok, documented_gap_m_, tol=TOL_M):
+    """(state, exit_code) for one scene. A PURE FUNCTION, so it can be pinned.
+
+    THIS IS THE COMPARISON THAT WAS INVERTED, so it is now a function with
+    known answers instead of an expression buried in a reporter. The first
+    version required `gap == FLOAT_GAP_M` for success, which meant
+
+        objects floating 120 mm above the table   -> PASS
+        objects RESTING on the table (gap 0.000)  -> FAIL
+
+    i.e. it certified the defect and would have rejected the fix. The direction
+    is the whole content of this check, so it is tested in both directions --
+    see `self_test_verdicts()` -- and RESTING is the only state that returns 0.
+    """
+    if not geometry_ok:
+        return BADGEOM, CODES[BADGEOM]
+    if gap_m is None:
+        return DRIFT, CODES[DRIFT]
+    if abs(gap_m) <= tol:
+        return PASS, CODES[PASS]
+    if documented_gap_m_ is not None and abs(gap_m - documented_gap_m_) <= tol:
+        return BLOCK, CODES[BLOCK]
+    return DRIFT, CODES[DRIFT]
+
+
+def self_test_verdicts(tol=TOL_M):
+    """Known answers for `verdict_for`, in BOTH directions."""
+    doc = 0.120
+    cases = [
+        ("objects RESTING on the table -- the only PASS",
+         0.0, True, doc, PASS),
+        ("resting within tolerance (1 mm)", 0.001, True, doc, PASS),
+        ("floating at exactly the documented gap -> BLOCKED, exit 3",
+         0.120, True, doc, BLOCK),
+        ("floating 5 mm off the documented gap -> DRIFT",
+         0.125, True, doc, DRIFT),
+        ("floating with no documented gap at all -> DRIFT",
+         0.120, True, None, DRIFT),
+        ("surface ABOVE the work plane -> DRIFT, not a pass",
+         -0.050, True, doc, DRIFT),
+        ("resting but an object off the footprint -> BAD_GEOMETRY",
+         0.0, False, doc, BADGEOM),
+    ]
+    bad = 0
+    print("  KNOWN-ANSWER SELF-TEST (the verdict direction)")
+    for label, gap, geom, doc_, want in cases:
+        got, code = verdict_for(gap, geom, doc_, tol)
+        okk = got == want and code == CODES[want]
+        bad += not okk
+        print("    %s  %-62s want %-11s got %-11s exit %d"
+              % ("ok " if okk else "BAD", label, want, got, code))
+    if CODES[PASS] != 0 or any(CODES[s] == 0 for s in (BLOCK, DRIFT, BADGEOM)):
+        print("    BAD  exit 0 must mean RESTING and nothing else")
+        bad += 1
+    print("    -> %d of %d correct" % (len(cases) - bad, len(cases)))
+    return bad == 0
+
+
 def documented_gap_m():
     """The one measured gap this repo accepts, or None if the module is gone."""
     try:
@@ -273,9 +336,31 @@ def check_task(task, tol=TOL_M):
     # THE ONE GAP, CHECKED ONCE. Every object is registered to the work plane,
     # so the distance from the work plane to the highest surface under it is a
     # single scene fact. It must equal the documented, measured value.
+    # ==================================================================
+    # RESTING IS THE PASS. THE DOCUMENTED GAP IS A BLOCK, NOT A REQUIREMENT.
+    # ==================================================================
+    # The first version of this got the comparison backwards, in the one
+    # direction that makes a check worse than useless. It required the gap to
+    # EQUAL `FLOAT_GAP_M` "in both directions, so moving either height needs a
+    # re-measurement" -- with the effect that
+    #
+    #     objects floating 120 mm above the table   -> PASS
+    #     objects RESTING on the table (gap 0.000)  -> FAIL
+    #
+    # so the check certified the defect it was written to catch and would have
+    # rejected the fix. Verified against both scenes rather than argued.
+    #
+    # Now: `resting` is the pass. A gap equal to the documented one is BLOCKED
+    # -- reported loudly, exit 3, never called a pass. Any other gap is drift
+    # and fails. Moving the surface still cannot happen silently, because
+    # `test_one_work_surface_height.py` pins the constants; that is where a
+    # change needs a measurement, not here.
     tops = [s[1][2] + s[2][2] / 2.0 for s in solids]
     gap = None if (plane is None or not tops) else round(plane - max(tops), 4)
-    gap_ok = (gap is not None and bg is not None and abs(gap - bg) <= tol)
+    resting = gap is not None and abs(gap) <= tol
+    blocked_gap_here = (gap is not None and bg is not None
+                        and not resting and abs(gap - bg) <= tol)
+    gap_ok = resting or blocked_gap_here
     # THE MARKING GETS NO BLOCKED ALLOWANCE. It is paint: there is no geometry
     # stopping it being drawn on the surface it describes, so a floating tile
     # is a defect with no excuse. This is the whole point of separating the two
@@ -295,12 +380,18 @@ def check_task(task, tol=TOL_M):
                                         UNSUPPORTED)}),
                 work_plane_m=plane,
                 work_plane_to_surface_m=gap,
-                work_plane_gap_matches_documented=gap_ok,
+                # THREE DISTINCT STATES, so none of them can borrow another's
+                # meaning. `resting` is the only one that satisfies T1-1.
+                resting=bool(resting),
+                blocked_at_documented_gap=bool(blocked_gap_here),
+                gap_is_drift=bool(gap is not None and not gap_ok),
                 blocked=[o["object"] for o in objs
                          if o["verdict"] == BLOCKED],
-                ok=all(o["verdict"] in (OK, BLOCKED) for o in objs)
-                   and not any(t["verdict"] != OK for t in tiles)
-                   and gap_ok)
+                geometry_ok=all(o["verdict"] in (OK, BLOCKED) for o in objs)
+                            and not any(t["verdict"] != OK for t in tiles),
+                ok=bool(resting
+                        and all(o["verdict"] in (OK, BLOCKED) for o in objs)
+                        and not any(t["verdict"] != OK for t in tiles)))
 
 
 # ---------------------------------------------------------------------------
@@ -365,7 +456,7 @@ def main():
     a = ap.parse_args()
 
     if not a.no_self_test:
-        if not self_test(a.tol):
+        if not self_test_verdicts(a.tol) or not self_test(a.tol):
             print("\nSELF-TEST FAILED -- the check is wrong. Reporting "
                   "nothing about the real scene.")
             return 2
@@ -397,30 +488,44 @@ def main():
     # gap. That sentence is the defect this file exists to catch; it must not be
     # reachable while the gap is open.
     gap = r["work_plane_to_surface_m"]
-    print("  work plane %.4f, highest surface under it %.4f -> gap %s   %s"
+    print("  work plane %.4f, highest surface under it %.4f -> gap %s"
           % (r["work_plane_m"], r["work_plane_m"] - (gap or 0.0),
-             "%.1f mm" % (gap * 1000.0) if gap is not None else "unknown",
-             "matches the documented value"
-             if r["work_plane_gap_matches_documented"] else "DOES NOT MATCH"))
-    if not r["ok"]:
-        print("\n  FAIL -- see the verdicts above")
-    elif gap is not None and gap > a.tol:
-        print("\n  PASS WITH A KNOWN BLOCK. Everything is registered to the "
-              "work plane and inside the surface's footprint, the marking is "
-              "painted on the surface, and the work plane still stands %.1f mm "
-              "ABOVE it." % (gap * 1000.0))
-        print("  T1-1 IS NOT SATISFIED and this check does not claim it is: "
-              "the objects do not rest on the table. That gap is blocked by "
-              "the pinned wrist and is measured, not assumed --")
-        print("  0 of 3360 cells at the anchor, and this surface is at the "
-              "highest (top, near edge) pair that costs T1's FULL 171-waypoint "
-              "path nothing -- see sweep_surface_vs_t1_path.py.")
+             "%.1f mm" % (gap * 1000.0) if gap is not None else "unknown"))
+    state, code = verdict_for(gap, r["geometry_ok"], r["documented_gap_m"],
+                              a.tol)
+    r["state"] = state
+    if state == BADGEOM:
+        print("\n  FAIL (BAD GEOMETRY) -- see the verdicts above")
+    elif state == PASS:
+        print("\n  PASS -- every object RESTS on the surface (gap %.1f mm), "
+              "inside its footprint, and the marking is painted on it. "
+              "T1-1 satisfied." % ((gap or 0.0) * 1000.0))
+    elif state == BLOCK:
+        print("\n  BLOCKED -- NOT A PASS. Every object is registered to the "
+              "work plane and inside the surface's footprint and the marking "
+              "is painted on the surface, but the work plane stands %.1f mm "
+              "ABOVE the surface, so the objects DO NOT REST ON THE TABLE."
+              % (gap * 1000.0))
+        print("  T1-1 is NOT satisfied. The gap equals the documented, "
+              "measured value, so this is the known geometric block and not "
+              "drift: 0 of 3360 cells at the anchor with objects resting, and "
+              "this surface is the highest (top, near edge) pair that costs")
+        print("  T1's full 171-waypoint path nothing "
+              "(sweep_surface_vs_t1_path.py). Exit %d, not 0 -- a floating "
+              "scene must never leave this script with a success code."
+              % CODES[BLOCK])
     else:
-        print("\n  PASS -- everything rests on a solid, inside its footprint")
+        print("\n  FAIL (DRIFT) -- the gap is %.1f mm and the documented one "
+              "is %s. Either the surface or the objects moved without a "
+              "measurement."
+              % ((gap or 0.0) * 1000.0,
+                 "%.1f mm" % (r["documented_gap_m"] * 1000.0)
+                 if r["documented_gap_m"] is not None else "unknown"))
+    r["exit_code"] = code
     if a.json:
         json.dump(r, open(a.json, "w"), indent=2)
         print("  wrote %s" % a.json)
-    return 0 if r["ok"] else 1
+    return code
 
 
 if __name__ == "__main__":

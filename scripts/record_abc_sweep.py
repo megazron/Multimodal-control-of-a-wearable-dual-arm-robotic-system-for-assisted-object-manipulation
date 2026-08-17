@@ -1036,8 +1036,19 @@ def _main_body():
                             WS, "scripts", "stage_observe_and_detect.py"),
                          "--out", _gls.DETECTIONS_FILE],
                         capture_output=True, text=True)
-                    for _ln in (_det.stdout or "").strip().splitlines()[-2:]:
+                    # THE WHOLE OUTPUT ON FAILURE, the last two lines on
+                    # success. The two-line tail is right for a good run --
+                    # count and timing -- and wrong for a refusal: the
+                    # detection refusal now lists every accepted and rejected
+                    # blob with its size and depth, and truncating that to two
+                    # lines throws away the entire diagnosis. This file already
+                    # carries the same fix for the staging message.
+                    _dl = (_det.stdout or "").strip().splitlines()
+                    for _ln in (_dl if _det.returncode != 0 else _dl[-2:]):
                         log("      %s" % _ln)
+                    for _ln in ((_det.stderr or "").strip().splitlines()
+                                if _det.returncode != 0 else []):
+                        log("      [stderr] %s" % _ln)
                     if _det.returncode != 0:
                         # IT SAID SKIPPING AND IT DID NOT SKIP, until
                         # 2026-08-17. All this branch did was set
@@ -1174,18 +1185,29 @@ def _main_body():
                 except Exception:                             # noqa: BLE001
                     _fw = None
                 if _fw is None:
-                    log("      first waypoint: NO RECORD (run_abc wrote no "
+                    log("      started from home: NO RECORD (run_abc wrote no "
                         "sidecar) -- the opening pose of this clip is unproven")
+                    good = False
+                    msg += "; NO HOME RECORD"
                 else:
-                    log("      first waypoint: worst %.4f rad from home "
-                        "(tol %.2f) -> %s   %s"
-                        % (_fw.get("worst_rad") or -1.0,
+                    log("      started from home: worst %.4f rad (tol %.2f) "
+                        "-> %s   %s"
+                        % (_fw.get("worst_rad") if _fw.get("worst_rad")
+                           is not None else -1.0,
                            _fw.get("tol_rad") or 0.0,
                            "AT HOME" if _fw.get("at_home") else "NOT AT HOME",
                            _fw.get("per_arm")))
+                    # AND WHAT THE OPENING FRAME WILL SHOW, which is a
+                    # different number and is not a verdict. The arms are on
+                    # waypoint 0 by then, on purpose.
+                    _ap = _fw.get("after_approach") or {}
+                    if _ap.get("worst_rad") is not None:
+                        log("      at waypoint 0 (what the frame shows): "
+                            "worst %.4f rad   %s"
+                            % (_ap["worst_rad"], _ap.get("per_arm")))
                     if not _fw.get("at_home"):
                         good = False
-                        msg += ("; NOT AT HOME AT THE FIRST WAYPOINT: %s"
+                        msg += ("; DID NOT START FROM HOME: %s"
                                 % (_fw.get("per_arm"),))
                 # SAY WHY, IMMEDIATELY. The reason used to be folded into the
                 # message printed after teardown, so a teardown that raised
@@ -1361,7 +1383,7 @@ def _main_body():
                                   # sidecar read above. None means the run
                                   # left no measurement, which is a gap and
                                   # not a pass.
-                                  first_waypoint_home=_fw,
+                                  started_from_home=_fw,
                                   files=files, dir=os.path.relpath(out_dir, WS))
                 save_progress(prog)          # AFTER EVERY CLIP
                 log("      %s  %s  (%d files%s)"

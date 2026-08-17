@@ -263,6 +263,60 @@ FIRST_WP_FILE = os.environ.get("SRL_FIRST_WP_FILE",
                                "/tmp/srl_first_wp_home.json")
 
 
+def home_probe(node, label):
+    """Record how far each arm is from home, RIGHT NOW, under a label.
+
+    WHY A TRAIL AND NOT ONE READING. `require_home()` returned homed and the
+    first commanded waypoint measured 0.7955 rad (left) / 0.6249 (right) out,
+    so something between the two moves the arms and nothing was watching. One
+    reading at each end tells you that; it does not tell you which step did it.
+    The trail is dumped with the first-waypoint record so a failing clip names
+    the step rather than the symptom.
+    """
+    err = home_error(node)
+    row = dict(at=label,
+               per_arm=(None if err is None
+                        else {a: round(v[0], 4) for a, v in err.items()}),
+               worst_rad=(None if err is None
+                          else round(max(v[0] for v in err.values()), 4)))
+    if not hasattr(node, "home_trail"):
+        node.home_trail = []
+    node.home_trail.append(row)
+    print("[home] probe %-22s %s" % (
+        label, "UNKNOWN (no /joint_states)" if row["worst_rad"] is None
+        else "worst %.4f rad  %s" % (row["worst_rad"], row["per_arm"])),
+        flush=True)
+    return row
+
+
+def write_home_record(a, node, pre_row, post_row=None):
+    """Leave the home evidence where the recording sweep can find it.
+
+    The sweep launches the runner through the GUI and never sees its stdout, so
+    a sidecar file is the channel -- the same one the sweep already uses for the
+    staged detections. Written at the pre-approach instant and UPDATED with the
+    post-approach reading, so the file is complete even if the run dies mid-clip.
+
+    `at_home` is the PRE-APPROACH reading and nothing else. The post-approach
+    numbers are recorded because they are useful for reading a frame, but they
+    are not a verdict: the arms are supposed to be at waypoint 0 by then.
+    """
+    rec = dict(task=a.task, mode=a.mode, tol_rad=HOME_TOL_RAD,
+               per_arm=pre_row["per_arm"], worst_rad=pre_row["worst_rad"],
+               at_home=bool(pre_row["worst_rad"] is not None
+                            and pre_row["worst_rad"] <= HOME_TOL_RAD),
+               measured_at="before approach-the-start",
+               after_approach=post_row,
+               trail=getattr(node, "home_trail", []),
+               allow_unhomed=bool(a.allow_unhomed))
+    try:
+        with open(FIRST_WP_FILE, "w") as fh:
+            json.dump(rec, fh, indent=2)
+    except Exception as e:                                    # noqa: BLE001
+        print("[home] could not write %s: %s" % (FIRST_WP_FILE, e), flush=True)
+    return rec
+
+
 def require_home(node, allow_unhomed=False, tol=HOME_TOL_RAD):
     """Put the arms on home before the task commands anything. (ok, why).
 
@@ -722,6 +776,7 @@ def main(argv=None):
         return 2
     if _why not in ("already home", "staged"):
         print("[home] --allow-unhomed: RUNNING ANYWAY. %s" % _why, flush=True)
+    home_probe(n, "after require_home")
 
     # THE SAME ISOLATION THE CLIP PATH USES, from the same module.
     #
@@ -740,8 +795,32 @@ def main(argv=None):
             print("REFUSING: this mode is not isolated. A trial recorded now "
                   "would be about whichever publisher happened to win.")
             return 2
+        home_probe(n, "after isolate")
 
     n.spin(2.0)
+    # ==================================================================
+    # THIS IS THE MOMENT THAT ANSWERS "DID THE RUN START FROM HOME".
+    # ==================================================================
+    # It is the LAST instant before the block below deliberately drives the
+    # arms to waypoint 0 and settles them there, and getting that wrong cost a
+    # session. The first version measured at the first iteration of the send
+    # loop, called it "the first commanded waypoint", and read 0.7991 rad
+    # (left) / 0.6249 (right) from home -- so it FAILED every clip, including
+    # good ones, and looked exactly like the defect it was written to catch.
+    #
+    # The arms were fine. `run_abc` approaches the start on purpose, because
+    # travel measured from wherever the previous run left the arm reported
+    # 0.0118 m instead of 0.4761 m; the note on that block explains it. By the
+    # time the loop runs, the arms are AT waypoint 0 -- 0.80 rad from home for
+    # a left-arm task -- and the idle right arm is at `park(0.32)`, which is
+    # the 0.6249. Both numbers are correct and neither is a fault.
+    #
+    # The probe trail is what settled it: 0.0000 at `require_home`, 0.0000
+    # here, 0.7991 after the approach. A single reading at the far end cannot
+    # tell "never homed" from "homed, then moved on purpose", and this project
+    # has now paid for that distinction twice.
+    _pre = home_probe(n, "before approach-the-start")
+    write_home_record(a, n, _pre)
     start = {arm: n.ee(arm) for arm in ARMS}
 
     n.state.publish(String(data=json.dumps(
@@ -953,55 +1032,23 @@ def main(argv=None):
     n_sent = 0
     for k in range(len(wp["left"])):
         if k == 0:
-            # WHERE THE ARMS ACTUALLY ARE AT THE FIRST COMMANDED WAYPOINT.
+            # WHERE THE ARMS ARE ONCE THE APPROACH HAS PUT THEM ON WAYPOINT 0.
             #
-            # `require_home()` above measures and stages BEFORE the run, and
-            # that is not the same claim. Between it and this line the scene
-            # node is brought up, the trial logger writes its manifest, and for
-            # mode 06 `Vision.stage()` drives the arm to an observe pose -- any
-            # of which can leave the arms somewhere else by the time the task
-            # commands anything. A recorded clip whose arms are visibly not at
-            # home, taken two hours AFTER require_home() landed, is what this
-            # is for: the pre-run check passed and the frame still showed the
-            # old pose, because nothing measured the moment that matters.
+            # RECORDED, NOT JUDGED. The verdict on "did the run start from
+            # home" is taken before the approach block above -- see the long
+            # note there. By this line the arms are SUPPOSED to be at waypoint
+            # 0, so a large number here is the task's own geometry: about
+            # 0.80 rad for a left-arm T1 pick, and the idle arm sitting at
+            # `park()`. Gating on it failed every good clip.
             #
-            # Measured here, published in the trial summary, and printed on a
-            # single greppable line so the recording sweep and
-            # `verify_run_starts_from_home.py` can both assert on it.
+            # It is still worth having, because it is what a FRAME shows: the
+            # opening frame of a clip is the arm at waypoint 0, not at home,
+            # and knowing the expected value is how you tell a correct opening
+            # frame from a stale one.
             n.spin(0.4)
-            _e0 = home_error(n)
-            n.first_wp_home_err = (
-                None if _e0 is None
-                else {aa: round(vv[0], 4) for aa, vv in _e0.items()})
-            _w0 = (None if _e0 is None
-                   else max(vv[0] for vv in _e0.values()))
-            print("[home] FIRST WAYPOINT: %s"
-                  % ("no /joint_states -- pose UNKNOWN" if _w0 is None else
-                     "worst %.4f rad from home (%s), tol %.2f -> %s"
-                     % (_w0,
-                        ", ".join("%s %.4f (%s)" % (aa, vv[0], vv[1])
-                                  for aa, vv in sorted(_e0.items())),
-                        HOME_TOL_RAD,
-                        "AT HOME" if _w0 <= HOME_TOL_RAD else "NOT AT HOME")),
-                  flush=True)
-            # AND ON DISK, because the recording sweep launches this through
-            # the GUI and never sees our stdout. A sidecar file is how the
-            # sweep already moves `stage_observe_and_detect`'s result around
-            # (gui_launch_specs.DETECTIONS_FILE), so this follows that rather
-            # than inventing a channel. Written BEFORE the first publish, so a
-            # run that dies mid-clip still leaves the measurement behind.
-            try:
-                import json as _json
-                with open(FIRST_WP_FILE, "w") as _fh:
-                    _json.dump(dict(
-                        task=a.task, mode=a.mode, tol_rad=HOME_TOL_RAD,
-                        per_arm=n.first_wp_home_err,
-                        worst_rad=None if _w0 is None else round(_w0, 4),
-                        at_home=bool(_w0 is not None and _w0 <= HOME_TOL_RAD),
-                        allow_unhomed=bool(a.allow_unhomed)), _fh, indent=2)
-            except Exception as _fe:                          # noqa: BLE001
-                print("[home] could not write %s: %s"
-                      % (FIRST_WP_FILE, _fe), flush=True)
+            _post = home_probe(n, "at waypoint 0 (after the approach)")
+            n.first_wp_home_err = _post["per_arm"]
+            write_home_record(a, n, _pre, _post)
         # RE-SEND THE SAME TARGET AT 20 Hz FOR THE WHOLE HOLD, rather than
         # once per waypoint. A single publish followed by a 0.45 s pause is a
         # 0.45 s silence on the topic, and vr_pose_mapper's tracking watchdog
@@ -1188,11 +1235,15 @@ def main(argv=None):
             # only in the console. `start_home_err_rad` in the manifest is the
             # PRE-RUN check; this is the moment the task actually commanded
             # something, which is the only one a clip can be compared against.
-            first_wp_home_err_rad=getattr(n, "first_wp_home_err", None),
-            first_wp_at_home=int(
-                bool(getattr(n, "first_wp_home_err", None))
-                and max(getattr(n, "first_wp_home_err").values())
-                <= HOME_TOL_RAD),
+            # THE VERDICT IS THE PRE-APPROACH READING. The post-approach one is
+            # kept alongside it because it is what the opening FRAME shows, but
+            # it is not "did the run start from home" -- by then the approach
+            # has deliberately put the arms on waypoint 0.
+            start_home_err_rad=getattr(n, "start_home_err", None),
+            at_home_before_approach=int(bool(
+                _pre.get("worst_rad") is not None
+                and _pre["worst_rad"] <= HOME_TOL_RAD)),
+            waypoint0_home_err_rad=getattr(n, "first_wp_home_err", None),
             grasp_success=int(bool(moved)))
         print("[data] %d sample rows -> %s" % (tl._rows, tl.dir), flush=True)
         # A RUN THAT WROTE NOTHING IS A FAILURE, LOUDLY. Zero rows with exit 0

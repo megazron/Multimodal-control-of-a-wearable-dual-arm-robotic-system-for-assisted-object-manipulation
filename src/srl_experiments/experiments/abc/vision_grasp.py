@@ -408,10 +408,36 @@ def observe_and_detect(arm, node=None, settle_s=6.0, expect=None,
             n.destroy_node()
 
     if expect is not None and len(dets) != expect:
+        # SAY WHAT IT SAW, not just how many. The count alone sent a session
+        # hunting: "saw 8 cubes, expects 4" inside the sweep while the SAME
+        # code standalone on the same stack saw 4, and the message carried
+        # nothing to tell an extra blob from a duplicated one. A refusal that
+        # cannot be diagnosed costs more than the run it correctly refused.
+        _lines = []
+        for d in sorted(dets, key=lambda z: (z.get("colour", ""),
+                                             z.get("u", 0))):
+            _w = d.get("world")
+            _lines.append(
+                "      %-6s u,v %6.1f,%6.1f  blob %5.1f px (cube would be "
+                "%5.1f)  depth %.4f  world %s"
+                % (d.get("colour", "?"), d.get("u", -1), d.get("v", -1),
+                   d.get("blob_px", -1), d.get("expected_px", -1),
+                   d.get("depth_m", -1),
+                   "-" if _w is None
+                   else "[%.4f, %.4f, %.4f]" % tuple(_w)))
+        for r in rejected:
+            _lines.append(
+                "      %-6s u,v %6.1f,%6.1f  blob %5.1f px (cube would be "
+                "%5.1f)  depth %.4f  REJECTED: %s"
+                % (r.get("colour", "?"), r.get("u", -1), r.get("v", -1),
+                   r.get("blob_px", -1), r.get("expected_px", -1),
+                   r.get("depth_m", -1), r.get("why", "")))
         raise DetectionUnavailable(
             "saw %d cubes, the task expects %d. Refusing to pick blind; a "
             "fallback to declared coordinates here would look exactly like a "
-            "working camera." % (len(dets), expect))
+            "working camera.\n    ACCEPTED %d, REJECTED BY SIZE %d:\n%s"
+            % (len(dets), expect, len(dets), len(rejected),
+               "\n".join(_lines)))
 
     colours = M.PLANE_COLOURS
     cubes = []

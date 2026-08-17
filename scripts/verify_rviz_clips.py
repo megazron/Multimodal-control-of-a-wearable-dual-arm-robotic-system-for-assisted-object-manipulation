@@ -295,13 +295,28 @@ MSC_REQUIRED = {
     # sphere that is plainly in the picture.
     "t0": ["msc_sphere_blue", "msc_sphere_green"],
     "t1": ["msc_blue", "msc_green"],
-    # STAGE 2 IS NOT COLOUR-MATCHED AND ITS CUBES ARE NOT BLUE AND GREEN.
-    # clip_scene colours them BY ARM -- yellow left, teal right -- deliberately,
-    # so a reader does not look for a colour rule this stage does not have.
-    # Requiring blue and green here failed every t1s2 clip in the set for
-    # objects that were never in it, which is the same by-design-versus-real
-    # confusion the rest of this file is built to avoid.
-    "t1s2": ["msc_yellow_cube", "msc_teal_cube"],
+    # STAGE 2'S CUBES ARE BLUE AND GREEN, LIKE STAGE 1'S, SINCE 2026-08-16 --
+    # and this entry went on asking for yellow and teal, which it had been
+    # given when they were coloured by ARM. The note that used to sit here
+    # explained the yellow/teal rule; `clip_scene` had already abandoned it,
+    # because colouring stage 2's cubes by arm put NO task colour on any cube
+    # and made "each cube ended on the pad of its own colour" unjudgeable from
+    # a frame. It now colours by PAD from `_stage2_pad_index`, the same
+    # function the task routes with.
+    #
+    # WHY THE STALE ENTRY KEPT PASSING, which is the part worth keeping. The
+    # yellow and teal in a t1s2 frame are the two WORKSPACE MARKINGS
+    # (MARK_RGBA is yellow for the left arm and teal for the right), and the
+    # marking used to be 192 filled 21 mm tiles per arm -- hundreds of yellow
+    # and teal pixels, comfortably over any floor. So `msc_yellow_cube` fired
+    # on the MARKING for as long as the mismatch existed, and the check
+    # reported the right answer for the wrong reason. Redrawing the marking as
+    # a 12 mm OUTLINE removed those pixels and the mismatch surfaced at once.
+    #
+    # This is CLAUDE.md's "everything matches" row: a detector keyed to the
+    # wrong referent, agreeing by coincidence. The lesson is not that the
+    # outline broke a check -- it is that the check was never measuring cubes.
+    "t1s2": ["msc_blue", "msc_green"],
     "t2": ["msc_tray_tan", "msc_ball_yellow"],
     "t3": ["msc_green", "msc_meter_yellow"],
     # The demonstration routines carry no object at all, by design, and say so

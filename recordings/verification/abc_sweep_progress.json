@@ -108,10 +108,10 @@
       "after_approach": {
         "at": "at waypoint 0 (after the approach)",
         "per_arm": {
-          "left": 0.9158,
-          "right": 1.2357
+          "left": 0.9145,
+          "right": 1.2449
         },
-        "worst_rad": 1.2357
+        "worst_rad": 1.2449
       },
       "trail": [
         {
@@ -133,10 +133,10 @@
         {
           "at": "at waypoint 0 (after the approach)",
           "per_arm": {
-            "left": 0.9158,
-            "right": 1.2357
+            "left": 0.9145,
+            "right": 1.2449
           },
-          "worst_rad": 1.2357
+          "worst_rad": 1.2449
         }
       ],
       "allow_unhomed": false

@@ -9,7 +9,7 @@
     },
     "home_clears_floor": {
       "want": ">= 0.15",
-      "got": 0.161
+      "got": 0.1596
     }
   },
   "arm": "left",
@@ -33,22 +33,22 @@
   ],
   "planes": [
     [
-      0.45,
-      0.24
+      0.595,
+      0.215
     ],
     [
-      0.61,
-      0.24
+      0.825,
+      0.215
     ]
   ],
   "z": 1.12,
   "stage1": {
     "t1 full path": {
       "arm": "left",
-      "waypoints": 174,
+      "waypoints": 171,
       "ik_failures": 0,
-      "worst_clearance_m": 0.1571,
-      "clearance_to": "L-upperarm",
+      "worst_clearance_m": 0.161,
+      "clearance_to": "torso",
       "waypoints_below_floor": 0
     },
     "t1 idle arm hold": {
@@ -95,16 +95,16 @@
       "arm": "left",
       "waypoints": 3,
       "ik_failures": 0,
-      "worst_clearance_m": 0.1571,
-      "clearance_to": "L-upperarm",
+      "worst_clearance_m": 0.161,
+      "clearance_to": "torso",
       "waypoints_below_floor": 0
     },
     "plane_0 slot +0.030": {
       "arm": "left",
       "waypoints": 3,
       "ik_failures": 0,
-      "worst_clearance_m": 0.1572,
-      "clearance_to": "L-upperarm",
+      "worst_clearance_m": 0.161,
+      "clearance_to": "torso",
       "waypoints_below_floor": 0
     },
     "plane_1 slot -0.030": {
@@ -127,10 +127,10 @@
   "stage2": {
     "seed_0": {
       "left": {
-        "waypoints": 90,
+        "waypoints": 88,
         "ik_failures": 0,
-        "worst_clearance_m": 0.1571,
-        "clearance_to": "L-upperarm",
+        "worst_clearance_m": 0.161,
+        "clearance_to": "torso",
         "waypoints_below_floor": 0,
         "cubes": [
           [
@@ -146,7 +146,7 @@
         ]
       },
       "right": {
-        "waypoints": 90,
+        "waypoints": 88,
         "ik_failures": 0,
         "worst_clearance_m": 0.161,
         "clearance_to": "torso",
@@ -154,12 +154,12 @@
         "cubes": [
           [
             -0.775,
-            0.2,
+            0.225,
             1.12
           ],
           [
-            -0.6,
-            0.1,
+            -0.525,
+            0.2,
             1.12
           ]
         ]
@@ -167,15 +167,15 @@
     },
     "seed_1": {
       "left": {
-        "waypoints": 97,
+        "waypoints": 99,
         "ik_failures": 0,
-        "worst_clearance_m": 0.1571,
-        "clearance_to": "L-upperarm",
+        "worst_clearance_m": 0.161,
+        "clearance_to": "torso",
         "waypoints_below_floor": 0,
         "cubes": [
           [
             1.0,
-            0.125,
+            0.15,
             1.12
           ],
           [
@@ -186,20 +186,20 @@
         ]
       },
       "right": {
-        "waypoints": 97,
+        "waypoints": 99,
         "ik_failures": 0,
         "worst_clearance_m": 0.161,
         "clearance_to": "torso",
         "waypoints_below_floor": 0,
         "cubes": [
           [
-            -0.625,
-            0.2,
+            -0.55,
+            0.275,
             1.12
           ],
           [
             -0.95,
-            0.075,
+            0.1,
             1.12
           ]
         ]
@@ -207,10 +207,10 @@
     },
     "seed_2": {
       "left": {
-        "waypoints": 88,
+        "waypoints": 91,
         "ik_failures": 0,
-        "worst_clearance_m": 0.1571,
-        "clearance_to": "L-upperarm",
+        "worst_clearance_m": 0.161,
+        "clearance_to": "torso",
         "waypoints_below_floor": 0,
         "cubes": [
           [
@@ -226,27 +226,27 @@
         ]
       },
       "right": {
-        "waypoints": 88,
+        "waypoints": 91,
         "ik_failures": 0,
         "worst_clearance_m": 0.161,
         "clearance_to": "torso",
         "waypoints_below_floor": 0,
         "cubes": [
           [
-            -0.625,
-            0.25,
+            -0.525,
+            0.075,
             1.12
           ],
           [
             -0.8,
-            0.225,
+            0.25,
             1.12
           ]
         ]
       }
     }
   },
-  "ik_calls": 7492,
+  "ik_calls": 7522,
   "total_ik_failures": 0,
   "total_waypoints_below_floor": 0
 }

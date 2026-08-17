@@ -1,3 +1,83 @@
+# RESUME POINT 2026-08-17 — THE T1 RE-RECORD IS BLOCKED IN THE VISION PATH
+
+**Read this before re-recording T1, T1S2 or anything else that looks before it
+grasps. The geometry is clean; the block is elsewhere and it is isolated.**
+
+## THE ONE-PARAGRAPH VERSION
+
+T1 builds its path from DETECTED cube positions. Inside the sweep those
+detections are wrong by **28.0 - 31.0 mm** against a **30 mm** capture gate, so
+`cube_3` is never grasped and the clip records three placements of four. The
+detector is NOT at fault: standalone on the same stack it returns **1.3 - 3.0
+mm**, reproducing the committed baseline to four decimal places over three
+consecutive runs. The difference is that inside the sweep `ik_follower_node`
+is streaming to the same controller the observe move uses, so the arm settles
+at the EDGE of `Vision.stage()`'s `tol=0.02` rad-per-joint arrival check
+instead of ON the observe pose — and the deprojection uses a camera pose the
+arm never reached. Full account, with every control, in
+`docs/system/findings.md`, section 2026-08-17.
+
+## WHAT IS DONE AND SAFE TO BUILD ON
+
+* **T1's geometry is re-verified at the 2026-08-16 home**, and
+  `recordings/baselines/t1_paths.json` is refreshed — it had been stale since
+  2026-08-15, before home was solved. 0 IK failures and 0 waypoints inside the
+  150 mm floor over **7522 IK calls**, both controls correct, stage 1 and all
+  three stage-2 seeds.
+* **Stage 2 seed 0's right arm is CLEAN.** The 25-of-98 floor breach recorded
+  at the old home is closed; do not carry that warning forward.
+* T0, T3, D1 and D2 are unaffected — `t1` is the only task the sweep runs
+  `stage_observe_and_detect` for.
+
+## WHAT WAS RECORDED AND THEN DISCARDED, AND WHY THAT IS RIGHT
+
+Two `06_full_autonomy` T1 clips were recorded on the current geometry. Both
+showed a genuinely moving arm (left travel 5.27 m and 5.30 m, staged on the
+presentation pose) and both placed three cubes of four. **Both were discarded
+and the committed 2026-08-15 clip left in place**, on the d3 precedent: the
+first run's sweep said `OK run exited 0`, and the second run's own
+`verify_gripper_motion` and `verify_object_attachment` both FAILED. When the
+run gate and the verifiers disagree, the verifiers win.
+
+## WHAT TO DO NEXT, IN ORDER
+
+1. **Fix the observe move, not the gate.** Widening the 30 mm gate would grasp
+   cube_3 from a pose still 31 mm wrong and hide the fault inside the evidence
+   for it. Tightening `tol` alone turns a wrong answer into a timeout — that
+   is already the third row of the table, seen once a clip has run and the
+   follower is holding the arm.
+   The two real options, same shape as the two already taken for
+   `stage_presentation_pose.py` and `vr_pose_mapper`:
+   * pause the follower for the observe move (`bridge_enable` /
+     `bridge_disable` exist and the sweep already does this for staging); or
+   * have `mock_rgbd_camera` stamp each frame with the pose it was RENDERED
+     from, and have `observe_and_detect` REFUSE a frame that predates arrival.
+     Stronger, because it makes the failure impossible to record silently.
+2. **Give it a known-answer test.** A deliberately displaced observe pose must
+   produce a detection error of the size that displacement predicts.
+3. **Then record T1 in all five modes**, and check `cube_3`'s
+   `min_pad_obj_closed_m` in `scene_events.json` per clip — that single number
+   is the whole fault.
+4. **T1S2 and T2 are still on the 2026-08-15 geometry.** T1S2 uses the same
+   vision path and is blocked behind the same fix; T2 is not.
+
+## THE PROTOCOL THAT WORKS, UNCHANGED
+
+One mode per invocation, through `sim_session.py --stack teleop --keep-up --
+python3 scripts/record_abc_sweep.py --taskset msc --only <mode> --tasks t1`.
+It kills the old stack, clears `/dev/shm`, settles 5 s, relaunches, and runs
+the unit suite before anything is filed as evidence (579 passed, 2 allowed:
+flake8 and pep257).
+
+**Two traps worth keeping:** `pkill -f mock_rgbd_camera` matches the killing
+shell's own command line and kills it — kill explicit PIDs. And churning
+processes against a live stack degrades the DDS graph until a FRESH process
+receives nothing (`no TF world <- left_camera_color_frame ... PUBLISHING
+NOTHING` with every node up); `sim_session.py` clears it, and cleared 131
+stale segments doing so.
+
+---
+
 # RESUME POINT 2026-08-15 (late) — HOME MOVED. CAPTURE IT ON THE ARMS.
 
 **THE FIRST TWO THINGS TO DO, BEFORE ANYTHING ELSE.**

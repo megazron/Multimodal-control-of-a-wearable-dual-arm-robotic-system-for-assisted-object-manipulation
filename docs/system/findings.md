@@ -4989,3 +4989,130 @@ the one it holds still.
 
 The two that can be shown are shown, and the rigid tray immediately exposed a
 defect that had been invisible for the life of the task.
+
+# 2026-08-17 — T1 CANNOT BE RE-RECORDED: THE OBSERVE POSE ARRIVES INSIDE A TOLERANCE, AND VISION DEPROJECTS FROM THE POSE IT DID NOT REACH
+
+**The T1 re-record is BLOCKED, and the block is in the vision path rather than
+in the task, the layout or the home.** Two clips were recorded under
+`06_full_autonomy` and both were DISCARDED. Neither is on disk; the committed
+2026-08-15 clip is left in place, exactly as `d3` was left when
+`verify_dance_paths` disagreed with a sweep that had reported OK.
+
+## THE GEOMETRY IS CLEAN, SO THIS IS NOT THE LAYOUT
+
+Run first, as the pre-record gate, against a live `/compute_ik` at the
+2026-08-16 home. `recordings/baselines/t1_paths.json` had been stale since
+2026-08-15 — it predates the solved home — and is refreshed by this run:
+
+    both controls correct    a waypoint driven into the wearer FAILS
+                             home clears the floor at 0.1596 m
+    stage 1                  171 waypoints, 0 IK failures, worst clearance
+                             0.1610 m, 0 inside the 150 mm floor
+    stage 2, seeds 0/1/2     both arms, 0 IK failures, 0 inside the floor
+    TOTAL                    0 failures over 7522 IK calls
+
+Stage 2 seed 0's right arm — 25 of 98 waypoints inside the floor at the
+2026-08-15 home — is CLEAN at this home. That regression is closed.
+
+## WHAT THE CLIPS ACTUALLY SHOWED: THREE CUBES OF FOUR
+
+Both discarded runs recorded a genuinely moving arm (left travel 5.2709 m and
+5.3016 m, staged on the presentation pose, capture gated on motion) and both
+placed three cubes. `cube_3` was never grasped:
+
+    cube_0/1/2   min_pad_obj_closed_m  0.0000      captured
+    cube_3       min_pad_obj_closed_m  0.0309      gate 0.030 -- 0.9 mm outside
+
+The sweep reported `OK  run exited 0` for the first run. The second run's own
+verifiers caught it: `verify_gripper_motion` and `verify_object_attachment`
+both FAILED. **The run gate and the verifiers disagree, and the verifiers
+win** — the same rule that discarded the d3 clip.
+
+## IT IS NOT LAG, AND THE NUMBER SAYS SO TO A TENTH OF A MILLIMETRE
+
+T1 has been built from DETECTED cube positions since 2026-08-16 (`cubes=None`
+keeps the declared layout; the sweep passes what `observe_and_detect` saw).
+The scene still draws the cubes where they really are, so a detection error is
+a grasp error. Measured against ground truth (`T1_CUBES`):
+
+    cube      detected in-sweep        dx        dy      error    30 mm gate
+    cube_0    (0.5459, 0.0954)     -14.0 mm  -24.3 mm   28.0 mm   ok
+    cube_1    (0.6062, 0.0927)     -12.8 mm  -25.8 mm   28.8 mm   ok
+    cube_2    (0.6681, 0.0921)     -11.7 mm  -27.6 mm   30.0 mm   ok
+    cube_3    (0.7294, 0.0907)     -10.6 mm  -29.1 mm   31.0 mm   MISS
+
+**cube_3's 31.0 mm detection error and its 30.9 mm recorded miss are the same
+number.** Every cube is displaced in the SAME direction, which is a constant
+camera-pose error and not accumulating follower lag — the identical-value
+signature this repository already learned to read when three cubes reported
+0.0314.
+
+## THE INSTRUMENT WAS CLEARED BEFORE THE MEASUREMENT WAS BELIEVED
+
+The standing rule says a surprising failure is evidence about the instrument
+until the instrument is cleared. It was, and the detector is FINE:
+
+    condition                                    detection error
+    standalone, clean stack, settle 6            1.3 - 3.0 mm
+    standalone, clean stack, settle 20           1.3 - 3.0 mm
+    standalone, detections #1, #2, #3            IDENTICAL to 4 decimal places
+    inside the sweep (twice)                     28.0 - 31.0 mm
+    after a clip has run                         REFUSED, did not reach observe
+
+Three consecutive standalone detections returned
+`(0.5592, 0.121) (0.6205, 0.1217) (0.6817, 0.1211) (0.7428, 0.1212)` — the
+committed `vision_drives_grasp.json` baseline, reproduced exactly. **The first
+detection after a fresh camera is not the biased one**; that hypothesis was
+tested with a three-detection control on a clean stack and REFUTED. Settle
+time is not the variable either: settle 6 gave both 4.0 mm and 25.5 mm.
+
+## THE CAUSE: `stage()` ACCEPTS 0.02 rad PER JOINT, AND THE FOLLOWER IS ON THE SAME CONTROLLER
+
+`verify_colour_vision.Vision.stage()` verifies arrival off `/joint_states`
+with `tol=0.02` — per joint, on all seven. `observe_and_detect` then reads
+`n.cam_pose()` from TF and deprojects the image through it.
+
+Standalone the follower has no target, the arm lands ON the observe pose, and
+the deprojection is right. **Inside the sweep `ik_follower_node` is streaming
+position commands to the SAME controller**, so the arm settles at the EDGE of
+that tolerance instead of on the pose. 0.02 rad on the proximal joints of a
+0.7 m arm is centimetres at the camera, and the whole scene shifts with it.
+The third row of the table is the same fault with the volume turned up: once a
+clip has run and the follower is holding the arm, the observe move does not
+arrive at all and stage-detect refuses by name.
+
+This is the project's one-publisher-per-controller rule — already recorded for
+`stage_presentation_pose.py` and for `vr_pose_mapper` — arriving in the VISION
+path, where it is quieter, because nothing here fails. It returns four cubes,
+in the right order, with the right colours, and every coordinate is wrong by
+about the width of the capture window.
+
+## WHAT TO DO, AND WHAT NOT TO
+
+**Do not widen the 30 mm gate.** It is not too tight; the detection is off. A
+wider gate would grasp cube_3 from a pose that is still 31 mm wrong and hide
+the fault in exactly the clips meant to be evidence for it.
+
+**Do not tighten `tol` alone either.** A tighter tolerance against a follower
+that is actively holding the arm turns a wrong answer into a timeout, which is
+the third row of the table.
+
+The fix belongs where the other two instances were fixed — one source at a
+time on that controller: pause the follower for the observe move as the sweep
+already does for the staging move (`bridge_enable` / `bridge_disable` exist),
+or have the camera stamp each frame with the pose it was RENDERED from and
+have `observe_and_detect` refuse a frame that predates arrival. The second is
+the stronger fix, because it makes the failure impossible to record silently
+rather than merely unlikely.
+
+Either way it needs a known-answer test: a deliberately displaced observe pose
+must produce a detection error of the size that displacement predicts. A check
+that cannot fail on a broken input is not a check.
+
+## WHAT THIS DOES NOT TOUCH
+
+T0, T3, D1 and D2 do not look before grasping — `t1` is the only task the
+sweep runs `stage_observe_and_detect` for — so the five modes recorded on
+2026-08-16 are unaffected. T1S2 and T2 are still on the 2026-08-15 geometry
+and still need re-recording; T1S2 uses the same vision path and is blocked
+behind the same fix.

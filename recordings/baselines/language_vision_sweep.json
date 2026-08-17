@@ -509,7 +509,7 @@
       "verdict": "REFUSED",
       "resolved": null,
       "detail": {
-        "reason": "no known verb in 'what colour is cube'"
+        "reason": "no known verb in 'that colour is cube'"
       }
     },
     {

@@ -534,6 +534,16 @@ def main(argv=None):
                          "default and loud when used: a trial that starts "
                          "somewhere nobody recorded cannot be compared with "
                          "one that did.")
+    # THE TASK FROM A TYPED SENTENCE. M1 only, and only with --vision: the
+    # instruction names colours, and the colours have to come from the camera
+    # or the sentence is being grounded against the file it is supposed to be
+    # independent of.
+    ap.add_argument("--instruct", default=None, metavar="TEXT",
+                    help="free-form instruction, e.g. \"put the blue ones on "
+                         "the blue pad\". Parsed by srl_autonomy.voice_intent "
+                         "and grounded against the DETECTED cubes by "
+                         "experiments/abc/t1_instruction.py. Refuses on an "
+                         "ambiguous instruction rather than choosing.")
     ap.add_argument("--isolate", action="store_true",
                     help="start this mode's upstreams first, exactly as the "
                          "clip sweep does -- see scripts/mode_upstreams.py")
@@ -598,6 +608,12 @@ def main(argv=None):
         wp = waypoints(key, scen)
         grip_sched = None
 
+    if a.instruct and not a.vision:
+        raise SystemExit(
+            "--instruct needs --vision: the instruction names COLOURS, and "
+            "grounding those against msc_clip_tasks.T1_PAIR instead of the "
+            "camera would make a language demo out of a file lookup.")
+
     if a.dry_run:
         print("task %s / %s / mode %s : %d waypoints per arm, entry topic %s"
               % (key, scen, a.mode, len(wp["left"]),
@@ -619,6 +635,7 @@ def main(argv=None):
     # the declared coordinate is indistinguishable from a working perception
     # path, which is exactly the failure TASK_SPEC P-4 forbids.
     vision_info = None
+    instruct_info = None
     if a.vision:
         if a.taskset != "msc" or _MSC_KEY.get(key) not in ("t1",):
             raise SystemExit(
@@ -645,15 +662,44 @@ def main(argv=None):
                 "REFUSING TO RECORD: %s was written against a different "
                 "layout. Re-run the staged detection." % a.vision)
         vision_info = vd.get("timing")
-        wp = MCT.t1(cubes=cubes)
-        grip_sched = spec["grip"](len(wp["left"]))
         print("[vision] %d cubes SEEN (staged) -> %s" % (len(cubes), cubes),
               flush=True)
+        # ---- THE TASK CAN COME FROM A TYPED SENTENCE ----------------------
+        #
+        # Without --instruct the whole four-cube routine runs, which is what
+        # every recorded clip has been. With it, WHICH cubes and WHICH pads
+        # come from the instruction, grounded against what the camera SAW --
+        # `t1_instruction.plan_from` is the only place the sentence and the
+        # detections meet.
+        #
+        # IT REFUSES ON ASK AS WELL AS ON REFUSE. An ambiguous instruction
+        # resolved by picking the first candidate would be a recorded clip of
+        # the robot guessing, and a clip is evidence.
+        if a.instruct:
+            import t1_instruction as TI
+            outcome = TI.plan_from(a.instruct, cubes)
+            print("[instruct] %r -> %s: %s"
+                  % (a.instruct, outcome.kind.upper(), outcome.message),
+                  flush=True)
+            if not outcome.ok:
+                raise SystemExit(
+                    "REFUSING TO RUN: the instruction did not resolve to a "
+                    "plan (%s). %s" % (outcome.kind.upper(), outcome.message))
+            for px, py, pad in outcome.picks:
+                print("   pick (%.4f, %.4f) -> %s pad"
+                      % (px, py, MCT.PLANE_COLOURS[pad]), flush=True)
+            instruct_info = outcome.as_dict()
+            wp = TI.build_path(outcome.picks)
+        else:
+            wp = MCT.t1(cubes=cubes)
+        grip_sched = spec["grip"](len(wp["left"]))
 
     n = Runner(a)
     n._wire_logging()
     if vision_info is not None:
         n.vision_info = vision_info
+    if instruct_info is not None:
+        n.instruct_info = instruct_info
     # ---- START FROM HOME --------------------------------------------------
     #
     # BEFORE `--isolate`, and the order is not cosmetic: isolate() starts
@@ -886,6 +932,11 @@ def main(argv=None):
             # home is now identifiable in the data rather than assumed
             # comparable -- the same reason the sweep records `opened_on`.
             start_home_err_rad=getattr(n, "start_home_err", None),
+            # THE SENTENCE THAT COMMANDED THIS TRIAL, and what it resolved to.
+            # A trial driven by language whose language is not in the data
+            # cannot be attributed to the language.
+            instruction=(a.instruct or None),
+            instruction_plan=getattr(n, "instruct_info", None),
             started_unhomed=bool(a.allow_unhomed),
             sim_only=True,
             note="mock hardware echoes commands with no dynamics; every "

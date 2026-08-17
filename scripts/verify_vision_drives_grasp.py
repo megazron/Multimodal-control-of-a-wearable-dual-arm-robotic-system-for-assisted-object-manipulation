@@ -107,14 +107,55 @@ def main():
           % (sep, "VISION IS DRIVING THE GRASP"
              if drives else "NO DIFFERENCE -- vision is decorative"))
 
+    # ---- AND THE SAME TEST THROUGH THE TYPED INSTRUCTION --------------
+    #
+    # The path above is built by calling `t1(cubes=...)` directly. A run is
+    # driven by a SENTENCE, and a sentence has its own grounding step that
+    # could perfectly well have reached for T1_PAIR on its own. So the lie is
+    # told again with the instruction layer in the loop: "put every cube where
+    # it belongs" must send the mislabelled cube to the pad of its RENDERED
+    # colour, and the plan must be byte-identical with the declaration
+    # flipped and unflipped.
+    import t1_instruction as TI
+    instr = "put every cube where it belongs"
+    o_truth = TI.plan_from(instr, cubes)
+    saved = dict(M.T1_PAIR)
+    try:
+        for k in list(M.T1_PAIR):
+            M.T1_PAIR[k] = 1 - M.T1_PAIR[k]
+        o_lied = TI.plan_from(instr, cubes)
+    finally:
+        M.T1_PAIR.clear()
+        M.T1_PAIR.update(saved)
+    instr_ok = (o_truth.ok and o_lied.ok
+                and o_truth.picks == o_lied.picks)
+    print("\nTHE SAME LIE, THROUGH THE TYPED INSTRUCTION %r" % instr)
+    print("   truthful declaration -> %s" % o_truth.message)
+    print("   every colour flipped -> %s" % o_lied.message)
+    for (px, py, pad) in o_lied.picks:
+        print("      cube seen at (%.4f, %.4f) -> %s pad"
+              % (px, py, M.PLANE_COLOURS[pad]))
+    print("   -> %s"
+          % ("THE INSTRUCTION IS GROUNDED ON THE CAMERA"
+             if instr_ok else
+             "THE PLAN MOVED WHEN THE DECLARATION MOVED -- it is reading "
+             "the file"))
+
     res = dict(arm=arm, cubes=cubes, timing=info,
                declared_place_x=round(float(p_dec[0]), 4),
                vision_place_x=round(float(p_vis[0]), 4),
                separation_m=round(float(sep), 4),
-               vision_drives_the_grasp=bool(drives))
+               vision_drives_the_grasp=bool(drives),
+               instruction=instr,
+               instruction_plan=[list(p) for p in o_truth.picks],
+               instruction_plan_with_declaration_flipped=[
+                   list(p) for p in o_lied.picks],
+               instruction_is_grounded_on_the_camera=bool(instr_ok))
     json.dump(res, open(a.out, "w"), indent=2, default=float)
     print("\n-> %s" % a.out)
-    return 0 if drives else 6
+    if not drives:
+        return 6
+    return 0 if instr_ok else 7
 
 
 if __name__ == "__main__":

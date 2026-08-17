@@ -1,0 +1,1496 @@
+{
+ "scene": [
+  [
+   0.56,
+   0.12,
+   0
+  ],
+  [
+   0.62,
+   0.12,
+   1
+  ],
+  [
+   0.68,
+   0.12,
+   0
+  ],
+  [
+   0.74,
+   0.12,
+   1
+  ]
+ ],
+ "pads": [
+  "blue",
+  "green"
+ ],
+ "controls": {
+  "a_plain_instruction_plans": true,
+  "it_plans_the_blue_cubes": true,
+  "a_different_pad_gives_a_different_plan": true,
+  "an_empty_scene_refuses": true,
+  "the_scorer_can_report_misunderstood": true
+ },
+ "totals": {
+  "CORRECT": 16,
+  "ASKED": 5,
+  "REFUSED": 19,
+  "MISUNDERSTOOD": 0
+ },
+ "totals_without_put_on": {
+  "CORRECT": 0,
+  "ASKED": 2,
+  "REFUSED": 38,
+  "MISUNDERSTOOD": 0
+ },
+ "rows": [
+  {
+   "utterance": "put the blue ones on the blue pad",
+   "category": "control",
+   "intended": [
+    [
+     0,
+     0
+    ],
+    [
+     2,
+     0
+    ]
+   ],
+   "note": "the plainest form there is",
+   "verdict": "CORRECT",
+   "message": "2 cubes, on the blue pad",
+   "why": "",
+   "plan": [
+    [
+     0.56,
+     0.12,
+     0
+    ],
+    [
+     0.68,
+     0.12,
+     0
+    ]
+   ],
+   "intent": {
+    "verb": "put_on",
+    "target": "blue one",
+    "arm": null,
+    "destination": {
+     "kind": "colour",
+     "colour": "blue",
+     "phrase": "blue pad"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put the blue ones on the blue pad",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "put the green ones on the green mat",
+   "category": "control",
+   "intended": [
+    [
+     1,
+     1
+    ],
+    [
+     3,
+     1
+    ]
+   ],
+   "note": "a synonym for the pad",
+   "verdict": "CORRECT",
+   "message": "2 cubes, on the green pad",
+   "why": "",
+   "plan": [
+    [
+     0.62,
+     0.12,
+     1
+    ],
+    [
+     0.74,
+     0.12,
+     1
+    ]
+   ],
+   "intent": {
+    "verb": "put_on",
+    "target": "green one",
+    "arm": null,
+    "destination": {
+     "kind": "colour",
+     "colour": "green",
+     "phrase": "green mat"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put the green ones on the green mat",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "put every cube on the pad of its own colour",
+   "category": "control",
+   "intended": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     1
+    ]
+   ],
+   "note": "the task as the spec words it",
+   "verdict": "CORRECT",
+   "message": "4 cubes, each on the pad of the colour the camera saw",
+   "why": "",
+   "plan": [
+    [
+     0.56,
+     0.12,
+     0
+    ],
+    [
+     0.62,
+     0.12,
+     1
+    ],
+    [
+     0.68,
+     0.12,
+     0
+    ],
+    [
+     0.74,
+     0.12,
+     1
+    ]
+   ],
+   "intent": {
+    "verb": "put_on",
+    "target": "cube",
+    "arm": null,
+    "destination": {
+     "kind": "match",
+     "colour": null,
+     "phrase": "its own colour"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put every cube on the pad of its own colour",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "pick up the blue cube and put it on the blue pad",
+   "category": "brief",
+   "intended": null,
+   "note": "SINGULAR against two blue cubes -- must ask, not pick one",
+   "verdict": "ASKED",
+   "message": "I see 2 blue cubes (x=0.56, x=0.68). Which one -- or say 'the blue ones' for all of them?",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": "put_on",
+    "target": "blue cube",
+    "arm": null,
+    "destination": {
+     "kind": "colour",
+     "colour": "blue",
+     "phrase": "blue pad"
+    },
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "pick up the blue cube and put it on the blue pad",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "put the green ones on the green mat",
+   "category": "brief",
+   "intended": [
+    [
+     1,
+     1
+    ],
+    [
+     3,
+     1
+    ]
+   ],
+   "note": "plural, synonym destination",
+   "verdict": "CORRECT",
+   "message": "2 cubes, on the green pad",
+   "why": "",
+   "plan": [
+    [
+     0.62,
+     0.12,
+     1
+    ],
+    [
+     0.74,
+     0.12,
+     1
+    ]
+   ],
+   "intent": {
+    "verb": "put_on",
+    "target": "green one",
+    "arm": null,
+    "destination": {
+     "kind": "colour",
+     "colour": "green",
+     "phrase": "green mat"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put the green ones on the green mat",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "move that blue block to its colour",
+   "category": "brief",
+   "intended": null,
+   "note": "singular and deictic against two blue cubes -- must ask",
+   "verdict": "ASKED",
+   "message": "I see 2 blue cubes (x=0.56, x=0.68). Which one -- or say 'the blue ones' for all of them?",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": "put_on",
+    "target": "blue block",
+    "arm": null,
+    "destination": {
+     "kind": "match",
+     "colour": null,
+     "phrase": "its colour"
+    },
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "move that blue block to its colour",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "sort the cubes by colour",
+   "category": "paraphrase",
+   "intended": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     1
+    ]
+   ],
+   "note": "no preposition",
+   "verdict": "CORRECT",
+   "message": "4 cubes, each on the pad of the colour the camera saw",
+   "why": "",
+   "plan": [
+    [
+     0.56,
+     0.12,
+     0
+    ],
+    [
+     0.62,
+     0.12,
+     1
+    ],
+    [
+     0.68,
+     0.12,
+     0
+    ],
+    [
+     0.74,
+     0.12,
+     1
+    ]
+   ],
+   "intent": {
+    "verb": "put_on",
+    "target": "cube",
+    "arm": null,
+    "destination": {
+     "kind": "match",
+     "colour": null,
+     "phrase": "by colour"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "sort the cubes by colour",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "put every cube where it belongs",
+   "category": "paraphrase",
+   "intended": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     1
+    ]
+   ],
+   "note": "a place named by a relation to the object, not by a coordinate",
+   "verdict": "CORRECT",
+   "message": "4 cubes, each on the pad of the colour the camera saw",
+   "why": "",
+   "plan": [
+    [
+     0.56,
+     0.12,
+     0
+    ],
+    [
+     0.62,
+     0.12,
+     1
+    ],
+    [
+     0.68,
+     0.12,
+     0
+    ],
+    [
+     0.74,
+     0.12,
+     1
+    ]
+   ],
+   "intent": {
+    "verb": "put_on",
+    "target": "cube",
+    "arm": null,
+    "destination": {
+     "kind": "match",
+     "colour": null,
+     "phrase": "where it belongs"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put every cube where it belongs",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "sort them onto their matching colours",
+   "category": "paraphrase",
+   "intended": null,
+   "note": "'them' with nothing pointed at -- ask",
+   "verdict": "ASKED",
+   "message": "Which cube? I can see 2 blue, 2 green, and 'sort them onto their matching colours' does not tell me which one.",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": "put_on",
+    "target": null,
+    "arm": null,
+    "destination": {
+     "kind": "match",
+     "colour": null,
+     "phrase": "matching colour"
+    },
+    "deictic": true,
+    "quantity": 1,
+    "corrections": [
+     [
+      "colours",
+      "colour"
+     ]
+    ],
+    "ambiguous_words": [],
+    "raw": "sort them onto their matching colours",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "move all the cubes to the colour that matches",
+   "category": "paraphrase",
+   "intended": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     1
+    ]
+   ],
+   "note": "'all' plus a match phrase",
+   "verdict": "REFUSED",
+   "message": "heard 'move to' but no place I know",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": null,
+    "target": null,
+    "arm": null,
+    "destination": null,
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [
+     [
+      "matches",
+      "patches"
+     ]
+    ],
+    "ambiguous_words": [],
+    "raw": "move all the cubes to the colour that matches",
+    "reason": "heard 'move to' but no place I know"
+   }
+  },
+  {
+   "utterance": "place each block on the matching pad",
+   "category": "paraphrase",
+   "intended": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     1
+    ]
+   ],
+   "note": "'block' for cube, 'each' for all",
+   "verdict": "CORRECT",
+   "message": "4 cubes, each on the pad of the colour the camera saw",
+   "why": "",
+   "plan": [
+    [
+     0.56,
+     0.12,
+     0
+    ],
+    [
+     0.62,
+     0.12,
+     1
+    ],
+    [
+     0.68,
+     0.12,
+     0
+    ],
+    [
+     0.74,
+     0.12,
+     1
+    ]
+   ],
+   "intent": {
+    "verb": "put_on",
+    "target": "block",
+    "arm": null,
+    "destination": {
+     "kind": "match",
+     "colour": null,
+     "phrase": "matching pad"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "place each block on the matching pad",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "could you please put the blue ones onto the blue square",
+   "category": "paraphrase",
+   "intended": [
+    [
+     0,
+     0
+    ],
+    [
+     2,
+     0
+    ]
+   ],
+   "note": "politeness and a third word for the pad",
+   "verdict": "CORRECT",
+   "message": "2 cubes, on the blue pad",
+   "why": "",
+   "plan": [
+    [
+     0.56,
+     0.12,
+     0
+    ],
+    [
+     0.68,
+     0.12,
+     0
+    ]
+   ],
+   "intent": {
+    "verb": "put_on",
+    "target": "blue one",
+    "arm": null,
+    "destination": {
+     "kind": "colour",
+     "colour": "blue",
+     "phrase": "blue square"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "could you please put the blue ones onto the blue square",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "shift the green blocks over to the green target",
+   "category": "paraphrase",
+   "intended": [
+    [
+     1,
+     1
+    ],
+    [
+     3,
+     1
+    ]
+   ],
+   "note": "a verb and a noun neither of which is canonical",
+   "verdict": "CORRECT",
+   "message": "2 cubes, on the green pad",
+   "why": "",
+   "plan": [
+    [
+     0.62,
+     0.12,
+     1
+    ],
+    [
+     0.74,
+     0.12,
+     1
+    ]
+   ],
+   "intent": {
+    "verb": "put_on",
+    "target": "green block",
+    "arm": null,
+    "destination": {
+     "kind": "colour",
+     "colour": "green",
+     "phrase": "to green target"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "shift the green blocks over to the green target",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "put the blue ones on the green pad",
+   "category": "cross-colour",
+   "intended": [
+    [
+     0,
+     1
+    ],
+    [
+     2,
+     1
+    ]
+   ],
+   "note": "if this comes back as the blue pad, the code is matching colours instead of reading the sentence",
+   "verdict": "CORRECT",
+   "message": "2 cubes, on the green pad",
+   "why": "",
+   "plan": [
+    [
+     0.56,
+     0.12,
+     1
+    ],
+    [
+     0.68,
+     0.12,
+     1
+    ]
+   ],
+   "intent": {
+    "verb": "put_on",
+    "target": "blue one",
+    "arm": null,
+    "destination": {
+     "kind": "colour",
+     "colour": "green",
+     "phrase": "green pad"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put the blue ones on the green pad",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "put the green cubes on the blue mat",
+   "category": "cross-colour",
+   "intended": [
+    [
+     1,
+     0
+    ],
+    [
+     3,
+     0
+    ]
+   ],
+   "note": "the same, the other way round",
+   "verdict": "CORRECT",
+   "message": "2 cubes, on the blue pad",
+   "why": "",
+   "plan": [
+    [
+     0.62,
+     0.12,
+     0
+    ],
+    [
+     0.74,
+     0.12,
+     0
+    ]
+   ],
+   "intent": {
+    "verb": "put_on",
+    "target": "green cube",
+    "arm": null,
+    "destination": {
+     "kind": "colour",
+     "colour": "blue",
+     "phrase": "blue mat"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put the green cubes on the blue mat",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "put it on the blue pad",
+   "category": "vague",
+   "intended": null,
+   "note": "'it' with nothing held",
+   "verdict": "ASKED",
+   "message": "Which cube? I can see 2 blue, 2 green, and 'put it on the blue pad' does not tell me which one.",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": "put_on",
+    "target": null,
+    "arm": null,
+    "destination": {
+     "kind": "colour",
+     "colour": "blue",
+     "phrase": "blue pad"
+    },
+    "deictic": true,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put it on the blue pad",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "tidy up",
+   "category": "vague",
+   "intended": null,
+   "note": "no verb this grammar knows",
+   "verdict": "REFUSED",
+   "message": "no known verb in 'tidy up'",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": null,
+    "target": null,
+    "arm": null,
+    "destination": null,
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "tidy up",
+    "reason": "no known verb in 'tidy up'"
+   }
+  },
+  {
+   "utterance": "put that there",
+   "category": "vague",
+   "intended": null,
+   "note": "two deictics and no colour",
+   "verdict": "REFUSED",
+   "message": "I understood 'place', and this task is putting cubes on pads. Say where the cube should go.",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": "place",
+    "target": null,
+    "arm": null,
+    "destination": "here",
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put that there",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "do the cube thing",
+   "category": "vague",
+   "intended": null,
+   "note": "not an instruction",
+   "verdict": "REFUSED",
+   "message": "no known verb in 'do cube thing'",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": null,
+    "target": null,
+    "arm": null,
+    "destination": null,
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "do the cube thing",
+    "reason": "no known verb in 'do cube thing'"
+   }
+  },
+  {
+   "utterance": "put the cube on the pad",
+   "category": "vague",
+   "intended": null,
+   "note": "which cube, and which pad -- four cubes and two pads",
+   "verdict": "REFUSED",
+   "message": "I heard something to move but not WHERE to put it. Name a colour ('on the blue pad') or say 'on its own colour'.",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": null,
+    "target": null,
+    "arm": null,
+    "destination": null,
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put the cube on the pad",
+    "reason": "I heard something to move but not WHERE to put it. Name a colour ('on the blue pad') or say 'on its own colour'."
+   }
+  },
+  {
+   "utterance": "do not put the blue ones on the blue pad",
+   "category": "negation",
+   "intended": null,
+   "note": "negated -- acting on it is the worst outcome available",
+   "verdict": "REFUSED",
+   "message": "negated command ('not' before the verb) -- I will not act",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": null,
+    "target": null,
+    "arm": null,
+    "destination": null,
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "do not put the blue ones on the blue pad",
+    "reason": "negated command ('not' before the verb) -- I will not act"
+   }
+  },
+  {
+   "utterance": "put the blue ones on the blue pad but not the green ones",
+   "category": "negation",
+   "intended": [
+    [
+     0,
+     0
+    ],
+    [
+     2,
+     0
+    ]
+   ],
+   "note": "'not' AFTER the verb is an exclusion clause on a target already named",
+   "verdict": "CORRECT",
+   "message": "2 cubes, on the blue pad",
+   "why": "",
+   "plan": [
+    [
+     0.56,
+     0.12,
+     0
+    ],
+    [
+     0.68,
+     0.12,
+     0
+    ]
+   ],
+   "intent": {
+    "verb": "put_on",
+    "target": "blue one",
+    "arm": null,
+    "destination": {
+     "kind": "colour",
+     "colour": "blue",
+     "phrase": "blue pad but not green ones"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put the blue ones on the blue pad but not the green ones",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "put the blue cube and the green cube on the pads",
+   "category": "two-targets",
+   "intended": null,
+   "note": "two targets -- doing one of them is partial execution",
+   "verdict": "REFUSED",
+   "message": "more than one target in one instruction ('and') -- say them one at a time",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": null,
+    "target": null,
+    "arm": null,
+    "destination": null,
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put the blue cube and the green cube on the pads",
+    "reason": "more than one target in one instruction ('and') -- say them one at a time"
+   }
+  },
+  {
+   "utterance": "put the blue ones on the blue pad then go home",
+   "category": "two-actions",
+   "intended": null,
+   "note": "two actions -- doing the first is partial execution",
+   "verdict": "REFUSED",
+   "message": "more than one action in one instruction ('then') -- say them one at a time",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": null,
+    "target": null,
+    "arm": null,
+    "destination": null,
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put the blue ones on the blue pad then go home",
+    "reason": "more than one action in one instruction ('then') -- say them one at a time"
+   }
+  },
+  {
+   "utterance": "put the cube behind the blue one on the blue pad",
+   "category": "relational",
+   "intended": null,
+   "note": "relational reference, which this rig cannot ground",
+   "verdict": "REFUSED",
+   "message": "relational reference ('behind') -- I cannot pick something out by where it is relative to another object",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": null,
+    "target": null,
+    "arm": null,
+    "destination": null,
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put the cube behind the blue one on the blue pad",
+    "reason": "relational reference ('behind') -- I cannot pick something out by where it is relative to another object"
+   }
+  },
+  {
+   "utterance": "put the blue cube on top of the green cube",
+   "category": "stacking",
+   "intended": null,
+   "note": "stacking, which is not a pad and is not this task",
+   "verdict": "REFUSED",
+   "message": "relational reference ('on top of') -- I cannot pick something out by where it is relative to another object",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": null,
+    "target": null,
+    "arm": null,
+    "destination": null,
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put the blue cube on top of the green cube",
+    "reason": "relational reference ('on top of') -- I cannot pick something out by where it is relative to another object"
+   }
+  },
+  {
+   "utterance": "put the red ones on the red pad",
+   "category": "not-in-scene",
+   "intended": null,
+   "note": "no red cubes and no red pad",
+   "verdict": "REFUSED",
+   "message": "I do not see a red cube. The camera sees 2 blue, 2 green.",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": "put_on",
+    "target": "red one",
+    "arm": null,
+    "destination": {
+     "kind": "colour",
+     "colour": "red",
+     "phrase": "red pad"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put the red ones on the red pad",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "put the blue ones on the red pad",
+   "category": "not-in-scene",
+   "intended": null,
+   "note": "the cubes exist, the pad does not",
+   "verdict": "REFUSED",
+   "message": "there is no red pad in this scene -- the pads are blue and green",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": "put_on",
+    "target": "blue one",
+    "arm": null,
+    "destination": {
+     "kind": "colour",
+     "colour": "red",
+     "phrase": "red pad"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put the blue ones on the red pad",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "put the tray on the blue pad",
+   "category": "not-in-scene",
+   "intended": null,
+   "note": "a noun the grammar knows and the scene does not have",
+   "verdict": "REFUSED",
+   "message": "I can see 2 blue, 2 green on the table and no tray.",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": "put_on",
+    "target": "tray",
+    "arm": null,
+    "destination": {
+     "kind": "colour",
+     "colour": "blue",
+     "phrase": "blue pad"
+    },
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put the tray on the blue pad",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "which cubes are blue",
+   "category": "question",
+   "intended": null,
+   "note": "a question, not a command",
+   "verdict": "REFUSED",
+   "message": "no known verb in 'which cubes are blue'",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": null,
+    "target": null,
+    "arm": null,
+    "destination": null,
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "which cubes are blue",
+    "reason": "no known verb in 'which cubes are blue'"
+   }
+  },
+  {
+   "utterance": "the blue cubes go on the blue pad",
+   "category": "statement",
+   "intended": null,
+   "note": "a statement of fact with no verb of instruction",
+   "verdict": "REFUSED",
+   "message": "no known verb in 'blue cubes go on blue pad'",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": null,
+    "target": null,
+    "arm": null,
+    "destination": null,
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "the blue cubes go on the blue pad",
+    "reason": "no known verb in 'blue cubes go on blue pad'"
+   }
+  },
+  {
+   "utterance": "stop",
+   "category": "stop",
+   "intended": null,
+   "note": "a halt, never a pick and place",
+   "verdict": "REFUSED",
+   "message": "I understood 'stop', and this task is putting cubes on pads. Say where the cube should go.",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": "stop",
+    "target": null,
+    "arm": null,
+    "destination": null,
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "stop",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "put the blue ones on the left pad",
+   "category": "unknown-place",
+   "intended": null,
+   "note": "'left' is not a pad colour",
+   "verdict": "REFUSED",
+   "message": "I heard something to move but not WHERE to put it. Name a colour ('on the blue pad') or say 'on its own colour'.",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": null,
+    "target": null,
+    "arm": null,
+    "destination": null,
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put the blue ones on the left pad",
+    "reason": "I heard something to move but not WHERE to put it. Name a colour ('on the blue pad') or say 'on its own colour'."
+   }
+  },
+  {
+   "utterance": "put the bleu ones on the bleu pad",
+   "category": "misspelling",
+   "intended": [
+    [
+     0,
+     0
+    ],
+    [
+     2,
+     0
+    ]
+   ],
+   "note": "transposition, one edit, unambiguous",
+   "verdict": "CORRECT",
+   "message": "2 cubes, on the blue pad (read 'bleu' as 'blue', 'bleu' as 'blue')",
+   "why": "",
+   "plan": [
+    [
+     0.56,
+     0.12,
+     0
+    ],
+    [
+     0.68,
+     0.12,
+     0
+    ]
+   ],
+   "intent": {
+    "verb": "put_on",
+    "target": "blue one",
+    "arm": null,
+    "destination": {
+     "kind": "colour",
+     "colour": "blue",
+     "phrase": "blue pad"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [
+     [
+      "bleu",
+      "blue"
+     ],
+     [
+      "bleu",
+      "blue"
+     ]
+    ],
+    "ambiguous_words": [],
+    "raw": "put the bleu ones on the bleu pad",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "put the blue cubbes on the blue pad",
+   "category": "misspelling",
+   "intended": [
+    [
+     0,
+     0
+    ],
+    [
+     2,
+     0
+    ]
+   ],
+   "note": "doubled letter in the noun",
+   "verdict": "CORRECT",
+   "message": "2 cubes, on the blue pad (read 'cubbes' as 'cubes')",
+   "why": "",
+   "plan": [
+    [
+     0.56,
+     0.12,
+     0
+    ],
+    [
+     0.68,
+     0.12,
+     0
+    ]
+   ],
+   "intent": {
+    "verb": "put_on",
+    "target": "blue cube",
+    "arm": null,
+    "destination": {
+     "kind": "colour",
+     "colour": "blue",
+     "phrase": "blue pad"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [
+     [
+      "cubbes",
+      "cubes"
+     ]
+    ],
+    "ambiguous_words": [],
+    "raw": "put the blue cubbes on the blue pad",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "put the gren ones on the gren pad",
+   "category": "misspelling",
+   "intended": null,
+   "note": "'gren' is one edit from BOTH green and grey -- a tie, which must be asked about and never broken",
+   "verdict": "ASKED",
+   "message": "I heard something to move but not WHERE to put it. Name a colour ('on the blue pad') or say 'on its own colour'.",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": null,
+    "target": null,
+    "arm": null,
+    "destination": null,
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [
+     [
+      "gren",
+      [
+       "green",
+       "grey"
+      ]
+     ],
+     [
+      "gren",
+      [
+       "green",
+       "grey"
+      ]
+     ]
+    ],
+    "raw": "put the gren ones on the gren pad",
+    "reason": "I heard something to move but not WHERE to put it. Name a colour ('on the blue pad') or say 'on its own colour'."
+   }
+  },
+  {
+   "utterance": "put the gerne ones on the gerne pad",
+   "category": "misspelling",
+   "intended": null,
+   "note": "two edits from green -- outside the repair rule, so refuse",
+   "verdict": "REFUSED",
+   "message": "I heard something to move but not WHERE to put it. Name a colour ('on the blue pad') or say 'on its own colour'.",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": null,
+    "target": null,
+    "arm": null,
+    "destination": null,
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "put the gerne ones on the gerne pad",
+    "reason": "I heard something to move but not WHERE to put it. Name a colour ('on the blue pad') or say 'on its own colour'."
+   }
+  },
+  {
+   "utterance": "pt the blue ones on the blue pad",
+   "category": "misspelling",
+   "intended": null,
+   "note": "the VERB is misspelled, and verbs are never fuzzy-matched",
+   "verdict": "REFUSED",
+   "message": "no known verb in 'pt blue ones on blue pad'",
+   "why": "",
+   "plan": [],
+   "intent": {
+    "verb": null,
+    "target": null,
+    "arm": null,
+    "destination": null,
+    "deictic": false,
+    "quantity": 1,
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "pt the blue ones on the blue pad",
+    "reason": "no known verb in 'pt blue ones on blue pad'"
+   }
+  },
+  {
+   "utterance": "put the blue ones on the blue padd",
+   "category": "misspelling",
+   "intended": [
+    [
+     0,
+     0
+    ],
+    [
+     2,
+     0
+    ]
+   ],
+   "note": "doubled letter in the surface noun",
+   "verdict": "CORRECT",
+   "message": "2 cubes, on the blue pad",
+   "why": "",
+   "plan": [
+    [
+     0.56,
+     0.12,
+     0
+    ],
+    [
+     0.68,
+     0.12,
+     0
+    ]
+   ],
+   "intent": {
+    "verb": "put_on",
+    "target": "blue one",
+    "arm": null,
+    "destination": {
+     "kind": "colour",
+     "colour": "blue",
+     "phrase": "blue padd"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [],
+    "ambiguous_words": [
+     [
+      "padd",
+      [
+       "pad",
+       "pads"
+      ]
+     ]
+    ],
+    "raw": "put the blue ones on the blue padd",
+    "reason": ""
+   }
+  },
+  {
+   "utterance": "sort teh cubes by colour",
+   "category": "misspelling",
+   "intended": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     1
+    ]
+   ],
+   "note": "a filler word misspelled -- must not change the meaning",
+   "verdict": "CORRECT",
+   "message": "4 cubes, each on the pad of the colour the camera saw",
+   "why": "",
+   "plan": [
+    [
+     0.56,
+     0.12,
+     0
+    ],
+    [
+     0.62,
+     0.12,
+     1
+    ],
+    [
+     0.68,
+     0.12,
+     0
+    ],
+    [
+     0.74,
+     0.12,
+     1
+    ]
+   ],
+   "intent": {
+    "verb": "put_on",
+    "target": "cube",
+    "arm": null,
+    "destination": {
+     "kind": "match",
+     "colour": null,
+     "phrase": "by colour"
+    },
+    "deictic": false,
+    "quantity": "all",
+    "corrections": [],
+    "ambiguous_words": [],
+    "raw": "sort teh cubes by colour",
+    "reason": ""
+   }
+  }
+ ],
+ "caveat": "grounding only; the scene is constructed, so this says nothing about detection rate"
+}

@@ -211,7 +211,22 @@ class SessionManager(Node):
     def _js(self, m):
         self.js_t = time.time()
         try:
-            from srl_experiments import home_positions as hp
+            # THE HOME SOURCE IS config/home_positions_{arm}.txt, AND IT IS NOT
+            # A PACKAGE MODULE. This read `from srl_experiments import
+            # home_positions`, which does not exist -- so every call raised
+            # ImportError, the bare `except` below set home_err to None, and
+            # the readiness gate reported "home reference not loaded" for the
+            # life of this node. A gate that can only ever say UNKNOWN is the
+            # G-3 failure it exists to prevent, and it was invisible because
+            # UNKNOWN is a legitimate answer for a gate that has no data yet.
+            import sys as _sys
+            _cfg = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(
+                    os.path.dirname(os.path.abspath(__file__))))),
+                "config")
+            if _cfg not in _sys.path:
+                _sys.path.insert(0, _cfg)
+            import home_positions as hp
             err = 0.0
             for arm in ("left", "right"):
                 tgt = hp.load_home_radians(arm)

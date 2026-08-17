@@ -185,6 +185,127 @@ def waypoints(task_key, scenario):
     return out
 
 
+# --------------------------------------------------------------------------
+# THE RUN MUST START FROM HOME, AND UNTIL 2026-08-17 IT DID NOT.
+#
+# MEASURED, on a fresh teleop stack, reading /joint_states against
+# config/home_positions_{arm}.txt at the instant the FIRST waypoint is
+# published on the mode's entry topic:
+#
+#     at boot                              left 0.0000   right 0.0000 rad
+#     run 1, first commanded waypoint      left 0.0000   right 0.0000
+#     between runs (nothing else ran)      left 1.2338   right 0.6248
+#     run 2, first commanded waypoint      left 1.2338   right 0.6248
+#
+# So the pose is NOT lost between launch and the first trial -- the URDF, the
+# five home carriers and the sim spawn are all correct and were measured to be
+# correct. It is lost BETWEEN TRIALS: nothing returns the arms to home when a
+# run ends, and nothing checked where they were when the next one started.
+# `record_abc_sweep.py` is the only caller that ever staged, and it stages in
+# the SWEEP, not in the runner -- so every run driven from the GUI, from
+# run_experiment.sh or from a data session after the first one began wherever
+# the previous task happened to stop.
+#
+# NOTE THE RIGHT ARM. T1 is a left-arm task and still leaves the right arm
+# 0.62 rad out, because the runner parks the idle arm at park(+/-PARK_X) and
+# never brings it back. "The task did not use that arm" is not the same as
+# "that arm is where it started".
+#
+# WHY THE FIX IS HERE AND NOT IN THE SWEEP. The sweep already stages; adding
+# it there again would fix the one caller that was not broken. run_abc is the
+# ONLY entry point the MSc tasks have, so this is the one place every path
+# goes through.
+#
+# WHY IT SHELLS OUT RATHER THAN COMMANDING THE POSE ITSELF. There is exactly
+# one staging move in this repository and `stage_presentation_pose.py` is it:
+# it pauses the followers by lowering `motion_enabled`, scales the duration
+# from the distance, waits for ARRIVAL rather than sleeping, restores the
+# followers on every exit path, and refuses to touch an arm in real_robot
+# mode. A second copy here would be a second definition of "go home" and the
+# two would drift -- which is the fault this file already carries three
+# comments about.
+#
+# IT REFUSES RATHER THAN RUNNING FROM AN UNKNOWN POSE. A trial that starts
+# somewhere nobody recorded cannot be compared with one that did, and the
+# whole no-operator mode comparison rests on the runs being alike.
+HOME_TOL_RAD = 0.05        # the same tolerance sim_to_real_bridge.enable uses
+
+
+def home_error(node):
+    """Worst wrapped per-joint distance from the loaded home, per arm.
+
+    Returns {arm: (worst_rad, joint_name)} or None if /joint_states has not
+    delivered both arms yet -- UNKNOWN, never a quiet zero. A missing joint
+    state reading as "0.0000 rad from home" is the exact shape of the silent
+    faults this repository keeps finding.
+    """
+    ws = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
+    cfg = os.path.join(ws, "config")
+    if cfg not in sys.path:
+        sys.path.insert(0, cfg)
+    import home_positions as hp
+    out = {}
+    for arm in ARMS:
+        want = list(hp.load_home_radians(arm))
+        names = ["%s_joint_%d" % (arm, i) for i in range(1, 8)]
+        if not all(nm in node.js for nm in names):
+            return None
+        d = [((node.js[nm] - w + math.pi) % (2 * math.pi)) - math.pi
+             for nm, w in zip(names, want)]
+        k = max(range(7), key=lambda i: abs(d[i]))
+        out[arm] = (abs(d[k]), names[k])
+    return out
+
+
+def require_home(node, allow_unhomed=False, tol=HOME_TOL_RAD):
+    """Put the arms on home before the task commands anything. (ok, why).
+
+    Idempotent: an arm already within `tol` is left alone and no publisher is
+    created, so the recording sweep -- which stages before it calls this --
+    pays nothing for it.
+    """
+    node.spin(2.0)
+    err = home_error(node)
+    if err is None:
+        why = ("no /joint_states for both arms, so where the arms are is "
+               "UNKNOWN -- refusing rather than assuming home")
+        return (allow_unhomed, why)
+    node.start_home_err = {a: round(v[0], 4) for a, v in err.items()}
+    worst = max(v[0] for v in err.values())
+    if worst <= tol:
+        print("[home] arms are at home (worst %.4f rad, tol %.2f)"
+              % (worst, tol), flush=True)
+        return True, "already home"
+    print("[home] NOT at home: %s -- staging before the run"
+          % ", ".join("%s %.4f rad (%s)" % (a, v[0], v[1])
+                      for a, v in sorted(err.items())), flush=True)
+    import subprocess
+    ws = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
+    r = subprocess.run(
+        [sys.executable, os.path.join(ws, "scripts",
+                                      "stage_presentation_pose.py")],
+        capture_output=True, text=True)
+    for ln in (r.stdout or "").strip().splitlines():
+        print("      %s" % ln, flush=True)
+    node.spin(1.5)
+    err = home_error(node)
+    if err is None:
+        return allow_unhomed, "lost /joint_states during staging"
+    node.start_home_err = {a: round(v[0], 4) for a, v in err.items()}
+    worst = max(v[0] for v in err.values())
+    if worst <= tol:
+        print("[home] staged: worst %.4f rad" % worst, flush=True)
+        return True, "staged"
+    why = ("the arms are %.4f rad from home after staging (%s). The staging "
+           "move publishes to the same controller ik_follower_node and "
+           "vr_pose_mapper do, so a publisher that holds the arm wins: stop "
+           "vr_pose_mapper for VR modes, or pass --allow-unhomed to record a "
+           "run that deliberately does not start from home."
+           % (worst, ", ".join("%s %.4f (%s)" % (a, v[0], v[1])
+                               for a, v in sorted(err.items()))))
+    return allow_unhomed, why
+
+
 class Runner(Node):
     def __init__(self, args):
         super().__init__("run_abc")
@@ -405,6 +526,14 @@ def main(argv=None):
                          "publisher on the arm controller alongside "
                          "ik_follower_node. Refuses loudly rather than "
                          "falling back to the declaration.")
+    # THE RUN STARTS FROM HOME. See require_home() above for the measurement
+    # that made this necessary: run 2 of a session began 1.2338 rad from home
+    # because run 1 left it there and nothing brought it back.
+    ap.add_argument("--allow-unhomed", action="store_true",
+                    help="record a run that does NOT start from home. Off by "
+                         "default and loud when used: a trial that starts "
+                         "somewhere nobody recorded cannot be compared with "
+                         "one that did.")
     ap.add_argument("--isolate", action="store_true",
                     help="start this mode's upstreams first, exactly as the "
                          "clip sweep does -- see scripts/mode_upstreams.py")
@@ -525,6 +654,23 @@ def main(argv=None):
     n._wire_logging()
     if vision_info is not None:
         n.vision_info = vision_info
+    # ---- START FROM HOME --------------------------------------------------
+    #
+    # BEFORE `--isolate`, and the order is not cosmetic: isolate() starts
+    # vr_pose_mapper for the VR modes, and the mapper HOLDS THE ARMS against a
+    # joint-space trajectory (measured, with a control either side, 2026-08-15).
+    # Staging after it would lose to it. Before it, the controller is free.
+    #
+    # Idempotent -- an arm already within HOME_TOL_RAD costs nothing and no
+    # publisher is created -- which is why the recording sweep, which stages
+    # before it launches this, does not pay for it twice.
+    _homed, _why = require_home(n, allow_unhomed=a.allow_unhomed)
+    if not _homed:
+        print("REFUSING TO RUN: %s" % _why)
+        return 2
+    if _why not in ("already home", "staged"):
+        print("[home] --allow-unhomed: RUNNING ANYWAY. %s" % _why, flush=True)
+
     # THE SAME ISOLATION THE CLIP PATH USES, from the same module.
     #
     # 02_vr_teleop's data run recorded 0.0000 m of EE travel on both arms
@@ -735,6 +881,12 @@ def main(argv=None):
             entry_topic=MODES[a.mode]["topic"] % "<arm>",
             waypoints=len(wp["left"]),
             isolated=bool(a.isolate),
+            # WHERE THE ARMS WERE WHEN THE TASK STARTED, per arm, in radians
+            # from config/home_positions_{arm}.txt. A trial that started off
+            # home is now identifiable in the data rather than assumed
+            # comparable -- the same reason the sweep records `opened_on`.
+            start_home_err_rad=getattr(n, "start_home_err", None),
+            started_unhomed=bool(a.allow_unhomed),
             sim_only=True,
             note="mock hardware echoes commands with no dynamics; every "
                  "tracking figure here is a property of the mock")
@@ -894,6 +1046,11 @@ def main(argv=None):
              state="done"))))
     print("task %s / %s / mode %s : %d poses published on %s"
           % (key, scen, a.mode, n_sent, MODES[a.mode]["topic"] % "<arm>"))
+    _she = getattr(n, "start_home_err", None)
+    print("   started %s home: %s"
+          % ("AT" if _she and max(_she.values()) <= HOME_TOL_RAD else "OFF",
+             "UNKNOWN -- no joint state" if not _she else
+             ", ".join("%s %.4f rad" % (k, v) for k, v in sorted(_she.items()))))
     for arm in ARMS:
         print("   %-5s tf2 EE path %s   net %s"
               % (arm,

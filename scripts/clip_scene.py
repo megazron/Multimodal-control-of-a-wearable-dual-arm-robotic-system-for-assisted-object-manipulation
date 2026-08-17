@@ -625,6 +625,38 @@ SUPPORT_MARGIN_X = 0.02
 # verify_t1_layout.py -- a task-position change with its own verification
 # pass, not a scene edit. Flip SUPPORTS_ENABLED and re-run the sweep to
 # re-measure any candidate geometry.
+#
+# ==========================================================================
+# RE-MEASURED AT THE ANCHOR, 2026-08-17, AND IT IS WORSE THAN RECORDED ABOVE.
+# ==========================================================================
+# Every number in the table above was solved through `measure_what_binds.Rig`
+# while it was asking IK for the HOME wrist instead of `WORKSPACE_ORIENT` -- the
+# anchor `run_abc.send()` actually commands, 32.26 deg away on the left arm. So
+# the whole support family was priced at an orientation the task never sends,
+# and this note's invitation to re-measure was the right one.
+#
+# Re-measured with `SUPPORTS_ENABLED = True`, the lips really in the planning
+# scene, `verify_t1_paths.py --part path --repeats 10` at the anchor over T1's
+# full 171-waypoint path, controls correct:
+#
+#     cube lips + plane lips, 75% of the depth     109 of 171 IK failures
+#
+# against 0 of 171 with no supports. The home-wrist sweep called the same
+# geometry 22; at the anchor it is 109. The direction of the conclusion is
+# unchanged and the margin is five times larger: the hand enters from the near
+# side and BELOW, and a shelf whose top is flush with the object's base is
+# exactly where the fingers close -- the cube lips are 20 mm wider than the cube
+# in x, which is 10 mm each side, which is the pads.
+#
+# So T1-1 stays BLOCKED and the objects stay FIXTURED. This is the fourth
+# independent measurement of that, all at the anchor:
+#   * 0 of 3360 cells with objects RESTING on a swept surface
+#     (search_centre_on_surface.py)
+#   * every (top, edge) cell fails for T1's own x, tops 0.900..1.100, including
+#     an edge at y = 0 (search_t1_layout_on_surface.py)
+#   * best free (top, edge) pair 0.980 / 0.100 over the full path, leaving
+#     FLOAT_GAP_M = 0.120 (sweep_surface_vs_t1_path.py)
+#   * support geometry 109 of 171 (this note)
 SUPPORTS_ENABLED = False
 
 
@@ -782,6 +814,32 @@ def furniture_boxes(task):
         out.append(_lip("lip_multimeter", _t3.METER_OBJ, _t3.METER_SIZE,
                         _ct.BENCH_NEAR_Y))
     return out
+
+
+def work_top_for(arm, task):
+    """The z of the plane THIS ARM's work rests on, in THIS task.
+
+    Derived from the arm's own pads where the task has them, so a marking can
+    never drift from the work it encloses. It is `BENCH_TOP` for every arm and
+    task today; the point is that it is read from the pads rather than restated,
+    which is the difference between two numbers that agree and two numbers that
+    cannot disagree.
+    """
+    import clip_tasks as _ct
+    import msc_clip_tasks as _mct
+    if task in ("t1", "t1s2"):
+        # The pads are drawn as mats with their TOP flush to the plane a placed
+        # cube's base sits on -- so that plane IS the top of the pad.
+        pads = (_mct.T1_PLANES_BY_ARM.get(arm) if task == "t1s2"
+                else (_mct.T1_PLANES if arm == _mct.T1_ARM else None))
+        if pads:
+            return _ct.BENCH_TOP
+    return _ct.BENCH_TOP
+
+
+def marking_z(arm, task):
+    """Where the workspace marking is painted for this arm. See work_top_for."""
+    return work_top_for(arm, task) + MARK_T / 2.0
 
 
 def cells_on_surface(task, arm):
@@ -1547,14 +1605,31 @@ class Scene(Node):
             # every T1 frame.
             for arm in marked_arms(self.task):
                 col = MARK_RGBA[arm]
-                # ON THE SURFACE, NOT ON THE WORK PLANE. It was drawn at
-                # BENCH_TOP, which is where the OBJECTS are -- so the marking
-                # was floating 150 mm above the table along with everything
-                # else. A painted boundary is paint: it goes on the thing it is
-                # painted on. This also means the marking is at a different
-                # height from the objects it bounds, which is correct and is
-                # the vertical gap made visible rather than hidden.
-                zt = TABLE_TOP + MARK_T / 2.0
+                # AT THE PLANE IT BOUNDS. PER ARM.
+                #
+                # This was moved DOWN to TABLE_TOP on the argument that "paint
+                # goes on the thing it is painted on", and that was wrong for a
+                # reason the frame shows immediately: the marking is the
+                # boundary a participant is told to keep the WORK inside, and
+                # drawing it 116.5 mm below the pads put the whole task
+                # outside its own boundary. A boundary that does not enclose
+                # what it bounds is worse than no boundary -- it is a drawn
+                # instruction that the work is somewhere it is not.
+                #
+                # So it goes back to the plane the work rests on, and it is
+                # derived PER ARM from that arm's own pads rather than from one
+                # shared constant. Both arms' pads sit at BENCH_TOP today, so
+                # the two heights are equal -- but they are now equal BECAUSE
+                # THEY ARE MEASURED FROM THE SAME THING, not by coincidence,
+                # and an arm whose pads moved would take its marking with it.
+                #
+                # The marking therefore shares T1-1's vertical block: it sits
+                # at the work plane, which stands FLOAT_GAP_M above the drawn
+                # table. That is the honest place for it, and
+                # `verify_objects_on_table` treats it as work-plane-registered
+                # for exactly that reason instead of demanding it rest on the
+                # table.
+                zt = marking_z(arm, self.task)
                 # ONLY WHERE THERE IS A SURFACE TO PAINT IT ON, and the count
                 # dropped is printed rather than absorbed. A boundary a
                 # participant is told to work inside, drawn over air, is worse
@@ -1589,7 +1664,10 @@ class Scene(Node):
                 lab.text = "%s arm reach (measured)" % arm
                 lab.pose.position.x = float((x0 + x1) / 2.0)
                 lab.pose.position.y = float(y0 - 0.03)
-                lab.pose.position.z = float(TABLE_TOP + 0.02)
+                # WITH ITS OWN MARKING, not with the table. A label floating
+                # 116 mm under the boundary it names is the same defect as the
+                # boundary itself.
+                lab.pose.position.z = float(zt + 0.02)
                 lab.pose.orientation.w = 1.0
                 lab.scale.z = 0.030
                 (lab.color.r, lab.color.g,

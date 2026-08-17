@@ -273,7 +273,7 @@ def check_object(obj, solids, tol=TOL_M, blocked_gap=None, plane_z=None):
 # WHAT HAS TO REST, PER TASK. Read from the task modules, not written here,
 # so a layout change reaches this check instead of sitting beside it.
 # ---------------------------------------------------------------------------
-def objects_for(task):
+def objects_for(task, seed=0):
     """[(name, xyz, size)] for everything in `task` that must rest on a solid.
 
     Graspable items AND the non-graspable fixtures a viewer reads as lying on
@@ -284,9 +284,8 @@ def objects_for(task):
     import msc_clip_tasks as MCT
     import clip_scene as CS
     out = []
-    if task in ("t1", "t1s2"):
-        cubes = MCT.T1_CUBES if task == "t1" else MCT.T1_CUBES
-        for i, (cx, cy) in enumerate(cubes):
+    if task == "t1":
+        for i, (cx, cy) in enumerate(MCT.T1_CUBES):
             out.append(("cube_%d" % i, [cx, cy, MCT.T1_Z],
                         [MCT.CUBE_M] * 3))
         arm = MCT.T1_ARM
@@ -295,6 +294,32 @@ def objects_for(task):
             out.append(("plane_%d" % i,
                         [px, py, CT.BENCH_TOP - CS.PLANE_T / 2.0],
                         [pw, pd, CS.PLANE_T]))
+    elif task == "t1s2":
+        # STAGE 2'S OWN LAYOUT, AND IT HAD NEVER BEEN CHECKED.
+        #
+        # This branch read `MCT.T1_CUBES if task == "t1" else MCT.T1_CUBES` --
+        # a ternary with the same answer on both sides -- so asking this check
+        # about T1S2 measured STAGE 1's four cubes and stage 1's single-arm pad
+        # pair. Stage 2 is a random draw over BOTH arms from its own seed and
+        # has a pad pair per arm, none of which was ever looked at. The check
+        # was crediting one task with another task's geometry, which is the
+        # fault I had just finished fixing in `status_table`, in a file I wrote
+        # the same day. Two namespaces, one key space, again.
+        #
+        # The seed matters: the scene node and the task are driven from ONE
+        # seed (the sweep passes --seed to both) precisely so the picture and
+        # the path cannot disagree, and 0 is what the sweep records.
+        tgt = MCT.stage2_targets(seed)
+        for arm in ("left", "right"):
+            for i, cube in enumerate(tgt["cubes"][arm]):
+                out.append(("cube_%s_%d" % (arm, i), list(cube),
+                            [MCT.CUBE_M] * 3))
+            pw, pd = CS.PLANE_SIZE_BY_ARM.get(
+                arm, (CS.PLANE_W, CS.PLANE_D))
+            for i, (px, py) in enumerate(MCT.T1_PLANES_BY_ARM[arm]):
+                out.append(("plane_%s_%d" % (arm, i),
+                            [px, py, CT.BENCH_TOP - CS.PLANE_T / 2.0],
+                            [pw, pd, CS.PLANE_T]))
     elif task == "t3":
         import task3 as T3
         out.append(("circuit_box", list(T3.BOX_OBJ), list(T3.BOX_SIZE)))
@@ -316,12 +341,12 @@ def marking_tiles(task):
         for j, (bx, by, sx, sy) in enumerate(
                 CS.region_outline(cells, CS.REGION_STEP)):
             out.append(("mark_%s_%d" % (arm, j),
-                        [bx, by, CS.TABLE_TOP + CS.MARK_T / 2.0],
+                        [bx, by, CS.marking_z(arm, task)],
                         [sx, sy, CS.MARK_T]))
     return out
 
 
-def check_task(task, tol=TOL_M):
+def check_task(task, tol=TOL_M, seed=0, inject_float_m=0.0):
     import clip_scene as CS
     solids = CS.furniture_boxes(task)
     bg = documented_gap_m()
@@ -331,8 +356,35 @@ def check_task(task, tol=TOL_M):
         plane = work_plane()
     except Exception:                                    # pragma: no cover
         pass
-    objs = [check_object(o, solids, tol, bg, plane)
-            for o in objects_for(task)]
+    # THE NEGATIVE CONTROL, ON THE REAL SCENE.
+    #
+    # A check whose only evidence is that it reports BLOCKED today has proved
+    # nothing about whether it can report anything else. This displaces every
+    # object -- and the marking with them, since they are all registered to the
+    # same plane -- by a known amount, so the verdict can be watched changing:
+    #
+    #     inject 0      -> BLOCKED at the documented 120.0 mm (exit 3)
+    #     inject +5 mm  -> DRIFT, 125.0 mm is not the documented gap (exit 1)
+    #     inject -120 mm-> PASS, the objects now rest on the table (exit 0)
+    #
+    # This is the same instrument answering three ways about one scene, which is
+    # what "not passing vacuously" means. It is a diagnostic switch, never used
+    # by a caller that gates on the result.
+    # The displacement moves the WORK PLANE with the objects, because that is
+    # what a scene whose work plane is elsewhere looks like -- shifting the
+    # objects off their own plane would only test the registration check, and
+    # the thing under test here is the GAP.
+    if plane is not None:
+        plane = round(plane + inject_float_m, 6)
+
+    def _shift(o):
+        if not inject_float_m:
+            return o
+        n, xyz, size = o[0], list(o[1]), o[2]
+        xyz[2] += inject_float_m
+        return (n, xyz, size)
+    objs = [check_object(_shift(o), solids, tol, bg, plane)
+            for o in objects_for(task, seed)]
     # THE ONE GAP, CHECKED ONCE. Every object is registered to the work plane,
     # so the distance from the work plane to the highest surface under it is a
     # single scene fact. It must equal the documented, measured value.
@@ -361,11 +413,17 @@ def check_task(task, tol=TOL_M):
     blocked_gap_here = (gap is not None and bg is not None
                         and not resting and abs(gap - bg) <= tol)
     gap_ok = resting or blocked_gap_here
-    # THE MARKING GETS NO BLOCKED ALLOWANCE. It is paint: there is no geometry
-    # stopping it being drawn on the surface it describes, so a floating tile
-    # is a defect with no excuse. This is the whole point of separating the two
-    # -- the objects have a measured reason and the marking never did.
-    tiles = [check_object(t, solids, tol) for t in marking_tiles(task)]
+    # THE MARKING IS CHECKED AGAINST THE WORK PLANE, LIKE THE OBJECTS.
+    #
+    # It used to be checked against the table, on the argument that paint has
+    # no excuse for floating. That argument moved the marking DOWN to the table
+    # and put the whole task outside its own boundary -- 116.5 mm below the
+    # pads. The marking bounds the WORK, so it belongs at the plane the work
+    # rests on and is registered to it exactly as a cube is. Its footprint is
+    # still required to lie over a real solid, which is the part that stops a
+    # boundary being drawn over thin air in plan view.
+    tiles = [check_object(_shift(t), solids, tol, bg, plane)
+             for t in marking_tiles(task)]
     return dict(task=task, tol_m=tol, documented_gap_m=bg,
                 solids=[dict(name=s[0], top_z=round(_top(s)[0], 4),
                              x=[round(_top(s)[1], 4), round(_top(s)[2], 4)],
@@ -451,6 +509,11 @@ def main():
     ap.add_argument("--task", default="t1",
                     choices=["t1", "t1s2", "t3"])
     ap.add_argument("--tol", type=float, default=TOL_M)
+    ap.add_argument("--inject-float-mm", type=float, default=0.0,
+                    help="displace every object by this many mm in z, to prove "
+                         "the check can fail (negative control)")
+    ap.add_argument("--seed", type=int, default=0,
+                    help="t1s2's layout seed; the sweep records seed 0")
     ap.add_argument("--no-self-test", action="store_true")
     ap.add_argument("--json", default="")
     a = ap.parse_args()
@@ -462,7 +525,12 @@ def main():
             return 2
         print()
 
-    r = check_task(a.task, a.tol)
+    r = check_task(a.task, a.tol, a.seed, a.inject_float_mm / 1000.0)
+    if a.inject_float_mm:
+        print("  !! NEGATIVE CONTROL: every object and the marking displaced "
+              "%+.1f mm in z. A correct check must NOT report PASS here "
+              "unless the displacement lands them on the table."
+              % a.inject_float_mm)
     print("  %s -- objects that must rest on a solid" % a.task.upper())
     print("  solids in the scene:")
     for s in r["solids"]:

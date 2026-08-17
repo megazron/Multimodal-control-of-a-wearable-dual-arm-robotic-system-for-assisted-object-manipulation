@@ -5508,3 +5508,46 @@ records it in the trial summary as `first_wp_home_err_rad` /
 `first_wp_at_home`, and prints one greppable line. Note also that the clip's
 `scene_events.json` carried `opened_on: null`, so it recorded no evidence of the
 pose it opened on at all.
+
+## The arms are NOT at home at the first commanded waypoint — measured, 2026-08-17
+
+The instrumentation above found it on its first run. Recording T1 under
+`01_master_teleop`, everything upstream reporting success:
+
+* `stage_presentation_pose.py` succeeded → the clip records
+  `opened_on: "presentation"`;
+* the staged look reported `home to 0.0000 rad`;
+* `run_abc.require_home()` returned homed and the run exited 0;
+* `verify_rviz_clips` passed 37 of 37 clips.
+
+And at the first commanded waypoint:
+
+    left 0.7955 rad from home, right 0.6249 rad, tol 0.05  ->  NOT AT HOME
+
+**So the operator's reading of the frame was right and the clip was not stale.**
+The clip at 09:30 postdates `require_home()` (07:24) by two hours, and the arms
+in it really are off home — every check between the two was measuring something
+adjacent to the question. `opened_on` records whether STAGING SUCCEEDED, which
+it did; it says nothing about where the arms were when the task first commanded
+anything.
+
+Note also that the right arm's 0.6249 matches the 0.6248 recorded for "run 2
+began off home" to a tenth of a milliradian, and 0.6249 is about what
+`park(0.32)` — where T1's idle right arm is held — sits from home. So at least
+the right arm's number looks like the PARK pose rather than drift.
+
+**The leading hypothesis, not yet confirmed.** `require_home()` stages through
+`stage_presentation_pose.py`, which pauses the followers for its duration. When
+that subprocess exits and `ik_follower_node` resumes, it streams toward the
+target it still holds — which is wherever the arm was before staging. Staging
+would then be undone between `require_home()` returning True and the loop's
+first publish, with nothing in between measuring. The instrument to settle it
+already exists (`scripts/verify_follower_pause.py`) and the fix, if this is
+right, is to re-target or re-pause the followers across that boundary rather
+than to move the check.
+
+**The sweep now FAILS a clip that is not at home at its first waypoint**, so
+this cannot be recorded silently again. It is why no re-recorded T1 set was
+committed this session: the mode 01 clip was recorded, failed this check, and
+the previously committed clip was restored rather than replaced with one whose
+arms are 0.80 rad off home.

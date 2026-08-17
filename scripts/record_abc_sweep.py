@@ -1135,12 +1135,58 @@ def _main_body():
                                 ).strip().splitlines():
                         log("        | %s" % _ln)
                 time.sleep(a.settle_s)
+                # A STALE SIDECAR WOULD CERTIFY THIS CLIP WITH THE LAST ONE'S
+                # NUMBER. Remove it first; absent then means absent.
+                try:
+                    os.remove(os.environ.get("SRL_FIRST_WP_FILE",
+                                             "/tmp/srl_first_wp_home.json"))
+                except OSError:
+                    pass
                 good, msg, grabs, gate, grab_t0 = run_one(
                     app, gui, task, mode, out_dir, graph=graph,
                     start_grabs=lambda: rr.start_grabs(out_dir,
                                                       grip_arm),
                     prefix=ts["prefix"], gui_key=ts["arg"](task))
                 log("      capture gated on %s" % gate)
+                # WHERE THE ARMS WERE AT THE FIRST COMMANDED WAYPOINT.
+                #
+                # `opened_on` below says whether STAGING succeeded, which is a
+                # different claim: staging happens, then the scene node comes
+                # up, then the trial manifest is written, then for T1 the arm
+                # goes and LOOKS -- and only after all of that does the task
+                # command its first waypoint. A clip recorded two hours after
+                # require_home() landed still showed arms that were not at
+                # home, and every check passed, because nothing measured the
+                # moment that matters. run_abc measures it and leaves it in a
+                # sidecar file; the GUI owns its stdout, so this is the channel.
+                #
+                # STALE IS WORSE THAN MISSING: the file is deleted before the
+                # run in run_one's caller order, so a run that never wrote one
+                # reports absent rather than inheriting the previous clip's
+                # answer.
+                _fw = None
+                try:
+                    import json as _j
+                    _fwf = os.environ.get("SRL_FIRST_WP_FILE",
+                                          "/tmp/srl_first_wp_home.json")
+                    if os.path.exists(_fwf):
+                        _fw = _j.load(open(_fwf))
+                except Exception:                             # noqa: BLE001
+                    _fw = None
+                if _fw is None:
+                    log("      first waypoint: NO RECORD (run_abc wrote no "
+                        "sidecar) -- the opening pose of this clip is unproven")
+                else:
+                    log("      first waypoint: worst %.4f rad from home "
+                        "(tol %.2f) -> %s   %s"
+                        % (_fw.get("worst_rad") or -1.0,
+                           _fw.get("tol_rad") or 0.0,
+                           "AT HOME" if _fw.get("at_home") else "NOT AT HOME",
+                           _fw.get("per_arm")))
+                    if not _fw.get("at_home"):
+                        good = False
+                        msg += ("; NOT AT HOME AT THE FIRST WAYPOINT: %s"
+                                % (_fw.get("per_arm"),))
                 # SAY WHY, IMMEDIATELY. The reason used to be folded into the
                 # message printed after teardown, so a teardown that raised
                 # took the diagnosis with it.
@@ -1309,6 +1355,13 @@ def _main_body():
                                   # staging never ran.
                                   opened_on=("presentation" if staged
                                              else "home"),
+                                  # AND WHERE THEY WERE WHEN THE TASK FIRST
+                                  # COMMANDED SOMETHING, which `opened_on`
+                                  # does not say -- see the note at the
+                                  # sidecar read above. None means the run
+                                  # left no measurement, which is a gap and
+                                  # not a pass.
+                                  first_waypoint_home=_fw,
                                   files=files, dir=os.path.relpath(out_dir, WS))
                 save_progress(prog)          # AFTER EVERY CLIP
                 log("      %s  %s  (%d files%s)"

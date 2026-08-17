@@ -257,6 +257,12 @@ def home_error(node):
     return out
 
 
+# WHERE THE FIRST-WAYPOINT HOME MEASUREMENT IS LEFT FOR THE SWEEP TO FIND.
+# Overridable so two runs cannot race, and so a test can point it at a temp dir.
+FIRST_WP_FILE = os.environ.get("SRL_FIRST_WP_FILE",
+                               "/tmp/srl_first_wp_home.json")
+
+
 def require_home(node, allow_unhomed=False, tol=HOME_TOL_RAD):
     """Put the arms on home before the task commands anything. (ok, why).
 
@@ -978,6 +984,24 @@ def main(argv=None):
                         HOME_TOL_RAD,
                         "AT HOME" if _w0 <= HOME_TOL_RAD else "NOT AT HOME")),
                   flush=True)
+            # AND ON DISK, because the recording sweep launches this through
+            # the GUI and never sees our stdout. A sidecar file is how the
+            # sweep already moves `stage_observe_and_detect`'s result around
+            # (gui_launch_specs.DETECTIONS_FILE), so this follows that rather
+            # than inventing a channel. Written BEFORE the first publish, so a
+            # run that dies mid-clip still leaves the measurement behind.
+            try:
+                import json as _json
+                with open(FIRST_WP_FILE, "w") as _fh:
+                    _json.dump(dict(
+                        task=a.task, mode=a.mode, tol_rad=HOME_TOL_RAD,
+                        per_arm=n.first_wp_home_err,
+                        worst_rad=None if _w0 is None else round(_w0, 4),
+                        at_home=bool(_w0 is not None and _w0 <= HOME_TOL_RAD),
+                        allow_unhomed=bool(a.allow_unhomed)), _fh, indent=2)
+            except Exception as _fe:                          # noqa: BLE001
+                print("[home] could not write %s: %s"
+                      % (FIRST_WP_FILE, _fe), flush=True)
         # RE-SEND THE SAME TARGET AT 20 Hz FOR THE WHOLE HOLD, rather than
         # once per waypoint. A single publish followed by a 0.45 s pause is a
         # 0.45 s silence on the topic, and vr_pose_mapper's tracking watchdog

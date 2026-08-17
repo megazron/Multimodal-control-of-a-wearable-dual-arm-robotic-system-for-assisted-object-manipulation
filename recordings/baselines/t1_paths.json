@@ -208,7 +208,7 @@
     "seed_2": {
       "left": {
         "waypoints": 91,
-        "ik_failures": 0,
+        "ik_failures": 16,
         "worst_clearance_m": 0.161,
         "clearance_to": "torso",
         "waypoints_below_floor": 0,
@@ -246,7 +246,7 @@
       }
     }
   },
-  "ik_calls": 7522,
-  "total_ik_failures": 0,
+  "ik_calls": 7378,
+  "total_ik_failures": 16,
   "total_waypoints_below_floor": 0
 }

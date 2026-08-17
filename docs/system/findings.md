@@ -5344,3 +5344,167 @@ UNMEASURED on real hardware.
 The 40-phrase `sweep_language_vision.py` reproduces its committed
 10 / 6 / 24 / 0 exactly, which is the control that says the shipped grammar was
 not disturbed.
+
+---
+
+# 2026-08-17 (later still) — THE INSTRUMENT WAS AT THE WRONG WRIST, AND THAT IS WHY THE OBJECTS FLOAT
+
+## The fault, and how far it reaches
+
+`measure_what_binds.Rig` set `self.quat` to the LIVE end-effector orientation
+read off TF at construction — the HOME wrist. The tasks never command that:
+`run_abc.send()` writes `master_calibration.WORKSPACE_ORIENT` into every
+waypoint of every mode. Measured at the current home:
+
+| arm | home tool-axis elevation | anchor | angle between |
+| --- | --- | --- | --- |
+| left | −1.47 deg | +30.77 | **32.26 deg** |
+| right | −1.42 | +22.10 | 24.14 |
+
+The left arm is the one T1 runs on. **Every reachability sweep in the repo
+solves through `Rig`**, so every one of them measured a pose the robot is not
+asked to reach. TASK_SPEC §9 records this fault for `search_centre_on_surface`,
+which worked around it by passing its own anchor to `solve()` — but the
+work-around read `as_tuple(rig.quat[arm])`, i.e. it *was* the home wrist, so the
+work-around did not work. `solve_joints()` had no `quat` argument at all, so
+`verify_t1_paths` — the instrument CLAUDE.md cites for T1 — could not have asked
+for the right orientation even in principle.
+
+`Rig(anchor="workspace")` is now the default; `anchor="home"` asks for the old
+behaviour by name.
+
+**What the fix did NOT overturn.** T1's shipped stage-1 layout re-verifies at
+the anchor: 0 IK failures, 0 below the floor, clearance 0.1610, N=10, 171
+waypoints, reproduced twice. The layout was right; the measurement was about the
+wrong thing.
+
+**What it did overturn.** `recordings/baselines/centre_on_surface.json`'s 22
+hits, and with them the TASK_SPEC §9 lead "A SEARCH THAT MOVED THE TABLE INSTEAD
+FOUND A CELL". Re-run at the anchor, all three controls correct: **0 of 3360
+cells**.
+
+## T1-1: the objects cannot rest on the surface, measured three ways
+
+1. `search_centre_on_surface.py` — x 0.00–0.45, y 0.10–0.55, top 0.70–1.10,
+   overhang 0 and 0.05, both arms, pinned AND top-down, objects RESTING:
+   **0 of 3360** survive the full pick path.
+2. `search_t1_layout_on_surface.py` — T1's own x = 0.560, tops 0.900–1.100,
+   object 20–60 mm behind the edge: **every cell fails**, including a near edge
+   at y = 0. It is not the edge; the slab occupies the volume the ARM needs.
+3. `measure_objects_on_the_table.py` — objects held at 1.120, slab swept:
+   0.950/1.000/1.020 cost **0 of 54**, 1.040 costs 12, 1.100 costs 38.
+
+### And then (3) turned out to be measuring the wrong path
+
+It walks T1's **six pick paths**. The path T1 sends is **171 waypoints** and
+also contains the two pad placements, the transits and the standoffs — and a
+surface can delete a placement while costing every pick nothing. Acting on
+"1.020 costs 0 of 54" put `verify_t1_paths` at **36 of 171**.
+
+`sweep_surface_vs_t1_path.py` walks the whole path, height and near edge
+together, N=10, controls correct (no slab 0, slab through the objects 171,
+shipped 0.950/0.100 zero):
+
+| top \ near edge | 0.062 | 0.080 | 0.100 |
+| --- | --- | --- | --- |
+| 0.950 | 0 | 0 | 0 |
+| 0.965 | 14 | 0 | 0 |
+| 0.980 | 14 | 14 | **0** |
+
+**Height and forward reach trade against each other.** A one-axis sweep of a
+two-axis constraint reads the best cell off the wrong axis. The best free pair
+is **0.980 / 0.100**, so the surface rises 30 mm and the gap goes 150 → 120 mm.
+The cubes still do not rest on it.
+
+### An instrument note that cost an hour
+
+One `verify_t1_paths` run at 0.980/0.100 read **18 of 171** where the sweep read
+0. It did not reproduce — two later runs read 0 — and the cause is that the run
+overlapped the still-running sweep, which was applying and removing its own slab
+in the same planning scene. HARD CONSTRAINT 3 is about two stacks; this is the
+same hazard one level down: **two clients mutating one planning scene**. Do not
+run a sweep and a verifier against one `move_group` at the same time.
+
+## Two surface constants, 150 mm apart, and nothing compared them
+
+`clip_tasks.BENCH_TOP` was the literal `1.10`; `clip_scene.TABLE_TOP` was the
+literal `0.950`. Every cube, pad and marking tile is positioned against the
+first; the only surface with geometry is drawn against the second. The raised
+bench that closed the gap was deleted as scenery ("THE BENCH IS GONE. ONE
+TABLE.") and the objects were left in the air. It survived a code read because
+it was *written down*: `clip_scene.py` carried the comment "it is 170 mm below
+the work plane and nothing rests on it".
+
+Both now read `srl_experiments.work_surface`, which owns `WORK_PLANE_M` (1.100,
+where the objects are), `DECLARED_M` (0.980, the drawn surface),
+`DECLARED_NEAR_Y` (0.100) and `FLOAT_GAP_M` (0.120).
+`test_one_work_surface_height.py` fails if either consumer goes back to its own
+copy, and pins the gap **in both directions** — a smaller gap fails too, because
+every number behind it was measured against this pair.
+
+A first attempt collapsed the two into ONE owner. That is wrong in the other
+direction: it makes the objects rest on the table by definition and the render
+disagrees. They are two facts and the gap between them is a third.
+
+## The check that should have caught it did not exist
+
+`scripts/verify_objects_on_table.py`. Pure geometry over the same two functions
+the scene draws from, so it runs offline with no stack, no render and no IK: each
+object registered to the work plane, each footprint inside a solid, the marking
+painted on the surface, and the one scene-level gap equal to the documented
+value. **9 known answers**, including two DRIFT cases (85 mm and 70 mm against a
+documented 80) because a tolerance that excuses any gap binds nothing. It reports
+`PASS WITH A KNOWN BLOCK` and states in words that T1-1 is not satisfied — the
+`by_design` argument applied to a geometric impossibility.
+
+A first version compared every object's base to the surface and called the pads
+DRIFT for being 76 mm up instead of 80. They are 4 mm thick and drawn TOP-flush
+to the work plane on purpose. That is registration, not drift, and the gap is one
+scene fact rather than a per-object one.
+
+## The marking, and the render check that could not fail
+
+The marking was **192 filled 21 mm tiles** at 30% alpha plus a bounding-box
+outline, drawn at `BENCH_TOP` so it floated with everything else, with 20 cells
+entirely off the table. The comment above the loop still claimed "four thin bars
+rather than a filled patch" — true two rewrites earlier.
+
+It is now `region_outline()`: the **same set**, an edge drawn wherever a cell
+adjoins a non-cell, so concave stays concave, collinear runs merged. **20 bars**
+instead of 196 markers. The bounding box is gone — it was the only real
+simplification, asserting a third of the right arm's box that was never
+measured. It is painted on the surface and clipped to it; **40 of 192 cells are
+dropped** for having no surface under them and the count is printed, not
+absorbed.
+
+**Removing the bounding box left the label reading its corners.** `tick()` raised
+`NameError` on its first frame, so `clip_scene` came up with no table, no cubes,
+no pads and no marking — and all three views were filed **OK at 18% ink**,
+because the WEARER is 18% of the frame. With the scene publishing, the same views
+read 46–50%. An ink fraction answers "is anything drawn", not "is the scene
+drawn". `render_t1_scene.py` now SUBSCRIBES to `/task_objects` and refuses to
+shoot unless the task's own namespaces are present. The negative control is that
+real failure: `tick()` raised before the `planes` and `item` blocks.
+
+## T1S2 seed 2 has 16 IK failures and always did
+
+Stage 2, seed 2, LEFT arm: **16 of 91** at N=10. Measured at the raised surface
+AND at the old 0.950 — **identically 16** — so it is the anchor fix, not the
+surface. Seeds 0 and 1 are clean on both arms, and the recording sweep runs
+`--seed 0`, so no recorded clip is affected. CLAUDE.md's "0 IK failures … stage 1
+AND all three stage-2 seeds" was measured at the home wrist and is corrected.
+
+## A run's home pose, at the moment it matters
+
+`require_home()` measures and stages BEFORE the run. That is not the same claim
+as "the run started from home": between it and the first published waypoint the
+scene node comes up, the trial manifest is written, and for mode 06
+`Vision.stage()` drives the arm to an observe pose. A clip recorded at 09:30 —
+two hours AFTER `require_home()` landed at 07:24 — shows arms that are visibly
+not at home, and the pre-run check had passed.
+
+`run_abc` now measures the home error **at the first commanded waypoint**,
+records it in the trial summary as `first_wp_home_err_rad` /
+`first_wp_at_home`, and prints one greppable line. Note also that the clip's
+`scene_events.json` carried `opened_on: null`, so it recorded no evidence of the
+pose it opened on at all.

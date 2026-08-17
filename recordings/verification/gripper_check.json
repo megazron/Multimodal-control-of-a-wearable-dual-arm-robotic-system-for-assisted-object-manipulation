@@ -75,7 +75,7 @@
     "released": true,
     "joint_ok": true,
     "spread_open": 187066.0,
-    "spread_shut": 18123.0,
+    "spread_shut": 21395.0,
     "pixel_ok": true,
     "grasp_task": true
   },
@@ -90,8 +90,8 @@
     "closed_on_object": true,
     "released": true,
     "joint_ok": true,
-    "spread_open": 189044.0,
-    "spread_shut": 26846.0,
+    "spread_open": 189043.0,
+    "spread_shut": 20986.0,
     "pixel_ok": true,
     "grasp_task": true
   },
@@ -187,7 +187,7 @@
     "released": true,
     "joint_ok": true,
     "spread_open": 186879.0,
-    "spread_shut": 16265.0,
+    "spread_shut": 21331.0,
     "pixel_ok": true,
     "grasp_task": true
   },
@@ -202,8 +202,8 @@
     "closed_on_object": true,
     "released": true,
     "joint_ok": true,
-    "spread_open": 188853.0,
-    "spread_shut": 26690.0,
+    "spread_open": 188857.0,
+    "spread_shut": 20811.0,
     "pixel_ok": true,
     "grasp_task": true
   },
@@ -299,7 +299,7 @@
     "released": true,
     "joint_ok": true,
     "spread_open": 186527.0,
-    "spread_shut": 20445.0,
+    "spread_shut": 21486.0,
     "pixel_ok": true,
     "grasp_task": true
   },
@@ -315,7 +315,7 @@
     "released": true,
     "joint_ok": true,
     "spread_open": 188505.0,
-    "spread_shut": 26831.0,
+    "spread_shut": 21002.0,
     "pixel_ok": true,
     "grasp_task": true
   },
@@ -410,8 +410,8 @@
     "closed_on_object": true,
     "released": true,
     "joint_ok": true,
-    "spread_open": 186560.0,
-    "spread_shut": 21613.0,
+    "spread_open": 186561.0,
+    "spread_shut": 21603.0,
     "pixel_ok": true,
     "grasp_task": true
   },
@@ -426,8 +426,8 @@
     "closed_on_object": true,
     "released": true,
     "joint_ok": true,
-    "spread_open": 188530.0,
-    "spread_shut": 26866.0,
+    "spread_open": 188539.0,
+    "spread_shut": 20698.0,
     "pixel_ok": true,
     "grasp_task": true
   },
@@ -523,7 +523,7 @@
     "released": true,
     "joint_ok": true,
     "spread_open": 186546.0,
-    "spread_shut": 18536.0,
+    "spread_shut": 21385.0,
     "pixel_ok": true,
     "grasp_task": true
   },
@@ -538,8 +538,8 @@
     "closed_on_object": true,
     "released": true,
     "joint_ok": true,
-    "spread_open": 188521.0,
-    "spread_shut": 26976.0,
+    "spread_open": 188528.0,
+    "spread_shut": 20994.0,
     "pixel_ok": true,
     "grasp_task": true
   },

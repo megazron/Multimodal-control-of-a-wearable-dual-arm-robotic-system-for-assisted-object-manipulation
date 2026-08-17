@@ -113,9 +113,32 @@ def verified():
     return out
 
 
-def clips():
-    """Clip directories on disk, newest recording root wins."""
+def clips(report=None):
+    """Clip directories on disk, newest recording root wins.
+
+    THE DIRECTORY NAME IS A CLAIM, AND IT IS NOW CHECKED AGAINST THE CLIP.
+    `data()` below records that this table once matched task keys by substring
+    and credited every task with every other task's rows. The prefix version of
+    the same bug -- "t1s2".startswith("t1") -- was fixed in main(). Both fixes
+    were about the KEY. Neither of them looked inside a clip.
+
+    So a clip filmed as one task and written into another task's directory
+    would still have been counted, and the table would have shown a task as
+    covered on the strength of another task's footage. Nothing detected that,
+    because nothing compared the folder to its contents.
+
+    `clip_scene` stamps the task it was publishing into `scene_events.json`, so
+    the check is one string comparison per clip. A clip whose record names a
+    DIFFERENT task is not counted and is reported; a clip with no record at all
+    is counted but listed as unverified, because absence of the file is not
+    evidence of the wrong task and silently dropping it would under-report.
+
+    Audited over all 37 clips on 2026-08-17: 0 mismatches, 0 clips without a
+    record, and 0 groups of byte-identical footage -- so this guard changes no
+    count today. It is here so that it cannot start being wrong quietly.
+    """
     found = {}
+    mism, unver = [], []
     roots = sorted(glob.glob(os.path.join(WS, "recordings", "verification*")))
     for r in roots:
         for p in glob.glob(os.path.join(r, "*", "*", "*")):
@@ -126,7 +149,24 @@ def clips():
                 continue
             mode = p.split(os.sep)[-3]
             task = p.split(os.sep)[-2].lower()
+            ev = os.path.join(p, "scene_events.json")
+            said = None
+            if os.path.exists(ev):
+                try:
+                    said = (json.load(open(ev)) or {}).get("task")
+                except Exception:                             # noqa: BLE001
+                    said = "unreadable"
+            if said is None:
+                unver.append(os.path.relpath(p, WS))
+            elif str(said).lower() != task:
+                # NOT COUNTED. This is the whole point: a clip that says it is
+                # a different task cannot be evidence for this one.
+                mism.append((os.path.relpath(p, WS), task, said))
+                continue
             found.setdefault((task, mode), []).append((len(mp4), r))
+    if report is not None:
+        report["mismatched"] = mism
+        report["unverified"] = unver
     return found
 
 
@@ -182,7 +222,8 @@ def planned():
 
 
 def main():
-    b, c, d = built(), clips(), data()
+    clip_report = {}
+    b, c, d = built(), clips(clip_report), data()
     pl = planned()
     print("=" * 78)
     print("STATUS: every MSc task x every mode, read from disk")
@@ -229,6 +270,19 @@ def main():
           % (", ".join("/".join(g) for g in gaps_c) or "NONE"))
     print("REAL GAPS -- planned, no data: %s"
           % (", ".join("/".join(g) for g in gaps_d) or "NONE"))
+    # SAID EVERY RUN, INCLUDING WHEN IT IS ZERO. A guard that only speaks up
+    # when it fires is a guard nobody knows is running.
+    mism = clip_report.get("mismatched", [])
+    unver = clip_report.get("unverified", [])
+    print("clip content checked against its folder: %d mismatched (NOT "
+          "counted), %d without a record" % (len(mism), len(unver)))
+    for p, want, said in mism:
+        print("   NOT COUNTED: %s is filed under %s but its scene_events say "
+              "%s -- one task credited with another's footage"
+              % (p, want.upper(), said))
+    for p in unver:
+        print("   UNVERIFIED (counted): %s has no scene_events.json, so its "
+              "task cannot be confirmed from the clip" % p)
 
     print("\n" + "=" * 78)
     print("BLOCKED ON THE LAB -- not on code, and not fixable from here")

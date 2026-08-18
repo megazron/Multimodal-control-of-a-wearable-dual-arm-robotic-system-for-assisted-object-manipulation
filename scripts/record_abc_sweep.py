@@ -180,7 +180,8 @@ MODE_TEXT = {
     "02_vr_teleop": "Driven by hand from the VR controllers.",
     "03_shared_autonomy": "Driven by hand. The robot sets the wrist angle.",
     "04_vr_shared": "Driven from VR. The robot sets the wrist angle.",
-    "06_full_autonomy": "The robot runs the task on a spoken instruction.",
+    "06_full_autonomy": "The robot runs the task on a typed or spoken "
+                        "instruction.",
 }
 
 
@@ -225,7 +226,47 @@ def scene_travel_verdict(ev, floor_m=MIN_SCENE_TRAVEL_M):
     return True, "scene travel %s" % shown
 
 
-def prepend_card(mp4, mode, task, hold_s=6.0, instruction=None):
+# HOW LONG THE CARD HOLDS, IN ONE PLACE. It is also the offset between
+# the capture clock and the finished clip's own timeline, so anything
+# that wants to find a moment in the footage needs this number and not a
+# copy of it -- `clip_meta.json` carries it out to the reader.
+CARD_HOLD_S = 6.0
+
+
+def prepend_clip(mp4, front):
+    """Join `front` on to the FRONT of `mp4`, in place.
+
+    THE LOOK WAS NEVER IN THE FOOTAGE. Under 06 the arm goes to an observe
+    pose, the camera classifies each cube and the arm returns home -- and all
+    of that happens during STAGING, before the capture is gated on the task's
+    own first motion. So every T1 clip opened after the look was over, while
+    its card told the viewer to "watch the look before the first grasp": a
+    caption describing something the pixels did not contain.
+
+    Filming the whole staged step instead would give minutes of a stationary
+    scene waiting for the camera, so the look is filmed on the SAME motion
+    gate the run uses and joined on here.
+    """
+    if not (os.path.exists(mp4) and os.path.exists(front)):
+        return False
+    tmp = mp4 + ".joined.mp4"
+    r = subprocess.run(
+        [rr.FFMPEG, "-y", "-loglevel", "error", "-i", front, "-i", mp4,
+         "-filter_complex",
+         "[0:v]scale=%d:%d,fps=15,format=yuv420p[a];"
+         "[1:v]scale=%d:%d,fps=15,format=yuv420p[b];[a][b]concat=n=2:v=1[o]"
+         % (rr.VW, rr.VH, rr.VW, rr.VH),
+         "-map", "[o]", "-c:v", "libx264", "-preset", "ultrafast",
+         "-pix_fmt", "yuv420p", tmp],
+        capture_output=True, text=True)
+    if r.returncode != 0 or not os.path.exists(tmp):
+        return False
+    os.replace(tmp, mp4)
+    return True
+
+
+def prepend_card(mp4, mode, task, hold_s=CARD_HOLD_S, instruction=None,
+                 seed=None):
     """Put a full-frame information card in FRONT of the footage.
 
     It used to be an overlay across the whole clip, which competes with the
@@ -278,6 +319,18 @@ def prepend_card(mp4, mode, task, hold_s=6.0, instruction=None):
         for ln in _t.wrap('"%s"' % instruction.strip(), 56):
             d.text((56, y), ln, fill=(238, 244, 248), font=font(17))
             y += 25
+    # WHICH TABLE THIS IS, for a task whose table is DRAWN.
+    #
+    # Stage 2's whole claim is that the side each cube starts on is randomised
+    # per trial from the trial's own seed. Two seeds are two different layouts
+    # and a viewer cannot tell them apart from the footage, so a card without
+    # the seed describes a run it cannot identify -- the same argument that
+    # put the typed sentence on it.
+    if seed is not None:
+        y += 12
+        d.text((56, y), "Layout drawn from seed %s" % seed,
+               fill=(232, 163, 61), font=font(15, True))
+        y += 24
     y += 18
     d.text((56, y), "What to watch for", fill=(232, 163, 61), font=font(15,
                                                                        True))
@@ -1125,14 +1178,60 @@ def _main_body():
                 # a look inside the run would put a second publisher on the
                 # arm controller alongside ik_follower_node. This is where the
                 # arm actually goes and looks.
+                look_s = 0.0
                 if staged and task in ("t1", "t1s2"):
                     from srl_teleop import gui_launch_specs as _gls
-                    _det = subprocess.run(
-                        [sys.executable, os.path.join(
-                            WS, "scripts", "stage_observe_and_detect.py"),
-                         "--task", task, "--seed", str(seed),
-                         "--out", _gls.DETECTIONS_FILE],
-                        capture_output=True, text=True)
+                    # FILMED, ON THE SAME MOTION GATE THE RUN USES.
+                    #
+                    # The look is the part of mode 06 that decides the whole
+                    # plan -- the destination pad comes from the colour the
+                    # CAMERA saw -- and it was the one part no clip contained,
+                    # because it happens here, before the capture starts. It
+                    # is joined on to the front of the task footage below, so
+                    # the finished clip runs card -> look -> task.
+                    #
+                    # Gated on motion rather than started with the subprocess:
+                    # most of this step is waiting for the mock camera, and
+                    # filming that is minutes of a still picture -- the exact
+                    # dead lead-in the run's own gate exists to cut.
+                    _look_dir = os.path.join(out_dir, "_look")
+                    os.makedirs(_look_dir, exist_ok=True)
+                    _ref = graph.joints(3.0)
+                    #
+                    # TO FILES, NOT PIPES. Nothing reads this child's output
+                    # until it exits, and it can print a blob-by-blob refusal;
+                    # a full 64 KB pipe would block it forever while this loop
+                    # waited for a motion that could then never happen.
+                    _lof = os.path.join(_look_dir, "detect.out")
+                    _lef = os.path.join(_look_dir, "detect.err")
+                    with open(_lof, "w") as _fo, open(_lef, "w") as _fe:
+                        _det_p = subprocess.Popen(
+                            [sys.executable, os.path.join(
+                                WS, "scripts", "stage_observe_and_detect.py"),
+                             "--task", task, "--seed", str(seed),
+                             "--out", _gls.DETECTIONS_FILE],
+                            stdout=_fo, stderr=_fe, text=True)
+                        _lg, _lgate = None, "timeout"
+                        _t0l = time.monotonic()
+                        while _det_p.poll() is None \
+                                and time.monotonic() - _t0l < 420.0:
+                            if graph.moved(_ref):
+                                _lgate = "motion"
+                                break
+                            time.sleep(0.2)
+                        _lt0 = time.time()
+                        if _det_p.poll() is None:
+                            _lg = rr.start_grabs(_look_dir, grip_arm)
+                        _det_p.wait()
+                    rr.stop_grabs(_lg)
+                    _lo = open(_lof).read()
+                    _le = open(_lef).read()
+                    look_s = (time.time() - _lt0) if _lg else 0.0
+                    log("      [look] filmed %.1f s, gated on %s"
+                        % (look_s, _lgate))
+                    _det = subprocess.CompletedProcess(
+                        args=[], returncode=_det_p.returncode,
+                        stdout=_lo, stderr=_le)
                     # THE WHOLE OUTPUT ON FAILURE, the last two lines on
                     # success. The two-line tail is right for a good run --
                     # count and timing -- and wrong for a refusal: the
@@ -1493,11 +1592,63 @@ def _main_body():
                                       else "DID NOT COMPLETE", msg), 104):
                     cap_lines.append((ln, C_TXT if good else R_TXT))
                 # A CARD IN FRONT OF EVERY ANGLE, not an overlay across one.
+                # THE LOOK GOES ON FIRST, THEN THE CARD IN FRONT OF BOTH,
+                # so the finished clip reads card -> look -> task.
+                _look_dir = os.path.join(out_dir, "_look")
+                joined_s = 0.0
+                if os.path.isdir(_look_dir):
+                    for _f in sorted(os.listdir(out_dir)):
+                        if not (_f.startswith("rviz_")
+                                and _f.endswith(".mp4")):
+                            continue
+                        if prepend_clip(os.path.join(out_dir, _f),
+                                        os.path.join(_look_dir, _f)):
+                            joined_s = look_s
+                    if joined_s:
+                        log("      [look] joined %.1f s on to %d angle(s)"
+                            % (joined_s, len(os.listdir(_look_dir))))
+                    else:
+                        log("      [look] NOT joined -- the task footage is "
+                            "the whole clip and the card must not promise a "
+                            "look")
+                    import shutil as _sh
+                    _sh.rmtree(_look_dir, ignore_errors=True)
                 for _f in sorted(os.listdir(out_dir)):
                     if _f.startswith("rviz_") and _f.endswith(".mp4"):
                         prepend_card(os.path.join(out_dir, _f), mode, task,
-                                     instruction=_instruction)
+                                     instruction=_instruction,
+                                     seed=(seed if task == "t1s2" else None))
                 quad = rr.make_quad(out_dir)
+                # THE CLIP'S OWN CLOCK, WRITTEN BESIDE IT.
+                #
+                # `scene_events.json` stamps wall time against `t0_wall`,
+                # which is when the SCENE NODE started -- and under 06 that is
+                # before a 300 s staged look, so its offsets run to +380 s
+                # inside a 48 s clip. Nothing else recorded when the CAPTURE
+                # started, so `read_t1_frames.py` could not place a grasp in
+                # the footage and quietly emitted the opening and final frames
+                # only: the extractor added to look at the evidence had never
+                # once produced the frames that are the evidence.
+                #
+                # Two numbers make the clocks comparable and neither can be
+                # derived afterwards: when the grab began, and how long the
+                # card holds in front of it.
+                #
+                #     clip time = card_hold_s + (event wall - grab_t0)
+                try:
+                    with open(os.path.join(out_dir, "clip_meta.json"),
+                              "w") as _cm:
+                        json.dump(dict(mode=mode, task=task, scenario=scen,
+                                       grab_t0=grab_t0, grab_t1=grab_t1,
+                                       card_hold_s=CARD_HOLD_S,
+                                       # THE LOOK SITS BETWEEN THEM, so it is
+                                       # part of the offset from the start of
+                                       # the file to the task's own footage.
+                                       look_s=joined_s,
+                                       instruction=_instruction, seed=seed,
+                                       ok=bool(good), msg=msg), _cm, indent=1)
+                except Exception as _e:                       # noqa: BLE001
+                    log("      could not write clip_meta.json: %r" % _e)
                 files = sorted(f for f in os.listdir(out_dir)
                                if f.endswith(".mp4"))
                 prog[pkey] = dict(ok=bool(good), msg=msg, mode=mode,

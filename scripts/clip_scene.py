@@ -1386,8 +1386,25 @@ class Scene(Node):
         a wrist-to-pad vector expressed in WORLD, so it rotates with the hand.
         Left at the anchor for T1 the whole scene would be drawn 111.8 mm out
         -- the same defect as the 49 mm one above, one rebuild later.
+
+        BOTH STAGES, AND THIS TEST WAS `== "t1"` UNTIL 2026-08-18 (later).
+        Stage 2 was rebuilt on stage 1's geometry and commands stage 1's
+        approach -- `msc_clip_tasks` gives t1 and t1s2 the SAME `orient` -- but
+        this branch is what decides where the scene believes an object is, and
+        an exact match on "t1" sent t1s2 to `CT.PAD_OFFSET_BY_ARM`, the anchor.
+        So the picture and the path disagreed, against a 30 mm capture gate:
+        the anchor offset is 111.8 mm long where T1's is 98.3 mm, and the two
+        vectors point 99.1 mm apart on the left arm and 83.3 mm on the right
+        -- which is how far out the scene was about every stage-2 object.
+
+        MEASURED, on the first stage-2 clip recorded under 06: the runner
+        commanded four picks and four places and both grippers closed, and the
+        scene recorded TWO grasps -- the two whose 111.8 mm error happened to
+        leave them inside the gate -- and filed the clip "2 OBJECT(S) NEVER
+        MOVED". Nothing was wrong with the arm. The instrument was measuring
+        stage 2 at an orientation stage 2 does not command.
         """
-        if self.task == "t1":
+        if self.task in ("t1", "t1s2"):
             import t1_task as _T1
             import grasp_frames as _GF
             return [float(v) for v in

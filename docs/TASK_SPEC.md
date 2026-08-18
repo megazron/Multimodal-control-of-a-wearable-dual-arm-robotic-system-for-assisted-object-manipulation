@@ -206,14 +206,54 @@ Height buys 75 mm inboard for the left arm and 150 mm for the right, at the
 price of standing the work 430 mm further up in the air. The 1.120 row
 reproduces `centre_reach.json` exactly, which is the cross-check that matters.
 
-The planes therefore sit at **x = 0.450 and 0.610, y = 0.240** — the innermost
-clearance-safe column plus the project's own 20 mm margin, and 160 mm apart so
-a cube released over one cannot land on the other. They are 450 mm off centre.
+> **SUPERSEDED 2026-08-18 BY A MOUNT CHANGE AND A REBUILD, AND THE OLD
+> SENTENCE IS LEFT ABOVE ON PURPOSE.** Everything from "The planes therefore
+> sit at x = 0.450 and 0.610" onward described a T1 that ran on ONE arm with
+> both pads beside the person. It is gone. What replaced it, and what each
+> number now is:
+>
+> * **the mounts moved** 150 mm outboard and 15 deg of yaw outboard, over a
+>   table at 1.250 with its near edge at 0.430, approached at 50 deg inboard
+>   and 10 deg below horizontal. That is a re-derivation of the platform, and
+>   it is what bought the centre;
+> * **the pads are SYMMETRIC, 290 mm either side of the centreline**, one per
+>   arm, straddling it. The pair is centred on the person and its inner edges
+>   are 420 mm apart. Not `|x| <= 0.10` — the centre is still not reachable —
+>   but the work now happens IN FRONT of the wearer with an arm either side of
+>   it rather than beside them;
+> * **the objects REST on the table.** T1-1 is satisfied, for the first time,
+>   from the shipped scene rather than by an injected displacement;
+> * **the grasp lands on the cube.** `grasp_frames.PAD_MID_EE` was 13.47 mm
+>   too long — derived from the magnitude of a world-frame vector rather than
+>   measured — and `verify_t1.py` now reads the finger tips off FK at the pose
+>   the task commands and reports a 0.00 to 0.01 mm pad miss;
+> * **290 and not 260**, because stage 2 can put THREE cubes on one pad and
+>   the innermost of three slots at a 260 mm centre lands at `|x| = 0.200`,
+>   which the per-column sweep calls clear from HOME and the composed path does
+>   not: 0.1219 m to the wearer's own upper arm on 15 waypoints.
+>
+> The result about shoulder-mounted arms below still stands and is still the
+> point: the thing occupying the centre of the workspace is the wearer.
 
 This is a result about shoulder-mounted arms, not a layout failure. The thing
-occupying the centre of the workspace is the wearer, and the right arm's one
-near-centre band (x = −0.10 at y ≥ 0.425) sits at the very edge of forward
-reach, which the project's own rule forbids building on.
+occupying the centre of the workspace is the wearer, and moving the mounts
+150 mm outboard bought 290 mm rather than 0 — the centre itself is still shut.
+
+#### NEITHER ARM CROSSES THE CENTRELINE, AND THAT DECIDES WHAT STAGE 2 CAN BE
+
+Measured 2026-08-18, N=10, wearer and table in the planning scene: **0 of 10 IK
+solutions at every cross-side pad slot and every cross-side cube position, on
+both arms.** So the arm that can reach a cube is fixed by the side it starts
+on, the arm that can reach a pad is fixed by the pad's side, and **a cube can
+only be delivered to the pad on its own side.**
+
+Stage 2 draws the SIDE of each cube, so its colour follows from that side. A
+stage 2 that drew colour and side independently would be drawing trials the rig
+cannot perform. What varies per trial is the SPLIT — 1/3, 2/2 or 3/1 — and the
+columns each cube occupies, which is the asymmetric bimanual load stage 2
+exists to create. `t1_task.build()` REFUSES a cube whose colour names the other
+side's pad, rather than emitting a path whose every waypoint fails IK for a
+reason nobody would connect to colour.
 
 **MUST BE TRUE**
 
@@ -227,8 +267,8 @@ reach, which the project's own rule forbids building on.
 | T1-6 | each cube ends on the correct colour |
 | T1-7 | workspace markings drawn on the correct arms and enclosing all objects |
 | T1-8 | the table is WHITE |
-| T1-9 | stage 1 runs on the LEFT arm with all four cubes on the LEFT |
-| T1-10 | the planes sit at the innermost column that is reachable AND clear of the wearer, and the distance from the centreline is stated, not hidden |
+| T1-9 | stage 1 runs on BOTH arms with the two pads straddling the centreline, and a cube is run by the arm that can reach the pad of its colour. **This criterion said the opposite until 2026-08-18** — "the LEFT arm only, with all four cubes on the LEFT" — which was the pre-rebuild T1 with both pads 595 and 825 mm off centre beside the person |
+| T1-10 | the pads sit at the innermost column that is reachable AND clear of the wearer with the project's 20 mm margin, measured per column, and the distance from the centreline is stated, not hidden: **290 mm either side** |
 | T1-11 | **every T1 and t1s2 waypoint keeps the 150 mm wearer clearance floor**, measured geometrically and not by `avoid_collisions` |
 | T1-12 | stage 2's cube SIDES are drawn at random, both arms always get work, and the seed is stored in the manifest and read by the task |
 

@@ -1153,43 +1153,33 @@ class Scene(Node):
                     held=False, graspable=True)
             return out
         if task == "t1s2":
-            # BOTH ARMS, RANDOM POSITIONS, drawn from the surveyed cells at
-            # the clip's fixed seed so the picture is reproducible. Two cubes
-            # per arm, coloured by ARM here rather than by pair: stage 2 is
-            # about simultaneity, not colour matching, and reusing the
-            # blue/green pairing would invite a reader to look for a colour
-            # rule that this stage does not have.
-            import msc_clip_tasks as _MCT
+            # STAGE 1'S SCENE WITH THE SIDES DRAWN. Same table, same two pads,
+            # same row, same approach -- the seed decides which side each cube
+            # starts on and which measured column it stands in.
+            #
+            # IT USED TO BE A DIFFERENT SCENE ENTIRELY: cubes at the anchor's
+            # wrist pose on the work plane 120 mm above the table, coloured by
+            # ARM, with a pad pair per side. Two of those three were already
+            # recorded as faults here (the colour, and the seed), and the third
+            # -- `CT.ee_for`, which bakes in `WORKSPACE_ORIENT` -- would now
+            # draw every cube 111.8 mm from where the fingers close, because
+            # stage 2 commands T1's own approach like stage 1 does.
+            import t1_task as _T1
             out = {}
-            # THE RUN'S SEED, not a hardcoded one. This read T0_CLIP_SEED
-            # while run_abc drove --seed, so the two could draw different
-            # layouts and the scene would then be measuring closures against
-            # cubes the arm was never sent to.
-            tgt = _MCT.stage2_targets(self.seed)["cubes"]
-            for arm in ("left", "right"):
-                for i, cube in enumerate(tgt[arm]):
-                    out["cube_%s_%d" % (arm, i)] = dict(
-                        arm=arm, width_mm=40,
-                        pos=CT.ee_for(cube, arm),
-                        size=(0.04,) * 3,
-                        # THE CUBE'S COLOUR IS ITS PAD, NOT ITS ARM.
-                        #
-                        # This drew YELLOW for the left arm and TEAL for the
-                        # right, so stage 2 -- the both-arms half of a
-                        # COLOUR-MATCHED pick and place -- put no task colour
-                        # on any cube. The pads were blue and green, the cubes
-                        # were yellow and teal, and "each cube ended on the pad
-                        # of its own colour" could not be judged from a frame
-                        # at all: there was no own colour. The task layer was
-                        # never confused -- `t1_stage2` routes every cube to
-                        # `T1_PLANES_BY_ARM[arm][_stage2_pad_index(...)]` --
-                        # only the picture was.
-                        #
-                        # Same rule as the task, from the same function, so the
-                        # two cannot disagree about which cube is blue.
-                        col=(BLUE if _MCT._stage2_pad_index(arm, i, tgt) == 0
-                             else GREEN),
-                        held=False, graspable=True)
+            for i, (cx, cy, pad) in enumerate(_T1.stage2_layout(self.seed)):
+                _arm = _T1.arm_for_pad(pad)
+                out["cube_%s_%d" % (_arm, i)] = dict(
+                    arm=_arm, width_mm=int(_T1.CUBE_M * 1000),
+                    pos=_T1.ee_for([cx, cy, _T1.T1_Z], _arm),
+                    size=(_T1.CUBE_M,) * 3,
+                    # THE CUBE'S COLOUR IS ITS PAD'S. Stage 2 is the both-arms
+                    # half of a COLOUR-MATCHED pick and place, and this drew
+                    # YELLOW for the left arm and TEAL for the right -- so "each
+                    # cube ended on the pad of its own colour" could not be
+                    # judged from a frame at all, because there was no own
+                    # colour. Read from the same layout the task is built from.
+                    col=(BLUE if int(pad) == 0 else GREEN),
+                    held=False, graspable=True)
             return out
         if task == "t2":
             # NO `items` ENTRY. The tray is ONE body held at TWO points, and
@@ -1800,26 +1790,19 @@ class Scene(Node):
             # coordinates. A colour-matching task with no colours on screen
             # cannot be scored from a frame, which is the whole reason the pads
             # were added to stage 1 in the first place.
-            import msc_clip_tasks as _MCT
             import t1_task as _T1
-            # T1 AND T1S2 NO LONGER SHARE PAD GEOMETRY, AND THAT IS THE 2026-08-17
-            # REBUILD. Stage 1's two pads straddle the centreline, one per arm,
-            # resting ON the table; stage 2 still has a pair per side, 120 mm
-            # above the table, on the geometry it was verified against. Reusing
-            # one set for both would put stage 2's cubes onto pads its paths
-            # were never walked for.
-            _pads, _top = [], CT.BENCH_TOP
-            if self.task == "t1":
-                _pads = [(_T1.arm_for_pad(i), p, i)
-                         for i, p in enumerate(_T1.T1_PLANES)]
-                _top = _T1.T1_Z - _T1.CUBE_M / 2.0 + _T1.PLANE_T
-            else:
-                for _a in ("left", "right"):
-                    _pads += [(_a, p, i) for i, p
-                              in enumerate(_MCT.T1_PLANES_BY_ARM[_a])]
+            # ONE PAD PAIR FOR BOTH STAGES, SINCE 2026-08-18. They had diverged
+            # in the 2026-08-17 rebuild -- stage 1's two pads straddling the
+            # centreline on the table, stage 2 keeping a pair per side 120 mm
+            # above it -- and drawing stage 2 on stage 1's pads was refused
+            # then because its paths had never been walked for them. They have
+            # been now, eight seeds at N=10, so there is one pair and one
+            # height and neither stage can be drawn on the other's.
+            _pads = [(_T1.arm_for_pad(i), p, i)
+                     for i, p in enumerate(_T1.T1_PLANES)]
+            _top = _T1.T1_Z - _T1.CUBE_M / 2.0 + _T1.PLANE_T
             for _arm_of_pad, (px, py), pi in _pads:
-                _pw, _pd = ((_T1.PAD_W, _T1.PAD_D) if self.task == "t1"
-                            else PLANE_SIZE_BY_ARM[_arm_of_pad])
+                _pw, _pd = _T1.PAD_W, _T1.PAD_D
                 name = "plane_%s_%s" % ("blue" if pi == 0 else "green",
                                         _arm_of_pad)
                 add(Marker.CUBE,

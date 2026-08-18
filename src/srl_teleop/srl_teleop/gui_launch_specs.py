@@ -47,6 +47,20 @@ class Spec:
     def enabled(self):
         return self.disabled_reason is None
 
+    def with_argv(self, argv):
+        """A COPY of this spec carrying a different command line.
+
+        For the things that are per-RUN rather than per-BUTTON: the sentence
+        the operator typed, and which table stage 2 drew. The sweep presses
+        the real button -- that is the point of driving it through
+        `Gui.on_launch` -- and mutating the shared manifest entry instead
+        would leak one run's instruction into the next one's clip.
+        """
+        out = Spec(self.key, self.label, self.group, argv,
+                   self.starts_stack, self.needs_stack, self.needs_teensy,
+                   self.needs_real, self.note, self.disabled_reason)
+        return out
+
     def __repr__(self):
         return "Spec(%s, %s)" % (self.key, "ok" if self.enabled else "DISABLED")
 

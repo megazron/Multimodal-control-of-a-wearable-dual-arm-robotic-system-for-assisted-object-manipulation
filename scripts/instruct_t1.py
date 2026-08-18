@@ -21,9 +21,13 @@ publisher on that controller, which is this project's one-source-at-a-time rule
 at the controller level -- the same rule that makes the staging move pause the
 followers. So the look happens BEFORE, as staging, and writes a file.
 
-IT REFUSES ON AMBIGUITY, AND THAT IS THE FEATURE. "pick up the blue cube" with
-two blue cubes on the table does not pick one. Every way of choosing -- first,
+IT ASKS ON AMBIGUITY, AND THAT IS THE FEATURE. "pick up the blue cube" with two
+blue cubes on the table does not pick one. Every way of choosing -- first,
 nearest, leftmost -- is a guess, and this arm is bolted to a person.
+
+AND THE ASK IS ANSWERABLE. `--answer "the leftmost"` resolves it without
+retyping the sentence, through the same two calls the GUI's prompt panel uses,
+so the command line and the panel cannot diverge about what a reply means.
 
 PREREQUISITES, and it says which one is missing rather than timing out:
     a stack            python3 scripts/sim_session.py --stack teleop --keep-up -- true
@@ -51,7 +55,15 @@ DETECTIONS = "/tmp/srl_t1_detections.json"
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("instruction")
-    ap.add_argument("--mode", default="01_master_teleop")
+    ap.add_argument("--mode", default="06_full_autonomy")
+    ap.add_argument("--task", default="m1", choices=("m1", "m1s2"),
+                    help="which stage. Stage 2 draws its cubes from the seed, "
+                         "so the look and the run must be given the same one.")
+    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--answer", default=None, metavar="REPLY",
+                    help="answer an ASK without retyping the sentence: 'the "
+                         "leftmost', 'both', 'the second', 'yes'. May be "
+                         "given more than once, in order.", action="append")
     ap.add_argument("--dry-run", action="store_true",
                     help="look, detect and plan, then print the plan and stop "
                          "without moving the arm through the task")
@@ -71,7 +83,8 @@ def main():
         r = subprocess.run(
             [sys.executable, os.path.join(WS, "scripts",
                                           "stage_observe_and_detect.py"),
-             "--out", DETECTIONS])
+             "--task", a.task.replace("m1s2", "t1s2").replace("m1", "t1"),
+             "--seed", str(a.seed), "--out", DETECTIONS])
         if r.returncode != 0:
             print("\nREFUSING: the look failed (rc=%d). Planning from the "
                   "task file instead would look exactly like a working "
@@ -86,6 +99,15 @@ def main():
     import t1_instruction as TI
     import msc_clip_tasks as MCT
     o = TI.plan_from(a.instruction, cubes)
+    # AN ASK IS ANSWERABLE HERE TOO, and from the same two calls the GUI uses.
+    # Without this the CLI could only ever report the question, which made
+    # every ambiguous phrasing a dead end at the command line while the same
+    # sentence resolved in the panel.
+    for _reply in (a.answer or []):
+        if o.kind != TI.ASK:
+            break
+        print("\nASKED: %s\n  -> %r" % (o.message, _reply))
+        o = TI.answer(o, _reply, cubes)
     print("\nSEEN: %s" % TI.describe(cubes))
     for c in cubes:
         print("   (%.4f, %.4f) -> %s" % (c[0], c[1],
@@ -99,19 +121,25 @@ def main():
         # safety property. The distinction is in the word, not the code.
         return 3 if o.kind == TI.ASK else 4
     for px, py, pad in o.picks:
-        print("   pick (%.4f, %.4f) -> the %s pad"
-              % (px, py, MCT.PLANE_COLOURS[pad]))
+        # A PAD OF None IS A PICK AND A HOLD, which is what a bare "pick up
+        # the blue cube" resolves to. Indexing PLANE_COLOURS with it raises.
+        print("   pick (%.4f, %.4f) -> %s"
+              % (px, py, "pick it up and hold it" if pad is None
+                 else "the %s pad" % MCT.PLANE_COLOURS[pad]))
 
     if a.dry_run:
         print("\n--dry-run: not moving.")
         return 0
 
     # ---- 6. RUN ---------------------------------------------------------
-    print("\n[run] %s, through %s's own command path" % ("m1", a.mode))
-    r = subprocess.run(
-        ["bash", os.path.join(WS, "scripts", "run_experiment.sh"), "m1",
-         "--mode", a.mode, "--taskset", "msc", "--participant", a.participant,
-         "--scripted", "--vision", DETECTIONS, "--instruct", a.instruction])
+    print("\n[run] %s, through %s's own command path" % (a.task, a.mode))
+    argv = ["bash", os.path.join(WS, "scripts", "run_experiment.sh"), a.task,
+            "--mode", a.mode, "--taskset", "msc",
+            "--participant", a.participant, "--scripted",
+            "--vision", DETECTIONS, "--instruct", a.instruction]
+    if a.task == "m1s2":
+        argv += ["--seed", str(a.seed)]
+    r = subprocess.run(argv)
     return r.returncode
 
 

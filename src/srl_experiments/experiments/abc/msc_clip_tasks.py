@@ -387,6 +387,18 @@ def _stage2_pad_index(arm, i, tgt=None):
     return 0 if arm == "left" else 1
 
 
+# THE NAME `t1` STILL RESOLVES, and it is one line rather than a second
+# implementation.
+#
+# T1's builder moved to `t1_task` in the 2026-08-17 rebuild and the alias went
+# with it, so five scripts that had called `msc_clip_tasks.t1()` for months --
+# including `audit_task_spec`, which is the pre-recording pass TASK_SPEC
+# section 8 requires -- died with AttributeError the first time they were run
+# afterwards. A module that owns a task's SPEC should still answer to the
+# task's name.
+t1 = T1M.build
+
+
 def t1_stage2(seed=0, n_cubes=STAGE2_N_CUBES):
     """Both arms pick and place their own cubes, sides drawn from the seed.
 

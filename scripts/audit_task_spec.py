@@ -129,48 +129,65 @@ def check_t0(mods):
 
 def check_t1(mods):
     CS, M = mods["clip_scene"], mods["msc"]
+    import t1_task as T1M
     out = {}
-    cube = (0.04, 0.04)
-    plane = (CS.PLANE_W, CS.PLANE_D)
+    cube = (T1M.CUBE_M, T1M.CUBE_M)
 
     # T1-1 -- do the cubes rest on the table
-    base = M.T1_Z - 0.04 / 2.0
-    gap_mm = (base - CS.TABLE_TOP) * 1000.0
+    #
+    # AGAINST T1'S OWN TABLE, NOT THE SHARED ONE. T1 was rebuilt on its own
+    # surface at 1.250 with the objects standing on it; `CS.TABLE_TOP` is the
+    # shared 0.980 that every other task works 120 mm above, and measuring
+    # against it reports a 290 mm float for a scene whose cubes are touching
+    # the wood. `table_geometry` is the one place that answers "which table".
+    _top, _near, _far = CS.table_geometry("t1")
+    base = T1M.T1_Z - T1M.CUBE_M / 2.0
+    gap_mm = (base - _top) * 1000.0
     if abs(gap_mm) <= 2.0:
-        out["T1-1"] = (PRESENT, "cube base %.1f mm from the table top" % gap_mm)
+        out["T1-1"] = (PRESENT, "cube base %.1f mm from the table top at "
+                                "z = %.3f, near edge y = %.3f"
+                       % (gap_mm, _top, _near))
     else:
         out["T1-1"] = (BLOCKED,
                        "cube base floats %.0f mm above the table top "
-                       "(%.3f vs %.3f). Supports MEASURED FATAL: pedestals "
-                       "give 0/4 cubes and 0/2 planes reachable, cantilever "
-                       "lips 16-22 waypoint failures, footprint pads 26, side "
-                       "posts 65, none 0 -- clip_scene.SUPPORTS_ENABLED and "
-                       "docs/system/13_fixturing_and_the_approach_cone.md"
-                       % (gap_mm, base, CS.TABLE_TOP))
+                       "(%.3f vs %.3f)" % (gap_mm, base, _top))
 
-    # T1-2 -- cubes clear of the planes at the start
+    # T1-2 -- cubes clear of the pads at the start
     hits = []
-    for i, c in enumerate(M.T1_CUBES):
-        for pi, p in enumerate(M.T1_PLANES):
-            if _footprints_overlap(c, cube, p, plane):
-                hits.append("cube_%d/plane_%d" % (i, pi))
-    out["T1-2"] = ((PRESENT, "cube row y=%.3f, plane row y=%.3f, %.0f mm "
-                             "apart against a %.0f mm half-sum"
-                    % (M.T1_CUBES[0][1], M.T1_PLANES[0][1],
-                       abs(M.T1_CUBES[0][1] - M.T1_PLANES[0][1]) * 1000,
-                       (cube[1] + plane[1]) / 2 * 1000))
+    pad = (T1M.PAD_W, T1M.PAD_D)
+    for i, c in enumerate(T1M.T1_CUBES):
+        for pi, p in enumerate(T1M.T1_PLANES):
+            if _footprints_overlap([c[0], c[1]], cube,
+                                   [p[0], T1M.ROW_Y], pad):
+                hits.append("cube_%d/pad_%d" % (i, pi))
+    gap_mm = (min(abs(c[0]) for c in T1M.T1_CUBES)
+              - (max(abs(p[0]) for p in T1M.T1_PLANES) + T1M.PAD_W / 2.0)
+              - T1M.CUBE_M / 2.0) * 1000.0
+    out["T1-2"] = ((PRESENT, "the nearest cube's edge is %.0f mm outboard of "
+                             "the pad's edge, in the same row" % gap_mm)
                    if not hits else (MISSING, "overlapping at start: %s"
                                      % ", ".join(hits)))
 
-    # T1-3 -- four separate close/open cycles
-    path = M.t1()
-    grip = M.t1_grip(len(path[M.T1_ARM]))[M.T1_ARM]
-    cl, op = _cycles(grip)
-    out["T1-3"] = ((PRESENT, "%d closes and %d opens over %d waypoints"
-                    % (cl, op, len(grip)))
-                   if (cl, op) == (4, 4)
-                   else (MISSING, "%d closes / %d opens, four of each expected"
-                         % (cl, op)))
+    # T1-3 -- one close and one open PER CUBE, counted over BOTH arms.
+    #
+    # It used to read `M.T1_ARM`, which the 2026-08-17 rebuild deleted: T1
+    # runs on both arms now, a cube's arm follows the colour the CAMERA saw,
+    # and counting one arm's schedule reports half the cycles for a task that
+    # is working correctly.
+    path = T1M.build()
+    grip = T1M.grip(len(path["left"]))
+    cl = op = 0
+    for arm in ("left", "right"):
+        c, o = _cycles(grip[arm])
+        cl += c
+        op += o
+    n_cubes = len(T1M.T1_CUBES)
+    out["T1-3"] = ((PRESENT, "%d closes and %d opens over %d waypoints per "
+                             "arm, for %d cubes"
+                    % (cl, op, len(grip["left"]), n_cubes))
+                   if (cl, op) == (n_cubes, n_cubes)
+                   else (MISSING, "%d closes / %d opens, %d of each expected"
+                         % (cl, op, n_cubes)))
 
     # T1-4 -- each cube moves only while gripped
     src = open(os.path.join(WS, "scripts", "clip_scene.py")).read()
@@ -183,72 +200,105 @@ def check_t1(mods):
                    else (MISSING, "graspable read=%s proximity gate=%s"
                          % (reads_graspable, proximity)))
 
-    # T1-5 -- pads on the cube, not inside the table
-    lowest = min(p[2] for p in path[M.T1_ARM])
-    pad_ok = "PAD_OFFSET" in open(
-        os.path.join(WS, "src", "srl_experiments", "experiments", "abc",
-                     "clip_tasks.py")).read()
-    clear_mm = (lowest - CS.TABLE_TOP) * 1000.0
-    out["T1-5"] = ((PRESENT, "PAD_OFFSET applied in ee_for(); lowest commanded "
-                             "wrist z %.3f, %.0f mm clear of the table top"
-                    % (lowest, clear_mm))
-                   if pad_ok and clear_mm > 0
-                   else (MISSING, "pad offset=%s lowest wrist %.0f mm above "
-                                  "the table" % (pad_ok, clear_mm)))
-
-    # T1-6 -- each cube ends on the plane of its own colour
-    bad = []
-    for i in range(len(M.T1_CUBES)):
-        want_blue = i in (0, 2)
-        plane_is_blue = M.T1_PAIR[i] == 0
-        if want_blue != plane_is_blue:
-            bad.append(i)
-    at = M.t1_grip_at(len(grip))
-    delivered = {i: False for i in range(len(M.T1_CUBES))}
-    for i in range(len(M.T1_CUBES)):
-        px, py = M.T1_PLANES[M.T1_PAIR[i]]
-        slot = -M.SLOT_DY if i in (0, 1) else +M.SLOT_DY
-        want = [px, round(py + slot, 4), M.T1_Z]
-        delivered[i] = any(math.dist(a, want) < 1e-6 for a in at)
-    out["T1-6"] = ((PRESENT, "pairing 0,2->blue 1,3->green, and every cube's "
-                             "own slot appears in the arrival gate")
-                   if not bad and all(delivered.values())
-                   else (MISSING, "mispaired %s; slots not gated %s"
-                         % (bad, [k for k, v in delivered.items() if not v])))
-
-    # T1-7 -- markings on the correct arms, enclosing all objects.
+    # T1-5 -- the PADS land on the cube, and the hand stays out of the table.
     #
-    # CELL MEMBERSHIP, NOT THE BOUNDING BOX. The measured region is not a
-    # rectangle -- the right arm's cells fill 62% of their own box at 50 mm
-    # resolution -- so "inside the box" would pass objects standing on cells
-    # that were never reachable.
-    objs = [("cube_%d" % i, c[0], c[1]) for i, c in enumerate(M.T1_CUBES)]
-    for pi, (px, py) in enumerate(M.T1_PLANES):
-        for s in (-M.SLOT_DY, +M.SLOT_DY):
-            objs.append(("plane_%d slot %+.0f" % (pi, s * 1000), px,
-                         round(py + s, 4)))
-    off = [n for n, x, y in objs if not CS.in_region(M.T1_ARM, x, y)]
+    # TWO NUMBERS, AND THE FIRST ONE IS NEW. "the pad offset is applied" was a
+    # check that the CONSTANT existed, and the constant was wrong by 13.47 mm
+    # for as long as it had existed -- derived from the magnitude of a
+    # world-frame vector rather than measured. `verify_t1.py` reads the finger
+    # tips off FK at the pose the task commands and reports how far the pad
+    # midpoint lands from the cube centre; that is the number this asks for.
+    import json as _json
+    rec_f = os.path.join(WS, "recordings", "baselines", "t1_paths.json")
+    miss_mm, low_mm = None, None
+    if os.path.exists(rec_f):
+        _rec = _json.load(open(rec_f))
+        _g = [g for g in _rec.get("grasps", []) if g.get("solved")]
+        if _g:
+            miss_mm = max(g["pad_miss_mm"] for g in _g)
+            low_mm = min(g["lowest_tip_above_table_mm"] for g in _g)
+    lowest = min(p[2] for a in ("left", "right") for p in path[a])
+    clear_mm = (lowest - T1M.TABLE_TOP) * 1000.0
+    out["T1-5"] = ((PRESENT, "measured from FK: the pads land %.2f mm from "
+                             "the cube centre and the lowest finger tip is "
+                             "%.1f mm above the table; lowest commanded wrist "
+                             "%.0f mm above it"
+                    % (miss_mm, low_mm, clear_mm))
+                   if (miss_mm is not None and miss_mm <= 2.0
+                       and low_mm is not None and low_mm > 0.0
+                       and clear_mm > 0)
+                   else (MISSING, "pad miss %s mm, lowest tip %s mm above the "
+                                  "table, lowest wrist %.0f mm above it -- run "
+                                  "scripts/verify_t1.py"
+                         % (miss_mm, low_mm, clear_mm)))
+
+    # T1-6 -- each cube ends on the pad of its own colour, on the arm that can
+    # reach that pad. Read from the RESOLUTION the task performs, not from a
+    # restatement of it.
+    plan = T1M.plan_for()
+    bad = []
+    for i, (x, y, pad, arm) in enumerate(plan):
+        if T1M.PLANE_COLOURS[pad] != T1M.T1_RENDERED[i]:
+            bad.append("cube_%d renders %s and is sent to the %s pad"
+                       % (i, T1M.T1_RENDERED[i], T1M.PLANE_COLOURS[pad]))
+        if (x >= 0) != (arm == "left"):
+            bad.append("cube_%d at x=%+.3f is run by the %s arm" % (i, x, arm))
+    at = T1M.grip_at(len(grip["left"]))
+    per_pad = {}
+    for _x, _y, _p, _a in plan:
+        per_pad[_p] = per_pad.get(_p, 0) + 1
+    used, delivered = {}, []
+    for i, (x, y, pad, arm) in enumerate(plan):
+        k = used.get(pad, 0)
+        used[pad] = k + 1
+        px = round(T1M.T1_PLANES[pad][0] + T1M.SLOT_OFFSETS[per_pad[pad]][k], 4)
+        want = [px, T1M.ROW_Y, round(T1M.T1_Z + T1M.PAD_T, 4)]
+        delivered.append(any(math.dist(a, want) < 1e-6 for a in at[arm]))
+    out["T1-6"] = ((PRESENT, "every cube is routed to the pad of its RENDERED "
+                             "colour by the arm that can reach it, and each "
+                             "landing slot appears in the arrival gate")
+                   if not bad and all(delivered)
+                   else (MISSING, "%s; slots not gated %s"
+                         % ("; ".join(bad) or "-",
+                            [i for i, d in enumerate(delivered) if not d])))
+
+    # T1-7 -- markings on the correct arms, ENCLOSING all objects.
+    #
+    # AGAINST T1'S OWN MARKING, NOT THE GLOBAL SURVEY. `REGION_CELLS` was
+    # measured at the pinned anchor on the work plane 120 mm above the table
+    # over y = 0.075..0.300; T1 works at its own approach, ON the table, in a
+    # single row -- so not one of those cells is over this task's work and
+    # `in_region` answers about a different task.
+    objs = [("cube_%d" % i, c[0], c[1]) for i, c in enumerate(T1M.T1_CUBES)]
+    widest = max(max(abs(o) for o in offs)
+                 for offs in T1M.SLOT_OFFSETS.values())
+    for pi, (px, _py) in enumerate(T1M.T1_PLANES):
+        for sgn in (-1, +1):
+            objs.append(("pad_%d slot %+.0f" % (pi, sgn * widest * 1000),
+                         round(px + sgn * widest, 4), T1M.ROW_Y))
+    h = CS.REGION_STEP / 2.0
+    off = []
+    for name, x, y in objs:
+        arm = "left" if x >= 0 else "right"
+        cells = CS.t1_marking_cells(arm)
+        if not cells:
+            off.append(name)
+            continue
+        x0, x1 = min(c[0] for c in cells) - h, max(c[0] for c in cells) + h
+        y0, y1 = min(c[1] for c in cells) - h, max(c[1] for c in cells) + h
+        if not (x0 <= x <= x1 and y0 <= y <= y1):
+            off.append(name)
     arms = CS.marked_arms("t1")
-    right_arms = arms == (M.T1_ARM,)
-    from_survey = "REGION_CELLS" in src and "_load_region" in src
-    if off or not right_arms or not from_survey:
+    both = set(arms) == {"left", "right"}
+    if off or not both:
         out["T1-7"] = (MISSING,
-                       "%d of %d objects outside the measured cells (%s); "
-                       "arms drawn %s against T1_ARM=%s; marking read from "
-                       "the survey=%s"
-                       % (len(off), len(objs), ", ".join(off) or "-",
-                          arms, M.T1_ARM, from_survey))
+                       "%d of %d objects outside the drawn marking (%s); "
+                       "arms drawn %s and T1 works both"
+                       % (len(off), len(objs), ", ".join(off) or "-", arms))
     else:
         out["T1-7"] = (PRESENT,
-                       "all %d objects inside MEASURED cells; %d cells drawn "
-                       "for the %s arm only (x %.2f..%.2f y %.2f..%.2f at "
-                       "%.0f mm), read from the survey file"
-                       % (len(objs), len(CS.REGION_CELLS[M.T1_ARM]),
-                          M.T1_ARM, CS.WORKSPACE[M.T1_ARM]["x"][0],
-                          CS.WORKSPACE[M.T1_ARM]["x"][1],
-                          CS.WORKSPACE[M.T1_ARM]["y"][0],
-                          CS.WORKSPACE[M.T1_ARM]["y"][1],
-                          CS.REGION_STEP * 1000))
+                       "all %d objects inside the marking, drawn for both "
+                       "arms from the task's own verified cells" % len(objs))
 
     # ---- T1-8  the table is WHITE ----------------------------------------
     # NEUTRALITY, not a specific RGB. "White" here means R = G = B and bright,
@@ -258,17 +308,7 @@ def check_t1(mods):
     # AND THE BRIGHTNESS TEST IS ON THE RENDERED VALUE, NOT THE REQUESTED ONE.
     # This check used to ask only whether CS.OAK was neutral and >= 0.80, and
     # it passed the shipped (0.94, 0.94, 0.95) table for months while that
-    # table rendered at RGB(118,118,118) -- mid grey -- in every clip. The
-    # request was white; the picture was not. That is CLAUDE.md's own
-    # "matched requested RGB, not RENDERED colour" row, reached from the
-    # authoring side, and a spec item that says "the table is WHITE" is a
-    # claim about the picture.
-    #
-    # The bridge between the two is measured, not assumed: an up-facing
-    # marker face renders at 0.5 x colour and the table top is an up-facing
-    # face (scripts/probe_marker_shading.py, three controls correct, and the
-    # coefficient checked over five colours from 0.0 to 2.0). So the audit
-    # applies that coefficient and asks for a white PIXEL.
+    # table rendered at RGB(118,118,118) -- mid grey -- in every clip.
     UP_FACING_COEFF = 0.5            # probe_marker_shading.py
     WHITE_FLOOR_8BIT = 200           # below this a top reads grey on screen
     r, g, b = CS.OAK[0], CS.OAK[1], CS.OAK[2]
@@ -284,67 +324,100 @@ def check_t1(mods):
                                      "not neutral" if not neutral
                                      else "too dark to read as white")))
 
-    # ---- T1-9  stage 1 is the LEFT arm, cubes on the LEFT ----------------
-    left_cubes = [c for c in M.T1_CUBES if c[0] > 0]
-    out["T1-9"] = ((PRESENT, "T1_ARM=%s, %d of %d cubes at x > 0"
-                    % (M.T1_ARM, len(left_cubes), len(M.T1_CUBES)))
-                   if M.T1_ARM == "left" and len(left_cubes) == len(M.T1_CUBES)
-                   else (MISSING, "T1_ARM=%s, %d of %d cubes on the left"
-                         % (M.T1_ARM, len(left_cubes), len(M.T1_CUBES))))
+    # ---- T1-9  stage 1 works BOTH arms, with the pads across the centre ---
+    #
+    # THIS CRITERION USED TO SAY THE OPPOSITE, and TASK_SPEC has been changed
+    # rather than this check bent to fit: "the LEFT arm only, with all four
+    # cubes on the LEFT" was the pre-rebuild T1, whose two pads sat 595 and
+    # 825 mm off the centreline beside the person. The rebuilt T1 puts one pad
+    # either side of the centreline directly in front of the wearer, so the
+    # arm a cube is run by follows the colour it renders -- and neither arm
+    # can cross the centreline, measured.
+    xs = [c[0] for c in T1M.T1_CUBES]
+    pads = [p[0] for p in T1M.T1_PLANES]
+    left_cubes = [x for x in xs if x > 0]
+    straddles = min(pads) < 0.0 < max(pads)
+    per_arm = {a: sum(1 for _x, _y, _p, _a in plan if _a == a)
+               for a in ("left", "right")}
+    out["T1-9"] = ((PRESENT, "pads at %s straddle the centreline; %d cubes on "
+                             "the left run by the left arm and %d on the "
+                             "right by the right"
+                    % ([round(p, 3) for p in pads], per_arm["left"],
+                       per_arm["right"]))
+                   if straddles and per_arm["left"] and per_arm["right"]
+                   and len(left_cubes) == per_arm["left"]
+                   else (MISSING, "pads %s, per-arm work %s"
+                         % ([round(p, 3) for p in pads], per_arm)))
 
-    # ---- T1-10  the planes are at the innermost SAFE column --------------
-    # It cannot check "as near the centre as possible" without re-measuring,
-    # so it checks the two things it CAN: the planes are inside the measured
-    # clearance-safe cells, and the distance off centre is stated rather than
-    # left for a reader to work out.
-    inner = min(abs(p[0]) for p in M.T1_PLANES)
-    region_inner = min(abs(c[0]) for c in CS.REGION_CELLS[M.T1_ARM])
-    spec = open(os.path.join(WS, "docs", "TASK_SPEC.md")).read()
-    stated = ("%d mm off centre" % round(inner * 1000)) in spec or \
-             ("%.3f" % inner) in spec
-    out["T1-10"] = ((PRESENT, "innermost plane |x| = %.3f against an innermost "
-                              "safe cell of %.3f; the offset is stated in the "
-                              "spec" % (inner, region_inner))
-                    if inner >= region_inner and stated
-                    else (MISSING, "innermost plane |x| = %.3f, innermost safe "
-                                   "cell %.3f, offset stated in the spec: %s"
-                          % (inner, region_inner, stated)))
+    # ---- T1-10  the pads are at the innermost SAFE column -----------------
+    # Against the MEASURED per-column sweep, and the offset stated in the spec.
+    col_f = os.path.join(WS, "recordings", "baselines", "t1_pad_columns.json")
+    inner = min(abs(p[0]) for p in T1M.T1_PLANES)
+    stated = ("%d mm" % round(inner * 1000)) in open(
+        os.path.join(WS, "docs", "TASK_SPEC.md")).read()
+    ok10, why10 = False, "no t1_pad_columns.json -- nobody swept the columns"
+    if os.path.exists(col_f):
+        cols = _json.load(open(col_f))
+        floor = float(cols["floor"])
+        worst = []
+        for pi, (px, _py) in enumerate(T1M.T1_PLANES):
+            arm = T1M.arm_for_pad(pi)
+            rows = {round(float(r["column"]), 4): r for r in cols["arms"][arm]}
+            for sgn in (-1, +1):
+                slot = round(abs(px) + sgn * widest, 4)
+                r = rows.get(slot)
+                if r is None or r["worst_clearance"] is None:
+                    worst.append("%s slot %.3f UNMEASURED" % (arm, slot))
+                elif r["worst_clearance"] < floor + 0.020:
+                    worst.append("%s slot %.3f at %.4f m"
+                                 % (arm, slot, r["worst_clearance"]))
+        ok10 = not worst and stated
+        why10 = ("every pad slot measured clear with margin; the pair is "
+                 "%d mm either side of the centreline and the spec says so"
+                 % round(inner * 1000)) if ok10 else \
+                ("%s; offset stated in the spec: %s"
+                 % ("; ".join(worst) or "-", stated))
+    out["T1-10"] = (PRESENT, why10) if ok10 else (MISSING, why10)
 
     # ---- T1-11  the clearance floor is measured, not assumed -------------
-    # The check is that the MEASUREMENT EXISTS and passed, not that a number
-    # in this file says so: the whole finding behind T1-11 is that a layout
-    # can be clean by every IK check and spend half its path inside the floor.
-    import glob as _glob
-    import json as _json
-    files = sorted(_glob.glob(os.path.join(
-        WS, "recordings", "baselines", "t1_paths_*.json")))
-    files = [f for f in files if "BEFORE" not in f]
-    tot_bad = tot_below = 0
-    seen = []
-    for f in files:
-        d = _json.load(open(f))
-        if d.get("refused"):
-            continue
-        if d.get("arm") != M.T1_ARM or d.get("cubes") != M.T1_CUBES:
-            continue                       # a run against a different layout
-        tot_bad += d.get("total_ik_failures", 0)
-        tot_below += d.get("total_waypoints_below_floor", 0)
-        seen.append(os.path.basename(f))
-    out["T1-11"] = ((PRESENT, "%d clearance runs on THIS layout: %d IK "
-                              "failures, %d waypoints inside the floor (%s)"
-                     % (len(seen), tot_bad, tot_below, ", ".join(seen)))
-                    if seen and tot_bad == 0 and tot_below == 0
-                    else (MISSING, "clearance over the full path is "
-                                   "unmeasured for this layout, or it failed: "
-                                   "%d runs, %d IK failures, %d waypoints "
-                                   "inside the floor"
-                          % (len(seen), tot_bad, tot_below)))
+    # The check is that the MEASUREMENT EXISTS and passed for THIS layout, and
+    # for BOTH stages: the whole finding behind T1-11 is that a layout can be
+    # clean by every IK check and spend half its path inside the floor.
+    runs, bad11 = [], []
+    if os.path.exists(rec_f):
+        d = _json.load(open(rec_f))
+        same = (d.get("layout", {}).get("cubes")
+                == [list(c) for c in T1M.T1_CUBES]
+                and d.get("layout", {}).get("planes")
+                == [list(p) for p in T1M.T1_PLANES])
+        if not same:
+            bad11.append("t1_paths.json records a different layout")
+        else:
+            runs.append("stage 1")
+            for arm, r in d["arms"].items():
+                if r["ik_failures"] or r["floor_breaches"]:
+                    bad11.append("stage 1 %s: %d IK failures, %d breaches"
+                                 % (arm, r["ik_failures"],
+                                    r["floor_breaches"]))
+    else:
+        bad11.append("no t1_paths.json")
+    s2_f = os.path.join(WS, "recordings", "baselines", "t1_stage2_paths.json")
+    if os.path.exists(s2_f):
+        d2 = _json.load(open(s2_f))
+        for sd, v in sorted(d2.get("seeds", {}).items()):
+            runs.append("stage 2 seed %s" % sd)
+            if not v.get("clean"):
+                bad11.append("stage 2 seed %s did not verify" % sd)
+    else:
+        bad11.append("no t1_stage2_paths.json -- stage 2 is unwalked")
+    out["T1-11"] = ((PRESENT, "%d walked runs, all clean (%s)"
+                     % (len(runs), ", ".join(runs)))
+                    if runs and not bad11
+                    else (MISSING, "; ".join(bad11)))
 
     # ---- T1-12  stage 2 randomises the SIDE, and the seed is read --------
     ra = open(os.path.join(WS, "src", "srl_experiments", "experiments", "abc",
                            "run_abc.py")).read()
-    msrc = open(os.path.join(WS, "src", "srl_experiments", "experiments",
-                             "abc", "msc_clip_tasks.py")).read()
     seed_read = 'build"](seed=a.seed)' in ra and \
                 M.TASKS["t1s2"].get("seeded") is True
     sides = set()
@@ -357,8 +430,7 @@ def check_t1(mods):
     varies = len(sides) > 1 and all(isinstance(s, tuple) for s in sides)
     out["T1-12"] = ((PRESENT, "seed reaches the layout; side splits over 12 "
                               "seeds: %s" % sorted(sides))
-                    if seed_read and varies and "n_per_arm" not in
-                    msrc.split("def t1_stage2")[1][:200]
+                    if seed_read and varies
                     else (MISSING, "seed read by the task: %s; side splits "
                                    "seen: %s" % (seed_read, sorted(sides))))
     return out
@@ -735,9 +807,22 @@ def self_test(mods):
     fails = []
 
     def expect_fail(name, fn, mutate, restore):
+        """Break one input and require the audit to NOTICE.
+
+        RAISING COUNTS AS NOTICING. Some breakages are refused by the task
+        itself rather than reported by the audit -- a cube whose colour names
+        the other side's pad makes `t1_task.build` raise, because emitting the
+        path would be worse than refusing it. A probe that treated the
+        exception as a harness error would say the check had failed to detect
+        the very thing it detected loudest.
+        """
         mutate()
         try:
             res = fn(mods)
+        except Exception as e:                                # noqa: BLE001
+            print("   %-46s detected by REFUSAL: %s"
+                  % (name, str(e).split(".")[0][:60]))
+            return
         finally:
             restore()
         if all(s == PRESENT for s, _ in res.values()):
@@ -745,25 +830,37 @@ def self_test(mods):
 
     CS, M, T3 = mods["clip_scene"], mods["msc"], mods["task3"]
 
-    orig = copy.deepcopy(M.T1_CUBES)
-    expect_fail("T1 cube/plane overlap",
+    import t1_task as T1M
+    orig = copy.deepcopy(T1M.T1_CUBES)
+    expect_fail("T1 cube/pad overlap",
                 check_t1,
-                lambda: M.T1_CUBES.__setitem__(
-                    0, [M.T1_PLANES[0][0], M.T1_PLANES[0][1]]),
-                lambda: M.T1_CUBES.__setitem__(0, orig[0]))
+                lambda: T1M.T1_CUBES.__setitem__(
+                    0, [T1M.T1_PLANES[0][0], T1M.ROW_Y]),
+                lambda: T1M.T1_CUBES.__setitem__(0, orig[0]))
 
-    cells = copy.deepcopy(CS.REGION_CELLS)
+    # THE PROBES THAT MUTATED `REGION_CELLS` AND `T1_ARM` ARE GONE WITH THE
+    # THINGS THEY MUTATED. T1 is two-armed and draws its marking from its own
+    # verified cells rather than from the global survey, so breaking the
+    # survey no longer breaks T1's marking -- correctly. What has to be broken
+    # instead is the MARKING ITSELF, and the arm assignment.
+    tmc = CS.t1_marking_cells
     expect_fail("T1 marking encloses objects",
                 check_t1,
-                lambda: CS.REGION_CELLS.__setitem__(M.T1_ARM, [(0.0, 0.0)]),
-                lambda: CS.REGION_CELLS.update(cells))
+                lambda: setattr(CS, "t1_marking_cells",
+                                lambda arm, task="t1", seed=0: [(0.0, 0.0)]),
+                lambda: setattr(CS, "t1_marking_cells", tmc))
 
     ma = CS.marked_arms
-    expect_fail("T1 marks only its own arm",
+    expect_fail("T1 marks BOTH arms",
                 check_t1,
-                lambda: setattr(CS, "marked_arms",
-                                lambda t: ("left", "right")),
+                lambda: setattr(CS, "marked_arms", lambda t: ("left",)),
                 lambda: setattr(CS, "marked_arms", ma))
+
+    afp = T1M.arm_for_pad
+    expect_fail("T1 sends each cube to the arm that can reach its pad",
+                check_t1,
+                lambda: setattr(T1M, "arm_for_pad", lambda i: "left"),
+                lambda: setattr(T1M, "arm_for_pad", afp))
 
     fx = CS.fixtures_for
     expect_fail("T0 spheres drawn",

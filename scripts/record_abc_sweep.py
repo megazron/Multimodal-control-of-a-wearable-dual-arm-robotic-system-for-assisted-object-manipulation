@@ -145,12 +145,16 @@ from mode_upstreams import (MODE_ORDER, MODES, ALL_UPSTREAMS,   # noqa: E402
 CARD_TEXT = {
     "t0": ("Reach three targets with one arm while the other stays still.",
            "Watch the arm settle on each target before it moves to the next."),
-    "t1": ("Pick up four cubes and place each one on the mat of its colour.",
-           "Watch the fingers close on the cube, not above it. Blue goes to "
-           "the blue mat and green to the green mat."),
-    "t1s2": ("Both arms pick and place at the same time.",
-             "Watch both arms move together. Neither reaches into the "
-             "other's half of the table."),
+    "t1": ("Pick up four cubes and place each one on the mat of its colour. "
+           "The arm looks at the table first and reads the colours off the "
+           "picture.",
+           "Watch the look before the first grasp. The two mats are either "
+           "side of the middle, the cubes rest on the table, and each cube "
+           "ends on the mat of its own colour."),
+    "t1s2": ("The same task with the cubes dealt to either side at random, "
+             "so the two arms get different amounts of work.",
+             "Watch the look before the first grasp, and count the cubes on "
+             "each side. Each one still ends on the mat of its own colour."),
     "t2": ("Both arms lift one tray together.",
            "Watch the tray stay level. If one hand leads, the ball rolls."),
     # WHAT THE PATH ACTUALLY DOES. The old card said "touch it to each test
@@ -221,7 +225,7 @@ def scene_travel_verdict(ev, floor_m=MIN_SCENE_TRAVEL_M):
     return True, "scene travel %s" % shown
 
 
-def prepend_card(mp4, mode, task, hold_s=6.0):
+def prepend_card(mp4, mode, task, hold_s=6.0, instruction=None):
     """Put a full-frame information card in FRONT of the footage.
 
     It used to be an overlay across the whole clip, which competes with the
@@ -260,6 +264,20 @@ def prepend_card(mp4, mode, task, hold_s=6.0):
     for ln in _t.wrap(what, 58):
         d.text((56, y), ln, fill=(238, 244, 248), font=font(18))
         y += 27
+    # THE SENTENCE THE OPERATOR TYPED, VERBATIM, IN QUOTES.
+    #
+    # Under 06 the instruction IS the input to the trial, and a card that
+    # described the task without it would be describing a different run: the
+    # same task under the same mode does different things depending on what
+    # was typed, and a viewer cannot tell which from the footage.
+    if instruction:
+        y += 14
+        d.text((56, y), "Typed instruction", fill=(99, 200, 216),
+               font=font(15, True))
+        y += 26
+        for ln in _t.wrap('"%s"' % instruction.strip(), 56):
+            d.text((56, y), ln, fill=(238, 244, 248), font=font(17))
+            y += 25
     y += 18
     d.text((56, y), "What to watch for", fill=(232, 163, 61), font=font(15,
                                                                        True))
@@ -638,7 +656,8 @@ def _fail(why):
 
 
 def run_one(app, gui, task, mode, out_dir, graph=None,
-            start_grabs=None, motion_wait_s=45.0, prefix="abc", gui_key=None):
+            start_grabs=None, motion_wait_s=45.0, prefix="abc", gui_key=None,
+            instruct=None, seed=None):
     """Press the GUI button for (task, mode) and wait for it to finish."""
     # THE WHOLE MODE NAME, not its first two characters. Cutting the key to
     # two characters is what let 03_shared_autonomy and the legacy alias
@@ -655,6 +674,20 @@ def run_one(app, gui, task, mode, out_dir, graph=None,
         return _fail("no GUI spec %r" % key)
     if not spec.enabled:
         return _fail("GUI button disabled: %s" % spec.disabled_reason)
+    # THE TYPED SENTENCE, AND THE SEED, ADDED TO THE BUTTON'S OWN ARGV.
+    #
+    # The button is still the thing that is pressed -- that is the whole point
+    # of driving the sweep through `Gui.on_launch` rather than through a
+    # command line of its own -- and these two are per-RUN rather than
+    # per-button: the instruction is what the operator typed and the seed is
+    # which table stage 2 drew.
+    if instruct or seed is not None:
+        argv = list(spec.argv)
+        if instruct and "--instruct" not in argv:
+            argv += ["--instruct", instruct]
+        if seed is not None and "--seed" not in argv and gui_key == "m1s2":
+            argv += ["--seed", str(seed)]
+        spec = spec.with_argv(argv)
     before = len(gui.jobs)
     ref = graph.joints(3.0) if graph is not None else None
     gui.on_launch(spec)
@@ -757,6 +790,18 @@ def _main_body():
                     help="layout seed for randomised tasks; recorded per clip")
     ap.add_argument("--tasks", default=None,
                     help="subset of the taskset's keys; default all of them")
+    # THE SENTENCE THE TASK IS DRIVEN BY, under 06.
+    #
+    # T1 and T1S2 are commanded by a typed instruction: `run_abc --instruct`
+    # grounds it against what the CAMERA saw and builds the path from the
+    # result. It goes on the card verbatim, because under 06 the instruction
+    # IS the trial's input -- the same task under the same mode does different
+    # things depending on what was typed, and a viewer cannot tell which from
+    # the footage.
+    ap.add_argument("--instruct", default=None, metavar="TEXT",
+                    help="drive t1/t1s2 from this typed sentence. It is "
+                         "passed to run_abc, grounded on the detections, and "
+                         "printed on the information card.")
     ap.add_argument("--settle-s", type=float, default=3.0)
     ap.add_argument("--no-verify", action="store_true",
                     help="record only; skip the verifiers")
@@ -879,6 +924,14 @@ def _main_body():
                            " and ".join(_modes)))
                     skipped += 1
                     continue
+                # THE SENTENCE THIS CELL IS DRIVEN BY, decided once, at the
+                # top, where `task` is known. Only the two tasks with a colour
+                # rule for a camera to ground take one; asking T2 to "put the
+                # blue ones on the blue pad" would be a refusal recorded as a
+                # failed clip.
+                _instruction = (a.instruct if (a.instruct
+                                               and task in ("t1", "t1s2"))
+                                else None)
                 scen = SCENARIO[task]
                 out_dir = os.path.join(OUT, mode, task.upper(), scen)
                 pkey = "%s/%s/%s" % (mode, task, scen)
@@ -913,14 +966,24 @@ def _main_body():
                 # the sweep has to provide a publisher. One per task, torn
                 # down with the scene node.
                 cam_p = None
-                if task in ("t1",):
+                if task in ("t1", "t1s2"):
                     procscan.kill_all("mock_rgbd_camera")
-                    _cam_arm = ts["mod"].TASKS[task].get("arm") or \
-                        getattr(ts["mod"], "T1_ARM", "left")
+                    # THE ARM THAT LOOKS, from the task that owns the answer.
+                    # One look serves the whole task -- the observe pose is
+                    # solved against every cube and both pads at once -- so
+                    # the looking arm is not the working arm and must not be
+                    # guessed from the grip schedule.
+                    import t1_task as _T1M
+                    _cam_arm = _T1M.LOOK_ARM
                     cam_p = subprocess.Popen(
                         ["ros2", "run", "srl_perception", "mock_rgbd_camera",
                          "--ros-args", "-p", "arm:=%s" % _cam_arm,
-                         "-p", "task:=%s" % task],
+                         "-p", "task:=%s" % task,
+                         # STAGE 2 DRAWS ITS CUBES FROM THE SEED, so the
+                         # renderer needs the same one the scene node and the
+                         # task were given or it paints a different table from
+                         # the one the arm is working on.
+                         "-p", "seed:=%d" % seed],
                         start_new_session=True, stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL)
                 time.sleep(3.0)
@@ -1057,11 +1120,12 @@ def _main_body():
                 # a look inside the run would put a second publisher on the
                 # arm controller alongside ik_follower_node. This is where the
                 # arm actually goes and looks.
-                if staged and task in ("t1",):
+                if staged and task in ("t1", "t1s2"):
                     from srl_teleop import gui_launch_specs as _gls
                     _det = subprocess.run(
                         [sys.executable, os.path.join(
                             WS, "scripts", "stage_observe_and_detect.py"),
+                         "--task", task, "--seed", str(seed),
                          "--out", _gls.DETECTIONS_FILE],
                         capture_output=True, text=True)
                     # THE WHOLE OUTPUT ON FAILURE, the last two lines on
@@ -1185,7 +1249,8 @@ def _main_body():
                     app, gui, task, mode, out_dir, graph=graph,
                     start_grabs=lambda: rr.start_grabs(out_dir,
                                                       grip_arm),
-                    prefix=ts["prefix"], gui_key=ts["arg"](task))
+                    prefix=ts["prefix"], gui_key=ts["arg"](task),
+                    instruct=_instruction, seed=seed)
                 log("      capture gated on %s" % gate)
                 # WHERE THE ARMS WERE AT THE FIRST COMMANDED WAYPOINT.
                 #
@@ -1392,7 +1457,8 @@ def _main_body():
                 # A CARD IN FRONT OF EVERY ANGLE, not an overlay across one.
                 for _f in sorted(os.listdir(out_dir)):
                     if _f.startswith("rviz_") and _f.endswith(".mp4"):
-                        prepend_card(os.path.join(out_dir, _f), mode, task)
+                        prepend_card(os.path.join(out_dir, _f), mode, task,
+                                     instruction=_instruction)
                 quad = rr.make_quad(out_dir)
                 files = sorted(f for f in os.listdir(out_dir)
                                if f.endswith(".mp4"))

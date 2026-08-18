@@ -5726,3 +5726,229 @@ shipped constants against `t1_paths.json`, which records the walk of the OLD
 layout on the OLD mount. Regenerating it means walking the whole composed 203
 waypoint path on the new geometry, which was outside this brief and has NOT been
 done.
+
+---
+
+# 2026-08-18 (later) — T1 COMMANDABLE FROM A TYPED SENTENCE, AND THE GRASP THAT HAD BEEN 13 mm SHORT SINCE IT WAS WRITTEN
+
+## The order things were found in, because it matters
+
+The brief was language, the GUI and a re-record. None of it could be recorded
+until the layout verified, and walking the layout is what found the two faults
+below. Both had been live for as long as the code they sat in.
+
+## 1. `PAD_MID_EE` was 13.47 mm too long, and it had never been measured
+
+`grasp_frames.PAD_MID_EE` is the vector every T1 grasp is built on: the task
+declares where the OBJECT is and subtracts this to get the wrist pose. It was
+DERIVED — as the magnitude of `clip_tasks.PAD_OFFSET_BY_ARM`, a world-frame
+vector recorded at the anchor — and `test_pad_offset_has_one_source` asserted
+the two agreed to 0.1 mm, which they did, because one was arithmetic on the
+other. A test that derives its expectation from the thing it is checking
+cannot fail.
+
+`/compute_fk` on the two finger-tip links and the end-effector link, from one
+solution, on both arms:
+
+| | |
+| --- | --- |
+| end_effector_link -> midpoint of the finger tips | **(0, 0, 0.09833) m** |
+| the two arms agree to | **0.000 mm** |
+| `\|PAD_OFFSET_BY_ARM\|` | 0.11178 / 0.11184 m |
+| disagreement | **13.45 / 13.51 mm** |
+
+The symptom was there to be read the whole time: `verify_t1.py` reported a pad
+miss of **13.48 mm on all four cubes of both arms, identically**, which is the
+signature of a constant and not of a path. With the measured value it is
+**0.00 to 0.01 mm**.
+
+`scripts/measure_pad_mid_ee.py` is the instrument, with a round-trip control;
+`recordings/baselines/pad_mid_ee.json` the record. `PAD_OFFSET_BY_ARM` is
+deliberately NOT moved: T0, T2 and T3 declare their coordinates through it and
+`clip_scene` draws their objects through it, so task and picture agree with
+each other. What it means is that in those three tasks the declared coordinate
+is 13.45 mm from where the object is drawn and grasped — written down now
+instead of unknown.
+
+**Correcting it broke the approach, which is the useful part.** At the shipped
+heading of -65 deg the gripper base fouls the table by 5.2 mm and **0 of 40**
+grasp attempts solve. Swept at N=10 per cell over the four cubes, elevation -10
+solves **40 of 40 from heading -45 to -57.5 and 0 of 40 outside it**. The
+heading is now -50: the middle of that window, and the only one that also
+solves at elevation -7.5, so it has margin in both directions rather than
+merely working.
+
+## 2. The right pad's outer slot was in the wearer's own upper arm
+
+Walked three times at N=10, sequential seeding, the same waypoint read
+
+    0.1611 m     0.1787 m     0.1483 m
+
+against a 0.150 m floor — **one run in three inside it, with 0 IK failures
+every time.** That is the null-space branch scatter this file already records
+for the left arm, landing on a column with no margin to absorb it.
+
+`scripts/measure_pad_columns.py` sweeps the place pose per column at N=10 and
+names the closest body:
+
+| \|x\| | left | right |
+| --- | --- | --- |
+| 0.120 | 0.1624 (L-upperarm) | 0.1398 (R-upperarm) |
+| 0.195 | 0.2202 (torso) | 0.1902 (R-upperarm) |
+| 0.230 | 0.2202 | 0.2035 (R-upperarm) |
+| 0.255 and out | 0.2202 | 0.2202 (torso) |
+
+0.2202 m is the MOUNT — `base_link`, which no joint moves — so there is a band
+where the closest thing to the person is the mount and a bad branch cannot make
+it worse. The left arm is mount-limited from 0.225 and the right from 0.255.
+
+**The pads are now symmetric at ±0.290**, both slots of both pads inside that
+band, and the cubes moved to ±0.420 and ±0.480 because a pad occupies
+\|x\| = 0.210 to 0.370 and a cube at 0.300 would start ON the pad it is meant
+to be delivered to.
+
+Walked three times sequential and once independent — the pessimistic branch
+case T1 has never survived before — all clean: 0 IK failures, 0 breaches, worst
+clearance 0.1920 (left) and 0.2148 (right).
+
+## 3. NEITHER ARM CROSSES THE CENTRELINE, and it decides what stage 2 can be
+
+Measured at N=10 with the wearer and the table in the scene: **0 of 10 IK
+solutions at every cross-side pad slot and every cross-side cube position, on
+both arms.** Not marginal — nothing solves at all.
+
+So the arm that reaches a cube is fixed by the side it starts on, the arm that
+reaches a pad is fixed by the pad's side, and a cube can only be delivered to
+the pad on its own side. Stage 2 draws the SIDE; the colour follows from it.
+Drawing colour and side independently would be drawing trials the rig cannot
+perform, and that is why the old stage 2 needed a pad of each colour on each
+side and could not share stage 1's two.
+
+`t1_task.build()` REFUSES such a cube by name rather than emitting a path whose
+every waypoint fails IK for a reason nobody would connect to colour. The
+refusal is exercised by `test_a_cube_whose_colour_is_on_the_other_side_is_REFUSED`
+and by an audit probe.
+
+## 4. Stage 2 is stage 1's geometry now, and eight seeds were walked to say so
+
+Same table, same two pads, same row, same approach, same builder —
+`t1_task.build()` with a drawn layout instead of a fixed one, so stage 2 cannot
+acquire a dwell, a standoff or a slot spacing stage 1 does not have. Eight
+seeds over the composed path at N=10: **0 IK failures, 0 floor breaches, every
+one clean** (`recordings/baselines/t1_stage2_paths.json`). Splits seen: 1/3,
+2/2, 3/1.
+
+**The pads are 290 mm off centre and not 260 because of a stage 2 seed.** At a
+260 mm centre the innermost of three slots lands at \|x\| = 0.200, which the
+per-column sweep calls clear FROM HOME and the composed path does not: at seed
+3, three cubes left, the left arm read **0.1219 m to the wearer's own upper arm
+on 15 waypoints**. Solving from home and solving from the carry are different
+questions and the second is the one the follower asks.
+
+## 5. THE ONE MISUNDERSTANDING: a compound instruction executed half of itself
+
+"put the blue ones on the blue pad and the green ones on the green pad" —
+two complete instructions sharing a verb — **planned the first clause and
+dropped the second in silence: two cubes moved of four, reported as a
+success.** Three of the 75 phrasings did it, all compounds.
+
+The mechanism: `split_destination` cuts at the FIRST destination cue, so the
+head was "put the blue ones", and the two-targets check counts targets in the
+head — one target, passed. Every part behaved as designed.
+
+`voice_intent.split_clauses` now names the clauses; `t1_instruction` plans each
+and merges them, refusing when a clause does not stand on its own or when the
+two halves send the same cube to two pads.
+
+**Measured, 75 phrasings, against the grammar as committed at b782a9b** — the
+same cases, checked out of git into a temporary tree and run in their own
+interpreter, so the two columns differ by the code and by nothing else:
+
+| | at b782a9b | now |
+| --- | --- | --- |
+| CORRECT | 21 | **34** |
+| ASKED | 14 | 14 |
+| REFUSED | 37 | 27 |
+| **MISUNDERSTOOD** | **3** | **0** |
+
+and every one of the 14 asks resolves to the right plan on one reply (one takes
+two, because it is a two-part question). Those are reported on their own line
+and NOT counted as correct: a grammar that asks about everything must not be
+able to look like one that understands everything.
+
+**THE BEFORE COLUMN CAME BACK IDENTICAL THE FIRST TIME IT WAS RUN**, and that
+is worth recording because it is indistinguishable from "the change did
+nothing": the temporary tree was appended to `sys.path` after the real one, so
+`import t1_instruction` found the current file. The runner now asserts the
+module it imported came from the tree it wrote.
+
+## 6. The other thing the phrase set found: politeness became a second action
+
+"could you please just put the blue ones on the blue pad for me when you get a
+chance" was REFUSED as "more than one action in one instruction". `when` is one
+Damerau edit from `then`, the repair rule took it, and `then` is a SEQUENCE
+word. A word that decides whether a sentence is refused is as load-bearing as
+the verb, so negations, sequence words, conjunctions and relational words are
+no longer repair TARGETS — the same rule that already stopped `top` becoming
+`stop`. They stay in the vocabulary, so a correctly spelled `then` still
+refuses.
+
+A related tie: `padd` is one edit from both `pad` and `pads`, and asking "did
+you mean pad or pads?" is asking about a distinction the sentence does not
+have. Ties are collapsed by LEMMA before being counted, so `green`/`grey` stays
+a tie and `pad`/`pads` does not.
+
+## 7. What "universally commandable" turned out to need
+
+Each of these exists because a phrasing needed it, not because it was designed:
+
+* **selectors**, resolved against what the CAMERA saw — "the leftmost blue
+  cube", "the second", "either". A selector the scene cannot settle ("the
+  biggest", against four identical 40 mm cubes) is REFUSED BY NAME rather than
+  dropped, because dropping it turns a qualified instruction into an
+  unqualified one;
+* **a bare pick is a whole instruction** — "pick up the blue cube" is planned
+  as a pick and a lift, not silently completed with a destination nobody named;
+* **"closest to me" is a superlative about the person**, not a relational
+  reference to a second object, and is no longer refused as one;
+* **"tidy up" offers its reading back** as a question rather than assuming it;
+* **an ASK is answerable** — it carries the candidates it was asked about, and
+  a reply as short as "the left one", "both" or "yes" resolves it against the
+  set the operator was SHOWN. A reply that is itself a complete instruction is
+  treated as one.
+
+## 8. The audit that TASK_SPEC section 8 requires had been dead since the rebuild
+
+`scripts/audit_task_spec.py` calls `msc_clip_tasks.t1()`. The rebuild moved the
+builder to `t1_task` and the alias went with it, so the pre-recording pass —
+the thing that exists to catch "reported done and later found absent" — died
+with `AttributeError` the first time it was run afterwards. `check_t1` was also
+still written for the one-armed T1: `T1_ARM`, `t1_grip`, `SLOT_DY`, and a
+cube-to-pad pairing keyed on index parity.
+
+Rewritten against the task as it is. **46 PRESENT, 0 MISSING, 0 BLOCKED**, and
+T1-1 — "cubes rest ON the table" — is satisfied from the shipped scene for the
+first time since it was written. TASK_SPEC's T1-9 said "stage 1 runs on the
+LEFT arm with all four cubes on the LEFT"; the document has been changed rather
+than the check bent to fit it, and the old sentence is left in place above the
+correction.
+
+## 9. The GUI prompt panel, and the check it has to pass
+
+A tab in the existing window: text box, voice button on the existing
+`/voice_transcript` path, what the parser understood shown BEFORE anything
+moves, what the camera detected with the classifier's own HSV margin per cube,
+the announced intention and a confirm click, live state from the runner's own
+`[progress]` lines, and refusals and questions in plain words — answerable in
+the same box.
+
+The failure it is written against is "a prompt box that looks right and sends
+nothing". `scripts/verify_prompt_panel.py` drives the real GUI offscreen and
+intercepts exactly one thing, the `Popen`: everything before it runs for real.
+The check that matters is that CONFIRM hands the runner an argv carrying this
+task, mode 06, the detections it was planned from, and the operator's own
+sentence verbatim.
+
+`verify_gui_buttons` presses every button in the window, so the panel's two
+process launches go through one interceptable method each — pressing LOOK for
+real would move the arm in the middle of a button audit.

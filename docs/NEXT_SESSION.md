@@ -1,3 +1,249 @@
+# RUNNING FULL AUTONOMY (MODE 06) ON THE REAL ARMS — READ BEFORE TRYING
+
+**Nothing in this repository has ever run against a real arm.** Everything
+below is derived from the code, not from a session that happened.
+
+## THE FIVE ANSWERS
+
+**1. Does `start_real.sh` route mode 06 to the real arms?**
+It does not route modes at all, and it does not need to. `sim_to_real_bridge`
+subscribes to **`/joint_states`** — it replays whatever moves the SIM, whatever
+made it move. Mode 06 publishes `/autonomy/assist_pose_<arm>`, which
+`ik_follower_node` subscribes to and hands to **`request_ik` — the same door
+teleop uses**, deliberately: same IK, same clearance floor, same step guard,
+same e-stop. So the autonomy path DOES reach the real bridge.
+
+Two things about `start_real.sh` are misleading rather than wrong: its banner
+says "move the master arm", and its preflight warns if `master_pose_node` is
+absent. Both are teleop wording. Mode 06 needs neither — ignore that warning.
+
+The gripper reaches hardware too: `run_abc` publishes to
+`/<arm>_gripper_controller/joint_trajectory` and `kortex_highlevel_bridge`
+subscribes to exactly that, over the same Kortex session.
+
+**2. The home gap.** The recapture is §"CAPTURE THE NEW HOME ON THE REAL ARMS"
+below, and **you do not have to write anything down** — the target is already
+in this file as a table in Kortex degrees, ROS degrees and ROS radians for both
+arms. The refusal text names the joint and the size and points at that section.
+Record the live readback in `config/real_home_reference.txt`, which no code
+reads, so it cannot break anything.
+
+**3. Perception on hardware.** Mode 06 needs a publisher on
+`/<arm>_camera/color/image_raw`, `/<arm>_camera/depth/image_raw` and
+`/<arm>_camera/color/camera_info` — the mock owns exactly the topics the real
+driver owns, so a real driver substitutes without code changes.
+
+*If the camera publishes nothing it REFUSES.* `observe_and_detect` waits ~40 s
+and raises `DetectionUnavailable`: "no camera stream on /<arm>_camera". It does
+**not** fall back to the declared coordinate — that fallback is forbidden by
+TASK_SPEC P-4 precisely because a blind pick is indistinguishable from a
+working perception path.
+
+**But two guards go quiet on a real camera, and neither is a refusal:**
+
+* The frame-stillness check compares the pose the frame was RENDERED from
+  against the live camera pose. It reads that from `/<arm>_camera/render_pose`,
+  which **only the mock publishes**. With a real camera it returns None and the
+  check is inert. It is recorded, not enforced: look for
+  `frame_pose_is_stamped: false` in the detection info.
+* `Vision._rgb` stores the newest frame with **no age check**. A driver that
+  republishes a stale frame is the "data fresh but never changes" row of
+  CLAUDE.md's instrument table, and nothing here would catch it.
+
+Also: the observe pose was solved for the MOCK's intrinsics (640x480, f=615,
+54.9 x 42.6 deg) and for the camera frame's URDF position. A real camera with
+different intrinsics, or mounted anywhere other than where the URDF says, makes
+every deprojected cube position wrong **with no error** — the numbers stay
+confident. Re-solve `scripts/solve_observe_pose.py` against the real intrinsics
+and verify the extrinsics before believing a single detection.
+
+**4. Does mode 06 need the master arm / the Teensy?** **No.**
+`on_autonomy_pose` gates on `accept_autonomy_pose`, `tracking_enabled`,
+`estopped` and (on real hardware) `home_gate_ok`. There is no clutch gate and
+no master gate. `check_channels.sh` measures master channel coherence and is
+irrelevant to this path — the incoherent channels do not block mode 06.
+
+**5. What else has only ever been exercised in simulation on this path?**
+All of it. Specifically:
+
+* the camera extrinsics and intrinsics (above) — the largest silent-error risk;
+* `WORKSPACE_CENTRE`, re-derived 2026-08-15 and **never exercised** — `run_abc`
+  commands world poses directly and does not go through that mapping, so mode
+  06 does not test it either;
+* the gripper transport to the real Kortex gripper;
+* the wearer clearance floor, which is measured GEOMETRICALLY in sim;
+  `avoid_collisions` is not the wearer check (HARD CONSTRAINT 11);
+* the settle logic added 2026-08-18 (`[SETTLE]` lines) — new, and only ever run
+  against the mock's gripper dynamics.
+
+## TWO THINGS THAT BLOCK A CLEAN RUN, AND ONE CONTRADICTION
+
+**(a) There is no launcher that gives you perception + autonomy + real_robot
+follower limits.** `shared_autonomy.launch.py` does not declare `real_robot`
+and hardcodes `gate: false` when it includes teleop, so
+`run_autonomy.sh real_robot:=true` silently does nothing. Compose it by hand —
+see the commands below. Without `real_robot:=true` you lose the follower's
+hardware limits AND HARD CONSTRAINT 8's arming (`motion_enabled` defaults to
+true when `real_robot` is false).
+
+**(b) T1 uses BOTH arms** — cubes either side of the centreline, one pad per
+arm, and neither arm can cross the centreline. A single-arm real bring-up runs
+half the task on hardware and half in sim.
+
+**(c) UNRESOLVED CONTRADICTION about the right arm's driver.**
+`start_real.sh` says both arms, "now that the dual-arm resource collisions are
+fixed (patches/0001-0003)". §1 of this file says `kortex_driver` exports
+`tcp/twist.*` without an arm prefix, so two real components collide and abort
+the whole hardware load, and only the LEFT arm can run its real driver.
+**These cannot both be true.** Resolve it with `--mock arm:=both` BEFORE
+touching hardware; until then use `arm:=left`.
+
+## THE COMMANDS, IN ORDER
+
+Every terminal starts with:
+
+```
+source /opt/ros/jazzy/setup.bash && source ~/kortex_ws/install/setup.bash
+export FASTDDS_BUILTIN_TRANSPORTS=SHM        # NOT optional
+```
+
+**Step 0 — rehearse the whole thing with nothing at risk.**
+```
+bash scripts/start_real.sh --mock arm:=both
+```
+PASS: reaches `REAL ARMS LIVE`. If `arm:=both` aborts the hardware load here,
+contradiction (c) is resolved in favour of §1 and you are single-arm today.
+
+**Step 1 — terminal 1: the stack, in real_robot mode, with perception.**
+```
+ros2 launch srl_teleop teleop.launch.py gate:=false real_robot:=true
+```
+then, in terminal 1b:
+```
+ros2 launch srl_autonomy shared_autonomy.launch.py teleop:=false perception:=true
+```
+PASS: `ros2 node list` shows `move_group`, `controller_manager`, an
+`ik_follower` per arm, and the perception nodes. Two separate launches is
+deliberate — it is the only way to get `real_robot:=true` AND perception.
+
+**Step 2 — terminal 2: watch it.**
+```
+ros2 run srl_teleop live_monitor
+```
+PASS: `/blocking_summary` names `motion_disarmed` — expected, that is
+HARD CONSTRAINT 8 holding the arm until you arm it by hand.
+
+**Step 3 — terminal 3: connect, home, bridge.**
+```
+bash scripts/start_real.sh arm:=left          # arm:=both ONLY after step 0 passed
+```
+PASS: `homing complete ... every joint within tolerance`, then
+`REAL ARMS LIVE`.
+EXPECTED FAILURE THE FIRST TIME: the bridge refuses, naming joint_7 at
+~1.9 rad. That is the home gap, not a fault — do the recapture below, then
+repeat this step.
+
+**Step 4 — arm motion, deliberately, by hand.**
+```
+ros2 node list | grep ik_follower              # get the real node names first
+ros2 param set /<follower_node> motion_enabled true
+```
+PASS: `motion_disarmed` disappears from `/blocking_summary`.
+
+**Step 5 — prove perception BEFORE anything moves to a cube.**
+```
+ros2 topic hz /left_camera/color/image_raw
+python3 scripts/stage_observe_and_detect.py --task t1
+```
+PASS: it names 4 cubes with positions within 30 mm of the declared layout, and
+returns the arm to home. Check `frame_pose_is_stamped` in the output — on a
+real camera it will be **false**, meaning the stillness guard is off.
+FAIL LOUDLY: `DetectionUnavailable` is the correct outcome for a silent camera.
+Do not work around it.
+
+**Step 6 — the task, from a typed sentence.**
+```
+ros2 run srl_teleop gui            # Instruct tab: LOOK, then type, then CONFIRM
+```
+PASS: the panel shows what it understood and what the camera detected BEFORE
+anything moves, and CONFIRM is a separate click. Watch `[progress]` lines name
+each cube and pad, and `[SETTLE]` lines if the real arm lags — on hardware the
+settle budget (90 s) may be spent, and it says so.
+
+**Teardown: SIGINT, never SIGKILL.** The arm permits exactly ONE Kortex
+session. Grep for `kortex session closed cleanly`.
+
+---
+
+# RESUME POINT 2026-08-18 (latest) — T1 IS RECORDED UNDER 06, BOTH STAGES
+
+## THE ONE-PARAGRAPH VERSION
+
+Both clips exist and both are correct in the pixels:
+`06_full_autonomy/T1/S1_both_arms_centre` and
+`06_full_autonomy/T1S2/S2_both_arms_random` (seed 3). Four grasps and four
+releases each, every cube on the pad of its own colour, both arms working,
+started AT home. Each clip runs **card -> look -> task**, so the observe move
+is in the footage for the first time. The typed sentence is on the card
+verbatim. Getting there cost three instrument fixes and none of them was the
+robot.
+
+## WHAT WAS WRONG, AND ALL OF IT WAS THE INSTRUMENT
+
+1. **The scene measured stage 2 at the anchor.** `clip_scene._pad_offset` was
+   guarded `if self.task == "t1"`. Stage 2 was rebuilt on stage 1's geometry
+   and commands stage 1's approach, but an equality on "t1" is not a match on
+   "t1s2", so it took `CT.PAD_OFFSET_BY_ARM` -- **99.1 mm out on the left arm,
+   83.3 mm on the right, against a 30 mm capture gate.** The runner planned
+   four picks from the camera, commanded all four, and both grippers closed;
+   the scene saw TWO grasps and filed "2 OBJECT(S) NEVER MOVED". It looked
+   exactly like a flaky task. Fixed, and pinned by
+   `test_scene_measures_both_t1_stages_at_t1s_approach.py`, which also asserts
+   that T0/T2/T3 still get the anchor -- a fix that returned T1's offset for
+   everything would have passed every other assertion.
+
+2. **The frame extractor had never extracted a grasp.** It mapped event
+   wall-clocks through `scene_events.t0_wall`, which is when the SCENE NODE
+   started; under 06 that is ~300 s before the capture, so every grasp landed
+   at +380 s inside a 48 s clip and was dropped as out of range. It printed
+   "10 frames" and exit 0 -- openings and finals only. The tool written to
+   look at the evidence had never produced the evidence and said nothing. The
+   sweep now writes `clip_meta.json` (grab_t0, card_hold_s, look_s) and the
+   extractor refuses a clip it cannot map and FAILS when no grasp comes out.
+
+3. **The card promised a look the footage did not contain.** The observe move
+   happens in staging, before the capture gate. It is now filmed on the same
+   motion gate the run uses and joined on in front.
+
+4. **The mislabel control had gone dead.** Its own single-arm look cannot see
+   a row that straddles the centreline, so it refused -- correctly -- on every
+   run since the rebuild. It takes `--vision` now and reads the staged
+   two-arm detections the clip was planned from.
+
+5. **A "new" failing test was two leftover stacks** from the previous session
+   (HARD CONSTRAINT 3). Killing them by process group restored 743 pass / 2
+   allowed / 0 new. Check `ps` before believing a test regression.
+
+## WHAT TO DO NEXT, IN ORDER
+
+1. **`verify_grasp_quality` reads 5 of 32 and T1 is not among them.** T1's row
+   is fingers=true, approach=true, attach=true, **wrist=false** -- because
+   `run_abc.send()` pins the wrist and T1's rotates 0.3 deg through the grasp.
+   The criterion cannot be met by a task with a pinned wrist. Either the
+   criterion is wrong for this rig or the number needs stating per task; as it
+   stands "5 of 32" reads as a failure rate and is not one.
+2. **`verify_gripper_motion` and `verify_object_attachment` still fail**, on
+   `t2/S2_full_lift` and an attachment GAP. Neither is T1. They have been
+   failing across every sweep this session.
+3. **The look is 128 s of a 175 s clip.** It is real footage and it is most of
+   the runtime; if that is too long, gate the grab on the arm MOVING rather
+   than on the subprocess, or cut the still stretch.
+4. `PAD_OFFSET_BY_ARM` is still 13.45 mm longer than the measured
+   `PAD_MID_EE`, so T0, T2 and T3 declare coordinates 13.45 mm from where the
+   object is drawn and grasped. Unchanged, still the next real job.
+
+---
+
 # RESUME POINT 2026-08-18 (later) — T1 IS COMMANDABLE AND THE TASK RUNS; THE SWEEP DOES NOT
 
 ## THE ONE-PARAGRAPH VERSION

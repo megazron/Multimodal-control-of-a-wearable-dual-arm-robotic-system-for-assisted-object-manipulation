@@ -77,10 +77,52 @@ def _accepts(z):
     return abs(float(z) - M.T1_Z) <= VG.PLANE_WINDOW_M
 
 
-def test_the_window_is_one_cube():
+def test_the_window_is_one_cube_and_the_MAT_is_excluded_by_where_it_is():
+    """Two checks, because one number cannot do both jobs.
+
+    THE HISTORY IS THE POINT. The window was one cube, which was ample while
+    the only thing it had to exclude was a pad fragment 160 mm BELOW the
+    plane. On the rebuilt layout the pads are mats lying ON the table the
+    cubes stand on, so a fragment sits `PAD_T` under a cube's centre and one
+    cube keeps both.
+
+    Tightening it to 10 mm to exploit that gap looked clean -- cubes measured
+    0.3 to 1.8 mm off the plane and fragments 16 to 19, six times the margin
+    either way -- and FAILED THE FIRST TIME IT RAN INSIDE A SWEEP: the left
+    arm returned ZERO cubes on its own side. Standing alone the arm settles to
+    2 mm; with a scene node, two cameras and a capture on the same machine it
+    does not, and the cube's own error ate the 6 mm of headroom. A
+    discriminator with 6 mm of headroom is a coin-toss dressed as a threshold.
+
+    So the window went back to one cube -- a number derived from the object,
+    which is the rule -- and the mat is excluded by WHERE IT IS instead: a
+    blob inside a pad's declared footprint at the pad's own surface height.
+    That is a fixture's position, not a cube's colour, so it leaves the vision
+    claim exactly where it was.
+    """
     assert VG.PLANE_WINDOW_M == pytest.approx(M.CUBE_M, abs=1e-9), (
         "the window is meant to be one cube wide; a window unrelated to the "
         "object size is a number nobody can re-derive.")
+    src = open(os.path.join(PKG, "experiments", "abc",
+                            "vision_grasp.py")).read()
+    assert "rejected_as_pad" in src, (
+        "nothing rejects a blob standing at a pad's own surface inside its "
+        "footprint, so a fragment of mat is a cube again")
+
+
+def test_a_cube_ON_a_pad_survives_the_pad_test():
+    """The rejection must not eat a cube that has been PLACED.
+
+    Half the task is putting cubes onto the pads, so the test that removes
+    fragments has to leave a cube standing on one alone. It does, by height:
+    a placed cube's centre is half a cube above the mat and the test only
+    reaches a quarter of a cube above it.
+    """
+    import t1_task as T1M
+    pad_top = T1M.TABLE_TOP + T1M.PLANE_T
+    placed_centre = pad_top + T1M.CUBE_M / 2.0
+    cut = pad_top + T1M.CUBE_M / 4.0
+    assert placed_centre > cut, (placed_centre, cut)
 
 
 def test_the_work_plane_comes_from_its_owner():

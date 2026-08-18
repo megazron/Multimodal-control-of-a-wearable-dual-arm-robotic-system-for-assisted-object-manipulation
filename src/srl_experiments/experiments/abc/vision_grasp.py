@@ -46,38 +46,23 @@ for _ in range(6):
     _ROOT = os.path.dirname(_ROOT)
 BASE = os.path.join(_ROOT, "recordings", "baselines")
 
-# HOW FAR OFF THE WORK PLANE A DETECTION MAY BE AND STILL BE A CUBE.
-#
-# ONE CUBE, and the number is measured rather than picked. Inside the sweep the
-# four real cubes deprojected to z 1.1118..1.1191 against a work plane at
-# 1.1200 -- within 9 mm -- while five spurious detections, fragments of the
-# same-coloured pads split by the cubes standing in front of them, landed at
-# 0.9576..0.9601, i.e. 160 mm low. 40 mm is an order of magnitude clear of the
-# real spread and four times clear of nothing else in the frame.
 # HOW FAR OFF THE WORK PLANE A DETECTION MAY LAND AND STILL BE A CUBE.
 #
-# 10 mm, NOT 40, SINCE 2026-08-18, AND THE PAD IS WHY. A window of one cube
-# was chosen when the only thing it had to exclude was a pad fragment 160 mm
-# BELOW the plane, which it did comfortably. On the rebuilt layout the pads are
-# mats lying ON the table the cubes stand on, so a pad's surface is 10 mm under
-# a cube's CENTRE -- and a 40 mm window keeps both.
+# BACK TO ONE CUBE, AND THE MAT IS EXCLUDED BY WHERE IT IS INSTEAD.
 #
-# It shows up as extra cubes. Measured on the two-arm look: the left camera at
-# 0.49 to 0.64 m returned five blue blobs where there are two cubes, and the
-# three extra were fragments of the blue pad, 37 to 51 px against an expected
-# cube of 38 to 45. At that range a piece of mat IS cube-sized and no size
-# gate can separate them.
+# It was tightened to 10 mm on 2026-08-18 to reject pad fragments, which on
+# the rebuilt layout sit only `PAD_T` under a cube's centre: measured, cubes
+# landed 0.3 to 1.8 mm off the plane and fragments 16 to 19, so 10 mm looked
+# like a clean cut with six times the margin either way.
 #
-# THE DEPTHS SEPARATE THEM CLEANLY, and that is measured rather than argued:
-#
-#     real cubes      z = 1.2682, 1.2717, 1.2723   (0.3 to 1.8 mm off plane)
-#     pad fragments   z = 1.2514, 1.2537           (16 to 19 mm off)
-#
-# 10 mm keeps every cube with five times its worst error and excludes every
-# fragment by six. It is a discriminator on GEOMETRY -- a cube stands 40 mm
-# proud of a mat -- and not on the pads' declared footprint, so it does not
-# weaken the claim that the camera decides the colour.
-PLANE_WINDOW_M = 0.010
+# IT IS NOT, AND THE SWEEP SAID SO IMMEDIATELY: the left arm came back with
+# ZERO cubes on its own side. Standing alone the arm settles to within 2 mm of
+# the observe pose and the cubes deproject within 2 mm of the plane; inside a
+# recording, with a scene node, two cameras and an RViz capture on the same
+# machine, it does not, and the cube's own z error eats the 6 mm that
+# separated the two groups. A discriminator with 6 mm of headroom is a
+# coin-toss dressed as a threshold.
+PLANE_WINDOW_M = 0.040
 for _p in (os.path.join(_ROOT, "config"),
            os.path.join(_ROOT, "src", "srl_perception")):
     if _p not in sys.path:
@@ -467,6 +452,59 @@ def observe_and_detect(arm, node=None, settle_s=6.0, expect=None,
                           PLANE_WINDOW_M * 1000.0)))
         dets = on_plane
         t["rejected_off_work_plane"] = len(off_plane)
+        # ==============================================================
+        # A DETECTION STANDING ON A MAT, AT THE MAT'S OWN HEIGHT, IS THE MAT
+        # ==============================================================
+        # The pads are the cubes' own colours -- deliberately, so that "each
+        # cube ended on the pad of its own colour" is judgeable from a frame --
+        # and on the rebuilt layout they are mats lying ON the table the cubes
+        # stand on. So a fragment of pad is the right colour, at very nearly
+        # the right height, and at 0.5 m it is the right SIZE too: measured,
+        # the left camera returned five blue blobs where there are two cubes,
+        # the extra three being pad fragments 37 to 51 px against an expected
+        # cube of 38 to 45.
+        #
+        # NEITHER SIZE NOR HEIGHT SEPARATES THEM. The heights differ by only
+        # `PAD_T`, and tightening the plane window to 10 mm to exploit that
+        # left 6 mm of headroom -- which the arm's own settling ate the first
+        # time it ran inside a sweep, returning ZERO cubes on the left side.
+        #
+        # SO THE PAD IS EXCLUDED BY WHERE IT IS, which is the one thing about
+        # it that is not in doubt: it is a FIXTURE, at a declared position,
+        # 160 x 140 mm. A blob whose deprojected centre lies inside a pad's
+        # footprint AND at or below the pad's own surface is a piece of that
+        # pad. A CUBE STANDING ON THE PAD IS NOT EXCLUDED -- its centre is
+        # half a cube above the mat, well clear of the test -- which matters
+        # because that is exactly where the cubes end up.
+        #
+        # THIS DOES NOT WEAKEN THE VISION CLAIM AND IT IS WORTH SAYING WHY.
+        # What is being claimed is that the CUBE'S COLOUR comes from the
+        # pixels: `verify_vision_drives_grasp` flips every declared colour and
+        # requires the plan not to move. Using a fixture's declared FOOTPRINT
+        # to avoid measuring the fixture says nothing about any cube's colour.
+        # The alternative -- inferring the mat's position from the image -- is
+        # solving a harder problem than the task has.
+        import t1_task as _T1
+        pad_h = (_T1.PAD_W / 2.0, _T1.PAD_D / 2.0)
+        pad_top = _T1.TABLE_TOP + _T1.PLANE_T
+        keep_p, on_pad = [], []
+        for d in dets:
+            w = d["world"]
+            inside = any(abs(w[0] - px) <= pad_h[0] + 0.005
+                         and abs(w[1] - py) <= pad_h[1] + 0.005
+                         for px, py in _T1.T1_PLANES)
+            if inside and float(w[2]) <= pad_top + _T1.CUBE_M / 4.0:
+                on_pad.append(dict(
+                    d, why="inside the %s pad's footprint at z = %.4f, which "
+                           "is the MAT's own surface (%.4f) and not a cube "
+                           "standing on it (%.4f)"
+                           % ("blue" if w[0] > 0 else "green", w[2], pad_top,
+                              pad_top + _T1.CUBE_M / 2.0)))
+            else:
+                keep_p.append(d)
+        rejected.extend(on_pad)
+        dets = keep_p
+        t["rejected_as_pad"] = len(on_pad)
         # ==============================================================
         # TWO 40 mm CUBES CANNOT BE 25 mm APART. ONE OF THEM IS THE PAD.
         # ==============================================================

@@ -80,6 +80,18 @@ from srl_teleop import camera_relay as cr                    # noqa: E402
 from srl_teleop import divergence as dv                      # noqa: E402
 from srl_teleop import gui_launch_specs as gls               # noqa: E402
 from srl_teleop import precision_speed as ps                 # noqa: E402
+# THE STRAY-PUBLISHER SCAN, WHICH HAD NEVER RUN. `_foreign_description()`
+# calls `procscan.find(...)` and this module never imported it, so the
+# stack-starting preflight raised NameError -- inside a Qt slot, where PyQt
+# prints a traceback to a stderr nobody reads and returns. "Sim teleop only"
+# and "+ perception and shared autonomy" therefore did NOTHING when pressed,
+# silently. Found by `verify_gui_buttons` on 2026-08-18, the first time that
+# audit got past the modal consent dialog.
+#
+# What the check is FOR is HARD CONSTRAINT 3: a stray `robot_state_publisher`
+# does the same damage as a second stack and is not caught by the process
+# count. The guard against it has been dead for as long as it has existed.
+from srl_teleop import procscan                               # noqa: E402
 
 from PyQt5.QtCore import Qt, QTimer                          # noqa: E402
 from PyQt5.QtGui import (QColor, QFont, QImage, QPalette,    # noqa: E402
@@ -832,7 +844,20 @@ class Gui(QMainWindow):
         self.specs = gls.all_specs()
         gls.validate(self.specs)
         self.buttons = {}
+        # EVERY GROUP THE MANIFEST DECLARES, NOT THREE OF THE FOUR.
+        #
+        # `demo` was missing, so the fifteen dance specs had NO BUTTON AT ALL
+        # and the three routines could not be launched from this GUI -- which
+        # is G-1 and G-2, "launch every mode" and "run every task", quietly
+        # unmet. They were filmable only because `record_abc_sweep` calls
+        # `Gui.on_launch(spec)` directly rather than pressing anything.
+        #
+        # Found by `verify_gui_buttons`, whose "every enabled launch button
+        # pressed" check read 50 of 65 and named the fifteen. A manifest entry
+        # with no button is the same defect as a button with no manifest entry
+        # and is harder to see.
         for group, title in (("mode", "Modes"), ("task", "Tasks"),
+                             ("demo", "Demonstrations (no trial data)"),
                              ("diag", "Diagnostics")):
             lab = QLabel(title)
             lab.setFont(helvetica(10, True))
@@ -1149,6 +1174,12 @@ class Gui(QMainWindow):
         self.inst_go.setFont(helvetica(9, True))
         self.inst_go.setStyleSheet("color:%s" % C_OK)
         self.inst_go.setEnabled(False)
+        # A DISABLED BUTTON MUST CARRY ITS REASON, which is the difference
+        # between "this cannot run yet" and "this did nothing".
+        self.inst_go.setToolTip(
+            "nothing is planned yet. Press LOOK so the camera can see the "
+            "table, then type an instruction and press SEND; this arms when "
+            "the instruction resolves to specific cubes and specific pads.")
         self.inst_go.clicked.connect(self.on_instruct_run)
         row.addWidget(self.inst_go)
         self.inst_cancel = QPushButton("CANCEL")
@@ -1177,6 +1208,31 @@ class Gui(QMainWindow):
         return host
 
     # ------------------------------------------------------------ helpers
+    def log(self, text, bad=False):
+        """SAY IT WHERE THE OPERATOR IS LOOKING. `Gui` had no such method.
+
+        Eight calls to `self.log(...)` in this file -- the whole session panel:
+        START SESSION, RESUME SESSION, REDO, SKIP, ABORT and the session
+        publisher -- raised `AttributeError: 'Gui' object has no attribute
+        'log'` on every press. PyQt SWALLOWS an exception raised inside a slot:
+        it prints a traceback to stderr, which nobody is reading, and returns.
+        So five buttons on the ethics-critical panel of this GUI did nothing at
+        all, said nothing at all, and looked exactly like buttons that had
+        worked.
+
+        `log` was `Bus.log`, which is a LIST, and `Bus.note` is what appends to
+        it. The name collided across two objects and the GUI lost.
+
+        FOUND BY `verify_gui_buttons`, and only after the audit was taught to
+        answer the modal consent dialog: the audit had been hanging on START
+        SESSION since that dialog was added, so it never reached the press that
+        would have shown this.
+        """
+        try:
+            self.bus.note(text, bad=bad)
+        except Exception:                                     # noqa: BLE001
+            pass
+
     def _inst_say(self, text, bad=False):
         col = C_BAD if bad else C_TEXT
         self.inst_log.append('<span style="color:%s">%s</span>'
@@ -1188,10 +1244,7 @@ class Gui(QMainWindow):
         # line came from. It is also what makes every button in this panel
         # OBSERVABLE to `verify_gui_buttons`, whose rule is that a click that
         # produces silence is a failure.
-        try:
-            self.bus.note(text, bad=bad)
-        except Exception:                                     # noqa: BLE001
-            pass
+        self.log(text, bad=bad)
 
     def _inst_set_state(self, text, colour=None):
         self.inst_state.setText(text)
@@ -1309,6 +1362,11 @@ class Gui(QMainWindow):
     def on_instruct_send(self):
         text = self.inst_edit.text().strip()
         if not text:
+            # SILENCE IS A FAILURE. An empty box and a box whose instruction
+            # was refused look identical from the operator's side unless the
+            # empty one says so.
+            self._inst_say("nothing typed. Say what to do -- for example "
+                           "'put the blue ones on the blue pad'.")
             return
         self.inst_edit.clear()
         self._inst_say("> %s" % text)
@@ -1656,6 +1714,10 @@ class Gui(QMainWindow):
         from PyQt5.QtWidgets import QMessageBox
         found = Session.resumable()
         if not found:
+            # IN THE LOG AS WELL AS IN THE DIALOG. A dialog is dismissed and
+            # gone; the event log is what an operator reads afterwards to find
+            # out what was tried.
+            self.log("resume: no interrupted session found")
             QMessageBox.information(self, "Resume",
                                     "No interrupted session found.")
             return

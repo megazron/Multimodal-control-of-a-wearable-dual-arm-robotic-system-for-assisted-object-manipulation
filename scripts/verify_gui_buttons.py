@@ -126,6 +126,25 @@ def level2_click():
     srl_gui.Gui._inst_start = fake_start
     srl_gui.Gui._inst_spawn = fake_spawn
 
+    # THE CONSENT GATE IS MODAL, AND IT IS SUPPOSED TO BE.
+    #
+    # START SESSION walks `session.CONSENT_STEPS` with a modal QMessageBox per
+    # step and refuses to begin unless every one is confirmed. With nobody to
+    # click it, that dialog blocks for ever -- which is why this level never
+    # finished: measured 2026-08-18, the audit sat on button 05 of 69 until it
+    # was killed, and every button after it went unpressed while the run
+    # reported nothing at all.
+    #
+    # THE ANSWER IS `No`, NOT `Yes`, and that is the point rather than a
+    # convenience. Answering Yes would have an audit consenting on a
+    # participant's behalf, which is the one thing this dialog exists to
+    # prevent. Answering No exercises the DECLINE path -- the session must not
+    # start, and the refusal must be logged -- which is the branch worth
+    # checking automatically anyway.
+    from PyQt5.QtWidgets import QMessageBox as _QMB
+    _QMB.question = staticmethod(lambda *a, **k: _QMB.No)
+    _QMB.information = staticmethod(lambda *a, **k: _QMB.Ok)
+
     from PyQt5.QtWidgets import QApplication, QPushButton, QCheckBox, QSlider
     from PyQt5.QtCore import Qt
 
@@ -141,6 +160,12 @@ def level2_click():
     app.processEvents()
 
     buttons = g.findChildren(QPushButton)
+    # A BUTTON THAT DOES NOT RETURN IS A FAILURE, reported as one rather than
+    # hanging the audit. Anything slower than this is a modal dialog or a
+    # blocking service call, and either way the operator's window is frozen --
+    # which for the panel carrying the e-stop is the worst outcome this GUI
+    # has.
+    SLOW_S = 5.0
     check("2", "GUI constructed and has buttons", len(buttons) >= 15,
           "%d QPushButton" % len(buttons))
 
@@ -155,6 +180,7 @@ def level2_click():
                   (b.toolTip()[:60] + "...") if ok else "NO REASON GIVEN")
             continue
         before = len(bus.log)
+        _t0 = time.time()
         try:
             b.click()
             app.processEvents()
@@ -166,6 +192,10 @@ def level2_click():
             n_err += 1
             check("2", "click: %s" % label, False, "RAISED %r" % (e,))
             continue
+        _dt = time.time() - _t0
+        if _dt > SLOW_S:
+            check("2", "click returns: %s" % label, False,
+                  "took %.1f s -- the window was frozen for that long" % _dt)
         after = len(bus.log)
         # EVERY PRESS MUST LEAVE A TRACE. Silence is indistinguishable from a
         # disconnected signal, which is the bug class this file exists for.

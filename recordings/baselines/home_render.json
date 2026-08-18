@@ -21,96 +21,96 @@
   },
   "arms": {
     "left": {
-      "forearm_off_forward_deg": 23.51,
+      "forearm_off_forward_deg": 33.67,
       "camera": [
-        0.4172,
-        0.3427,
+        0.3883,
+        0.3763,
         1.2342
       ],
       "fingertips_mid": [
-        0.387,
-        0.4527,
-        1.1761
+        0.3363,
+        0.4625,
+        1.1765
       ],
       "camera_off_top_deg": 12.05,
-      "camera_from_fingertips_off_top_deg": 63.0,
-      "camera_above_fingers_m": 0.0581,
+      "camera_from_fingertips_off_top_deg": 60.14,
+      "camera_above_fingers_m": 0.0578,
       "shoulder": [
-        0.3473,
-        -0.3407,
+        0.4977,
+        -0.3019,
         1.2983
       ],
       "elbow_forearm_link": [
-        0.5013,
-        -0.083,
+        0.5797,
+        -0.0131,
         1.0207
       ],
       "elbow_half_arm_2": [
-        0.4885,
-        -0.2244,
+        0.604,
+        -0.1529,
         1.1761
       ],
       "hand": [
-        0.4054,
-        0.3424,
+        0.377,
+        0.373,
         1.179
       ],
       "elbow_below_shoulder_m": 0.2776,
       "elbow_alt_below_shoulder_m": 0.1222,
-      "elbow_outboard_of_hand_m": 0.0959,
+      "elbow_outboard_of_hand_m": 0.2027,
       "tool_axis": [
-        -0.1641,
-        0.9861,
+        -0.4138,
+        0.91,
         -0.0257
       ],
       "tool_elevation_deg": -1.47,
-      "hand_forward_of_torso_m": 0.2324
+      "hand_forward_of_torso_m": 0.263
     },
     "right": {
-      "forearm_off_forward_deg": 22.91,
+      "forearm_off_forward_deg": 32.32,
       "camera": [
-        -0.3869,
-        0.3338,
+        -0.3613,
+        0.3599,
         1.2343
       ],
       "fingertips_mid": [
-        -0.3556,
-        0.4436,
-        1.1763
+        -0.3107,
+        0.447,
+        1.1767
       ],
       "camera_off_top_deg": 12.05,
-      "camera_from_fingertips_off_top_deg": 63.05,
-      "camera_above_fingers_m": 0.058,
+      "camera_from_fingertips_off_top_deg": 60.19,
+      "camera_above_fingers_m": 0.0577,
       "shoulder": [
-        -0.3473,
-        -0.3407,
+        -0.4977,
+        -0.3019,
         1.2983
       ],
       "elbow_forearm_link": [
-        -0.4763,
-        -0.0832,
+        -0.5556,
+        -0.0198,
         1.0189
       ],
       "elbow_half_arm_2": [
-        -0.4685,
-        -0.2161,
+        -0.5825,
+        -0.1501,
         1.182
       ],
       "hand": [
-        -0.3971,
-        0.3397,
+        -0.3696,
+        0.3682,
         1.1791
       ],
       "elbow_below_shoulder_m": 0.2794,
       "elbow_alt_below_shoulder_m": 0.1164,
-      "elbow_outboard_of_hand_m": 0.0793,
+      "elbow_outboard_of_hand_m": 0.186,
       "tool_axis": [
-        0.371,
-        0.9283,
+        0.5986,
+        0.8007,
         -0.0249
       ],
       "tool_elevation_deg": -1.42,
-      "hand_forward_of_torso_m": 0.2297
+      "hand_forward_of_torso_m": 0.2582
     }
   },
   "controls": {
@@ -124,7 +124,7 @@
     },
     "mirror_can_be_nonzero": {
       "want": "> 0.10 reflecting the LEFT arm against itself",
-      "got": 1.0026
+      "got": 1.2409
     }
   },
   "tf_missing": [],
@@ -139,10 +139,5 @@
     "end_effector_link": 0.0088
   },
   "mirror_residual_worst_m": 0.0272,
-  "controls_pass": true,
-  "shots": {
-    "front": "/tmp/claude-1000/-home-gausms-kortex-ws/87728523-5203-4d62-b411-bc2c191818dd/scratchpad/rviz_v2/home_front.png",
-    "left": "/tmp/claude-1000/-home-gausms-kortex-ws/87728523-5203-4d62-b411-bc2c191818dd/scratchpad/rviz_v2/home_left.png",
-    "iso": "/tmp/claude-1000/-home-gausms-kortex-ws/87728523-5203-4d62-b411-bc2c191818dd/scratchpad/rviz_v2/home_iso.png"
-  }
+  "controls_pass": true
 }

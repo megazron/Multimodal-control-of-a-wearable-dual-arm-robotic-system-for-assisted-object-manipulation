@@ -39,6 +39,7 @@ CONTROLS, and there is no file written without them:
 """
 import argparse
 import json
+import math
 import os
 import sys
 import time
@@ -108,7 +109,52 @@ def main():
               "place." % (arm, off, j))
         return 6
 
+    # CONTROL: EVERY DETECTION IS WHERE A CUBE IS, not merely four of them.
+    #
+    # THE COUNT ALONE IS SATISFIABLE BY THE WRONG FOUR BLOBS, and it was.
+    # Measured 2026-08-18 on the first observe pose solved for this layout:
+    # four detections, count correct, refusal silent -- and one of them was a
+    # fragment of the BLUE PAD at x = 0.312 while the real cube at x = -0.480
+    # had been rejected as "not cube-sized at its own range". The pose was
+    # looking across the row from 0.335 m on the near side to 1.17 m on the
+    # far one, and at that range ratio a piece of pad near the camera is the
+    # same number of pixels as a cube far from it.
+    #
+    # IT IS A POSITION CHECK AND DELIBERATELY NOT A COLOUR ONE. The mislabel
+    # control changes what a cube LOOKS like, never where it is, so comparing
+    # against the declared positions cannot weaken the claim that vision
+    # drives the grasp -- and `verify_vision_drives_grasp` still flips the
+    # declaration and requires the plan not to move. Checking the colour here
+    # would be exactly the circularity that control exists to break.
+    #
+    # The tolerance is the task's own capture gate: a detection further than
+    # this from the cube it is supposed to be is a detection the hand would
+    # close short of anyway.
+    TOL_M = 0.030
+    want = [(float(c[0]), float(c[1])) for c in layout]
+    unmatched, worst = list(want), 0.0
+    for cx, cy, _pad in cubes:
+        if not unmatched:
+            break
+        j = min(range(len(unmatched)),
+                key=lambda k: math.dist((cx, cy), unmatched[k]))
+        d = math.dist((cx, cy), unmatched[j])
+        worst = max(worst, d)
+        if d <= TOL_M:
+            unmatched.pop(j)
+    if unmatched:
+        print("STAGE-DETECT REFUSED: %d detection(s) are not at a cube. "
+              "Worst match %.1f mm against a %.0f mm gate; unmatched cubes %s. "
+              "Picking from this would pick a piece of scenery."
+              % (len(unmatched), worst * 1000.0, TOL_M * 1000.0,
+                 [[round(v, 3) for v in u] for u in unmatched]))
+        for c in cubes:
+            print("      saw (%+.4f, %+.4f) -> %s"
+                  % (c[0], c[1], M.PLANE_COLOURS[int(c[2])]))
+        return 7
+
     rec = dict(arm=arm, cubes=cubes, timing=info,
+               worst_match_mm=round(worst * 1000.0, 2),
                returned_home_worst_rad=round(float(off), 5),
                task=a.task, seed=a.seed,
                layout=dict(T1_CUBES=[list(c[:2]) for c in layout],

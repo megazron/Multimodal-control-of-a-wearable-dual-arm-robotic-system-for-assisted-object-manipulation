@@ -238,9 +238,12 @@ def task_specs():
             # does no arm motion at all, so the follower stays the only
             # publisher on the arm controller.
             #
-            # m1s2 does NOT get it yet: stage 2 draws its layout from a
-            # per-trial seed across BOTH arms and needs its own join.
-            _extra = (["--vision", DETECTIONS_FILE] if k == "m1" else [])
+            # BOTH STAGES GET IT SINCE 2026-08-18. Stage 2 draws its layout
+            # from the trial's seed, and the staged look now takes the seed
+            # too, so the detections and the run are of the same table -- the
+            # runner refuses a detection file whose seed is not its own.
+            _extra = (["--vision", DETECTIONS_FILE]
+                      if k in ("m1", "m1s2") else [])
             out.append(Spec(
                 "msc_%s_%s" % (k, mode),
                 "%s  [%s]" % (lab, short), "task",

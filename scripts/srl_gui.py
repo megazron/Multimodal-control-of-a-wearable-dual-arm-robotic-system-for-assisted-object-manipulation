@@ -84,7 +84,8 @@ from srl_teleop import precision_speed as ps                 # noqa: E402
 from PyQt5.QtCore import Qt, QTimer                          # noqa: E402
 from PyQt5.QtGui import (QColor, QFont, QImage, QPalette,    # noqa: E402
                          QPixmap, QWindow)
-from PyQt5.QtWidgets import (QApplication, QCheckBox, QGridLayout,  # noqa: E402
+from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox,  # noqa: E402
+                             QGridLayout,
                              QGroupBox, QHBoxLayout, QLabel, QMainWindow,
                              QPushButton, QScrollArea, QSizePolicy, QSlider,
                              QSplitter, QTabWidget, QTextEdit,
@@ -893,7 +894,12 @@ class Gui(QMainWindow):
         # in place under a different name.
         tabs = QTabWidget()
         tabs.setFont(helvetica(9))
-        tabs.setMaximumHeight(268)
+        # 268 WHILE THE TABS WERE ALL READOUTS. The Instruct tab is a
+        # DIALOGUE -- a prompt, what was understood, what the camera saw, an
+        # announced intention, a confirm step and a running transcript -- and
+        # at 268 px the transcript was two lines high, which for the panel
+        # that says why the robot refused is not a readout at all.
+        tabs.setMaximumHeight(430)
 
         ch = QWidget()
         cv = QVBoxLayout(ch)
@@ -1007,11 +1013,498 @@ class Gui(QMainWindow):
         self.eventlog.setReadOnly(True)
         self.eventlog.setFont(mono(8))
         self.eventlog.setStyleSheet("color:%s;border:none" % C_MUTED)
+        tabs.addTab(self._instruct_tab(), "Instruct")
         tabs.addTab(self.eventlog, "Event log")
 
         v.addWidget(tabs, 0)
         v.addStretch(1)
         return w
+
+    # ====================================================================
+    # THE PROMPT PANEL -- MODE 06 FROM A TYPED SENTENCE, IN THE GUI
+    # ====================================================================
+    #
+    # WHY IT IS A TAB IN THIS GUI AND NOT A SECOND WINDOW. `console` and
+    # `launcher` were superseded because a session needs one place to look;
+    # a prompt box in its own tool would be the third.
+    #
+    # WHAT IT HAS TO DO, AND THE ONE FAILURE IT IS WRITTEN AGAINST: "a prompt
+    # box that looks right and sends nothing". So every element here is wired
+    # to the SAME code the recorded run uses -- `t1_instruction.plan_from` for
+    # the grounding, `stage_observe_and_detect.py` for the look,
+    # `run_experiment.sh ... --vision --instruct` for the motion -- rather
+    # than to a display-only copy. If the panel plans it, the arm can run it,
+    # because they are one implementation.
+    #
+    # THE SEQUENCE, and it is the sequence a mode 06 run actually performs:
+    #
+    #   LOOK        observe pose -> detect -> classify -> home   (staged, so
+    #               the follower is never fighting the look)
+    #   TYPE        the instruction, grounded against what was SEEN
+    #   UNDERSTOOD  verb, target, destination, how many -- shown BEFORE
+    #               anything moves, which is the point of showing it
+    #   ASK         a question in plain words, answerable in the same box
+    #   CONFIRM     the announced intention, and a click. Mode 06 does not
+    #               move until a person agrees with what it said it would do
+    #   RUN         the real runner, its output tailed live
+    def _instruct_tab(self):
+        host = QScrollArea()
+        host.setWidgetResizable(True)
+        host.setStyleSheet("border:none")
+        w = QWidget()
+        v = QVBoxLayout(w)
+        v.setContentsMargins(6, 4, 6, 4)
+        v.setSpacing(5)
+
+        self._inst_pending = None      # the ASK this box is answering, if any
+        self._inst_outcome = None      # the plan awaiting confirmation
+        self._inst_proc = None         # the running subprocess
+        self._inst_seen = []           # detections, as the camera reported
+        self._inst_tail = None
+
+        # ---- what to run it on
+        row = QHBoxLayout()
+        row.addWidget(QLabel("task"))
+        self.inst_task = QComboBox()
+        self.inst_task.addItems(["m1  (stage 1)", "m1s2  (stage 2)"])
+        self.inst_task.setFont(helvetica(9))
+        row.addWidget(self.inst_task)
+        row.addWidget(QLabel("seed"))
+        self.inst_seed = QLineEdit("0")
+        self.inst_seed.setFont(mono(9))
+        self.inst_seed.setMaximumWidth(46)
+        row.addWidget(self.inst_seed)
+        self.inst_look = QPushButton("LOOK (observe + detect)")
+        self.inst_look.setFont(helvetica(9, True))
+        self.inst_look.clicked.connect(self.on_instruct_look)
+        row.addWidget(self.inst_look)
+        row.addStretch(1)
+        v.addLayout(row)
+
+        # ---- the box itself
+        row = QHBoxLayout()
+        self.inst_edit = QLineEdit()
+        self.inst_edit.setFont(mono(10))
+        self.inst_edit.setPlaceholderText(
+            "put the blue ones on the blue pad")
+        self.inst_edit.returnPressed.connect(self.on_instruct_send)
+        row.addWidget(self.inst_edit, 1)
+        b = QPushButton("SEND")
+        b.setFont(helvetica(9, True))
+        b.clicked.connect(self.on_instruct_send)
+        row.addWidget(b)
+        # THE VOICE BUTTON USES THE EXISTING PATH, and says what that path is.
+        # `voice_listener` publishes to /voice_transcript; this subscribes and
+        # drops whatever arrives into the same box, so speech and typing meet
+        # at the same grounding step rather than at two.
+        self.inst_voice = QPushButton("VOICE")
+        self.inst_voice.setFont(helvetica(9, True))
+        self.inst_voice.clicked.connect(self.on_instruct_voice)
+        row.addWidget(self.inst_voice)
+        v.addLayout(row)
+
+        # ---- what the parser understood, BEFORE anything moves
+        g = QGroupBox("What I understood")
+        g.setFont(helvetica(9, True))
+        gl = QGridLayout(g)
+        gl.setContentsMargins(6, 4, 6, 4)
+        self.inst_parse = {}
+        for i, k in enumerate(("verb", "target", "destination", "how many",
+                               "which one", "read as")):
+            lab = QLabel(k)
+            lab.setFont(helvetica(8))
+            lab.setStyleSheet("color:%s" % C_MUTED)
+            val = QLabel("--")
+            val.setFont(mono(9))
+            val.setWordWrap(True)
+            gl.addWidget(lab, i // 2, (i % 2) * 2)
+            gl.addWidget(val, i // 2, (i % 2) * 2 + 1)
+            self.inst_parse[k] = val
+        gl.setColumnStretch(1, 1)
+        gl.setColumnStretch(3, 1)
+        v.addWidget(g)
+
+        # ---- what the CAMERA saw
+        g = QGroupBox("What the camera saw")
+        g.setFont(helvetica(9, True))
+        gv = QVBoxLayout(g)
+        gv.setContentsMargins(6, 4, 6, 4)
+        self.inst_seen_lbl = QLabel("no look taken yet -- press LOOK")
+        self.inst_seen_lbl.setFont(mono(9))
+        self.inst_seen_lbl.setWordWrap(True)
+        gv.addWidget(self.inst_seen_lbl)
+        v.addWidget(g)
+
+        # ---- the announced intention and the confirm step
+        g = QGroupBox("What I am going to do")
+        g.setFont(helvetica(9, True))
+        gv = QVBoxLayout(g)
+        gv.setContentsMargins(6, 4, 6, 4)
+        self.inst_intent = QLabel("--")
+        self.inst_intent.setFont(sans(11, True))
+        self.inst_intent.setWordWrap(True)
+        gv.addWidget(self.inst_intent)
+        row = QHBoxLayout()
+        self.inst_go = QPushButton("CONFIRM AND RUN")
+        self.inst_go.setFont(helvetica(9, True))
+        self.inst_go.setStyleSheet("color:%s" % C_OK)
+        self.inst_go.setEnabled(False)
+        self.inst_go.clicked.connect(self.on_instruct_run)
+        row.addWidget(self.inst_go)
+        self.inst_cancel = QPushButton("CANCEL")
+        self.inst_cancel.setFont(helvetica(9))
+        self.inst_cancel.clicked.connect(self.on_instruct_cancel)
+        row.addWidget(self.inst_cancel)
+        self.inst_state = QLabel("IDLE")
+        self.inst_state.setFont(sans(11, True))
+        row.addWidget(self.inst_state, 1)
+        gv.addLayout(row)
+        v.addWidget(g)
+
+        # ---- the dialogue and the run, in plain words
+        self.inst_log = QTextEdit()
+        self.inst_log.setReadOnly(True)
+        self.inst_log.setFont(mono(8))
+        self.inst_log.setStyleSheet("color:%s;border:none" % C_TEXT)
+        self.inst_log.setMinimumHeight(120)
+        v.addWidget(self.inst_log, 1)
+
+        host.setWidget(w)
+        self._inst_say("Type an instruction. Press LOOK first -- the "
+                       "destination is chosen by the colour the CAMERA sees, "
+                       "so there is nothing to plan against until it has "
+                       "looked.")
+        return host
+
+    # ------------------------------------------------------------ helpers
+    def _inst_say(self, text, bad=False):
+        col = C_BAD if bad else C_TEXT
+        self.inst_log.append('<span style="color:%s">%s</span>'
+                             % (col, text.replace("<", "&lt;")))
+        sb = self.inst_log.verticalScrollBar()
+        sb.setValue(sb.maximum())
+        # AND INTO THE SHARED EVENT LOG. One session, one log: an operator
+        # reading the run afterwards should not have to know which panel a
+        # line came from. It is also what makes every button in this panel
+        # OBSERVABLE to `verify_gui_buttons`, whose rule is that a click that
+        # produces silence is a failure.
+        try:
+            self.bus.note(text, bad=bad)
+        except Exception:                                     # noqa: BLE001
+            pass
+
+    def _inst_set_state(self, text, colour=None):
+        self.inst_state.setText(text)
+        self.inst_state.setStyleSheet("color:%s" % (colour or C_TEXT))
+
+    def _inst_task_key(self):
+        return "m1s2" if self.inst_task.currentIndex() else "m1"
+
+    def _inst_seed(self):
+        try:
+            return int(self.inst_seed.text().strip() or "0")
+        except ValueError:
+            return 0
+
+    def _inst_import(self):
+        """The SAME grounding module the run uses. Imported here rather than
+        at module scope so a GUI on a machine without the experiments package
+        still starts and says why this one panel is unavailable."""
+        for p in (os.path.join(_WS, "src/srl_experiments/experiments/abc"),
+                  os.path.join(_WS, "src/srl_autonomy"),
+                  os.path.join(_WS, "config")):
+            if p not in sys.path:
+                sys.path.insert(0, p)
+        import t1_instruction as TI
+        return TI
+
+    DETECTIONS = "/tmp/srl_t1_detections.json"
+
+    def _inst_load_detections(self, quiet=False):
+        """What the last look SAW, with the classifier's own margins."""
+        try:
+            d = json.load(open(self.DETECTIONS))
+        except Exception as e:                                # noqa: BLE001
+            if not quiet:
+                self._inst_say("no detections to plan against (%s). Press "
+                               "LOOK." % e, bad=True)
+            return None
+        want_task = self._inst_task_key().replace("m1s2", "t1s2") \
+            .replace("m1", "t1")
+        if d.get("task", "t1") != want_task:
+            self._inst_say("the detections on disk are of %s and this is %s "
+                           "-- look again."
+                           % (d.get("task", "t1"), want_task), bad=True)
+            return None
+        if want_task == "t1s2" and int(d.get("seed", -1)) != self._inst_seed():
+            self._inst_say("the detections are seed %s and this is seed %d; "
+                           "stage 2 draws its cubes from the seed, so those "
+                           "are two different tables."
+                           % (d.get("seed"), self._inst_seed()), bad=True)
+            return None
+        self._inst_seen = [tuple(c) for c in d.get("cubes", [])]
+        seen = (d.get("timing") or {}).get("seen") or []
+        colours = ("blue", "green")
+        lines = []
+        for i, c in enumerate(self._inst_seen):
+            ev = seen[i] if i < len(seen) else {}
+            conf = ev.get("confidence_counts")
+            lines.append(
+                "cube %d   %-5s   x %+.3f  y %+.3f   %s"
+                % (i + 1, colours[int(c[2])], c[0], c[1],
+                   "confidence --" if conf is None else
+                   "confidence %d counts inside the %s band"
+                   % (conf, ev.get("colour", "?"))))
+        self.inst_seen_lbl.setText("\n".join(lines) or "nothing seen")
+        return self._inst_seen
+
+    def _inst_show_parse(self, o):
+        it = getattr(o, "intent", None)
+        d = {} if it is None else it.as_dict()
+        dest = d.get("destination")
+        if isinstance(dest, dict):
+            dest = (dest.get("colour") or dest.get("kind") or "--")
+        sel = d.get("selector")
+        if isinstance(sel, dict):
+            sel = sel.get("which") or sel.get("word") or (
+                "number %s" % sel["n"] if "n" in sel else sel.get("kind"))
+        fixes = d.get("corrections") or []
+        self.inst_parse["verb"].setText(str(d.get("verb") or "--"))
+        self.inst_parse["target"].setText(str(d.get("target") or "--"))
+        self.inst_parse["destination"].setText(str(dest or "--"))
+        self.inst_parse["how many"].setText(
+            "all of them" if d.get("quantity") == "all" else "one")
+        self.inst_parse["which one"].setText(str(sel or "--"))
+        self.inst_parse["read as"].setText(
+            ", ".join("%s -> %s" % (a, b) for a, b in fixes) or "--")
+
+    # ------------------------------------------------------------ actions
+    def on_instruct_look(self):
+        """Run the staged look. It is a SUBPROCESS, for the reason the script
+        itself records: the look publishes to the arm controller, so it must
+        not happen inside anything that is also driving the arm."""
+        if self._inst_proc is not None and self._inst_proc.poll() is None:
+            self._inst_say("something is already running.", bad=True)
+            return
+        task = self._inst_task_key().replace("m1s2", "t1s2").replace("m1", "t1")
+        argv = [sys.executable,
+                os.path.join(_WS, "scripts", "stage_observe_and_detect.py"),
+                "--task", task, "--seed", str(self._inst_seed()),
+                "--out", self.DETECTIONS]
+        self._inst_set_state("LOOKING", C_WARN)
+        self._inst_say("looking: %s" % " ".join(argv[1:]))
+        self._inst_start(argv, self._inst_look_done)
+
+    def _inst_look_done(self, rc):
+        if rc != 0:
+            self._inst_set_state("LOOK FAILED", C_BAD)
+            self._inst_say("the look failed (rc=%d). Nothing will be planned "
+                           "from the task file -- that is the point of "
+                           "refusing." % rc, bad=True)
+            return
+        cubes = self._inst_load_detections()
+        self._inst_set_state("SEEN %d" % len(cubes or []), C_OK)
+        self._inst_say("the camera saw %d cubes." % len(cubes or []))
+
+    def on_instruct_send(self):
+        text = self.inst_edit.text().strip()
+        if not text:
+            return
+        self.inst_edit.clear()
+        self._inst_say("> %s" % text)
+        cubes = self._inst_load_detections(quiet=True)
+        if not cubes:
+            self._inst_say("I have not looked yet, so I do not know what is "
+                           "on the table. Press LOOK.", bad=True)
+            self._inst_set_state("NO DETECTIONS", C_BAD)
+            return
+        try:
+            TI = self._inst_import()
+        except Exception as e:                                # noqa: BLE001
+            self._inst_say("the grounding module will not import: %s" % e,
+                           bad=True)
+            return
+        o = TI.plan_from(text, cubes, pending=self._inst_pending)
+        self._inst_show_parse(o)
+        if o.kind == TI.ASK:
+            # A QUESTION, IN PLAIN WORDS, ANSWERABLE IN THE SAME BOX.
+            self._inst_pending = o
+            self._inst_outcome = None
+            self.inst_go.setEnabled(False)
+            self.inst_intent.setText("nothing yet -- I asked a question")
+            self._inst_set_state("ASKING", C_WARN)
+            self._inst_say(o.message)
+            return
+        self._inst_pending = None
+        if o.kind == TI.REFUSE:
+            self._inst_outcome = None
+            self.inst_go.setEnabled(False)
+            self.inst_intent.setText("nothing -- I refused")
+            self._inst_set_state("REFUSED", C_BAD)
+            self._inst_say(o.message, bad=True)
+            return
+        self._inst_outcome = o
+        self._inst_text = text
+        pads = ("blue", "green")
+        detail = "; ".join(
+            "(%.3f, %.3f) -> %s" % (p[0], p[1],
+                                    "hold it up" if p[2] is None
+                                    else "%s pad" % pads[int(p[2])])
+            for p in o.picks)
+        self.inst_intent.setText("%s\n%s" % (o.message, detail))
+        self.inst_go.setEnabled(True)
+        self._inst_set_state("AWAITING CONFIRMATION", C_WARN)
+        self._inst_say("%s -- %s. Press CONFIRM AND RUN." % (o.message, detail))
+
+    def on_instruct_cancel(self):
+        self._inst_pending = None
+        self._inst_outcome = None
+        self.inst_go.setEnabled(False)
+        self.inst_intent.setText("--")
+        if self._inst_proc is not None and self._inst_proc.poll() is None:
+            try:
+                os.killpg(os.getpgid(self._inst_proc.pid), 15)
+            except Exception:                                # noqa: BLE001
+                pass
+            self._inst_say("stopped the running job.")
+        self._inst_set_state("IDLE")
+        self._inst_say("cancelled -- nothing will move.")
+
+    def on_instruct_run(self):
+        """THE REAL RUNNER, with the REAL instruction. Not a preview."""
+        o = self._inst_outcome
+        if o is None:
+            return
+        if self._inst_proc is not None and self._inst_proc.poll() is None:
+            self._inst_say("something is already running.", bad=True)
+            return
+        key = self._inst_task_key()
+        argv = [os.path.join(_WS, "scripts", "run_experiment.sh"), key,
+                "--mode", "06_full_autonomy", "--taskset", "msc",
+                "--participant", "PILOT", "--scripted",
+                "--vision", self.DETECTIONS,
+                "--instruct", self._inst_text]
+        if key == "m1s2":
+            argv += ["--seed", str(self._inst_seed())]
+        self._inst_set_state("RUNNING", C_WARN)
+        self.inst_go.setEnabled(False)
+        self._inst_say("running: %s" % " ".join(argv[1:]))
+        self._inst_start(argv, self._inst_run_done)
+
+    def _inst_run_done(self, rc):
+        if rc == 0:
+            self._inst_set_state("DONE", C_OK)
+            self._inst_say("the run finished.")
+        else:
+            self._inst_set_state("FAILED rc=%d" % rc, C_BAD)
+            self._inst_say("the run exited %d." % rc, bad=True)
+
+    def on_instruct_voice(self):
+        """Speech, through the path that already exists.
+
+        `voice_listener` is the only thing in this repository that turns
+        speech into text, and it publishes to /voice_transcript. This starts
+        it and drops whatever arrives into the same box the keyboard writes
+        to, so both meet the grounding step at the same place.
+
+        IT SAYS WHAT IT CANNOT DO. /dev/snd on this host contains only
+        `timer` -- there is no capture device inside WSL -- so the microphone
+        path needs `scripts/win_mic_sender.py` running on Windows. The button
+        starts the listener either way and the transcript arrives when audio
+        does; a button that pretended otherwise would be the thing this panel
+        exists to avoid.
+        """
+        if getattr(self, "_voice_proc", None) is not None \
+                and self._voice_proc.poll() is None:
+            try:
+                os.killpg(os.getpgid(self._voice_proc.pid), 15)
+            except Exception:                                # noqa: BLE001
+                pass
+            self._voice_proc = None
+            self.inst_voice.setText("VOICE")
+            self._inst_say("stopped listening.")
+            return
+        argv = ["ros2", "run", "srl_autonomy", "voice_listener",
+                "--ros-args", "-p", "source:=udp"]
+        try:
+            self._voice_proc = self._inst_spawn(argv)
+        except Exception as e:                                # noqa: BLE001
+            self._inst_say("cannot start the listener: %s" % e, bad=True)
+            return
+        if self._voice_proc is None:
+            return
+        self.inst_voice.setText("STOP VOICE")
+        self._inst_say(
+            "listening on /voice_transcript. There is no capture device "
+            "inside WSL (/dev/snd holds only `timer`), so speech has to come "
+            "from scripts/win_mic_sender.py on the Windows side; the wake "
+            "word is %r." % "hey doc oc")
+
+    # ONE PLACE THIS PANEL STARTS A PROCESS, AND IT IS THESE TWO METHODS.
+    #
+    # `verify_gui_buttons` presses every button in this window, and pressing
+    # LOOK or VOICE for real would move the arm and open a microphone in the
+    # middle of a verification run. Both go through `_inst_spawn` /
+    # `_inst_start` so the verifier can replace exactly the Popen and leave
+    # the whole click path -- validation, refusal, logging -- running for real.
+    # It is the same treatment `on_launch` already gets, for the same reason.
+    def _inst_spawn(self, argv):
+        """Start a detached process. The ONE Popen the voice path uses."""
+        return subprocess.Popen(argv, start_new_session=True,
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL)
+
+    def _inst_start(self, argv, done):
+        """Run something and tail its output into the panel, line by line."""
+        try:
+            p = subprocess.Popen(argv, start_new_session=True,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT, text=True,
+                                 bufsize=1)
+        except Exception as e:                                # noqa: BLE001
+            self._inst_say("could not start it: %s" % e, bad=True)
+            self._inst_set_state("FAILED", C_BAD)
+            return
+        self._inst_proc = p
+
+        def pump():
+            for line in iter(p.stdout.readline, ""):
+                self._inst_lines.append(line.rstrip())
+            p.wait()
+            self._inst_lines.append(("__rc__", p.returncode))
+
+        self._inst_lines = []
+        self._inst_done_cb = done
+        threading.Thread(target=pump, daemon=True).start()
+        if self._inst_tail is None:
+            self._inst_tail = QTimer(self)
+            self._inst_tail.timeout.connect(self._inst_drain)
+            self._inst_tail.start(200)
+
+    def _inst_drain(self):
+        """Move whatever the job printed into the panel, on the Qt thread.
+
+        The reader thread must not touch widgets -- Qt is not thread safe and
+        a crash here takes the whole operations GUI with it.
+        """
+        lines, self._inst_lines = self._inst_lines, []
+        for ln in lines:
+            if isinstance(ln, tuple):
+                cb, self._inst_done_cb = self._inst_done_cb, None
+                self._inst_proc = None
+                if cb:
+                    cb(ln[1])
+                continue
+            if not ln.strip():
+                continue
+            # THE LINES A PERSON NEEDS, LOUDLY; the rest quietly.
+            if ln.startswith("[progress]"):
+                self._inst_say(ln)
+                self._inst_set_state(ln.replace("[progress] ", ""), C_OK)
+            elif ln.startswith(("[instruct]", "[vision]", "REFUS", "[stage-")):
+                self._inst_say(ln)
+            elif "Traceback" in ln or "Error" in ln:
+                self._inst_say(ln, bad=True)
 
     def _run_raw(self, label, argv):
         """Launch something that is not a manifest Spec (the ported console

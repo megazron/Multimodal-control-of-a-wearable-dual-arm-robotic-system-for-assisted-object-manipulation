@@ -318,12 +318,16 @@ def objects_for(task, seed=0):
             for i, cube in enumerate(tgt["cubes"][arm]):
                 out.append(("cube_%s_%d" % (arm, i), list(cube),
                             [MCT.CUBE_M] * 3))
-            pw, pd = CS.PLANE_SIZE_BY_ARM.get(
-                arm, (CS.PLANE_W, CS.PLANE_D))
+            # THE PADS ARE STAGE 1'S PADS, AT STAGE 1'S HEIGHT. They were
+            # this arm's OWN pair, sized from `PLANE_SIZE_BY_ARM` and lying at
+            # `BENCH_TOP` -- the geometry stage 2 had before the two stages
+            # were joined. Left as it was, the check placed a 210 mm mat
+            # 150 mm below the cubes it is supposed to be under.
+            import t1_task as T1M
             for i, (px, py) in enumerate(MCT.T1_PLANES_BY_ARM[arm]):
                 out.append(("plane_%s_%d" % (arm, i),
-                            [px, py, CT.BENCH_TOP - CS.PLANE_T / 2.0],
-                            [pw, pd, CS.PLANE_T]))
+                            [px, py, T1M.TABLE_TOP + T1M.PLANE_T / 2.0],
+                            [T1M.PAD_W, T1M.PAD_D, T1M.PLANE_T]))
     elif task == "t3":
         import task3 as T3
         out.append(("circuit_box", list(T3.BOX_OBJ), list(T3.BOX_SIZE)))
@@ -368,7 +372,11 @@ def check_task(task, tol=TOL_M, seed=0, inject_float_m=0.0):
     # `work_surface.FLOAT_GAP_M`. Measuring it against the shared plane would
     # report a 150 mm float for a scene whose objects are touching the wood.
     doc_gap = bg
-    if task == "t1":
+    if task in ("t1", "t1s2"):
+        # BOTH STAGES, SINCE 2026-08-18. Stage 2 shared the floating work
+        # plane until its paths were walked on stage 1's geometry; they have
+        # been, eight seeds at N=10, so it stands its objects on the same
+        # table and its documented gap is 0 like stage 1's.
         import t1_task as _T1
         plane = _T1.TABLE_TOP
         doc_gap = 0.0

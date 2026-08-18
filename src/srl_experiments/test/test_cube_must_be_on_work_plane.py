@@ -97,10 +97,14 @@ def test_the_work_plane_comes_from_its_owner():
     import t1_task as T1M
     assert M.T1_Z == pytest.approx(T1M.TABLE_TOP + M.CUBE_M / 2.0, abs=1e-9)
     assert M.T1_Z != pytest.approx(WS.work_plane() + M.CUBE_M / 2.0, abs=1e-6)
-    assert M.T1S2_Z == pytest.approx(WS.work_plane() + M.CUBE_M / 2.0,
-                                     abs=1e-9), (
-        "stage 2 still runs on the shared work plane and must keep doing so "
-        "until it is re-verified at a new one")
+    # STAGE 2 CAME ACROSS ON 2026-08-18, and it came across with the walk
+    # behind it: `recordings/baselines/t1_stage2_paths.json` records eight
+    # seeds walked over the composed path at N=10, every one clean. Until then
+    # this asserted the opposite, because stage 2 on stage 1's plane without
+    # that walk would have been cubes placed onto pads nobody had reached.
+    assert M.T1S2_Z == pytest.approx(M.T1_Z, abs=1e-9), (
+        "stage 2 has drifted off stage 1's work plane again; the two stages "
+        "are one geometry and test_t1_stages_agree says so")
 
 
 @pytest.mark.parametrize("z", MEASURED_CUBES)

@@ -1,0 +1,1138 @@
+{
+  "what": "T1 STAGE 2, every seed walked over the composed path",
+  "how": "scripts/verify_t1.py --repeats 10 --mode sequential --stage2 SEED, wearer measured geometrically, table in the planning scene, controls correct on every run",
+  "note": "stage 2 shares stage 1's geometry entirely since 2026-08-18; what the seed draws is which SIDE each cube starts on and which measured column it stands in",
+  "seeds": {
+    "0": {
+      "clean": true,
+      "layout": {
+        "cubes": [
+          [
+            0.48,
+            0.45
+          ],
+          [
+            0.42,
+            0.45
+          ],
+          [
+            -0.42,
+            0.45
+          ],
+          [
+            -0.54,
+            0.45
+          ]
+        ],
+        "pads_for_cubes": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "planes": [
+          [
+            0.29,
+            0.5
+          ],
+          [
+            -0.29,
+            0.5
+          ]
+        ],
+        "pair": {
+          "0": 0,
+          "1": 0,
+          "2": 1,
+          "3": 1
+        },
+        "z": 1.27,
+        "table_top": 1.25,
+        "near_y": 0.43,
+        "approach": {
+          "elev": -10.0,
+          "head": -50.0,
+          "roll": 0.0
+        },
+        "offcentre_mm": {
+          "left": 290.0,
+          "right": 290.0
+        }
+      },
+      "arms": {
+        "left": {
+          "waypoints": 201,
+          "ik_failures": 0,
+          "floor_breaches": 0,
+          "worst_clearance": 0.1978,
+          "worst_at": 96,
+          "worst_to": "L-upperarm"
+        },
+        "right": {
+          "waypoints": 201,
+          "ik_failures": 0,
+          "floor_breaches": 0,
+          "worst_clearance": 0.2202,
+          "worst_at": 0,
+          "worst_to": "torso"
+        }
+      },
+      "grasps": [
+        {
+          "cube": 0,
+          "arm": "left",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.0,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            -0.766,
+            -0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 1,
+          "arm": "left",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.01,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            -0.766,
+            -0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 2,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.0,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 3,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.01,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            -0.0
+          ],
+          "ok": true
+        }
+      ],
+      "ik_calls": 427
+    },
+    "1": {
+      "clean": true,
+      "layout": {
+        "cubes": [
+          [
+            0.48,
+            0.45
+          ],
+          [
+            -0.42,
+            0.45
+          ],
+          [
+            -0.48,
+            0.45
+          ],
+          [
+            -0.54,
+            0.45
+          ]
+        ],
+        "pads_for_cubes": [
+          0,
+          1,
+          1,
+          1
+        ],
+        "planes": [
+          [
+            0.29,
+            0.5
+          ],
+          [
+            -0.29,
+            0.5
+          ]
+        ],
+        "pair": {
+          "0": 0,
+          "1": 0,
+          "2": 1,
+          "3": 1
+        },
+        "z": 1.27,
+        "table_top": 1.25,
+        "near_y": 0.43,
+        "approach": {
+          "elev": -10.0,
+          "head": -50.0,
+          "roll": 0.0
+        },
+        "offcentre_mm": {
+          "left": 290.0,
+          "right": 290.0
+        }
+      },
+      "arms": {
+        "left": {
+          "waypoints": 205,
+          "ik_failures": 0,
+          "floor_breaches": 0,
+          "worst_clearance": 0.192,
+          "worst_at": 50,
+          "worst_to": "torso"
+        },
+        "right": {
+          "waypoints": 205,
+          "ik_failures": 0,
+          "floor_breaches": 0,
+          "worst_clearance": 0.2202,
+          "worst_at": 0,
+          "worst_to": "torso"
+        }
+      },
+      "grasps": [
+        {
+          "cube": 0,
+          "arm": "left",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.0,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            -0.766,
+            0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 1,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.0,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 2,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.01,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 3,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.01,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            -0.0
+          ],
+          "ok": true
+        }
+      ],
+      "ik_calls": 435
+    },
+    "2": {
+      "clean": true,
+      "layout": {
+        "cubes": [
+          [
+            0.48,
+            0.45
+          ],
+          [
+            -0.42,
+            0.45
+          ],
+          [
+            -0.48,
+            0.45
+          ],
+          [
+            -0.54,
+            0.45
+          ]
+        ],
+        "pads_for_cubes": [
+          0,
+          1,
+          1,
+          1
+        ],
+        "planes": [
+          [
+            0.29,
+            0.5
+          ],
+          [
+            -0.29,
+            0.5
+          ]
+        ],
+        "pair": {
+          "0": 0,
+          "1": 0,
+          "2": 1,
+          "3": 1
+        },
+        "z": 1.27,
+        "table_top": 1.25,
+        "near_y": 0.43,
+        "approach": {
+          "elev": -10.0,
+          "head": -50.0,
+          "roll": 0.0
+        },
+        "offcentre_mm": {
+          "left": 290.0,
+          "right": 290.0
+        }
+      },
+      "arms": {
+        "left": {
+          "waypoints": 205,
+          "ik_failures": 0,
+          "floor_breaches": 0,
+          "worst_clearance": 0.192,
+          "worst_at": 50,
+          "worst_to": "torso"
+        },
+        "right": {
+          "waypoints": 205,
+          "ik_failures": 0,
+          "floor_breaches": 0,
+          "worst_clearance": 0.2202,
+          "worst_at": 0,
+          "worst_to": "torso"
+        }
+      },
+      "grasps": [
+        {
+          "cube": 0,
+          "arm": "left",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.0,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            -0.766,
+            -0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 1,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.0,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 2,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.01,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 3,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.01,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            -0.0
+          ],
+          "ok": true
+        }
+      ],
+      "ik_calls": 435
+    },
+    "3": {
+      "clean": true,
+      "layout": {
+        "cubes": [
+          [
+            0.54,
+            0.45
+          ],
+          [
+            0.48,
+            0.45
+          ],
+          [
+            0.42,
+            0.45
+          ],
+          [
+            -0.48,
+            0.45
+          ]
+        ],
+        "pads_for_cubes": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "planes": [
+          [
+            0.29,
+            0.5
+          ],
+          [
+            -0.29,
+            0.5
+          ]
+        ],
+        "pair": {
+          "0": 0,
+          "1": 0,
+          "2": 1,
+          "3": 1
+        },
+        "z": 1.27,
+        "table_top": 1.25,
+        "near_y": 0.43,
+        "approach": {
+          "elev": -10.0,
+          "head": -50.0,
+          "roll": 0.0
+        },
+        "offcentre_mm": {
+          "left": 290.0,
+          "right": 290.0
+        }
+      },
+      "arms": {
+        "left": {
+          "waypoints": 203,
+          "ik_failures": 0,
+          "floor_breaches": 0,
+          "worst_clearance": 0.2018,
+          "worst_at": 143,
+          "worst_to": "L-upperarm"
+        },
+        "right": {
+          "waypoints": 203,
+          "ik_failures": 0,
+          "floor_breaches": 0,
+          "worst_clearance": 0.2202,
+          "worst_at": 0,
+          "worst_to": "torso"
+        }
+      },
+      "grasps": [
+        {
+          "cube": 0,
+          "arm": "left",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.0,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            -0.766,
+            -0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 1,
+          "arm": "left",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.01,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            -0.766,
+            -0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 2,
+          "arm": "left",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.01,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            -0.766,
+            -0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 3,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.01,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            0.0
+          ],
+          "ok": true
+        }
+      ],
+      "ik_calls": 431
+    },
+    "4": {
+      "clean": true,
+      "layout": {
+        "cubes": [
+          [
+            0.54,
+            0.45
+          ],
+          [
+            0.48,
+            0.45
+          ],
+          [
+            -0.48,
+            0.45
+          ],
+          [
+            -0.54,
+            0.45
+          ]
+        ],
+        "pads_for_cubes": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "planes": [
+          [
+            0.29,
+            0.5
+          ],
+          [
+            -0.29,
+            0.5
+          ]
+        ],
+        "pair": {
+          "0": 0,
+          "1": 0,
+          "2": 1,
+          "3": 1
+        },
+        "z": 1.27,
+        "table_top": 1.25,
+        "near_y": 0.43,
+        "approach": {
+          "elev": -10.0,
+          "head": -50.0,
+          "roll": 0.0
+        },
+        "offcentre_mm": {
+          "left": 290.0,
+          "right": 290.0
+        }
+      },
+      "arms": {
+        "left": {
+          "waypoints": 207,
+          "ik_failures": 0,
+          "floor_breaches": 0,
+          "worst_clearance": 0.1978,
+          "worst_at": 100,
+          "worst_to": "L-upperarm"
+        },
+        "right": {
+          "waypoints": 207,
+          "ik_failures": 0,
+          "floor_breaches": 0,
+          "worst_clearance": 0.2202,
+          "worst_at": 0,
+          "worst_to": "torso"
+        }
+      },
+      "grasps": [
+        {
+          "cube": 0,
+          "arm": "left",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.0,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            -0.766,
+            -0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 1,
+          "arm": "left",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.0,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            -0.766,
+            -0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 2,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.01,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 3,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.01,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            -0.0
+          ],
+          "ok": true
+        }
+      ],
+      "ik_calls": 439
+    },
+    "5": {
+      "clean": true,
+      "layout": {
+        "cubes": [
+          [
+            0.54,
+            0.45
+          ],
+          [
+            0.48,
+            0.45
+          ],
+          [
+            -0.42,
+            0.45
+          ],
+          [
+            -0.48,
+            0.45
+          ]
+        ],
+        "pads_for_cubes": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "planes": [
+          [
+            0.29,
+            0.5
+          ],
+          [
+            -0.29,
+            0.5
+          ]
+        ],
+        "pair": {
+          "0": 0,
+          "1": 0,
+          "2": 1,
+          "3": 1
+        },
+        "z": 1.27,
+        "table_top": 1.25,
+        "near_y": 0.43,
+        "approach": {
+          "elev": -10.0,
+          "head": -50.0,
+          "roll": 0.0
+        },
+        "offcentre_mm": {
+          "left": 290.0,
+          "right": 290.0
+        }
+      },
+      "arms": {
+        "left": {
+          "waypoints": 203,
+          "ik_failures": 0,
+          "floor_breaches": 0,
+          "worst_clearance": 0.1978,
+          "worst_at": 100,
+          "worst_to": "L-upperarm"
+        },
+        "right": {
+          "waypoints": 203,
+          "ik_failures": 0,
+          "floor_breaches": 0,
+          "worst_clearance": 0.2202,
+          "worst_at": 0,
+          "worst_to": "torso"
+        }
+      },
+      "grasps": [
+        {
+          "cube": 0,
+          "arm": "left",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.0,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            -0.766,
+            0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 1,
+          "arm": "left",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.0,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            -0.766,
+            0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 2,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.0,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 3,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.01,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            0.0
+          ],
+          "ok": true
+        }
+      ],
+      "ik_calls": 431
+    },
+    "6": {
+      "clean": true,
+      "layout": {
+        "cubes": [
+          [
+            0.42,
+            0.45
+          ],
+          [
+            -0.42,
+            0.45
+          ],
+          [
+            -0.48,
+            0.45
+          ],
+          [
+            -0.54,
+            0.45
+          ]
+        ],
+        "pads_for_cubes": [
+          0,
+          1,
+          1,
+          1
+        ],
+        "planes": [
+          [
+            0.29,
+            0.5
+          ],
+          [
+            -0.29,
+            0.5
+          ]
+        ],
+        "pair": {
+          "0": 0,
+          "1": 0,
+          "2": 1,
+          "3": 1
+        },
+        "z": 1.27,
+        "table_top": 1.25,
+        "near_y": 0.43,
+        "approach": {
+          "elev": -10.0,
+          "head": -50.0,
+          "roll": 0.0
+        },
+        "offcentre_mm": {
+          "left": 290.0,
+          "right": 290.0
+        }
+      },
+      "arms": {
+        "left": {
+          "waypoints": 203,
+          "ik_failures": 0,
+          "floor_breaches": 0,
+          "worst_clearance": 0.192,
+          "worst_at": 48,
+          "worst_to": "torso"
+        },
+        "right": {
+          "waypoints": 203,
+          "ik_failures": 0,
+          "floor_breaches": 0,
+          "worst_clearance": 0.2202,
+          "worst_at": 0,
+          "worst_to": "torso"
+        }
+      },
+      "grasps": [
+        {
+          "cube": 0,
+          "arm": "left",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.0,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            -0.766,
+            -0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 1,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.0,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 2,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.01,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 3,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.01,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            -0.0
+          ],
+          "ok": true
+        }
+      ],
+      "ik_calls": 431
+    },
+    "7": {
+      "clean": true,
+      "layout": {
+        "cubes": [
+          [
+            0.54,
+            0.45
+          ],
+          [
+            0.48,
+            0.45
+          ],
+          [
+            -0.42,
+            0.45
+          ],
+          [
+            -0.54,
+            0.45
+          ]
+        ],
+        "pads_for_cubes": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "planes": [
+          [
+            0.29,
+            0.5
+          ],
+          [
+            -0.29,
+            0.5
+          ]
+        ],
+        "pair": {
+          "0": 0,
+          "1": 0,
+          "2": 1,
+          "3": 1
+        },
+        "z": 1.27,
+        "table_top": 1.25,
+        "near_y": 0.43,
+        "approach": {
+          "elev": -10.0,
+          "head": -50.0,
+          "roll": 0.0
+        },
+        "offcentre_mm": {
+          "left": 290.0,
+          "right": 290.0
+        }
+      },
+      "arms": {
+        "left": {
+          "waypoints": 205,
+          "ik_failures": 0,
+          "floor_breaches": 0,
+          "worst_clearance": 0.1978,
+          "worst_at": 100,
+          "worst_to": "L-upperarm"
+        },
+        "right": {
+          "waypoints": 205,
+          "ik_failures": 0,
+          "floor_breaches": 0,
+          "worst_clearance": 0.2202,
+          "worst_at": 0,
+          "worst_to": "torso"
+        }
+      },
+      "grasps": [
+        {
+          "cube": 0,
+          "arm": "left",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.0,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            -0.766,
+            -0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 1,
+          "arm": "left",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.0,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            -0.766,
+            -0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 2,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.0,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            0.0
+          ],
+          "ok": true
+        },
+        {
+          "cube": 3,
+          "arm": "right",
+          "solved": true,
+          "across_mm": 56.4,
+          "pad_miss_mm": 0.01,
+          "lowest_tip_above_table_mm": 20.0,
+          "finger_span_mm": 135.5,
+          "closing_axis": [
+            -0.6428,
+            0.766,
+            -0.0
+          ],
+          "ok": true
+        }
+      ],
+      "ik_calls": 435
+    }
+  },
+  "controls": {
+    "inside_torso_is_negative": "-0.1595 at [0.05, 0.02, 1.22]",
+    "far_1.6m_unreachable": true,
+    "shipped_cube_reachable_and_clear": "True / 0.2041",
+    "slab_control_free_then_buried": "True -> False (want True -> False)"
+  },
+  "stage1_independent": {
+    "clean": true,
+    "arms": {
+      "left": {
+        "waypoints": 199,
+        "ik_failures": 0,
+        "floor_breaches": 0,
+        "worst_clearance": 0.1978,
+        "worst_at": 96,
+        "worst_to": "L-upperarm"
+      },
+      "right": {
+        "waypoints": 199,
+        "ik_failures": 0,
+        "floor_breaches": 0,
+        "worst_clearance": 0.2104,
+        "worst_at": 175,
+        "worst_to": "R-upperarm"
+      }
+    }
+  }
+}

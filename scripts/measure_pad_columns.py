@@ -50,11 +50,12 @@ import t1_task as T1                                          # noqa: E402
 import grasp_frames as GF                                     # noqa: E402
 
 OUT = os.path.join(ROOT, "recordings/baselines/t1_pad_columns.json")
-# The shipped slots (0.230 and 0.290) are in here on purpose: a test asserts
+# The shipped slots are in here on purpose -- 0.260 and 0.320 for a pad with
+# two cubes on it, 0.230, 0.290 and 0.350 for a pad with three: a test asserts
 # every slot the task uses appears in this record, so a slot that moves without
 # being measured fails rather than passing on a neighbouring column.
-COLUMNS = [0.120, 0.135, 0.165, 0.195, 0.225, 0.230, 0.255, 0.285, 0.290,
-           0.315, 0.345, 0.375, 0.405, 0.440]
+COLUMNS = [0.120, 0.135, 0.165, 0.195, 0.225, 0.230, 0.255, 0.260, 0.285,
+           0.290, 0.315, 0.320, 0.345, 0.350, 0.375, 0.405, 0.440]
 N = 10
 
 

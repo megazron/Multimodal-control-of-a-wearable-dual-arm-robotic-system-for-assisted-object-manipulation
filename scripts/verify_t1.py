@@ -63,6 +63,11 @@ def main():
                     choices=["independent", "sequential"],
                     help="how each waypoint is seeded; see the "
                          "note in the loop below")
+    ap.add_argument("--stage2", type=int, default=None, metavar="SEED",
+                    help="walk STAGE 2 at this seed instead of stage 1. Same "
+                         "table, same pads, same builder -- the SIDE of each "
+                         "cube is drawn, so the split and the columns change "
+                         "and the paths have to be walked per seed.")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--out", default=OUT)
     a = ap.parse_args()
@@ -98,9 +103,21 @@ def main():
         print("\nself-test only.")
         return 0
 
-    wp = T1.build()
-    print("\nT1, REBUILT %s" % ("(both arms, %d cubes, %d pads)"
-                                % (len(T1.T1_CUBES), len(T1.T1_PLANES))))
+    if a.stage2 is None:
+        wp = T1.build()
+        layout = [(cx, cy, T1.T1_PAIR[i])
+                  for i, (cx, cy) in enumerate(T1.T1_CUBES)]
+        print("\nT1 STAGE 1 %s" % ("(both arms, %d cubes, %d pads)"
+                                    % (len(T1.T1_CUBES), len(T1.T1_PLANES))))
+    else:
+        layout = T1.stage2_layout(a.stage2)
+        wp = T1.build_stage2(a.stage2)
+        sp = T1.stage2_split(a.stage2)
+        print("\nT1 STAGE 2, seed %d -- %d cubes left, %d right"
+              % (a.stage2, sp["left"], sp["right"]))
+        print("   cubes      %s"
+              % ", ".join("%+.3f (%s)" % (c[0], T1.PLANE_COLOURS[c[2]])
+                          for c in layout))
     print("   approach   elevation %+.1f deg, heading %+.1f deg inboard, "
           "roll %.1f" % (T1.APPROACH_ELEV_DEG, T1.APPROACH_HEAD_DEG,
                          T1.APPROACH_ROLL_DEG))
@@ -210,8 +227,8 @@ def main():
     print("\nTHE GRASP ITSELF, from FK on the finger tips")
     from measure_grasp_approach import link_names
     grasps = []
-    for i, (cx, cy) in enumerate(T1.T1_CUBES):
-        arm = T1.arm_for_pad(T1.T1_PAIR[i])
+    for i, (cx, cy, _pad) in enumerate(layout):
+        arm = T1.arm_for_pad(_pad)
         obj = [cx, cy, T1.T1_Z]
         ee = T1.ee_for(obj, arm)
         j = rig.n.solve_arm_joints(arm, list(ee), as_msg(T1.APPROACH[arm]),
@@ -256,7 +273,9 @@ def main():
                            "%d waypoint problems, listed above" % bad_total))
     res["clean"] = bad_total == 0
     res["ik_calls"] = rig.calls
-    res["layout"] = dict(cubes=[list(c) for c in T1.T1_CUBES],
+    res["stage2_seed"] = a.stage2
+    res["layout"] = dict(cubes=[list(c[:2]) for c in layout],
+                         pads_for_cubes=[c[2] for c in layout],
                          planes=[list(p) for p in T1.T1_PLANES],
                          pair=dict(T1.T1_PAIR), z=T1.T1_Z,
                          table_top=T1.TABLE_TOP, near_y=T1.TABLE_NEAR_Y,

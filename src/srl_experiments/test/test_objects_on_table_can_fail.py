@@ -45,8 +45,16 @@ from srl_experiments import work_surface as WS                 # noqa: E402
 # file's point is unchanged and is now demonstrated across BOTH verdicts by
 # the real scenes rather than only by an injected displacement: the check
 # reports PASS for a task that rests and BLOCK for tasks that do not.
-FLOATING_TASKS = ["t1s2", "t3"]
-RESTING_TASKS = ["t1"]
+# WHICH TASKS STAND THEIR OBJECTS ON THE SURFACE, AND WHICH STILL FLOAT THEM.
+#
+# t1s2 MOVED ON 2026-08-18. Stage 2 was on the shared work plane 120 mm above
+# the table with a pad pair per side; it now shares stage 1's geometry
+# entirely -- same table, same two pads, same row -- and its objects rest on
+# the surface like stage 1's. The move is only legitimate because the paths
+# were walked at the new plane first: eight seeds, N=10, every one clean
+# (`recordings/baselines/t1_stage2_paths.json`).
+FLOATING_TASKS = ["t3"]
+RESTING_TASKS = ["t1", "t1s2"]
 TASKS = RESTING_TASKS + FLOATING_TASKS
 
 
@@ -147,17 +155,17 @@ def test_the_marking_is_registered_to_the_plane_it_bounds():
     for task in ("t1", "t1s2"):
         for arm in CS.marked_arms(task):
             z = CS.marking_z(arm, task)
-            # PER TASK, because the two tasks no longer share a plane. T1
-            # rests its work on its own table at 0.950; t1s2 still works on
-            # the shared plane 120 mm above it. A single literal here would
-            # have pinned the marking to whichever task was written first.
+            # READ FROM THE OWNER, NOT RESTATED. A literal here would pin the
+            # marking to whichever task was written first, and the two stages
+            # have both agreed and disagreed about their plane within a week.
+            # They agree now -- both rest their work on T1's own table -- and
+            # the assertion is that the marking follows the TASK's plane
+            # whatever it is, plus the one thing that must never happen: the
+            # boundary below the work it bounds.
             top = CS.work_top_for(arm, task)
             assert z == pytest.approx(top + CS.MARK_T / 2.0, abs=1e-9)
             assert z > top - CS.PLANE_T, (
                 "%s/%s marking at %.4f is below the pads it encloses"
                 % (task, arm, z))
-            if task == "t1":
-                import t1_task as _T1
-                assert top == pytest.approx(_T1.TABLE_TOP, abs=1e-9)
-            else:
-                assert top == pytest.approx(CT.BENCH_TOP, abs=1e-9)
+            import t1_task as _T1
+            assert top == pytest.approx(_T1.TABLE_TOP, abs=1e-9)

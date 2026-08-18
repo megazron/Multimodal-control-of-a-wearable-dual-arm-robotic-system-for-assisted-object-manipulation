@@ -757,10 +757,11 @@ def main(argv=None):
     vision_info = None
     instruct_info = None
     if a.vision:
-        if a.taskset != "msc" or _MSC_KEY.get(key) not in ("t1",):
+        _vt = _MSC_KEY.get(key)
+        if a.taskset != "msc" or _vt not in ("t1", "t1s2"):
             raise SystemExit(
-                "--vision is implemented for M1 (t1) only; %s builds its "
-                "layout from a per-trial seed and needs its own join." % key)
+                "--vision is implemented for M1 and M1S2 (t1, t1s2) only; "
+                "%s has no colour rule for a camera to ground." % key)
         if not os.path.exists(a.vision):
             raise SystemExit(
                 "REFUSING TO RECORD: no detections at %s. Run "
@@ -769,18 +770,33 @@ def main(argv=None):
                 "like a working camera." % a.vision)
         vd = json.load(open(a.vision))
         cubes = [tuple(c) for c in vd["cubes"]]
-        if len(cubes) != len(MCT.T1_CUBES):
+        # WHICH LAYOUT THIS RUN IS. Stage 2 draws its cubes from the seed, so
+        # "the layout" is a function of the seed and the detections have to
+        # have been taken against THAT draw.
+        import t1_task as _T1M
+        if _vt == "t1s2":
+            want = [list(c[:2]) for c in _T1M.stage2_layout(a.seed)]
+        else:
+            want = [list(c) for c in _T1M.T1_CUBES]
+        if len(cubes) != len(want):
             raise SystemExit(
                 "REFUSING TO RECORD: the look saw %d cubes, the task expects "
-                "%d." % (len(cubes), len(MCT.T1_CUBES)))
+                "%d." % (len(cubes), len(want)))
         # THE DETECTIONS MUST BE OF THIS LAYOUT. A stale file from an earlier
         # layout would build a path to where the cubes USED to be, and every
         # check downstream would pass it.
-        want = [list(c) for c in MCT.T1_CUBES]
         if vd.get("layout", {}).get("T1_CUBES") != want:
             raise SystemExit(
                 "REFUSING TO RECORD: %s was written against a different "
-                "layout. Re-run the staged detection." % a.vision)
+                "layout (it saw %s, this run is %s). Re-run the staged "
+                "detection." % (a.vision,
+                                vd.get("layout", {}).get("T1_CUBES"), want))
+        if _vt == "t1s2" and int(vd.get("seed", -1)) != int(a.seed):
+            raise SystemExit(
+                "REFUSING TO RECORD: the detections were taken at seed %s and "
+                "this run is seed %s. The cubes are drawn from the seed, so "
+                "those are two different tables."
+                % (vd.get("seed"), a.seed))
         vision_info = vd.get("timing")
         print("[vision] %d cubes SEEN (staged) -> %s" % (len(cubes), cubes),
               flush=True)
@@ -811,7 +827,7 @@ def main(argv=None):
             instruct_info = outcome.as_dict()
             wp = TI.build_path(outcome.picks)
         else:
-            wp = MCT.t1(cubes=cubes)
+            wp = _T1M.build(cubes=cubes)
         grip_sched = spec["grip"](len(wp["left"]))
 
     n = Runner(a)
@@ -1173,6 +1189,19 @@ def main(argv=None):
                         obj = pend_obj[arm] or grip_obj
                         if (pads is not None and obj is not None
                                 and math.dist(pads, obj) <= ARRIVE_TOL_M):
+                            # SAY WHICH OBJECT, AS IT HAPPENS.
+                            #
+                            # A run under 06 is the system deciding what to do
+                            # and then doing it, and until now the only visible
+                            # trace of the doing was the arm moving. The GUI's
+                            # prompt panel reads these lines to say which cube
+                            # it is on and which pad it chose; they also land
+                            # in the run log, so a clip that went wrong can be
+                            # read back without re-deriving the schedule.
+                            print("[progress] %s arm %s at (%.3f, %.3f, %.3f)"
+                                  % (arm,
+                                     "CLOSED on" if pend[arm] else "RELEASED over",
+                                     obj[0], obj[1], obj[2]), flush=True)
                             held_grip[arm] = pend[arm]
                             pend[arm] = None
                             pend_obj[arm] = None

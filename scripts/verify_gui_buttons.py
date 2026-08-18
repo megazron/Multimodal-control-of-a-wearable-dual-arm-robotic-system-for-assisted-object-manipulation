@@ -107,6 +107,25 @@ def level2_click():
         self.bus.note("would launch %s" % spec.label)
     srl_gui.Gui.on_launch = fake_launch
 
+    # AND THE PROMPT PANEL'S OWN LAUNCHES, for the same reason and no other.
+    # LOOK moves the arm to the observe pose and VOICE opens a listener; both
+    # are real actions with real side effects, and pressing them here would
+    # move a robot in the middle of a button audit. The click path -- the
+    # validation, the refusal, the state label, the log line -- runs in full.
+    spawned = []
+
+    def fake_start(self, argv, done):
+        spawned.append(list(argv))
+        self._inst_say("would run: %s" % " ".join(argv[-4:]))
+        done(0)
+
+    def fake_spawn(self, argv):
+        spawned.append(list(argv))
+        self._inst_say("would run: %s" % " ".join(argv[:4]))
+        return None
+    srl_gui.Gui._inst_start = fake_start
+    srl_gui.Gui._inst_spawn = fake_spawn
+
     from PyQt5.QtWidgets import QApplication, QPushButton, QCheckBox, QSlider
     from PyQt5.QtCore import Qt
 

@@ -15,16 +15,16 @@
         "column": 0.12,
         "solved": 10,
         "of": 10,
-        "worst_clearance": 0.1719,
-        "closest": "torso",
+        "worst_clearance": 0.1609,
+        "closest": "L-upperarm",
         "mount_limited": false
       },
       {
         "column": 0.135,
         "solved": 10,
         "of": 10,
-        "worst_clearance": 0.1746,
-        "closest": "L-upperarm",
+        "worst_clearance": 0.1817,
+        "closest": "torso",
         "mount_limited": false
       },
       {
@@ -39,7 +39,7 @@
         "column": 0.195,
         "solved": 10,
         "of": 10,
-        "worst_clearance": 0.2181,
+        "worst_clearance": 0.2123,
         "closest": "L-upperarm",
         "mount_limited": false
       },
@@ -61,6 +61,14 @@
       },
       {
         "column": 0.255,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.26,
         "solved": 10,
         "of": 10,
         "worst_clearance": 0.2202,
@@ -92,7 +100,23 @@
         "mount_limited": true
       },
       {
+        "column": 0.32,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
         "column": 0.345,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.35,
         "solved": 10,
         "of": 10,
         "worst_clearance": 0.2202,
@@ -169,12 +193,20 @@
         "column": 0.23,
         "solved": 10,
         "of": 10,
-        "worst_clearance": 0.2148,
+        "worst_clearance": 0.2035,
         "closest": "R-upperarm",
         "mount_limited": false
       },
       {
         "column": 0.255,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.26,
         "solved": 10,
         "of": 10,
         "worst_clearance": 0.2202,
@@ -206,7 +238,23 @@
         "mount_limited": true
       },
       {
+        "column": 0.32,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
         "column": 0.345,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.35,
         "solved": 10,
         "of": 10,
         "worst_clearance": 0.2202,
@@ -243,11 +291,11 @@
   },
   "shipped_planes": [
     [
-      0.26,
+      0.29,
       0.5
     ],
     [
-      -0.26,
+      -0.29,
       0.5
     ]
   ],

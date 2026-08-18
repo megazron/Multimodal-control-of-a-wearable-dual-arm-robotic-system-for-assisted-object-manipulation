@@ -209,9 +209,8 @@ PAD_Y = round(TABLE_NEAR_Y + PAD_D_DECL / 2.0, 4)
 # independent.json` records. Moving both pads out until every slot is in the
 # reliably-clear band removes the risk instead of documenting it.
 #
-# THE COST IS 105 mm ON THE LEFT AND 25 mm ON THE RIGHT, and it is stated
-# rather than absorbed: the pair now sits at 530 and 350 mm off the
-# centreline instead of 425 and 325.
+# THE COST IS STATED RATHER THAN ABSORBED, and it is now symmetric: the pair
+# sits 290 mm either side of the centreline.
 # SYMMETRIC, AND RE-SOLVED 2026-08-18 AFTER THE PAD OFFSET WAS MEASURED.
 #
 # The pair was [[0.320, PAD_Y], [-0.165, PAD_Y]] -- 320 mm left of centre and
@@ -234,9 +233,20 @@ PAD_Y = round(TABLE_NEAR_Y + PAD_D_DECL / 2.0, 4)
 # at the MOUNT's own 0.2202 m from 0.255 outward; the left arm is mount-limited
 # at every column from 0.260 to 0.440. So there is a band where both arms are
 # limited by the mount rather than by the person, and the pads are now in it --
-# which also makes them SYMMETRIC, 260 mm either side of the centreline, with
+# which also makes them SYMMETRIC, 290 mm either side of the centreline, with
 # their inner edges 420 mm apart and the pair centred on the person.
-T1_PLANES = [[0.260, PAD_Y], [-0.260, PAD_Y]]
+#
+# 290 AND NOT 260, AND THE 30 mm WAS BOUGHT BY STAGE 2. A pad holds up to
+# THREE cubes once the side is drawn, and three slots need 120 mm of pad. At a
+# centre of 0.260 the innermost slot lands at |x| = 0.200, which the column
+# sweep calls clear from HOME and which the composed path does not: walked at
+# seed 3, where the draw puts three cubes on the left, the left arm read
+# 0.1219 m to the wearer's own upper arm on 15 waypoints. Solving from home
+# and solving from the carry are different questions and the second is the one
+# the follower asks. At 0.290 every slot -- 0.230, 0.290, 0.350 -- is measured
+# clear on both arms, and stage 1's two slots (0.260 and 0.320) sit inside
+# that same band.
+T1_PLANES = [[0.290, PAD_Y], [-0.290, PAD_Y]]
 # PAD_T is the mat's THICKNESS. `PLANE_T` is the name clip_scene has always
 # used for the same quantity, kept as an alias so the scene and the task
 # cannot end up drawing and placing at two different heights.
@@ -250,13 +260,40 @@ T1_PLANES = [[0.260, PAD_Y], [-0.260, PAD_Y]]
 # and a half cubes wide and its two landing slots are 60 mm apart inside it,
 # and the cubes go back to 0.625 and 0.685 -- columns that verified clean
 # before any of this moved.
-PAD_W, PAD_D, PAD_T = 0.100, PAD_D_DECL, 0.010
+# 160 mm WIDE SINCE 2026-08-18, AND IT IS STAGE 2 THAT WIDENED IT.
+#
+# At 100 mm a pad holds two landing slots 60 mm apart, which is the widest a
+# 40 mm cube can be spaced and still leave a 20 mm gap so the two read as two
+# objects. Stage 2 draws the SIDE of each cube, so a draw can put THREE cubes
+# on one side, and three slots need 120 mm. The pad is the thing that gives,
+# because the columns are measured and the cube pitch is what makes four cubes
+# read as four cubes.
+#
+# Every slot the wider pad introduces is measured: |x| = 0.200 reads 0.2202 m
+# (left, mount-limited) and 0.1937 m (right, the wearer's upper arm) against a
+# 0.150 m floor, N=10. Stage 1 is UNCHANGED by it -- two cubes to a pad still
+# land at +/- 0.030 -- so the layout that was walked three times is the layout
+# that still ships.
+PAD_W, PAD_D, PAD_T = 0.160, PAD_D_DECL, 0.010
 PLANE_T = PAD_T
 # 30 mm, NOT 50. The two slots have to be 60 mm apart so a 40 mm cube leaves a
 # 20 mm gap and reads as two objects, and they BOTH have to land in the
 # reliably-clear band. At +/-50 mm the inner slot of the left pad would sit at
 # 0.480, back inside the wearer-forearm band the pad was just moved out of.
 SLOT_DX = 0.030
+# The landing slots for n cubes on one pad, as offsets from its centre. One
+# cube lands in the middle; two straddle it at the cube pitch; three use the
+# full width. Read by `build()` so the two stages cannot space their cubes
+# differently.
+SLOT_OFFSETS = {1: (0.0,), 2: (-SLOT_DX, +SLOT_DX),
+                3: (-2 * SLOT_DX, 0.0, +2 * SLOT_DX)}
+
+# WHERE A STAGE 2 CUBE MAY START, per side, as |x|. Measured at N=10 over the
+# grasp and the pre-grasp with the table in the scene: every column solves
+# 10 of 10 on its own arm with 0.2202 m of clearance, which is the mount and
+# not the arm. They are 60 mm apart, the same pitch stage 1 uses, so three
+# cubes on one side still read as three objects.
+CUBE_COLUMNS = (0.420, 0.480, 0.540)
 # Kept for the consumers that still name it; the slots are in X now.
 SLOT_DY = 0.0
 
@@ -267,8 +304,8 @@ SLOT_DY = 0.0
 # SYMMETRIC TOO, and for the pads' sake rather than for tidiness: a pad now
 # occupies |x| = 0.210 to 0.310 on each side, so a cube at 0.300 would start ON
 # the pad it is meant to be delivered to, which is T1-2. 60 mm pitch as before.
-T1_CUBES = [[0.400, ROW_Y], [0.460, ROW_Y],
-            [-0.400, ROW_Y], [-0.460, ROW_Y]]
+T1_CUBES = [[0.420, ROW_Y], [0.480, ROW_Y],
+            [-0.420, ROW_Y], [-0.480, ROW_Y]]
 # Cube index -> pad index, and so colour. DECLARED, and deliberately NOT read
 # by the planner: `t1_instruction` grounds on the camera's colour and this
 # table exists so that a wrong-colour placement is scoreable and so that the
@@ -353,7 +390,8 @@ def build(cubes=None):
     """
     items = ([(cx, cy, T1_PAIR[i]) for i, (cx, cy) in enumerate(T1_CUBES)]
              if cubes is None else
-             [(float(c[0]), float(c[1]), int(c[2])) for c in cubes])
+             [(float(c[0]), float(c[1]),
+               None if c[2] is None else int(c[2])) for c in cubes])
 
     seq = {"left": [], "right": []}
     grip = {"left": [], "right": []}
@@ -365,14 +403,63 @@ def build(cubes=None):
         grip[arm].extend([state] * len(pts))
         at[arm].extend([list(obj)] * len(pts))
 
+    # HOW MANY CUBES LAND ON EACH PAD decides how they are spaced, so it has
+    # to be known before the first one is placed.
+    per_pad = {}
+    for _cx, _cy, _p in items:
+        if _p is not None:
+            per_pad[_p] = per_pad.get(_p, 0) + 1
+    for _p, _n in per_pad.items():
+        if _n not in SLOT_OFFSETS:
+            raise ValueError(
+                "%d cubes are bound for the %s pad and it has landing slots "
+                "for %s. A pad is not a heap: two cubes in one slot is one "
+                "cube inside another."
+                % (_n, PLANE_COLOURS[_p], sorted(SLOT_OFFSETS)))
+
     used = {}
     for cx, cy, pad_i in items:
+        # A PICK WITH NO PAD IS A PICK AND A LIFT, AND IT STOPS THERE.
+        #
+        # "pick up the blue cube" is a complete instruction. The arm is the one
+        # that can REACH the cube -- which is the side it is on, not the colour
+        # it is, because no pad is involved -- and the path ends holding it
+        # over the row rather than inventing a place to put it down.
+        if pad_i is None:
+            arm = "left" if cx >= 0.0 else "right"
+            cube_obj = [float(cx), float(cy), T1_Z]
+            pre_pick, pick = GF.approach_path(cube_obj, APPROACH[arm], STANDOFF)
+            lift = [pick[0], pick[1], pick[2] + LIFT]
+            add(arm, _dense([pre_pick, pick]), CT.OPEN, cube_obj)
+            add(arm, _hold(pick, 14), g, cube_obj)
+            add(arm, _dense([pick, lift]), g, cube_obj)
+            add(arm, _hold(lift, 10), g, cube_obj)     # hold it up, visibly
+            continue
         arm = arm_for_pad(pad_i)
+        # NEITHER ARM CAN CROSS THE CENTRELINE, MEASURED, so a cube can only
+        # be delivered to the pad on its own side and this is where that is
+        # enforced rather than assumed. `probe_cross`: 0 of 10 solutions at
+        # every cross-side pad slot and every cross-side cube, on both arms.
+        #
+        # It matters because the destination is chosen by the CAMERA. A cube
+        # that renders the other side's colour -- which is exactly what the
+        # mislabel control creates -- names a pad this arm cannot reach, and
+        # the honest answer is to say so rather than to emit a path whose
+        # every waypoint fails IK for a reason nobody will connect to colour.
+        if (cx >= 0.0) != (arm == "left"):
+            raise ValueError(
+                "the cube at x = %+.3f is on the %s arm's side and its colour "
+                "sends it to the %s pad at x = %+.3f, which is on the other "
+                "side of the wearer. Neither arm crosses the centreline "
+                "(0 of 10 at every cross-side pose, measured 2026-08-18), so "
+                "this cube cannot be delivered by this rig."
+                % (cx, "left" if cx >= 0.0 else "right",
+                   PLANE_COLOURS[int(pad_i)], T1_PLANES[int(pad_i)][0]))
         k = used.get(pad_i, 0)
         used[pad_i] = k + 1
         cube_obj = [float(cx), float(cy), T1_Z]
         px, _pad_y = T1_PLANES[int(pad_i)]
-        px = round(px + (-SLOT_DX if k == 0 else +SLOT_DX), 4)
+        px = round(px + SLOT_OFFSETS[per_pad[pad_i]][k], 4)
         # THE CUBE LANDS IN THE ROW, not at the pad's drawn centre. See the
         # note on PAD_Y: the pad extends forward for the picture, the row is
         # where the arm can work.
@@ -440,7 +527,11 @@ def build(cubes=None):
         if not seq[arm]:
             continue
         back = _dense([seq[arm][-1], park_for(arm)])
-        add(arm, back, CT.OPEN, at[arm][-1])
+        # KEEP WHATEVER THE HAND IS DOING. On a place the hand is open by the
+        # time it withdraws; on a pick-and-hold it is closed and must stay
+        # closed, or the cube is dropped on the way to park and the clip shows
+        # the opposite of what was asked for.
+        add(arm, back, grip[arm][-1], at[arm][-1])
 
     nl, nr = len(seq["left"]), len(seq["right"])
     out, out_g, out_at = {}, {}, {}
@@ -457,6 +548,89 @@ def build(cubes=None):
     _GRIP_AT.clear()
     _GRIP_AT.update(out_at)
     return out
+
+
+# ==========================================================================
+# STAGE 2 -- THE SAME TABLE, THE SAME PADS, AND THE SIDE OF EACH CUBE DRAWN.
+#
+# Stage 1 is a fixed layout: two blue cubes on the left, two green on the
+# right. Stage 2 keeps every one of those numbers -- same table, same two pads
+# at +/- 0.260, same row, same approach, same builder -- and makes the SIDE of
+# each cube part of the trial's random draw, which is what the spec asks of it
+# and what makes both arms' share of the work vary from trial to trial.
+#
+# THE COLOUR FOLLOWS THE SIDE, AND THAT IS A MEASUREMENT, NOT A SIMPLIFICATION.
+# The blue pad is on the LEFT of the centreline and the green pad on the RIGHT,
+# and NEITHER ARM CAN CROSS THE CENTRELINE: 0 of 10 IK solutions at every
+# cross-side pad slot and every cross-side cube position, on both arms, with
+# the wearer and the table in the scene (2026-08-18). So the arm that can
+# reach a cube is fixed by the side it starts on, the arm that can reach a pad
+# is fixed by the pad's side, and a cube can only ever be delivered to the pad
+# on its own side.
+#
+# A stage 2 that drew colour and side independently would therefore be drawing
+# trials the rig cannot perform. What varies is the SPLIT -- 1/3, 2/2 or 3/1 --
+# and the columns each cube occupies, so a trial can put three cubes and three
+# placements on one arm and one on the other, which is exactly the asymmetric
+# bimanual load stage 2 exists to create.
+#
+# THE DRAW IS REJECTED, NOT REPAIRED, when it puts all four on one side: "both
+# arms working" is the task definition and not a preference, so the seed is
+# advanced and drawn again. Recorded in the manifest with the seed, so the
+# trial is replayable.
+STAGE2_N_CUBES = 4
+
+
+def stage2_layout(seed=0, n_cubes=STAGE2_N_CUBES):
+    """The DECLARED stage 2 scene for a seed: [(x, y, pad_index)].
+
+    Deterministic in the seed and in nothing else -- no clock, no run counter
+    -- so the same seed is the same table for ever, which is the contract that
+    makes a trial replayable.
+    """
+    import random
+    if n_cubes > 2 * len(CUBE_COLUMNS):
+        raise ValueError("only %d columns per side are measured; %d cubes "
+                         "will not fit" % (len(CUBE_COLUMNS), n_cubes))
+    rng = random.Random("t1_stage2|%s|%d" % (seed, n_cubes))
+    for _ in range(200):
+        sides = [rng.choice(("left", "right")) for _ in range(n_cubes)]
+        n_left = sides.count("left")
+        if 0 < n_left < n_cubes and max(n_left, n_cubes - n_left) <= 3:
+            break
+    else:                                                # pragma: no cover
+        raise RuntimeError("could not draw a two-sided layout for seed %s"
+                           % seed)
+    out = []
+    for side in ("left", "right"):
+        k = sides.count(side)
+        cols = sorted(rng.sample(list(CUBE_COLUMNS), k))
+        pad = 0 if side == "left" else 1
+        for c in cols:
+            out.append((round(c if side == "left" else -c, 4), ROW_Y, pad))
+    # NEAREST THE LEFT ARM FIRST, which is the order build() commands them in
+    # and the order the clip shows.
+    out.sort(key=lambda c: -c[0])
+    return out
+
+
+def stage2_split(seed=0, n_cubes=STAGE2_N_CUBES):
+    """{'left': n, 'right': n} for a seed, without building anything."""
+    lay = stage2_layout(seed, n_cubes)
+    return {"left": sum(1 for c in lay if c[0] >= 0.0),
+            "right": sum(1 for c in lay if c[0] < 0.0)}
+
+
+def build_stage2(seed=0, cubes=None, n_cubes=STAGE2_N_CUBES):
+    """The stage 2 path. ONE builder -- `build()` -- with a drawn layout.
+
+    `cubes` is what the CAMERA saw, in the same [(x, y, pad_index)] form stage
+    1 uses; the pad index is the colour the camera classified. `None` uses the
+    declared draw, which is what the layout verification and the unit tests
+    walk.
+    """
+    return build(cubes=(stage2_layout(seed, n_cubes) if cubes is None
+                        else cubes))
 
 
 def park_for(arm):

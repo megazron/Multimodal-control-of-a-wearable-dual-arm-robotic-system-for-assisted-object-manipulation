@@ -51,6 +51,11 @@ sys.path.insert(0, os.path.join(ROOT, "config"))
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--arm", default=None)
+    ap.add_argument("--task", default="t1", choices=("t1", "t1s2"),
+                    help="which stage. Stage 2 draws its cubes from the seed, "
+                         "so the expected count, the layout stamp and the "
+                         "scene the camera is looking at all follow from it.")
+    ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--expect", type=int, default=None)
     ap.add_argument("--out", required=True)
     ap.add_argument("--settle-s", type=float, default=6.0)
@@ -69,7 +74,10 @@ def main():
     # the looking and both arms then work from what it saw.
     import t1_task as T1M
     arm = a.arm or T1M.LOOK_ARM
-    expect = a.expect if a.expect is not None else len(T1M.T1_CUBES)
+    layout = (T1M.stage2_layout(a.seed) if a.task == "t1s2"
+              else [(cx, cy, T1M.T1_PAIR[i])
+                    for i, (cx, cy) in enumerate(T1M.T1_CUBES)])
+    expect = a.expect if a.expect is not None else len(layout)
 
     rclpy.init()
     try:
@@ -102,7 +110,8 @@ def main():
 
     rec = dict(arm=arm, cubes=cubes, timing=info,
                returned_home_worst_rad=round(float(off), 5),
-               layout=dict(T1_CUBES=[list(c) for c in T1M.T1_CUBES],
+               task=a.task, seed=a.seed,
+               layout=dict(T1_CUBES=[list(c[:2]) for c in layout],
                            T1_PLANES=[list(p) for p in T1M.T1_PLANES],
                            T1_Z=T1M.T1_Z),
                stamp=time.time())

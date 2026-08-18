@@ -152,11 +152,16 @@ class MockRGBD(Node):
         super().__init__("mock_rgbd_camera")
         self.declare_parameter("arm", "left")
         self.declare_parameter("task", "t1")
+        # STAGE 2 DRAWS ITS CUBES, so the renderer needs the same seed the
+        # task and the scene node were given or it paints a different table
+        # from the one the arm is working on.
+        self.declare_parameter("seed", 0)
         self.declare_parameter("rate_hz", 15.0)
         self.declare_parameter("frame_id", "")
         self.declare_parameter("probe", False)
         self.arm = self.get_parameter("arm").value
         self.task = self.get_parameter("task").value
+        self.seed = int(self.get_parameter("seed").value)
         self.frame = self.get_parameter("frame_id").value or \
             "%s_camera_color_frame" % self.arm
 
@@ -232,7 +237,7 @@ class MockRGBD(Node):
                             rgb=tuple(rgba[:3]), name=name))
         # The two coloured mats: geometry lives in the task spec, not in
         # fixtures_for(), which is a NAME list.
-        if self.task == "t1":
+        if self.task in ("t1", "t1s2"):
             try:
                 # T1's OWN GEOMETRY, from the module that owns it. Rebuilt
                 # 2026-08-17: the pads rest ON the table rather than hanging
@@ -256,7 +261,18 @@ class MockRGBD(Node):
             # unanswerable from it.
             try:
                 import t1_task as T1M
-                for i, (px, py) in enumerate(T1M.T1_CUBES):
+                # THE CUBES OF WHICHEVER STAGE THIS IS. Stage 1's are fixed;
+                # stage 2's are drawn from the seed, and its colours follow
+                # the SIDE, because neither arm crosses the centreline and a
+                # cube can only be delivered to the pad on its own side.
+                if self.task == "t1s2":
+                    lay = T1M.stage2_layout(self.seed)
+                    cubes = [(c[0], c[1]) for c in lay]
+                    rendered = [T1M.PLANE_COLOURS[c[2]] for c in lay]
+                else:
+                    cubes = [tuple(p) for p in T1M.T1_CUBES]
+                    rendered = list(T1M.T1_RENDERED)
+                for i, (px, py) in enumerate(cubes):
                     out.append(dict(
                         xyz=[px, py, T1M.T1_Z],
                         size=[T1M.CUBE_M] * 3,
@@ -290,8 +306,7 @@ class MockRGBD(Node):
                         # would repaint the scene whenever the declaration was
                         # flipped, so the control would compare a file with
                         # itself and always report agreement.
-                        rgb=(CS.BLUE[:3]
-                             if T1M.T1_RENDERED[i] == "blue"
+                        rgb=(CS.BLUE[:3] if rendered[i] == "blue"
                              else CS.GREEN[:3]),
                         name="cube_%d" % i))
             except Exception as e:

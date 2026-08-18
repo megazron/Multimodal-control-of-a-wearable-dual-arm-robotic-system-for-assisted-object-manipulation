@@ -7,17 +7,17 @@
   },
   "arms": {
     "left": {
-      "waypoints": 201,
+      "waypoints": 199,
       "ik_failures": 0,
       "floor_breaches": 0,
-      "worst_clearance": 0.192,
-      "worst_at": 92,
-      "worst_to": "torso",
+      "worst_clearance": 0.1978,
+      "worst_at": 96,
+      "worst_to": "L-upperarm",
       "failures": [],
       "breaches": []
     },
     "right": {
-      "waypoints": 201,
+      "waypoints": 199,
       "ik_failures": 0,
       "floor_breaches": 0,
       "worst_clearance": 0.2202,
@@ -49,7 +49,7 @@
       "arm": "left",
       "solved": true,
       "across_mm": 56.4,
-      "pad_miss_mm": 0.01,
+      "pad_miss_mm": 0.0,
       "lowest_tip_above_table_mm": 20.0,
       "finger_span_mm": 135.5,
       "closing_axis": [
@@ -91,33 +91,40 @@
     }
   ],
   "clean": true,
-  "ik_calls": 427,
+  "ik_calls": 423,
+  "stage2_seed": null,
   "layout": {
     "cubes": [
       [
-        0.4,
+        0.42,
         0.45
       ],
       [
-        0.46,
+        0.48,
         0.45
       ],
       [
-        -0.4,
+        -0.42,
         0.45
       ],
       [
-        -0.46,
+        -0.48,
         0.45
       ]
     ],
+    "pads_for_cubes": [
+      0,
+      0,
+      1,
+      1
+    ],
     "planes": [
       [
-        0.26,
+        0.29,
         0.5
       ],
       [
-        -0.26,
+        -0.29,
         0.5
       ]
     ],
@@ -136,8 +143,8 @@
       "roll": 0.0
     },
     "offcentre_mm": {
-      "left": 260.0,
-      "right": 260.0
+      "left": 290.0,
+      "right": 290.0
     }
   }
 }

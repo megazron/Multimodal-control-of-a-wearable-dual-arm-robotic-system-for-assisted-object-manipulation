@@ -33,8 +33,20 @@ import t1_instruction as TI                                  # noqa: E402
 import msc_clip_tasks as MCT                                 # noqa: E402
 
 BLUE, GREEN = 0, 1
-SEEN = [(0.560, 0.120, BLUE), (0.620, 0.120, GREEN),
-        (0.680, 0.120, BLUE), (0.740, 0.120, GREEN)]
+# THE SCENE THE CAMERA WOULD REPORT, READ FROM THE TASK RATHER THAN RESTATED.
+#
+# It used to be four literals in a row at y = 0.120 with the colours
+# alternating, and after the 2026-08-18 rebuild that scene cannot exist:
+# the blue pad is on the LEFT of the centreline and the green pad on the
+# RIGHT, neither arm crosses the centreline (0 of 10 at every cross-side pose,
+# measured), so a green cube at x = +0.62 is a cube this rig cannot deliver.
+# `t1_task.build` now raises on exactly that, which is how the drift was
+# found.
+import t1_task as _T1M                                       # noqa: E402
+SEEN = [(cx, cy, _T1M.T1_PAIR[i])
+        for i, (cx, cy) in enumerate(_T1M.T1_CUBES)]
+BLUE_SEEN = [c for c in SEEN if c[2] == BLUE]
+GREEN_SEEN = [c for c in SEEN if c[2] == GREEN]
 
 
 def pads(outcome):
@@ -52,7 +64,7 @@ def test_the_pads_are_blue_and_green_in_that_order():
 def test_a_plain_instruction_plans():
     o = TI.plan_from("put the blue ones on the blue pad", SEEN)
     assert o.ok, o.message
-    assert pads(o) == {0.560: BLUE, 0.680: BLUE}
+    assert pads(o) == {round(c[0], 3): BLUE for c in BLUE_SEEN}
 
 
 def test_a_different_destination_gives_a_different_plan():
@@ -86,8 +98,7 @@ def test_the_plan_ignores_the_DECLARED_colour_entirely():
         "the plan changed when the DECLARED colours changed, so it is being "
         "built from msc_clip_tasks.T1_PAIR and not from the detection")
     # and it is the SEEN colour that was used, not some constant
-    assert pads(after) == {0.560: BLUE, 0.620: GREEN,
-                           0.680: BLUE, 0.740: GREEN}
+    assert pads(after) == {round(c[0], 3): c[2] for c in SEEN}
 
 
 def test_a_mislabelled_cube_goes_where_the_CAMERA_put_it():
@@ -97,7 +108,10 @@ def test_a_mislabelled_cube_goes_where_the_CAMERA_put_it():
     where it belongs" must send it to the GREEN pad.
     """
     saved = dict(MCT.T1_PAIR)
-    lie = [(0.560, 0.120, GREEN)]          # the camera says green
+    # THE CAMERA SAYS GREEN, and the cube has to be on the GREEN pad's own
+    # side of the centreline or no arm can deliver it -- which is a property
+    # of the rig, not of this test. Take a real green cube's position.
+    lie = [(GREEN_SEEN[0][0], GREEN_SEEN[0][1], GREEN)]
     try:
         MCT.T1_PAIR[0] = BLUE              # the file says blue
         o = TI.plan_from("put the cube where it belongs", lie)
@@ -105,7 +119,7 @@ def test_a_mislabelled_cube_goes_where_the_CAMERA_put_it():
         MCT.T1_PAIR.clear()
         MCT.T1_PAIR.update(saved)
     assert o.ok, o.message
-    assert pads(o) == {0.560: GREEN}, (
+    assert pads(o) == {round(GREEN_SEEN[0][0], 3): GREEN}, (
         "a cube the camera saw as green was sent to the blue pad, which is "
         "the colour its DECLARATION carries")
 
@@ -175,7 +189,12 @@ def test_a_destination_that_is_not_the_cubes_colour_is_HONOURED():
     operator, which is the same class of error as dropping a negation."""
     o = TI.plan_from("put the blue ones on the green pad", SEEN)
     assert o.ok
-    assert pads(o) == {0.560: GREEN, 0.680: GREEN}
+    # BOTH BLUE CUBES TO THE GREEN PAD is a plan this rig cannot execute --
+    # the green pad is on the other side of the wearer -- and that is a
+    # question for the BUILDER, which refuses it by name. What this test is
+    # about is whether the grounding layer OVERRULES the operator, and it must
+    # not: the plan says green because the operator said green.
+    assert pads(o) == {round(c[0], 3): GREEN for c in BLUE_SEEN}
 
 
 # ------------------------------------------------------------- the path
@@ -193,7 +212,7 @@ def test_the_path_is_built_by_the_ONE_builder_and_a_subset_is_shorter():
     property that still has to hold is the one the test is named for: a
     subset is genuinely shorter, and no pick is silently dropped.
     """
-    two = TI.build_path([(0.560, 0.120, BLUE), (0.680, 0.120, BLUE)])
+    two = TI.build_path([tuple(c) for c in BLUE_SEEN])
     four = TI.build_path([(x, y, p) for x, y, p in SEEN])
     assert len(two["left"]) < len(four["left"]), (
         "a two-cube plan is not shorter than a four-cube one, so picks are "
@@ -207,7 +226,7 @@ def test_the_path_is_built_by_the_ONE_builder_and_a_subset_is_shorter():
     # answered 4. That is the module's documented contract (the schedule is
     # built WITH the path it belongs to) and the test has to honour it.
     import t1_task as _T1
-    two = TI.build_path([(0.560, 0.120, BLUE), (0.680, 0.120, BLUE)])
+    two = TI.build_path([tuple(c) for c in BLUE_SEEN])
     g = _T1.grip(len(two["left"]))
     closes = sum(1 for a in ("left", "right")
                  for i in range(1, len(g[a]))
@@ -222,7 +241,119 @@ def test_the_path_picks_where_the_CAMERA_said_and_not_where_the_file_says():
     # whole path was the first attempt and it measured the wrong thing: the
     # place point sits at x = 0.595, so for a pick at 0.560 the maximum is the
     # PAD, and the shift read 0.215 instead of 0.250.
-    near = TI.build_path([(0.560, 0.120, BLUE)])["left"]
-    far = TI.build_path([(0.810, 0.120, BLUE)])["left"]
+    near = TI.build_path([(0.400, 0.450, BLUE)])["left"]
+    far = TI.build_path([(0.650, 0.450, BLUE)])["left"]
     dx = far[0][0] - near[0][0]
     assert dx == pytest.approx(0.25, abs=1e-6), dx
+
+
+# --------------------------------------------------------------------------
+# THE 2026-08-18 ADDITIONS. Each of these pins a fault that was MEASURED, not
+# a behaviour that was designed -- see the sweep's own header for the two the
+# phrase set found on the day it was written.
+# --------------------------------------------------------------------------
+def test_a_complete_compound_moves_EVERY_cube_it_names():
+    """The one MISUNDERSTOOD this project has recorded since it started counting.
+
+    "put the blue ones on the blue pad and the green ones on the green pad" is
+    two complete instructions sharing a verb. The shipped grounding layer
+    planned the FIRST and dropped the second in silence -- two cubes of four,
+    reported as a success. Half an instruction executed confidently is the
+    dangerous outcome the whole module exists to prevent, and it was live.
+    """
+    o = TI.plan_from("put the blue ones on the blue pad and the green ones "
+                     "on the green pad", SEEN)
+    assert o.kind == TI.PLAN, o.message
+    assert len(o.picks) == len(SEEN), (
+        "planned %d picks for an instruction naming all %d cubes: %s"
+        % (len(o.picks), len(SEEN), o.picks))
+    for px, _py, pad in o.picks:
+        seen = min(SEEN, key=lambda c: abs(c[0] - px))
+        assert pad == seen[2], (px, pad, seen)
+
+
+def test_a_compound_that_contradicts_itself_is_refused():
+    o = TI.plan_from("put the blue ones on the blue pad and the blue ones on "
+                     "the green pad", SEEN)
+    assert o.kind == TI.REFUSE, (o.kind, o.message)
+
+
+def test_politeness_does_not_become_a_second_action():
+    """`when` is one Damerau edit from `then`, and the repair used to take it.
+
+    A word that decides whether the sentence is REFUSED is as load-bearing as
+    the verb, so it is not a repair target -- the same rule that already
+    stopped `top` becoming `stop`.
+    """
+    o = TI.plan_from("could you please just put the blue ones on the blue pad "
+                     "for me when you get a chance", SEEN)
+    assert o.kind == TI.PLAN, o.message
+    assert len(o.picks) == 2, o.picks
+
+
+def test_a_selector_the_scene_cannot_settle_is_refused_by_name():
+    """Not dropped. Dropping it turns a qualified instruction into an
+    unqualified one, which is how the operator gets a cube they did not name."""
+    o = TI.plan_from("put the biggest cube on the blue pad", SEEN)
+    assert o.kind == TI.REFUSE
+    assert "biggest" in o.message and "same" in o.message, o.message
+
+
+def test_a_selector_the_scene_CAN_settle_plans_without_asking():
+    o = TI.plan_from("put the leftmost blue cube on the blue pad", SEEN)
+    assert o.kind == TI.PLAN, o.message
+    assert len(o.picks) == 1
+    blues = [c for c in SEEN if c[2] == 0]
+    assert abs(o.picks[0][0] - max(c[0] for c in blues)) < 1e-9, o.picks
+
+
+def test_a_bare_pick_is_a_pick_and_not_half_an_instruction():
+    o = TI.plan_from("pick up the leftmost blue cube", SEEN)
+    assert o.kind == TI.PLAN, o.message
+    assert o.hold_only, o.picks
+    assert o.picks[0][2] is None
+
+
+def test_an_ask_is_answerable_and_two_answers_give_two_plans():
+    q = TI.plan_from("pick up the blue cube", SEEN)
+    assert q.kind == TI.ASK and q.question
+    left = TI.answer(q, "the leftmost", SEEN)
+    right = TI.answer(q, "the rightmost", SEEN)
+    assert left.kind == TI.PLAN and right.kind == TI.PLAN
+    assert left.picks != right.picks, (left.picks, right.picks)
+
+
+def test_an_answer_that_answers_nothing_asks_again_rather_than_guessing():
+    q = TI.plan_from("pick up the blue cube", SEEN)
+    again = TI.answer(q, "hmm", SEEN)
+    assert again.kind == TI.ASK, (again.kind, again.message)
+    assert again.question is not None
+
+
+def test_no_cancels_and_nothing_moves():
+    q = TI.plan_from("pick up the blue cube", SEEN)
+    o = TI.answer(q, "never mind", SEEN)
+    assert o.kind == TI.REFUSE and not o.picks
+
+
+def test_tidy_up_offers_the_reading_and_does_not_assume_it():
+    q = TI.plan_from("tidy up", SEEN)
+    assert q.kind == TI.ASK and q.question["kind"] == "confirm"
+    yes = TI.answer(q, "yes", SEEN)
+    assert yes.kind == TI.PLAN and len(yes.picks) == len(SEEN)
+    no = TI.answer(q, "no", SEEN)
+    assert no.kind == TI.REFUSE and not no.picks
+
+
+def test_a_superlative_anchored_on_the_PERSON_is_not_a_relational_reference():
+    """"the cube closest to me" names no second object to be relative to.
+
+    It is still refused here -- every T1 cube is in one row, so `nearest`
+    separates nothing -- but it must be refused for THAT reason, not as a
+    relational reference, or the operator is sent to rewrite a sentence that
+    was already unambiguous.
+    """
+    o = TI.plan_from("grab the cube closest to me", SEEN)
+    assert o.kind == TI.REFUSE
+    assert "relational" not in o.message.lower(), o.message
+    assert "row" in o.message, o.message

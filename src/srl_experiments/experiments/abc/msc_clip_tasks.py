@@ -72,42 +72,29 @@ SLOT_DY = T1M.SLOT_DY
 STANDOFF, LIFT = T1M.STANDOFF, T1M.LIFT
 PARK_X = T1M.PARK_X
 
-# STAGE 2 KEEPS ITS OWN GEOMETRY, DELIBERATELY, AND THE TWO STAGES NO LONGER
-# AGREE ABOUT WHERE THE WORK IS.
+# STAGE 2 IS STAGE 1'S GEOMETRY, SINCE 2026-08-18. THE SIDE IS WHAT VARIES.
 #
-# Stage 2 is a different measurement -- both arms at once, sides drawn at
-# random -- and it is verified against the 2026-08-15 geometry: pads a pair
-# per side, objects on the work plane 120 mm above the table, wrist pinned at
-# the anchor. None of that survived stage 1's rebuild, and pulling stage 2
-# onto stage 1's numbers would mean placing its cubes onto pads whose paths
-# have never been walked. It moves when it is re-verified, not before, and
-# `test_t1_stages_agree.py` now asserts the divergence rather than the
-# agreement so the split cannot happen silently.
-T1S2_Z = round(CT.BENCH_TOP + CUBE_M / 2.0, 4)
-# AND ITS OWN COLOUR RULE, for the same reason. Stage 1's cubes are now two
-# blue then two green, because the blue pair is on the LEFT arm's side and the
-# green pair on the RIGHT arm's; stage 2 draws sides at random and keeps the
-# ALTERNATING rule it was verified with. Both give two of each colour in a
-# four-cube draw, which is the property stage 2 actually depends on.
-T1S2_PAIR = {0: 0, 1: 1, 2: 0, 3: 1}
-# STAGE 2'S PADS, A PAIR PER SIDE, EXACTLY AS THEY WERE VERIFIED.
+# It kept its own until now -- objects on the work plane 120 mm above the
+# table, a PAIR of pads per side, the wrist pinned at the anchor -- because
+# none of that had survived stage 1's rebuild and pulling it across would have
+# meant placing cubes onto pads whose paths had never been walked. They have
+# now been walked, per seed, so the divergence is closed rather than asserted:
+# same table, same two pads at +/- 0.290, same row, same approach, same
+# builder, and `test_t1_stages_agree` says so instead of the reverse.
 #
-# These are the 2026-08-16 values and they have not moved: stage 2 still runs
-# at the pinned anchor on the work plane 120 mm above the table, and these
-# coordinates are the ones its paths were walked at. They used to be stage 1's
-# too -- `T1_PLANES` was literally `T1_PLANES_BY_ARM["left"]` -- and after the
-# 2026-08-17 rebuild they are not. See `test_t1_stages_agree.py`, which now
-# asserts the divergence.
-#
-# THE TWO SIDES ARE NOT MIRRORS, and that is a measurement: after
-# `revalidate_region.py` re-walked every surveyed cell at the pinned anchor,
-# the right arm lost 38 of its 246 clearance-safe cells and what is left is
-# ragged, while the left lost 1 of 193. Sizing each arm's pads to its own
-# region gives a larger pad than a single mirrored pair that fits both.
-T1_PLANES_BY_ARM = {
-    "left": [[0.595, 0.215], [0.825, 0.215]],
-    "right": [[-0.740, 0.230], [-0.860, 0.230]],
-}
+# WHAT STAGE 2 STILL IS: the SIDE of each cube is part of the trial's draw, so
+# the split between the arms varies 1/3, 2/2 or 3/1 and both arms always get
+# work. The colour follows the side, because neither arm crosses the
+# centreline -- 0 of 10 IK solutions at every cross-side pose, measured -- so
+# a cube can only be delivered to the pad on its own side. Drawing colour and
+# side independently would be drawing trials the rig cannot perform.
+T1S2_Z = T1M.T1_Z
+STAGE2_N_CUBES = T1M.STAGE2_N_CUBES
+# ONE PAD PER ARM NOW, and the table is kept in this shape because several
+# scripts and the scene read it. The left arm owns the blue pad and the right
+# the green, which is the same statement as `t1_task.arm_for_pad`.
+T1_PLANES_BY_ARM = {"left": [list(T1M.T1_PLANES[0])],
+                    "right": [list(T1M.T1_PLANES[1])]}
 STANDOFF, LIFT = 0.10, 0.08
 # Where an arm with nothing to do waits, in |x|. Outboard of the wearer, in
 # the measured clearance-safe region for either arm.
@@ -352,205 +339,78 @@ def _region(path=None):
 STAGE2_N_CUBES = 4               # across BOTH sides, not per side
 
 
-def stage2_targets(seed, n_cubes=STAGE2_N_CUBES, cells=None,
-                   min_sep=STAGE2_MIN_SEP_M, max_draws=500, n_per_arm=None):
-    """Cubes drawn at random from the surveyed cells of BOTH sides.
+def stage2_layout(seed=0, n_cubes=STAGE2_N_CUBES):
+    """The drawn stage 2 scene: [(x, y, pad_index)]. ONE source, `t1_task`."""
+    return T1M.stage2_layout(seed, n_cubes)
 
-    THE SIDE IS PART OF THE DRAW. Stage 2's brief is "cubes placed randomly
-    on either the left or the right, both arms working", and the first
-    version drew a FIXED two per arm -- so the side of every cube was decided
-    in the source and only its position was random. A participant who learns
-    "two on each side, always" is not doing the task stage 2 is for: the
-    thing being measured is divided attention, and attention is only divided
-    if you do not know in advance where the work will be.
 
-    So the pool is the UNION of both arms' cells, each cube is drawn from it,
-    and the arm that works a cube is the arm whose region it landed in. The
-    counts per side therefore vary from trial to trial.
+def _slot_for(pad_i, k, n_on_pad):
+    """Where the k-th of n cubes lands on a pad, in the ROW."""
+    px, _py = T1M.T1_PLANES[int(pad_i)]
+    return [round(px + T1M.SLOT_OFFSETS[n_on_pad][k], 4), T1M.ROW_Y,
+            round(T1M.T1_Z + T1M.PAD_T, 4)]
 
-    BOTH ARMS MUST GET AT LEAST ONE, and that constraint is not a fudge of
-    the randomness -- it is the task definition. "Both arms working" is what
-    separates stage 2 from two consecutive stage 1s, and a draw that puts all
-    four cubes on one side is a stage 1 with extra steps. The draw is
-    REJECTED and retaken rather than nudged, so every layout that is returned
-    is a uniform draw from the set of layouts that satisfy the task.
 
-    It RAISES rather than returning fewer or quietly relaxing the separation.
-    `n_per_arm` is accepted and refused by name: it is the old signature and
-    a caller still passing it is asking for the fixed-side behaviour.
+def stage2_targets(seed=0, n_cubes=STAGE2_N_CUBES, cells=None, n_per_arm=None):
+    """{'cubes': {arm: [...]}, 'places': {arm: [...]}} for a seed.
+
+    KEPT IN THIS SHAPE ON PURPOSE. `clip_scene`, `verify_objects_on_table`,
+    `audit_task_spec` and `check_placement` all read it, and the point of this
+    change is that stage 2 moves onto stage 1's geometry, not that every
+    consumer of stage 2 is rewritten on the same day.
     """
-    import random
-    if n_per_arm is not None:
+    if cells is not None or n_per_arm is not None:
         raise TypeError(
-            "stage2_targets() no longer takes n_per_arm -- the SIDE is part "
-            "of the random draw now, so a per-arm count is not a thing that "
-            "can be asked for. Pass n_cubes (total, across both sides).")
-    if cells is None:
-        cells, _ = _region()
-    rng = random.Random("t1s2|%s|%d" % (seed, n_cubes))
-    pool = [("left", x, y) for x, y in cells["left"]] + \
-           [("right", x, y) for x, y in cells["right"]]
-    for _attempt in range(max_draws):
-        got, draws = [], 0
-        while len(got) < n_cubes and draws <= max_draws:
-            draws += 1
-            arm, x, y = pool[rng.randrange(len(pool))]
-            p = [round(x, 4), round(y, 4), T1S2_Z]
-            if any(math.dist(p, q[1]) < min_sep for q in got):
-                continue
-            got.append((arm, p))
-        if len(got) < n_cubes:
-            break
-        out = {"left": [p for a, p in got if a == "left"],
-               "right": [p for a, p in got if a == "right"]}
-        if not (out["left"] and out["right"]):
-            continue
-        # A PLACE TARGET PER CUBE, DRAWN FROM THE SAME MEASURED CELLS.
-        #
-        # This was one point per ARM -- the outermost x at the nearest y --
-        # so both of an arm's cubes were delivered to the same coordinate,
-        # one inside the other. Watched on the first stage-2 clips of the
-        # 2026-08-15 set: `cube_left_0` and `cube_left_1` both end at
-        # (0.675, 0.225) and both right-arm cubes at (-0.775, 0.200). It is
-        # exactly the defect stage 1 fixed with SLOT_DY, which stage 2 never
-        # inherited.
-        #
-        # And it made one cube per arm unmoveable: the target was the
-        # outermost cube's OWN cell, so that cube was "placed" 28 mm from
-        # where it started. A placement that short is not visible in a clip
-        # and is not a placement in the data either.
-        #
-        # The targets are drawn the same way the cubes are -- from the arm's
-        # own clearance-safe cells, at the same minimum separation from every
-        # cube and from each other -- so a destination is a MEASURED cell and
-        # not a formula over the draw.
-        places, ok = {}, True
-        for arm in ("left", "right"):
-            pool_a = [c for c in cells[arm]]
-            chosen, tries = [], 0
-            while len(chosen) < len(out[arm]):
-                tries += 1
-                if tries > max_draws:
-                    ok = False
-                    break
-                x, y = pool_a[rng.randrange(len(pool_a))]
-                p = [round(x, 4), round(y, 4), T1S2_Z]
-                if any(math.dist(p, q) < min_sep
-                       for q in out[arm] + chosen):
-                    continue
-                chosen.append(p)
-            if not ok:
-                break
-            places[arm] = chosen
-        if ok:
-            return {"cubes": out, "places": places}
-    raise RegionUnavailable(
-        "could not draw %d cubes at %.0f mm separation with at least one on "
-        "each side, from %d surveyed cells, in %d attempts. Do not relax the "
-        "separation or the both-sides rule silently -- either is a change to "
-        "what stage 2 measures." % (n_cubes, min_sep * 1000, len(pool),
-                                    max_draws))
+            "stage2_targets() no longer takes cells or n_per_arm -- the SIDE "
+            "is part of the draw and the columns are the measured ones in "
+            "t1_task.CUBE_COLUMNS")
+    lay = T1M.stage2_layout(seed, n_cubes)
+    cubes = {"left": [], "right": []}
+    for x, y, pad in lay:
+        cubes[T1M.arm_for_pad(pad)].append([x, y, T1M.T1_Z])
+    places = {}
+    for arm in ("left", "right"):
+        pad_i = 0 if arm == "left" else 1
+        n = len(cubes[arm])
+        places[arm] = [_slot_for(pad_i, k, n) for k in range(n)] if n else []
+    return dict(cubes=cubes, places=places, seed=seed, n_cubes=n_cubes)
 
 
-def _stage2_pad_index(arm, i, tgt):
-    """Which coloured pad this cube belongs on: 0 = blue, 1 = green.
+def _stage2_pad_index(arm, i, tgt=None):
+    """Which pad the i-th cube of `arm` goes to.
 
-    The colour follows the cube's position in the WHOLE draw, not its position
-    within one arm's share, so a four-cube draw is always two blue and two
-    green however the sides fall. Anything keyed on the per-arm index would
-    give three blue and one green whenever the split is 3/1, which is a
-    different task from the one T1 declares.
+    IT IS THE ARM'S OWN PAD, ALWAYS, and that is the measurement rather than a
+    rule: the blue pad is left of the centreline, the green pad is right of
+    it, and neither arm can cross. The old alternating rule belonged to a
+    stage 2 that gave each arm a pad of each colour.
     """
-    order = [(a, k) for a in ("left", "right") for k in range(len(tgt[a]))]
-    try:
-        n = order.index((arm, i))
-    except ValueError:                                          # pragma: no cover
-        n = i
-    return T1S2_PAIR[n % len(T1S2_PAIR)]
+    return 0 if arm == "left" else 1
 
 
 def t1_stage2(seed=0, n_cubes=STAGE2_N_CUBES):
-    """Both arms pick and place their own cubes AT THE SAME TIME.
+    """Both arms pick and place their own cubes, sides drawn from the seed.
 
-    The two arms are stepped together from one waypoint list each, so the
-    clip shows genuine simultaneity rather than one arm waiting.
+    ONE BUILDER. This is `t1_task.build()` with a drawn layout instead of the
+    fixed one, so stage 2 cannot acquire a dwell, a standoff or a slot spacing
+    that stage 1 does not have.
 
     THE SEED IS AN ARGUMENT AND SOMETHING HAS TO PASS IT. `run_abc` has had a
     `--seed` flag all along and wrote it into the manifest, and the task
-    layout was built by `spec["build"]()` with no arguments -- so the seed was
-    RECORDED and never READ, and every trial of stage 2 ran the same layout
-    under a different seed number in its own metadata. That is the "feature
-    present but does nothing" row of CLAUDE.md's table, and it is worse than
-    absent here: the manifest asserted a randomisation that had not happened.
+    layout was once built by `spec["build"]()` with no arguments -- so the
+    seed was RECORDED and never READ, and every trial ran the same layout
+    under a different seed number in its own metadata.
     """
+    paths = T1M.build_stage2(seed, n_cubes=n_cubes)
     draw = stage2_targets(seed, n_cubes)
-    tgt, plc = draw["cubes"], draw["places"]
-    paths, grips, ats = {}, {}, {}
-    g = CT.grip_for(40)
-    for ai, arm in enumerate(("left", "right")):
-        seq, grip, at = [], [], []
-
-        def add(pts, state, obj, _s=seq, _g=grip, _a=at):
-            _s.extend(pts)
-            _g.extend([state] * len(pts))
-            _a.extend([list(obj)] * len(pts))
-
-        for i, cube in enumerate(tgt[arm]):
-            pick = ee_for(cube, arm)
-            # THE PLACE IS THE COLOURED PAD, THE SAME ONE STAGE 1 USES.
-            #
-            # It used to be `plc[arm][i]` -- a coordinate drawn from the arm's
-            # own surveyed cells. That made stage 2 a different task from
-            # stage 1: arbitrary targets, no colour rule, and nothing on
-            # screen to place ONTO. T1 is "blue cube to blue pad, green cube
-            # to green pad" and stage 2 is the same task with the SIDE
-            # randomised, so the pads travel with it. The pad pair is mirrored
-            # for the right arm because the right arm cannot reach +0.450; see
-            # T1_PLANES_BY_ARM.
-            #
-            # The colour of a cube is its index parity, exactly as T1_PAIR
-            # declares for stage 1, so the two stages cannot disagree about
-            # which cube is blue.
-            pad_i = _stage2_pad_index(arm, i, tgt)
-            px, py = T1_PLANES_BY_ARM[arm][pad_i]
-            place_obj = [px, py, T1S2_Z]
-            _ = plc
-            place = ee_for(place_obj, arm)
-            add(_dense([[pick[0], pick[1], pick[2] + STANDOFF], pick]),
-                CT.OPEN, cube)
-            add(_hold(pick, 14), g, cube)   # same dwell as stage 1; see t1()
-            add(_dense([pick, [pick[0], pick[1], pick[2] + LIFT]]), g, cube)
-            add(_dense([[pick[0], pick[1], pick[2] + LIFT],
-                        [place[0], place[1], place[2] + LIFT], place]),
-                g, place_obj)
-            add(_hold(place, 2), g, place_obj)
-            add(_hold(place, 3), CT.OPEN, place_obj)
-            add(_dense([place, [place[0], place[1], place[2] + STANDOFF]]),
-                CT.OPEN, place_obj)
-        paths[arm], grips[arm], ats[arm] = seq, grip, at
-
-    # BOTH ARMS GET A LIST OF THE SAME LENGTH -- the recorder steps them
-    # together, and an arm that runs out is an arm that looks crashed.
-    n = max(len(paths["left"]), len(paths["right"]))
-    for arm in ("left", "right"):
-        paths[arm] = _pad(paths[arm], n)
-        grips[arm] = grips[arm] + [CT.OPEN] * (n - len(grips[arm]))
-        ats[arm] = ats[arm] + [ats[arm][-1]] * (n - len(ats[arm]))
-    # THE SEED TRAVELS WITH THE LAYOUT. `clip_scene` draws the cubes and
-    # `run_abc` writes the manifest, and if they build the layout separately
-    # they must agree about which draw they are talking about. Storing the
-    # seed here lets both read it back from the module rather than each
-    # remembering a default -- which is how the picture and the data came to
-    # be able to disagree about where the cubes were.
-    _T1S2["grip"], _T1S2["at"], _T1S2["targets"] = grips, ats, tgt
-    _T1S2["places"] = {
-        a: [[T1_PLANES_BY_ARM[a][_stage2_pad_index(a, k, tgt)][0],
-             T1_PLANES_BY_ARM[a][_stage2_pad_index(a, k, tgt)][1], T1S2_Z]
-            for k in range(len(tgt[a]))] for a in ("left", "right")}
+    _T1S2["grip"] = T1M._GRIP
+    _T1S2["at"] = T1M._GRIP_AT
+    _T1S2["targets"] = draw["cubes"]
+    _T1S2["places"] = draw["places"]
     _T1S2["pads"] = {a: [list(p) for p in T1_PLANES_BY_ARM[a]]
                      for a in ("left", "right")}
     _T1S2["seed"], _T1S2["n_cubes"] = seed, n_cubes
-    _T1S2["per_side"] = {a: len(v) for a, v in tgt.items()}
+    _T1S2["per_side"] = {a: len(v) for a, v in draw["cubes"].items()}
+    _T1S2["layout"] = [list(c) for c in T1M.stage2_layout(seed, n_cubes)]
     return paths
 
 
@@ -558,14 +418,16 @@ _T1S2 = {}
 
 
 def t1s2_grip(n):
-    if not _T1S2:
+    """The gripper schedule belonging to the LAST stage 2 path built."""
+    if not T1M._GRIP:
         t1_stage2()
-    g = _T1S2["grip"]
-    if len(g["left"]) == n:
-        return {a: list(v) for a, v in g.items()}
-    step = len(g["left"]) / float(n)
-    return {a: [v[min(len(v) - 1, int(i * step))] for i in range(n)]
-            for a, v in g.items()}
+    return T1M.grip(n)
+
+
+def t1s2_grip_at(n):
+    if not T1M._GRIP_AT:
+        t1_stage2()
+    return T1M.grip_at(n)
 
 
 def t1s2_grip_at(n):

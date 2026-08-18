@@ -683,7 +683,11 @@ def table_geometry(task):
     different ones and every consumer -- the collision furniture, the drawn
     slab, the legs, the apron and the workspace marking -- has to agree.
     """
-    if task == "t1":
+    if task in ("t1", "t1s2"):
+        # BOTH STAGES, SINCE 2026-08-18. They are one geometry now; a stage 2
+        # drawn over the shared table would stand its cubes 270 mm above the
+        # surface they are supposed to rest on, which is exactly what
+        # `verify_objects_on_table` reported the moment the stages were joined.
         import t1_task as _t1
         return (_t1.TABLE_TOP, _t1.TABLE_NEAR_Y,
                 max(TABLE_FAR_Y, _t1.TABLE_NEAR_Y + 0.40))
@@ -863,7 +867,7 @@ def work_top_for(arm, task):
     """
     import clip_tasks as _ct
     import msc_clip_tasks as _mct
-    if task == "t1":
+    if task in ("t1", "t1s2"):
         # THE TABLE TOP, NOT THE PAD TOP. T1's cubes STAND ON THE TABLE; the
         # pads are 10 mm mats lying on it under two of the six positions. The
         # plane the marking bounds is the one the work stands on, and painting
@@ -872,11 +876,6 @@ def work_top_for(arm, task):
         # as 8 tiles, 8 FLOATING.
         import t1_task as _t1
         return _t1.TABLE_TOP
-    if task == "t1s2":
-        # The pads are drawn as mats with their TOP flush to the plane a placed
-        # cube's base sits on -- so that plane IS the top of the pad.
-        if _mct.T1_PLANES_BY_ARM.get(arm):
-            return _ct.BENCH_TOP
     return _ct.BENCH_TOP
 
 
@@ -885,7 +884,7 @@ def marking_z(arm, task):
     return work_top_for(arm, task) + MARK_T / 2.0
 
 
-def t1_marking_cells(arm):
+def t1_marking_cells(arm, task="t1", seed=0):
     """T1's OWN marked cells: the boundary of what this task verified.
 
     THE SURVEYED REGION IS NOT T1'S REGION ANY MORE. `REGION_CELLS` was
@@ -903,10 +902,23 @@ def t1_marking_cells(arm):
     claimed more would be claiming reach nobody measured.
     """
     import t1_task as _t1
-    xs = [p[0] for p in _t1.T1_CUBES if (p[0] > 0) == (arm == "left")]
+    # STAGE 2 DRAWS ITS CUBES, so its marking is drawn from ITS draw. Both
+    # stages share the pads, the row and the table -- see
+    # `test_t1_stages_agree` -- and what differs is which columns carry a cube
+    # on this trial. A marking taken from stage 1's fixed columns would cut
+    # through a stage 2 cube on the outer column.
+    if task == "t1s2":
+        cubes = [(c[0], c[1]) for c in _t1.stage2_layout(seed)]
+    else:
+        cubes = [tuple(p) for p in _t1.T1_CUBES]
+    xs = [p[0] for p in cubes if (p[0] > 0) == (arm == "left")]
+    # EVERY SLOT THE PAD CAN USE, not just the two-cube pair. A stage 2 draw
+    # can put three cubes on one pad and its outer slots are twice as far out.
+    widest = max(max(abs(o) for o in offs)
+                 for offs in _t1.SLOT_OFFSETS.values())
     for i, (px, _py) in enumerate(_t1.T1_PLANES):
         if _t1.arm_for_pad(i) == arm:
-            xs += [px - _t1.SLOT_DX, px + _t1.SLOT_DX]
+            xs += [px - widest, px + widest]
     if not xs:
         return []
     lo = min(xs) - _t1.CUBE_M
@@ -936,7 +948,8 @@ def cells_on_surface(task, arm):
             for s in furniture_boxes(task)]
     h = REGION_STEP / 2.0
     keep, off = [], 0
-    _cells = (t1_marking_cells(arm) if task == "t1" else REGION_CELLS[arm])
+    _cells = (t1_marking_cells(arm, task)
+              if task in ("t1", "t1s2") else REGION_CELLS[arm])
     for cx, cy in _cells:
         if any(sx0 - 1e-9 <= cx - h and cx + h <= sx1 + 1e-9
                and sy0 - 1e-9 <= cy - h and cy + h <= sy1 + 1e-9

@@ -546,13 +546,45 @@ def observe_and_detect(arm, node=None, settle_s=6.0, expect=None,
 
     colours = M.PLANE_COLOURS
     cubes = []
+    # WHAT THE CLASSIFIER HAD TO GO ON, PER CUBE, kept beside the answer.
+    #
+    # `cubes` is deliberately a bare [(x, y, pad_index)] -- it is what the
+    # builder consumes and nothing more -- so the evidence for each entry used
+    # to be discarded at this line. The GUI's prompt panel shows the operator
+    # what the camera decided and how sure it was BEFORE the arm moves, and
+    # "how sure" needs a number.
+    #
+    # THE NUMBER IS `hsv_margin_min`: the smallest distance, in 8-bit counts,
+    # between this blob's median pixel and the edge of the colour band it was
+    # matched to, over H, S and V. It is a real margin rather than a
+    # probability -- 0 means the pixel is exactly on the boundary and a
+    # neighbouring shade would have classified differently -- and it is what
+    # the detector actually decided on, which is why it is reported instead of
+    # a softmax nothing computes.
+    seen = []
     for d in sorted(dets, key=lambda z: z["world"][0]):
         if d["colour"] not in colours:
             continue
         cubes.append((round(float(d["world"][0]), 4),
                       round(float(d["world"][1]), 4),
                       colours.index(d["colour"])))
+        m = d.get("hsv_margin_min") or []
+        seen.append(dict(colour=d["colour"],
+                         x=round(float(d["world"][0]), 4),
+                         y=round(float(d["world"][1]), 4),
+                         z=round(float(d["world"][2]), 4),
+                         blob_px=d.get("blob_px"),
+                         expected_px=d.get("expected_px"),
+                         depth_m=d.get("depth_m"),
+                         hsv_median=d.get("hsv_median"),
+                         hsv_margin_min=list(m),
+                         confidence_counts=(min(m) if m else None)))
     t["cubes"] = cubes
+    t["seen"] = seen
+    t["rejected"] = [dict(colour=r.get("colour"), why=r.get("why"),
+                          blob_px=r.get("blob_px"),
+                          expected_px=r.get("expected_px"))
+                     for r in rejected]
     t["rejected_by_size"] = len(rejected)
     t["added_total_s"] = round(sum(v for k, v in t.items()
                                    if k.endswith("_s")), 2)

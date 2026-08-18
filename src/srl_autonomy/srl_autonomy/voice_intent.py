@@ -88,6 +88,16 @@ DEST_CUES = ("on", "onto", "into", "in", "to", "over", "at")
 # two-targets check counts distinct nouns, and "put the cube on the pad" would
 # have become "more than one target in one instruction" -- a refusal for a
 # sentence that names exactly one object and one place.
+# THE SUBSET OF SURFACE_NOUNS THAT CAN ONLY MEAN ONE OF T1'S TWO PADS.
+#
+# `side` and `colour` are surfaces in "on the left side" and "on its colour"
+# and neither is a pad, so an unqualified destination built from them steals
+# "move to the left side" from the `goto` verb and its measured refusal.
+# Measured, by the two named-place tests going red the moment they were
+# included.
+PAD_NOUNS = ("pad", "pads", "mat", "mats", "plane", "planes", "square",
+             "squares", "patch", "patches", "tile", "tiles", "spot", "spots")
+
 SURFACE_NOUNS = ("pad", "pads", "mat", "mats", "plane", "planes", "square",
                  "squares", "patch", "patches", "tile", "tiles", "target",
                  "targets", "spot", "spots", "zone", "zones", "area", "areas",
@@ -117,6 +127,63 @@ PLURAL_NOUNS = {"cubes": "cube", "blocks": "block", "boxes": "box",
 # "all of them", not "one of them". A singular request that matches more than
 # one object must ASK; a plural one must not.
 ALL_WORDS = ("all", "every", "each", "both", "everything")
+
+# --------------------------------------------------------------------------
+# SELECTORS: THE WORDS THAT PICK ONE OUT OF SEVERAL, ADDED 2026-08-18.
+#
+# "put the leftmost blue cube on the blue pad" names exactly one cube in a
+# scene with two blue ones, and the grammar had no way to say so: `leftmost`
+# fell out of the target description and the sentence came back as a question
+# about which blue cube was meant. Asking a question the operator has already
+# answered is not dangerous, but it is the difference between a robot that
+# takes instructions and one that takes three.
+#
+# THEY ARE RESOLVED AGAINST WHAT THE CAMERA SAW, NOT AGAINST THE TASK FILE, and
+# the resolution lives in `t1_instruction` where the detections are. This
+# module only says WHICH selector was uttered.
+#
+# THE DANGEROUS ONE IS THE SELECTOR THAT CANNOT BE RESOLVED. "the biggest cube"
+# is a perfectly good English selector over a scene of four identical 40 mm
+# cubes, and the only honest answers are "they are all the same size" or a
+# question -- never a confident choice. So a selector carries its KIND, and a
+# kind the scene cannot separate is refused by name rather than dropped.
+SELECTOR_SPATIAL = {
+    "leftmost": "left", "rightmost": "right", "left": "left", "right": "right",
+    "nearest": "near", "closest": "near", "near": "near", "nearer": "near",
+    "furthest": "far", "farthest": "far", "far": "far", "further": "far",
+    "outermost": "outer", "outer": "outer", "innermost": "inner",
+    "inner": "inner", "middle": "middle", "centre": "middle",
+    "center": "middle",
+}
+SELECTOR_ORDINAL = {"first": 1, "second": 2, "third": 3, "fourth": 4,
+                    "last": -1, "next": None}
+# Size and shape words. They PARSE and they cannot be GROUNDED in this scene,
+# which is a different thing from not being understood, and the difference is
+# what the operator needs told.
+SELECTOR_UNGROUNDABLE = ("biggest", "largest", "smallest", "tiniest",
+                         "heaviest", "lightest", "tallest", "shortest",
+                         "widest", "narrowest", "roundest", "squarest",
+                         "newest", "oldest", "best", "worst", "nicest")
+# "either", "any", "whichever" -- the operator has said the choice does not
+# matter. That is not ambiguity, it is permission, and treating it as
+# ambiguity asks a question whose answer has already been given.
+SELECTOR_ANY = ("either", "any", "whichever", "whatever", "one of", "anyone")
+
+SELECTOR_WORDS = tuple(sorted(
+    set(SELECTOR_SPATIAL) | set(SELECTOR_ORDINAL)
+    | set(SELECTOR_UNGROUNDABLE)
+    | {w for ph in SELECTOR_ANY for w in ph.split()}))
+
+# THE WORDS THAT MEAN "SORT IT OUT" WITHOUT SAYING HOW. A person looking at
+# four cubes and two coloured pads and saying "tidy up" means something, and
+# the something is obvious to a person and a GUESS to a robot. The grammar
+# represents the utterance and the GROUNDING layer offers the reading back as
+# a question, so the operator confirms an interpretation instead of the robot
+# assuming one.
+TIDY_PHRASES = ("tidy up", "tidy this up", "tidy them up", "tidy", "clean up",
+                "clear up", "sort it out", "sort them out", "sort this out",
+                "sort everything out", "put everything away", "reset the table",
+                "do the task", "do the cube thing", "carry on", "get on with it")
 
 # --------------------------------------------------------------------------
 # THE THREE WAYS A SENTENCE MEANS SOMETHING THE GRAMMAR CANNOT REPRESENT.
@@ -255,6 +322,18 @@ def _dest_from(tail):
             return dict(kind="match", colour=None, phrase=ph)
     colour = next((w for w in tail if w in COLOURS), None)
     if colour is None:
+        # A PLACE WITH NO COLOUR IS STILL A PLACE. "put the cube on the pad"
+        # names a destination and not WHICH destination, and there are two of
+        # them -- so it is a question for the grounding layer, not a refusal
+        # here. Measured: it came back as "I heard something to move but not
+        # WHERE to put it", which is false; the operator said where, they just
+        # did not say which one.
+        #
+        # ONLY when a SURFACE noun was actually uttered. "put it down" and
+        # "put it back" must still fall through to `place`, which handles
+        # them, and "on the table" is not a pad.
+        if any(w in PAD_NOUNS for w in tail):
+            return dict(kind="unspecified", colour=None, phrase=" ".join(tail))
         return None
     rest = tail[tail.index(colour) + 1:]
     # "on the blue pad" / "on the blue one" / "onto blue" are places.
@@ -321,7 +400,27 @@ def _known():
     """Words that are already correct and must be left exactly as written."""
     return (set(COLOURS) | set(NOUNS) | set(PLURAL_NOUNS)
             | set(SURFACE_NOUNS) | set(DEST_CUES) | set(ALL_WORDS)
-            | set(VERB_TRIGGERS) | set(STOP_WORDS) | set(_FUNCTION_WORDS))
+            | set(VERB_TRIGGERS) | set(STOP_WORDS) | set(_FUNCTION_WORDS)
+            | set(SELECTOR_WORDS) | set(SEQUENCE_WORDS)
+            | set(CONJUNCTION_WORDS) | set(NEGATION_WORDS))
+
+
+# WORDS A TYPO MUST NEVER BE REPAIRED INTO, for the same reason verbs are not.
+#
+# The rule already in force is "never repair a verb", because the verb decides
+# the ACTION and a near miss there is the failure this module exists to
+# prevent. These words decide whether the sentence is REFUSED at all -- a
+# negation, a second action, a second target, a relational reference -- so a
+# near miss on one of them manufactures a refusal out of an ordinary sentence,
+# or, worse, could clear one. `when` -> `then` is the measured case: it turned
+# a polite instruction into "more than one action in one instruction".
+#
+# They stay in `_known()`, so a correctly spelled `then` is still recognised
+# and still refuses. "Never repair into it" and "never recognise it" are
+# different rules, and this file has already paid for confusing them once.
+NEVER_REPAIR_INTO = frozenset(
+    set(NEGATION_WORDS) | set(SEQUENCE_WORDS) | set(CONJUNCTION_WORDS)
+    | {w for phrase in RELATIONAL for w in phrase.split()})
 
 
 def _repair_targets():
@@ -341,9 +440,10 @@ def _repair_targets():
     repaired into a colour and ten tests went red at once. "Never repair a verb"
     and "never touch a verb" are different rules and both are needed.
     """
-    return (set(COLOURS) | set(NOUNS) | set(PLURAL_NOUNS)
-            | set(SURFACE_NOUNS) | set(DEST_CUES) | set(ALL_WORDS)
-            | set(_FUNCTION_WORDS))
+    return ((set(COLOURS) | set(NOUNS) | set(PLURAL_NOUNS)
+             | set(SURFACE_NOUNS) | set(DEST_CUES) | set(ALL_WORDS)
+             | set(_FUNCTION_WORDS) | set(SELECTOR_WORDS))
+            - NEVER_REPAIR_INTO)
 
 
 def _damerau(a, b):
@@ -409,6 +509,19 @@ def repair(body, vocab=None):
             continue
         near = [w for w in vocab if abs(len(w) - len(tok)) <= 1
                 and _damerau(tok, w) <= 1]
+        # A TIE BETWEEN TWO SPELLINGS OF ONE WORD IS NOT A TIE. `padd` is one
+        # edit from both `pad` and `pads`, and those are the same noun -- so
+        # asking "did you mean pad or pads?" is asking about a distinction the
+        # sentence does not have. `gren` is one edit from `green` and `grey`,
+        # which are two different colours, and that one stays a tie.
+        #
+        # Collapse by LEMMA and only then count. Measured: without this,
+        # "put the blue ones on the blue padd" went from a plan to a question
+        # the moment ties were asked about before parsing.
+        if len(near) > 1:
+            lemmas = {PLURAL_NOUNS.get(w, w) for w in near}
+            if len(lemmas) == 1:
+                near = [sorted(near, key=len)[0]]
         if len(near) == 1:
             out.append(near[0])
             fixes.append((tok, near[0]))
@@ -433,6 +546,94 @@ def extract_quantity(head):
     return 1
 
 
+def extract_selector(head):
+    """Which ONE of several, or None. Read off the words, never from the scene.
+
+    Returns a dict with `kind`:
+
+        spatial      {"kind": "spatial", "which": "left"|"right"|"near"|
+                     "far"|"inner"|"outer"|"middle"}
+        ordinal      {"kind": "ordinal", "n": 1 | 2 | ... | -1}
+        any          {"kind": "any"}          -- "either one", the choice is free
+        ungroundable {"kind": "ungroundable", "word": "biggest"}
+
+    LEFT AND RIGHT ARE ONLY SELECTORS WHEN THEY ARE NOT ARMS. "the left one"
+    picks a cube; "the left arm" names an arm and this rig has two. The test is
+    the next word, which is the same test `extract_arm` needs and the reason
+    both live here rather than in the caller.
+    """
+    toks = head.split()
+    for i, t in enumerate(toks):
+        nxt = toks[i + 1] if i + 1 < len(toks) else ""
+        if t in ("left", "right") and nxt in ("arm", "hand", "gripper", "side"):
+            continue
+        if t in SELECTOR_UNGROUNDABLE:
+            return dict(kind="ungroundable", word=t)
+        if t in SELECTOR_SPATIAL:
+            return dict(kind="spatial", which=SELECTOR_SPATIAL[t])
+        if t in SELECTOR_ORDINAL and SELECTOR_ORDINAL[t] is not None:
+            return dict(kind="ordinal", n=SELECTOR_ORDINAL[t])
+        if t in ("either", "any", "whichever", "whatever", "anyone"):
+            return dict(kind="any")
+    return None
+
+
+def is_tidy(body):
+    """The utterance that means "sort this out" and does not say how."""
+    b = " %s " % body.strip()
+    for ph in TIDY_PHRASES:
+        if (" %s " % ph) in b or body.strip() == ph:
+            return ph
+    return None
+
+
+def split_clauses(body):
+    """A compound instruction -> its clauses, or [body] if it is not one.
+
+    "put the blue ones on the blue pad and the green ones on the green pad" is
+    TWO complete instructions sharing a verb, and it was the most dangerous
+    sentence in the set: `split_destination` cut at the FIRST destination cue,
+    so the head was "put the blue ones" and the conjunction check -- which
+    counts targets in the head -- saw one target and passed it. The second half
+    was dropped in silence and two cubes moved. Measured, 2026-08-18.
+
+    A clause is only split off when BOTH sides carry their own destination. A
+    conjunction with one destination between them ("put the blue cube and the
+    green cube on the pads") is genuinely one instruction with two targets and
+    stays unrepresentable, which is what `unrepresentable` already says.
+
+    THE VERB IS CARRIED FORWARD. English drops it in the second clause -- "and
+    the green ones on the green pad" has no verb of its own -- so each clause
+    is reassembled with the leading verb of the first, which is the only verb
+    that was uttered.
+    """
+    toks = body.split()
+    if not any(t in ("and", "plus") for t in toks):
+        return [body]
+    parts, cur = [], []
+    for t in toks:
+        if t in ("and", "plus"):
+            parts.append(cur)
+            cur = []
+        else:
+            cur.append(t)
+    parts.append(cur)
+    if len(parts) < 2 or any(not p for p in parts):
+        return [body]
+    verb = parts[0][0] if parts[0] and parts[0][0] in VERB_TRIGGERS else None
+    out = []
+    for i, p in enumerate(parts):
+        cl = list(p)
+        if i and verb and (not cl or cl[0] not in VERB_TRIGGERS):
+            cl = [verb] + cl
+        text = " ".join(cl)
+        head, dest = split_destination(text)
+        if dest is None or not head.strip():
+            return [body]
+        out.append(text)
+    return out
+
+
 def unrepresentable(body, head=None):
     """Why this sentence cannot be executed as one command, or None.
 
@@ -443,10 +644,25 @@ def unrepresentable(body, head=None):
     toks = body.split()
 
     # RELATIONAL first: it is a property of the phrase, not of the verb.
-    rel = next((w for w in RELATIONAL if w in body), None)
-    if rel:
+    #
+    # UNLESS THE ANCHOR IS THE PERSON. "the cube closest to me" is a
+    # SUPERLATIVE about the speaker, not a relational reference to another
+    # object -- there is no second object in it to be relative to. It was
+    # being refused as "relational reference ('closest to')", which sends the
+    # operator to rewrite a sentence that was already unambiguous. The
+    # relational refusal is for "the one behind the red block", where
+    # grounding by the words present returns the red block.
+    ANCHOR_IS_PERSON = ("me", "you", "us", "myself", "yourself", "wearer",
+                        "operator", "here")
+    for w in RELATIONAL:
+        j = body.find(w)
+        if j < 0:
+            continue
+        after = body[j + len(w):].split()
+        if after and after[0] in ANCHOR_IS_PERSON:
+            continue
         return ("relational reference (%r) -- I cannot pick something out by "
-                "where it is relative to another object" % rel)
+                "where it is relative to another object" % w)
 
     verb_at = next((i for i, t in enumerate(toks) if t in VERB_TRIGGERS), None)
 
@@ -487,13 +703,21 @@ class Intent:
 
     def __init__(self, verb=None, target=None, arm=None, destination=None,
                  raw="", reason="", deictic=False, quantity=1,
-                 corrections=None):
+                 corrections=None, selector=None, clauses=None):
         self.verb = verb
         self.target = target
         self.arm = arm
         self.destination = destination
         # 1 or "all". A singular request matching several objects must ASK.
         self.quantity = quantity
+        # WHICH ONE of several, read off the words -- see extract_selector.
+        # None means the sentence did not narrow the set, which is a different
+        # thing from narrowing it to everything.
+        self.selector = selector
+        # The clauses of a compound instruction, raw text, in order. Empty for
+        # an ordinary one. A caller that ignores this executes the first
+        # clause and nothing else, which is the failure the field exists for.
+        self.clauses = list(clauses or [])
         # [(was, now)] from repair(). Carried so a caller can confirm what it
         # heard, and so a sweep can score a repaired parse separately.
         self.corrections = list(corrections or [])
@@ -518,15 +742,66 @@ class Intent:
     def as_dict(self):
         return dict(verb=self.verb, target=self.target, arm=self.arm,
                     destination=self.destination, deictic=self.deictic,
-                    quantity=self.quantity, corrections=self.corrections,
+                    quantity=self.quantity, selector=self.selector,
+                    clauses=list(self.clauses), corrections=self.corrections,
                     ambiguous_words=self.ambiguous_words,
                     raw=self.raw, reason=self.reason)
 
 
+# POLITENESS AND FILLER, STRIPPED BEFORE ANYTHING READS THE SENTENCE.
+#
+# A person typing at a robot beside them writes "could you please just put the
+# blue ones on the blue pad for me when you get a chance". Every word of that
+# except the middle eight is social, and the grammar has no business seeing
+# any of it -- MEASURED, on that exact sentence: "when you get a chance"
+# reached the spelling repair, `when` is one Damerau edit from `then`, and the
+# instruction came back REFUSED as "more than one action in one instruction".
+# A politeness that turns into a refusal is worse than no politeness handling
+# at all, because the operator cannot see what they did wrong.
+#
+# MULTI-WORD PHRASES FIRST, then single words, because "for me" must go before
+# "me" is considered and "go ahead and" must go before the bare "and" is
+# counted as a conjunction.
+FILLER_PHRASES = (
+    "when you get a chance", "when you have a chance", "when you get time",
+    "if you do not mind", "if you dont mind", "if you don t mind",
+    "would you mind", "would you please", "could you please", "can you please",
+    "i would like you to", "i d like you to", "i want you to",
+    "i would like", "i need you to", "can i get you to",
+    "go ahead and", "at some point", "right now", "for me", "thank you",
+    "no rush", "as soon as you can", "when you can", "if possible",
+)
+FILLER_WORDS = ("please", "could", "can", "would", "now", "the", "a", "an",
+                "um", "uh", "just", "kindly", "thanks", "ok", "okay", "hey",
+                "hi", "so", "well", "maybe", "perhaps")
+
+
 def normalise(text):
+    """Punctuation and articles only. NOT the filler -- see strip_filler.
+
+    THE WAKE MATCHER USES THIS, and that is why the filler stripping is a
+    separate function rather than more words in the list below. `hey` is
+    filler in a command and half the wake phrase in "hey doc oc"; stripping it
+    here made the wake phrase normalise to "doc oc", which moved every
+    edit-distance in `wake_distance` by two and started accepting "we should
+    stop for lunch soon" as a wake utterance. Measured by the wake-word tests,
+    which is exactly what they are for.
+    """
     t = (text or "").lower().strip()
     t = re.sub(r"[^\w\s]", " ", t)
     t = re.sub(r"\b(please|could you|can you|now|the|a|an|um|uh)\b", " ", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def strip_filler(t):
+    """The social half of a typed instruction, removed before parsing.
+
+    Applied to the COMMAND BODY only, after the wake word has been taken off.
+    """
+    t = " %s " % (t or "").strip()
+    for ph in FILLER_PHRASES:
+        t = t.replace(" %s " % ph, " ")
+    t = re.sub(r"\b(%s)\b" % "|".join(FILLER_WORDS), " ", t)
     return re.sub(r"\s+", " ", t).strip()
 
 
@@ -694,6 +969,7 @@ def parse(text, wake=WAKE_DEFAULT, require_wake=True, fix_spelling=True):
 
     if require_wake and not heard:
         return Intent(raw=raw, reason="no wake word (%r)" % wake)
+    body = strip_filler(body)
     if not body:
         return Intent(raw=raw, reason="wake word only, no command")
 
@@ -720,8 +996,34 @@ def parse(text, wake=WAKE_DEFAULT, require_wake=True, fix_spelling=True):
         i.ambiguous_words = list(ties)
         return i
 
+    # A COMPOUND INSTRUCTION IS TWO INSTRUCTIONS AND IS SAID SO HERE.
+    #
+    # It is reported rather than executed: this function returns ONE intent,
+    # and the clauses ride on it so a caller that knows how to run several --
+    # `t1_instruction.plan_from` does -- can, while one that does not sees a
+    # verb it can refuse. Silently returning the first clause is what used to
+    # happen and it moved two cubes out of four.
+    clauses = split_clauses(body)
+    if len(clauses) > 1:
+        first = parse(clauses[0], wake="", require_wake=False,
+                      fix_spelling=False)
+        first.clauses = list(clauses)
+        first.raw = raw
+        first.corrections = list(fixes)
+        first.ambiguous_words = list(ties)
+        return first
+
     # WHERE THE THING GOES, SPLIT OFF BEFORE ANYTHING READS THE TARGET.
     head, dest = split_destination(body)
+
+    # "TIDY UP" -- an instruction with no verb this grammar knows and an
+    # obvious meaning. Represented as its own verb so the grounding layer can
+    # offer the reading back as a question; see TIDY_PHRASES.
+    if dest is None:
+        tidy = is_tidy(body)
+        if tidy:
+            return Intent_(verb="tidy", raw=raw, corrections=fixes,
+                           quantity="all", target=None)
 
     # REFUSE BEFORE MATCHING, NOT AFTER. Every one of these sentences contains
     # a perfectly good verb and a perfectly good noun; the danger is precisely
@@ -754,6 +1056,7 @@ def parse(text, wake=WAKE_DEFAULT, require_wake=True, fix_spelling=True):
                 return Intent_(verb="put_on", target=target,
                               arm=extract_arm(head), destination=dest,
                               quantity=extract_quantity(head),
+                              selector=extract_selector(head),
                               deictic=deictic, raw=raw, corrections=fixes)
             target, deictic = extract_target(body)
             arm = extract_arm(body)
@@ -787,7 +1090,9 @@ def parse(text, wake=WAKE_DEFAULT, require_wake=True, fix_spelling=True):
                 return Intent_(verb="place", destination=_d, arm=arm,
                               raw=raw, corrections=fixes)
             return Intent_(verb=verb, target=target, arm=arm, raw=raw,
-                          deictic=deictic, corrections=fixes)
+                          deictic=deictic, corrections=fixes,
+                          quantity=extract_quantity(body),
+                          selector=extract_selector(body))
     if ties:
         # SAY WHAT WAS UNREADABLE. "no known verb in 'put gren cube on gren
         # pad'" is true and names the wrong thing: the verb was fine and a

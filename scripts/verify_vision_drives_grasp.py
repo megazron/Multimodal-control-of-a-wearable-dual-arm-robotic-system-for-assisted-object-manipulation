@@ -72,25 +72,60 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--arm", default=None)
     ap.add_argument("--out", default=OUT)
+    # THE LOOK IS ONE PER ARM NOW, AND ONE ARM CANNOT SEE THE ROW.
+    #
+    # This took its own single-arm look with `expect=4`. That was right when
+    # the cubes were all on one side; the rebuilt T1 straddles the centreline
+    # and no pose exists from which one arm sees all four within 1.05 m -- so
+    # from 2026-08-18 this REFUSED, "saw 3 cubes, the task expects 4", every
+    # time. The refusal is correct behaviour and it is also a dead control:
+    # a check that can no longer reach its own verdict measures nothing.
+    #
+    # `--vision` takes the detections file the STAGED look writes, which is
+    # the same file the recorded run is planned from
+    # (`stage_observe_and_detect.py`, one look per arm). That makes this
+    # control read the very detections the clip was made from, rather than a
+    # second, weaker look of its own.
+    ap.add_argument("--vision", default=None, metavar="FILE",
+                    help="detections JSON from stage_observe_and_detect; "
+                         "without it, take a single-arm look as before")
     a = ap.parse_args()
 
-    import rclpy
     import msc_clip_tasks as M
-    from vision_grasp import observe_and_detect, DetectionUnavailable
     import t1_task as T1M
     arm = a.arm or T1M.LOOK_ARM
 
-    rclpy.init()
-    try:
-        cubes, info = observe_and_detect(arm, expect=len(T1M.T1_CUBES))
-    except DetectionUnavailable as e:
-        print("REFUSED: %s" % e)
-        return 5
-    finally:
+    if a.vision:
+        with open(a.vision) as _f:
+            _d = json.load(_f)
+        if _d.get("task", "t1") != "t1":
+            print("REFUSED: %s holds detections of %r, not t1"
+                  % (a.vision, _d.get("task")))
+            return 5
+        cubes = [tuple(c) for c in _d.get("cubes", [])]
+        if len(cubes) != len(T1M.T1_CUBES):
+            print("REFUSED: %s holds %d cubes, the task expects %d"
+                  % (a.vision, len(cubes), len(T1M.T1_CUBES)))
+            return 5
+        info = _d.get("timing") or {}
+        info.setdefault("added_total_s", 0.0)
+        info.setdefault("added_per_pick_s", 0.0)
+        info["source"] = a.vision
+        arm = "staged (one look per arm)"
+    else:
+        import rclpy
+        from vision_grasp import observe_and_detect, DetectionUnavailable
+        rclpy.init()
         try:
-            rclpy.shutdown()
-        except Exception:                                        # noqa: BLE001
-            pass
+            cubes, info = observe_and_detect(arm, expect=len(T1M.T1_CUBES))
+        except DetectionUnavailable as e:
+            print("REFUSED: %s" % e)
+            return 5
+        finally:
+            try:
+                rclpy.shutdown()
+            except Exception:                                    # noqa: BLE001
+                pass
 
     print("SEEN: %d cubes" % len(cubes))
     for c in cubes:

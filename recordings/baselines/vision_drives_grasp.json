@@ -1,92 +1,279 @@
 {
-  "arm": "left",
+  "arm": "staged (one look per arm)",
   "cubes": [
     [
-      -0.4788,
-      0.4366,
+      -0.4785,
+      0.4512,
       1
     ],
     [
-      -0.4182,
-      0.453,
+      -0.4138,
+      0.4363,
       1
     ],
     [
-      0.4151,
-      0.4492,
+      0.4148,
+      0.4407,
       0
     ],
     [
-      0.4768,
-      0.4536,
+      0.4782,
+      0.4513,
       0
     ]
   ],
   "timing": {
-    "followers": {
-      "/ik_follower_left": "paused (motion_enabled true -> false), restored",
-      "/ik_follower_right": "paused (motion_enabled true -> false), restored"
+    "per_arm": {
+      "left": {
+        "followers": {
+          "/ik_follower_left": "paused (motion_enabled true -> false), restored",
+          "/ik_follower_right": "paused (motion_enabled true -> false), restored"
+        },
+        "move_to_observe_s": 22.92,
+        "observe_arrival_rad": 0.01765,
+        "frame_pose_drift_m": 0.002562,
+        "frame_pose_waited_s": 2.8,
+        "frame_pose_is_stamped": true,
+        "rejected_off_work_plane": 0,
+        "rejected_as_pad": 2,
+        "rejected_as_duplicates": 0,
+        "detect_s": 3.597,
+        "return_home_s": 22.93,
+        "cubes": [
+          [
+            -0.4188,
+            0.4518,
+            1
+          ],
+          [
+            0.4148,
+            0.4407,
+            0
+          ],
+          [
+            0.4782,
+            0.4513,
+            0
+          ]
+        ],
+        "seen": [
+          {
+            "colour": "green",
+            "x": -0.4188,
+            "y": 0.4518,
+            "z": 1.2722,
+            "blob_px": 20.0,
+            "expected_px": 18.8,
+            "depth_m": 1.311,
+            "hsv_median": [
+              64,
+              227,
+              229
+            ],
+            "hsv_margin_min": [
+              21,
+              28,
+              26
+            ],
+            "confidence_counts": 21
+          },
+          {
+            "colour": "blue",
+            "x": 0.4148,
+            "y": 0.4407,
+            "z": 1.2713,
+            "blob_px": 63.0,
+            "expected_px": 45.4,
+            "depth_m": 0.542,
+            "hsv_median": [
+              112,
+              227,
+              229
+            ],
+            "hsv_margin_min": [
+              17,
+              28,
+              26
+            ],
+            "confidence_counts": 17
+          },
+          {
+            "colour": "blue",
+            "x": 0.4782,
+            "y": 0.4513,
+            "z": 1.268,
+            "blob_px": 80.0,
+            "expected_px": 50.4,
+            "depth_m": 0.488,
+            "hsv_median": [
+              112,
+              227,
+              229
+            ],
+            "hsv_margin_min": [
+              17,
+              28,
+              26
+            ],
+            "confidence_counts": 17
+          }
+        ],
+        "rejected": [
+          {
+            "colour": "green",
+            "why": "not cube-sized at its own range",
+            "blob_px": 61.0,
+            "expected_px": 21.3
+          },
+          {
+            "colour": "blue",
+            "why": "inside the blue pad's footprint at z = 1.2535, which is the MAT's own surface (1.2600) and not a cube standing on it (1.2800)",
+            "blob_px": 54.0,
+            "expected_px": 39.7
+          },
+          {
+            "colour": "blue",
+            "why": "inside the blue pad's footprint at z = 1.2512, which is the MAT's own surface (1.2600) and not a cube standing on it (1.2800)",
+            "blob_px": 37.0,
+            "expected_px": 38.4
+          }
+        ],
+        "rejected_by_size": 3,
+        "added_total_s": 52.25,
+        "added_per_pick_s": 17.42
+      },
+      "right": {
+        "followers": {
+          "/ik_follower_left": "paused (motion_enabled true -> false), restored",
+          "/ik_follower_right": "paused (motion_enabled true -> false), restored"
+        },
+        "move_to_observe_s": 24.13,
+        "observe_arrival_rad": 0.01714,
+        "frame_pose_drift_m": 0.003884,
+        "frame_pose_waited_s": 1.2,
+        "frame_pose_is_stamped": true,
+        "rejected_off_work_plane": 0,
+        "rejected_as_pad": 2,
+        "rejected_as_duplicates": 0,
+        "detect_s": 1.264,
+        "return_home_s": 24.14,
+        "cubes": [
+          [
+            -0.4785,
+            0.4512,
+            1
+          ],
+          [
+            -0.4138,
+            0.4363,
+            1
+          ],
+          [
+            0.4196,
+            0.4518,
+            0
+          ]
+        ],
+        "seen": [
+          {
+            "colour": "green",
+            "x": -0.4785,
+            "y": 0.4512,
+            "z": 1.2699,
+            "blob_px": 75.0,
+            "expected_px": 49.5,
+            "depth_m": 0.497,
+            "hsv_median": [
+              64,
+              227,
+              229
+            ],
+            "hsv_margin_min": [
+              21,
+              28,
+              26
+            ],
+            "confidence_counts": 21
+          },
+          {
+            "colour": "green",
+            "x": -0.4138,
+            "y": 0.4363,
+            "z": 1.2696,
+            "blob_px": 45.0,
+            "expected_px": 44.6,
+            "depth_m": 0.552,
+            "hsv_median": [
+              64,
+              227,
+              229
+            ],
+            "hsv_margin_min": [
+              21,
+              28,
+              26
+            ],
+            "confidence_counts": 21
+          },
+          {
+            "colour": "blue",
+            "x": 0.4196,
+            "y": 0.4518,
+            "z": 1.275,
+            "blob_px": 20.0,
+            "expected_px": 18.4,
+            "depth_m": 1.335,
+            "hsv_median": [
+              112,
+              227,
+              229
+            ],
+            "hsv_margin_min": [
+              17,
+              28,
+              26
+            ],
+            "confidence_counts": 17
+          }
+        ],
+        "rejected": [
+          {
+            "colour": "blue",
+            "why": "not cube-sized at its own range",
+            "blob_px": 48.0,
+            "expected_px": 21.0
+          },
+          {
+            "colour": "green",
+            "why": "inside the green pad's footprint at z = 1.2546, which is the MAT's own surface (1.2600) and not a cube standing on it (1.2800)",
+            "blob_px": 28.0,
+            "expected_px": 37.6
+          },
+          {
+            "colour": "green",
+            "why": "inside the green pad's footprint at z = 1.2541, which is the MAT's own surface (1.2600) and not a cube standing on it (1.2800)",
+            "blob_px": 40.0,
+            "expected_px": 38.2
+          }
+        ],
+        "rejected_by_size": 3,
+        "added_total_s": 50.73,
+        "added_per_pick_s": 16.91
+      }
     },
-    "move_to_observe_s": 24.14,
-    "observe_arrival_rad": 0.01734,
-    "frame_pose_drift_m": 0.0,
-    "frame_pose_waited_s": 0.0,
-    "frame_pose_is_stamped": true,
-    "rejected_off_work_plane": 0,
-    "rejected_as_duplicates": 0,
-    "detect_s": 0.477,
-    "return_home_s": 24.13,
-    "cubes": [
-      [
-        -0.4788,
-        0.4366,
-        1
-      ],
-      [
-        -0.4182,
-        0.453,
-        1
-      ],
-      [
-        0.4151,
-        0.4492,
-        0
-      ],
-      [
-        0.4768,
-        0.4536,
-        0
-      ]
-    ],
+    "move_to_observe_s": 47.05,
+    "frame_pose_waited_s": 4.0,
+    "detect_s": 4.86,
+    "return_home_s": 47.07,
     "seen": [
       {
         "colour": "green",
-        "x": -0.4788,
-        "y": 0.4366,
-        "z": 1.2667,
-        "blob_px": 14.0,
-        "expected_px": 17.8,
-        "depth_m": 1.384,
-        "hsv_median": [
-          64,
-          227,
-          229
-        ],
-        "hsv_margin_min": [
-          21,
-          28,
-          26
-        ],
-        "confidence_counts": 21
-      },
-      {
-        "colour": "green",
-        "x": -0.4182,
-        "y": 0.453,
-        "z": 1.2681,
-        "blob_px": 24.0,
-        "expected_px": 18.3,
-        "depth_m": 1.343,
+        "x": -0.4188,
+        "y": 0.4518,
+        "z": 1.2722,
+        "blob_px": 20.0,
+        "expected_px": 18.8,
+        "depth_m": 1.311,
         "hsv_median": [
           64,
           227,
@@ -101,32 +288,92 @@
       },
       {
         "colour": "blue",
-        "x": 0.4151,
-        "y": 0.4492,
-        "z": 1.2693,
-        "blob_px": 55.0,
-        "expected_px": 36.6,
-        "depth_m": 0.673,
-        "hsv_median": [
-          112,
-          227,
-          229
-        ],
-        "hsv_margin_min": [
-          17,
-          28,
-          26
-        ],
-        "confidence_counts": 17
-      },
-      {
-        "colour": "blue",
-        "x": 0.4768,
-        "y": 0.4536,
-        "z": 1.2664,
+        "x": 0.4148,
+        "y": 0.4407,
+        "z": 1.2713,
         "blob_px": 63.0,
-        "expected_px": 39.2,
-        "depth_m": 0.627,
+        "expected_px": 45.4,
+        "depth_m": 0.542,
+        "hsv_median": [
+          112,
+          227,
+          229
+        ],
+        "hsv_margin_min": [
+          17,
+          28,
+          26
+        ],
+        "confidence_counts": 17
+      },
+      {
+        "colour": "blue",
+        "x": 0.4782,
+        "y": 0.4513,
+        "z": 1.268,
+        "blob_px": 80.0,
+        "expected_px": 50.4,
+        "depth_m": 0.488,
+        "hsv_median": [
+          112,
+          227,
+          229
+        ],
+        "hsv_margin_min": [
+          17,
+          28,
+          26
+        ],
+        "confidence_counts": 17
+      },
+      {
+        "colour": "green",
+        "x": -0.4785,
+        "y": 0.4512,
+        "z": 1.2699,
+        "blob_px": 75.0,
+        "expected_px": 49.5,
+        "depth_m": 0.497,
+        "hsv_median": [
+          64,
+          227,
+          229
+        ],
+        "hsv_margin_min": [
+          21,
+          28,
+          26
+        ],
+        "confidence_counts": 21
+      },
+      {
+        "colour": "green",
+        "x": -0.4138,
+        "y": 0.4363,
+        "z": 1.2696,
+        "blob_px": 45.0,
+        "expected_px": 44.6,
+        "depth_m": 0.552,
+        "hsv_median": [
+          64,
+          227,
+          229
+        ],
+        "hsv_margin_min": [
+          21,
+          28,
+          26
+        ],
+        "confidence_counts": 21
+      },
+      {
+        "colour": "blue",
+        "x": 0.4196,
+        "y": 0.4518,
+        "z": 1.275,
+        "blob_px": 20.0,
+        "expected_px": 18.4,
+        "depth_m": 1.335,
         "hsv_median": [
           112,
           227,
@@ -140,23 +387,9 @@
         "confidence_counts": 17
       }
     ],
-    "rejected": [
-      {
-        "colour": "green",
-        "why": "not cube-sized at its own range",
-        "blob_px": 54.0,
-        "expected_px": 20.2
-      },
-      {
-        "colour": "blue",
-        "why": "not cube-sized at its own range",
-        "blob_px": 125.0,
-        "expected_px": 30.4
-      }
-    ],
-    "rejected_by_size": 2,
-    "added_total_s": 48.75,
-    "added_per_pick_s": 12.19
+    "added_total_s": 102.98,
+    "added_per_pick_s": 25.75,
+    "source": "/tmp/srl_mislabel_det.json"
   },
   "declared_pad_x": -0.29,
   "vision_pad_x": 0.29,
@@ -165,45 +398,45 @@
   "instruction": "put every cube where it belongs",
   "instruction_plan": [
     [
-      -0.4788,
-      0.4366,
+      -0.4785,
+      0.4512,
       1
     ],
     [
-      -0.4182,
-      0.453,
+      -0.4138,
+      0.4363,
       1
     ],
     [
-      0.4151,
-      0.4492,
+      0.4148,
+      0.4407,
       0
     ],
     [
-      0.4768,
-      0.4536,
+      0.4782,
+      0.4513,
       0
     ]
   ],
   "instruction_plan_with_declaration_flipped": [
     [
-      -0.4788,
-      0.4366,
+      -0.4785,
+      0.4512,
       1
     ],
     [
-      -0.4182,
-      0.453,
+      -0.4138,
+      0.4363,
       1
     ],
     [
-      0.4151,
-      0.4492,
+      0.4148,
+      0.4407,
       0
     ],
     [
-      0.4768,
-      0.4536,
+      0.4782,
+      0.4513,
       0
     ]
   ],

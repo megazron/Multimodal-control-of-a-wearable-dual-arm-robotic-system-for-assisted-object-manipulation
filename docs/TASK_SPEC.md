@@ -607,6 +607,8 @@ Language works. Perception does not. The gaps:
 | U-1 | no camera publisher in sim, so the detection path has never run end to end |
 | U-2 | the fingerprint records position but **not YAW**, so an angled object gets a square grasp |
 | U-3 | table height is declared, never measured; `set_measured()` exists and nothing calls it |
+| U-4 | **a voice score is a PARSER score.** Real STT has only ever been fed SYNTHESISED speech; accuracy for a real speaker is unmeasured and is on the lab list. See 4B |
+| U-5 | **"all" is correct by coincidence.** It suppresses the disambiguation question rather than scoping the set, so it narrows silently if the default candidate set ever narrows. Recorded, not fixed. See 4B |
 
 Build the mock camera path so the whole pipeline is exercised **to the camera
 boundary**, wire yaw into the fingerprint **and the grasp**, wire
@@ -749,6 +751,84 @@ wrist lands, and the pinned wrist was chosen for reach, not for seeing.
 | P-B | the grasp pose used is provably the DETECTED one — change the file coordinate and the arm still goes to the object |
 | P-C | detection failure is visible in the trial record and does not silently become a file-coordinate pick |
 | P-D | **every detection is AT an object.** Added 2026-08-18, because P-A as written is satisfiable by the wrong blobs: an observe pose that looked across the row from 0.335 m to 1.17 m returned four detections, the expected count, no refusal — and one of them was a fragment of the blue pad near the camera while a real cube far from it had been rejected as "not cube-sized at its own range". A count is not a match. `stage_observe_and_detect` now requires every detection to lie within the task's own 30 mm capture gate of a distinct declared cube, and refuses naming the unmatched ones. It is a POSITION check and deliberately not a colour one — the mislabel control changes what a cube looks like and never where it is |
+
+---
+
+## 4B. TWO THINGS RECORDED RATHER THAN FIXED, 2026-08-19
+
+Neither is a defect today. Both are things a reader would otherwise assume,
+and the assumption is the risk. They are written here so that citing either
+number means citing its caveat.
+
+### U-4. A VOICE SCORE IS NOT A SPEECH-RECOGNITION SCORE
+
+**Any success rate quoted for the voice channel is a score for the PARSER, or
+at best for the pipeline driven by SYNTHESISED speech. Speech recognition
+accuracy for a real speaker is UNMEASURED, and it belongs on the lab list.**
+
+What has actually been run, so the caveat is precise rather than vague:
+
+| | measured |
+| --- | --- |
+| the typed sweep, 75 phrasings | `voice_listener`'s TEXT source. No audio exists in that path at all — the parser is fed strings a keyboard produced |
+| real audio through real STT, 2026-08-17 | **it HAS been run**, and it is not a person: Piper renders each instruction, the PCM goes over the shipped 16 kHz UDP path, and faster-whisper `small`/int8 — the model `voice_listener` itself loads — transcribes it. 40 cases: **WER 25.2%, ZERO exact transcripts**, 14 correct / 5 asked / 21 refused / 0 misunderstood (`recordings/baselines/voice_instruction.json`) |
+| the wake word | 95 rows, same synthetic voice (`recordings/baselines/wake_word.json`) |
+
+**Why no real speaker, and why it cannot be fixed on this host.** `/dev/snd`
+contains only `timer`, so ALSA has no capture device to open inside WSL. The
+shipped answer is a Windows-side sender posting PCM over UDP, and that sender
+needs a person to speak into it. So:
+
+* one synthetic voice, one accent, no room, no background noise, no clipping,
+  no overlapping speakers, no distance from the microphone;
+* a perfect score on that path is evidence about the PIPELINE and about
+  nothing a participant will do.
+
+`scripts/verify_voice_instruction.py` says this in its own docstring and both
+baselines carry a `caveat` field saying it too. **The number that is missing
+is the one that matters for a lab day**, and it cannot be taken here.
+
+**LAB LIST.** Transcription accuracy against real speakers — the operator and
+the wearer are different people and both may speak — measured against the
+shipped wake word and the shipped threshold, before either is trusted. Until
+then no voice figure in this repository may be quoted as speech recognition
+accuracy.
+
+### U-5. "ALL" IS CORRECT BY COINCIDENCE, NOT BY SCOPE
+
+**"put every cube on the pad of its own colour" plans all four cubes, and
+nothing in the code says "all four".** The plural is not a scope; it is the
+absence of a question.
+
+The mechanism, in `t1_instruction.plan_from`:
+
+1. `_cubes_matching(seen, want_colour)` returns **every** cube of that colour,
+   or every cube seen when no colour is named. That is the default candidate
+   set and it is built before quantity is consulted.
+2. `if intent.quantity != "all" and len(cands) > 1:` **ASK**. This is the only
+   thing `quantity == "all"` does — it suppresses the disambiguation question.
+3. `_finish` then plans **every** entry in `cands`.
+
+So an "all" instruction takes exactly the same path as an unscoped one and
+gets the same candidate list; it simply is not stopped and asked which. The
+answer is right because the default set already happens to be the whole set.
+
+**THE FRAGILITY.** If the default candidate set ever narrows — a nearest-first
+rule in `_cubes_matching`, a selector that defaults to one, a cap for a bigger
+scene — then **"all" narrows silently with it.** There is no error, nothing
+contradicts, and the instruction that most obviously means "everything" is the
+one with no independent statement of what it covers.
+
+**AND THE GATE DOES NOT CATCH IT.** The one unit test that uses an "all"
+sentence (`test_the_plan_ignores_the_DECLARED_colour_entirely`) compares the
+PADS of the plan before and after flipping the declarations; a plan that
+narrowed from four cubes to one would give the same comparison and still pass.
+The count is pinned only in `scripts/sweep_t1_instructions.py`, which is run
+by hand and is not part of `check_tests.py`.
+
+Recorded, not fixed. The fix, when someone wants it, is for `quantity == "all"`
+to assert the covered set explicitly rather than to suppress a question — and
+a unit test that pins the COUNT, which is the thing no test currently states.
 
 ---
 

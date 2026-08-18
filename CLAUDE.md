@@ -127,7 +127,12 @@ problem; `l_j2` and `l_j4` named by regression); the two arms' reachable sets
 are disjoint so T4 handover needs the right arm re-parked in hardware; the
 right arm's home joint values were never read from hardware; two real Kortex
 sessions have never been opened; detection rate at working distance is
-unmeasured; no `adb`; this machine is off the lab network.
+unmeasured; **speech recognition accuracy against a REAL SPEAKER is unmeasured
+— `/dev/snd` has only `timer`, so no microphone can be opened in WSL and every
+voice number here was produced from Piper-SYNTHESISED audio (WER 25.2%, zero
+exact transcripts, one voice, no room, no noise). A voice score in this repo is
+a PARSER score, never a transcription score — TASK_SPEC 4B/U-4**; no `adb`;
+this machine is off the lab network.
 
 **Blocked on ethics:** no human data has been collected at all. Operator and
 wearer are different people and consent separately. Worn operation is >17 kg

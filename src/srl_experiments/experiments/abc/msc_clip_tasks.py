@@ -513,6 +513,23 @@ TASKS = {
         # says it is seeded, so the one task whose layout is random is the
         # one task whose seed is read.
         seeded=True,
+        # THE ORIENTATION THIS TASK SENDS -- THE SAME ONE STAGE 1 SENDS.
+        #
+        # IT WAS MISSING, AND THAT IS WHAT COST THE FIRST STAGE 2 RECORDING.
+        # `run_abc.set_orient(spec.get("orient"))` falls back to the pinned
+        # anchor when a task declares none, so stage 2 was commanded at
+        # `WORKSPACE_ORIENT` while its coordinates had been solved at T1's own
+        # approach -- and `set_orient` also rebuilds the finger-pad offset from
+        # whatever it is given, so the ARRIVAL GATE was measuring the pads
+        # 111.8 mm from where they actually were.
+        #
+        # What the clip showed: the pads read 1.4 to 4.2 mm from every cube --
+        # because the SCENE was drawing them through the same wrong offset, so
+        # the two errors agreed -- while the knuckle stayed 0.00 for the whole
+        # run and NO GRASP WAS RECORDED AT ALL. Two descriptions sharing one
+        # error is CLAUDE.md's "everything matches" row, and it read as a
+        # perfect approach and a dead gripper.
+        orient=T1M.APPROACH,
         grip=lambda n: t1s2_grip(n),
         grip_at=lambda n: t1s2_grip_at(n),
         width_mm=40,

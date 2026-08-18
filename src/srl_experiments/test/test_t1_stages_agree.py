@@ -235,3 +235,33 @@ def test_a_pad_is_not_a_heap(T1M):
     """More cubes than the pad has slots is refused, not stacked."""
     with pytest.raises(ValueError):
         T1M.build(cubes=[[c, T1M.ROW_Y, 0] for c in (0.42, 0.48, 0.54, 0.60)])
+
+
+def test_both_stages_DECLARE_the_approach_they_were_solved_at(MCT, T1M):
+    """A task solved at its own approach must SAY so, or it is sent the anchor.
+
+    `run_abc.set_orient(spec.get("orient"))` falls back to
+    `master_calibration.WORKSPACE_ORIENT` when a task declares nothing, and it
+    also rebuilds the finger-pad offset from whatever it is given. So a task
+    whose coordinates were solved at another orientation and which forgets to
+    declare it gets BOTH wrong: every waypoint is commanded at the pinned
+    anchor, and the arrival gate looks for the pads 111.8 mm from where they
+    are.
+
+    MEASURED, on the first stage 2 recording: the pads read 1.4 to 4.2 mm from
+    every cube -- because the SCENE was drawing them through the same wrong
+    offset, so the two errors agreed -- while the knuckle stayed 0.00 for the
+    whole run and NO GRASP WAS RECORDED AT ALL. Two descriptions sharing one
+    error, which is CLAUDE.md's "everything matches" row, and it read as a
+    perfect approach and a dead gripper.
+
+    Stage 1 declared it. Stage 2 did not, and nothing compared them.
+    """
+    for key in ("t1", "t1s2"):
+        spec = MCT.TASKS[key]
+        assert spec.get("orient") is not None, (
+            "%s builds its coordinates at t1_task.APPROACH and declares no "
+            "orient, so run_abc will send it the pinned anchor" % key)
+        assert spec["orient"] is T1M.APPROACH, (
+            "%s declares an orientation that is not the one its layout was "
+            "solved and walked at" % key)

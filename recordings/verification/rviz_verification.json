@@ -61,23 +61,6 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 33.2,
-    "bright": 126.7,
-    "variety": 7574,
-    "delta": 1.81,
-    "objects": {
-      "msc_blue": 142,
-      "msc_green": 931
-    },
-    "angles_bad": [],
-    "mode": "01_master_teleop",
-    "task": "t1",
-    "scenario": "S1_left_arm",
-    "condition": "-"
-  },
-  {
-    "ok": true,
-    "why": "",
     "duration_s": 23.2,
     "bright": 131.7,
     "variety": 9081,
@@ -169,23 +152,6 @@
     "mode": "02_vr_teleop",
     "task": "t0",
     "scenario": "D3_three_targets",
-    "condition": "-"
-  },
-  {
-    "ok": true,
-    "why": "",
-    "duration_s": 43.3,
-    "bright": 126.7,
-    "variety": 7554,
-    "delta": 1.5,
-    "objects": {
-      "msc_blue": 142,
-      "msc_green": 913
-    },
-    "angles_bad": [],
-    "mode": "02_vr_teleop",
-    "task": "t1",
-    "scenario": "S1_left_arm",
     "condition": "-"
   },
   {
@@ -287,23 +253,6 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 32.8,
-    "bright": 126.7,
-    "variety": 7612,
-    "delta": 1.64,
-    "objects": {
-      "msc_blue": 136,
-      "msc_green": 924
-    },
-    "angles_bad": [],
-    "mode": "03_shared_autonomy",
-    "task": "t1",
-    "scenario": "S1_left_arm",
-    "condition": "-"
-  },
-  {
-    "ok": true,
-    "why": "",
     "duration_s": 23.2,
     "bright": 131.7,
     "variety": 9102,
@@ -395,23 +344,6 @@
     "mode": "04_vr_shared",
     "task": "t0",
     "scenario": "D3_three_targets",
-    "condition": "-"
-  },
-  {
-    "ok": true,
-    "why": "",
-    "duration_s": 33.3,
-    "bright": 126.7,
-    "variety": 7486,
-    "delta": 1.64,
-    "objects": {
-      "msc_blue": 131,
-      "msc_green": 927
-    },
-    "angles_bad": [],
-    "mode": "04_vr_shared",
-    "task": "t1",
-    "scenario": "S1_left_arm",
     "condition": "-"
   },
   {
@@ -527,35 +459,18 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 33.9,
-    "bright": 126.7,
-    "variety": 7490,
-    "delta": 1.68,
+    "duration_s": 36.3,
+    "bright": 115.7,
+    "variety": 7219,
+    "delta": 2.85,
     "objects": {
-      "msc_blue": 138,
-      "msc_green": 912
+      "msc_blue": 241,
+      "msc_green": 589
     },
     "angles_bad": [],
     "mode": "06_full_autonomy",
     "task": "t1",
-    "scenario": "S1_left_arm",
-    "condition": "-"
-  },
-  {
-    "ok": true,
-    "why": "",
-    "duration_s": 23.8,
-    "bright": 131.7,
-    "variety": 9009,
-    "delta": 3.06,
-    "objects": {
-      "msc_blue": 156,
-      "msc_green": 1089
-    },
-    "angles_bad": [],
-    "mode": "06_full_autonomy",
-    "task": "t1s2",
-    "scenario": "S2_both_arms_random",
+    "scenario": "S1_both_arms_centre",
     "condition": "-"
   },
   {

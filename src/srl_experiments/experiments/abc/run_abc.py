@@ -999,12 +999,52 @@ def main(argv=None):
             for arm in ARMS:
                 n.grip(arm, 0.0)
             n.spin(0.1)
-    for _ in range(8):
+    # WAIT FOR THE ARM TO GET THERE. DO NOT COUNT TO EIGHT AND HOPE.
+    #
+    # This was `for _ in range(8): send(wp[0]); spin(0.35)` -- 2.8 s of
+    # streaming plus a 1.2 s settle, a fixed time chosen when the tasks
+    # started near home. T1 starts at a pre-grasp standoff on the far side of
+    # the table, and 4 s is not enough: measured on the first
+    # instruction-driven T1 recording, the arms were 0.336 and 0.9665 rad from
+    # waypoint 0 when the schedule began.
+    #
+    # WHAT THAT COSTS IS THE FIRST GRASP OF EACH ARM. The schedule advances on
+    # a wall clock while the arm is still catching up, so the 14-waypoint dwell
+    # at the first pick is spent in transit and the hand closes on the way
+    # past. In that recording cube_0 and cube_2 -- the first cube of each arm
+    # -- were missed by 47.8 mm and 49.6 mm against a 30 mm capture gate and
+    # carried 0.0000 m, while cube_1 and cube_3 were taken cleanly, because by
+    # then the arm had caught up. Two of four, and the pattern is the tell.
+    #
+    # So it streams until BOTH arms are actually at waypoint 0, and says so if
+    # they never get there rather than starting anyway. The deadline is
+    # generous because arriving late is recoverable and starting early is not.
+    ARRIVE_M, ARRIVE_DEADLINE_S = 0.010, 25.0
+    _t0 = time.time()
+    _worst = None
+    while time.time() - _t0 < ARRIVE_DEADLINE_S:
         n.hold_grip()
         for arm in ARMS:
             n.send(arm, wp[arm][0])
-        n.spin(0.35)
-    n.spin(1.2)
+        n.spin(0.1)
+        here = {arm: n.ee(arm) for arm in ARMS}
+        if any(here[arm] is None for arm in ARMS):
+            continue
+        _worst = max(math.dist(here[arm], wp[arm][0]) for arm in ARMS)
+        if _worst <= ARRIVE_M:
+            break
+    n.spin(0.8)
+    _took = time.time() - _t0
+    if _worst is None or _worst > ARRIVE_M:
+        print("[approach] THE ARMS DID NOT REACH WAYPOINT 0 in %.1f s -- "
+              "worst %s m against a %.3f m gate. The schedule is about to "
+              "advance on a clock the arm is not keeping up with, and the "
+              "first grasp of each arm is what that costs."
+              % (_took, "unknown" if _worst is None else "%.4f" % _worst,
+                 ARRIVE_M), flush=True)
+    else:
+        print("[approach] at waypoint 0 in %.1f s, worst %.4f m"
+              % (_took, _worst), flush=True)
     start = {arm: n.ee(arm) for arm in ARMS}
 
     # PATH LENGTH, NOT START-TO-END DISPLACEMENT.

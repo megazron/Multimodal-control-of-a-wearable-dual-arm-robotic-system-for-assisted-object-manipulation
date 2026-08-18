@@ -476,6 +476,23 @@
   {
     "ok": true,
     "why": "",
+    "duration_s": 35.3,
+    "bright": 126.1,
+    "variety": 7796,
+    "delta": 2.58,
+    "objects": {
+      "msc_blue": 462,
+      "msc_green": 1113
+    },
+    "angles_bad": [],
+    "mode": "06_full_autonomy",
+    "task": "t1s2",
+    "scenario": "S2_both_arms_random",
+    "condition": "-"
+  },
+  {
+    "ok": true,
+    "why": "",
     "duration_s": 15.8,
     "bright": 101.2,
     "variety": 8174,

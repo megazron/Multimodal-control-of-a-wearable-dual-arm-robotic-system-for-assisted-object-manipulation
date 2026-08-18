@@ -973,11 +973,15 @@ def _main_body():
                     # solved against every cube and both pads at once -- so
                     # the looking arm is not the working arm and must not be
                     # guessed from the grip schedule.
-                    import t1_task as _T1M
-                    _cam_arm = _T1M.LOOK_ARM
-                    cam_p = subprocess.Popen(
+                    # A CAMERA ON EACH ARM, because the look is now one per
+                    # arm. Measured 2026-08-18: there is NO pose from which
+                    # one arm sees all twelve of this layout's columns within
+                    # 1.05 m, and the poses that saw everything spanned 0.62
+                    # to 1.34 m -- far enough that a cube is 18 px and merges
+                    # with the same-coloured pad behind it.
+                    cam_p = [subprocess.Popen(
                         ["ros2", "run", "srl_perception", "mock_rgbd_camera",
-                         "--ros-args", "-p", "arm:=%s" % _cam_arm,
+                         "--ros-args", "-p", "arm:=%s" % _a,
                          "-p", "task:=%s" % task,
                          # STAGE 2 DRAWS ITS CUBES FROM THE SEED, so the
                          # renderer needs the same one the scene node and the
@@ -986,6 +990,7 @@ def _main_body():
                          "-p", "seed:=%d" % seed],
                         start_new_session=True, stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL)
+                        for _a in ("left", "right")]
                 time.sleep(3.0)
                 # WHICH ARM THE GRIPPER VIEW FOLLOWS. Taken from the task's
                 # own grip schedule rather than a hardcoded list, so a new
@@ -1162,7 +1167,8 @@ def _main_body():
                             "failed (rc=%d). Recording now would film a task "
                             "whose colours came from a STALE detection file."
                             % _det.returncode)
-                        for _p in (scene_p, cam_p):
+                        for _p in ([scene_p] + (cam_p if isinstance(cam_p, list)
+                                                else [cam_p])):
                             if _p is None:
                                 continue
                             try:
@@ -1198,7 +1204,8 @@ def _main_body():
                         # it would leak one clip_scene per skipped cell, and
                         # two scene publishers is the same one-source-at-a-time
                         # fault this branch exists to respect.
-                        for _p in (scene_p, cam_p):
+                        for _p in ([scene_p] + (cam_p if isinstance(cam_p, list)
+                                                else [cam_p])):
                             if _p is None:
                                 continue
                             try:
@@ -1332,13 +1339,14 @@ def _main_body():
                 # The wrist camera goes with it. Left running it would publish
                 # into the NEXT cell's graph, and two publishers on one camera
                 # topic is the same one-source-at-a-time fault as two scenes.
-                if cam_p is not None:
+                for _cp in (cam_p if isinstance(cam_p, list)
+                            else ([] if cam_p is None else [cam_p])):
                     try:
-                        os.killpg(os.getpgid(cam_p.pid), 15)
-                        cam_p.wait(timeout=10)
+                        os.killpg(os.getpgid(_cp.pid), 15)
+                        _cp.wait(timeout=10)
                     except Exception:                         # noqa: BLE001
                         try:
-                            os.killpg(os.getpgid(cam_p.pid), 9)
+                            os.killpg(os.getpgid(_cp.pid), 9)
                         except Exception:                     # noqa: BLE001
                             pass
 

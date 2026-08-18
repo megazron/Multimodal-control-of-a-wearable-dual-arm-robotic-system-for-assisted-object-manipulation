@@ -116,12 +116,14 @@ class Looker:
                         float(np.linalg.norm(c))))
         return out
 
-    def terms(self, arm, q, pts, margin=0.90, min_range=MIN_RANGE):
+    def terms(self, arm, q, pts, margin=0.90, min_range=MIN_RANGE,
+              max_range=None):
         """How badly this pose fails to see `pts`. Zero when it sees them."""
         pr = self.project(arm, q, pts)
         worst_u = worst_v = 0.0
         behind = 0
         near = 0.0
+        far = 0.0
         rngs = []
         for u, v, r in pr:
             if u is None:
@@ -131,11 +133,14 @@ class Looker:
             worst_u = max(worst_u, abs(u - CX) / (CX * margin))
             worst_v = max(worst_v, abs(v - CY) / (CY * margin))
             near = max(near, min_range - r)
+            if max_range is not None:
+                far = max(far, r - max_range)
         c, who = self.sc.clearance(arm, q)
         return dict(behind=behind, worst_u=worst_u, worst_v=worst_v,
                     min_range_m=min(rngs) if rngs else None,
                     max_range_m=max(rngs) if rngs else None,
                     range_shortfall_m=max(0.0, near),
+                    range_excess_m=max(0.0, far),
                     clearance_m=c, clearance_to=who,
                     all_in_frame=(behind == 0 and worst_u <= 1.0
                                   and worst_v <= 1.0),
@@ -157,12 +162,25 @@ def transit_worst(lk, arm, q_home, q, n=12):
                for s in transit_samples(q_home, q, n))
 
 
-def cost(q, lk, arm, pts, margin, min_range, floor, q_home=None):
+def cost(q, lk, arm, pts, margin, min_range, floor, q_home=None,
+         max_range=None):
     hinge = lambda v: v * v if v > 0 else 0.0                     # noqa: E731
-    t = lk.terms(arm, q, pts, margin, min_range)
+    t = lk.terms(arm, q, pts, margin, min_range, max_range)
     c = 40.0 * t["behind"]
     c += 8.0 * hinge(t["worst_u"] - 1.0) + 8.0 * hinge(t["worst_v"] - 1.0)
     c += 60.0 * hinge(t["range_shortfall_m"])
+    # TOO FAR IS A CONSTRAINT NOW, NOT A PREFERENCE, and that is what the
+    # first recording cost. A 40 mm cube at 1.34 m is 18 px across, and the
+    # detector's size gate has to tell it apart from a fragment of the
+    # same-coloured pad 60 mm behind it. Measured: the far green cube came
+    # back at 14 to 24 px on three runs and then merged with its pad on the
+    # fourth, arriving as a 55 px blob against an expected 20.2 -- rejected,
+    # correctly, and the clip was skipped for want of a fourth cube.
+    #
+    # The weak preference that used to sit below (0.05 x the excess over
+    # min_range + 0.25) is two orders of magnitude under the constraints, so
+    # a pose spanning 0.62 to 1.34 m scored better than one that did not.
+    c += 60.0 * hinge(t["range_excess_m"])
     c += 400.0 * hinge(floor - t["clearance_m"])
     # THE MOVE FROM HOME IS PART OF THE POSE, and leaving it out is what made
     # the first two observe poses unusable. Solved on frustum geometry alone
@@ -185,7 +203,7 @@ def cost(q, lk, arm, pts, margin, min_range, floor, q_home=None):
 
 
 def solve(lk, arm, pts, margin=0.90, min_range=MIN_RANGE, floor=FLOOR,
-          restarts=160, seed=3, q_home=None):
+          restarts=160, seed=3, q_home=None, max_range=None):
     from scipy.optimize import minimize
     rng = np.random.default_rng(seed)
     lo, hi, _ = lk.sc.lim[arm]
@@ -196,15 +214,16 @@ def solve(lk, arm, pts, margin=0.90, min_range=MIN_RANGE, floor=FLOOR,
         s = np.clip(np.asarray(s, float), lo, hi)
         try:
             r = minimize(cost, s, args=(lk, arm, pts, margin, min_range,
-                                        floor, q_home),
+                                        floor, q_home, max_range),
                          method="L-BFGS-B", bounds=bounds,
                          options=dict(maxiter=300, ftol=1e-12, eps=1e-6))
         except Exception:                                         # noqa: BLE001
             continue
         q = np.array(r.x)
         v = float(cost(q, lk, arm, pts, margin, min_range, floor, q_home))
-        t = lk.terms(arm, q, pts, margin, min_range)
+        t = lk.terms(arm, q, pts, margin, min_range, max_range)
         ok = (t["all_in_frame"] and t["range_shortfall_m"] <= 0
+              and t.get("range_excess_m", 0.0) <= 0
               and t["clearance_m"] >= floor)
         seam = min(math.pi - abs(float(q[i])) for i in SH.CONTINUOUS_IDX)
         if not ok or seam < SH.SEAM_MARGIN_RAD:
@@ -260,6 +279,12 @@ def main():
                          "and pads for this arm")
     ap.add_argument("--margin", type=float, default=0.90)
     ap.add_argument("--min-range", type=float, default=MIN_RANGE)
+    ap.add_argument("--max-range", type=float, default=None,
+                    help="every point must be no FURTHER than this. A 40 mm "
+                         "cube at 1.34 m is 18 px and the detector cannot "
+                         "separate it from the same-coloured pad behind it; "
+                         "constraining the far end is what makes the look "
+                         "repeatable.")
     ap.add_argument("--floor", type=float, default=FLOOR)
     ap.add_argument("--restarts", type=int, default=160)
     ap.add_argument("--ignore-transit", action="store_true",
@@ -305,6 +330,7 @@ def main():
     import home_positions as _hp
     q_home = np.array(_hp.load_home_radians(a.arm), float)
     got = solve(lk, a.arm, pts, a.margin, a.min_range, a.floor, a.restarts,
+                max_range=a.max_range,
                 q_home=None if a.ignore_transit else q_home)
     if got is None:
         print("\nNO OBSERVE POSE satisfies every requirement for the %s arm."

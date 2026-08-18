@@ -74,16 +74,72 @@ def main():
     # (`scripts/solve_observe_pose.py`), so whichever arm can see all six does
     # the looking and both arms then work from what it saw.
     import t1_task as T1M
-    arm = a.arm or T1M.LOOK_ARM
     layout = (T1M.stage2_layout(a.seed) if a.task == "t1s2"
               else [(cx, cy, T1M.T1_PAIR[i])
                     for i, (cx, cy) in enumerate(T1M.T1_CUBES)])
-    expect = a.expect if a.expect is not None else len(layout)
+
+    # ONE LOOK PER ARM, EACH AT ITS OWN SIDE. NOT ONE LOOK FOR THE WHOLE ROW.
+    #
+    # "One look serves the whole task" was true of a layout whose objects sat
+    # in a 300 mm patch beside the person. This one spans 1.08 m of table with
+    # a pad pair in the middle, and MEASURED on 2026-08-18 there is NO pose
+    # from which one arm sees all twelve columns within 1.05 m: the solver
+    # returns nothing at all.
+    #
+    # WHAT THE OVER-LONG POSE COST. The only poses that saw everything spanned
+    # 0.62 to 1.34 m, and a 40 mm cube at 1.34 m is 18 px across while the
+    # same-coloured pad 60 mm behind it is 200. Three runs detected all four
+    # cubes; the fourth merged the far green cube with its pad and returned it
+    # as a 55 px blob against an expected 20.2, which the size gate rejected --
+    # correctly -- and the clip was skipped for want of a fourth cube.
+    #
+    # Per arm, each side is 0.46 to 0.75 m away: a 1.6x span rather than 2.2x,
+    # and every cube 26 px or more. The looking arm is the arm that will do
+    # the work, which is also the honest arrangement -- an arm that cannot
+    # reach a cube has no business being the authority on where it is.
+    arms = [a.arm] if a.arm else ["left", "right"]
+    per_arm = {"left": [c for c in layout if c[0] >= 0.0],
+               "right": [c for c in layout if c[0] < 0.0]}
 
     rclpy.init()
+    cubes, info = [], {"per_arm": {}}
     try:
-        cubes, info = observe_and_detect(arm, expect=expect,
-                                         settle_s=a.settle_s)
+        for _arm in arms:
+            want = (a.expect if a.expect is not None
+                    else len(per_arm[_arm]))
+            if want == 0:
+                continue
+            # EACH ARM ANSWERS FOR ITS OWN SIDE, AND ONLY ITS OWN SIDE.
+            #
+            # The camera sees whatever is in frame, which from either observe
+            # pose is most of the table -- so counting everything it returns
+            # against "how many cubes are on this arm's side" refuses a
+            # perfectly good look. Measured: the left arm's frame returned the
+            # far green cube at 1.31 m alongside its own two, and the count
+            # came back 5 against an expected 2.
+            #
+            # The SIDE is not a colour and not a declared position: it is
+            # which half of the centreline the detection deprojected to, and
+            # the arm that can reach it. `expect` is checked after the split,
+            # so a missing cube on this side is still a refusal.
+            got, t = observe_and_detect(_arm, expect=None,
+                                        settle_s=a.settle_s)
+            mine = [c for c in got if (c[0] >= 0.0) == (_arm == "left")]
+            if len(mine) != want:
+                raise DetectionUnavailable(
+                    "the %s arm saw %d cubes on its own side and the task "
+                    "puts %d there. Refusing to pick blind.\n    it "
+                    "returned: %s"
+                    % (_arm, len(mine), want,
+                       ", ".join("(%+.3f, %+.3f)" % (c[0], c[1])
+                                 for c in got)))
+            got = mine
+            cubes.extend(got)
+            info["per_arm"][_arm] = t
+            for k, v in t.items():
+                if k.endswith("_s") and isinstance(v, (int, float)):
+                    info[k] = round(info.get(k, 0.0) + v, 2)
+            info.setdefault("seen", []).extend(t.get("seen") or [])
     except DetectionUnavailable as e:
         print("STAGE-DETECT REFUSED: %s" % e)
         return 5
@@ -92,17 +148,29 @@ def main():
             rclpy.shutdown()
         except Exception:                                        # noqa: BLE001
             pass
+    cubes.sort(key=lambda c: c[0])
+    info["added_total_s"] = round(sum(v for k, v in info.items()
+                                      if k.endswith("_s")
+                                      and isinstance(v, (int, float))), 2)
+    info["added_per_pick_s"] = (round(info["added_total_s"] / len(cubes), 2)
+                                if cubes else None)
+    arm = arms[-1]
 
-    # CONTROL: the arm is back at home, because the mode starts from there.
-    import numpy as np
+    # CONTROL: EVERY arm that looked is back at home, because the mode starts
+    # from there. It used to check one, which is the arm that happened to look
+    # last.
     import rclpy as _r
     _r.init()
     from verify_task_scenes import Solver
     n = Solver()
     n.spin(4.0)
-    off, j = n.home_ok(arm)
+    worst_home = []
+    for _arm in arms:
+        off, j = n.home_ok(_arm)
+        worst_home.append((off, j, _arm))
     n.destroy_node()
     _r.shutdown()
+    off, j, arm = max(worst_home)
     if off > 0.05:
         print("STAGE-DETECT REFUSED: the %s arm is %.4f rad from home at "
               "joint_%d after the look. The mode would start from the wrong "
@@ -153,7 +221,7 @@ def main():
                   % (c[0], c[1], M.PLANE_COLOURS[int(c[2])]))
         return 7
 
-    rec = dict(arm=arm, cubes=cubes, timing=info,
+    rec = dict(arm=arm, arms=list(arms), cubes=cubes, timing=info,
                worst_match_mm=round(worst * 1000.0, 2),
                returned_home_worst_rad=round(float(off), 5),
                task=a.task, seed=a.seed,

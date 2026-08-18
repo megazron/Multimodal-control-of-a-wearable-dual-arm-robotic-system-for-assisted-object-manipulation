@@ -435,6 +435,21 @@
     "refused": ""
   },
   {
+    "task": "t1s2",
+    "scenario": "S2_both_arms_random",
+    "condition": "-",
+    "arm": "left",
+    "fingers": true,
+    "wrist": false,
+    "approach": true,
+    "attach": false,
+    "sil_change": 0.939,
+    "wrist_deg": 0.1,
+    "straight_px": 0.6,
+    "genuine": false,
+    "refused": ""
+  },
+  {
     "task": "t2",
     "scenario": "S2_full_lift",
     "condition": "-",

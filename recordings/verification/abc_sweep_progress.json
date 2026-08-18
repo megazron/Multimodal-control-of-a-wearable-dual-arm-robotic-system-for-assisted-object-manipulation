@@ -1191,69 +1191,13 @@
   },
   "06_full_autonomy/t1/S1_both_arms_centre": {
     "ok": false,
-    "msg": "run exited 0; PLACED 0.140 m FROM TARGET",
+    "msg": "staged detection failed (rc=5):       blue   u,v  274.0, 259.2  blob 125.0 px (cube would be  30.4)  depth 0.8100  REJECTED: not cube-sized at its own range",
     "mode": "06_full_autonomy",
     "task": "t1",
     "scenario": "S1_both_arms_centre",
-    "quad": true,
+    "quad": false,
     "opened_on": "presentation",
-    "started_from_home": {
-      "task": "m1",
-      "mode": "06_full_autonomy",
-      "tol_rad": 0.05,
-      "per_arm": {
-        "left": 0.0,
-        "right": 0.0
-      },
-      "worst_rad": 0.0,
-      "at_home": true,
-      "measured_at": "before approach-the-start",
-      "after_approach": {
-        "at": "at waypoint 0 (after the approach)",
-        "per_arm": {
-          "left": 0.336,
-          "right": 0.9665
-        },
-        "worst_rad": 0.9665
-      },
-      "trail": [
-        {
-          "at": "after require_home",
-          "per_arm": {
-            "left": 0.0,
-            "right": 0.0
-          },
-          "worst_rad": 0.0
-        },
-        {
-          "at": "before approach-the-start",
-          "per_arm": {
-            "left": 0.0,
-            "right": 0.0
-          },
-          "worst_rad": 0.0
-        },
-        {
-          "at": "at waypoint 0 (after the approach)",
-          "per_arm": {
-            "left": 0.336,
-            "right": 0.9665
-          },
-          "worst_rad": 0.9665
-        }
-      ],
-      "allow_unhomed": false
-    },
-    "files": [
-      "rviz_back.mp4",
-      "rviz_front.mp4",
-      "rviz_gripper.mp4",
-      "rviz_iso.mp4",
-      "rviz_left.mp4",
-      "rviz_quad.mp4",
-      "rviz_right.mp4",
-      "rviz_top.mp4"
-    ],
+    "files": [],
     "dir": "recordings/verification/06_full_autonomy/T1/S1_both_arms_centre"
   }
 }

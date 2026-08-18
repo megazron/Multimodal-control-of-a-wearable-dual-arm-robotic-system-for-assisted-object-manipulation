@@ -54,7 +54,30 @@ BASE = os.path.join(_ROOT, "recordings", "baselines")
 # same-coloured pads split by the cubes standing in front of them, landed at
 # 0.9576..0.9601, i.e. 160 mm low. 40 mm is an order of magnitude clear of the
 # real spread and four times clear of nothing else in the frame.
-PLANE_WINDOW_M = 0.040
+# HOW FAR OFF THE WORK PLANE A DETECTION MAY LAND AND STILL BE A CUBE.
+#
+# 10 mm, NOT 40, SINCE 2026-08-18, AND THE PAD IS WHY. A window of one cube
+# was chosen when the only thing it had to exclude was a pad fragment 160 mm
+# BELOW the plane, which it did comfortably. On the rebuilt layout the pads are
+# mats lying ON the table the cubes stand on, so a pad's surface is 10 mm under
+# a cube's CENTRE -- and a 40 mm window keeps both.
+#
+# It shows up as extra cubes. Measured on the two-arm look: the left camera at
+# 0.49 to 0.64 m returned five blue blobs where there are two cubes, and the
+# three extra were fragments of the blue pad, 37 to 51 px against an expected
+# cube of 38 to 45. At that range a piece of mat IS cube-sized and no size
+# gate can separate them.
+#
+# THE DEPTHS SEPARATE THEM CLEANLY, and that is measured rather than argued:
+#
+#     real cubes      z = 1.2682, 1.2717, 1.2723   (0.3 to 1.8 mm off plane)
+#     pad fragments   z = 1.2514, 1.2537           (16 to 19 mm off)
+#
+# 10 mm keeps every cube with five times its worst error and excludes every
+# fragment by six. It is a discriminator on GEOMETRY -- a cube stands 40 mm
+# proud of a mat -- and not on the pads' declared footprint, so it does not
+# weaken the claim that the camera decides the colour.
+PLANE_WINDOW_M = 0.010
 for _p in (os.path.join(_ROOT, "config"),
            os.path.join(_ROOT, "src", "srl_perception")):
     if _p not in sys.path:

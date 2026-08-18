@@ -210,6 +210,13 @@
     "detail": "MSc task T1 has no pixel rule here; the branches below are the archived set's"
   },
   {
+    "task": "T1S2",
+    "scenario": "S2_both_arms_random",
+    "condition": "-",
+    "verdict": "NOT IMPLEMENTED",
+    "detail": "MSc task T1S2 has no pixel rule here; the branches below are the archived set's"
+  },
+  {
     "task": "T2",
     "scenario": "S2_full_lift",
     "condition": "-",

@@ -464,6 +464,22 @@
     "grasp_task": true
   },
   {
+    "task": "t1s2",
+    "scenario": "S2_both_arms_random",
+    "condition": "-",
+    "arm": null,
+    "grip_min": null,
+    "grip_max": null,
+    "opened": false,
+    "closed_on_object": false,
+    "released": false,
+    "joint_ok": false,
+    "spread_open": null,
+    "spread_shut": null,
+    "pixel_ok": false,
+    "grasp_task": true
+  },
+  {
     "task": "t2",
     "scenario": "S2_full_lift",
     "condition": "-",

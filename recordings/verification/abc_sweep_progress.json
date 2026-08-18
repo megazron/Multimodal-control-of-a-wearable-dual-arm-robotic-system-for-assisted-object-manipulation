@@ -1191,13 +1191,23 @@
   },
   "06_full_autonomy/t1/S1_both_arms_centre": {
     "ok": false,
-    "msg": "staged detection failed (rc=5):     it returned: (-0.418, +0.450)",
+    "msg": "run exited 2; NO HOME RECORD; NO GRASP RECORDED at all; PLACED 0.140 m FROM TARGET",
     "mode": "06_full_autonomy",
     "task": "t1",
     "scenario": "S1_both_arms_centre",
-    "quad": false,
+    "quad": true,
     "opened_on": "presentation",
-    "files": [],
+    "started_from_home": null,
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
     "dir": "recordings/verification/06_full_autonomy/T1/S1_both_arms_centre"
   }
 }

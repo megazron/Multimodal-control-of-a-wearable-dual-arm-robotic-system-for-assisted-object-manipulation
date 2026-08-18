@@ -136,8 +136,14 @@ def main():
             got = mine
             cubes.extend(got)
             info["per_arm"][_arm] = t
+            # PER-STEP TIMES ONLY. `added_total_s` is itself a `_s` key, so
+            # summing every `_s` key across the arms added the totals to the
+            # steps and then totalled that again: the log printed 7273 s for a
+            # look that took 232. Cosmetic, and the kind of cosmetic that ends
+            # up in a table.
             for k, v in t.items():
-                if k.endswith("_s") and isinstance(v, (int, float)):
+                if (k.endswith("_s") and isinstance(v, (int, float))
+                        and not k.startswith("added_")):
                     info[k] = round(info.get(k, 0.0) + v, 2)
             info.setdefault("seen", []).extend(t.get("seen") or [])
     except DetectionUnavailable as e:
@@ -151,6 +157,7 @@ def main():
     cubes.sort(key=lambda c: c[0])
     info["added_total_s"] = round(sum(v for k, v in info.items()
                                       if k.endswith("_s")
+                                      and not k.startswith("added_")
                                       and isinstance(v, (int, float))), 2)
     info["added_per_pick_s"] = (round(info["added_total_s"] / len(cubes), 2)
                                 if cubes else None)

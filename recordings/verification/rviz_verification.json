@@ -459,13 +459,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 36.3,
-    "bright": 115.7,
-    "variety": 7219,
-    "delta": 2.85,
+    "duration_s": 7.3,
+    "bright": 115.5,
+    "variety": 7180,
+    "delta": 0.28,
     "objects": {
-      "msc_blue": 241,
-      "msc_green": 589
+      "msc_blue": 244,
+      "msc_green": 607
     },
     "angles_bad": [],
     "mode": "06_full_autonomy",

@@ -2073,15 +2073,34 @@ class Gui(QMainWindow):
                           bad=True)
             return
         env = dict(os.environ, PYTHONUNBUFFERED="1")
+        # KEEP WHAT IT SAID. This was DEVNULL on both streams, so a launched
+        # job that REFUSED -- naming its reason, as every refusal in this
+        # repository is written to do -- produced a bare exit code and nothing
+        # else. Measured the hard way on 2026-08-18: `run_abc` exited 2 inside
+        # the recording sweep and ran perfectly outside it, and the sentence
+        # explaining which of its two refusals had fired was being discarded
+        # at this line. A day of bisection for one file descriptor.
+        #
+        # One file per launch, named for the spec, in the scratch directory.
+        log = None
+        try:
+            log = open(os.path.join(_scratch(), "launch_%s.log" % spec.key),
+                       "wb")
+        except Exception:                                     # noqa: BLE001
+            log = None
         try:
             p = subprocess.Popen(spec.argv, env=env, start_new_session=True,
-                                 stdout=subprocess.DEVNULL,
-                                 stderr=subprocess.DEVNULL)
+                                 stdout=(log or subprocess.DEVNULL),
+                                 stderr=subprocess.STDOUT)
         except Exception as e:                                # noqa: BLE001
             self.bus.note("LAUNCH FAILED %s: %r" % (spec.label, e), bad=True)
             return
         self.jobs.append((spec.label, p))
-        self.bus.note("launched %s (pid %d)" % (spec.label, p.pid))
+        self.bus.note("launched %s (pid %d)%s"
+                      % (spec.label, p.pid,
+                         "" if log is None
+                         else " -> %s" % os.path.join(
+                             _scratch(), "launch_%s.log" % spec.key)))
         # A BUTTON THAT LAUNCHES A PROCESS WHICH IMMEDIATELY DIES MUST SAY SO.
         # Five buttons in an earlier build exited 2 on press while appearing
         # to launch, because nothing ever looked again.

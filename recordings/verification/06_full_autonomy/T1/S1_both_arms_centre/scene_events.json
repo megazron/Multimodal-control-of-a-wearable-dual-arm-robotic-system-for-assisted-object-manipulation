@@ -45,7 +45,7 @@
         1.27
       ],
       "still_held": false,
-      "min_pad_obj_m": 0.1503,
+      "min_pad_obj_m": 0.1486,
       "min_pad_obj_knuckle": 0.0,
       "min_pad_obj_closed_m": null,
       "grasp_near_m": 0.03
@@ -75,19 +75,19 @@
     "table"
   ],
   "ee_samples": {
-    "left": 939,
-    "right": 939
+    "left": 1786,
+    "right": 1786
   },
   "ee_metric_caveat": "ee_travel_m is a sum of |dp| over TICKS and ee_net_m is anchored on the first pose this node saw, so both depend on the observation window. Compare only against runs with a comparable ee_samples, and see findings.md 2026-08-15 finding 3.",
   "ee_travel_m": {
-    "left": 1.4029,
-    "right": 0.0
+    "left": 1.4066,
+    "right": 3.2485
   },
   "ee_net_m": {
-    "left": 0.0037,
+    "left": 0.0,
     "right": 0.0
   },
-  "t0_wall": 1787055331.2498307,
+  "t0_wall": 1787056051.9393828,
   "carry_series": [],
   "carry_summary": null,
   "pad_off": [
@@ -96,13 +96,13 @@
     -0.01707482530998926
   ],
   "pad_off_by_arm": {
-    "left": [
-      -0.07418079180730064,
+    "right": [
+      0.07418079180730064,
       0.06224507504594457,
       -0.01707482530998926
     ],
-    "right": [
-      0.07418079180730064,
+    "left": [
+      -0.07418079180730064,
       0.06224507504594457,
       -0.01707482530998926
     ]

@@ -1,3 +1,96 @@
+# RESUME POINT 2026-08-18 (later) — T1 IS COMMANDABLE AND THE TASK RUNS; THE SWEEP DOES NOT
+
+## THE ONE-PARAGRAPH VERSION
+
+T1 does what you type. 75 phrasings score **34 correct / 14 asked / 27 refused /
+0 MISUNDERSTOOD** against **21 / 14 / 37 / 3** for the grammar at b782a9b, on
+the same cases run in their own interpreter. Stage 2 is stage 1's geometry with
+the side drawn, walked at eight seeds. The GUI has a prompt panel and its button
+audit passes 91/0. **Run directly, the task now completes: four closes, four
+releases, every cube on the pad of its own colour, from the typed sentence.**
+Run through `record_abc_sweep`, `run_abc` exits 2 before writing its home
+record. That is the one thing between here and a clip.
+
+## THE FIRST THING TO DO
+
+**Find why `run_abc` exits 2 inside the sweep and not outside it.** Everything
+else is done and verified.
+
+    # this WORKS -- 4 CLOSED, 4 RELEASED, every cube on its own colour
+    python3 scripts/sim_session.py --stack teleop --keep-up --skip-tests -- true
+    ros2 run srl_perception mock_rgbd_camera --ros-args -p arm:=left  -p task:=t1 -p seed:=0 &
+    ros2 run srl_perception mock_rgbd_camera --ros-args -p arm:=right -p task:=t1 -p seed:=0 &
+    python3 scripts/stage_observe_and_detect.py --task t1 --seed 0 --out /tmp/srl_t1_detections.json
+    python3 src/srl_experiments/experiments/abc/run_abc.py --task m1 --taskset msc \
+        --mode 06_full_autonomy --participant DIAG --scripted \
+        --vision /tmp/srl_t1_detections.json \
+        --instruct "put every cube on the pad of its own colour"
+
+    # this FAILS -- "run exited 2; NO HOME RECORD"
+    bash scripts/record_t1_both_stages.sh "put every cube on the pad of its own colour" 0
+
+`run_abc` has exactly two `return 2` paths: `require_home()` refusing, and
+`--isolate` refusing. `--isolate` is `store_true` and the sweep does not pass
+it, so it is `require_home` — and the sweep's own log says the presentation
+pose staged OK immediately before. So the arms were moved between staging and
+the run, or `/joint_states` was not being received by the runner's node when it
+probed (`home_error` returning None reads as "where the arms are is UNKNOWN"
+and refuses, which is the right behaviour and would look exactly like this).
+
+**The strong suspect is the second one.** The sweep now runs TWO mock cameras,
+a scene node, a GUI and an RViz capture on one machine, and this project has
+been bitten twice before by a fresh process receiving nothing from a degraded
+DDS graph while every node is up. `run_abc` prints its refusal reason and the
+sweep sends run stdout to DEVNULL, so **the first move is to capture it**:
+`Gui.on_launch` uses `stdout=subprocess.DEVNULL`, and one line changing that to
+a file would have answered this in a minute rather than a day.
+
+## WHAT IS DONE AND SAFE TO BUILD ON
+
+* **The layout verifies.** Pads symmetric at +/-0.290, cubes at +/-0.420 and
+  +/-0.480 resting on the table, three sequential walks and one INDEPENDENT
+  walk clean -- the pessimistic branch case T1 had never survived. Pad miss
+  0.00 to 0.01 mm.
+* **`grasp_frames.PAD_MID_EE` was 13.47 mm too long**, derived rather than
+  measured. FK says 0.09833 m on both arms. `PAD_OFFSET_BY_ARM` is deliberately
+  NOT moved, so T0, T2 and T3 still carry that 13.45 mm between where an object
+  is declared and where it is drawn and grasped. **That is the next real job.**
+* **Neither arm crosses the centreline** -- 0 of 10 at every cross-side pose.
+  `t1_task.build()` refuses such a cube by name.
+* **One look per arm**, because no pose exists from which one arm sees the row
+  within 1.05 m. Each side is 0.46 to 0.75 m away; the look returns all four
+  cubes 1.4 to 15 mm from truth.
+* **The pre-recording audit is alive again**: 46 PRESENT, 0 MISSING, 0 BLOCKED,
+  and T1-1 -- objects resting on the table -- is satisfied for the first time.
+
+## WHAT THE RECORDINGS FOUND, IN ORDER, ALL FIXED
+
+Each was live, each was invisible to the checks as they stood, each has a test:
+
+1. the schedule started before the arms reached waypoint 0 -- the first grasp
+   of each arm missed by 48 mm;
+2. `t1s2` declared no `orient`, so it ran at the pinned anchor while its
+   coordinates were solved at T1's approach: pads read 1.4 mm from every cube
+   while the gripper never closed, because the scene drew through the same
+   wrong offset;
+3. the observe pose spanned 0.62 to 1.34 m and the far cube merged with its own
+   pad;
+4. the work-plane window was one cube, and on this layout a mat sits 10 mm
+   under a cube's centre;
+5. the 10 mm window that replaced it had 6 mm of headroom, which the sweep's
+   own timing ate -- the mat is now excluded by its declared FOOTPRINT instead;
+6. `sim_session` split every argument containing a space.
+
+## THE GUI AUDIT FOUND THREE MORE, NONE OF THEM MINE
+
+`verify_gui_buttons` had been hanging on the modal consent dialog since that
+dialog was added, so it had never reached the presses that would have shown:
+`Gui` has no `log` method (five session buttons raised inside a Qt slot, which
+PyQt swallows, and did nothing silently); `procscan` was never imported, so the
+stray-`robot_state_publisher` preflight -- HARD CONSTRAINT 3's own guard -- had
+never run; and the Launch panel rendered three of its four groups, so the dance
+routines had no buttons at all.
+
 # RESUME POINT 2026-08-17 (later) — THE VISION FAULT IS FIXED AT ITS CAUSE
 
 ## THE ONE-PARAGRAPH VERSION

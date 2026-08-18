@@ -459,6 +459,19 @@ class Runner(Node):
         return [round(self.js.get("%s_joint_%d" % (arm, i), 0.0), 5)
                 for i in range(1, 8)] if self.js else []
 
+    def knuckle(self, arm):
+        """The gripper's ACTUAL opening, in radians, or None.
+
+        `grip()` PUBLISHES a target; this is what the fingers did about it,
+        and they are not the same thing at the moment the schedule moves on.
+        clip_scene decides a grasp on this value -- `holding(k, width_mm)` --
+        so a run that reads its own commanded value instead of this one is
+        judging itself by a quantity the evidence does not use.
+        """
+        if not self.js:
+            return None
+        return self.js.get("%s_robotiq_85_left_knuckle_joint" % arm)
+
     def ee(self, arm):
         if self.buf is None:
             return None
@@ -564,6 +577,33 @@ class Runner(Node):
         return {a: [float(v) for v in
                     GF.q_matrix(self.orient[a]) @ np.asarray(GF.PAD_MID_EE)]
                 for a in ARMS}
+
+
+def grip_settled(knuckle, want, width_mm):
+    """Have the FINGERS done what `grip()` asked, by the scene's own test?
+
+    `want` is the commanded knuckle; `knuckle` is the measured one. This is
+    deliberately NOT a comparison of the two: a hand closing on a 40 mm cube
+    stops at the cube, so "measured == commanded" is false for every correct
+    grasp. clip_scene decides a grasp with `gripper_state.holding()`, so a
+    run that waits on anything else is waiting for a different event than the
+    one its evidence records.
+
+    Known answers, taken from the clip this was written for
+    (06_full_autonomy/T1, cube_0 vs cube_1, 40 mm cubes, needed 0.3812):
+
+        grip_settled(0.0007, 0.4235, 40) is False   -- hand still open
+        grip_settled(0.3968, 0.4235, 40) is True    -- fingers on the cube
+
+    A `None` knuckle is settled, not unsettled: with no readback the run must
+    not stall on a value it cannot see.
+    """
+    from srl_teleop.gripper_state import holding
+    if knuckle is None:
+        return True
+    if want <= 1e-6:
+        return not holding(knuckle)
+    return bool(holding(knuckle, width_mm))
 
 
 def main(argv=None):
@@ -1114,6 +1154,76 @@ def main(argv=None):
     pend_obj = {arm: None for arm in ARMS}  # the object it must arrive AT
     late = {arm: 0 for arm in ARMS}
 
+    # ------------------------------------------------- WAITING, AND ITS COST
+    # A waypoint may be owed two different things, and they fail differently:
+    #
+    #   ARRIVAL   the schedule asked for a grip change and the pads are not
+    #             on the object yet. Waiting fixes it if the arm is merely
+    #             slow, and cannot fix it if the pose is unreachable.
+    #   THE GRIP  the change was commanded and the FINGERS have not done it.
+    #             clip_scene decides the grasp on the knuckle, so this is the
+    #             quantity that actually decides whether the cube moves.
+    #
+    # Bounded twice over. WP_SETTLE_S caps one waypoint so an unreachable
+    # pose costs seconds, not a run; RUN_SETTLE_BUDGET_S caps the whole run so
+    # 199 waypoints each waiting their cap cannot turn a 30 s clip into 26
+    # minutes. Past the budget the run goes back to its fixed dwell and says
+    # so -- degrading to the old behaviour rather than hanging.
+    WP_SETTLE_S = 8.0
+    RUN_SETTLE_BUDGET_S = 90.0
+    # THE SCENE'S OWN TEST, IMPORTED -- not a second copy of 0.90.
+    #
+    # The whole defect being fixed here is two instruments disagreeing about
+    # whether the hand was closed, so the run now decides it with the exact
+    # function clip_scene decides it with. `gripper_state.holding()` already
+    # carries both bounds and the reasons for them; a local threshold would
+    # be the third copy of a constant this repo has already had to unify once.
+    _width_mm = spec.get("width_mm") or None
+    stalled = []
+    budget = {"spent": 0.0, "warned": False}
+    grip_wait = {arm: None for arm in ARMS}
+    # AN OBJECT IS ONLY PAID FOR ONCE.
+    #
+    # The pick dwell is 14 waypoints at the same pose, so without this an
+    # unreachable cube costs 14 x WP_SETTLE_S = 112 s -- more than the whole
+    # run's budget -- and switches the waiting off for every cube after it.
+    # Once a waypoint has given up on reaching an object, later waypoints
+    # aimed at the SAME object stop waiting; a different object waits again.
+    gave_up = set()
+
+    def settling():
+        """What this waypoint is still waiting for. Empty list means go on."""
+        if budget["spent"] >= RUN_SETTLE_BUDGET_S:
+            if not budget["warned"]:
+                budget["warned"] = True
+                print("[SETTLE] budget of %.0f s is spent -- the rest of the "
+                      "run uses the fixed dwell" % RUN_SETTLE_BUDGET_S,
+                      flush=True)
+            return []
+        why = []
+        for arm in ARMS:
+            if pend[arm] is not None:
+                obj = pend_obj[arm] or grip_obj
+                if (arm, tuple(obj) if obj else None) in gave_up:
+                    continue
+                here = n.ee(arm)
+                _o = PAD_OFF_BY_ARM[arm]
+                if here is not None and obj is not None:
+                    pads = [here[i] + _o[i] for i in range(3)]
+                    why.append("%s arm is %.3f m from its object"
+                               % (arm, math.dist(pads, obj)))
+                else:
+                    why.append("%s arm has no pose yet" % arm)
+            elif grip_wait[arm] is not None:
+                kn = n.knuckle(arm)
+                want = held_grip[arm]
+                if grip_settled(kn, want, _width_mm):
+                    grip_wait[arm] = None
+                else:
+                    why.append("%s gripper is at %.4f, wants %.4f"
+                               % (arm, kn, want))
+        return why
+
     # ---------------------------------------------------------------- DATA
     # ONE TRIAL, ONE LOGGER. Opened here rather than in a wrapper so that
     # every entry point into the MSc tasks writes data -- a wrapper is
@@ -1178,7 +1288,31 @@ def main(argv=None):
         # a real master both do, so this makes every mode more faithful, not
         # just VR.
         steps = max(1, int(a.hold_s / 0.05))
-        for _ in range(steps):
+        # AND THE SCHEDULE WAITS FOR THE ARM, not just the grip command.
+        #
+        # Gating the COMMAND on arrival (above) stopped the hand closing in
+        # mid-air. It did not stop the schedule walking on while the fingers
+        # were still moving, because `steps` is a fixed number of ticks per
+        # waypoint and the arm's lag is not. Measured on the first mode-06
+        # T1 re-record, from clip_scene's own closest-approach numbers:
+        #
+        #   cube_0  pads reached 11.0 mm  -- knuckle 0.0007, hand OPEN --
+        #           and the fingers did not read closed until 48.8 mm away
+        #   cube_2  pads never got closer than 42.3 mm at all
+        #
+        # Both cubes stayed on the table; the two that were detected most
+        # accurately were the two that were picked. The same run, launched by
+        # hand with nothing recording, picked all four -- so this is the
+        # RECORDING LOAD (eight ffmpeg captures and RViz) slowing the follower
+        # past a dwell that was tuned without it. A schedule whose result
+        # depends on what else is running is not measuring the task.
+        #
+        # So a waypoint that is WAITING FOR SOMETHING now holds until it gets
+        # it, bounded, and says so out loud when it does not. Waypoints that
+        # are waiting for nothing are unaffected, so every other task keeps
+        # its timing.
+        _tick, _wp_t0 = 0, time.time()
+        while True:
             n.hold_grip()
             for arm in ARMS:
                 tgt = wp[arm][min(k, len(wp[arm]) - 1)]
@@ -1245,6 +1379,9 @@ def main(argv=None):
                             held_grip[arm] = pend[arm]
                             pend[arm] = None
                             pend_obj[arm] = None
+                            # NOW WAIT FOR THE FINGERS. Commanding the close
+                            # is not closing it; see settling().
+                            grip_wait[arm] = time.time()
                         else:
                             late[arm] += 1
                     n.grip(arm, held_grip[arm])
@@ -1301,6 +1438,29 @@ def main(argv=None):
                                     MODES[a.mode]["topic"] else "DIRECT"),
                     estop=int(bool(getattr(n, "estopped", False))))
             n.spin(0.05)
+            _tick += 1
+            if _tick < steps:
+                continue
+            _why = settling()
+            if not _why:
+                break
+            if time.time() - _wp_t0 > WP_SETTLE_S:
+                # LOUD, ONCE PER WAYPOINT. This is the line whose absence
+                # made the two missed cubes silent: the run reported exit 0
+                # and a clip was filed, and the only trace that anything had
+                # gone wrong was a distance buried in scene_events.json.
+                print("[SETTLE] waypoint %d gave up after %.1f s: %s"
+                      % (k, WP_SETTLE_S, "; ".join(_why)), flush=True)
+                stalled.append((k, list(_why)))
+                # DISARM, so an unreachable pose is paid for once rather than
+                # at every waypoint that follows it.
+                for _a in ARMS:
+                    grip_wait[_a] = None
+                    if pend[_a] is not None:
+                        _o = pend_obj[_a] or grip_obj
+                        gave_up.add((_a, tuple(_o) if _o else None))
+                break
+        budget["spent"] += max(0.0, (time.time() - _wp_t0) - steps * 0.05)
         for arm in ARMS:
             pt = n.ee(arm)
             if pt is not None:
@@ -1315,6 +1475,18 @@ def main(argv=None):
         # the gate saved the run.
         print("[GRIP] deferred %s ticks waiting for arrival (left/right)"
               % "/".join(str(late[a]) for a in ARMS), flush=True)
+
+    if stalled:
+        # THE HEADLINE, NOT A FOOTNOTE. A run that gave up on a waypoint did
+        # not do what it was asked, whatever its exit code says, and the
+        # thing that made the last two bad clips expensive was that this had
+        # to be reconstructed afterwards from closest-approach distances.
+        print("[SETTLE] %d waypoint(s) never settled -- THIS RUN DID NOT "
+              "COMPLETE ITS TASK:" % len(stalled), flush=True)
+        for _k, _w in stalled[:12]:
+            print("   waypoint %-4d %s" % (_k, "; ".join(_w)), flush=True)
+        if len(stalled) > 12:
+            print("   ... and %d more" % (len(stalled) - 12), flush=True)
 
     end = {arm: n.ee(arm) for arm in ARMS}
     travel, net = {}, {}

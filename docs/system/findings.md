@@ -5952,3 +5952,73 @@ sentence verbatim.
 `verify_gui_buttons` presses every button in the window, so the panel's two
 process launches go through one interceptable method each — pressing LOOK for
 real would move the arm in the middle of a button audit.
+
+## 2026-08-18, later: two of T1's four cubes stayed on the table, and the run said exit 0
+
+The first mode-06 T1 re-record after the layout was fixed **picked two cubes
+and left two**, and every gate the run had reported success. The clip failed
+only because the cube that was missed happened to be `items[0]`, which is the
+only item `record_abc_sweep`'s placement check ever read.
+
+`clip_scene` records closest approach whether or not it becomes a grasp, and
+that is what separated the two failures — they are **not the same defect**:
+
+| cube | detected off truth | pads got to | knuckle there | fingers closed at |
+| --- | --- | --- | --- | --- |
+| cube_0 (left, 0.420) | 10.3 mm | **11.0 mm** | **0.0007 — OPEN** | 48.8 mm away |
+| cube_1 (left, 0.480) | 2.8 mm | 0.0 | 0.4055 | on the cube |
+| cube_2 (right, −0.420) | 21.4 mm | **42.3 mm** | 0.201 | never |
+| cube_3 (right, −0.480) | 8.1 mm | 0.0 | 0.3989 | on the cube |
+
+So cube_0 was **reached and lost to timing** — the pads were 11 mm from it
+with the hand still open, and the fingers did not read closed until the arm
+had moved 48.8 mm on. cube_2 was **never reached**: it stopped 42.3 mm short
+of a 100 mm standoff, 58% of the way down its own descent.
+
+**The same run, launched by hand with nothing recording, picked all four.**
+That is the whole finding. The dwell at the pick is fourteen waypoints, tuned
+without the recording load; under eight ffmpeg captures and RViz the follower
+lags past it. A schedule whose result depends on what else is running on the
+box is not measuring the task, and it had been passing only because the lag
+had been smaller than the dwell.
+
+### What was actually wrong
+
+The grip COMMAND was already gated on arrival — that was fixed twice before,
+and the comment block in `run_abc` records both. What was never gated is **the
+schedule itself**. `steps = hold_s / 0.05` is a fixed number of ticks per
+waypoint; the arm's lag is not fixed. So the close was commanded correctly and
+then the schedule walked away while the fingers were still moving.
+
+Two different quantities were being confused, and they fail differently:
+
+* **arrival** — the pads are not on the object yet. Waiting fixes it if the
+  arm is slow, and cannot fix it if the pose is unreachable.
+* **the grip** — the change was commanded and the FINGERS have not done it.
+  `clip_scene` decides a grasp on the knuckle, so this is the quantity that
+  decides whether the cube moves at all.
+
+A waypoint that is waiting for either now holds until it gets it, bounded by
+`WP_SETTLE_S` (8 s per waypoint) and `RUN_SETTLE_BUDGET_S` (90 s per run),
+and **says so out loud** when it gives up. An object that has been given up on
+is not paid for again — the pick dwell is 14 waypoints at one pose, so without
+that one unreachable cube would cost 112 s and switch the waiting off for
+every cube after it.
+
+The settle test is `gripper_state.holding()` **imported, not reimplemented**.
+The defect being fixed is two instruments disagreeing about whether the hand
+was closed; a local copy of the 0.90 fraction would have been the third copy
+of a constant this repo has already had to unify once.
+`test_grip_waits_for_the_fingers.py` sweeps every knuckle from 0.000 to 0.800
+and asserts the run and the scene agree at all of them, with the two measured
+values above as its known answers.
+
+### And the check that could not fail
+
+`record_abc_sweep` compared `items[0]["final"]` against `place_target`. For a
+one-object task that is the task; for T1's four cubes it is a quarter of it,
+and **the other three could not fail**. Had cube_1 rather than cube_0 been the
+one missed, this clip would have been filed as good. It now names every object
+that was never carried, and every object still in the hand at the end.
+Re-run against the rejected clip on disk it answers
+`NEVER MOVED: ['cube_0', 'cube_2']`.

@@ -1419,6 +1419,36 @@ def _main_body():
                     # dropped 0.15 m short and 0.15 m above the bin -- a clip
                     # of a failed place that passed every check, because
                     # nothing compared the release point to the target.
+                    # EVERY OBJECT, NOT items[0].
+                    #
+                    # The target check below reads the FIRST item only. For a
+                    # one-object task that is the task; for T1, which has
+                    # four cubes, it is one quarter of it, and the other
+                    # three could not fail. Measured on the 2026-08-18
+                    # mode-06 re-record: cube_0 and cube_2 were never picked
+                    # at all and sat on the table for the whole clip, and the
+                    # only reason the cell failed was that the cube left
+                    # behind happened to be items[0]. Had either of the other
+                    # two been missed the clip would have been filed as good.
+                    #
+                    # A cube that was never carried is the plainest possible
+                    # statement of the failure, so it is checked first and by
+                    # name.
+                    _never = [it.get("item", "?")
+                              for it in (ev.get("items") or [])
+                              if not it.get("carried_m")]
+                    if _never:
+                        good = False
+                        msg += ("; %d OBJECT(S) NEVER MOVED: %s"
+                                % (len(_never), ", ".join(_never)))
+                    _held = [it.get("item", "?")
+                             for it in (ev.get("items") or [])
+                             if it.get("still_held")]
+                    if _held:
+                        good = False
+                        msg += ("; STILL IN THE HAND AT THE END: %s"
+                                % ", ".join(_held))
+
                     tgt = ts["mod"].TASKS[task].get("place_target")
                     itm = (ev.get("items") or [None])[0]
                     po = ev.get("pad_off") or [0.0, 0.0, 0.0]

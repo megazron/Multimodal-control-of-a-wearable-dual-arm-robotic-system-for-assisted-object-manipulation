@@ -828,7 +828,7 @@ def self_test(mods):
         if all(s == PRESENT for s, _ in res.values()):
             fails.append(name)
 
-    CS, M, T3 = mods["clip_scene"], mods["msc"], mods["task3"]
+    CS, T3 = mods["clip_scene"], mods["task3"]
 
     import t1_task as T1M
     orig = copy.deepcopy(T1M.T1_CUBES)

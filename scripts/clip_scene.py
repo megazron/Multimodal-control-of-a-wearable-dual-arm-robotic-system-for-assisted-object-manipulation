@@ -866,7 +866,6 @@ def work_top_for(arm, task):
     direction, as the 116.5 mm one this function was written to fix.
     """
     import clip_tasks as _ct
-    import msc_clip_tasks as _mct
     if task in ("t1", "t1s2"):
         # THE TABLE TOP, NOT THE PAD TOP. T1's cubes STAND ON THE TABLE; the
         # pads are 10 mm mats lying on it under two of the six positions. The
@@ -1120,7 +1119,6 @@ class Scene(Node):
                                        held=False)}
 
         # ---------------------------------------------------------- MSc set
-        import msc_clip_tasks as MCT
         import task3 as T3M
         if task == "t0" or task in ("d1", "d2", "d3"):
             # NO OBJECTS. T0 is reaching only, and the dance is a routine --

@@ -1,22 +1,22 @@
 {
  "scene": [
   [
-   0.4,
+   0.42,
    0.45,
    0
   ],
   [
-   0.46,
+   0.48,
    0.45,
    0
   ],
   [
-   -0.4,
+   -0.42,
    0.45,
    1
   ],
   [
-   -0.46,
+   -0.48,
    0.45,
    1
   ]
@@ -453,12 +453,12 @@
    "reply": null,
    "plan": [
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -503,12 +503,12 @@
    "reply": null,
    "plan": [
     [
-     -0.46,
+     -0.48,
      0.45,
      1
     ],
     [
-     -0.4,
+     -0.42,
      0.45,
      1
     ]
@@ -561,22 +561,22 @@
    "reply": null,
    "plan": [
     [
-     -0.46,
+     -0.48,
      0.45,
      1
     ],
     [
-     -0.4,
+     -0.42,
      0.45,
      1
     ],
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -607,7 +607,7 @@
    "intended": null,
    "note": "SINGULAR against two blue cubes -- must ask, not pick one",
    "verdict": "ASKED",
-   "message": "I see 2 blue cubes (blue at x = +0.40; blue at x = +0.46). Which one -- the leftmost, the rightmost, or say 'both' for all of them?",
+   "message": "I see 2 blue cubes (blue at x = +0.42; blue at x = +0.48). Which one -- the leftmost, the rightmost, or say 'both' for all of them?",
    "why": "",
    "reply": {
     "text": "the leftmost",
@@ -617,7 +617,7 @@
     "message": "1 cube, picked up and held (the left one)",
     "plan": [
      [
-      0.46,
+      0.48,
       0.45,
       null
      ]
@@ -628,12 +628,12 @@
     "kind": "which_cube",
     "cands": [
      [
-      0.4,
+      0.42,
       0.45,
       0
      ],
      [
-      0.46,
+      0.48,
       0.45,
       0
      ]
@@ -663,7 +663,7 @@
    "intended": null,
    "note": "the same on the other arm",
    "verdict": "ASKED",
-   "message": "I see 2 green cubes (green at x = -0.40; green at x = -0.46). Which one -- the leftmost, the rightmost, or say 'both' for all of them?",
+   "message": "I see 2 green cubes (green at x = -0.42; green at x = -0.48). Which one -- the leftmost, the rightmost, or say 'both' for all of them?",
    "why": "",
    "reply": {
     "text": "the rightmost",
@@ -673,7 +673,7 @@
     "message": "1 cube, picked up and held (the right one)",
     "plan": [
      [
-      -0.46,
+      -0.48,
       0.45,
       null
      ]
@@ -684,12 +684,12 @@
     "kind": "which_cube",
     "cands": [
      [
-      -0.4,
+      -0.42,
       0.45,
       1
      ],
      [
-      -0.46,
+      -0.48,
       0.45,
       1
      ]
@@ -733,12 +733,12 @@
    "reply": null,
    "plan": [
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -783,12 +783,12 @@
    "reply": null,
    "plan": [
     [
-     -0.46,
+     -0.48,
      0.45,
      1
     ],
     [
-     -0.4,
+     -0.42,
      0.45,
      1
     ]
@@ -819,7 +819,7 @@
    "intended": null,
    "note": "singular and deictic against four cubes -- must ask",
    "verdict": "ASKED",
-   "message": "I see 4 matching cubes (blue at x = +0.40; blue at x = +0.46; green at x = -0.40; green at x = -0.46). Which one -- the leftmost, the rightmost, or say 'both' for all of them?",
+   "message": "I see 4 matching cubes (blue at x = +0.42; blue at x = +0.48; green at x = -0.42; green at x = -0.48). Which one -- the leftmost, the rightmost, or say 'both' for all of them?",
    "why": "",
    "reply": {
     "text": "the blue one on the left",
@@ -829,7 +829,7 @@
     "message": "1 cube, each on the pad of the colour the camera saw (the left one)",
     "plan": [
      [
-      0.46,
+      0.48,
       0.45,
       0
      ]
@@ -840,22 +840,22 @@
     "kind": "which_cube",
     "cands": [
      [
-      0.4,
+      0.42,
       0.45,
       0
      ],
      [
-      0.46,
+      0.48,
       0.45,
       0
      ],
      [
-      -0.4,
+      -0.42,
       0.45,
       1
      ],
      [
-      -0.46,
+      -0.48,
       0.45,
       1
      ]
@@ -893,7 +893,7 @@
    "intended": null,
    "note": "one hand, four cubes -- must ask rather than pick one of them. The reply is a NEW instruction rather than an answer, and it is itself plural-deictic, so it asks once more before it plans",
    "verdict": "ASKED",
-   "message": "I can hold one cube at a time, and that names 4 (blue at x = +0.40; blue at x = +0.46; green at x = -0.40; green at x = -0.46). Say which one, or say 'put them on their own colours' if you want them all moved.",
+   "message": "I can hold one cube at a time, and that names 4 (blue at x = +0.42; blue at x = +0.48; green at x = -0.42; green at x = -0.48). Say which one, or say 'put them on their own colours' if you want them all moved.",
    "why": "",
    "reply": {
     "text": "put them on their own colours / all of them",
@@ -903,22 +903,22 @@
     "message": "4 cubes, each on the pad of the colour the camera saw (you said all of them) (read 'colours' as 'colour')",
     "plan": [
      [
-      -0.46,
+      -0.48,
       0.45,
       1
      ],
      [
-      -0.4,
+      -0.42,
       0.45,
       1
      ],
      [
-      0.4,
+      0.42,
       0.45,
       0
      ],
      [
-      0.46,
+      0.48,
       0.45,
       0
      ]
@@ -929,22 +929,22 @@
     "kind": "which_cube",
     "cands": [
      [
-      0.4,
+      0.42,
       0.45,
       0
      ],
      [
-      0.46,
+      0.48,
       0.45,
       0
      ],
      [
-      -0.4,
+      -0.42,
       0.45,
       1
      ],
      [
-      -0.46,
+      -0.48,
       0.45,
       1
      ]
@@ -996,22 +996,22 @@
    "reply": null,
    "plan": [
     [
-     -0.46,
+     -0.48,
      0.45,
      1
     ],
     [
-     -0.4,
+     -0.42,
      0.45,
      1
     ],
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -1064,22 +1064,22 @@
    "reply": null,
    "plan": [
     [
-     -0.46,
+     -0.48,
      0.45,
      1
     ],
     [
-     -0.4,
+     -0.42,
      0.45,
      1
     ],
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -1120,22 +1120,22 @@
     "message": "4 cubes, each on the pad of the colour the camera saw (you said all of them) (read 'colours' as 'colour')",
     "plan": [
      [
-      -0.46,
+      -0.48,
       0.45,
       1
      ],
      [
-      -0.4,
+      -0.42,
       0.45,
       1
      ],
      [
-      0.4,
+      0.42,
       0.45,
       0
      ],
      [
-      0.46,
+      0.48,
       0.45,
       0
      ]
@@ -1146,22 +1146,22 @@
     "kind": "which_cube",
     "cands": [
      [
-      0.4,
+      0.42,
       0.45,
       0
      ],
      [
-      0.46,
+      0.48,
       0.45,
       0
      ],
      [
-      -0.4,
+      -0.42,
       0.45,
       1
      ],
      [
-      -0.46,
+      -0.48,
       0.45,
       1
      ]
@@ -1229,22 +1229,22 @@
     "kind": "which_pad",
     "cands": [
      [
-      0.4,
+      0.42,
       0.45,
       0
      ],
      [
-      0.46,
+      0.48,
       0.45,
       0
      ],
      [
-      -0.4,
+      -0.42,
       0.45,
       1
      ],
      [
-      -0.46,
+      -0.48,
       0.45,
       1
      ]
@@ -1304,22 +1304,22 @@
    "reply": null,
    "plan": [
     [
-     -0.46,
+     -0.48,
      0.45,
      1
     ],
     [
-     -0.4,
+     -0.42,
      0.45,
      1
     ],
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -1364,12 +1364,12 @@
    "reply": null,
    "plan": [
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -1414,12 +1414,12 @@
    "reply": null,
    "plan": [
     [
-     -0.46,
+     -0.48,
      0.45,
      1
     ],
     [
-     -0.4,
+     -0.42,
      0.45,
      1
     ]
@@ -1464,12 +1464,12 @@
    "reply": null,
    "plan": [
     [
-     -0.46,
+     -0.48,
      0.45,
      1
     ],
     [
-     -0.4,
+     -0.42,
      0.45,
      1
     ]
@@ -1514,12 +1514,12 @@
    "reply": null,
    "plan": [
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -1564,12 +1564,12 @@
    "reply": null,
    "plan": [
     [
-     0.4,
+     0.42,
      0.45,
      1
     ],
     [
-     0.46,
+     0.48,
      0.45,
      1
     ]
@@ -1614,12 +1614,12 @@
    "reply": null,
    "plan": [
     [
-     -0.46,
+     -0.48,
      0.45,
      0
     ],
     [
-     -0.4,
+     -0.42,
      0.45,
      0
     ]
@@ -1672,22 +1672,22 @@
    "reply": null,
    "plan": [
     [
-     -0.46,
+     -0.48,
      0.45,
      0
     ],
     [
-     -0.4,
+     -0.42,
      0.45,
      0
     ],
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -1733,7 +1733,7 @@
    "reply": null,
    "plan": [
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -1777,7 +1777,7 @@
    "reply": null,
    "plan": [
     [
-     -0.46,
+     -0.48,
      0.45,
      1
     ]
@@ -1821,7 +1821,7 @@
    "reply": null,
    "plan": [
     [
-     -0.4,
+     -0.42,
      0.45,
      1
     ]
@@ -1865,7 +1865,7 @@
    "reply": null,
    "plan": [
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -1909,7 +1909,7 @@
    "reply": null,
    "plan": [
     [
-     0.4,
+     0.42,
      0.45,
      0
     ]
@@ -2051,7 +2051,7 @@
    "reply": null,
    "plan": [
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -2136,22 +2136,22 @@
    "reply": null,
    "plan": [
     [
-     -0.46,
+     -0.48,
      0.45,
      1
     ],
     [
-     -0.4,
+     -0.42,
      0.45,
      1
     ],
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -2207,22 +2207,22 @@
    "reply": null,
    "plan": [
     [
-     -0.46,
+     -0.48,
      0.45,
      1
     ],
     [
-     -0.4,
+     -0.42,
      0.45,
      1
     ],
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -2329,12 +2329,12 @@
    "reply": null,
    "plan": [
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -2422,22 +2422,22 @@
    "reply": null,
    "plan": [
     [
-     -0.46,
+     -0.48,
      0.45,
      1
     ],
     [
-     -0.4,
+     -0.42,
      0.45,
      1
     ],
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -2478,7 +2478,7 @@
     "message": "1 cube, on the blue pad (the left one)",
     "plan": [
      [
-      0.46,
+      0.48,
       0.45,
       0
      ]
@@ -2489,22 +2489,22 @@
     "kind": "which_cube",
     "cands": [
      [
-      0.4,
+      0.42,
       0.45,
       0
      ],
      [
-      0.46,
+      0.48,
       0.45,
       0
      ],
      [
-      -0.4,
+      -0.42,
       0.45,
       1
      ],
      [
-      -0.46,
+      -0.48,
       0.45,
       1
      ]
@@ -2552,22 +2552,22 @@
     "message": "4 cubes, each on the pad of the colour the camera saw (you confirmed it)",
     "plan": [
      [
-      -0.46,
+      -0.48,
       0.45,
       1
      ],
      [
-      -0.4,
+      -0.42,
       0.45,
       1
      ],
      [
-      0.4,
+      0.42,
       0.45,
       0
      ],
      [
-      0.46,
+      0.48,
       0.45,
       0
      ]
@@ -2579,22 +2579,22 @@
     "proposal": "match_all",
     "cands": [
      [
-      0.4,
+      0.42,
       0.45,
       0
      ],
      [
-      0.46,
+      0.48,
       0.45,
       0
      ],
      [
-      -0.4,
+      -0.42,
       0.45,
       1
      ],
      [
-      -0.46,
+      -0.48,
       0.45,
       1
      ]
@@ -2632,22 +2632,22 @@
     "message": "4 cubes, each on the pad of the colour the camera saw (you confirmed it)",
     "plan": [
      [
-      -0.46,
+      -0.48,
       0.45,
       1
      ],
      [
-      -0.4,
+      -0.42,
       0.45,
       1
      ],
      [
-      0.4,
+      0.42,
       0.45,
       0
      ],
      [
-      0.46,
+      0.48,
       0.45,
       0
      ]
@@ -2659,22 +2659,22 @@
     "proposal": "match_all",
     "cands": [
      [
-      0.4,
+      0.42,
       0.45,
       0
      ],
      [
-      0.46,
+      0.48,
       0.45,
       0
      ],
      [
-      -0.4,
+      -0.42,
       0.45,
       1
      ],
      [
-      -0.46,
+      -0.48,
       0.45,
       1
      ]
@@ -2754,7 +2754,7 @@
    "intended": null,
    "note": "which cube, and which pad -- four cubes and two pads. TWO questions, so two turns, and the dialogue has to survive that",
    "verdict": "ASKED",
-   "message": "I see 4 matching cubes (blue at x = +0.40; blue at x = +0.46; green at x = -0.40; green at x = -0.46). Which one -- the leftmost, the rightmost, or say 'both' for all of them?",
+   "message": "I see 4 matching cubes (blue at x = +0.42; blue at x = +0.48; green at x = -0.42; green at x = -0.48). Which one -- the leftmost, the rightmost, or say 'both' for all of them?",
    "why": "",
    "reply": {
     "text": "both blue ones / the blue pad",
@@ -2764,12 +2764,12 @@
     "message": "2 cubes, on the blue pad",
     "plan": [
      [
-      0.4,
+      0.42,
       0.45,
       0
      ],
      [
-      0.46,
+      0.48,
       0.45,
       0
      ]
@@ -2780,22 +2780,22 @@
     "kind": "which_cube",
     "cands": [
      [
-      0.4,
+      0.42,
       0.45,
       0
      ],
      [
-      0.46,
+      0.48,
       0.45,
       0
      ],
      [
-      -0.4,
+      -0.42,
       0.45,
       1
      ],
      [
-      -0.46,
+      -0.48,
       0.45,
       1
      ]
@@ -2899,12 +2899,12 @@
    "reply": null,
    "plan": [
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -3302,12 +3302,12 @@
     "kind": "which_pad",
     "cands": [
      [
-      0.4,
+      0.42,
       0.45,
       0
      ],
      [
-      0.46,
+      0.48,
       0.45,
       0
      ]
@@ -3402,7 +3402,7 @@
    "reply": null,
    "plan": [
     [
-     0.46,
+     0.48,
      0.45,
      null
     ]
@@ -3442,7 +3442,7 @@
    "reply": null,
    "plan": [
     [
-     -0.46,
+     -0.48,
      0.45,
      null
     ]
@@ -3482,7 +3482,7 @@
    "reply": null,
    "plan": [
     [
-     -0.4,
+     -0.42,
      0.45,
      null
     ]
@@ -3526,12 +3526,12 @@
    "reply": null,
    "plan": [
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -3585,12 +3585,12 @@
    "reply": null,
    "plan": [
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -3636,12 +3636,12 @@
     "message": "2 cubes, on the green pad",
     "plan": [
      [
-      -0.46,
+      -0.48,
       0.45,
       1
      ],
      [
-      -0.4,
+      -0.42,
       0.45,
       1
      ]
@@ -3705,22 +3705,22 @@
     "kind": "which_cube",
     "cands": [
      [
-      0.4,
+      0.42,
       0.45,
       0
      ],
      [
-      0.46,
+      0.48,
       0.45,
       0
      ],
      [
-      -0.4,
+      -0.42,
       0.45,
       1
      ],
      [
-      -0.46,
+      -0.48,
       0.45,
       1
      ]
@@ -3861,22 +3861,22 @@
    "reply": null,
    "plan": [
     [
-     -0.46,
+     -0.48,
      0.45,
      1
     ],
     [
-     -0.4,
+     -0.42,
      0.45,
      1
     ],
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -3921,12 +3921,12 @@
    "reply": null,
    "plan": [
     [
-     0.4,
+     0.42,
      0.45,
      0
     ],
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -3967,7 +3967,7 @@
    "reply": null,
    "plan": [
     [
-     0.46,
+     0.48,
      0.45,
      0
     ]
@@ -4017,30 +4017,30 @@
    "CORRECT": 3
   },
   "superlative": {
-   "REFUSED": 4,
-   "CORRECT": 4
+   "CORRECT": 4,
+   "REFUSED": 4
   },
   "ordinal": {
    "CORRECT": 2
   },
   "compound": {
-   "REFUSED": 1,
-   "CORRECT": 2
+   "CORRECT": 2,
+   "REFUSED": 1
   },
   "two-targets": {
    "REFUSED": 1
   },
   "politeness": {
-   "REFUSED": 1,
-   "CORRECT": 2
+   "CORRECT": 2,
+   "REFUSED": 1
   },
   "vague": {
    "ASKED": 4,
    "REFUSED": 3
   },
   "negation": {
-   "REFUSED": 2,
-   "CORRECT": 1
+   "CORRECT": 1,
+   "REFUSED": 2
   },
   "two-actions": {
    "REFUSED": 1
@@ -4074,8 +4074,8 @@
   },
   "misspelling": {
    "ASKED": 3,
-   "REFUSED": 1,
-   "CORRECT": 5
+   "CORRECT": 5,
+   "REFUSED": 1
   }
  },
  "caveat": "grounding only; the scene is constructed, so this says nothing about detection rate"

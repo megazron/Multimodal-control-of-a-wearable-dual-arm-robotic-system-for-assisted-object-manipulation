@@ -748,6 +748,7 @@ wrist lands, and the pinned wrist was chosen for reach, not for seeing.
 | P-A | the object is in frame and within depth range at the LOOK pose, measured from the rendered camera, not asserted |
 | P-B | the grasp pose used is provably the DETECTED one — change the file coordinate and the arm still goes to the object |
 | P-C | detection failure is visible in the trial record and does not silently become a file-coordinate pick |
+| P-D | **every detection is AT an object.** Added 2026-08-18, because P-A as written is satisfiable by the wrong blobs: an observe pose that looked across the row from 0.335 m to 1.17 m returned four detections, the expected count, no refusal — and one of them was a fragment of the blue pad near the camera while a real cube far from it had been rejected as "not cube-sized at its own range". A count is not a match. `stage_observe_and_detect` now requires every detection to lie within the task's own 30 mm capture gate of a distinct declared cube, and refuses naming the unmatched ones. It is a POSITION check and deliberately not a colour one — the mislabel control changes what a cube looks like and never where it is |
 
 ---
 
@@ -778,7 +779,7 @@ wrist lands, and the pinned wrist was chosen for reach, not for seeing.
 | R-2 | clear the `rvizcfg` cache before any framing test. A stale cached config is why the last session did not converge |
 | R-3 | eight angles: front, back, left, right, iso, gripper, quad, plus the card |
 | R-4 | **the work must be CENTRED and FULLY IN FRAME.** It is currently at the right edge and cut off. The front view follows the task, `record_rviz.py` ~line 121, and the cache holds `front_t1.rviz` beside `front.rviz` |
-| R-5 | information card **FIRST**, held long enough to read, then the footage. Not an overlay. States mode, task, what is expected, what to watch for |
+| R-5 | information card **FIRST**, held long enough to read, then the footage. Not an overlay. States mode, task, what is expected, what to watch for — and under 06, **the typed instruction verbatim, in quotes**, because the instruction IS the trial's input: the same task under the same mode does different things depending on what was typed, and a viewer cannot tell which from the footage |
 | R-6 | card text written as a person would write it. No em dashes. No "leverage", "robust", "seamless", "delve". No tricolon lists. Read it back and cut anything that sounds generated |
 | R-7 | every clip opens on the **presentation pose** if it exists. Settle whether it does — it has been reported both built and absent |
 | R-8 | identify the tall box at bottom-left of frame. An unidentified object in every shot is either undeclared scene geometry or a leftover |

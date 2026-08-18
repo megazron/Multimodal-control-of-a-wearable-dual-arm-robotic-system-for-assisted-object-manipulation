@@ -1,0 +1,811 @@
+{
+  "tag": "corner_e-30",
+  "posture": "down",
+  "floor": 0.15,
+  "repeats": 3,
+  "controls": {
+    "inside_torso_is_negative": -0.1569,
+    "far_1.6m_unreachable": true,
+    "shipped_cube_reachable_and_clear": "True / 0.161",
+    "slab_control_free_then_buried": "True -> False (want True -> False)"
+  },
+  "table": {
+    "top": 0.95,
+    "near_y": 0.3
+  },
+  "gap": {
+    "left/heading +60 deg inboard": [
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.0,
+        "obj": [
+          0.0,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.05,
+        "obj": [
+          0.05,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.1,
+        "obj": [
+          0.1,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.15,
+        "obj": [
+          0.15,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.2,
+        "obj": [
+          0.2,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.25,
+        "obj": [
+          0.25,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.3,
+        "obj": [
+          0.3,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.35,
+        "obj": [
+          0.35,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.4,
+        "obj": [
+          0.4,
+          0.32,
+          0.97
+        ]
+      }
+    ],
+    "left/heading +70 deg inboard": [
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 3,
+        "of": 10,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.0,
+        "obj": [
+          0.0,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 3,
+        "of": 10,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.05,
+        "obj": [
+          0.05,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.1,
+        "obj": [
+          0.1,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.15,
+        "obj": [
+          0.15,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 3,
+        "of": 10,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.2,
+        "obj": [
+          0.2,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 3,
+        "of": 10,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.25,
+        "obj": [
+          0.25,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 3,
+        "of": 10,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.3,
+        "obj": [
+          0.3,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 3,
+        "of": 10,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.35,
+        "obj": [
+          0.35,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 3,
+        "of": 10,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.4,
+        "obj": [
+          0.4,
+          0.32,
+          0.97
+        ]
+      }
+    ],
+    "left/heading +80 deg inboard": [
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.0,
+        "obj": [
+          0.0,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.05,
+        "obj": [
+          0.05,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.1,
+        "obj": [
+          0.1,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.15,
+        "obj": [
+          0.15,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.2,
+        "obj": [
+          0.2,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.25,
+        "obj": [
+          0.25,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.3,
+        "obj": [
+          0.3,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.35,
+        "obj": [
+          0.35,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "left",
+        "x": 0.4,
+        "obj": [
+          0.4,
+          0.32,
+          0.97
+        ]
+      }
+    ],
+    "right/heading +60 deg inboard": [
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.0,
+        "obj": [
+          -0.0,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.05,
+        "obj": [
+          -0.05,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 3,
+        "of": 10,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.1,
+        "obj": [
+          -0.1,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.15,
+        "obj": [
+          -0.15,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.2,
+        "obj": [
+          -0.2,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.25,
+        "obj": [
+          -0.25,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.3,
+        "obj": [
+          -0.3,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.35,
+        "obj": [
+          -0.35,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.4,
+        "obj": [
+          -0.4,
+          0.32,
+          0.97
+        ]
+      }
+    ],
+    "right/heading +70 deg inboard": [
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.0,
+        "obj": [
+          -0.0,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 3,
+        "of": 10,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.05,
+        "obj": [
+          -0.05,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 3,
+        "of": 10,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.1,
+        "obj": [
+          -0.1,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 3,
+        "of": 10,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.15,
+        "obj": [
+          -0.15,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 3,
+        "of": 10,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.2,
+        "obj": [
+          -0.2,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 3,
+        "of": 10,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.25,
+        "obj": [
+          -0.25,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 3,
+        "of": 10,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.3,
+        "obj": [
+          -0.3,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.35,
+        "obj": [
+          -0.35,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.4,
+        "obj": [
+          -0.4,
+          0.32,
+          0.97
+        ]
+      }
+    ],
+    "right/heading +80 deg inboard": [
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.0,
+        "obj": [
+          -0.0,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.05,
+        "obj": [
+          -0.05,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.1,
+        "obj": [
+          -0.1,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.15,
+        "obj": [
+          -0.15,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.2,
+        "obj": [
+          -0.2,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.25,
+        "obj": [
+          -0.25,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.3,
+        "obj": [
+          -0.3,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.35,
+        "obj": [
+          -0.35,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:TABLE",
+        "at_wp": 4,
+        "of": 11,
+        "detail": "free once the furniture is out, so the TABLE blocks it",
+        "arm": "right",
+        "x": 0.4,
+        "obj": [
+          -0.4,
+          0.32,
+          0.97
+        ]
+      }
+    ]
+  },
+  "log": [
+    "CONTROLS   (run tag: corner_e-30; wearer posture in the URDF: down)",
+    "   inside_torso_is_negative               -0.1569",
+    "   far_1.6m_unreachable                   True",
+    "   shipped_cube_reachable_and_clear       True / 0.161",
+    "   slab_control_free_then_buried          True -> False (want True -> False)",
+    "   link namer inside the torso            -0.1569 / torso / end_effector_link -> robotiq_85_left_finger_tip_link",
+    "\n==========================================================================",
+    "1. THE GAP -- objects RESTING on the table, full pick path, N=3",
+    "   table top 0.950, near edge 0.300, row y = 0.320, object z = 0.970",
+    "==========================================================================",
+    "\n  LEFT arm, heading +60 deg inboard (elevation -30.0 deg, heading -60.0 deg)",
+    "   |x| 0.000  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.050  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.100  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.150  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.200  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.250  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.300  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.350  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.400  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "      innermost REACHABLE |x| = none",
+    "\n  LEFT arm, heading +70 deg inboard (elevation -30.0 deg, heading -70.0 deg)",
+    "   |x| 0.000  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.050  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.100  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.150  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.200  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.250  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.300  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.350  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.400  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "      innermost REACHABLE |x| = none",
+    "\n  LEFT arm, heading +80 deg inboard (elevation -30.0 deg, heading -80.0 deg)",
+    "   |x| 0.000  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.050  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.100  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.150  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.200  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.250  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.300  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.350  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.400  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "      innermost REACHABLE |x| = none",
+    "\n  RIGHT arm, heading +60 deg inboard (elevation -30.0 deg, heading +60.0 deg)",
+    "   |x| 0.000  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.050  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.100  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.150  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.200  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.250  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.300  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.350  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.400  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "      innermost REACHABLE |x| = none",
+    "\n  RIGHT arm, heading +70 deg inboard (elevation -30.0 deg, heading +70.0 deg)",
+    "   |x| 0.000  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.050  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.100  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.150  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.200  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.250  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.300  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.350  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.400  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "      innermost REACHABLE |x| = none",
+    "\n  RIGHT arm, heading +80 deg inboard (elevation -30.0 deg, heading +80.0 deg)",
+    "   |x| 0.000  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.050  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.100  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.150  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.200  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.250  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.300  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.350  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "   |x| 0.400  COLLISION:TABLE    free once the furniture is out, so the TABLE blocks it",
+    "      innermost REACHABLE |x| = none"
+  ],
+  "ik_calls": 735
+}

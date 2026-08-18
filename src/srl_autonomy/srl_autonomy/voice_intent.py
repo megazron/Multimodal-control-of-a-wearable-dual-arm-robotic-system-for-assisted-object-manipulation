@@ -530,22 +530,121 @@ def normalise(text):
     return re.sub(r"\s+", " ", t).strip()
 
 
-def strip_wake(text, wake=WAKE_DEFAULT):
+# HOW FAR A TRANSCRIBED WAKE PHRASE MAY BE FROM THE WRITTEN ONE.
+#
+# MEASURED, NOT CHOSEN. `scripts/measure_wake_word.py` speaks the wake phrase
+# through Piper, transcribes it with the same faster-whisper `small`/int8
+# model `voice_listener` loads, and compares what comes back with what was
+# said. Over 40 spoken instructions the transcriber wrote the wake phrase
+# EXACTLY ZERO times and produced, among others:
+#
+#     Hey Doc Ock   Hey Duck Ock   Hey duckuck   Hey duck-ock   Hey duck, ox
+#     Hey duck, uck   Hayduck Ock   Hey duck-cock   Hey duck, arc   Hey Doc
+#
+# Compared letters-only against `heydococ`, those sit 1 to 4 edits away, and
+# the alias list this function used to carry -- five hand-guessed spellings --
+# caught 13 of 40. The other 27 were refused with "no wake word" and one of
+# them was a plain, correct instruction. A wake word is the first thing
+# between an operator and a robot, and one that only works when a speech
+# engine spells a joke the way the author did is not a wake word.
+#
+# THE THRESHOLD IS A TRADE AND HERE IS THE TABLE IT WAS CHOSEN FROM. Both
+# sides measured on the same 95 spoken utterances -- 40 with the wake phrase,
+# 55 without (the same instructions spoken bare, plus overheard chatter):
+#
+#     edits   wake accepted        no-wake FALSELY accepted
+#       0       0 of 40    0%          0 of 55    0%
+#       1      14 of 40   35%          0 of 55    0%
+#       2      17 of 40   42%          1 of 55    2%
+#       3      38 of 40   95%          1 of 55    2%      <-- shipped
+#       4      39 of 40   98%          2 of 55    4%
+#       5      39 of 40   98%          9 of 55   16%
+#       6      40 of 40  100%         21 of 55   38%
+#
+# 3 is where the wake side saturates: it buys 21 more real wake utterances
+# over threshold 2 for no extra false accept at all. Above it the false-accept
+# curve turns over sharply.
+#
+# THE ONE FALSE ACCEPT AT 3 IS NOT A NEAR-MISS, IT IS THE PHRASE. It is
+# "hey doc how long have you been running that", heard as "Hey Doc, how long
+# have you been running that?" -- a person saying "hey doc", two edits from
+# "hey doc oc". No threshold separates those, because they are the same words.
+#
+# SO THE REAL FINDING IS ABOUT THE WAKE PHRASE, NOT THE MATCHER: "hey doc oc"
+# is a pun on ordinary English and cannot be made both reliable and safe. A
+# wake phrase should be phonetically distinctive and not a prefix of things
+# people say. `scripts/measure_wake_word.py --wake "..."` is how a replacement
+# gets chosen, and it must be re-run against REAL speakers before any number
+# here is called validated -- one synthetic voice is a pipeline test.
+WAKE_MAX_EDITS = 3
+# How many leading (or trailing) tokens may be consumed by the fuzzy match. A
+# two-token wake phrase can arrive as one token ("duckuck") or as three
+# ("duck", "ock", ","), so the window has to be searched rather than fixed.
+WAKE_MAX_TOKENS = 4
+
+
+def _edits(a, b):
+    """Levenshtein distance. Small strings; the simple table is fine."""
+    if a == b:
+        return 0
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1,
+                           prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[len(b)]
+
+
+def wake_distance(text, wake=WAKE_DEFAULT, max_tokens=WAKE_MAX_TOKENS):
+    """(edits, tokens_consumed, from_end) for the best wake match in `text`.
+
+    Letters only, both sides, so the transcriber's punctuation and its
+    decision to write "duckuck" as one word instead of two cannot matter.
+    Returns (None, 0, False) when there is nothing to compare.
+    """
+    w = re.sub(r"[^a-z0-9]", "", normalise(wake))
+    toks = normalise(text).split()
+    if not w or not toks:
+        return None, 0, False
+    best = (None, 0, False)
+    for from_end in (False, True):
+        seq = list(reversed(toks)) if from_end else toks
+        for k in range(1, min(max_tokens, len(seq)) + 1):
+            part = seq[:k]
+            if from_end:
+                part = list(reversed(part))
+            s = re.sub(r"[^a-z0-9]", "", "".join(part))
+            e = _edits(s, w)
+            if best[0] is None or e < best[0]:
+                best = (e, k, from_end)
+    return best
+
+
+def strip_wake(text, wake=WAKE_DEFAULT, max_edits=WAKE_MAX_EDITS):
     """(heard_wake, remainder). The wake word may be anywhere in the phrase;
-    people say it before AND after the command."""
+    people say it before AND after the command.
+
+    An EXACT match wins first and consumes exactly itself, so every typed
+    utterance behaves precisely as it did before this function learned to be
+    tolerant. Only when there is no exact match does the fuzzy path run, and
+    it consumes whole tokens from one end -- never from the middle, because a
+    wake phrase matched out of the middle of a sentence would cut the
+    sentence in half.
+    """
     t = normalise(text)
     w = normalise(wake)
     if not w:
         return True, t
-    if w not in t:
-        # tolerate the commonest mis-transcriptions of a nonsense wake phrase
-        alts = [w.replace("doc oc", x) for x in
-                ("doc ock", "dock oc", "doctor oc", "doc og", "docaugh")]
-        for alt in alts:
-            if alt in t:
-                return True, re.sub(re.escape(alt), " ", t).strip()
-        return False, t
-    return True, re.sub(re.escape(w), " ", t).strip()
+    if w in t:
+        return True, re.sub(re.escape(w), " ", t).strip()
+    e, k, from_end = wake_distance(t, wake)
+    if e is not None and e <= max_edits:
+        toks = t.split()
+        rest = toks[:-k] if from_end else toks[k:]
+        return True, " ".join(rest).strip()
+    return False, t
 
 
 def extract_target(text):

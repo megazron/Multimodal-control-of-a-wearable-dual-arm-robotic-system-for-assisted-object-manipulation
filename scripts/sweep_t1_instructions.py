@@ -54,6 +54,7 @@ for p in (os.path.join(ROOT, "src/srl_experiments/experiments/abc"),
 
 import t1_instruction as TI                                  # noqa: E402
 import msc_clip_tasks as MCT                                 # noqa: E402
+import msc_clip_tasks as _MCT                                # noqa: E402
 
 OUT = os.path.join(ROOT, "recordings/baselines/t1_instruction_sweep.json")
 
@@ -65,12 +66,26 @@ OUT = os.path.join(ROOT, "recordings/baselines/t1_instruction_sweep.json")
 # this scene, so a sweep that used one cube per colour would never exercise
 # the singular/plural distinction and would report a higher CORRECT rate for
 # an easier task.
-SEEN = [(0.560, 0.120, 0),      # cube 0, BLUE
-        (0.620, 0.120, 1),      # cube 1, GREEN
-        (0.680, 0.120, 0),      # cube 2, BLUE
-        (0.740, 0.120, 1)]      # cube 3, GREEN
+# READ FROM THE TASK, not restated. These used to be four literals in a row at
+# y = 0.120, and after the 2026-08-17 rebuild the layout is two blue cubes on
+# the LEFT and two green on the RIGHT at y = 0.300. A scene written here by
+# hand drifts from the one the run uses, and then the grounding score is about
+# a table nobody has.
+SEEN = [(cx, cy, _MCT.T1_PAIR[i])
+        for i, (cx, cy) in enumerate(_MCT.T1_CUBES)]
 BLUE, GREEN = 0, 1
-ALL_TO_OWN = [(0, BLUE), (1, GREEN), (2, BLUE), (3, GREEN)]
+# WHICH INDICES ARE WHICH COLOUR, DERIVED FROM THE SCENE. They were literals --
+# 0 and 2 blue, 1 and 3 green -- which was true of a layout whose colours
+# alternated along one row. The rebuilt T1 puts both blue cubes on the LEFT and
+# both green on the RIGHT, so the indices moved and every expectation written
+# as a literal would have been scoring the wrong cubes while looking correct.
+BLUE_IDX = [i for i, c in enumerate(SEEN) if c[2] == BLUE]
+GREEN_IDX = [i for i, c in enumerate(SEEN) if c[2] == GREEN]
+BLUES = [(i, BLUE) for i in BLUE_IDX]
+GREENS = [(i, GREEN) for i in GREEN_IDX]
+BLUES_TO_GREEN = [(i, GREEN) for i in BLUE_IDX]
+GREENS_TO_BLUE = [(i, BLUE) for i in GREEN_IDX]
+ALL_TO_OWN = [(i, c[2]) for i, c in enumerate(SEEN)]
 
 CORRECT, ASKED, REFUSED, MISUNDERSTOOD = \
     "CORRECT", "ASKED", "REFUSED", "MISUNDERSTOOD"
@@ -81,9 +96,9 @@ CORRECT, ASKED, REFUSED, MISUNDERSTOOD = \
 CASES = [
     # ---- CONTROLS. If these fail the harness is wrong, not the code.
     ("put the blue ones on the blue pad", "control",
-     [(0, BLUE), (2, BLUE)], "the plainest form there is"),
+     BLUES, "the plainest form there is"),
     ("put the green ones on the green mat", "control",
-     [(1, GREEN), (3, GREEN)], "a synonym for the pad"),
+     GREENS, "a synonym for the pad"),
     ("put every cube on the pad of its own colour", "control",
      ALL_TO_OWN, "the task as the spec words it"),
 
@@ -91,7 +106,7 @@ CASES = [
     ("pick up the blue cube and put it on the blue pad", "brief", None,
      "SINGULAR against two blue cubes -- must ask, not pick one"),
     ("put the green ones on the green mat", "brief",
-     [(1, GREEN), (3, GREEN)], "plural, synonym destination"),
+     GREENS, "plural, synonym destination"),
     ("move that blue block to its colour", "brief", None,
      "singular and deictic against two blue cubes -- must ask"),
 
@@ -106,18 +121,18 @@ CASES = [
     ("place each block on the matching pad", "paraphrase", ALL_TO_OWN,
      "'block' for cube, 'each' for all"),
     ("could you please put the blue ones onto the blue square", "paraphrase",
-     [(0, BLUE), (2, BLUE)], "politeness and a third word for the pad"),
+     BLUES, "politeness and a third word for the pad"),
     ("shift the green blocks over to the green target", "paraphrase",
-     [(1, GREEN), (3, GREEN)], "a verb and a noun neither of which is canonical"),
+     GREENS, "a verb and a noun neither of which is canonical"),
 
     # ---- CROSS-COLOUR. The destination is NOT the cube's colour, and that
     # is a legitimate instruction that must not be quietly colour-matched.
     ("put the blue ones on the green pad", "cross-colour",
-     [(0, GREEN), (2, GREEN)],
+     BLUES_TO_GREEN,
      "if this comes back as the blue pad, the code is matching colours "
      "instead of reading the sentence"),
     ("put the green cubes on the blue mat", "cross-colour",
-     [(1, BLUE), (3, BLUE)], "the same, the other way round"),
+     GREENS_TO_BLUE, "the same, the other way round"),
 
     # ---- VAGUE. Under-specified rather than wrong.
     ("put it on the blue pad", "vague", None, "'it' with nothing held"),
@@ -131,7 +146,7 @@ CASES = [
     ("do not put the blue ones on the blue pad", "negation", None,
      "negated -- acting on it is the worst outcome available"),
     ("put the blue ones on the blue pad but not the green ones", "negation",
-     [(0, BLUE), (2, BLUE)],
+     BLUES,
      "'not' AFTER the verb is an exclusion clause on a target already named"),
     ("put the blue cube and the green cube on the pads", "two-targets", None,
      "two targets -- doing one of them is partial execution"),
@@ -156,9 +171,9 @@ CASES = [
 
     # ---- MISSPELLINGS, written to attack the repair rule
     ("put the bleu ones on the bleu pad", "misspelling",
-     [(0, BLUE), (2, BLUE)], "transposition, one edit, unambiguous"),
+     BLUES, "transposition, one edit, unambiguous"),
     ("put the blue cubbes on the blue pad", "misspelling",
-     [(0, BLUE), (2, BLUE)], "doubled letter in the noun"),
+     BLUES, "doubled letter in the noun"),
     ("put the gren ones on the gren pad", "misspelling", None,
      "'gren' is one edit from BOTH green and grey -- a tie, which must be "
      "asked about and never broken"),
@@ -167,7 +182,7 @@ CASES = [
     ("pt the blue ones on the blue pad", "misspelling", None,
      "the VERB is misspelled, and verbs are never fuzzy-matched"),
     ("put the blue ones on the blue padd", "misspelling",
-     [(0, BLUE), (2, BLUE)], "doubled letter in the surface noun"),
+     BLUES, "doubled letter in the surface noun"),
     ("sort teh cubes by colour", "misspelling", ALL_TO_OWN,
      "a filler word misspelled -- must not change the meaning"),
 ]
@@ -211,16 +226,16 @@ def main():
     controls = {}
     ok = TI.plan_from("put the blue ones on the blue pad", SEEN)
     controls["a_plain_instruction_plans"] = ok.ok
-    controls["it_plans_the_blue_cubes"] = _pairs(ok) == {(0, BLUE), (2, BLUE)}
+    controls["it_plans_the_blue_cubes"] = _pairs(ok) == set(BLUES)
     wrong = TI.plan_from("put the blue ones on the green pad", SEEN)
     controls["a_different_pad_gives_a_different_plan"] = (
         wrong.ok and _pairs(wrong) != _pairs(ok))
     controls["an_empty_scene_refuses"] = (
         TI.plan_from("put the blue ones on the blue pad", []).kind == TI.REFUSE)
     # the scorer must be able to SAY misunderstood
-    fake = TI.Outcome(TI.PLAN, [(0.560, 0.120, GREEN)])
+    fake = TI.Outcome(TI.PLAN, [(SEEN[0][0], SEEN[0][1], GREEN)])
     controls["the_scorer_can_report_misunderstood"] = (
-        _pairs(fake) != {(0, BLUE)})
+        _pairs(fake) != {(BLUE_IDX[0], BLUE)})
     bad = [k for k, v in controls.items() if not v]
     if bad:
         print("HARNESS CONTROL FAILED: %s -- reporting nothing" % ", ".join(bad))

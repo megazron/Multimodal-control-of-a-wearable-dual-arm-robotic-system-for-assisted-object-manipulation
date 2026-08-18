@@ -62,12 +62,36 @@ def MCT():
     return m
 
 
-def test_both_stages_use_the_same_pad_geometry(MCT):
-    """Stage 1's pads ARE the left arm's entry in the per-arm table."""
-    left = MCT.T1_PLANES_BY_ARM["left"]
-    right = MCT.T1_PLANES_BY_ARM["right"]
-    assert left == [list(p) for p in MCT.T1_PLANES]
-    assert len(right) == len(left) == len(MCT.PLANE_COLOURS)
+def test_the_two_stages_now_DISAGREE_about_geometry_on_purpose(MCT):
+    """This test used to assert the opposite, and the flip is the point.
+
+    Until 2026-08-17 stage 1's pads WERE the left arm's entry in stage 2's
+    per-arm table, and that shared geometry is what made them one task. Stage
+    1 was then deleted and rebuilt for `06_full_autonomy` alone: its pads
+    straddle the centreline, its objects rest ON the table, and it commands
+    its own approach orientation. Stage 2 still runs at the pinned anchor,
+    with a pad pair per side, 120 mm above the table -- the geometry it was
+    verified against, and the only geometry its paths have ever been walked
+    at.
+
+    So the two disagree, and this asserts THAT, loudly, rather than letting a
+    later reader assume they still match. Stage 2 moves when it is re-verified
+    for the new approach and not before; until then, any code that reads
+    stage 1's numbers to build stage 2 (or the reverse) is wrong.
+    """
+    import t1_task as T1M
+    assert MCT.T1_PLANES is T1M.T1_PLANES
+    assert MCT.T1_Z == T1M.T1_Z
+    assert MCT.T1S2_Z != MCT.T1_Z, (
+        "stage 2's work plane has become stage 1's. If that was deliberate, "
+        "stage 2 has to be re-verified at the new height and this test "
+        "rewritten to say so.")
+    # stage 1's pads straddle the centreline; stage 2's do not
+    xs1 = [p[0] for p in MCT.T1_PLANES]
+    assert min(xs1) < 0.0 < max(xs1), xs1
+    for arm in ("left", "right"):
+        xs2 = [p[0] for p in MCT.T1_PLANES_BY_ARM[arm]]
+        assert all((x > 0) == (arm == "left") for x in xs2), (arm, xs2)
 
 
 def test_the_pads_on_each_side_do_not_overlap(MCT):
@@ -143,13 +167,24 @@ def test_every_stage2_place_is_a_pad_and_the_colours_split_two_two(MCT, seed):
         seed, colours, "a four-cube draw must be two blue and two green")
 
 
-def test_the_colour_rule_is_the_same_one_stage_1_declares(MCT):
-    """Stage 1's T1_PAIR is the rule; stage 2 must not invent a second one."""
-    assert MCT.T1_PAIR == {0: 0, 1: 1, 2: 0, 3: 1}
+def test_stage_2_keeps_its_own_alternating_colour_rule(MCT):
+    """Stage 2's rule is ALTERNATING, and it is no longer stage 1's.
+
+    It used to read `T1_PAIR` directly, which was right while the two stages
+    shared a layout. Stage 1's rebuilt cubes are two blue then two green --
+    the blue pair on the LEFT arm's side, the green on the RIGHT arm's --
+    because a cube goes to the pad of its own colour and one arm cannot reach
+    both pads. Stage 2 draws sides at random and keeps alternating.
+
+    THE PROPERTY THAT MATTERS IS PRESERVED IN BOTH: a four-cube draw is two of
+    each colour. That is asserted separately, per seed, and for a 3/1 split.
+    """
+    assert MCT.T1S2_PAIR == {0: 0, 1: 1, 2: 0, 3: 1}
+    assert sorted(MCT.T1_PAIR.values()) == [0, 0, 1, 1], MCT.T1_PAIR
     tgt = {"left": [None, None], "right": [None, None]}
     got = [MCT._stage2_pad_index(a, i, tgt)
            for a in ("left", "right") for i in range(2)]
-    assert got == [MCT.T1_PAIR[n] for n in range(4)], got
+    assert got == [MCT.T1S2_PAIR[n] for n in range(4)], got
 
 
 def test_a_three_one_split_still_gets_two_of_each_colour(MCT):

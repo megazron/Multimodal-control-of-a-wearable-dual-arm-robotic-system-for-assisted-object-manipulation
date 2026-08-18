@@ -285,15 +285,19 @@ def objects_for(task, seed=0):
     import clip_scene as CS
     out = []
     if task == "t1":
-        for i, (cx, cy) in enumerate(MCT.T1_CUBES):
-            out.append(("cube_%d" % i, [cx, cy, MCT.T1_Z],
-                        [MCT.CUBE_M] * 3))
-        arm = MCT.T1_ARM
-        pw, pd = CS.PLANE_SIZE_BY_ARM.get(arm, (CS.PLANE_W, CS.PLANE_D))
-        for i, (px, py) in enumerate(MCT.T1_PLANES):
+        # T1'S OWN GEOMETRY AND ITS OWN SURFACE, since the 2026-08-17 rebuild.
+        # Its objects REST on a table at 0.950 rather than floating over the
+        # shared work plane at 1.100, and it has no single `T1_ARM` any more --
+        # the two pads belong to different arms. The pads are mats lying ON the
+        # table, so their own underside is the surface, not the plane above it.
+        import t1_task as T1M
+        for i, (cx, cy) in enumerate(T1M.T1_CUBES):
+            out.append(("cube_%d" % i, [cx, cy, T1M.T1_Z],
+                        [T1M.CUBE_M] * 3))
+        for i, (px, py) in enumerate(T1M.T1_PLANES):
             out.append(("plane_%d" % i,
-                        [px, py, CT.BENCH_TOP - CS.PLANE_T / 2.0],
-                        [pw, pd, CS.PLANE_T]))
+                        [px, py, T1M.TABLE_TOP + T1M.PLANE_T / 2.0],
+                        [T1M.PAD_W, T1M.PAD_D, T1M.PLANE_T]))
     elif task == "t1s2":
         # STAGE 2'S OWN LAYOUT, AND IT HAD NEVER BEEN CHECKED.
         #
@@ -356,6 +360,19 @@ def check_task(task, tol=TOL_M, seed=0, inject_float_m=0.0):
         plane = work_plane()
     except Exception:                                    # pragma: no cover
         pass
+    # T1 HAS ITS OWN WORK PLANE AND ITS OWN TABLE, AND IT IS THE SAME SURFACE.
+    #
+    # Since the 2026-08-17 rebuild T1's objects rest ON the table rather than
+    # floating over the shared work plane, so its base plane IS
+    # `t1_task.TABLE_TOP` and its documented gap is 0, not
+    # `work_surface.FLOAT_GAP_M`. Measuring it against the shared plane would
+    # report a 150 mm float for a scene whose objects are touching the wood.
+    doc_gap = bg
+    if task == "t1":
+        import t1_task as _T1
+        plane = _T1.TABLE_TOP
+        doc_gap = 0.0
+    bg = doc_gap
     # THE NEGATIVE CONTROL, ON THE REAL SCENE.
     #
     # A check whose only evidence is that it reports BLOCKED today has proved

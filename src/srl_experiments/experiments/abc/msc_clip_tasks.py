@@ -43,187 +43,71 @@ _sched = CT._sched
 ee_for = CT.ee_for
 park = CT.park
 
-CUBE_M = 0.040
-# T1's layout, from the option-4 search: 4 cubes + 2 planes, left arm, all
-# verified over the full pick path at N=10 with the bench in the scene.
-# THE ONE-TABLE LAYOUT. The bench is deleted -- it cost 0.250 m of forward
-# reach and its top surface overlapped the reachable band by EXACTLY ZERO, so
-# no object could ever sit on it. The objects now stand on slim pedestals on
-# the table and the work moves OUT IN FRONT instead of against the wearer.
+# ==========================================================================
+# T1 WAS DELETED AND REBUILT ON 2026-08-17. Its layout, its approach and its
+# path now live in `t1_task.py`, and the names below are RE-EXPORTS so the
+# consumers that read them -- `clip_scene`, `mock_rgbd_camera`,
+# `solve_observe_pose`, `vision_grasp`, `t1_instruction` -- keep one source.
 #
-# Reach at object height with the table alone is 0.425 m (measured,
-# scripts/measure_forward_reach.py). Cubes sit at y 0.19 and planes at 0.32,
-# so the furthest the gripper visits is 0.37 -- 55 mm inside the limit, per
-# the rule of staying at least 20 mm inside the last pose that passed N/N.
+# What changed, and why it could not be done by moving coordinates:
 #
-# CUBES CLEAR OF PLANES AT THE START. The old rows were 85 mm apart and
-# cube_2 straddled BOTH planes (10 x 40 mm each), so the cubes began heaped
-# on their own targets and "placed on the plane of its colour" had no visible
-# before and after. The rows are now 130 mm apart, which no footprint spans.
-# INSIDE THE SURVEYED BAND, which is |x| 0.30..0.70. The row used to start at
-# |x| 0.26, which is 40 mm INBOARD of it, and the approach column for that
-# cube failed 10 of T1's waypoints -- the grasp itself was fine, so a check
-# that only tested grasp points passed it. Shifted outboard by 60 mm.
+#   * the two pads STRADDLE THE CENTRELINE, one per arm, so the pair is
+#     directly in front of the person instead of both being on one side;
+#   * every object RESTS ON THE TABLE. The float gap is 0, not 120 mm;
+#   * the task runs under `06_full_autonomy` ALONE, which is what makes the
+#     first two possible: 06 does not pin the wrist, and the pinned wrist is
+#     what forced the old layout to the table's edge and into the air.
 #
-# 2026-08-15: T1 MOVES BACK TO THE LEFT ARM AND THE CUBES TO THE LEFT SIDE,
-# and the reason the earlier move to the right was made no longer holds.
+# `archive/recordings/t1_20260817_deleted_and_rebuilt/NOTE.md` is the account.
+# ==========================================================================
+import t1_task as T1M                                        # noqa: E402
+
+CUBE_M = T1M.CUBE_M
+PLANE_COLOURS = T1M.PLANE_COLOURS
+T1_CUBES = T1M.T1_CUBES
+T1_PLANES = T1M.T1_PLANES
+T1_Z = T1M.T1_Z
+T1_PAIR = T1M.T1_PAIR
+SLOT_DY = T1M.SLOT_DY
+STANDOFF, LIFT = T1M.STANDOFF, T1M.LIFT
+PARK_X = T1M.PARK_X
+
+# STAGE 2 KEEPS ITS OWN GEOMETRY, DELIBERATELY, AND THE TWO STAGES NO LONGER
+# AGREE ABOUT WHERE THE WORK IS.
 #
-# That move was made on `t1_layout_options.json`: left arm 2/4 cubes and 1/2
-# planes, right arm 4/4 and 2/2. Both figures were true of the layout they
-# tested -- cubes at |x| 0.32..0.50, y 0.19 -- and both were taken with a
-# survey that had the LEFT arm's wrist-to-pad offset applied to BOTH arms
-# (survey_work_surface.py passed no `arm` to `ee_for`, fixed 2026-08-15), so
-# the right arm's map was drawn 48.3 mm from where the right hand closes.
+# Stage 2 is a different measurement -- both arms at once, sides drawn at
+# random -- and it is verified against the 2026-08-15 geometry: pads a pair
+# per side, objects on the work plane 120 mm above the table, wrist pinned at
+# the anchor. None of that survived stage 1's rebuild, and pulling stage 2
+# onto stage 1's numbers would mean placing its cubes onto pads whose paths
+# have never been walked. It moves when it is re-verified, not before, and
+# `test_t1_stages_agree.py` now asserts the divergence rather than the
+# agreement so the split cannot happen silently.
+T1S2_Z = round(CT.BENCH_TOP + CUBE_M / 2.0, 4)
+# AND ITS OWN COLOUR RULE, for the same reason. Stage 1's cubes are now two
+# blue then two green, because the blue pair is on the LEFT arm's side and the
+# green pair on the RIGHT arm's; stage 2 draws sides at random and keeps the
+# ALTERNATING rule it was verified with. Both give two of each colour in a
+# four-cube draw, which is the property stage 2 actually depends on.
+T1S2_PAIR = {0: 0, 1: 1, 2: 0, 3: 1}
+# STAGE 2'S PADS, A PAIR PER SIDE, EXACTLY AS THEY WERE VERIFIED.
 #
-# Re-measured on the left arm with the clearance floor applied, the left arm
-# has 193 cells that are reachable over the whole pick path AND keep 150 mm
-# from the wearer, spanning x 0.425..1.000. The layout below sits inside them
-# with margin. See recordings/baselines/work_surface_region.json.
+# These are the 2026-08-16 values and they have not moved: stage 2 still runs
+# at the pinned anchor on the work plane 120 mm above the table, and these
+# coordinates are the ones its paths were walked at. They used to be stage 1's
+# too -- `T1_PLANES` was literally `T1_PLANES_BY_ARM["left"]` -- and after the
+# 2026-08-17 rebuild they are not. See `test_t1_stages_agree.py`, which now
+# asserts the divergence.
 #
-# THE CUBES MOVED OUTBOARD, AND THAT IS THE CLEARANCE FLOOR TALKING. At the
-# old |x| 0.32..0.50 the first two cubes put the arm 58.7 mm and 116.3 mm
-# from the wearer's upper arm against a 150 mm floor -- measured over the
-# shipped right-arm path, 70 of its 143 waypoints inside the floor, with
-# zero IK failures. Every check this project had said that layout was clean,
-# because they all ask /compute_ik and the SRDF excludes the wearer pairs a
-# shoulder-mounted arm actually threatens.
-#
-# 60 mm pitch, unchanged: it is T0's measured minimum separation and it is
-# what makes four cubes read as four objects.
-T1_CUBES = [[0.560, 0.120], [0.620, 0.120], [0.680, 0.120],
-            [0.740, 0.120]]
-# MOVED 15 mm OUTBOARD IN y, 0.130 -> 0.145, TO MAKE ROOM FOR THE SLOTS.
-# Two cubes share each plane and each now gets its own slot at +/-SLOT_DY in
-# y. At the old centre those slots fell at y = 0.100 and 0.160, and the near
-# one cost 5 clip-path waypoints at N=10 -- it sits on the front edge of the
-# measured reachable band (y 0.05..0.20 at the grasp pose only, and the place
-# path also has to clear a 0.10 m standoff above it). At 0.145 the slots are
-# 0.115 and 0.175, both well inside.
-# 0.300, not 0.320. At 0.320 the place-down point sits at EE
-# (x, 0.255, 1.063) and BOTH planes failed there -- the lowest
-# point of the descent, after the grasp had already succeeded.
-# plane_1 pulled in from -0.500: its PLACE-DOWN point, EE
-# (-0.483, 0.235, 1.063), was the single remaining failure of 80.
-#
-# THE PLANES ARE AS NEAR THE CENTRE AS THE LEFT ARM CAN WORK, AND THAT IS
-# NOT THE CENTRE. The brief asks for them in the centre of the table,
-# directly in front of the person. Measured, and the number is not close:
-#
-#   the left arm's innermost workable column, any forward distance   x = 0.250
-#   ... that ALSO keeps the 150 mm wearer clearance floor            x = 0.425
-#   what stops it going further in                    THE WEARER'S OWN ARM
-#                                                     (23 mm inside, at 0.225)
-#   x = 0.00 and x = +/-0.10, asked directly          NO y from 0.10 to 0.55
-#
-# So the centreline is not reachable at all, by either arm, at any forward
-# distance, before the clearance floor is even applied. The planes sit at the
-# innermost clearance-safe column plus the project's own 20 mm margin. They
-# are 450 mm off centre, and that is a measurement about a shoulder-mounted
-# arm rather than a layout preference. See recordings/baselines/
-# centre_reach.json and section 2 of docs/TASK_SPEC.md.
-#
-# 160 mm apart, against a 140 mm plane, so a cube released over one cannot
-# land on the other. Both slots (+/-SLOT_DY in y) stay inside rows the survey
-# measured clear: y 0.210 and 0.270 against clear rows at 0.200 and 0.275.
-T1_PLANES = [[0.595, 0.215], [0.825, 0.215]]
-# RE-MEASURED AT THE ANCHOR FROM THE 2026-08-16 HOME, AND THE INNER COLUMN
-# COMES BACK TO 0.450 -- where it already was.
-#
-# `scripts/measure_pad_columns.py`, N=10 over the full place path, wearer and
-# furniture in scene, clearance geometric, three controls correct, and BOTH
-# per-cube slots (+/-SLOT_DY in y) tested rather than the pad centre alone:
-#
-#     arm     innermost column reachable AND clear of the 150 mm floor
-#     left    |x| = 0.450   y = 0.240, slots 0.210/0.270, clearance 0.1610 m
-#     right   |x| = 0.400   y = 0.300, slots 0.270/0.330, clearance 0.1579 m
-#
-# THE PAD CENTRE IS 0.605, NOT 0.450, AND THE 155 mm IS THE MARKING, NOT REACH.
-#
-# 0.450 is where the GRIPPER can go, and the place slots at 0.450 are measured
-# reachable and clear. But a pad is not a point: it is 0.18 m wide and 0.12
-# deep, and T1-7 requires the marking to ENCLOSE the objects. A participant is
-# told to work inside that boundary, so a pad painted partly outside it invites
-# a cube to be put where the arm is measurably inside the wearer.
-#
-# The drawn marking is the 193 clearance-safe cells and it is NOT a rectangle.
-# Its shape, per 25 mm column (see `clip_scene.REGION_CELLS`):
-#
-#     x 0.425          y 0.225..0.300      a narrow inner pocket, high in y
-#     x 0.450..0.500   y widens 0.200..0.300
-#     x 0.525..0.925   y 0.075..0.275      the usable body of the region
-#     x 0.950..1.000   y shrinks again
-#
-# The largest axis-aligned rectangle inside it is x 0.5125..0.9375,
-# y 0.0625..0.2875. Two pads 0.18 wide with a 20 mm gap need 0.38 of the
-# 0.425 available, so the inner pad centre is 0.5125 + 0.09 = 0.6025, rounded
-# to 0.605, and the outer sits 200 mm beyond at 0.805.
-#
-# y = 0.215 rather than 0.240: the pad has to clear the CUBES, which sit at
-# y = 0.120 spanning 0.100..0.140, and it has to stay inside y <= 0.2875. At
-# 0.215 the footprint spans 0.155..0.275 and the two place slots land at 0.185
-# and 0.245, both inside the span the sweep measured safe.
-#
-# THE COST IS STATED: the pads are 605 mm off centre, 155 mm further out than
-# the arm alone requires. Narrowing them to 0.14 would buy 20 mm back. The
-# binding constraint is the painted footprint against the marking, not reach.
-#
-# TWO WRONG ANSWERS WERE PRODUCED BEFORE THIS ONE AND BOTH ARE WORTH RECORDING,
-# because each looked like a measurement:
-#
-#   1. |x| = 0.425 with the pad CENTRE tested. The centre passed and the near
-#      slot 30 mm away did not; T1 lost 8 waypoints. A pad is not a point.
-#   2. |x| = 0.425, y = 0.270, with both slots tested -- still wrong, because
-#      `measure_what_binds.Rig` solves at `node.ee_quat(arm)`, the LIVE
-#      end-effector orientation read off TF at construction, and NOT at
-#      `WORKSPACE_ORIENT`, the pinned 30.7 deg near-side anchor that
-#      `run_abc.send()` writes into every waypoint. With the 2026-08-16 home
-#      the wrist rests LEVEL and FORWARD, so the two orientations are a long
-#      way apart and the sweep was answering a question no task asks. T1 lost
-#      14 waypoints, all of them at the two pad slots. The sweep now overrides
-#      rig.quat to the anchor.
-#
-# THE CENTRE IS STILL SHUT. At z = 1.120 the left arm cannot put a pad inside
-# |x| = 0.450 and the right cannot inside 0.400, so the pads are 450 mm off
-# centre and that number is stated rather than hidden, per T1-10.
+# THE TWO SIDES ARE NOT MIRRORS, and that is a measurement: after
+# `revalidate_region.py` re-walked every surveyed cell at the pinned anchor,
+# the right arm lost 38 of its 246 clearance-safe cells and what is left is
+# ragged, while the left lost 1 of 193. Sizing each arm's pads to its own
+# region gives a larger pad than a single mirrored pair that fits both.
 T1_PLANES_BY_ARM = {
-    "left": [list(p) for p in T1_PLANES],
-    # THE RIGHT ARM'S PADS ARE NOT A MIRROR OF THE LEFT'S, AND THAT IS A
-    # MEASUREMENT RATHER THAN A CHOICE. Mirroring x was correct while both
-    # arms' clearance-safe regions were the same shape. They are not: after
-    # `revalidate_region.py` re-walked every cell at the pinned anchor from
-    # the 2026-08-16 home, the right arm LOST 38 of its 246 cells and what is
-    # left is ragged -- the columns from |x| 0.525 to 0.675 are full of holes,
-    # while 0.700..0.875 is a clean 11-row band. The left lost 1 of 193.
-    #
-    # Searched over both regions with the WHOLE pad footprint required to lie
-    # on surveyed cells (corners alone are not enough: a pad can span a ragged
-    # column between two valid corners), the largest pair each arm can host:
-    #
-    #     left    0.210 x 0.130 m   |x| = 0.595 and 0.825   y = 0.215
-    #     right   0.100 x 0.160 m   |x| = 0.740 and 0.860   y = 0.230
-    #
-    # A single MIRRORED pair that fits both is 0.110 x 0.130 at |x| 0.745 and
-    # 0.875 -- barely larger than the 0.14 x 0.10 it replaces, and 745 mm off
-    # centre. Sizing each arm to its own region gives stage 1 (LEFT only, and
-    # the clip anyone actually watches) pads at 1.95x the old area, and keeps
-    # every pad inside the boundary a participant is told to work within.
+    "left": [[0.595, 0.215], [0.825, 0.215]],
     "right": [[-0.740, 0.230], [-0.860, 0.230]],
 }
-# Cube index -> pad index, and therefore colour. Stage 1 declares this in
-# T1_PAIR below; stage 2 uses the same rule so the two stages agree about
-# which cube is blue.
-PLANE_COLOURS = ("blue", "green")
-T1_Z = CT.BENCH_TOP + CUBE_M / 2.0
-# T1 STAGE 1 RUNS ON THE LEFT ARM, on cubes on the LEFT side. See the note on
-# T1_CUBES for why the earlier move to the right arm no longer holds: it was
-# decided on a layout inside the clearance floor, using a survey that applied
-# the left arm's pad offset to the right arm.
-#
-# The two arms are still NOT mirror images -- CLAUDE.md records
-# |v_R - M v_L| = 1.3837 m, a parking asymmetry proven independent of the
-# mount -- so this is not "the same layout, flipped". It is a layout derived
-# for THIS arm from THIS arm's measured cells, and it is verified as such.
-T1_ARM = "left"
 STANDOFF, LIFT = 0.10, 0.08
 # Where an arm with nothing to do waits, in |x|. Outboard of the wearer, in
 # the measured clearance-safe region for either arm.
@@ -264,193 +148,13 @@ def t0():
 
 
 # --------------------------------------------------------------------------
-# T1 -- pick and place, ONE ARM, and that arm is T1_ARM. This comment used to
-# read "left only" long after the layout moved to the right arm, which is the
-# same drift that had clip_scene watching the left gripper while the right one
-# did the work. Nothing here names a side except through T1_ARM.
+# T1 -- pick and place, colour matched. THE BUILDER LIVES IN `t1_task.py`.
+#
+# It was 170 lines here and it is gone: the rebuilt task is two-armed, rests
+# its objects on the table and commands its own approach orientation, none of
+# which the old builder could express. `t1_task.build/grip/grip_at` are the
+# whole of it and the TASKS entry below is the only thing that reaches them.
 # --------------------------------------------------------------------------
-T1_PAIR = {0: 0, 1: 1, 2: 0, 3: 1}
-# The per-waypoint gripper schedule t1() builds alongside its path. It cannot
-# be derived from the path length afterwards, which is what the old
-# `_sched(n, "left", 5, n - 6, 40)` tried to do.
-_T1_GRIP = []
-# The OBJECT the arrival gate should measure against, per waypoint. A
-# single-grasp task can name one; a four-cube task cannot.
-_T1_GRIP_AT = []
-# Half the separation between the two cubes that share a plane. 30 mm against
-# a 40 mm cube leaves a 20 mm gap: two distinct objects, not a stack.
-SLOT_DY = 0.030
-
-
-def t1(cubes=None):
-    """Pick each cube, place it on the plane of its own colour.
-
-    Colour pairing: cubes 0 and 2 are blue -> plane 0; cubes 1 and 3 are
-    green -> plane 1.  The pairing is declared here rather than inferred, so
-    a WRONG-COLOUR placement is a scoreable event and not an ambiguity.
-
-    THE GRIPPER SCHEDULE IS BUILT HERE, WITH THE PATH, AND THAT IS A FIX.
-    It used to be `_sched(n, "left", 5, n - 6, 40)` -- close at waypoint 5,
-    open six from the end -- which is ONE close and ONE open across all four
-    pick-and-places. Measured on the first mode-06 re-record: the hand closed
-    at the first cube, stayed shut through every carry, and let go once, 0.10 m
-    ABOVE the last plane. All four cubes ended at (0.46, 0.130, 1.22) and the
-    sweep reported "PLACED 0.189 m FROM TARGET" for cube_0, which was true and
-    named the wrong cause. A four-cube task needs four closes and four opens,
-    and only the code that lays out the path knows where they fall.
-
-    The open happens AT the placement and before the withdrawal, held for
-    three waypoints so the mock gripper has time to actually reach the open
-    position -- a single waypoint is a command, not a release.
-    """
-    seq, grip, at = [], [], []
-    g = CT.grip_for(40)
-
-    def add(pts, state, obj):
-        seq.extend(pts)
-        grip.extend([state] * len(pts))
-        at.extend([list(obj)] * len(pts))
-
-    # A SLOT PER CUBE, SO TWO CUBES DO NOT LAND IN ONE PLACE.
-    #
-    # The pairing sends cubes 0 and 2 to the SAME plane and 1 and 3 to the
-    # other, and both were placed at the plane's centre -- so the second cube
-    # of each pair was delivered INSIDE the first. Each cube gets its own slot
-    # on its plane, separated in y because the region is only 0.40 m wide in x
-    # and the planes already sit at its inboard edge: measured, the reachable
-    # band is x 0.30..0.70 and y 0.05..0.20, so +/-0.03 in y stays well inside
-    # it while +/-0.035 in x would put the inboard slot at 0.265, outside.
-    # WHERE THE CUBES ARE, AND WHAT COLOUR THEY ARE, CAN COME FROM THE CAMERA.
-    #
-    # `cubes=None` keeps the declared layout: T1_CUBES for position, T1_PAIR
-    # for colour. Passing a list of (x, y, pad_index) -- which is what
-    # `vision_grasp.observe_and_detect()` returns -- builds the SAME path from
-    # what was SEEN instead. One builder, two sources, so the recorded clip
-    # and the verified layout cannot diverge into separate code paths.
-    #
-    # The slot is assigned by ORDER OF ARRIVAL at each pad rather than from a
-    # fixed {0:-, 2:+, 1:-, 3:+} table, because a detected set has no fixed
-    # indices. For the declared layout it reproduces that table exactly.
-    if cubes is None:
-        items = [(cx, cy, T1_PAIR[i]) for i, (cx, cy) in enumerate(T1_CUBES)]
-    else:
-        items = [(float(c[0]), float(c[1]), int(c[2])) for c in cubes]
-    _used = {}
-    for i, (cx, cy, _pad_i) in enumerate(items):
-        _k = _used.get(_pad_i, 0)
-        _used[_pad_i] = _k + 1
-        pick = ee_for([cx, cy, T1_Z], T1_ARM)
-        px, py = T1_PLANES[_pad_i]
-        py = round(py + (-SLOT_DY if _k == 0 else +SLOT_DY), 4)
-        place = ee_for([px, py, T1_Z], T1_ARM)
-        cube_obj = [cx, cy, T1_Z]
-        plane_obj = [px, py, T1_Z]
-        add(_dense([[pick[0], pick[1], pick[2] + STANDOFF], pick]),
-            CT.OPEN, cube_obj)
-        # EIGHT, NOT FOUR. The close is gated on ARRIVAL, and the arm's lag
-        # accumulates along the sequence: measured under MASTER_TELEOP, cubes
-        # 0-2 closed with the pads 8.5-8.8 mm from the cube and the FOURTH
-        # closed at 33.7 mm -- 3.7 mm outside the 30 mm capture window, so the
-        # last cube was never picked up and the clip showed three of four
-        # placements. The gate was right; the schedule ran out of waypoints
-        # before the arm got there. This is the same lengthening T3 needed and
-        # for the same reason, and it has to be in the TASK, identical across
-        # modes, or the mode comparison is contaminated by the clip.
-        # FOURTEEN, NOT EIGHT, AND THE MODE THAT NEEDED IT IS 02_vr_teleop.
-        # Measured on the 2026-08-15 set, identical layout, all five modes:
-        # 01, 03, 04 and 06 close on all four cubes at 0.0-0.1 mm, and 02
-        # closes on three and misses cube_3 at 44.0 mm against a 30 mm gate,
-        # having carried it 0.000 m. VR's whole run is ~35% longer -- grasp at
-        # +17.0 s against +5.0 s, clip 39.7 s against 29.3 -- because of the
-        # extra hop through vr_pose_mapper, and the lag is positional: the arm
-        # is still catching up when the schedule opens the hand.
-        #
-        # IT GOES IN THE TASK, NOT IN THE MODE. A longer dwell for VR alone
-        # would put the mode comparison at the mercy of the clip, which is the
-        # one thing the mode-independence property exists to prevent. Same
-        # reasoning as the 8 that replaced 4, and as T3's long holds.
-        add(_hold(pick, 14), g, cube_obj)           # close ON the cube
-        add(_dense([pick, [pick[0], pick[1], pick[2] + LIFT]]), g, cube_obj)
-        add(_dense([[pick[0], pick[1], pick[2] + LIFT],
-                    [place[0], place[1], place[2] + LIFT], place]),
-            g, plane_obj)
-        add(_hold(place, 2), g, plane_obj)          # arrive still holding
-        add(_hold(place, 3), CT.OPEN, plane_obj)    # release, at the plane
-        add(_dense([place, [place[0], place[1], place[2] + STANDOFF]]),
-            CT.OPEN, plane_obj)
-    _T1_GRIP[:] = grip
-    _T1_GRIP_AT[:] = at
-    other = "left" if T1_ARM == "right" else "right"
-    # THE IDLE ARM PARKS OUTBOARD, AND IT DID NOT USED TO. park(+/-0.32) sits
-    # 30.6 mm from the wearer's upper arm -- measured -- against the 150 mm
-    # floor, so the arm that is doing NOTHING in this task spent the whole
-    # clip inside the floor. An idle pose is the easiest thing in the task to
-    # move and it had never been checked, because nothing checked clearance
-    # at all. 0.60 is inside the measured clear region for both arms.
-    sx = PARK_X if other == "left" else -PARK_X
-    return {T1_ARM: seq, other: _hold(park(sx), len(seq))}
-
-
-def t1_grip(n):
-    """T1's schedule, built by t1() alongside the path it belongs to.
-
-    TWO CALLERS, ONE OF WHICH IS ASKING A DIFFERENT QUESTION, and conflating
-    them cost a recording. `record_abc_sweep` calls `grip(8)` before it drives
-    anything, to work out WHICH ARM the close-up camera should follow -- it
-    compares how many distinct values each arm's schedule has and picks the
-    busier one. That is a probe, not a schedule request, and the first version
-    of this function refused it: "T1 grip schedule is 125 long for a
-    8-waypoint path", which is true, correct in spirit, and killed the run.
-
-    So: at the real length, the real schedule. At a shorter length, the real
-    schedule SAMPLED -- which preserves the only property the probe reads,
-    that the left arm's schedule contains both states and the right arm's does
-    not. At a longer length, still a refusal, because there is no honest way
-    to invent gripper commands the path never asked for.
-    """
-    if not _T1_GRIP:
-        t1()
-    full = list(_T1_GRIP)
-    if n == len(full):
-        return {T1_ARM: full,
-                ("left" if T1_ARM == "right" else "right"):
-                    [CT.OPEN] * n}
-    if n < len(full):
-        step = len(full) / float(n)
-        return {T1_ARM: [full[min(len(full) - 1, int(i * step))]
-                         for i in range(n)],
-                ("left" if T1_ARM == "right" else "right"):
-                    [CT.OPEN] * n}
-    raise RuntimeError(
-        "T1 grip schedule is %d long and %d waypoints were asked for -- "
-        "refusing to pad it. A schedule longer than the path it was built "
-        "for opens the hand somewhere nobody chose." % (len(full), n))
-
-
-def t1_grip_at(n):
-    """Which OBJECT the arrival gate measures against, waypoint by waypoint.
-
-    THE GATE WAS BUILT FOR A TASK WITH ONE OBJECT. `run_abc` holds a grip
-    change pending until the finger pads reach `grip_obj` -- a single declared
-    point -- which is right for A, B, C and T3 and wrong for four cubes and two
-    planes. Measured: the first close fired at cube_0 correctly, and the first
-    OPEN then waited for the pads to return to cube_0, which never happens
-    because the arm has gone to the plane. So the hand never opened, every
-    later cube was collected on the way past, and all four ended in the same
-    place, still held. Four GRASPED events and no RELEASED.
-
-    Closing is gated on the CUBE and opening on the PLANE, which is what the
-    task means by "arrived".
-    """
-    if not _T1_GRIP_AT:
-        t1()
-    full = list(_T1_GRIP_AT)
-    if n == len(full):
-        return full
-    if n < len(full):
-        step = len(full) / float(n)
-        return [full[min(len(full) - 1, int(i * step))] for i in range(n)]
-    raise RuntimeError("T1 grip_at is %d long, %d asked for" % (len(full), n))
 
 
 # --------------------------------------------------------------------------
@@ -691,7 +395,7 @@ def stage2_targets(seed, n_cubes=STAGE2_N_CUBES, cells=None,
         while len(got) < n_cubes and draws <= max_draws:
             draws += 1
             arm, x, y = pool[rng.randrange(len(pool))]
-            p = [round(x, 4), round(y, 4), T1_Z]
+            p = [round(x, 4), round(y, 4), T1S2_Z]
             if any(math.dist(p, q[1]) < min_sep for q in got):
                 continue
             got.append((arm, p))
@@ -730,7 +434,7 @@ def stage2_targets(seed, n_cubes=STAGE2_N_CUBES, cells=None,
                     ok = False
                     break
                 x, y = pool_a[rng.randrange(len(pool_a))]
-                p = [round(x, 4), round(y, 4), T1_Z]
+                p = [round(x, 4), round(y, 4), T1S2_Z]
                 if any(math.dist(p, q) < min_sep
                        for q in out[arm] + chosen):
                     continue
@@ -762,7 +466,7 @@ def _stage2_pad_index(arm, i, tgt):
         n = order.index((arm, i))
     except ValueError:                                          # pragma: no cover
         n = i
-    return T1_PAIR[n % len(T1_PAIR)]
+    return T1S2_PAIR[n % len(T1S2_PAIR)]
 
 
 def t1_stage2(seed=0, n_cubes=STAGE2_N_CUBES):
@@ -809,7 +513,7 @@ def t1_stage2(seed=0, n_cubes=STAGE2_N_CUBES):
             # which cube is blue.
             pad_i = _stage2_pad_index(arm, i, tgt)
             px, py = T1_PLANES_BY_ARM[arm][pad_i]
-            place_obj = [px, py, T1_Z]
+            place_obj = [px, py, T1S2_Z]
             _ = plc
             place = ee_for(place_obj, arm)
             add(_dense([[pick[0], pick[1], pick[2] + STANDOFF], pick]),
@@ -841,7 +545,7 @@ def t1_stage2(seed=0, n_cubes=STAGE2_N_CUBES):
     _T1S2["grip"], _T1S2["at"], _T1S2["targets"] = grips, ats, tgt
     _T1S2["places"] = {
         a: [[T1_PLANES_BY_ARM[a][_stage2_pad_index(a, k, tgt)][0],
-             T1_PLANES_BY_ARM[a][_stage2_pad_index(a, k, tgt)][1], T1_Z]
+             T1_PLANES_BY_ARM[a][_stage2_pad_index(a, k, tgt)][1], T1S2_Z]
             for k in range(len(tgt[a]))] for a in ("left", "right")}
     _T1S2["pads"] = {a: [list(p) for p in T1_PLANES_BY_ARM[a]]
                      for a in ("left", "right")}
@@ -895,33 +599,38 @@ TASKS = {
                "for grasping must be ABSENT here."),
     "t1": dict(
         name="pick and place, colour matched",
-        # DERIVED FROM T1_ARM, for the same reason `expect` is. This was the
-        # literal "S1_right_arm" and it survived the move back to the left
-        # arm by two minutes of recording: the scenario names the output
-        # DIRECTORY and the caption, so a clip of the left arm working was
-        # being filed, captioned and counted as a right-arm scenario.
-        scenario="S1_%s_arm" % T1_ARM,
-        build=t1,
-        grip=lambda n: t1_grip(n),
-        width_mm=40,
-        grip_obj=[T1_CUBES[0][0], T1_CUBES[0][1], T1_Z],
-        # PER WAYPOINT, because this task has six objects and the gate was
-        # written for one. See t1_grip_at().
-        grip_at=lambda n: t1_grip_at(n),
-        place_target=ee_for([T1_PLANES[0][0], T1_PLANES[0][1], T1_Z],
-                            T1_ARM),
-        # DERIVED FROM T1_ARM, never written out. The literal used to say
-        # "LEFT arm descends to each cube" while T1_ARM was "right", so the
-        # sweep printed and the write-up would have quoted the wrong arm for
-        # the whole task.
-        expect="%s arm descends to each cube, closes on 40 mm, lifts, "
-               "carries to the plane of the SAME COLOUR and opens. %s arm "
-               "parked throughout. Four cubes, two planes."
-               % (T1_ARM.upper(),
-                  ("LEFT" if T1_ARM == "right" else "RIGHT")),
-        caveat="Objects are FIXTURED, not resting (option 4): a cube that "
-               "cannot fall cannot be dropped, so `drops` is not a "
-               "measurable outcome in this task."),
+        # BOTH ARMS, AND THE NAME SAYS SO. The scenario names the output
+        # DIRECTORY and the caption, and a one-arm name on a two-arm task is
+        # the same defect that once filed a left-arm clip as "S1_right_arm".
+        scenario="S1_both_arms_centre",
+        build=T1M.build,
+        grip=lambda n: T1M.grip(n),
+        # THE ORIENTATION THIS TASK SENDS. Read by `run_abc.set_orient()`,
+        # which also rebuilds the finger-pad offset from it. No other task
+        # declares one, so every other task still sends the pinned anchor --
+        # HARD CONSTRAINT 1 is about the global constant and this is not it.
+        orient=T1M.APPROACH,
+        # 06 ONLY, AND IT IS ENFORCED RATHER THAN WRITTEN DOWN. The approach
+        # this task commands is not the pinned anchor, so running it under a
+        # teleop mode would compare an operator's pinned wrist against a
+        # different geometry and call the difference a mode effect.
+        modes=("06_full_autonomy",),
+        width_mm=int(T1M.CUBE_M * 1000),
+        grip_obj=[T1M.T1_CUBES[0][0], T1M.T1_CUBES[0][1], T1M.T1_Z],
+        # PER WAYPOINT AND PER ARM: six objects and two arms, against a gate
+        # written for one of each.
+        grip_at=lambda n: T1M.grip_at(n),
+        place_target=T1M.ee_for(
+            [T1M.T1_PLANES[0][0], T1M.T1_PLANES[0][1],
+             round(T1M.T1_Z + T1M.PLANE_T, 4)], "left"),
+        expect="LEFT arm carries the two BLUE cubes to the blue pad and RIGHT "
+               "carries the two GREEN cubes to the green pad, in turn. The "
+               "pads sit either side of the centreline, directly in front of "
+               "the person. Every object rests ON the table.",
+        caveat="06_full_autonomy only. The cubes and their colours come from "
+               "the CAMERA, not from this file; the destination pad is chosen "
+               "by the colour the camera saw. Objects rest on the surface, so "
+               "unlike every earlier T1 a drop IS a measurable outcome."),
     "t1s2": dict(
         name="pick and place, both arms at once",
         scenario="S2_both_arms_random",

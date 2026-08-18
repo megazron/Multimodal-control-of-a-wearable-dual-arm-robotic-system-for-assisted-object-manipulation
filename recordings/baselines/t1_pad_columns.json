@@ -1,0 +1,255 @@
+{
+  "controls": {
+    "inside_torso_is_negative": "-0.1595 at [0.05, 0.02, 1.22]",
+    "far_1.6m_unreachable": true,
+    "shipped_cube_reachable_and_clear": "True / 0.2041",
+    "slab_control_free_then_buried": "True -> False (want True -> False)"
+  },
+  "floor": 0.15,
+  "z": 1.28,
+  "row_y": 0.45,
+  "repeats": 10,
+  "arms": {
+    "left": [
+      {
+        "column": 0.12,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.1719,
+        "closest": "torso",
+        "mount_limited": false
+      },
+      {
+        "column": 0.135,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.1746,
+        "closest": "L-upperarm",
+        "mount_limited": false
+      },
+      {
+        "column": 0.165,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.201,
+        "closest": "torso",
+        "mount_limited": false
+      },
+      {
+        "column": 0.195,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2181,
+        "closest": "L-upperarm",
+        "mount_limited": false
+      },
+      {
+        "column": 0.225,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.23,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.255,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.285,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.29,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.315,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.345,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.375,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.405,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.44,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      }
+    ],
+    "right": [
+      {
+        "column": 0.12,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.1398,
+        "closest": "R-upperarm",
+        "mount_limited": false
+      },
+      {
+        "column": 0.135,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.1495,
+        "closest": "R-upperarm",
+        "mount_limited": false
+      },
+      {
+        "column": 0.165,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.1695,
+        "closest": "R-upperarm",
+        "mount_limited": false
+      },
+      {
+        "column": 0.195,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.1902,
+        "closest": "R-upperarm",
+        "mount_limited": false
+      },
+      {
+        "column": 0.225,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2111,
+        "closest": "R-upperarm",
+        "mount_limited": false
+      },
+      {
+        "column": 0.23,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2148,
+        "closest": "R-upperarm",
+        "mount_limited": false
+      },
+      {
+        "column": 0.255,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.285,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.29,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.315,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.345,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.375,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.405,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      },
+      {
+        "column": 0.44,
+        "solved": 10,
+        "of": 10,
+        "worst_clearance": 0.2202,
+        "closest": "torso",
+        "mount_limited": true
+      }
+    ],
+    "left_mount_limited_from": 0.225,
+    "right_mount_limited_from": 0.255
+  },
+  "shipped_planes": [
+    [
+      0.26,
+      0.5
+    ],
+    [
+      -0.26,
+      0.5
+    ]
+  ],
+  "slot_dx": 0.03
+}

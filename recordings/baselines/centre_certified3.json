@@ -1,0 +1,1144 @@
+{
+  "tag": "CERTIFY_head75_elev0",
+  "posture": "down",
+  "floor": 0.15,
+  "repeats": 10,
+  "centre_x": 0.1,
+  "approach": "heads",
+  "elev": 0.0,
+  "configs": [
+    {
+      "name": "cell 1.150/0.380/1.05/0.62",
+      "top": 1.15,
+      "near_y": 0.38,
+      "half_x": 1.05,
+      "depth": 0.62,
+      "left": {
+        "innermost": null,
+        "clearance": null,
+        "wearer": null,
+        "link": null,
+        "centre": {
+          "verdict": "COLLISION:TABLE",
+          "detail": "free once the furniture is out, so the TABLE blocks it",
+          "wearer": null,
+          "link": null,
+          "clearance": null
+        }
+      },
+      "left_rows": [
+        {
+          "x": 0.0,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.025,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.05,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.075,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.1,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.125,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.15,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.175,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.2,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.225,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.25,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.275,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.3,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.325,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.35,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.375,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.4,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        }
+      ],
+      "right": {
+        "innermost": null,
+        "clearance": null,
+        "wearer": null,
+        "link": null,
+        "centre": {
+          "verdict": "COLLISION:TABLE",
+          "detail": "free once the furniture is out, so the TABLE blocks it",
+          "wearer": null,
+          "link": null,
+          "clearance": null
+        }
+      },
+      "right_rows": [
+        {
+          "x": 0.0,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.025,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.05,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.075,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.1,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.125,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.15,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.175,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.2,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.225,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.25,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.275,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.3,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.325,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.35,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.375,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.4,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        }
+      ],
+      "both_reach_centre": false,
+      "worst_innermost": null,
+      "approach": "heading +70 inboard, elev +0"
+    },
+    {
+      "name": "cell 1.250/0.430/1.05/0.62",
+      "top": 1.25,
+      "near_y": 0.43,
+      "half_x": 1.05,
+      "depth": 0.62,
+      "left": {
+        "innermost": null,
+        "clearance": null,
+        "wearer": null,
+        "link": null,
+        "centre": {
+          "verdict": "COLLISION:TABLE",
+          "detail": "free once the furniture is out, so the TABLE blocks it",
+          "wearer": null,
+          "link": null,
+          "clearance": null
+        }
+      },
+      "left_rows": [
+        {
+          "x": 0.0,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.025,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.05,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.075,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.1,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.125,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.15,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.175,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.2,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.225,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.25,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.275,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.3,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.325,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.35,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.375,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.4,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        }
+      ],
+      "right": {
+        "innermost": null,
+        "clearance": null,
+        "wearer": null,
+        "link": null,
+        "centre": {
+          "verdict": "COLLISION:TABLE",
+          "detail": "free once the furniture is out, so the TABLE blocks it",
+          "wearer": null,
+          "link": null,
+          "clearance": null
+        }
+      },
+      "right_rows": [
+        {
+          "x": 0.0,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.025,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.05,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.075,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.1,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.125,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.15,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.175,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.2,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.225,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.25,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.275,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.3,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.325,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.35,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.375,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.4,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        }
+      ],
+      "both_reach_centre": false,
+      "worst_innermost": null,
+      "approach": "heading +70 inboard, elev +0"
+    },
+    {
+      "name": "cell 1.150/0.380/1.05/0.62",
+      "top": 1.15,
+      "near_y": 0.38,
+      "half_x": 1.05,
+      "depth": 0.62,
+      "left": {
+        "innermost": null,
+        "clearance": null,
+        "wearer": null,
+        "link": null,
+        "centre": {
+          "verdict": "COLLISION:TABLE",
+          "detail": "free once the furniture is out, so the TABLE blocks it",
+          "wearer": null,
+          "link": null,
+          "clearance": null
+        }
+      },
+      "left_rows": [
+        {
+          "x": 0.0,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.025,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.05,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.075,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.1,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.125,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.15,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.175,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.2,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.225,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.25,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.275,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.3,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.325,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.35,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.375,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.4,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        }
+      ],
+      "right": {
+        "innermost": null,
+        "clearance": null,
+        "wearer": null,
+        "link": null,
+        "centre": {
+          "verdict": "COLLISION:TABLE",
+          "detail": "free once the furniture is out, so the TABLE blocks it",
+          "wearer": null,
+          "link": null,
+          "clearance": null
+        }
+      },
+      "right_rows": [
+        {
+          "x": 0.0,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.025,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.05,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.075,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.1,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.125,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.15,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.175,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.2,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.225,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.25,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.275,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.3,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.325,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.35,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.375,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.4,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        }
+      ],
+      "both_reach_centre": false,
+      "worst_innermost": null,
+      "approach": "heading +75 inboard, elev +0"
+    },
+    {
+      "name": "cell 1.250/0.430/1.05/0.62",
+      "top": 1.25,
+      "near_y": 0.43,
+      "half_x": 1.05,
+      "depth": 0.62,
+      "left": {
+        "innermost": null,
+        "clearance": null,
+        "wearer": null,
+        "link": null,
+        "centre": {
+          "verdict": "COLLISION:TABLE",
+          "detail": "free once the furniture is out, so the TABLE blocks it",
+          "wearer": null,
+          "link": null,
+          "clearance": null
+        }
+      },
+      "left_rows": [
+        {
+          "x": 0.0,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.025,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.05,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.075,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.1,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.125,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.15,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.175,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.2,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.225,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.25,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.275,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.3,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.325,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.35,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.375,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.4,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        }
+      ],
+      "right": {
+        "innermost": null,
+        "clearance": null,
+        "wearer": null,
+        "link": null,
+        "centre": {
+          "verdict": "COLLISION:TABLE",
+          "detail": "free once the furniture is out, so the TABLE blocks it",
+          "wearer": null,
+          "link": null,
+          "clearance": null
+        }
+      },
+      "right_rows": [
+        {
+          "x": 0.0,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.025,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.05,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.075,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.1,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.125,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.15,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.175,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.2,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.225,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.25,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.275,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.3,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.325,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.35,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.375,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.4,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        }
+      ],
+      "both_reach_centre": false,
+      "worst_innermost": null,
+      "approach": "heading +75 inboard, elev +0"
+    }
+  ],
+  "log": [
+    "CONTROLS   (wearer posture in the URDF: down; tag CERTIFY_head75_elev0)",
+    "   inside_torso_is_negative               -0.1369 at (0.1, 0.0, 1.25)",
+    "   far_1.6m_unreachable                   True",
+    "   shipped_cube_reachable_and_clear       True / 0.2202",
+    "   slab_control_free_then_buried          True -> False (want True -> False)",
+    "   link namer inside the torso            -0.1369 / torso / end_effector_link -> robotiq_85_left_finger_tip_link",
+    "   scene restored after a failed cell     True -> True",
+    "\n==========================================================================",
+    "heading +70 inboard, elev +0   -- innermost REACHABLE |x|, full pick path, N=10, floor 0.150 m",
+    "==========================================================================",
+    "  cell 1.150/0.380/1.05/0.62          left ----    right ----     centre blocked: L COLLISION:TABLE / R COLLISION:TABLE",
+    "  cell 1.250/0.430/1.05/0.62          left ----    right ----     centre blocked: L COLLISION:TABLE / R COLLISION:TABLE",
+    "\n==========================================================================",
+    "heading +75 inboard, elev +0   -- innermost REACHABLE |x|, full pick path, N=10, floor 0.150 m",
+    "==========================================================================",
+    "  cell 1.150/0.380/1.05/0.62          left ----    right ----     centre blocked: L COLLISION:TABLE / R COLLISION:TABLE",
+    "  cell 1.250/0.430/1.05/0.62          left ----    right ----     centre blocked: L COLLISION:TABLE / R COLLISION:TABLE"
+  ],
+  "ik_calls": 1284,
+  "seconds": 300.5
+}

@@ -1,0 +1,1345 @@
+{
+  "tag": "CERTIFY_margins",
+  "posture": "down",
+  "floor": 0.15,
+  "repeats": 10,
+  "centre_x": 0.1,
+  "approach": "heads",
+  "elev": -10.0,
+  "configs": [
+    {
+      "name": "cell 1.150/0.430/1.05/0.62",
+      "top": 1.15,
+      "near_y": 0.43,
+      "half_x": 1.05,
+      "depth": 0.62,
+      "left": {
+        "innermost": 0.25,
+        "clearance": 0.1591,
+        "wearer": "L-upperarm",
+        "link": "half_arm_2_link -> forearm_link",
+        "centre": {
+          "verdict": "FLOOR",
+          "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0480 m from L-upperarm against a 0.150 m floor",
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link",
+          "clearance": 0.048
+        }
+      },
+      "left_rows": [
+        {
+          "x": 0.0,
+          "verdict": "FLOOR",
+          "clearance": 0.048,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.025,
+          "verdict": "FLOOR",
+          "clearance": 0.0481,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.05,
+          "verdict": "FLOOR",
+          "clearance": 0.0486,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.075,
+          "verdict": "FLOOR",
+          "clearance": 0.0601,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.1,
+          "verdict": "FLOOR",
+          "clearance": 0.0702,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.125,
+          "verdict": "FLOOR",
+          "clearance": 0.062,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.15,
+          "verdict": "FLOOR",
+          "clearance": 0.0712,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.175,
+          "verdict": "FLOOR",
+          "clearance": 0.0959,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.2,
+          "verdict": "FLOOR",
+          "clearance": 0.117,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.225,
+          "verdict": "FLOOR",
+          "clearance": 0.114,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.25,
+          "verdict": "REACHABLE",
+          "clearance": 0.1591,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        }
+      ],
+      "right": {
+        "innermost": 0.125,
+        "clearance": 0.1536,
+        "wearer": "R-upperarm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "centre": {
+          "verdict": "FLOOR",
+          "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0879 m from R-upperarm against a 0.150 m floor",
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link",
+          "clearance": 0.0879
+        }
+      },
+      "right_rows": [
+        {
+          "x": 0.0,
+          "verdict": "FLOOR",
+          "clearance": 0.0879,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.025,
+          "verdict": "FLOOR",
+          "clearance": 0.0996,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.05,
+          "verdict": "FLOOR",
+          "clearance": 0.1118,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.075,
+          "verdict": "FLOOR",
+          "clearance": 0.1322,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.1,
+          "verdict": "FLOOR",
+          "clearance": 0.1472,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.125,
+          "verdict": "REACHABLE",
+          "clearance": 0.1536,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      ],
+      "both_reach_centre": false,
+      "worst_innermost": 0.25,
+      "approach": "heading +65 inboard, elev -10"
+    },
+    {
+      "name": "cell 1.250/0.430/1.05/0.62",
+      "top": 1.25,
+      "near_y": 0.43,
+      "half_x": 1.05,
+      "depth": 0.62,
+      "left": {
+        "innermost": 0.225,
+        "clearance": 0.1534,
+        "wearer": "L-upperarm",
+        "link": "half_arm_2_link -> forearm_link",
+        "centre": {
+          "verdict": "FLOOR",
+          "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0639 m from L-upperarm against a 0.150 m floor",
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link",
+          "clearance": 0.0639
+        }
+      },
+      "left_rows": [
+        {
+          "x": 0.0,
+          "verdict": "FLOOR",
+          "clearance": 0.0639,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.025,
+          "verdict": "FLOOR",
+          "clearance": 0.0699,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.05,
+          "verdict": "FLOOR",
+          "clearance": 0.0519,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.075,
+          "verdict": "FLOOR",
+          "clearance": 0.0711,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.1,
+          "verdict": "FLOOR",
+          "clearance": 0.0852,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.125,
+          "verdict": "FLOOR",
+          "clearance": 0.105,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.15,
+          "verdict": "FLOOR",
+          "clearance": 0.1125,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.175,
+          "verdict": "FLOOR",
+          "clearance": 0.1063,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.2,
+          "verdict": "FLOOR",
+          "clearance": 0.1333,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.225,
+          "verdict": "REACHABLE",
+          "clearance": 0.1534,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        }
+      ],
+      "right": {
+        "innermost": 0.1,
+        "clearance": 0.1637,
+        "wearer": "R-upperarm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "centre": {
+          "verdict": "FLOOR",
+          "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0967 m from R-upperarm against a 0.150 m floor",
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link",
+          "clearance": 0.0967
+        }
+      },
+      "right_rows": [
+        {
+          "x": 0.0,
+          "verdict": "FLOOR",
+          "clearance": 0.0967,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.025,
+          "verdict": "FLOOR",
+          "clearance": 0.1115,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.05,
+          "verdict": "FLOOR",
+          "clearance": 0.1317,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.075,
+          "verdict": "FLOOR",
+          "clearance": 0.1476,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.1,
+          "verdict": "REACHABLE",
+          "clearance": 0.1637,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      ],
+      "both_reach_centre": false,
+      "worst_innermost": 0.225,
+      "approach": "heading +65 inboard, elev -10"
+    },
+    {
+      "name": "cell 1.150/0.380/1.05/0.62",
+      "top": 1.15,
+      "near_y": 0.38,
+      "half_x": 1.05,
+      "depth": 0.62,
+      "left": {
+        "innermost": 0.3,
+        "clearance": 0.1678,
+        "wearer": "L-forearm",
+        "link": "half_arm_2_link -> forearm_link",
+        "centre": {
+          "verdict": "FLOOR",
+          "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0340 m from L-upperarm against a 0.150 m floor",
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link",
+          "clearance": 0.034
+        }
+      },
+      "left_rows": [
+        {
+          "x": 0.0,
+          "verdict": "FLOOR",
+          "clearance": 0.034,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.025,
+          "verdict": "FLOOR",
+          "clearance": 0.0574,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.05,
+          "verdict": "FLOOR",
+          "clearance": 0.0504,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.075,
+          "verdict": "FLOOR",
+          "clearance": 0.0835,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.1,
+          "verdict": "FLOOR",
+          "clearance": 0.062,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.125,
+          "verdict": "FLOOR",
+          "clearance": 0.0796,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.15,
+          "verdict": "FLOOR",
+          "clearance": 0.1104,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.175,
+          "verdict": "FLOOR",
+          "clearance": 0.1224,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.2,
+          "verdict": "FLOOR",
+          "clearance": 0.1281,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.225,
+          "verdict": "FLOOR",
+          "clearance": 0.1182,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.25,
+          "verdict": "FLOOR",
+          "clearance": 0.1341,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.275,
+          "verdict": "FLOOR",
+          "clearance": 0.1405,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.3,
+          "verdict": "REACHABLE",
+          "clearance": 0.1678,
+          "wearer": "L-forearm",
+          "link": "half_arm_2_link -> forearm_link"
+        }
+      ],
+      "right": {
+        "innermost": 0.125,
+        "clearance": 0.1741,
+        "wearer": "R-upperarm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "centre": {
+          "verdict": "FLOOR",
+          "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0821 m from R-upperarm against a 0.150 m floor",
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link",
+          "clearance": 0.0821
+        }
+      },
+      "right_rows": [
+        {
+          "x": 0.0,
+          "verdict": "FLOOR",
+          "clearance": 0.0821,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.025,
+          "verdict": "FLOOR",
+          "clearance": 0.0984,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.05,
+          "verdict": "FLOOR",
+          "clearance": 0.1153,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.075,
+          "verdict": "FLOOR",
+          "clearance": 0.1346,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.1,
+          "verdict": "FLOOR",
+          "clearance": 0.1494,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.125,
+          "verdict": "REACHABLE",
+          "clearance": 0.1741,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      ],
+      "both_reach_centre": false,
+      "worst_innermost": 0.3,
+      "approach": "heading +65 inboard, elev -10"
+    },
+    {
+      "name": "cell 1.150/0.430/1.05/0.62",
+      "top": 1.15,
+      "near_y": 0.43,
+      "half_x": 1.05,
+      "depth": 0.62,
+      "left": {
+        "innermost": null,
+        "clearance": null,
+        "wearer": null,
+        "link": null,
+        "centre": {
+          "verdict": "IK_FAIL",
+          "detail": "no configuration reaches this pose with collisions OFF -- kinematics or the wrist",
+          "wearer": null,
+          "link": null,
+          "clearance": null
+        }
+      },
+      "left_rows": [
+        {
+          "x": 0.0,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.025,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.05,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.075,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.1,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.125,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.15,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.175,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.2,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.225,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.25,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.275,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.3,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.325,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.35,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.375,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.4,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        }
+      ],
+      "right": {
+        "innermost": null,
+        "clearance": null,
+        "wearer": null,
+        "link": null,
+        "centre": {
+          "verdict": "IK_FAIL",
+          "detail": "no configuration reaches this pose with collisions OFF -- kinematics or the wrist",
+          "wearer": null,
+          "link": null,
+          "clearance": null
+        }
+      },
+      "right_rows": [
+        {
+          "x": 0.0,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.025,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.05,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.075,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.1,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.125,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.15,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.175,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.2,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.225,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.25,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.275,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.3,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.325,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.35,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.375,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.4,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        }
+      ],
+      "both_reach_centre": false,
+      "worst_innermost": null,
+      "approach": "heading +80 inboard, elev -10"
+    },
+    {
+      "name": "cell 1.250/0.430/1.05/0.62",
+      "top": 1.25,
+      "near_y": 0.43,
+      "half_x": 1.05,
+      "depth": 0.62,
+      "left": {
+        "innermost": null,
+        "clearance": null,
+        "wearer": null,
+        "link": null,
+        "centre": {
+          "verdict": "IK_FAIL",
+          "detail": "no configuration reaches this pose with collisions OFF -- kinematics or the wrist",
+          "wearer": null,
+          "link": null,
+          "clearance": null
+        }
+      },
+      "left_rows": [
+        {
+          "x": 0.0,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.025,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.05,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.075,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.1,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.125,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.15,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.175,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.2,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.225,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.25,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.275,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.3,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.325,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.35,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.375,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.4,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        }
+      ],
+      "right": {
+        "innermost": null,
+        "clearance": null,
+        "wearer": null,
+        "link": null,
+        "centre": {
+          "verdict": "IK_FAIL",
+          "detail": "no configuration reaches this pose with collisions OFF -- kinematics or the wrist",
+          "wearer": null,
+          "link": null,
+          "clearance": null
+        }
+      },
+      "right_rows": [
+        {
+          "x": 0.0,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.025,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.05,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.075,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.1,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.125,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.15,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.175,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.2,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.225,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.25,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.275,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.3,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.325,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.35,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.375,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.4,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        }
+      ],
+      "both_reach_centre": false,
+      "worst_innermost": null,
+      "approach": "heading +80 inboard, elev -10"
+    },
+    {
+      "name": "cell 1.150/0.380/1.05/0.62",
+      "top": 1.15,
+      "near_y": 0.38,
+      "half_x": 1.05,
+      "depth": 0.62,
+      "left": {
+        "innermost": null,
+        "clearance": null,
+        "wearer": null,
+        "link": null,
+        "centre": {
+          "verdict": "IK_FAIL",
+          "detail": "no configuration reaches this pose with collisions OFF -- kinematics or the wrist",
+          "wearer": null,
+          "link": null,
+          "clearance": null
+        }
+      },
+      "left_rows": [
+        {
+          "x": 0.0,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.025,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.05,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.075,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.1,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.125,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.15,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.175,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.2,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.225,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.25,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.275,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.3,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.325,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.35,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.375,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.4,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        }
+      ],
+      "right": {
+        "innermost": null,
+        "clearance": null,
+        "wearer": null,
+        "link": null,
+        "centre": {
+          "verdict": "IK_FAIL",
+          "detail": "no configuration reaches this pose with collisions OFF -- kinematics or the wrist",
+          "wearer": null,
+          "link": null,
+          "clearance": null
+        }
+      },
+      "right_rows": [
+        {
+          "x": 0.0,
+          "verdict": "IK_FAIL",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.025,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.05,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.075,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.1,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.125,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.15,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.175,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.2,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.225,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.25,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.275,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.3,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.325,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.35,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.375,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        },
+        {
+          "x": 0.4,
+          "verdict": "COLLISION:TABLE",
+          "clearance": null,
+          "wearer": null,
+          "link": null
+        }
+      ],
+      "both_reach_centre": false,
+      "worst_innermost": null,
+      "approach": "heading +80 inboard, elev -10"
+    }
+  ],
+  "log": [
+    "CONTROLS   (wearer posture in the URDF: down; tag CERTIFY_margins)",
+    "   inside_torso_is_negative               -0.1369 at (0.1, 0.0, 1.25)",
+    "   far_1.6m_unreachable                   True",
+    "   shipped_cube_reachable_and_clear       True / 0.2202",
+    "   slab_control_free_then_buried          True -> False (want True -> False)",
+    "   link namer inside the torso            -0.1369 / torso / end_effector_link -> robotiq_85_left_finger_tip_link",
+    "   scene restored after a failed cell     True -> True",
+    "\n==========================================================================",
+    "heading +65 inboard, elev -10   -- innermost REACHABLE |x|, full pick path, N=10, floor 0.150 m",
+    "==========================================================================",
+    "  cell 1.150/0.430/1.05/0.62          left 0.250   right 0.125    centre blocked: L FLOOR / R FLOOR",
+    "  cell 1.250/0.430/1.05/0.62          left 0.225   right 0.100    centre blocked: L FLOOR / R FLOOR",
+    "  cell 1.150/0.380/1.05/0.62          left 0.300   right 0.125    centre blocked: L FLOOR / R FLOOR",
+    "\n==========================================================================",
+    "heading +80 inboard, elev -10   -- innermost REACHABLE |x|, full pick path, N=10, floor 0.150 m",
+    "==========================================================================",
+    "  cell 1.150/0.430/1.05/0.62          left ----    right ----     centre blocked: L IK_FAIL / R IK_FAIL",
+    "  cell 1.250/0.430/1.05/0.62          left ----    right ----     centre blocked: L IK_FAIL / R IK_FAIL",
+    "  cell 1.150/0.380/1.05/0.62          left ----    right ----     centre blocked: L IK_FAIL / R IK_FAIL"
+  ],
+  "ik_calls": 9576,
+  "seconds": 392.6
+}

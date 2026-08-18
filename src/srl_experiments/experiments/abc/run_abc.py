@@ -47,6 +47,7 @@ import os
 import sys
 import time
 
+import numpy as np
 import rclpy
 from geometry_msgs.msg import PoseStamped
 from rclpy.node import Node
@@ -371,6 +372,20 @@ class Runner(Node):
         super().__init__("run_abc")
         self.args = args
         self.spec = MODES[args.mode]
+        # THE ORIENTATION EVERY WAYPOINT IS SENT WITH, PER ARM.
+        #
+        # `master_calibration.WORKSPACE_ORIENT` unless the TASK declares its
+        # own, and only one task does. Every teleop mode pins the wrist at the
+        # anchor and the mode comparison depends on that, so this is not a
+        # global change and must not become one -- HARD CONSTRAINT 1. It is a
+        # task built for `06_full_autonomy` alone saying which way its hand
+        # points, which is what 06 means.
+        #
+        # `set_orient()` fills it from the task spec in main(); until then it
+        # is the anchor, so anything that constructs a Runner and sends before
+        # the task is resolved behaves exactly as it always did.
+        from srl_teleop import master_calibration as _mc
+        self.orient = {a: tuple(_mc.WORKSPACE_ORIENT[a]) for a in ARMS}
         self.pub = {}
         for a in ARMS:
             key = a if "%s" % a in self.spec["topic"] % a else a
@@ -518,11 +533,37 @@ class Runner(Node):
         # not exist. An identity quaternion is not neutral -- it is a
         # specific, unreachable orientation, and this is the fourth false
         # negative it has produced here.
-        from srl_teleop import master_calibration as mc
-        q = mc.WORKSPACE_ORIENT[arm]
+        # THE ARM'S ORIENTATION FOR THIS TASK. `self.orient` is the anchor
+        # unless the task declared otherwise; see __init__ and set_orient().
         (m.pose.orientation.x, m.pose.orientation.y,
-         m.pose.orientation.z, m.pose.orientation.w) = q
+         m.pose.orientation.z, m.pose.orientation.w) = self.orient[arm]
         self.pub[arm].publish(m)
+
+    def set_orient(self, orient):
+        """Adopt a task's own approach orientation, or keep the anchor.
+
+        THE PAD OFFSET MOVES WITH IT, and that is the half of this change that
+        is easy to miss. The arrival gate compares the FINGER PADS against the
+        object, and it recovers the pads from the live wrist by adding
+        `clip_tasks.PAD_OFFSET_BY_ARM` -- a world-frame vector measured AT THE
+        ANCHOR. Under a different orientation that vector points somewhere
+        else entirely: at T1's level, inboard-pointing approach it is 111.8 mm
+        out in the wrong direction, which is nearly four times the 30 mm
+        capture window. The gate would then never fire and the hand would
+        never close, which is a failure this file has already recorded twice
+        under two other causes.
+
+        So the offset is rebuilt from the orientation actually being sent,
+        through the ONE EE-frame constant `grasp_frames.PAD_MID_EE`.
+        """
+        import grasp_frames as GF
+        if orient:
+            self.orient = {a: tuple(orient[a]) for a in ARMS if a in orient}
+            for a in ARMS:
+                self.orient.setdefault(a, tuple(self.orient[ARMS[0]]))
+        return {a: [float(v) for v in
+                    GF.q_matrix(self.orient[a]) @ np.asarray(GF.PAD_MID_EE)]
+                for a in ARMS}
 
 
 def main(argv=None):
@@ -627,6 +668,25 @@ def main(argv=None):
                 "unknown msc task key %r -- expected one of %s"
                 % (key, ", ".join(sorted(_MSC_KEY))))
         spec = MCT.TASKS[_MSC_KEY[key]]
+        # A TASK MAY RESTRICT WHICH MODES IT RUNS UNDER, AND ONE DOES.
+        #
+        # T1 was rebuilt for `06_full_autonomy` alone: it commands its own
+        # approach orientation instead of the pinned anchor, so running it
+        # under a teleop mode would put an operator's pinned wrist against a
+        # geometry that was never measured for it -- and any difference would
+        # then be reported as a MODE effect, which is the one thing the
+        # mode-independence property exists to prevent.
+        #
+        # Refused loudly rather than written in a caveat. The whole point of
+        # the caveat field is that nothing enforces it.
+        _ok_modes = spec.get("modes")
+        if _ok_modes and a.mode not in _ok_modes:
+            raise SystemExit(
+                "REFUSING: task %s runs under %s only, and --mode is %s.\\n"
+                "It commands its own approach orientation rather than the "
+                "pinned anchor every teleop mode sends, so a run under %s "
+                "would be measuring a different geometry under a mode's name."
+                % (key, " and ".join(_ok_modes), a.mode, a.mode))
         scen = a.scenario or spec["scenario"]
         # THE SEED REACHES THE LAYOUT. `--seed` has existed since the runner
         # was written and went straight into the manifest, while the layout
@@ -975,7 +1035,11 @@ def main(argv=None):
     # the cube to within 0.1 mm -- the geometry was right -- and the knuckle
     # stayed at 0.0 for the entire clip. "NO GRASP RECORDED at all" on a run
     # where the arm went exactly where it was told.
-    PAD_OFF_BY_ARM = CT.PAD_OFFSET_BY_ARM
+    # REBUILT FROM THE ORIENTATION THIS TASK ACTUALLY SENDS. See
+    # Runner.set_orient(): at the anchor it reproduces
+    # CT.PAD_OFFSET_BY_ARM exactly, and under a task-declared approach
+    # it follows the hand instead of pointing where the hand used to.
+    PAD_OFF_BY_ARM = n.set_orient(spec.get("orient"))
     grip_obj = spec.get("grip_obj")
     # PER-WAYPOINT OBJECT, when the task has more than one.
     #

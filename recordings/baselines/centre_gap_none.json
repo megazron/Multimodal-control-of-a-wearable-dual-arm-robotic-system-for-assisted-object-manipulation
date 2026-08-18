@@ -1,0 +1,1067 @@
+{
+  "tag": "posture_none",
+  "posture": "none",
+  "floor": 0.15,
+  "repeats": 10,
+  "controls": {
+    "inside_torso_is_negative": -0.1569,
+    "far_1.6m_unreachable": true,
+    "shipped_cube_reachable_and_clear": "True / 0.161",
+    "slab_control_free_then_buried": "True -> False (want True -> False)"
+  },
+  "table": {
+    "top": 0.95,
+    "near_y": 0.28
+  },
+  "gap": {
+    "left/T1 approach": [
+      {
+        "verdict": "COLLISION:WEARER",
+        "at_wp": 0,
+        "of": 11,
+        "clearance": -0.0201,
+        "wearer": "torso",
+        "link": "bracelet_link -> end_effector_link",
+        "point": [
+          0.2004,
+          0.1318,
+          1.0161
+        ],
+        "detail": "bracelet_link -> end_effector_link is 20 mm INSIDE torso",
+        "arm": "left",
+        "x": 0.0,
+        "obj": [
+          0.0,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": -0.0041,
+        "wearer": "torso",
+        "link": "bracelet_link -> end_effector_link",
+        "point": [
+          0.2103,
+          0.1445,
+          1.0127
+        ],
+        "at_wp": 1,
+        "detail": "solves cleanly; bracelet_link -> end_effector_link is -0.0041 m from torso against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.025,
+        "obj": [
+          0.025,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.012,
+        "wearer": "torso",
+        "link": "bracelet_link -> end_effector_link",
+        "point": [
+          0.2203,
+          0.1571,
+          1.0092
+        ],
+        "at_wp": 2,
+        "detail": "solves cleanly; bracelet_link -> end_effector_link is 0.0120 m from torso against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.05,
+        "obj": [
+          0.05,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0248,
+        "wearer": "torso",
+        "link": "end_effector_link -> robotiq_85_left_finger_tip_link",
+        "point": [
+          0.2096,
+          0.1787,
+          1.0019
+        ],
+        "at_wp": 0,
+        "detail": "solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.0248 m from torso against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.075,
+        "obj": [
+          0.075,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.036,
+        "wearer": "torso",
+        "link": "end_effector_link -> robotiq_85_left_finger_tip_link",
+        "point": [
+          0.222,
+          0.1851,
+          0.9995
+        ],
+        "at_wp": 0,
+        "detail": "solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.0360 m from torso against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.1,
+        "obj": [
+          0.1,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0472,
+        "wearer": "torso",
+        "link": "end_effector_link -> robotiq_85_left_finger_tip_link",
+        "point": [
+          0.2217,
+          0.1978,
+          0.9947
+        ],
+        "at_wp": 0,
+        "detail": "solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.0472 m from torso against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.125,
+        "obj": [
+          0.125,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0586,
+        "wearer": "torso",
+        "link": "end_effector_link -> robotiq_85_left_finger_tip_link",
+        "point": [
+          0.2341,
+          0.2042,
+          0.9922
+        ],
+        "at_wp": 0,
+        "detail": "solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.0586 m from torso against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.15,
+        "obj": [
+          0.15,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0698,
+        "wearer": "torso",
+        "link": "end_effector_link -> robotiq_85_left_finger_tip_link",
+        "point": [
+          0.2339,
+          0.217,
+          0.9874
+        ],
+        "at_wp": 0,
+        "detail": "solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.0698 m from torso against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.175,
+        "obj": [
+          0.175,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0829,
+        "wearer": "torso",
+        "link": "end_effector_link -> robotiq_85_left_finger_tip_link",
+        "point": [
+          0.2589,
+          0.217,
+          0.9874
+        ],
+        "at_wp": 0,
+        "detail": "solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.0829 m from torso against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.2,
+        "obj": [
+          0.2,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.099,
+        "wearer": "torso",
+        "link": "end_effector_link -> robotiq_85_left_finger_tip_link",
+        "point": [
+          0.2688,
+          0.2296,
+          0.9839
+        ],
+        "at_wp": 1,
+        "detail": "solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.0990 m from torso against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.225,
+        "obj": [
+          0.225,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.1151,
+        "wearer": "torso",
+        "link": "end_effector_link -> robotiq_85_left_finger_tip_link",
+        "point": [
+          0.2787,
+          0.2423,
+          0.9804
+        ],
+        "at_wp": 2,
+        "detail": "solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.1151 m from torso against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.25,
+        "obj": [
+          0.25,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.1311,
+        "wearer": "torso",
+        "link": "end_effector_link -> robotiq_85_left_finger_tip_link",
+        "point": [
+          0.3037,
+          0.2423,
+          0.9804
+        ],
+        "at_wp": 2,
+        "detail": "solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.1311 m from torso against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.275,
+        "obj": [
+          0.275,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0948,
+        "wearer": "torso",
+        "link": "half_arm_2_link -> forearm_link",
+        "point": [
+          0.3246,
+          -0.1187,
+          1.0228
+        ],
+        "at_wp": 10,
+        "detail": "solves cleanly; half_arm_2_link -> forearm_link is 0.0948 m from torso against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.3,
+        "obj": [
+          0.3,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "left",
+        "x": 0.325,
+        "obj": [
+          0.325,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.1432,
+        "wearer": "torso",
+        "link": "half_arm_2_link -> forearm_link",
+        "point": [
+          0.3731,
+          -0.1182,
+          1.0053
+        ],
+        "at_wp": 9,
+        "detail": "solves cleanly; half_arm_2_link -> forearm_link is 0.1432 m from torso against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.35,
+        "obj": [
+          0.35,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.1493,
+        "wearer": "torso",
+        "link": "half_arm_2_link -> forearm_link",
+        "point": [
+          0.3792,
+          -0.1137,
+          1.0069
+        ],
+        "at_wp": 5,
+        "detail": "solves cleanly; half_arm_2_link -> forearm_link is 0.1493 m from torso against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.375,
+        "obj": [
+          0.375,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "left",
+        "x": 0.4,
+        "obj": [
+          0.4,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "left",
+        "x": 0.425,
+        "obj": [
+          0.425,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "left",
+        "x": 0.45,
+        "obj": [
+          0.45,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "left",
+        "x": 0.475,
+        "obj": [
+          0.475,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "left",
+        "x": 0.5,
+        "obj": [
+          0.5,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "left",
+        "x": 0.525,
+        "obj": [
+          0.525,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "left",
+        "x": 0.55,
+        "obj": [
+          0.55,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "left",
+        "x": 0.575,
+        "obj": [
+          0.575,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "left",
+        "x": 0.6,
+        "obj": [
+          0.6,
+          0.3,
+          0.97
+        ]
+      }
+    ],
+    "right/T1 approach": [
+      {
+        "verdict": "COLLISION:WEARER",
+        "at_wp": 0,
+        "of": 11,
+        "clearance": -0.0201,
+        "wearer": "torso",
+        "link": "bracelet_link -> end_effector_link",
+        "point": [
+          -0.2004,
+          0.1318,
+          1.0161
+        ],
+        "detail": "bracelet_link -> end_effector_link is 20 mm INSIDE torso",
+        "arm": "right",
+        "x": 0.0,
+        "obj": [
+          -0.0,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": -0.0041,
+        "wearer": "torso",
+        "link": "bracelet_link -> end_effector_link",
+        "point": [
+          -0.2103,
+          0.1445,
+          1.0127
+        ],
+        "at_wp": 1,
+        "detail": "solves cleanly; bracelet_link -> end_effector_link is -0.0041 m from torso against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.025,
+        "obj": [
+          -0.025,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.012,
+        "wearer": "torso",
+        "link": "bracelet_link -> end_effector_link",
+        "point": [
+          -0.2203,
+          0.1571,
+          1.0092
+        ],
+        "at_wp": 2,
+        "detail": "solves cleanly; bracelet_link -> end_effector_link is 0.0120 m from torso against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.05,
+        "obj": [
+          -0.05,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0281,
+        "wearer": "torso",
+        "link": "bracelet_link -> end_effector_link",
+        "point": [
+          -0.2302,
+          0.1698,
+          1.0057
+        ],
+        "at_wp": 3,
+        "detail": "solves cleanly; bracelet_link -> end_effector_link is 0.0281 m from torso against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.075,
+        "obj": [
+          -0.075,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0441,
+        "wearer": "torso",
+        "link": "bracelet_link -> end_effector_link",
+        "point": [
+          -0.2401,
+          0.1825,
+          1.0022
+        ],
+        "at_wp": 4,
+        "detail": "solves cleanly; bracelet_link -> end_effector_link is 0.0441 m from torso against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.1,
+        "obj": [
+          -0.1,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0602,
+        "wearer": "torso",
+        "link": "bracelet_link -> end_effector_link",
+        "point": [
+          -0.25,
+          0.1951,
+          1.0588
+        ],
+        "at_wp": 9,
+        "detail": "solves cleanly; bracelet_link -> end_effector_link is 0.0602 m from torso against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.125,
+        "obj": [
+          -0.125,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0763,
+        "wearer": "torso",
+        "link": "bracelet_link -> end_effector_link",
+        "point": [
+          -0.2611,
+          0.2068,
+          0.9956
+        ],
+        "at_wp": 4,
+        "detail": "solves cleanly; bracelet_link -> end_effector_link is 0.0763 m from torso against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.15,
+        "obj": [
+          -0.15,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0923,
+        "wearer": "torso",
+        "link": "bracelet_link -> end_effector_link",
+        "point": [
+          -0.271,
+          0.2195,
+          0.9921
+        ],
+        "at_wp": 5,
+        "detail": "solves cleanly; bracelet_link -> end_effector_link is 0.0923 m from torso against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.175,
+        "obj": [
+          -0.175,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.1084,
+        "wearer": "torso",
+        "link": "bracelet_link -> end_effector_link",
+        "point": [
+          -0.2844,
+          0.2292,
+          0.9894
+        ],
+        "at_wp": 5,
+        "detail": "solves cleanly; bracelet_link -> end_effector_link is 0.1084 m from torso against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.2,
+        "obj": [
+          -0.2,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.1259,
+        "wearer": "torso",
+        "link": "bracelet_link -> end_effector_link",
+        "point": [
+          -0.3094,
+          0.2292,
+          0.9894
+        ],
+        "at_wp": 6,
+        "detail": "solves cleanly; bracelet_link -> end_effector_link is 0.1259 m from torso against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.225,
+        "obj": [
+          -0.225,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.145,
+        "wearer": "torso",
+        "link": "bracelet_link -> end_effector_link",
+        "point": [
+          -0.3344,
+          0.2292,
+          1.0294
+        ],
+        "at_wp": 8,
+        "detail": "solves cleanly; bracelet_link -> end_effector_link is 0.1450 m from torso against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.25,
+        "obj": [
+          -0.25,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          -0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "right",
+        "x": 0.275,
+        "obj": [
+          -0.275,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          -0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "right",
+        "x": 0.3,
+        "obj": [
+          -0.3,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          -0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "right",
+        "x": 0.325,
+        "obj": [
+          -0.325,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          -0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "right",
+        "x": 0.35,
+        "obj": [
+          -0.35,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          -0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "right",
+        "x": 0.375,
+        "obj": [
+          -0.375,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          -0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "right",
+        "x": 0.4,
+        "obj": [
+          -0.4,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          -0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "right",
+        "x": 0.425,
+        "obj": [
+          -0.425,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          -0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "right",
+        "x": 0.45,
+        "obj": [
+          -0.45,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          -0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "right",
+        "x": 0.475,
+        "obj": [
+          -0.475,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          -0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "right",
+        "x": 0.5,
+        "obj": [
+          -0.5,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          -0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "right",
+        "x": 0.525,
+        "obj": [
+          -0.525,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          -0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "right",
+        "x": 0.55,
+        "obj": [
+          -0.55,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          -0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "right",
+        "x": 0.575,
+        "obj": [
+          -0.575,
+          0.3,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          -0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "right",
+        "x": 0.6,
+        "obj": [
+          -0.6,
+          0.3,
+          0.97
+        ]
+      }
+    ]
+  },
+  "log": [
+    "CONTROLS   (run tag: posture_none; wearer posture in the URDF: none)",
+    "   inside_torso_is_negative               -0.1569",
+    "   far_1.6m_unreachable                   True",
+    "   shipped_cube_reachable_and_clear       True / 0.161",
+    "   slab_control_free_then_buried          True -> False (want True -> False)",
+    "   link namer inside the torso            -0.1569 / torso / end_effector_link -> robotiq_85_left_finger_tip_link",
+    "\n==========================================================================",
+    "1. THE GAP -- objects RESTING on the table, full pick path, N=10",
+    "   table top 0.950, near edge 0.280, row y = 0.300, object z = 0.970",
+    "==========================================================================",
+    "\n  LEFT arm, T1 approach (elevation -10.0 deg, heading -50.0 deg)",
+    "   |x| 0.000  COLLISION:WEARER   bracelet_link -> end_effector_link is 20 mm INSIDE torso",
+    "   |x| 0.025  FLOOR              solves cleanly; bracelet_link -> end_effector_link is -0.0041 m from torso against a 0.150 m flo",
+    "   |x| 0.050  FLOOR              solves cleanly; bracelet_link -> end_effector_link is 0.0120 m from torso against a 0.150 m floo",
+    "   |x| 0.075  FLOOR              solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.0248 m from torso agai",
+    "   |x| 0.100  FLOOR              solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.0360 m from torso agai",
+    "   |x| 0.125  FLOOR              solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.0472 m from torso agai",
+    "   |x| 0.150  FLOOR              solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.0586 m from torso agai",
+    "   |x| 0.175  FLOOR              solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.0698 m from torso agai",
+    "   |x| 0.200  FLOOR              solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.0829 m from torso agai",
+    "   |x| 0.225  FLOOR              solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.0990 m from torso agai",
+    "   |x| 0.250  FLOOR              solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.1151 m from torso agai",
+    "   |x| 0.275  FLOOR              solves cleanly; end_effector_link -> robotiq_85_left_finger_tip_link is 0.1311 m from torso agai",
+    "   |x| 0.300  FLOOR              solves cleanly; half_arm_2_link -> forearm_link is 0.0948 m from torso against a 0.150 m floor",
+    "   |x| 0.325  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.350  FLOOR              solves cleanly; half_arm_2_link -> forearm_link is 0.1432 m from torso against a 0.150 m floor",
+    "   |x| 0.375  FLOOR              solves cleanly; half_arm_2_link -> forearm_link is 0.1493 m from torso against a 0.150 m floor",
+    "   |x| 0.400  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.425  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.450  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.475  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.500  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.525  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.550  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.575  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.600  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "      innermost REACHABLE |x| = 0.325",
+    "\n  RIGHT arm, T1 approach (elevation -10.0 deg, heading +50.0 deg)",
+    "   |x| 0.000  COLLISION:WEARER   bracelet_link -> end_effector_link is 20 mm INSIDE torso",
+    "   |x| 0.025  FLOOR              solves cleanly; bracelet_link -> end_effector_link is -0.0041 m from torso against a 0.150 m flo",
+    "   |x| 0.050  FLOOR              solves cleanly; bracelet_link -> end_effector_link is 0.0120 m from torso against a 0.150 m floo",
+    "   |x| 0.075  FLOOR              solves cleanly; bracelet_link -> end_effector_link is 0.0281 m from torso against a 0.150 m floo",
+    "   |x| 0.100  FLOOR              solves cleanly; bracelet_link -> end_effector_link is 0.0441 m from torso against a 0.150 m floo",
+    "   |x| 0.125  FLOOR              solves cleanly; bracelet_link -> end_effector_link is 0.0602 m from torso against a 0.150 m floo",
+    "   |x| 0.150  FLOOR              solves cleanly; bracelet_link -> end_effector_link is 0.0763 m from torso against a 0.150 m floo",
+    "   |x| 0.175  FLOOR              solves cleanly; bracelet_link -> end_effector_link is 0.0923 m from torso against a 0.150 m floo",
+    "   |x| 0.200  FLOOR              solves cleanly; bracelet_link -> end_effector_link is 0.1084 m from torso against a 0.150 m floo",
+    "   |x| 0.225  FLOOR              solves cleanly; bracelet_link -> end_effector_link is 0.1259 m from torso against a 0.150 m floo",
+    "   |x| 0.250  FLOOR              solves cleanly; bracelet_link -> end_effector_link is 0.1450 m from torso against a 0.150 m floo",
+    "   |x| 0.275  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.300  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.325  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.350  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.375  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.400  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.425  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.450  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.475  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.500  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.525  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.550  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.575  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.600  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "      innermost REACHABLE |x| = 0.275"
+  ],
+  "ik_calls": 5307
+}

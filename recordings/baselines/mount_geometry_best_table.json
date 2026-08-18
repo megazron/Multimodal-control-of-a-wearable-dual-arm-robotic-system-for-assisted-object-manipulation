@@ -1,0 +1,23 @@
+{
+  "refused": true,
+  "base": {
+    "left": {
+      "x": 0.45,
+      "clearance": 0.161,
+      "wearer": "torso",
+      "link": "base_link -> shoulder_link",
+      "centre_blocked_by": "FLOOR"
+    },
+    "right": {
+      "x": 0.225,
+      "clearance": 0.152,
+      "wearer": "R-upperarm",
+      "link": "forearm_link -> spherical_wrist_1_link",
+      "centre_blocked_by": "FLOOR"
+    }
+  },
+  "want": {
+    "left": 0.225,
+    "right": 0.225
+  }
+}

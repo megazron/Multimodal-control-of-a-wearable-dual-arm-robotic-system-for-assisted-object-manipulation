@@ -1,0 +1,373 @@
+{
+  "tag": "CERTIFY_symmetric_mount",
+  "posture": "down",
+  "floor": 0.15,
+  "repeats": 10,
+  "centre_x": 0.1,
+  "approach": "heads",
+  "elev": -10.0,
+  "configs": [
+    {
+      "name": "cell 1.250/0.430/1.05/0.62",
+      "top": 1.25,
+      "near_y": 0.43,
+      "half_x": 1.05,
+      "depth": 0.62,
+      "left": {
+        "innermost": 0.35,
+        "clearance": 0.1561,
+        "wearer": "L-upperarm",
+        "link": "half_arm_2_link -> forearm_link",
+        "centre": {
+          "verdict": "FLOOR",
+          "detail": "solves cleanly; half_arm_2_link -> forearm_link is 0.0426 m from L-upperarm against a 0.150 m floor",
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link",
+          "clearance": 0.0426
+        }
+      },
+      "left_rows": [
+        {
+          "x": 0.0,
+          "verdict": "FLOOR",
+          "clearance": 0.0426,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.025,
+          "verdict": "FLOOR",
+          "clearance": 0.0384,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.05,
+          "verdict": "FLOOR",
+          "clearance": 0.0285,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.075,
+          "verdict": "FLOOR",
+          "clearance": 0.0262,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.1,
+          "verdict": "FLOOR",
+          "clearance": 0.0589,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.125,
+          "verdict": "FLOOR",
+          "clearance": 0.0283,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.15,
+          "verdict": "FLOOR",
+          "clearance": 0.0646,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.175,
+          "verdict": "FLOOR",
+          "clearance": 0.1045,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.2,
+          "verdict": "FLOOR",
+          "clearance": 0.1008,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.225,
+          "verdict": "FLOOR",
+          "clearance": 0.0537,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.25,
+          "verdict": "FLOOR",
+          "clearance": 0.1221,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.275,
+          "verdict": "FLOOR",
+          "clearance": 0.1455,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.3,
+          "verdict": "FLOOR",
+          "clearance": 0.1,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.325,
+          "verdict": "FLOOR",
+          "clearance": 0.1289,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.35,
+          "verdict": "REACHABLE",
+          "clearance": 0.1561,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        }
+      ],
+      "right": {
+        "innermost": 0.1,
+        "clearance": 0.161,
+        "wearer": "R-upperarm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "centre": {
+          "verdict": "FLOOR",
+          "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0983 m from R-upperarm against a 0.150 m floor",
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link",
+          "clearance": 0.0983
+        }
+      },
+      "right_rows": [
+        {
+          "x": 0.0,
+          "verdict": "FLOOR",
+          "clearance": 0.0983,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.025,
+          "verdict": "FLOOR",
+          "clearance": 0.1121,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.05,
+          "verdict": "FLOOR",
+          "clearance": 0.1292,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.075,
+          "verdict": "FLOOR",
+          "clearance": 0.1439,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.1,
+          "verdict": "REACHABLE",
+          "clearance": 0.161,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      ],
+      "both_reach_centre": false,
+      "worst_innermost": 0.35,
+      "approach": "heading +65 inboard, elev -10"
+    },
+    {
+      "name": "cell 1.150/0.380/1.05/0.62",
+      "top": 1.15,
+      "near_y": 0.38,
+      "half_x": 1.05,
+      "depth": 0.62,
+      "left": {
+        "innermost": 0.275,
+        "clearance": 0.187,
+        "wearer": "L-forearm",
+        "link": "half_arm_2_link -> forearm_link",
+        "centre": {
+          "verdict": "FLOOR",
+          "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0239 m from L-upperarm against a 0.150 m floor",
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link",
+          "clearance": 0.0239
+        }
+      },
+      "left_rows": [
+        {
+          "x": 0.0,
+          "verdict": "FLOOR",
+          "clearance": 0.0239,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.025,
+          "verdict": "FLOOR",
+          "clearance": 0.0156,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.05,
+          "verdict": "FLOOR",
+          "clearance": 0.0198,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.075,
+          "verdict": "FLOOR",
+          "clearance": 0.0646,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.1,
+          "verdict": "FLOOR",
+          "clearance": 0.0412,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.125,
+          "verdict": "FLOOR",
+          "clearance": 0.0309,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.15,
+          "verdict": "FLOOR",
+          "clearance": 0.0562,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.175,
+          "verdict": "FLOOR",
+          "clearance": 0.0069,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.2,
+          "verdict": "FLOOR",
+          "clearance": 0.0762,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.225,
+          "verdict": "FLOOR",
+          "clearance": 0.0733,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.25,
+          "verdict": "FLOOR",
+          "clearance": 0.0238,
+          "wearer": "L-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        },
+        {
+          "x": 0.275,
+          "verdict": "REACHABLE",
+          "clearance": 0.187,
+          "wearer": "L-forearm",
+          "link": "half_arm_2_link -> forearm_link"
+        }
+      ],
+      "right": {
+        "innermost": 0.125,
+        "clearance": 0.1693,
+        "wearer": "R-upperarm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "centre": {
+          "verdict": "FLOOR",
+          "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0929 m from R-upperarm against a 0.150 m floor",
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link",
+          "clearance": 0.0929
+        }
+      },
+      "right_rows": [
+        {
+          "x": 0.0,
+          "verdict": "FLOOR",
+          "clearance": 0.0929,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.025,
+          "verdict": "FLOOR",
+          "clearance": 0.0971,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.05,
+          "verdict": "FLOOR",
+          "clearance": 0.1195,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.075,
+          "verdict": "FLOOR",
+          "clearance": 0.1412,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.1,
+          "verdict": "FLOOR",
+          "clearance": 0.1474,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        {
+          "x": 0.125,
+          "verdict": "REACHABLE",
+          "clearance": 0.1693,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      ],
+      "both_reach_centre": false,
+      "worst_innermost": 0.275,
+      "approach": "heading +65 inboard, elev -10"
+    }
+  ],
+  "log": [
+    "CONTROLS   (wearer posture in the URDF: down; tag CERTIFY_symmetric_mount)",
+    "   inside_torso_is_negative               -0.1369 at (0.1, 0.0, 1.25)",
+    "   far_1.6m_unreachable                   True",
+    "   shipped_cube_reachable_and_clear       True / 0.2202",
+    "   slab_control_free_then_buried          True -> False (want True -> False)",
+    "   link namer inside the torso            -0.1369 / torso / end_effector_link -> robotiq_85_left_finger_tip_link",
+    "   scene restored after a failed cell     True -> True",
+    "\n==========================================================================",
+    "heading +65 inboard, elev -10   -- innermost REACHABLE |x|, full pick path, N=10, floor 0.150 m",
+    "==========================================================================",
+    "  cell 1.250/0.430/1.05/0.62          left 0.350   right 0.100    centre blocked: L FLOOR / R FLOOR",
+    "  cell 1.150/0.380/1.05/0.62          left 0.275   right 0.125    centre blocked: L FLOOR / R FLOOR"
+  ],
+  "ik_calls": 4031,
+  "seconds": 76.5
+}

@@ -61,8 +61,15 @@ def main():
     import home_positions as hp
     from vision_grasp import observe_and_detect, DetectionUnavailable
 
-    arm = a.arm or M.T1_ARM
-    expect = a.expect if a.expect is not None else len(M.T1_CUBES)
+    # WHICH ARM LOOKS. T1 is a two-arm task since the 2026-08-17 rebuild, so
+    # there is no `T1_ARM` any more and the looking arm is a separate question
+    # from the working arm. ONE look serves the whole task: the observe pose
+    # is solved against all four cubes and both pads
+    # (`scripts/solve_observe_pose.py`), so whichever arm can see all six does
+    # the looking and both arms then work from what it saw.
+    import t1_task as T1M
+    arm = a.arm or T1M.LOOK_ARM
+    expect = a.expect if a.expect is not None else len(T1M.T1_CUBES)
 
     rclpy.init()
     try:
@@ -95,9 +102,9 @@ def main():
 
     rec = dict(arm=arm, cubes=cubes, timing=info,
                returned_home_worst_rad=round(float(off), 5),
-               layout=dict(T1_CUBES=[list(c) for c in M.T1_CUBES],
-                           T1_PLANES=[list(p) for p in M.T1_PLANES],
-                           T1_Z=M.T1_Z),
+               layout=dict(T1_CUBES=[list(c) for c in T1M.T1_CUBES],
+                           T1_PLANES=[list(p) for p in T1M.T1_PLANES],
+                           T1_Z=T1M.T1_Z),
                stamp=time.time())
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     json.dump(rec, open(a.out, "w"), indent=2, default=float)

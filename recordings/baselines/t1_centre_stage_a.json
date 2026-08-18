@@ -1,0 +1,1043 @@
+{
+  "floor": 0.15,
+  "repeats": 10,
+  "cube_m": 0.04,
+  "wearer_posture": "down",
+  "controls": {
+    "inside_torso_is_negative": -0.1569,
+    "far_1.6m_unreachable": true,
+    "shipped_cube_reachable_and_clear": "True / 0.161",
+    "slab_control_free_then_buried": "True -> False (want True -> False)"
+  },
+  "stage_a": [
+    {
+      "objects": "resting on the surface",
+      "z_obj": 1.0,
+      "arm": "left",
+      "min_x_ik": null,
+      "min_x_safe": null,
+      "per_x": [
+        {
+          "x": 0.0,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.025,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.05,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.075,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.1,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.125,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.15,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.175,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.2,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.225,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.25,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.275,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.3,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.325,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.35,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.375,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.4,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.425,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.45,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.475,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.5,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.525,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.55,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.575,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.6,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.625,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.65,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.675,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.7,
+          "ik": null,
+          "safe": null
+        }
+      ]
+    },
+    {
+      "objects": "resting on the surface",
+      "z_obj": 1.0,
+      "arm": "right",
+      "min_x_ik": {
+        "x": 0.275,
+        "y": 0.1,
+        "clearance": -0.0011,
+        "to": "R-forearm"
+      },
+      "min_x_safe": {
+        "x": 0.45,
+        "y": 0.1,
+        "clearance": 0.161,
+        "to": "torso"
+      },
+      "per_x": [
+        {
+          "x": 0.0,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.025,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.05,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.075,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.1,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.125,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.15,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.175,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.2,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.225,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.25,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.275,
+          "ik": {
+            "y": 0.1,
+            "clearance": -0.0011,
+            "to": "R-forearm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.3,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.0239,
+            "to": "R-forearm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.325,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.0489,
+            "to": "R-forearm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.35,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.0739,
+            "to": "R-forearm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.375,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.0989,
+            "to": "R-forearm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.4,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.1238,
+            "to": "R-forearm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.425,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.1488,
+            "to": "R-forearm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.45,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.475,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.5,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.525,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.55,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.575,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.6,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.625,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.65,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.1516,
+            "to": "R-forearm"
+          }
+        },
+        {
+          "x": 0.675,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.1601,
+            "to": "R-forearm"
+          }
+        },
+        {
+          "x": 0.7,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        }
+      ]
+    },
+    {
+      "objects": "shipped work plane (floating)",
+      "z_obj": 1.12,
+      "arm": "left",
+      "min_x_ik": {
+        "x": 0.275,
+        "y": 0.175,
+        "clearance": 0.0001,
+        "to": "L-forearm"
+      },
+      "min_x_safe": {
+        "x": 0.425,
+        "y": 0.25,
+        "clearance": 0.1594,
+        "to": "L-forearm"
+      },
+      "per_x": [
+        {
+          "x": 0.0,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.025,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.05,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.075,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.1,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.125,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.15,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.175,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.2,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.225,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.25,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.275,
+          "ik": {
+            "y": 0.175,
+            "clearance": 0.0001,
+            "to": "L-forearm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.3,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.0046,
+            "to": "L-forearm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.325,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.0273,
+            "to": "L-forearm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.35,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.0497,
+            "to": "L-upperarm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.375,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.0705,
+            "to": "L-upperarm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.4,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.0922,
+            "to": "L-upperarm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.425,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.1141,
+            "to": "L-upperarm"
+          },
+          "safe": {
+            "y": 0.25,
+            "clearance": 0.1594,
+            "to": "L-forearm"
+          }
+        },
+        {
+          "x": 0.45,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.1365,
+            "to": "L-upperarm"
+          },
+          "safe": {
+            "y": 0.175,
+            "clearance": 0.1513,
+            "to": "L-forearm"
+          }
+        },
+        {
+          "x": 0.475,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.1594,
+            "to": "L-upperarm"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.1571,
+            "to": "L-upperarm"
+          }
+        },
+        {
+          "x": 0.5,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.525,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.55,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.575,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.6,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.625,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.65,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.675,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.7,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        }
+      ]
+    },
+    {
+      "objects": "shipped work plane (floating)",
+      "z_obj": 1.12,
+      "arm": "right",
+      "min_x_ik": {
+        "x": 0.225,
+        "y": 0.3,
+        "clearance": 0.0053,
+        "to": "R-forearm"
+      },
+      "min_x_safe": {
+        "x": 0.4,
+        "y": 0.25,
+        "clearance": 0.1524,
+        "to": "R-upperarm"
+      },
+      "per_x": [
+        {
+          "x": 0.0,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.025,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.05,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.075,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.1,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.125,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.15,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.175,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.2,
+          "ik": null,
+          "safe": null
+        },
+        {
+          "x": 0.225,
+          "ik": {
+            "y": 0.3,
+            "clearance": 0.0053,
+            "to": "R-forearm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.25,
+          "ik": {
+            "y": 0.2,
+            "clearance": -0.0006,
+            "to": "R-forearm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.275,
+          "ik": {
+            "y": 0.1,
+            "clearance": -0.0011,
+            "to": "R-forearm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.3,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.0239,
+            "to": "R-forearm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.325,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.0489,
+            "to": "R-forearm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.35,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.0739,
+            "to": "R-forearm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.375,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.0989,
+            "to": "R-forearm"
+          },
+          "safe": null
+        },
+        {
+          "x": 0.4,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.1238,
+            "to": "R-forearm"
+          },
+          "safe": {
+            "y": 0.25,
+            "clearance": 0.1524,
+            "to": "R-upperarm"
+          }
+        },
+        {
+          "x": 0.425,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.1485,
+            "to": "R-upperarm"
+          },
+          "safe": {
+            "y": 0.175,
+            "clearance": 0.1553,
+            "to": "R-upperarm"
+          }
+        },
+        {
+          "x": 0.45,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.475,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.5,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.525,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.55,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.575,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.15,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.6,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.625,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.65,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.675,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        },
+        {
+          "x": 0.7,
+          "ik": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          },
+          "safe": {
+            "y": 0.1,
+            "clearance": 0.161,
+            "to": "torso"
+          }
+        }
+      ]
+    }
+  ],
+  "elapsed_s": 156.6,
+  "ik_calls": 6323,
+  "log": [
+    "CONTROLS  (wearer posture in the URDF: down)",
+    "   inside_torso_is_negative               -0.1569",
+    "   far_1.6m_unreachable                   True",
+    "   shipped_cube_reachable_and_clear       True / 0.161",
+    "   slab_control_free_then_buried          True -> False (want True -> False)",
+    "   left pinned anchor: tool axis elevation +30.8 deg, heading -10.2 deg",
+    "   right pinned anchor: tool axis elevation +22.1 deg, heading +16.2 deg",
+    "\n========================================================================",
+    "STAGE A -- THE LITERAL QUESTION, pinned anchor, current table",
+    "========================================================================",
+    "  resting on the surface         left   IK from |x|=----   SAFE from |x|=----",
+    "  resting on the surface         right  IK from |x|=0.275   SAFE from |x|=0.450",
+    "  shipped work plane (floating)  left   IK from |x|=0.275   SAFE from |x|=0.425",
+    "  shipped work plane (floating)  right  IK from |x|=0.225   SAFE from |x|=0.400",
+    "\n========================================================================",
+    "ANSWER",
+    "========================================================================",
+    "   left  NOTHING survives the full path anywhere in this sweep.",
+    "   right NOTHING survives the full path anywhere in this sweep."
+  ]
+}

@@ -288,11 +288,15 @@ def main():
     else:
         sys.path.insert(0, os.path.join(
             ROOT, "src/srl_experiments/experiments/abc"))
-        import msc_clip_tasks as MCT
-        import clip_tasks as CT
-        pts = [[px, py, CT.BENCH_TOP + MCT.CUBE_M / 2.0]
-               for px, py in MCT.T1_CUBES]
-        pts += [[px, py, CT.BENCH_TOP] for px, py in MCT.T1_PLANES]
+        # T1'S OWN HEIGHTS, from the module that owns them. They used to come
+        # from `clip_tasks.BENCH_TOP`, the plane every OTHER task works on;
+        # after the 2026-08-17 rebuild T1's objects rest on the table 120 mm
+        # below it, and an observe pose solved to see six points that are not
+        # there is a pose that verifies perfectly and sees nothing.
+        import t1_task as T1M
+        pts = [[px, py, T1M.T1_Z] for px, py in T1M.T1_CUBES]
+        pts += [[px, py, T1M.TABLE_TOP + T1M.PLANE_T]
+                for px, py in T1M.T1_PLANES]
     print("\n%d points to see:" % len(pts))
     for p in pts:
         print("   %s" % [round(v, 3) for v in p])

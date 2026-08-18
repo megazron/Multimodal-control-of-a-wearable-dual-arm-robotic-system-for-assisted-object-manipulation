@@ -1,0 +1,1002 @@
+{
+  "wake": "hey doc oc",
+  "model": "small",
+  "device": "cuda",
+  "shipped_threshold": 4,
+  "table": [
+    {
+      "threshold": 0,
+      "wake_accepted": 0,
+      "false_accepted": 0
+    },
+    {
+      "threshold": 1,
+      "wake_accepted": 14,
+      "false_accepted": 0
+    },
+    {
+      "threshold": 2,
+      "wake_accepted": 17,
+      "false_accepted": 1
+    },
+    {
+      "threshold": 3,
+      "wake_accepted": 38,
+      "false_accepted": 1
+    },
+    {
+      "threshold": 4,
+      "wake_accepted": 39,
+      "false_accepted": 2
+    },
+    {
+      "threshold": 5,
+      "wake_accepted": 39,
+      "false_accepted": 9
+    },
+    {
+      "threshold": 6,
+      "wake_accepted": 40,
+      "false_accepted": 21
+    },
+    {
+      "threshold": 7,
+      "wake_accepted": 40,
+      "false_accepted": 48
+    }
+  ],
+  "recommended": 1,
+  "rows": [
+    {
+      "said": "hey doc oc put the blue ones on the blue pad",
+      "heard": "Hey duck-uck, put the blue ones on the blue pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 824.1
+    },
+    {
+      "said": "hey doc oc put the green ones on the green mat",
+      "heard": "Hey Doc Ock, put the green ones on the green mat.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 1,
+      "tokens": 3,
+      "from_end": false,
+      "stt_ms": 678.3
+    },
+    {
+      "said": "hey doc oc put every cube on the pad of its own colour",
+      "heard": "Hey Doc Ock, put every cube on the pad of its own color.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 1,
+      "tokens": 3,
+      "from_end": false,
+      "stt_ms": 741.8
+    },
+    {
+      "said": "hey doc oc pick up the blue cube and put it on the blue pad",
+      "heard": "Hey duck-uck, pick up the blue cube and put it on the blue pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 876.8
+    },
+    {
+      "said": "hey doc oc put the green ones on the green mat",
+      "heard": "Hey Doc Ock, put the green ones on the green mat.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 1,
+      "tokens": 3,
+      "from_end": false,
+      "stt_ms": 678.7
+    },
+    {
+      "said": "hey doc oc move that blue block to its colour",
+      "heard": "Hadock-Ock move that blue block to its color.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 4,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 719.6
+    },
+    {
+      "said": "hey doc oc sort the cubes by colour",
+      "heard": "Hey Doc, I'll sort the cubes by color.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 2,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 545.1
+    },
+    {
+      "said": "hey doc oc put every cube where it belongs",
+      "heard": "Hey duck, arc put every cube where it belongs.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 549.9
+    },
+    {
+      "said": "hey doc oc sort them onto their matching colours",
+      "heard": "Hey duck, ox sort them on to their matching colors.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 611.7
+    },
+    {
+      "said": "hey doc oc move all the cubes to the colour that matches",
+      "heard": "Hey duck, uck, move all the cubes to the color that matches.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 755.5
+    },
+    {
+      "said": "hey doc oc place each block on the matching pad",
+      "heard": "Hey Doc Ock, place each block on the matching pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 1,
+      "tokens": 3,
+      "from_end": false,
+      "stt_ms": 640.9
+    },
+    {
+      "said": "hey doc oc could you please put the blue ones onto the blue square",
+      "heard": "Hey doc, could you please put the blue ones onto the blue square?",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 2,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 797.5
+    },
+    {
+      "said": "hey doc oc shift the green blocks over to the green target",
+      "heard": "Hey Doc, Ock shift the green blocks over to the green target.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 1,
+      "tokens": 3,
+      "from_end": false,
+      "stt_ms": 689.6
+    },
+    {
+      "said": "hey doc oc put the blue ones on the green pad",
+      "heard": "Hey duck-hawk, put the blue ones on the green pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 762.6
+    },
+    {
+      "said": "hey doc oc put the green cubes on the blue mat",
+      "heard": "Hey duck-uck, put the green cubes on the blue mat.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 639.1
+    },
+    {
+      "said": "hey doc oc put it on the blue pad",
+      "heard": "hey doc uck put his on the blue pad",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 2,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 619.4
+    },
+    {
+      "said": "hey doc oc tidy up",
+      "heard": "Hey duck-ock, tidy up.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 526.1
+    },
+    {
+      "said": "hey doc oc put that there",
+      "heard": "Hey Doc Ock, put that there.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 1,
+      "tokens": 3,
+      "from_end": false,
+      "stt_ms": 598.0
+    },
+    {
+      "said": "hey doc oc do the cube thing",
+      "heard": "Hey duck-ock, do the cube thing.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 634.6
+    },
+    {
+      "said": "hey doc oc put the cube on the pad",
+      "heard": "Hey Doc Ock, put the cube on the pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 1,
+      "tokens": 3,
+      "from_end": false,
+      "stt_ms": 598.1
+    },
+    {
+      "said": "hey doc oc do not put the blue ones on the blue pad",
+      "heard": "Hey Doc Ock, do not put the blue ones on the blue pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 1,
+      "tokens": 3,
+      "from_end": false,
+      "stt_ms": 739.9
+    },
+    {
+      "said": "hey doc oc put the blue ones on the blue pad but not the green ones",
+      "heard": "Hey duck, uck, put the blue ones on the blue pad but not the green ones.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 722.3
+    },
+    {
+      "said": "hey doc oc put the blue cube and the green cube on the pads",
+      "heard": "Hey duck-uck, put the blue cube and the green cube on the pads.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 672.2
+    },
+    {
+      "said": "hey doc oc put the blue ones on the blue pad then go home",
+      "heard": "Hey Duck Ock, put the blue ones on the blue pad then go home.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 743.2
+    },
+    {
+      "said": "hey doc oc put the cube behind the blue one on the blue pad",
+      "heard": "Hey Doc Ock, put the cube behind the blue one on the blue pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 1,
+      "tokens": 3,
+      "from_end": false,
+      "stt_ms": 806.7
+    },
+    {
+      "said": "hey doc oc put the blue cube on top of the green cube",
+      "heard": "Hey Doc Ock, put the blue cube on top of the green cube.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 1,
+      "tokens": 3,
+      "from_end": false,
+      "stt_ms": 653.5
+    },
+    {
+      "said": "hey doc oc put the red ones on the red pad",
+      "heard": "Hey duck-uck, put the red ones on the red pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 640.8
+    },
+    {
+      "said": "hey doc oc put the blue ones on the red pad",
+      "heard": "Hey Duck Ock, put the blue ones on the red pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 647.2
+    },
+    {
+      "said": "hey doc oc put the tray on the blue pad",
+      "heard": "Hey duck-uck, put the tray on the blue pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 560.3
+    },
+    {
+      "said": "hey doc oc which cubes are blue",
+      "heard": "Hey Doc Ock, which cubes are blue?",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 1,
+      "tokens": 3,
+      "from_end": false,
+      "stt_ms": 578.0
+    },
+    {
+      "said": "hey doc oc the blue cubes go on the blue pad",
+      "heard": "High duck ock the blue cubes go on the blue pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 6,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 699.8
+    },
+    {
+      "said": "hey doc oc stop",
+      "heard": "Hey duck, I'll stop.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 481.5
+    },
+    {
+      "said": "hey doc oc put the blue ones on the left pad",
+      "heard": "Hey duck, Ock, put the blue ones on the left pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 736.8
+    },
+    {
+      "said": "hey doc oc put the bleu ones on the bleu pad",
+      "heard": "Hey duck, I'll put the blue ones on the blue pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 629.1
+    },
+    {
+      "said": "hey doc oc put the blue cubbes on the blue pad",
+      "heard": "Hey Doc Ock, put the blue cubs on the blue pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 1,
+      "tokens": 3,
+      "from_end": false,
+      "stt_ms": 689.4
+    },
+    {
+      "said": "hey doc oc put the gren ones on the gren pad",
+      "heard": "Hey duck-ock, put the grin ones on the grin pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 713.4
+    },
+    {
+      "said": "hey doc oc put the gerne ones on the gerne pad",
+      "heard": "Hey Doc Ock, put the Jern ones on the Jern pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 1,
+      "tokens": 3,
+      "from_end": false,
+      "stt_ms": 754.8
+    },
+    {
+      "said": "hey doc oc pt the blue ones on the blue pad",
+      "heard": "Hey duck-uck pt the blue ones on the blue pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 763.5
+    },
+    {
+      "said": "hey doc oc put the blue ones on the blue padd",
+      "heard": "Hey Doc Ock, put the blue ones on the blue pad.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 1,
+      "tokens": 3,
+      "from_end": false,
+      "stt_ms": 634.8
+    },
+    {
+      "said": "hey doc oc sort teh cubes by colour",
+      "heard": "Hey duck, ox sort a cubes by color.",
+      "is_wake": true,
+      "kind": "instruction with wake",
+      "edits": 3,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 574.5
+    },
+    {
+      "said": "put the blue ones on the blue pad",
+      "heard": "put the blue ones on the blue pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 546.1
+    },
+    {
+      "said": "put the green ones on the green mat",
+      "heard": "Put the green ones on the green mat.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 8,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 509.8
+    },
+    {
+      "said": "put every cube on the pad of its own colour",
+      "heard": "Put every cube on the pad of its own color.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 6,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 683.2
+    },
+    {
+      "said": "pick up the blue cube and put it on the blue pad",
+      "heard": "Pick up the blue cube and put it on the blue pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 562.0
+    },
+    {
+      "said": "put the green ones on the green mat",
+      "heard": "Put the green ones on the green mat.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 8,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 545.0
+    },
+    {
+      "said": "move that blue block to its colour",
+      "heard": "Move that blue block to its color.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 6,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 502.2
+    },
+    {
+      "said": "sort the cubes by colour",
+      "heard": "Sort the cubes by color.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 5,
+      "tokens": 2,
+      "from_end": true,
+      "stt_ms": 471.6
+    },
+    {
+      "said": "put every cube where it belongs",
+      "heard": "Put every cube where it belongs.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 6,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 554.8
+    },
+    {
+      "said": "sort them onto their matching colours",
+      "heard": "Sort them onto their matching colors.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 465.0
+    },
+    {
+      "said": "move all the cubes to the colour that matches",
+      "heard": "Move all the cubes to the color that matches.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 556.9
+    },
+    {
+      "said": "place each block on the matching pad",
+      "heard": "Place each block on the matching pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 478.1
+    },
+    {
+      "said": "could you please put the blue ones onto the blue square",
+      "heard": "Could you please put the blue ones onto the blue square?",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 8,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 587.9
+    },
+    {
+      "said": "shift the green blocks over to the green target",
+      "heard": "Shift the green blocks over to the green target.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 8,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 586.8
+    },
+    {
+      "said": "put the blue ones on the green pad",
+      "heard": "Put the blue ones on the green pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 670.3
+    },
+    {
+      "said": "put the green cubes on the blue mat",
+      "heard": "Put the green cubes on the blue mat.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 8,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 567.3
+    },
+    {
+      "said": "put it on the blue pad",
+      "heard": "Put it on the blue pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 3,
+      "from_end": false,
+      "stt_ms": 484.9
+    },
+    {
+      "said": "tidy up",
+      "heard": "tidy up.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 417.8
+    },
+    {
+      "said": "put that there",
+      "heard": "Put that there.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 515.5
+    },
+    {
+      "said": "do the cube thing",
+      "heard": "Do the coob thing.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 5,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 466.3
+    },
+    {
+      "said": "put the cube on the pad",
+      "heard": "put the cube on the pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 535.7
+    },
+    {
+      "said": "do not put the blue ones on the blue pad",
+      "heard": "Do not put the blue ones on the blue pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 5,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 581.3
+    },
+    {
+      "said": "put the blue ones on the blue pad but not the green ones",
+      "heard": "put the blue ones on the blue pad but not the green ones.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 650.4
+    },
+    {
+      "said": "put the blue cube and the green cube on the pads",
+      "heard": "Put the blue cube and the green cube on the pads.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 583.3
+    },
+    {
+      "said": "put the blue ones on the blue pad then go home",
+      "heard": "Put the blue ones on the blue pad then go home.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 6,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 633.3
+    },
+    {
+      "said": "put the cube behind the blue one on the blue pad",
+      "heard": "Put the crew behind the blue one on the blue pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 587.2
+    },
+    {
+      "said": "put the blue cube on top of the green cube",
+      "heard": "Put the blue cube on top of the green cube.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 8,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 604.3
+    },
+    {
+      "said": "put the red ones on the red pad",
+      "heard": "Put the red ones on the red pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 6,
+      "tokens": 2,
+      "from_end": true,
+      "stt_ms": 526.3
+    },
+    {
+      "said": "put the blue ones on the red pad",
+      "heard": "Put the blue ones on the red pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 6,
+      "tokens": 2,
+      "from_end": true,
+      "stt_ms": 637.3
+    },
+    {
+      "said": "put the tray on the blue pad",
+      "heard": "Put the tray on the blue pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 510.9
+    },
+    {
+      "said": "which cubes are blue",
+      "heard": "which cubes are blue.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 552.3
+    },
+    {
+      "said": "the blue cubes go on the blue pad",
+      "heard": "The blue cubes go on the blue pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 533.9
+    },
+    {
+      "said": "stop",
+      "heard": "Stop.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 424.6
+    },
+    {
+      "said": "put the blue ones on the left pad",
+      "heard": "Put the blue ones on the left pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 566.7
+    },
+    {
+      "said": "put the bleu ones on the bleu pad",
+      "heard": "Put the blue ones on the blue pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 477.0
+    },
+    {
+      "said": "put the blue cubbes on the blue pad",
+      "heard": "put the blue cubs on the blue pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 582.0
+    },
+    {
+      "said": "put the gren ones on the gren pad",
+      "heard": "Put the grin ones on the grin pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 687.0
+    },
+    {
+      "said": "put the gerne ones on the gerne pad",
+      "heard": "Put the GERN 1s on the GERN pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 621.1
+    },
+    {
+      "said": "pt the blue ones on the blue pad",
+      "heard": "Petey the blue ones on the blue pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 598.7
+    },
+    {
+      "said": "put the blue ones on the blue padd",
+      "heard": "put the blue ones on the blue pad.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 590.7
+    },
+    {
+      "said": "sort teh cubes by colour",
+      "heard": "Sort take cubes by color.",
+      "is_wake": false,
+      "kind": "instruction, bare",
+      "edits": 5,
+      "tokens": 2,
+      "from_end": true,
+      "stt_ms": 483.8
+    },
+    {
+      "said": "hey can you pass me the screwdriver",
+      "heard": "Hey can you pass me the screwdriver?",
+      "is_wake": false,
+      "kind": "chatter",
+      "edits": 5,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 536.5
+    },
+    {
+      "said": "hey doc how long have you been running that",
+      "heard": "Hey Doc, how long have you been running that?",
+      "is_wake": false,
+      "kind": "chatter",
+      "edits": 2,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 573.9
+    },
+    {
+      "said": "the docking station is over by the window",
+      "heard": "The docking station is over by the window.",
+      "is_wake": false,
+      "kind": "chatter",
+      "edits": 6,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 618.7
+    },
+    {
+      "said": "he took the blue one home yesterday",
+      "heard": "He took the blue one home yesterday.",
+      "is_wake": false,
+      "kind": "chatter",
+      "edits": 4,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 508.9
+    },
+    {
+      "said": "okay so what happens if we just leave it",
+      "heard": "Okay, so what happens if we just leave it?",
+      "is_wake": false,
+      "kind": "chatter",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 627.0
+    },
+    {
+      "said": "duck under the frame there is a cable",
+      "heard": "Duck under the frame there is a cable.",
+      "is_wake": false,
+      "kind": "chatter",
+      "edits": 6,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 586.5
+    },
+    {
+      "said": "i think the green one is the spare",
+      "heard": "I think the green one is the spare.",
+      "is_wake": false,
+      "kind": "chatter",
+      "edits": 8,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 488.4
+    },
+    {
+      "said": "hey are you recording this",
+      "heard": "Hey are you recording this?",
+      "is_wake": false,
+      "kind": "chatter",
+      "edits": 5,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 494.0
+    },
+    {
+      "said": "doctor ockham said the simplest answer usually wins",
+      "heard": "Dr. Ahkam said the simplest answer usually wins.",
+      "is_wake": false,
+      "kind": "chatter",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 606.9
+    },
+    {
+      "said": "that box on the trolley is not ours",
+      "heard": "That box on the trolley is not ours.",
+      "is_wake": false,
+      "kind": "chatter",
+      "edits": 6,
+      "tokens": 3,
+      "from_end": false,
+      "stt_ms": 511.9
+    },
+    {
+      "said": "put the kettle on would you",
+      "heard": "Put the kettle on, would you?",
+      "is_wake": false,
+      "kind": "chatter",
+      "edits": 6,
+      "tokens": 1,
+      "from_end": true,
+      "stt_ms": 526.0
+    },
+    {
+      "said": "we should stop for lunch soon",
+      "heard": "We should stop for lunch soon.",
+      "is_wake": false,
+      "kind": "chatter",
+      "edits": 6,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 620.3
+    },
+    {
+      "said": "the pad on the left is a bit sticky",
+      "heard": "The pad on the left is a bit sticky.",
+      "is_wake": false,
+      "kind": "chatter",
+      "edits": 6,
+      "tokens": 2,
+      "from_end": false,
+      "stt_ms": 567.2
+    },
+    {
+      "said": "did anyone move my cube of resin",
+      "heard": "Did anyone move my cube of resin?",
+      "is_wake": false,
+      "kind": "chatter",
+      "edits": 7,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 525.1
+    },
+    {
+      "said": "hey listen the fan is making that noise again",
+      "heard": "Hey listen the fan is making that noise again.",
+      "is_wake": false,
+      "kind": "chatter",
+      "edits": 5,
+      "tokens": 1,
+      "from_end": false,
+      "stt_ms": 540.7
+    }
+  ],
+  "caveat": "one synthetic voice, no accent, no room, no noise -- this measures the PIPELINE and must be re-run against real speakers before the threshold is validated"
+}

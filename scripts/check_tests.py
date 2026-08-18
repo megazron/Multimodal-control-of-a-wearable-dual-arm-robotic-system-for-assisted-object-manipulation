@@ -56,7 +56,7 @@ def run(paths=None, quiet=False):
     # catching itself on.
     hits = re.findall(r"(\d+) passed", out)
     passed = int(hits[-1]) if hits else 0
-    return failed, passed, out
+    return failed, passed, out, r.returncode
 
 
 def main():
@@ -65,12 +65,39 @@ def main():
     ap.add_argument("paths", nargs="*")
     a = ap.parse_args()
 
-    failed, passed, out = run(a.paths or None, a.quiet)
+    failed, passed, out, rc = run(a.paths or None, a.quiet)
     new = sorted(f for f in failed if f not in ALLOWED)
     stale = sorted(x for x in ALLOWED if x not in failed)
 
     print("[tests] %d passed, %d failed (%d allowed, %d NEW)"
           % (passed, len(failed), len(failed) - len(new), len(new)))
+
+    # A COLLECTION ERROR IS NOT A CLEAN RUN, AND THIS GATE USED TO SAY IT WAS.
+    #
+    # `FAILED <id>` lines only exist for tests that RAN. When an import raises,
+    # pytest prints `ERROR` and `Interrupted: 1 error during collection`, runs
+    # nothing, and exits 2 -- so `failed` is empty, `passed` is 0, and this
+    # printed "0 passed, 0 failed (0 allowed, 0 NEW)" and returned SUCCESS.
+    # MEASURED on 2026-08-17, with `msc_clip_tasks` raising IndexError partway
+    # through the T1 rebuild: the gate that stands in front of every recording
+    # went green over a suite that had not executed a single test.
+    #
+    # This is the "a check that cannot fail is not a check" rule applied to the
+    # thing that enforces it. Two independent conditions, because either alone
+    # can be defeated: pytest's own exit code, and a run that executed nothing.
+    if rc not in (0, 1):
+        print("[tests] REFUSING: pytest exited %d -- the suite did not run to "
+              "completion. Almost always a COLLECTION error: an import raised, "
+              "so no test executed and 'nothing failed' means nothing was "
+              "tried." % rc)
+        tail = [ln for ln in out.splitlines() if ln.strip()][-25:]
+        print("\n".join("[tests] | " + ln for ln in tail))
+        return 2
+    if passed == 0 and not failed:
+        print("[tests] REFUSING: zero tests ran. An empty suite reports the "
+              "same thing as a passing one and this gate is what stands in "
+              "front of recording.")
+        return 2
     for f in sorted(failed & ALLOWED):
         print("[tests]   allowed: %s" % f)
     if stale:

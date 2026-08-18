@@ -36,17 +36,36 @@ for p in (HERE, os.path.join(ROOT, "config"),
 OUT = os.path.join(ROOT, "recordings/baselines/vision_drives_grasp.json")
 
 
-def place_of(wp_path, cube_index, n_cubes=4):
-    """The PLACE waypoint of the nth pick, from a built path.
+def pad_near(plan, x, y):
+    """(pad index, arm, pad x) for the plan entry NEAREST a given position.
 
-    Each pick contributes an equal share of the sequence, so the place point
-    is the lowest waypoint in the second half of that share.
+    BY POSITION, NEVER BY INDEX. The declared plan is in `T1_CUBES` order; the
+    camera's is sorted by x, because that is the order `observe_and_detect`
+    returns. Index 0 therefore names a different physical cube in each, and
+    comparing them reported "no difference" while comparing two different
+    objects -- the harness agreeing with itself about the wrong thing, which
+    is the exact failure mode this script exists to catch in the system.
     """
-    seq = wp_path["left"] if wp_path.get("left") else wp_path["right"]
-    per = len(seq) // n_cubes
-    chunk = seq[cube_index * per:(cube_index + 1) * per]
-    half = chunk[len(chunk) // 2:]
-    return min(half, key=lambda w: w[2])
+    import t1_task as _T1
+    i = min(range(len(plan)),
+            key=lambda k: (plan[k][0] - x) ** 2 + (plan[k][1] - y) ** 2)
+    _x, _y, pad, arm = plan[i]
+    return pad, arm, _T1.T1_PLANES[pad][0]
+
+
+def pad_of(plan, cube_index):
+    """(pad index, arm, pad x) for one cube in a resolved plan.
+
+    NOT SLICED OUT OF THE WAYPOINTS. The old version cut the path into equal
+    shares per cube and took the lowest point of each -- correct while T1 ran
+    one arm and every pick contributed the same number of waypoints. The
+    rebuilt T1 is two-armed and a cube's ARM follows its colour, so the shares
+    are unequal and the slice reads the wrong pick. `t1_task.plan_for()` is
+    the resolution itself.
+    """
+    import t1_task as _T1
+    x, _y, pad, arm = plan[cube_index]
+    return pad, arm, _T1.T1_PLANES[pad][0]
 
 
 def main():
@@ -58,11 +77,12 @@ def main():
     import rclpy
     import msc_clip_tasks as M
     from vision_grasp import observe_and_detect, DetectionUnavailable
-    arm = a.arm or M.T1_ARM
+    import t1_task as T1M
+    arm = a.arm or T1M.LOOK_ARM
 
     rclpy.init()
     try:
-        cubes, info = observe_and_detect(arm, expect=len(M.T1_CUBES))
+        cubes, info = observe_and_detect(arm, expect=len(T1M.T1_CUBES))
     except DetectionUnavailable as e:
         print("REFUSED: %s" % e)
         return 5
@@ -80,29 +100,37 @@ def main():
           % (info["added_total_s"], info["added_per_pick_s"] or 0.0))
 
     # ---- MISLABEL CUBE 0 IN THE SCENE DEFINITION ---------------------
-    saved = dict(M.T1_PAIR)
-    truth_pad = M.T1_PAIR[0]
+    # `t1_task.build`, NOT `msc_clip_tasks.t1`: the builder moved with the
+    # 2026-08-17 rebuild. The lie is still told in `T1_PAIR`, which is the
+    # DECLARATION, and the camera still paints from `T1_RENDERED`, which is
+    # the pixels. Those two being separate constants is what makes this test
+    # possible at all -- before the rebuild the mock camera derived colour
+    # from index parity, which happened to be independent, by luck.
+    saved = dict(T1M.T1_PAIR)
+    truth_pad = T1M.T1_PAIR[0]
     lie_pad = 1 - truth_pad
     try:
-        M.T1_PAIR[0] = lie_pad
-        wp_declared = M.t1()                       # believes the lie
-        wp_vision = M.t1(cubes=cubes)              # believes the camera
+        T1M.T1_PAIR[0] = lie_pad
+        plan_declared = T1M.plan_for()             # believes the lie
+        plan_vision = T1M.plan_for(cubes=cubes)    # believes the camera
     finally:
-        M.T1_PAIR.clear()
-        M.T1_PAIR.update(saved)
+        T1M.T1_PAIR.clear()
+        T1M.T1_PAIR.update(saved)
 
-    p_dec = place_of(wp_declared, 0)
-    p_vis = place_of(wp_vision, 0)
-    pads = M.T1_PLANES
+    # THE SAME PHYSICAL CUBE ON BOTH SIDES, found by where it is.
+    cx, cy = T1M.T1_CUBES[0]
+    d_pad, d_arm, d_x = pad_near(plan_declared, cx, cy)
+    v_pad, v_arm, v_x = pad_near(plan_vision, cx, cy)
     print("\nCUBE 0 declared %s (a LIE -- it renders %s)"
           % (M.PLANE_COLOURS[lie_pad], M.PLANE_COLOURS[truth_pad]))
-    print("   declared path places it near x=%.3f  (pad %d, %s)"
-          % (p_dec[0], lie_pad, M.PLANE_COLOURS[lie_pad]))
-    print("   vision   path places it near x=%.3f  (pad %d, %s)"
-          % (p_vis[0], truth_pad, M.PLANE_COLOURS[truth_pad]))
-    sep = abs(p_dec[0] - p_vis[0])
-    # the two pads are 200 mm apart in x; anything near that is a real move
-    drives = sep > 0.10
+    print("   declared path sends it to the %s pad at x=%+.3f, %s arm"
+          % (M.PLANE_COLOURS[d_pad], d_x, d_arm.upper()))
+    print("   vision   path sends it to the %s pad at x=%+.3f, %s arm"
+          % (M.PLANE_COLOURS[v_pad], v_x, v_arm.upper()))
+    sep = abs(d_x - v_x)
+    # THE TWO PADS ARE ON OPPOSITE SIDES OF THE CENTRELINE, so a real
+    # difference is not a shift of a few centimetres -- it is a different arm.
+    drives = (d_pad != v_pad) and (d_arm != v_arm) and sep > 0.30
     print("\n   the two paths differ by %.3f m in x -> %s"
           % (sep, "VISION IS DRIVING THE GRASP"
              if drives else "NO DIFFERENCE -- vision is decorative"))
@@ -119,14 +147,14 @@ def main():
     import t1_instruction as TI
     instr = "put every cube where it belongs"
     o_truth = TI.plan_from(instr, cubes)
-    saved = dict(M.T1_PAIR)
+    saved = dict(T1M.T1_PAIR)
     try:
-        for k in list(M.T1_PAIR):
-            M.T1_PAIR[k] = 1 - M.T1_PAIR[k]
+        for k in list(T1M.T1_PAIR):
+            T1M.T1_PAIR[k] = 1 - T1M.T1_PAIR[k]
         o_lied = TI.plan_from(instr, cubes)
     finally:
-        M.T1_PAIR.clear()
-        M.T1_PAIR.update(saved)
+        T1M.T1_PAIR.clear()
+        T1M.T1_PAIR.update(saved)
     instr_ok = (o_truth.ok and o_lied.ok
                 and o_truth.picks == o_lied.picks)
     print("\nTHE SAME LIE, THROUGH THE TYPED INSTRUCTION %r" % instr)
@@ -142,8 +170,8 @@ def main():
              "the file"))
 
     res = dict(arm=arm, cubes=cubes, timing=info,
-               declared_place_x=round(float(p_dec[0]), 4),
-               vision_place_x=round(float(p_vis[0]), 4),
+               declared_pad_x=round(float(d_x), 4),
+               vision_pad_x=round(float(v_x), 4),
                separation_m=round(float(sep), 4),
                vision_drives_the_grasp=bool(drives),
                instruction=instr,

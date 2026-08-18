@@ -1,0 +1,1738 @@
+{
+  "tag": "approach_grid_on_applied_mount",
+  "k": 30,
+  "floor": 0.15,
+  "xs": [
+    0.0,
+    0.05,
+    0.1
+  ],
+  "controls": {
+    "inside_torso_negative": "-0.1592 / torso / end_effector_link -> robotiq_85_left_finger_tip_link",
+    "far_1.6m_unreachable": true,
+    "as_built_centre_best_branch": -0.0199,
+    "posture_swap_reaches_the_model": "on the wearer's own forearm: down -0.0950 (L-forearm) -> none -0.0200 (torso)"
+  },
+  "rows": [
+    {
+      "name": "elev -30, head +50, top 1.15 near 0.380",
+      "top": 1.15,
+      "near_y": 0.38,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0565,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.089,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.121,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        }
+      },
+      "left_best": 0.121,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0464,
+          "wearer": "torso",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.0747,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.106,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.106,
+      "both_clear_floor": false
+    },
+    {
+      "name": "elev -30, head +65, top 1.15 near 0.380",
+      "top": 1.15,
+      "near_y": 0.38,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1097,
+          "wearer": "torso",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1519,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1791,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        }
+      },
+      "left_best": 0.1791,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0921,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1253,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1582,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1582,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev -30, head +75, top 1.15 near 0.380",
+      "top": 1.15,
+      "near_y": 0.38,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1099,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1768,
+          "wearer": "torso",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.2094,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        }
+      },
+      "left_best": 0.2094,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1002,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1425,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1804,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1804,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev -20, head +50, top 1.15 near 0.380",
+      "top": 1.15,
+      "near_y": 0.38,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0591,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.0898,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1209,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        }
+      },
+      "left_best": 0.1209,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0439,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.0716,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1035,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1035,
+      "both_clear_floor": false
+    },
+    {
+      "name": "elev -20, head +65, top 1.15 near 0.380",
+      "top": 1.15,
+      "near_y": 0.38,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1238,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.157,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1791,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        }
+      },
+      "left_best": 0.1791,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0914,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1245,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1596,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1596,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev -20, head +75, top 1.15 near 0.380",
+      "top": 1.15,
+      "near_y": 0.38,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1513,
+          "wearer": "torso",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1954,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.2094,
+          "wearer": "torso",
+          "link": "bracelet_link -> end_effector_link"
+        }
+      },
+      "left_best": 0.2094,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1194,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.155,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1982,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1982,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev -10, head +50, top 1.15 near 0.380",
+      "top": 1.15,
+      "near_y": 0.38,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0592,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.0892,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1209,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        }
+      },
+      "left_best": 0.1209,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.042,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.0608,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.0995,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.0995,
+      "both_clear_floor": false
+    },
+    {
+      "name": "elev -10, head +65, top 1.15 near 0.380",
+      "top": 1.15,
+      "near_y": 0.38,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1334,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.158,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1791,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        }
+      },
+      "left_best": 0.1791,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1018,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1332,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1667,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1667,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev -10, head +75, top 1.15 near 0.380",
+      "top": 1.15,
+      "near_y": 0.38,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1635,
+          "wearer": "torso",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1965,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.2094,
+          "wearer": "torso",
+          "link": "bracelet_link -> end_effector_link"
+        }
+      },
+      "left_best": 0.2094,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1248,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1696,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1959,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1959,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev +0, head +50, top 1.15 near 0.380",
+      "top": 1.15,
+      "near_y": 0.38,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0587,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.0889,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1209,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        }
+      },
+      "left_best": 0.1209,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0461,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.0715,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1045,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1045,
+      "both_clear_floor": false
+    },
+    {
+      "name": "elev +0, head +65, top 1.15 near 0.380",
+      "top": 1.15,
+      "near_y": 0.38,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1331,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.158,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1791,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        }
+      },
+      "left_best": 0.1791,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.109,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1434,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1783,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1783,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev +0, head +75, top 1.15 near 0.380",
+      "top": 1.15,
+      "near_y": 0.38,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1576,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1965,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.2094,
+          "wearer": "torso",
+          "link": "bracelet_link -> end_effector_link"
+        }
+      },
+      "left_best": 0.2094,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1288,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1704,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.2034,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.2034,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev +10, head +50, top 1.15 near 0.380",
+      "top": 1.15,
+      "near_y": 0.38,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0552,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.0887,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1209,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        }
+      },
+      "left_best": 0.1209,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0606,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.0892,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1209,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        }
+      },
+      "right_best": 0.1209,
+      "both_clear_floor": false
+    },
+    {
+      "name": "elev +10, head +65, top 1.15 near 0.380",
+      "top": 1.15,
+      "near_y": 0.38,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1272,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.158,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1791,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        }
+      },
+      "left_best": 0.1791,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1277,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.158,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1791,
+          "wearer": "torso",
+          "link": "spherical_wrist_2_link -> bracelet_link"
+        }
+      },
+      "right_best": 0.1791,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev +10, head +75, top 1.15 near 0.380",
+      "top": 1.15,
+      "near_y": 0.38,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1948,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.2094,
+          "wearer": "torso",
+          "link": "bracelet_link -> end_effector_link"
+        }
+      },
+      "left_best": 0.2094,
+      "right": {
+        "0.000": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1752,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1917,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1917,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev -30, head +50, top 1.25 near 0.430",
+      "top": 1.25,
+      "near_y": 0.43,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0746,
+          "wearer": "torso",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.121,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1542,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        }
+      },
+      "left_best": 0.1542,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0719,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.104,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1382,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1382,
+      "both_clear_floor": false
+    },
+    {
+      "name": "elev -30, head +65, top 1.25 near 0.430",
+      "top": 1.25,
+      "near_y": 0.43,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1454,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1978,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "left_best": 0.1978,
+      "right": {
+        "0.000": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1286,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1677,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1677,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev -30, head +75, top 1.25 near 0.430",
+      "top": 1.25,
+      "near_y": 0.43,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.050": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.100": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        }
+      },
+      "left_best": null,
+      "right": {
+        "0.000": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.050": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.100": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        }
+      },
+      "right_best": null,
+      "both_clear_floor": false
+    },
+    {
+      "name": "elev -20, head +50, top 1.25 near 0.430",
+      "top": 1.25,
+      "near_y": 0.43,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0876,
+          "wearer": "torso",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1262,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1581,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        }
+      },
+      "left_best": 0.1581,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0756,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1022,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1317,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1317,
+      "both_clear_floor": false
+    },
+    {
+      "name": "elev -20, head +65, top 1.25 near 0.430",
+      "top": 1.25,
+      "near_y": 0.43,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1158,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1797,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.22,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        }
+      },
+      "left_best": 0.22,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1006,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1434,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1723,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1723,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev -20, head +75, top 1.25 near 0.430",
+      "top": 1.25,
+      "near_y": 0.43,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.050": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.2202,
+          "wearer": "torso",
+          "link": "base_link -> shoulder_link"
+        }
+      },
+      "left_best": 0.2202,
+      "right": {
+        "0.000": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.050": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1898,
+          "wearer": "R-upperarm",
+          "link": "half_arm_2_link -> forearm_link"
+        }
+      },
+      "right_best": 0.1898,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev -10, head +50, top 1.25 near 0.430",
+      "top": 1.25,
+      "near_y": 0.43,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0924,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1267,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1592,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        }
+      },
+      "left_best": 0.1592,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0715,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.0995,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1294,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1294,
+      "both_clear_floor": false
+    },
+    {
+      "name": "elev -10, head +65, top 1.25 near 0.430",
+      "top": 1.25,
+      "near_y": 0.43,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1541,
+          "wearer": "torso",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.192,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.2202,
+          "wearer": "torso",
+          "link": "base_link -> shoulder_link"
+        }
+      },
+      "left_best": 0.2202,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1115,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1475,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1824,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1824,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev -10, head +75, top 1.25 near 0.430",
+      "top": 1.25,
+      "near_y": 0.43,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1866,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.2202,
+          "wearer": "torso",
+          "link": "base_link -> shoulder_link"
+        }
+      },
+      "left_best": 0.2202,
+      "right": {
+        "0.000": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1593,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1989,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1989,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev +0, head +50, top 1.25 near 0.430",
+      "top": 1.25,
+      "near_y": 0.43,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0974,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1277,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1592,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        }
+      },
+      "left_best": 0.1592,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0702,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.0936,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1236,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1236,
+      "both_clear_floor": false
+    },
+    {
+      "name": "elev +0, head +65, top 1.25 near 0.430",
+      "top": 1.25,
+      "near_y": 0.43,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1552,
+          "wearer": "torso",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1979,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.2202,
+          "wearer": "torso",
+          "link": "base_link -> shoulder_link"
+        }
+      },
+      "left_best": 0.2202,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1159,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1517,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1855,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1855,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev +0, head +75, top 1.25 near 0.430",
+      "top": 1.25,
+      "near_y": 0.43,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1876,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.2202,
+          "wearer": "torso",
+          "link": "base_link -> shoulder_link"
+        }
+      },
+      "left_best": 0.2202,
+      "right": {
+        "0.000": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1635,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.2066,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.2066,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev +10, head +50, top 1.25 near 0.430",
+      "top": 1.25,
+      "near_y": 0.43,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.0932,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1275,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1593,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        }
+      },
+      "left_best": 0.1593,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.102,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1267,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1434,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1434,
+      "both_clear_floor": false
+    },
+    {
+      "name": "elev +10, head +65, top 1.25 near 0.430",
+      "top": 1.25,
+      "near_y": 0.43,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1351,
+          "wearer": "L-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1939,
+          "wearer": "torso",
+          "link": "spherical_wrist_1_link -> spherical_wrist_2_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.2202,
+          "wearer": "torso",
+          "link": "base_link -> shoulder_link"
+        }
+      },
+      "left_best": 0.2202,
+      "right": {
+        "0.000": {
+          "solved": 30,
+          "best": 0.1128,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.050": {
+          "solved": 30,
+          "best": 0.1578,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1929,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1929,
+      "both_clear_floor": true
+    },
+    {
+      "name": "elev +10, head +75, top 1.25 near 0.430",
+      "top": 1.25,
+      "near_y": 0.43,
+      "mount": {
+        "name": "as built",
+        "dx": 0.0,
+        "dy": 0.0,
+        "dz": 0.0,
+        "tilt": 0.0,
+        "yaw_in": 0.0
+      },
+      "left": {
+        "0.000": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.050": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.2202,
+          "wearer": "torso",
+          "link": "base_link -> shoulder_link"
+        }
+      },
+      "left_best": 0.2202,
+      "right": {
+        "0.000": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.050": {
+          "solved": 0,
+          "best": null,
+          "wearer": null,
+          "link": null
+        },
+        "0.100": {
+          "solved": 30,
+          "best": 0.1986,
+          "wearer": "R-upperarm",
+          "link": "forearm_link -> spherical_wrist_1_link"
+        }
+      },
+      "right_best": 0.1986,
+      "both_clear_floor": true
+    }
+  ],
+  "log": [
+    "CONTROLS",
+    "   inside_torso_negative              -0.1592 / torso / end_effector_link -> robotiq_85_left_finger_tip_link",
+    "   far_1.6m_unreachable               True",
+    "   as_built_centre_best_branch        -0.0199",
+    "   posture_swap_reaches_the_model     on the wearer's own forearm: down -0.0950 (L-forearm) -> none -0.0200 (torso)",
+    "\n====================================================================================================================================",
+    "BEST CLEARANCE ANY BRANCH ACHIEVES AT |x| <= 0.10, floor 0.150 m (best of 30 solves, collisions OFF)",
+    "====================================================================================================================================",
+    "  elev -30, head +50, top 1.15 near 0.380         L +0.1210  torso / spherical_wris      R +0.1060  torso / forearm_link -      ",
+    "  elev -30, head +65, top 1.15 near 0.380         L +0.1791  torso / forearm_link -      R +0.1582  R-upperarm / forearm_link -  CLEARS",
+    "  elev -30, head +75, top 1.15 near 0.380         L +0.2094  L-upperarm / forearm_link -  R +0.1804  R-upperarm / forearm_link -  CLEARS",
+    "  elev -20, head +50, top 1.15 near 0.380         L +0.1209  torso / spherical_wris      R +0.1035  R-upperarm / forearm_link -  ",
+    "  elev -20, head +65, top 1.15 near 0.380         L +0.1791  torso / spherical_wris      R +0.1596  R-upperarm / forearm_link -  CLEARS",
+    "  elev -20, head +75, top 1.15 near 0.380         L +0.2094  torso / forearm_link -      R +0.1982  R-upperarm / forearm_link -  CLEARS",
+    "  elev -10, head +50, top 1.15 near 0.380         L +0.1209  torso / spherical_wris      R +0.0995  R-upperarm / forearm_link -  ",
+    "  elev -10, head +65, top 1.15 near 0.380         L +0.1791  torso / spherical_wris      R +0.1667  R-upperarm / forearm_link -  CLEARS",
+    "  elev -10, head +75, top 1.15 near 0.380         L +0.2094  torso / forearm_link -      R +0.1959  R-upperarm / forearm_link -  CLEARS",
+    "  elev +0, head +50, top 1.15 near 0.380          L +0.1209  torso / spherical_wris      R +0.1045  R-upperarm / forearm_link -  ",
+    "  elev +0, head +65, top 1.15 near 0.380          L +0.1791  torso / spherical_wris      R +0.1783  R-upperarm / forearm_link -  CLEARS",
+    "  elev +0, head +75, top 1.15 near 0.380          L +0.2094  L-upperarm / forearm_link -  R +0.2034  R-upperarm / forearm_link -  CLEARS",
+    "  elev +10, head +50, top 1.15 near 0.380         L +0.1209  torso / spherical_wris      R +0.1209  torso / spherical_wris      ",
+    "  elev +10, head +65, top 1.15 near 0.380         L +0.1791  torso / spherical_wris      R +0.1791  torso / spherical_wris      CLEARS",
+    "  elev +10, head +75, top 1.15 near 0.380         L +0.2094  None /                      R +0.1917  None /                      CLEARS",
+    "  elev -30, head +50, top 1.25 near 0.430         L +0.1542  torso / forearm_link -      R +0.1382  R-upperarm / forearm_link -  ",
+    "  elev -30, head +65, top 1.25 near 0.430         L +0.1978  None /                      R +0.1677  None /                      CLEARS",
+    "  elev -30, head +75, top 1.25 near 0.430         L no IK    None /                      R no IK    None /                      ",
+    "  elev -20, head +50, top 1.25 near 0.430         L +0.1581  torso / forearm_link -      R +0.1317  R-upperarm / forearm_link -  ",
+    "  elev -20, head +65, top 1.25 near 0.430         L +0.2200  L-upperarm / forearm_link -  R +0.1723  R-upperarm / forearm_link -  CLEARS",
+    "  elev -20, head +75, top 1.25 near 0.430         L +0.2202  None /                      R +0.1898  None /                      CLEARS",
+    "  elev -10, head +50, top 1.25 near 0.430         L +0.1592  torso / spherical_wris      R +0.1294  R-upperarm / forearm_link -  ",
+    "  elev -10, head +65, top 1.25 near 0.430         L +0.2202  torso / forearm_link -      R +0.1824  R-upperarm / forearm_link -  CLEARS",
+    "  elev -10, head +75, top 1.25 near 0.430         L +0.2202  None /                      R +0.1989  None /                      CLEARS",
+    "  elev +0, head +50, top 1.25 near 0.430          L +0.1592  torso / spherical_wris      R +0.1236  R-upperarm / forearm_link -  ",
+    "  elev +0, head +65, top 1.25 near 0.430          L +0.2202  torso / forearm_link -      R +0.1855  R-upperarm / forearm_link -  CLEARS",
+    "  elev +0, head +75, top 1.25 near 0.430          L +0.2202  None /                      R +0.2066  None /                      CLEARS",
+    "  elev +10, head +50, top 1.25 near 0.430         L +0.1593  torso / spherical_wris      R +0.1434  torso / spherical_wris      ",
+    "  elev +10, head +65, top 1.25 near 0.430         L +0.2202  L-upperarm / forearm_link -  R +0.1929  R-upperarm / forearm_link -  CLEARS",
+    "  elev +10, head +75, top 1.25 near 0.430         L +0.2202  None /                      R +0.1986  None /                      CLEARS"
+  ]
+}

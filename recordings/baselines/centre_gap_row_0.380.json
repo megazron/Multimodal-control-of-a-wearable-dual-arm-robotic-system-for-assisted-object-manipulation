@@ -1,0 +1,831 @@
+{
+  "tag": "row_0.380",
+  "posture": "down",
+  "floor": 0.15,
+  "repeats": 10,
+  "controls": {
+    "inside_torso_is_negative": -0.1569,
+    "far_1.6m_unreachable": true,
+    "shipped_cube_reachable_and_clear": "True / 0.161",
+    "slab_control_free_then_buried": "True -> False (want True -> False)"
+  },
+  "table": {
+    "top": 0.95,
+    "near_y": 0.38
+  },
+  "gap": {
+    "left/T1 approach": [
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0093,
+        "wearer": "L-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          0.295,
+          0.0605,
+          1.0809
+        ],
+        "at_wp": 10,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0093 m from L-forearm against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.0,
+        "obj": [
+          0.0,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0625,
+        "wearer": "L-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          0.33,
+          0.1021,
+          1.0563
+        ],
+        "at_wp": 6,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0625 m from L-forearm against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.025,
+        "obj": [
+          0.025,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0188,
+        "wearer": "L-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          0.3211,
+          0.0245,
+          1.0659
+        ],
+        "at_wp": 10,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0188 m from L-forearm against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.05,
+        "obj": [
+          0.05,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0023,
+        "wearer": "L-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          0.306,
+          0.0161,
+          1.0688
+        ],
+        "at_wp": 10,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0023 m from L-forearm against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.075,
+        "obj": [
+          0.075,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0307,
+        "wearer": "L-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          0.3347,
+          0.016,
+          1.0525
+        ],
+        "at_wp": 9,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0307 m from L-forearm against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.1,
+        "obj": [
+          0.1,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0178,
+        "wearer": "L-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          0.3222,
+          -0.0117,
+          1.0576
+        ],
+        "at_wp": 9,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0178 m from L-forearm against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.125,
+        "obj": [
+          0.125,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0388,
+        "wearer": "L-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          0.3432,
+          -0.0124,
+          1.0399
+        ],
+        "at_wp": 7,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0388 m from L-forearm against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.15,
+        "obj": [
+          0.15,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0272,
+        "wearer": "L-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          0.3283,
+          -0.0306,
+          1.0657
+        ],
+        "at_wp": 10,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0272 m from L-forearm against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.175,
+        "obj": [
+          0.175,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0571,
+        "wearer": "L-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          0.3584,
+          -0.0334,
+          1.0442
+        ],
+        "at_wp": 8,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0571 m from L-forearm against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.2,
+        "obj": [
+          0.2,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.107,
+        "wearer": "L-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          0.4116,
+          -0.0118,
+          1.0196
+        ],
+        "at_wp": 6,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.1070 m from L-forearm against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.225,
+        "obj": [
+          0.225,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0715,
+        "wearer": "L-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          0.3649,
+          -0.0612,
+          1.0379
+        ],
+        "at_wp": 3,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0715 m from L-forearm against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.25,
+        "obj": [
+          0.25,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0949,
+        "wearer": "L-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          0.3933,
+          -0.0494,
+          1.0368
+        ],
+        "at_wp": 6,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0949 m from L-forearm against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.275,
+        "obj": [
+          0.275,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0797,
+        "wearer": "L-forearm",
+        "link": "half_arm_2_link -> forearm_link",
+        "point": [
+          0.3749,
+          -0.0576,
+          1.0581
+        ],
+        "at_wp": 5,
+        "detail": "solves cleanly; half_arm_2_link -> forearm_link is 0.0797 m from L-forearm against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.3,
+        "obj": [
+          0.3,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.071,
+        "wearer": "L-forearm",
+        "link": "half_arm_2_link -> forearm_link",
+        "point": [
+          0.3707,
+          -0.0416,
+          1.0779
+        ],
+        "at_wp": 7,
+        "detail": "solves cleanly; half_arm_2_link -> forearm_link is 0.0710 m from L-forearm against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.325,
+        "obj": [
+          0.325,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0893,
+        "wearer": "L-forearm",
+        "link": "half_arm_2_link -> forearm_link",
+        "point": [
+          0.3911,
+          -0.0343,
+          1.0801
+        ],
+        "at_wp": 6,
+        "detail": "solves cleanly; half_arm_2_link -> forearm_link is 0.0893 m from L-forearm against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.35,
+        "obj": [
+          0.35,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0639,
+        "wearer": "L-upperarm",
+        "link": "half_arm_2_link -> forearm_link",
+        "point": [
+          0.3737,
+          -0.0075,
+          1.1248
+        ],
+        "at_wp": 10,
+        "detail": "solves cleanly; half_arm_2_link -> forearm_link is 0.0639 m from L-upperarm against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.375,
+        "obj": [
+          0.375,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.151,
+        "wearer": "L-forearm",
+        "link": "half_arm_2_link -> forearm_link",
+        "point": [
+          0.4518,
+          -0.0449,
+          1.0569
+        ],
+        "at_wp": 10,
+        "arm": "left",
+        "x": 0.4,
+        "obj": [
+          0.4,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.1427,
+        "wearer": "L-upperarm",
+        "link": "half_arm_2_link -> forearm_link",
+        "point": [
+          0.4484,
+          -0.0166,
+          1.0924
+        ],
+        "at_wp": 2,
+        "detail": "solves cleanly; half_arm_2_link -> forearm_link is 0.1427 m from L-upperarm against a 0.150 m floor",
+        "arm": "left",
+        "x": 0.425,
+        "obj": [
+          0.425,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "left",
+        "x": 0.45,
+        "obj": [
+          0.45,
+          0.4,
+          0.97
+        ]
+      }
+    ],
+    "right/T1 approach": [
+      {
+        "verdict": "FLOOR",
+        "clearance": -0.0113,
+        "wearer": "R-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          -0.2888,
+          0.0282,
+          1.0636
+        ],
+        "at_wp": 8,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is -0.0113 m from R-forearm against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.0,
+        "obj": [
+          -0.0,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": -0.0037,
+        "wearer": "R-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          -0.2984,
+          0.0226,
+          1.0572
+        ],
+        "at_wp": 8,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is -0.0037 m from R-forearm against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.025,
+        "obj": [
+          -0.025,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0042,
+        "wearer": "R-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          -0.3073,
+          0.0195,
+          1.0406
+        ],
+        "at_wp": 6,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0042 m from R-forearm against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.05,
+        "obj": [
+          -0.05,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0124,
+        "wearer": "R-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          -0.3161,
+          0.0161,
+          1.0372
+        ],
+        "at_wp": 6,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0124 m from R-forearm against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.075,
+        "obj": [
+          -0.075,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0205,
+        "wearer": "R-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          -0.3246,
+          0.0142,
+          1.0353
+        ],
+        "at_wp": 6,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0205 m from R-forearm against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.1,
+        "obj": [
+          -0.1,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0277,
+        "wearer": "R-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          -0.3321,
+          -0.0123,
+          1.0372
+        ],
+        "at_wp": 6,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0277 m from R-forearm against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.125,
+        "obj": [
+          -0.125,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0478,
+        "wearer": "R-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          -0.3522,
+          -0.0126,
+          1.031
+        ],
+        "at_wp": 5,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0478 m from R-forearm against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.15,
+        "obj": [
+          -0.15,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0587,
+        "wearer": "R-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          -0.3633,
+          -0.0117,
+          1.0299
+        ],
+        "at_wp": 5,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0587 m from R-forearm against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.175,
+        "obj": [
+          -0.175,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0878,
+        "wearer": "R-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          -0.3924,
+          -0.011,
+          1.0332
+        ],
+        "at_wp": 8,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0878 m from R-forearm against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.2,
+        "obj": [
+          -0.2,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0852,
+        "wearer": "R-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          -0.3869,
+          -0.0343,
+          1.0282
+        ],
+        "at_wp": 5,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0852 m from R-forearm against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.225,
+        "obj": [
+          -0.225,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.0989,
+        "wearer": "R-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          -0.3952,
+          -0.0574,
+          1.0283
+        ],
+        "at_wp": 6,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0989 m from R-forearm against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.25,
+        "obj": [
+          -0.25,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.126,
+        "wearer": "R-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "point": [
+          -0.4232,
+          -0.0579,
+          1.0241
+        ],
+        "at_wp": 7,
+        "detail": "solves cleanly; forearm_link -> spherical_wrist_1_link is 0.1260 m from R-forearm against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.275,
+        "obj": [
+          -0.275,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.1241,
+        "wearer": "R-forearm",
+        "link": "half_arm_2_link -> forearm_link",
+        "point": [
+          -0.4154,
+          -0.0762,
+          1.0296
+        ],
+        "at_wp": 6,
+        "detail": "solves cleanly; half_arm_2_link -> forearm_link is 0.1241 m from R-forearm against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.3,
+        "obj": [
+          -0.3,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.1455,
+        "wearer": "R-forearm",
+        "link": "half_arm_2_link -> forearm_link",
+        "point": [
+          -0.4383,
+          -0.0755,
+          1.0272
+        ],
+        "at_wp": 7,
+        "detail": "solves cleanly; half_arm_2_link -> forearm_link is 0.1455 m from R-forearm against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.325,
+        "obj": [
+          -0.325,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "FLOOR",
+        "clearance": 0.1177,
+        "wearer": "R-forearm",
+        "link": "half_arm_2_link -> forearm_link",
+        "point": [
+          -0.4158,
+          -0.0538,
+          1.0516
+        ],
+        "at_wp": 5,
+        "detail": "solves cleanly; half_arm_2_link -> forearm_link is 0.1177 m from R-forearm against a 0.150 m floor",
+        "arm": "right",
+        "x": 0.35,
+        "obj": [
+          -0.35,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.1549,
+        "wearer": "R-forearm",
+        "link": "half_arm_2_link -> forearm_link",
+        "point": [
+          -0.4524,
+          -0.0608,
+          1.0402
+        ],
+        "at_wp": 6,
+        "arm": "right",
+        "x": 0.375,
+        "obj": [
+          -0.375,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          -0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "right",
+        "x": 0.4,
+        "obj": [
+          -0.4,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          -0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "right",
+        "x": 0.425,
+        "obj": [
+          -0.425,
+          0.4,
+          0.97
+        ]
+      },
+      {
+        "verdict": "REACHABLE",
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "point": [
+          -0.2,
+          -0.32,
+          1.25
+        ],
+        "at_wp": 0,
+        "arm": "right",
+        "x": 0.45,
+        "obj": [
+          -0.45,
+          0.4,
+          0.97
+        ]
+      }
+    ]
+  },
+  "log": [
+    "CONTROLS   (run tag: row_0.380; wearer posture in the URDF: down)",
+    "   inside_torso_is_negative               -0.1569",
+    "   far_1.6m_unreachable                   True",
+    "   shipped_cube_reachable_and_clear       True / 0.161",
+    "   slab_control_free_then_buried          True -> False (want True -> False)",
+    "   link namer inside the torso            -0.1569 / torso / end_effector_link -> robotiq_85_left_finger_tip_link",
+    "\n==========================================================================",
+    "1. THE GAP -- objects RESTING on the table, full pick path, N=10",
+    "   table top 0.950, near edge 0.380, row y = 0.400, object z = 0.970",
+    "==========================================================================",
+    "\n  LEFT arm, T1 approach (elevation -10.0 deg, heading -50.0 deg)",
+    "   |x| 0.000  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0093 m from L-forearm against a 0.15",
+    "   |x| 0.025  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0625 m from L-forearm against a 0.15",
+    "   |x| 0.050  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0188 m from L-forearm against a 0.15",
+    "   |x| 0.075  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0023 m from L-forearm against a 0.15",
+    "   |x| 0.100  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0307 m from L-forearm against a 0.15",
+    "   |x| 0.125  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0178 m from L-forearm against a 0.15",
+    "   |x| 0.150  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0388 m from L-forearm against a 0.15",
+    "   |x| 0.175  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0272 m from L-forearm against a 0.15",
+    "   |x| 0.200  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0571 m from L-forearm against a 0.15",
+    "   |x| 0.225  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.1070 m from L-forearm against a 0.15",
+    "   |x| 0.250  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0715 m from L-forearm against a 0.15",
+    "   |x| 0.275  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0949 m from L-forearm against a 0.15",
+    "   |x| 0.300  FLOOR              solves cleanly; half_arm_2_link -> forearm_link is 0.0797 m from L-forearm against a 0.150 m flo",
+    "   |x| 0.325  FLOOR              solves cleanly; half_arm_2_link -> forearm_link is 0.0710 m from L-forearm against a 0.150 m flo",
+    "   |x| 0.350  FLOOR              solves cleanly; half_arm_2_link -> forearm_link is 0.0893 m from L-forearm against a 0.150 m flo",
+    "   |x| 0.375  FLOOR              solves cleanly; half_arm_2_link -> forearm_link is 0.0639 m from L-upperarm against a 0.150 m fl",
+    "   |x| 0.400  REACHABLE          clearance 0.1510 m, closest half_arm_2_link -> forearm_link to L-forearm",
+    "   |x| 0.425  FLOOR              solves cleanly; half_arm_2_link -> forearm_link is 0.1427 m from L-upperarm against a 0.150 m fl",
+    "   |x| 0.450  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "      innermost REACHABLE |x| = 0.400",
+    "\n  RIGHT arm, T1 approach (elevation -10.0 deg, heading +50.0 deg)",
+    "   |x| 0.000  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is -0.0113 m from R-forearm against a 0.1",
+    "   |x| 0.025  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is -0.0037 m from R-forearm against a 0.1",
+    "   |x| 0.050  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0042 m from R-forearm against a 0.15",
+    "   |x| 0.075  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0124 m from R-forearm against a 0.15",
+    "   |x| 0.100  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0205 m from R-forearm against a 0.15",
+    "   |x| 0.125  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0277 m from R-forearm against a 0.15",
+    "   |x| 0.150  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0478 m from R-forearm against a 0.15",
+    "   |x| 0.175  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0587 m from R-forearm against a 0.15",
+    "   |x| 0.200  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0878 m from R-forearm against a 0.15",
+    "   |x| 0.225  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0852 m from R-forearm against a 0.15",
+    "   |x| 0.250  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.0989 m from R-forearm against a 0.15",
+    "   |x| 0.275  FLOOR              solves cleanly; forearm_link -> spherical_wrist_1_link is 0.1260 m from R-forearm against a 0.15",
+    "   |x| 0.300  FLOOR              solves cleanly; half_arm_2_link -> forearm_link is 0.1241 m from R-forearm against a 0.150 m flo",
+    "   |x| 0.325  FLOOR              solves cleanly; half_arm_2_link -> forearm_link is 0.1455 m from R-forearm against a 0.150 m flo",
+    "   |x| 0.350  FLOOR              solves cleanly; half_arm_2_link -> forearm_link is 0.1177 m from R-forearm against a 0.150 m flo",
+    "   |x| 0.375  REACHABLE          clearance 0.1549 m, closest half_arm_2_link -> forearm_link to R-forearm",
+    "   |x| 0.400  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.425  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "   |x| 0.450  REACHABLE          clearance 0.1610 m, closest base_link -> shoulder_link to torso",
+    "      innermost REACHABLE |x| = 0.375"
+  ],
+  "ik_calls": 4201
+}

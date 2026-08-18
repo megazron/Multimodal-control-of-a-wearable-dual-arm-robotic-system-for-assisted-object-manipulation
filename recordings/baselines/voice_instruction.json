@@ -1,0 +1,1481 @@
+{
+  "model": "small",
+  "device": "cuda",
+  "wake": "hey doc oc",
+  "require_wake": true,
+  "sample_rate": 16000,
+  "voice": "en_US-lessac-medium.onnx",
+  "n_cases": 40,
+  "tally": {
+    "CORRECT": 14,
+    "ASKED": 5,
+    "REFUSED": 21,
+    "MISUNDERSTOOD": 0
+  },
+  "wer": 0.2521,
+  "exact_transcripts": 0,
+  "rows": [
+    {
+      "case": "put the blue ones on the blue pad",
+      "category": "control",
+      "said": "hey doc oc put the blue ones on the blue pad",
+      "heard": "Hey duck-uck, put the blue ones on the blue pad.",
+      "wer": 0.222,
+      "word_errors": 2,
+      "stt_ms": 826.9,
+      "verdict": "CORRECT",
+      "why": "",
+      "plan": {
+        "kind": "plan",
+        "picks": [
+          [
+            0.56,
+            0.12,
+            0
+          ],
+          [
+            0.68,
+            0.12,
+            0
+          ]
+        ],
+        "message": "2 cubes, on the blue pad",
+        "intent": {
+          "verb": "put_on",
+          "target": "blue one",
+          "arm": null,
+          "destination": {
+            "kind": "colour",
+            "colour": "blue",
+            "phrase": "blue pad"
+          },
+          "deictic": false,
+          "quantity": "all",
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck-uck, put the blue ones on the blue pad.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.64
+    },
+    {
+      "case": "put the green ones on the green mat",
+      "category": "control",
+      "said": "hey doc oc put the green ones on the green mat",
+      "heard": "Hey Doc Ock, put the green ones on the green mat.",
+      "wer": 0.111,
+      "word_errors": 1,
+      "stt_ms": 644.8,
+      "verdict": "CORRECT",
+      "why": "",
+      "plan": {
+        "kind": "plan",
+        "picks": [
+          [
+            0.62,
+            0.12,
+            1
+          ],
+          [
+            0.74,
+            0.12,
+            1
+          ]
+        ],
+        "message": "2 cubes, on the green pad",
+        "intent": {
+          "verb": "put_on",
+          "target": "green one",
+          "arm": null,
+          "destination": {
+            "kind": "colour",
+            "colour": "green",
+            "phrase": "green mat"
+          },
+          "deictic": false,
+          "quantity": "all",
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey Doc Ock, put the green ones on the green mat.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.64
+    },
+    {
+      "case": "put every cube on the pad of its own colour",
+      "category": "control",
+      "said": "hey doc oc put every cube on the pad of its own colour",
+      "heard": "Hey Doc Ock, put every cube all a pad of its own color.",
+      "wer": 0.25,
+      "word_errors": 3,
+      "stt_ms": 770.6,
+      "verdict": "CORRECT",
+      "why": "",
+      "plan": {
+        "kind": "plan",
+        "picks": [
+          [
+            0.56,
+            0.12,
+            0
+          ],
+          [
+            0.62,
+            0.12,
+            1
+          ],
+          [
+            0.68,
+            0.12,
+            0
+          ],
+          [
+            0.74,
+            0.12,
+            1
+          ]
+        ],
+        "message": "4 cubes, each on the pad of the colour the camera saw",
+        "intent": {
+          "verb": "put_on",
+          "target": "cube",
+          "arm": null,
+          "destination": {
+            "kind": "match",
+            "colour": null,
+            "phrase": "its own color"
+          },
+          "deictic": false,
+          "quantity": "all",
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey Doc Ock, put every cube all a pad of its own color.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.86
+    },
+    {
+      "case": "pick up the blue cube and put it on the blue pad",
+      "category": "brief",
+      "said": "hey doc oc pick up the blue cube and put it on the blue pad",
+      "heard": "Hey Doc, I'll pick up the blue cube and put it on the blue pad.",
+      "wer": 0.154,
+      "word_errors": 2,
+      "stt_ms": 693.0,
+      "verdict": "ASKED",
+      "why": "",
+      "plan": {
+        "kind": "ask",
+        "picks": [],
+        "message": "I see 2 blue cubes (x=0.56, x=0.68). Which one -- or say 'the blue ones' for all of them?",
+        "intent": {
+          "verb": "put_on",
+          "target": "blue cube",
+          "arm": null,
+          "destination": {
+            "kind": "colour",
+            "colour": "blue",
+            "phrase": "blue pad"
+          },
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey Doc, I'll pick up the blue cube and put it on the blue pad.",
+          "reason": ""
+        }
+      },
+      "audio_s": 3.38
+    },
+    {
+      "case": "put the green ones on the green mat",
+      "category": "brief",
+      "said": "hey doc oc put the green ones on the green mat",
+      "heard": "Hey duck-uck, put the green ones on the green mat.",
+      "wer": 0.222,
+      "word_errors": 2,
+      "stt_ms": 653.5,
+      "verdict": "CORRECT",
+      "why": "",
+      "plan": {
+        "kind": "plan",
+        "picks": [
+          [
+            0.62,
+            0.12,
+            1
+          ],
+          [
+            0.74,
+            0.12,
+            1
+          ]
+        ],
+        "message": "2 cubes, on the green pad",
+        "intent": {
+          "verb": "put_on",
+          "target": "green one",
+          "arm": null,
+          "destination": {
+            "kind": "colour",
+            "colour": "green",
+            "phrase": "green mat"
+          },
+          "deictic": false,
+          "quantity": "all",
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck-uck, put the green ones on the green mat.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.62
+    },
+    {
+      "case": "move that blue block to its colour",
+      "category": "brief",
+      "said": "hey doc oc move that blue block to its colour",
+      "heard": "Hey duck, duck, move that blue block to its color.",
+      "wer": 0.3,
+      "word_errors": 3,
+      "stt_ms": 648.3,
+      "verdict": "ASKED",
+      "why": "",
+      "plan": {
+        "kind": "ask",
+        "picks": [],
+        "message": "I see 2 blue cubes (x=0.56, x=0.68). Which one -- or say 'the blue ones' for all of them?",
+        "intent": {
+          "verb": "put_on",
+          "target": "blue block",
+          "arm": null,
+          "destination": {
+            "kind": "match",
+            "colour": null,
+            "phrase": "its color"
+          },
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck, duck, move that blue block to its color.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.68
+    },
+    {
+      "case": "sort the cubes by colour",
+      "category": "paraphrase",
+      "said": "hey doc oc sort the cubes by colour",
+      "heard": "Hey Doc Ock sort the cubes by color.",
+      "wer": 0.286,
+      "word_errors": 2,
+      "stt_ms": 655.5,
+      "verdict": "CORRECT",
+      "why": "",
+      "plan": {
+        "kind": "plan",
+        "picks": [
+          [
+            0.56,
+            0.12,
+            0
+          ],
+          [
+            0.62,
+            0.12,
+            1
+          ],
+          [
+            0.68,
+            0.12,
+            0
+          ],
+          [
+            0.74,
+            0.12,
+            1
+          ]
+        ],
+        "message": "4 cubes, each on the pad of the colour the camera saw",
+        "intent": {
+          "verb": "put_on",
+          "target": "cube",
+          "arm": null,
+          "destination": {
+            "kind": "match",
+            "colour": null,
+            "phrase": "by color"
+          },
+          "deictic": false,
+          "quantity": "all",
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey Doc Ock sort the cubes by color.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.17
+    },
+    {
+      "case": "put every cube where it belongs",
+      "category": "paraphrase",
+      "said": "hey doc oc put every cube where it belongs",
+      "heard": "Hey duck-huck put every cube where it belongs.",
+      "wer": 0.222,
+      "word_errors": 2,
+      "stt_ms": 598.3,
+      "verdict": "CORRECT",
+      "why": "",
+      "plan": {
+        "kind": "plan",
+        "picks": [
+          [
+            0.56,
+            0.12,
+            0
+          ],
+          [
+            0.62,
+            0.12,
+            1
+          ],
+          [
+            0.68,
+            0.12,
+            0
+          ],
+          [
+            0.74,
+            0.12,
+            1
+          ]
+        ],
+        "message": "4 cubes, each on the pad of the colour the camera saw",
+        "intent": {
+          "verb": "put_on",
+          "target": "cube",
+          "arm": null,
+          "destination": {
+            "kind": "match",
+            "colour": null,
+            "phrase": "where it belongs"
+          },
+          "deictic": false,
+          "quantity": "all",
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck-huck put every cube where it belongs.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.71
+    },
+    {
+      "case": "sort them onto their matching colours",
+      "category": "paraphrase",
+      "said": "hey doc oc sort them onto their matching colours",
+      "heard": "Hey duck, ox sort them on to their matching colors.",
+      "wer": 0.556,
+      "word_errors": 5,
+      "stt_ms": 618.1,
+      "verdict": "ASKED",
+      "why": "",
+      "plan": {
+        "kind": "ask",
+        "picks": [],
+        "message": "Which cube? I can see 2 blue, 2 green, and 'Hey duck, ox sort them on to their matching colors.' does not tell me which one.",
+        "intent": {
+          "verb": "put_on",
+          "target": null,
+          "arm": null,
+          "destination": {
+            "kind": "match",
+            "colour": null,
+            "phrase": "matching color"
+          },
+          "deictic": true,
+          "quantity": 1,
+          "corrections": [
+            [
+              "colors",
+              "color"
+            ]
+          ],
+          "ambiguous_words": [],
+          "raw": "Hey duck, ox sort them on to their matching colors.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.58
+    },
+    {
+      "case": "move all the cubes to the colour that matches",
+      "category": "paraphrase",
+      "said": "hey doc oc move all the cubes to the colour that matches",
+      "heard": "Hey Duck, Ock move all the cubes to the color that matches.",
+      "wer": 0.3,
+      "word_errors": 3,
+      "stt_ms": 665.4,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "heard 'move to' but no place I know",
+        "intent": {
+          "verb": null,
+          "target": null,
+          "arm": null,
+          "destination": null,
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [
+            [
+              "matches",
+              "patches"
+            ]
+          ],
+          "ambiguous_words": [],
+          "raw": "Hey Duck, Ock move all the cubes to the color that matches.",
+          "reason": "heard 'move to' but no place I know"
+        }
+      },
+      "audio_s": 3.23
+    },
+    {
+      "case": "place each block on the matching pad",
+      "category": "paraphrase",
+      "said": "hey doc oc place each block on the matching pad",
+      "heard": "Hey Doc Ock, place each block on the matching pad.",
+      "wer": 0.111,
+      "word_errors": 1,
+      "stt_ms": 621.2,
+      "verdict": "CORRECT",
+      "why": "",
+      "plan": {
+        "kind": "plan",
+        "picks": [
+          [
+            0.56,
+            0.12,
+            0
+          ],
+          [
+            0.62,
+            0.12,
+            1
+          ],
+          [
+            0.68,
+            0.12,
+            0
+          ],
+          [
+            0.74,
+            0.12,
+            1
+          ]
+        ],
+        "message": "4 cubes, each on the pad of the colour the camera saw",
+        "intent": {
+          "verb": "put_on",
+          "target": "block",
+          "arm": null,
+          "destination": {
+            "kind": "match",
+            "colour": null,
+            "phrase": "matching pad"
+          },
+          "deictic": false,
+          "quantity": "all",
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey Doc Ock, place each block on the matching pad.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.76
+    },
+    {
+      "case": "could you please put the blue ones onto the blue square",
+      "category": "paraphrase",
+      "said": "hey doc oc could you please put the blue ones onto the blue square",
+      "heard": "Hey duck-ock, could you please put the blue ones onto the blue square?",
+      "wer": 0.222,
+      "word_errors": 2,
+      "stt_ms": 754.1,
+      "verdict": "CORRECT",
+      "why": "",
+      "plan": {
+        "kind": "plan",
+        "picks": [
+          [
+            0.56,
+            0.12,
+            0
+          ],
+          [
+            0.68,
+            0.12,
+            0
+          ]
+        ],
+        "message": "2 cubes, on the blue pad",
+        "intent": {
+          "verb": "put_on",
+          "target": "blue one",
+          "arm": null,
+          "destination": {
+            "kind": "colour",
+            "colour": "blue",
+            "phrase": "blue square"
+          },
+          "deictic": false,
+          "quantity": "all",
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck-ock, could you please put the blue ones onto the blue square?",
+          "reason": ""
+        }
+      },
+      "audio_s": 3.38
+    },
+    {
+      "case": "shift the green blocks over to the green target",
+      "category": "paraphrase",
+      "said": "hey doc oc shift the green blocks over to the green target",
+      "heard": "Hey duck, awk shift the green blocks over to the green target.",
+      "wer": 0.2,
+      "word_errors": 2,
+      "stt_ms": 731.0,
+      "verdict": "CORRECT",
+      "why": "",
+      "plan": {
+        "kind": "plan",
+        "picks": [
+          [
+            0.62,
+            0.12,
+            1
+          ],
+          [
+            0.74,
+            0.12,
+            1
+          ]
+        ],
+        "message": "2 cubes, on the green pad",
+        "intent": {
+          "verb": "put_on",
+          "target": "green block",
+          "arm": null,
+          "destination": {
+            "kind": "colour",
+            "colour": "green",
+            "phrase": "to green target"
+          },
+          "deictic": false,
+          "quantity": "all",
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck, awk shift the green blocks over to the green target.",
+          "reason": ""
+        }
+      },
+      "audio_s": 3.1
+    },
+    {
+      "case": "put the blue ones on the green pad",
+      "category": "cross-colour",
+      "said": "hey doc oc put the blue ones on the green pad",
+      "heard": "Hey duck-ock put the blue ones on the green pad.",
+      "wer": 0.222,
+      "word_errors": 2,
+      "stt_ms": 684.9,
+      "verdict": "CORRECT",
+      "why": "",
+      "plan": {
+        "kind": "plan",
+        "picks": [
+          [
+            0.56,
+            0.12,
+            1
+          ],
+          [
+            0.68,
+            0.12,
+            1
+          ]
+        ],
+        "message": "2 cubes, on the green pad",
+        "intent": {
+          "verb": "put_on",
+          "target": "blue one",
+          "arm": null,
+          "destination": {
+            "kind": "colour",
+            "colour": "green",
+            "phrase": "green pad"
+          },
+          "deictic": false,
+          "quantity": "all",
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck-ock put the blue ones on the green pad.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.55
+    },
+    {
+      "case": "put the green cubes on the blue mat",
+      "category": "cross-colour",
+      "said": "hey doc oc put the green cubes on the blue mat",
+      "heard": "Hey duck-ock put the green cubes on the blue mat.",
+      "wer": 0.222,
+      "word_errors": 2,
+      "stt_ms": 646.3,
+      "verdict": "CORRECT",
+      "why": "",
+      "plan": {
+        "kind": "plan",
+        "picks": [
+          [
+            0.62,
+            0.12,
+            0
+          ],
+          [
+            0.74,
+            0.12,
+            0
+          ]
+        ],
+        "message": "2 cubes, on the blue pad",
+        "intent": {
+          "verb": "put_on",
+          "target": "green cube",
+          "arm": null,
+          "destination": {
+            "kind": "colour",
+            "colour": "blue",
+            "phrase": "blue mat"
+          },
+          "deictic": false,
+          "quantity": "all",
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck-ock put the green cubes on the blue mat.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.59
+    },
+    {
+      "case": "put it on the blue pad",
+      "category": "vague",
+      "said": "hey doc oc put it on the blue pad",
+      "heard": "Hey duck-uck, put it on the blue pad.",
+      "wer": 0.25,
+      "word_errors": 2,
+      "stt_ms": 587.4,
+      "verdict": "ASKED",
+      "why": "",
+      "plan": {
+        "kind": "ask",
+        "picks": [],
+        "message": "Which cube? I can see 2 blue, 2 green, and 'Hey duck-uck, put it on the blue pad.' does not tell me which one.",
+        "intent": {
+          "verb": "put_on",
+          "target": null,
+          "arm": null,
+          "destination": {
+            "kind": "colour",
+            "colour": "blue",
+            "phrase": "blue pad"
+          },
+          "deictic": true,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck-uck, put it on the blue pad.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.21
+    },
+    {
+      "case": "tidy up",
+      "category": "vague",
+      "said": "hey doc oc tidy up",
+      "heard": "Hey duck-ock, tidy up.",
+      "wer": 0.4,
+      "word_errors": 2,
+      "stt_ms": 486.9,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "no known verb in 'ock tidy up'",
+        "intent": {
+          "verb": null,
+          "target": null,
+          "arm": null,
+          "destination": null,
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck-ock, tidy up.",
+          "reason": "no known verb in 'ock tidy up'"
+        }
+      },
+      "audio_s": 1.42
+    },
+    {
+      "case": "put that there",
+      "category": "vague",
+      "said": "hey doc oc put that there",
+      "heard": "Hey Doc, Ock put that there.",
+      "wer": 0.167,
+      "word_errors": 1,
+      "stt_ms": 545.0,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "I understood 'place', and this task is putting cubes on pads. Say where the cube should go.",
+        "intent": {
+          "verb": "place",
+          "target": null,
+          "arm": null,
+          "destination": "here",
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey Doc, Ock put that there.",
+          "reason": ""
+        }
+      },
+      "audio_s": 1.7
+    },
+    {
+      "case": "do the cube thing",
+      "category": "vague",
+      "said": "hey doc oc do the cube thing",
+      "heard": "Hey duck-ock do the cube thing",
+      "wer": 0.333,
+      "word_errors": 2,
+      "stt_ms": 648.2,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "no known verb in 'ock do cube thing'",
+        "intent": {
+          "verb": null,
+          "target": null,
+          "arm": null,
+          "destination": null,
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck-ock do the cube thing",
+          "reason": "no known verb in 'ock do cube thing'"
+        }
+      },
+      "audio_s": 1.88
+    },
+    {
+      "case": "put the cube on the pad",
+      "category": "vague",
+      "said": "hey doc oc put the cube on the pad",
+      "heard": "Hey duck-uck, put the cube on the pad.",
+      "wer": 0.286,
+      "word_errors": 2,
+      "stt_ms": 619.0,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "I heard something to move but not WHERE to put it. Name a colour ('on the blue pad') or say 'on its own colour'.",
+        "intent": {
+          "verb": null,
+          "target": null,
+          "arm": null,
+          "destination": null,
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck-uck, put the cube on the pad.",
+          "reason": "I heard something to move but not WHERE to put it. Name a colour ('on the blue pad') or say 'on its own colour'."
+        }
+      },
+      "audio_s": 2.16
+    },
+    {
+      "case": "do not put the blue ones on the blue pad",
+      "category": "negation",
+      "said": "hey doc oc do not put the blue ones on the blue pad",
+      "heard": "Hey Doc Ock, do not put the blue ones on the blue pad.",
+      "wer": 0.091,
+      "word_errors": 1,
+      "stt_ms": 766.0,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "negated command ('not' before the verb) -- I will not act",
+        "intent": {
+          "verb": null,
+          "target": null,
+          "arm": null,
+          "destination": null,
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey Doc Ock, do not put the blue ones on the blue pad.",
+          "reason": "negated command ('not' before the verb) -- I will not act"
+        }
+      },
+      "audio_s": 2.84
+    },
+    {
+      "case": "put the blue ones on the blue pad but not the green ones",
+      "category": "negation",
+      "said": "hey doc oc put the blue ones on the blue pad but not the green ones",
+      "heard": "Hey duck-uck, put the blue ones on the blue pad but not the green ones.",
+      "wer": 0.154,
+      "word_errors": 2,
+      "stt_ms": 840.6,
+      "verdict": "CORRECT",
+      "why": "",
+      "plan": {
+        "kind": "plan",
+        "picks": [
+          [
+            0.56,
+            0.12,
+            0
+          ],
+          [
+            0.68,
+            0.12,
+            0
+          ]
+        ],
+        "message": "2 cubes, on the blue pad",
+        "intent": {
+          "verb": "put_on",
+          "target": "blue one",
+          "arm": null,
+          "destination": {
+            "kind": "colour",
+            "colour": "blue",
+            "phrase": "blue pad but not green ones"
+          },
+          "deictic": false,
+          "quantity": "all",
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck-uck, put the blue ones on the blue pad but not the green ones.",
+          "reason": ""
+        }
+      },
+      "audio_s": 3.68
+    },
+    {
+      "case": "put the blue cube and the green cube on the pads",
+      "category": "two-targets",
+      "said": "hey doc oc put the blue cube and the green cube on the pads",
+      "heard": "Hey duck-uck, put the blue cube and the green cube on the pads.",
+      "wer": 0.182,
+      "word_errors": 2,
+      "stt_ms": 688.2,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "more than one target in one instruction ('and') -- say them one at a time",
+        "intent": {
+          "verb": null,
+          "target": null,
+          "arm": null,
+          "destination": null,
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck-uck, put the blue cube and the green cube on the pads.",
+          "reason": "more than one target in one instruction ('and') -- say them one at a time"
+        }
+      },
+      "audio_s": 3.33
+    },
+    {
+      "case": "put the blue ones on the blue pad then go home",
+      "category": "two-actions",
+      "said": "hey doc oc put the blue ones on the blue pad then go home",
+      "heard": "Hey Dothach, put the blue ones on the blue pad then go home.",
+      "wer": 0.167,
+      "word_errors": 2,
+      "stt_ms": 727.4,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "no wake word ('hey doc oc')",
+        "intent": {
+          "verb": null,
+          "target": null,
+          "arm": null,
+          "destination": null,
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey Dothach, put the blue ones on the blue pad then go home.",
+          "reason": "no wake word ('hey doc oc')"
+        }
+      },
+      "audio_s": 3.41
+    },
+    {
+      "case": "put the cube behind the blue one on the blue pad",
+      "category": "relational",
+      "said": "hey doc oc put the cube behind the blue one on the blue pad",
+      "heard": "Hey Doc Ock, put the cube behind the blue one on the blue pad.",
+      "wer": 0.091,
+      "word_errors": 1,
+      "stt_ms": 671.8,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "relational reference ('behind') -- I cannot pick something out by where it is relative to another object",
+        "intent": {
+          "verb": null,
+          "target": null,
+          "arm": null,
+          "destination": null,
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey Doc Ock, put the cube behind the blue one on the blue pad.",
+          "reason": "relational reference ('behind') -- I cannot pick something out by where it is relative to another object"
+        }
+      },
+      "audio_s": 3.22
+    },
+    {
+      "case": "put the blue cube on top of the green cube",
+      "category": "stacking",
+      "said": "hey doc oc put the blue cube on top of the green cube",
+      "heard": "Hey duck-ock, put the blue cube on top of the green cube.",
+      "wer": 0.182,
+      "word_errors": 2,
+      "stt_ms": 683.3,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "relational reference ('on top of') -- I cannot pick something out by where it is relative to another object",
+        "intent": {
+          "verb": null,
+          "target": null,
+          "arm": null,
+          "destination": null,
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck-ock, put the blue cube on top of the green cube.",
+          "reason": "relational reference ('on top of') -- I cannot pick something out by where it is relative to another object"
+        }
+      },
+      "audio_s": 2.88
+    },
+    {
+      "case": "put the red ones on the red pad",
+      "category": "not-in-scene",
+      "said": "hey doc oc put the red ones on the red pad",
+      "heard": "Hey duck, arc, put the red ones on the red pad.",
+      "wer": 0.222,
+      "word_errors": 2,
+      "stt_ms": 620.2,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "I do not see a red cube. The camera sees 2 blue, 2 green.",
+        "intent": {
+          "verb": "put_on",
+          "target": "red one",
+          "arm": null,
+          "destination": {
+            "kind": "colour",
+            "colour": "red",
+            "phrase": "red pad"
+          },
+          "deictic": false,
+          "quantity": "all",
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck, arc, put the red ones on the red pad.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.77
+    },
+    {
+      "case": "put the blue ones on the red pad",
+      "category": "not-in-scene",
+      "said": "hey doc oc put the blue ones on the red pad",
+      "heard": "Hey duck, uck, put the blue ones on the red pad.",
+      "wer": 0.222,
+      "word_errors": 2,
+      "stt_ms": 644.9,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "there is no red pad in this scene -- the pads are blue and green",
+        "intent": {
+          "verb": "put_on",
+          "target": "blue one",
+          "arm": null,
+          "destination": {
+            "kind": "colour",
+            "colour": "red",
+            "phrase": "red pad"
+          },
+          "deictic": false,
+          "quantity": "all",
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck, uck, put the blue ones on the red pad.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.47
+    },
+    {
+      "case": "put the tray on the blue pad",
+      "category": "not-in-scene",
+      "said": "hey doc oc put the tray on the blue pad",
+      "heard": "Hey Doc Ock, put the tray on the blue pad.",
+      "wer": 0.125,
+      "word_errors": 1,
+      "stt_ms": 714.1,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "I can see 2 blue, 2 green on the table and no tray.",
+        "intent": {
+          "verb": "put_on",
+          "target": "tray",
+          "arm": null,
+          "destination": {
+            "kind": "colour",
+            "colour": "blue",
+            "phrase": "blue pad"
+          },
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey Doc Ock, put the tray on the blue pad.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.45
+    },
+    {
+      "case": "which cubes are blue",
+      "category": "question",
+      "said": "hey doc oc which cubes are blue",
+      "heard": "Hey duckuck, which cubes are blue?",
+      "wer": 0.286,
+      "word_errors": 2,
+      "stt_ms": 583.3,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "no wake word ('hey doc oc')",
+        "intent": {
+          "verb": null,
+          "target": null,
+          "arm": null,
+          "destination": null,
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duckuck, which cubes are blue?",
+          "reason": "no wake word ('hey doc oc')"
+        }
+      },
+      "audio_s": 2.07
+    },
+    {
+      "case": "the blue cubes go on the blue pad",
+      "category": "statement",
+      "said": "hey doc oc the blue cubes go on the blue pad",
+      "heard": "Hey duck, uck, the blue cubes go on the blue pad.",
+      "wer": 0.222,
+      "word_errors": 2,
+      "stt_ms": 627.8,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "no known verb in 'uck blue cubes go on blue pad'",
+        "intent": {
+          "verb": null,
+          "target": null,
+          "arm": null,
+          "destination": null,
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck, uck, the blue cubes go on the blue pad.",
+          "reason": "no known verb in 'uck blue cubes go on blue pad'"
+        }
+      },
+      "audio_s": 2.69
+    },
+    {
+      "case": "stop",
+      "category": "stop",
+      "said": "hey doc oc stop",
+      "heard": "Hey Doc Ock, stop.",
+      "wer": 0.25,
+      "word_errors": 1,
+      "stt_ms": 486.8,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "I understood 'stop', and this task is putting cubes on pads. Say where the cube should go.",
+        "intent": {
+          "verb": "stop",
+          "target": null,
+          "arm": null,
+          "destination": null,
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey Doc Ock, stop.",
+          "reason": ""
+        }
+      },
+      "audio_s": 1.2
+    },
+    {
+      "case": "put the blue ones on the left pad",
+      "category": "unknown-place",
+      "said": "hey doc oc put the blue ones on the left pad",
+      "heard": "Hey Doc Ock, put the blue ones on the left pad.",
+      "wer": 0.111,
+      "word_errors": 1,
+      "stt_ms": 639.0,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "I heard something to move but not WHERE to put it. Name a colour ('on the blue pad') or say 'on its own colour'.",
+        "intent": {
+          "verb": null,
+          "target": null,
+          "arm": null,
+          "destination": null,
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey Doc Ock, put the blue ones on the left pad.",
+          "reason": "I heard something to move but not WHERE to put it. Name a colour ('on the blue pad') or say 'on its own colour'."
+        }
+      },
+      "audio_s": 2.5
+    },
+    {
+      "case": "put the bleu ones on the bleu pad",
+      "category": "misspelling",
+      "said": "hey doc oc put the bleu ones on the bleu pad",
+      "heard": "Hey duck-uck, put the blue ones on the blue pad.",
+      "wer": 0.444,
+      "word_errors": 4,
+      "stt_ms": 661.4,
+      "verdict": "CORRECT",
+      "why": "",
+      "plan": {
+        "kind": "plan",
+        "picks": [
+          [
+            0.56,
+            0.12,
+            0
+          ],
+          [
+            0.68,
+            0.12,
+            0
+          ]
+        ],
+        "message": "2 cubes, on the blue pad",
+        "intent": {
+          "verb": "put_on",
+          "target": "blue one",
+          "arm": null,
+          "destination": {
+            "kind": "colour",
+            "colour": "blue",
+            "phrase": "blue pad"
+          },
+          "deictic": false,
+          "quantity": "all",
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck-uck, put the blue ones on the blue pad.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.64
+    },
+    {
+      "case": "put the blue cubbes on the blue pad",
+      "category": "misspelling",
+      "said": "hey doc oc put the blue cubbes on the blue pad",
+      "heard": "Hey duck-ock, put the blue cubs on the blue pad.",
+      "wer": 0.333,
+      "word_errors": 3,
+      "stt_ms": 592.4,
+      "verdict": "ASKED",
+      "why": "",
+      "plan": {
+        "kind": "ask",
+        "picks": [],
+        "message": "I see 2 blue cubes (x=0.56, x=0.68). Which one -- or say 'the blue ones' for all of them?",
+        "intent": {
+          "verb": "put_on",
+          "target": "blue object",
+          "arm": null,
+          "destination": {
+            "kind": "colour",
+            "colour": "blue",
+            "phrase": "blue pad"
+          },
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [
+            [
+              "cubs",
+              [
+                "cube",
+                "cubes",
+                "cups"
+              ]
+            ]
+          ],
+          "raw": "Hey duck-ock, put the blue cubs on the blue pad.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.55
+    },
+    {
+      "case": "put the gren ones on the gren pad",
+      "category": "misspelling",
+      "said": "hey doc oc put the gren ones on the gren pad",
+      "heard": "Hey duck, I'll put the grin ones on the grin pad.",
+      "wer": 0.556,
+      "word_errors": 5,
+      "stt_ms": 598.4,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "I heard something to move but not WHERE to put it. Name a colour ('on the blue pad') or say 'on its own colour'.",
+        "intent": {
+          "verb": null,
+          "target": null,
+          "arm": null,
+          "destination": null,
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck, I'll put the grin ones on the grin pad.",
+          "reason": "I heard something to move but not WHERE to put it. Name a colour ('on the blue pad') or say 'on its own colour'."
+        }
+      },
+      "audio_s": 2.54
+    },
+    {
+      "case": "put the gerne ones on the gerne pad",
+      "category": "misspelling",
+      "said": "hey doc oc put the gerne ones on the gerne pad",
+      "heard": "Hey.cock put the GERN1s on the GERN pad.",
+      "wer": 0.556,
+      "word_errors": 5,
+      "stt_ms": 746.5,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "I heard something to move but not WHERE to put it. Name a colour ('on the blue pad') or say 'on its own colour'.",
+        "intent": {
+          "verb": null,
+          "target": null,
+          "arm": null,
+          "destination": null,
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey.cock put the GERN1s on the GERN pad.",
+          "reason": "I heard something to move but not WHERE to put it. Name a colour ('on the blue pad') or say 'on its own colour'."
+        }
+      },
+      "audio_s": 2.53
+    },
+    {
+      "case": "pt the blue ones on the blue pad",
+      "category": "misspelling",
+      "said": "hey doc oc pt the blue ones on the blue pad",
+      "heard": "Hey duck-uck-peaty the blue ones on the blue pad.",
+      "wer": 0.333,
+      "word_errors": 3,
+      "stt_ms": 698.2,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "no known verb in 'uck peaty blue ones on blue pad'",
+        "intent": {
+          "verb": null,
+          "target": null,
+          "arm": null,
+          "destination": null,
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck-uck-peaty the blue ones on the blue pad.",
+          "reason": "no known verb in 'uck peaty blue ones on blue pad'"
+        }
+      },
+      "audio_s": 2.66
+    },
+    {
+      "case": "put the blue ones on the blue padd",
+      "category": "misspelling",
+      "said": "hey doc oc put the blue ones on the blue padd",
+      "heard": "Hey duck-uck, put the blue ones on the blue pad.",
+      "wer": 0.333,
+      "word_errors": 3,
+      "stt_ms": 660.5,
+      "verdict": "CORRECT",
+      "why": "",
+      "plan": {
+        "kind": "plan",
+        "picks": [
+          [
+            0.56,
+            0.12,
+            0
+          ],
+          [
+            0.68,
+            0.12,
+            0
+          ]
+        ],
+        "message": "2 cubes, on the blue pad",
+        "intent": {
+          "verb": "put_on",
+          "target": "blue one",
+          "arm": null,
+          "destination": {
+            "kind": "colour",
+            "colour": "blue",
+            "phrase": "blue pad"
+          },
+          "deictic": false,
+          "quantity": "all",
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey duck-uck, put the blue ones on the blue pad.",
+          "reason": ""
+        }
+      },
+      "audio_s": 2.65
+    },
+    {
+      "case": "sort teh cubes by colour",
+      "category": "misspelling",
+      "said": "hey doc oc sort teh cubes by colour",
+      "heard": "Hey Doc, I'll Sortay Cubes by Color.",
+      "wer": 0.5,
+      "word_errors": 4,
+      "stt_ms": 720.1,
+      "verdict": "REFUSED",
+      "why": "",
+      "plan": {
+        "kind": "refuse",
+        "picks": [],
+        "message": "no known verb in 'i ll sortay cubes by color'",
+        "intent": {
+          "verb": null,
+          "target": null,
+          "arm": null,
+          "destination": null,
+          "deictic": false,
+          "quantity": 1,
+          "corrections": [],
+          "ambiguous_words": [],
+          "raw": "Hey Doc, I'll Sortay Cubes by Color.",
+          "reason": "no known verb in 'i ll sortay cubes by color'"
+        }
+      },
+      "audio_s": 2.17
+    }
+  ],
+  "caveat": "synthesised speech; not evidence about real speakers"
+}

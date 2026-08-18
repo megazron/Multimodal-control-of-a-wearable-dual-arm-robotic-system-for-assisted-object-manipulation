@@ -1,0 +1,58 @@
+{
+  "arms": {
+    "left": {
+      "pad_mid_in_ee": [
+        0.0,
+        0.0,
+        0.09833
+      ],
+      "along_tool_axis_m": 0.09833,
+      "off_axis_mm": 0.0,
+      "ee_to_one_tip_m": 0.11941,
+      "tip_separation_m": 0.1355,
+      "stored_world_offset": [
+        -0.0171,
+        0.0945,
+        0.0572
+      ],
+      "stored_magnitude_m": 0.11178,
+      "disagreement_mm": 13.45,
+      "stored_in_ee_at_anchor": [
+        3e-05,
+        4e-05,
+        0.11177
+      ]
+    },
+    "right": {
+      "pad_mid_in_ee": [
+        -0.0,
+        0.0,
+        0.09833
+      ],
+      "along_tool_axis_m": 0.09833,
+      "off_axis_mm": 0.0,
+      "ee_to_one_tip_m": 0.11941,
+      "tip_separation_m": 0.1355,
+      "stored_world_offset": [
+        0.0289,
+        0.0995,
+        0.0421
+      ],
+      "stored_magnitude_m": 0.11184,
+      "disagreement_mm": 13.51,
+      "stored_in_ee_at_anchor": [
+        4e-05,
+        2e-05,
+        0.11184
+      ]
+    }
+  },
+  "both_arms_agree_mm": 0.0,
+  "shipped_constant": [
+    0.0,
+    0.0,
+    0.1118
+  ],
+  "shipped_matches_measurement_mm": 13.47,
+  "round_trip_mm": 0.0038
+}

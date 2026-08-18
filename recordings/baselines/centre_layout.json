@@ -1,0 +1,176 @@
+{
+  "tag": "centre_layout_v2",
+  "ok": true,
+  "repeats": 10,
+  "floor": 0.15,
+  "table": {
+    "top": 1.25,
+    "near_y": 0.43
+  },
+  "approach": {
+    "elev": -10.0,
+    "head_inboard": 65.0
+  },
+  "planes": [
+    [
+      0.32,
+      0.5
+    ],
+    [
+      -0.165,
+      0.5
+    ]
+  ],
+  "cubes": [
+    [
+      0.42,
+      0.45
+    ],
+    [
+      0.48,
+      0.45
+    ],
+    [
+      -0.3,
+      0.45
+    ],
+    [
+      -0.36,
+      0.45
+    ]
+  ],
+  "rows": [
+    {
+      "verdict": "REACHABLE",
+      "clearance": 0.1567,
+      "wearer": "L-upperarm",
+      "link": "half_arm_2_link -> forearm_link",
+      "point": [
+        0.29,
+        0.45,
+        1.27
+      ],
+      "at_wp": 3,
+      "label": "pad 0 (left) inner slot",
+      "arm": "left"
+    },
+    {
+      "verdict": "REACHABLE",
+      "clearance": 0.1876,
+      "wearer": "L-upperarm",
+      "link": "half_arm_2_link -> forearm_link",
+      "point": [
+        0.35,
+        0.45,
+        1.27
+      ],
+      "at_wp": 8,
+      "label": "pad 0 (left) outer slot",
+      "arm": "left"
+    },
+    {
+      "verdict": "REACHABLE",
+      "clearance": 0.2164,
+      "wearer": "R-upperarm",
+      "link": "half_arm_2_link -> forearm_link",
+      "point": [
+        -0.195,
+        0.45,
+        1.27
+      ],
+      "at_wp": 5,
+      "label": "pad 1 (right) outer slot",
+      "arm": "right"
+    },
+    {
+      "verdict": "REACHABLE",
+      "clearance": 0.1794,
+      "wearer": "R-upperarm",
+      "link": "forearm_link -> spherical_wrist_1_link",
+      "point": [
+        -0.135,
+        0.45,
+        1.27
+      ],
+      "at_wp": 7,
+      "label": "pad 1 (right) inner slot",
+      "arm": "right"
+    },
+    {
+      "verdict": "REACHABLE",
+      "clearance": 0.2088,
+      "wearer": "L-upperarm",
+      "link": "half_arm_2_link -> forearm_link",
+      "point": [
+        0.42,
+        0.45,
+        1.27
+      ],
+      "at_wp": 4,
+      "label": "cube 0",
+      "arm": "left"
+    },
+    {
+      "verdict": "REACHABLE",
+      "clearance": 0.2202,
+      "wearer": "torso",
+      "link": "base_link -> shoulder_link",
+      "point": [
+        0.48,
+        0.45,
+        1.27
+      ],
+      "at_wp": 0,
+      "label": "cube 1",
+      "arm": "left"
+    },
+    {
+      "verdict": "REACHABLE",
+      "clearance": 0.2202,
+      "wearer": "torso",
+      "link": "base_link -> shoulder_link",
+      "point": [
+        -0.3,
+        0.45,
+        1.27
+      ],
+      "at_wp": 0,
+      "label": "cube 2",
+      "arm": "right"
+    },
+    {
+      "verdict": "REACHABLE",
+      "clearance": 0.2202,
+      "wearer": "torso",
+      "link": "base_link -> shoulder_link",
+      "point": [
+        -0.36,
+        0.45,
+        1.27
+      ],
+      "at_wp": 0,
+      "label": "cube 3",
+      "arm": "right"
+    }
+  ],
+  "log": [
+    "CONTROLS (tag centre_layout_v2)",
+    "   inside_torso_is_negative               -0.1369 at (0.1, 0.0, 1.25)",
+    "   far_1.6m_unreachable                   True",
+    "   shipped_cube_reachable_and_clear       True / 0.2202",
+    "   slab_control_free_then_buried          True -> False (want True -> False)",
+    "   link namer inside the torso            -0.1369 / torso / end_effector_link -> robotiq_85_left_finger_tip_link",
+    "\n================================================================================================",
+    "LAYOUT: table top 1.250, near edge 0.430, approach elev -10 / heading +65 inboard, N=10, floor 0.150",
+    "================================================================================================",
+    "  pad 0 (left) inner slot      left  x  +0.290  REACHABLE          clearance 0.1567 m, closest half_arm_2_link -> forearm_link to L-upperarm",
+    "  pad 0 (left) outer slot      left  x  +0.350  REACHABLE          clearance 0.1876 m, closest half_arm_2_link -> forearm_link to L-upperarm",
+    "  pad 1 (right) outer slot     right x  -0.195  REACHABLE          clearance 0.2164 m, closest half_arm_2_link -> forearm_link to R-upperarm",
+    "  pad 1 (right) inner slot     right x  -0.135  REACHABLE          clearance 0.1794 m, closest forearm_link -> spherical_wrist_1_link to R-upperarm",
+    "  cube 0                       left  x  +0.420  REACHABLE          clearance 0.2088 m, closest half_arm_2_link -> forearm_link to L-upperarm",
+    "  cube 1                       left  x  +0.480  REACHABLE          clearance 0.2202 m, closest base_link -> shoulder_link to torso",
+    "  cube 2                       right x  -0.300  REACHABLE          clearance 0.2202 m, closest base_link -> shoulder_link to torso",
+    "  cube 3                       right x  -0.360  REACHABLE          clearance 0.2202 m, closest base_link -> shoulder_link to torso",
+    "\nEVERY POSE IN THE LAYOUT PASSES"
+  ]
+}

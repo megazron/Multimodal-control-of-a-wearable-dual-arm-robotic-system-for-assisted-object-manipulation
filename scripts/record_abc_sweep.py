@@ -180,6 +180,18 @@ MODE_TEXT = {
 }
 
 
+def _task_modes(taskset, task):
+    """Modes this task declares it runs under, or () for "any".
+
+    Read off the task spec, not listed here: a list in the sweep would be a
+    second description of the same fact and the two would drift, which is how
+    a clip of the left arm once got filed under a right-arm scenario name.
+    """
+    tables = {"msc": MCT.TASKS, "clip": CT.TASKS, "demo": CH.TASKS}
+    spec = tables.get(taskset, {}).get(task.lower(), {})
+    return tuple(spec.get("modes") or ())
+
+
 def scene_travel_verdict(ev, floor_m=MIN_SCENE_TRAVEL_M):
     """Did the SCENE NODE see an arm move? -> (True | False | None, why).
 
@@ -851,6 +863,22 @@ def _main_body():
                 failed += len(tasks)
                 continue
             for task in tasks:
+                # A TASK MAY DECLARE WHICH MODES IT RUNS UNDER. T1 does:
+                # rebuilt 2026-08-17 for `06_full_autonomy` alone, because it
+                # commands its own approach orientation rather than the pinned
+                # anchor every teleop mode sends. `run_abc` refuses such a run
+                # outright; skipping it here means the sweep does not spend
+                # four minutes of setup per cell to be told so, and -- the
+                # part that matters -- does not count the refusal as a failure
+                # and leave a red row in a ledger describing a cell that was
+                # never meant to exist.
+                _modes = _task_modes(a.taskset, task)
+                if _modes and mode not in _modes:
+                    log("   %-28s SKIP (%s runs under %s only)"
+                        % ("%s/%s" % (mode, task), task,
+                           " and ".join(_modes)))
+                    skipped += 1
+                    continue
                 scen = SCENARIO[task]
                 out_dir = os.path.join(OUT, mode, task.upper(), scen)
                 pkey = "%s/%s/%s" % (mode, task, scen)

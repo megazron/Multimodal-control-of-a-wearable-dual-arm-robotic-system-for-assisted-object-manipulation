@@ -45,11 +45,31 @@ sys.path.insert(0, os.path.join(PKG, "experiments", "abc"))
 
 import vision_grasp as VG                                # noqa: E402
 import msc_clip_tasks as M                               # noqa: E402
+
+M_T1_Z = M.T1_Z
 from srl_experiments import work_surface as WS           # noqa: E402
 
-# The two groups exactly as the sweep's refusal dumped them.
-MEASURED_CUBES = (1.1118, 1.1149, 1.1150, 1.1153, 1.1191)
-MEASURED_PAD_FRAGMENTS = (0.9576, 0.9580, 0.9596, 0.9601)
+# The two groups exactly as the sweep's refusal dumped them, EXPRESSED AS
+# OFFSETS FROM THE PLANE THEY WERE MEASURED AT.
+#
+# They were absolute heights -- 1.1118 and friends, against a work plane of
+# 1.1200 -- and T1's plane moved on 2026-08-17 when the task was rebuilt with
+# its objects RESTING on the table at 0.9700 rather than floating 120 mm above
+# it. Absolute numbers would have made these tests fail for the one reason a
+# test must never fail: the world moved and the property did not.
+#
+# What the measurement is actually about is the SEPARATION -- real cubes
+# within 9 mm of the plane they rest on, pad fragments 160 mm below it -- and
+# that is a property of the scene's geometry, not of where the scene sits. So
+# the offsets are recorded and re-anchored on whatever plane T1 declares.
+_PLANE_WHEN_MEASURED = 1.1200
+MEASURED_CUBE_OFFSETS = tuple(round(z - _PLANE_WHEN_MEASURED, 4) for z in
+                              (1.1118, 1.1149, 1.1150, 1.1153, 1.1191))
+MEASURED_FRAGMENT_OFFSETS = tuple(round(z - _PLANE_WHEN_MEASURED, 4) for z in
+                                  (0.9576, 0.9580, 0.9596, 0.9601))
+MEASURED_CUBES = tuple(round(M_T1_Z + d, 4) for d in MEASURED_CUBE_OFFSETS)
+MEASURED_PAD_FRAGMENTS = tuple(round(M_T1_Z + d, 4)
+                               for d in MEASURED_FRAGMENT_OFFSETS)
 
 
 def _accepts(z):
@@ -64,9 +84,23 @@ def test_the_window_is_one_cube():
 
 
 def test_the_work_plane_comes_from_its_owner():
-    """T1_Z is the work plane plus half a cube, and the work plane has ONE
-    owner. If this drifts, the gate is measuring against a stale height."""
-    assert M.T1_Z == pytest.approx(WS.work_plane() + M.CUBE_M / 2.0, abs=1e-9)
+    """T1_Z is a surface plus half a cube, and that surface has ONE owner.
+
+    IT IS NO LONGER `work_surface.work_plane()`, AND THE DIVERGENCE IS THE
+    2026-08-17 REBUILD. T1's objects used to float 120 mm above the table on
+    the shared work plane; they now REST on T1's own table, so its plane is
+    `t1_task.TABLE_TOP`. Every other task still works on the shared plane.
+    Both halves are asserted, because a T1 that silently drifted back onto
+    `work_plane()` would put its cubes 120 mm in the air and pass every check
+    that does not look at the pixels.
+    """
+    import t1_task as T1M
+    assert M.T1_Z == pytest.approx(T1M.TABLE_TOP + M.CUBE_M / 2.0, abs=1e-9)
+    assert M.T1_Z != pytest.approx(WS.work_plane() + M.CUBE_M / 2.0, abs=1e-6)
+    assert M.T1S2_Z == pytest.approx(WS.work_plane() + M.CUBE_M / 2.0,
+                                     abs=1e-9), (
+        "stage 2 still runs on the shared work plane and must keep doing so "
+        "until it is re-verified at a new one")
 
 
 @pytest.mark.parametrize("z", MEASURED_CUBES)

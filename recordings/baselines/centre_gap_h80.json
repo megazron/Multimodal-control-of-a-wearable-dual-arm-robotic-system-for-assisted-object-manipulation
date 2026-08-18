@@ -1,0 +1,375 @@
+{
+  "tag": "heads80_contacts",
+  "posture": "down",
+  "floor": 0.15,
+  "repeats": 3,
+  "controls": {
+    "inside_torso_is_negative": -0.1569,
+    "far_1.6m_unreachable": true,
+    "shipped_cube_reachable_and_clear": "True / 0.161",
+    "slab_control_free_then_buried": "True -> False (want True -> False)"
+  },
+  "table": {
+    "top": 0.95,
+    "near_y": 0.3
+  },
+  "gap": {
+    "left/heading +80 deg inboard": [
+      {
+        "verdict": "COLLISION:SELF/OTHER",
+        "at_wp": 4,
+        "of": 10,
+        "clearance": 0.062,
+        "wearer": "L-upperarm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "contacts": [
+          "left_robotiq_85_base_link / search_table",
+          "left_robotiq_85_base_link / table"
+        ],
+        "detail": "MoveIt refuses it and the capsule wearer model reads 0.0620 m; contacts: left_robotiq_85_base_link / search_table; left_robotiq_85_base_link / table",
+        "arm": "left",
+        "x": 0.0,
+        "obj": [
+          0.0,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:SELF/OTHER",
+        "at_wp": 5,
+        "of": 11,
+        "clearance": 0.094,
+        "wearer": "L-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "contacts": [
+          "left_robotiq_85_base_link / search_table",
+          "left_robotiq_85_base_link / table"
+        ],
+        "detail": "MoveIt refuses it and the capsule wearer model reads 0.0940 m; contacts: left_robotiq_85_base_link / search_table; left_robotiq_85_base_link / table",
+        "arm": "left",
+        "x": 0.05,
+        "obj": [
+          0.05,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:SELF/OTHER",
+        "at_wp": 5,
+        "of": 11,
+        "clearance": 0.1349,
+        "wearer": "torso",
+        "link": "end_effector_link -> robotiq_85_left_finger_tip_link",
+        "contacts": [
+          "left_robotiq_85_base_link / search_table",
+          "left_robotiq_85_base_link / table"
+        ],
+        "detail": "MoveIt refuses it and the capsule wearer model reads 0.1349 m; contacts: left_robotiq_85_base_link / search_table; left_robotiq_85_base_link / table",
+        "arm": "left",
+        "x": 0.1,
+        "obj": [
+          0.1,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:SELF/OTHER",
+        "at_wp": 5,
+        "of": 11,
+        "clearance": 0.1349,
+        "wearer": "torso",
+        "link": "end_effector_link -> robotiq_85_left_finger_tip_link",
+        "contacts": [
+          "left_robotiq_85_base_link / search_table",
+          "left_robotiq_85_base_link / table"
+        ],
+        "detail": "MoveIt refuses it and the capsule wearer model reads 0.1349 m; contacts: left_robotiq_85_base_link / search_table; left_robotiq_85_base_link / table",
+        "arm": "left",
+        "x": 0.15,
+        "obj": [
+          0.15,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:SELF/OTHER",
+        "at_wp": 5,
+        "of": 11,
+        "clearance": 0.1356,
+        "wearer": "torso",
+        "link": "end_effector_link -> robotiq_85_left_finger_tip_link",
+        "contacts": [
+          "left_robotiq_85_base_link / search_table",
+          "left_robotiq_85_base_link / table"
+        ],
+        "detail": "MoveIt refuses it and the capsule wearer model reads 0.1356 m; contacts: left_robotiq_85_base_link / search_table; left_robotiq_85_base_link / table",
+        "arm": "left",
+        "x": 0.2,
+        "obj": [
+          0.2,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:SELF/OTHER",
+        "at_wp": 5,
+        "of": 11,
+        "clearance": 0.1462,
+        "wearer": "torso",
+        "link": "end_effector_link -> robotiq_85_left_finger_tip_link",
+        "contacts": [
+          "left_robotiq_85_base_link / search_table",
+          "left_robotiq_85_base_link / table"
+        ],
+        "detail": "MoveIt refuses it and the capsule wearer model reads 0.1462 m; contacts: left_robotiq_85_base_link / search_table; left_robotiq_85_base_link / table",
+        "arm": "left",
+        "x": 0.25,
+        "obj": [
+          0.25,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:SELF/OTHER",
+        "at_wp": 5,
+        "of": 11,
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "contacts": [
+          "left_robotiq_85_base_link / search_table",
+          "left_robotiq_85_base_link / table"
+        ],
+        "detail": "MoveIt refuses it and the capsule wearer model reads 0.1610 m; contacts: left_robotiq_85_base_link / search_table; left_robotiq_85_base_link / table",
+        "arm": "left",
+        "x": 0.3,
+        "obj": [
+          0.3,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:SELF/OTHER",
+        "at_wp": 5,
+        "of": 11,
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "contacts": [
+          "left_robotiq_85_base_link / search_table",
+          "left_robotiq_85_base_link / table"
+        ],
+        "detail": "MoveIt refuses it and the capsule wearer model reads 0.1610 m; contacts: left_robotiq_85_base_link / search_table; left_robotiq_85_base_link / table",
+        "arm": "left",
+        "x": 0.35,
+        "obj": [
+          0.35,
+          0.32,
+          0.97
+        ]
+      }
+    ],
+    "right/heading +80 deg inboard": [
+      {
+        "verdict": "COLLISION:SELF/OTHER",
+        "at_wp": 4,
+        "of": 10,
+        "clearance": 0.0226,
+        "wearer": "R-upperarm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "contacts": [
+          "right_robotiq_85_base_link / search_table",
+          "right_robotiq_85_base_link / table"
+        ],
+        "detail": "MoveIt refuses it and the capsule wearer model reads 0.0226 m; contacts: right_robotiq_85_base_link / search_table; right_robotiq_85_base_link / table",
+        "arm": "right",
+        "x": 0.0,
+        "obj": [
+          -0.0,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:SELF/OTHER",
+        "at_wp": 5,
+        "of": 11,
+        "clearance": 0.0512,
+        "wearer": "R-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "contacts": [
+          "right_robotiq_85_base_link / search_table",
+          "right_robotiq_85_base_link / table"
+        ],
+        "detail": "MoveIt refuses it and the capsule wearer model reads 0.0512 m; contacts: right_robotiq_85_base_link / search_table; right_robotiq_85_base_link / table",
+        "arm": "right",
+        "x": 0.05,
+        "obj": [
+          -0.05,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:SELF/OTHER",
+        "at_wp": 5,
+        "of": 11,
+        "clearance": 0.0978,
+        "wearer": "R-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "contacts": [
+          "right_robotiq_85_base_link / search_table",
+          "right_robotiq_85_base_link / table"
+        ],
+        "detail": "MoveIt refuses it and the capsule wearer model reads 0.0978 m; contacts: right_robotiq_85_base_link / search_table; right_robotiq_85_base_link / table",
+        "arm": "right",
+        "x": 0.1,
+        "obj": [
+          -0.1,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:SELF/OTHER",
+        "at_wp": 5,
+        "of": 11,
+        "clearance": 0.1144,
+        "wearer": "R-forearm",
+        "link": "forearm_link -> spherical_wrist_1_link",
+        "contacts": [
+          "right_robotiq_85_base_link / search_table",
+          "right_robotiq_85_base_link / table"
+        ],
+        "detail": "MoveIt refuses it and the capsule wearer model reads 0.1144 m; contacts: right_robotiq_85_base_link / search_table; right_robotiq_85_base_link / table",
+        "arm": "right",
+        "x": 0.15,
+        "obj": [
+          -0.15,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:SELF/OTHER",
+        "at_wp": 5,
+        "of": 11,
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "contacts": [
+          "right_robotiq_85_base_link / search_table",
+          "right_robotiq_85_base_link / table"
+        ],
+        "detail": "MoveIt refuses it and the capsule wearer model reads 0.1610 m; contacts: right_robotiq_85_base_link / search_table; right_robotiq_85_base_link / table",
+        "arm": "right",
+        "x": 0.2,
+        "obj": [
+          -0.2,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:SELF/OTHER",
+        "at_wp": 5,
+        "of": 11,
+        "clearance": 0.1366,
+        "wearer": "R-forearm",
+        "link": "half_arm_2_link -> forearm_link",
+        "contacts": [
+          "right_robotiq_85_base_link / search_table",
+          "right_robotiq_85_base_link / table"
+        ],
+        "detail": "MoveIt refuses it and the capsule wearer model reads 0.1366 m; contacts: right_robotiq_85_base_link / search_table; right_robotiq_85_base_link / table",
+        "arm": "right",
+        "x": 0.25,
+        "obj": [
+          -0.25,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:SELF/OTHER",
+        "at_wp": 4,
+        "of": 10,
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "contacts": [
+          "right_robotiq_85_base_link / search_table",
+          "right_robotiq_85_base_link / table"
+        ],
+        "detail": "MoveIt refuses it and the capsule wearer model reads 0.1610 m; contacts: right_robotiq_85_base_link / search_table; right_robotiq_85_base_link / table",
+        "arm": "right",
+        "x": 0.3,
+        "obj": [
+          -0.3,
+          0.32,
+          0.97
+        ]
+      },
+      {
+        "verdict": "COLLISION:SELF/OTHER",
+        "at_wp": 5,
+        "of": 11,
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link",
+        "contacts": [
+          "right_robotiq_85_base_link / search_table",
+          "right_robotiq_85_base_link / table"
+        ],
+        "detail": "MoveIt refuses it and the capsule wearer model reads 0.1610 m; contacts: right_robotiq_85_base_link / search_table; right_robotiq_85_base_link / table",
+        "arm": "right",
+        "x": 0.35,
+        "obj": [
+          -0.35,
+          0.32,
+          0.97
+        ]
+      }
+    ]
+  },
+  "log": [
+    "CONTROLS   (run tag: heads80_contacts; wearer posture in the URDF: down)",
+    "   inside_torso_is_negative               -0.1569",
+    "   far_1.6m_unreachable                   True",
+    "   shipped_cube_reachable_and_clear       True / 0.161",
+    "   slab_control_free_then_buried          True -> False (want True -> False)",
+    "   link namer inside the torso            -0.1569 / torso / end_effector_link -> robotiq_85_left_finger_tip_link",
+    "\n==========================================================================",
+    "1. THE GAP -- objects RESTING on the table, full pick path, N=3",
+    "   table top 0.950, near edge 0.300, row y = 0.320, object z = 0.970",
+    "==========================================================================",
+    "\n  LEFT arm, heading +80 deg inboard (elevation -10.0 deg, heading -80.0 deg)",
+    "   |x| 0.000  COLLISION:SELF/OTHER MoveIt refuses it and the capsule wearer model reads 0.0620 m; contacts: left_robotiq_85_base_li",
+    "   |x| 0.050  COLLISION:SELF/OTHER MoveIt refuses it and the capsule wearer model reads 0.0940 m; contacts: left_robotiq_85_base_li",
+    "   |x| 0.100  COLLISION:SELF/OTHER MoveIt refuses it and the capsule wearer model reads 0.1349 m; contacts: left_robotiq_85_base_li",
+    "   |x| 0.150  COLLISION:SELF/OTHER MoveIt refuses it and the capsule wearer model reads 0.1349 m; contacts: left_robotiq_85_base_li",
+    "   |x| 0.200  COLLISION:SELF/OTHER MoveIt refuses it and the capsule wearer model reads 0.1356 m; contacts: left_robotiq_85_base_li",
+    "   |x| 0.250  COLLISION:SELF/OTHER MoveIt refuses it and the capsule wearer model reads 0.1462 m; contacts: left_robotiq_85_base_li",
+    "   |x| 0.300  COLLISION:SELF/OTHER MoveIt refuses it and the capsule wearer model reads 0.1610 m; contacts: left_robotiq_85_base_li",
+    "   |x| 0.350  COLLISION:SELF/OTHER MoveIt refuses it and the capsule wearer model reads 0.1610 m; contacts: left_robotiq_85_base_li",
+    "      innermost REACHABLE |x| = none",
+    "\n  RIGHT arm, heading +80 deg inboard (elevation -10.0 deg, heading +80.0 deg)",
+    "   |x| 0.000  COLLISION:SELF/OTHER MoveIt refuses it and the capsule wearer model reads 0.0226 m; contacts: right_robotiq_85_base_l",
+    "   |x| 0.050  COLLISION:SELF/OTHER MoveIt refuses it and the capsule wearer model reads 0.0512 m; contacts: right_robotiq_85_base_l",
+    "   |x| 0.100  COLLISION:SELF/OTHER MoveIt refuses it and the capsule wearer model reads 0.0978 m; contacts: right_robotiq_85_base_l",
+    "   |x| 0.150  COLLISION:SELF/OTHER MoveIt refuses it and the capsule wearer model reads 0.1144 m; contacts: right_robotiq_85_base_l",
+    "   |x| 0.200  COLLISION:SELF/OTHER MoveIt refuses it and the capsule wearer model reads 0.1610 m; contacts: right_robotiq_85_base_l",
+    "   |x| 0.250  COLLISION:SELF/OTHER MoveIt refuses it and the capsule wearer model reads 0.1366 m; contacts: right_robotiq_85_base_l",
+    "   |x| 0.300  COLLISION:SELF/OTHER MoveIt refuses it and the capsule wearer model reads 0.1610 m; contacts: right_robotiq_85_base_l",
+    "   |x| 0.350  COLLISION:SELF/OTHER MoveIt refuses it and the capsule wearer model reads 0.1610 m; contacts: right_robotiq_85_base_l",
+    "      innermost REACHABLE |x| = none"
+  ],
+  "ik_calls": 300
+}

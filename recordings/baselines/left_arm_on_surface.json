@@ -1,0 +1,63 @@
+{
+  "win": {
+    "x": 0.275,
+    "y": 0.3,
+    "top": 0.95,
+    "elev": -10.0,
+    "head": -50.0,
+    "roll": 0.0
+  },
+  "control_right": {
+    "ok": true,
+    "clearance": 0.1609502310972899,
+    "to": "torso"
+  },
+  "left_at_mirror": {
+    "ok": true,
+    "clearance": 0.08829483972021555,
+    "to": "L-forearm"
+  },
+  "ladder": {
+    "verdict": "FURNITURE",
+    "detail": "the scene blocks it; free with furniture out",
+    "clearance": null,
+    "to": "torso"
+  },
+  "left_grasp_ok": [
+    [
+      "e-10.0/h-50.0/r000.0",
+      0.1376,
+      "torso"
+    ],
+    [
+      "e-10.0/h-25.0/r000.0",
+      0.0909,
+      "L-forearm"
+    ],
+    [
+      "e-05.0/h-50.0/r000.0",
+      0.1377,
+      "torso"
+    ],
+    [
+      "e-05.0/h-25.0/r000.0",
+      0.0909,
+      "L-forearm"
+    ],
+    [
+      "e+00.0/h-25.0/r000.0",
+      0.0909,
+      "L-forearm"
+    ]
+  ],
+  "left_full_ok": [],
+  "left_innermost": {
+    "x": 0.4,
+    "clearance": 0.161,
+    "to": "torso",
+    "approach": "e-10.0/h-50.0/r000.0"
+  },
+  "repeats": 10,
+  "floor": 0.15,
+  "ik_calls": 1063
+}

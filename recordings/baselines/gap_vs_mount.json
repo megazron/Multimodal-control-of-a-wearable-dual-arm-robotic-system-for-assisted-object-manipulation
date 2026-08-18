@@ -1,0 +1,106 @@
+{
+  "deltas": [
+    {
+      "delta_deg": -45.0,
+      "left": {
+        "x": 0.35,
+        "clearance": 0.1588,
+        "wearer": "torso",
+        "link": "end_effector_link -> robotiq_85_left_finger_tip_link"
+      },
+      "right": {
+        "x": 0.275,
+        "clearance": 0.1526,
+        "wearer": "torso",
+        "link": "end_effector_link -> robotiq_85_left_finger_tip_link"
+      }
+    },
+    {
+      "delta_deg": -30.0,
+      "left": {
+        "x": 0.325,
+        "clearance": 0.1503,
+        "wearer": "torso",
+        "link": "end_effector_link -> robotiq_85_left_finger_tip_link"
+      },
+      "right": {
+        "x": 0.275,
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link"
+      }
+    },
+    {
+      "delta_deg": -15.0,
+      "left": {
+        "x": 0.325,
+        "clearance": 0.1579,
+        "wearer": "torso",
+        "link": "end_effector_link -> robotiq_85_left_finger_tip_link"
+      },
+      "right": {
+        "x": 0.275,
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link"
+      }
+    },
+    {
+      "delta_deg": 0.0,
+      "left": {
+        "x": 0.325,
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link"
+      },
+      "right": {
+        "x": 0.275,
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link"
+      }
+    },
+    {
+      "delta_deg": 15.0,
+      "left": {
+        "x": 0.325,
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link"
+      },
+      "right": {
+        "x": 0.3,
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link"
+      }
+    }
+  ],
+  "floor": 0.15,
+  "repeats": 2,
+  "table": {
+    "top": 0.95,
+    "near_y": 0.28
+  },
+  "control": {
+    "base": {
+      "left": {
+        "x": 0.325,
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link"
+      },
+      "right": {
+        "x": 0.275,
+        "clearance": 0.161,
+        "wearer": "torso",
+        "link": "base_link -> shoulder_link"
+      }
+    },
+    "want": {
+      "left": 0.375,
+      "right": 0.275
+    }
+  },
+  "models": "IK collisions OFF; wearer and table checked geometrically on the ROTATED link chain; MoveIt mesh and self-collision NOT modelled"
+}

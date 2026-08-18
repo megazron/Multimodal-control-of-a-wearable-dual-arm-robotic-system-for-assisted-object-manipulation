@@ -160,7 +160,19 @@ TASK_FOCUS = {
     # with dead sky above. +0.54 / 1.65 centres the cube row and the mats and
     # brings the whole thing up to size without losing the wearer, who is the
     # other half of the subject.
-    "t1": ((0.54, 0.22, 1.14), 1.65, 0.52),
+    # RE-AIMED 2026-08-17 FOR THE REBUILT T1, and this time it centres on the
+    # WEARER rather than on one arm's work. The task is two-armed now: the
+    # blue pad and its cubes sit at x +0.375..+0.685 and the green pad and
+    # its cubes at x -0.275..-0.575, straddling the centreline. Focal +0.54
+    # was the middle of the OLD single-sided cube row and would have put the
+    # whole right-hand half of the task off the left edge of frame.
+    #
+    # Distance 2.05, not 1.65: the work now spans 1.26 m of x against the old
+    # 0.29 m, and the near edge sits at y = 0.280 so the table itself is
+    # 180 mm further forward. Focal z drops to 1.02 -- the work is on a 0.95
+    # table rather than 120 mm above a 0.98 one -- and the pitch stays at
+    # 0.52 rad, which is what stopped the mats reading as lines.
+    "t1": ((0.00, 0.30, 1.02), 2.05, 0.52),
     # t1s2 works BOTH sides, so it centres on the wearer.
     "t1s2": ((0.00, 0.24, 1.16), 1.70, 0.52),
     "t2": ((0.00, 0.35, 1.46), 1.55),

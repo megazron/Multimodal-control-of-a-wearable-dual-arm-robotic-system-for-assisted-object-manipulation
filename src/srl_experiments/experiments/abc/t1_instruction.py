@@ -48,6 +48,7 @@ for _p in (HERE, os.path.join(_ROOT, "src", "srl_autonomy")):
 
 from srl_autonomy import voice_intent as vi                  # noqa: E402
 import msc_clip_tasks as MCT                                 # noqa: E402
+import t1_task as T1M                                        # noqa: E402
 
 PLAN, ASK, REFUSE = "plan", "ask", "refuse"
 
@@ -214,9 +215,14 @@ def plan_from(text, cubes, wake=vi.WAKE_DEFAULT, require_wake=False):
 def build_path(picks):
     """The T1 path for a resolved plan, from the ONE builder.
 
-    `msc_clip_tasks.t1(cubes=...)` already accepts (x, y, pad_index) because
-    the vision join needed it. Passing a SUBSET is what makes "put the blue
-    ones on the blue pad" a two-cube task rather than the whole four-cube
-    routine with two of them ignored.
+    `t1_task.build(cubes=...)` accepts (x, y, pad_index) because the vision
+    join needed it. Passing a SUBSET is what makes "put the blue ones on the
+    blue pad" a two-cube task rather than the whole four-cube routine with two
+    of them ignored.
+
+    IT IS `t1_task`, NOT `msc_clip_tasks.t1`, SINCE THE 2026-08-17 REBUILD.
+    The builder moved with the task; the pad index a pick carries now also
+    decides which ARM runs it, because the two pads are on opposite sides of
+    the centreline.
     """
-    return MCT.t1(cubes=[list(p) for p in picks])
+    return T1M.build(cubes=[list(p) for p in picks])

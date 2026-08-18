@@ -1,0 +1,143 @@
+{
+  "controls": {
+    "inside_torso_is_negative": -0.1569,
+    "far_1.6m_unreachable": true,
+    "shipped_cube_reachable_and_clear": "True / 0.161",
+    "slab_control_free_then_buried": "True -> False (want True -> False)"
+  },
+  "arms": {
+    "left": {
+      "waypoints": 190,
+      "ik_failures": 0,
+      "floor_breaches": 0,
+      "worst_clearance": 0.161,
+      "worst_at": 0,
+      "worst_to": "torso",
+      "failures": [],
+      "breaches": []
+    },
+    "right": {
+      "waypoints": 190,
+      "ik_failures": 0,
+      "floor_breaches": 0,
+      "worst_clearance": 0.161,
+      "worst_at": 0,
+      "worst_to": "torso",
+      "failures": [],
+      "breaches": []
+    }
+  },
+  "mode": "independent",
+  "grasps": [
+    {
+      "cube": 0,
+      "arm": "left",
+      "solved": true,
+      "across_mm": 56.4,
+      "pad_miss_mm": 0.05,
+      "lowest_tip_above_table_mm": 20.0,
+      "finger_span_mm": 51.5,
+      "closing_axis": [
+        -0.6428,
+        -0.766,
+        0.0
+      ],
+      "ok": true
+    },
+    {
+      "cube": 1,
+      "arm": "left",
+      "solved": true,
+      "across_mm": 56.4,
+      "pad_miss_mm": 0.05,
+      "lowest_tip_above_table_mm": 20.0,
+      "finger_span_mm": 51.5,
+      "closing_axis": [
+        -0.6428,
+        -0.766,
+        0.0
+      ],
+      "ok": true
+    },
+    {
+      "cube": 2,
+      "arm": "right",
+      "solved": true,
+      "across_mm": 56.4,
+      "pad_miss_mm": 0.05,
+      "lowest_tip_above_table_mm": 20.0,
+      "finger_span_mm": 51.5,
+      "closing_axis": [
+        -0.6428,
+        0.766,
+        -0.0
+      ],
+      "ok": true
+    },
+    {
+      "cube": 3,
+      "arm": "right",
+      "solved": true,
+      "across_mm": 56.4,
+      "pad_miss_mm": 0.05,
+      "lowest_tip_above_table_mm": 20.0,
+      "finger_span_mm": 51.5,
+      "closing_axis": [
+        -0.6428,
+        0.766,
+        -0.0
+      ],
+      "ok": true
+    }
+  ],
+  "clean": true,
+  "ik_calls": 3825,
+  "layout": {
+    "cubes": [
+      [
+        0.625,
+        0.3
+      ],
+      [
+        0.685,
+        0.3
+      ],
+      [
+        -0.475,
+        0.3
+      ],
+      [
+        -0.535,
+        0.3
+      ]
+    ],
+    "planes": [
+      [
+        0.53,
+        0.35
+      ],
+      [
+        -0.35,
+        0.35
+      ]
+    ],
+    "pair": {
+      "0": 0,
+      "1": 0,
+      "2": 1,
+      "3": 1
+    },
+    "z": 0.97,
+    "table_top": 0.95,
+    "near_y": 0.28,
+    "approach": {
+      "elev": -10.0,
+      "head": -50.0,
+      "roll": 0.0
+    },
+    "offcentre_mm": {
+      "left": 530.0,
+      "right": 350.0
+    }
+  }
+}

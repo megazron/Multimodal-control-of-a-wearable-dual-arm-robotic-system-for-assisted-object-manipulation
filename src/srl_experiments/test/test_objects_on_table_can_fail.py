@@ -37,10 +37,20 @@ sys.path.insert(0, PKG)
 import verify_objects_on_table as V                            # noqa: E402
 from srl_experiments import work_surface as WS                 # noqa: E402
 
-TASKS = ["t1", "t1s2", "t3"]
+# WHICH TASKS STILL FLOAT, AND WHICH ONE NO LONGER DOES.
+#
+# T1 was rebuilt on 2026-08-17 with every object RESTING on its own table, so
+# its documented gap is 0 and its shipped verdict is PASS. t1s2 and t3 still
+# work on the shared plane 120 mm above the table and are still BLOCKED. The
+# file's point is unchanged and is now demonstrated across BOTH verdicts by
+# the real scenes rather than only by an injected displacement: the check
+# reports PASS for a task that rests and BLOCK for tasks that do not.
+FLOATING_TASKS = ["t1s2", "t3"]
+RESTING_TASKS = ["t1"]
+TASKS = RESTING_TASKS + FLOATING_TASKS
 
 
-@pytest.mark.parametrize("task", TASKS)
+@pytest.mark.parametrize("task", FLOATING_TASKS)
 def test_the_real_scene_is_blocked_not_passing(task):
     """As shipped: every object registered and inside the footprint, the gap
     exactly the documented one, and NOT a pass."""
@@ -52,6 +62,26 @@ def test_the_real_scene_is_blocked_not_passing(task):
     assert r["work_plane_to_surface_m"] == pytest.approx(WS.FLOAT_GAP_M,
                                                          abs=1e-9)
     assert not r["resting"]
+
+
+@pytest.mark.parametrize("task", RESTING_TASKS)
+def test_the_rebuilt_scene_RESTS_and_passes(task):
+    """T1-1, satisfied for the first time, from the shipped scene itself.
+
+    This is the row the file was written hoping to see: not an injected
+    displacement making the check say PASS, but the real layout doing it. The
+    gap is 0 and the exit code is 0, and both are asserted because a check
+    that returns PASS with a non-zero gap has stopped meaning what it says.
+    """
+    r = V.check_task(task)
+    state, code = V.verdict_for(r["work_plane_to_surface_m"],
+                               r["geometry_ok"], r["documented_gap_m"])
+    assert r["geometry_ok"], r["objects"]
+    assert r["work_plane_to_surface_m"] == pytest.approx(0.0, abs=1e-9), (
+        "T1's objects are %0.1f mm off its table"
+        % (r["work_plane_to_surface_m"] * 1000.0))
+    assert r["resting"]
+    assert state == V.PASS and code == 0
 
 
 @pytest.mark.parametrize("task", TASKS)
@@ -66,7 +96,7 @@ def test_a_deliberately_floated_scene_FAILS(task):
         "sensitive to the thing it exists to measure" % state)
 
 
-@pytest.mark.parametrize("task", TASKS)
+@pytest.mark.parametrize("task", FLOATING_TASKS)
 def test_a_scene_whose_objects_REST_passes(task):
     """Displace by exactly the documented gap and the objects land on the
     table. This must be the only PASS, and it must return 0."""
@@ -117,8 +147,17 @@ def test_the_marking_is_registered_to_the_plane_it_bounds():
     for task in ("t1", "t1s2"):
         for arm in CS.marked_arms(task):
             z = CS.marking_z(arm, task)
-            assert z == pytest.approx(CT.BENCH_TOP + CS.MARK_T / 2.0,
-                                      abs=1e-9)
-            assert z > CT.BENCH_TOP - CS.PLANE_T, (
+            # PER TASK, because the two tasks no longer share a plane. T1
+            # rests its work on its own table at 0.950; t1s2 still works on
+            # the shared plane 120 mm above it. A single literal here would
+            # have pinned the marking to whichever task was written first.
+            top = CS.work_top_for(arm, task)
+            assert z == pytest.approx(top + CS.MARK_T / 2.0, abs=1e-9)
+            assert z > top - CS.PLANE_T, (
                 "%s/%s marking at %.4f is below the pads it encloses"
                 % (task, arm, z))
+            if task == "t1":
+                import t1_task as _T1
+                assert top == pytest.approx(_T1.TABLE_TOP, abs=1e-9)
+            else:
+                assert top == pytest.approx(CT.BENCH_TOP, abs=1e-9)

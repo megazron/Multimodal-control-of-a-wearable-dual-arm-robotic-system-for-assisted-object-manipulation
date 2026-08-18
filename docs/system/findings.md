@@ -5642,3 +5642,87 @@ One mode aborted first time: the virtual display would not render after three
 restarts and `record_rviz` REFUSED rather than filing a black view — two orphaned
 `rviz2` processes were holding the display. The per-mode cleanup now kills
 viewers as well as displays.
+
+## The centre of the table, all five levers priced — 2026-08-18
+
+**The question.** Can the two coloured pads sit in the CENTRE of the table,
+directly in front of the wearer, with BOTH arms working there — full pick path,
+N=10, wearer and table in the planning scene, the 150 mm floor held
+geometrically? "Centre" is `|x| <= 0.10`: two 100 mm pads straddling the
+centreline put each inner slot at `|x| = 0.025`.
+
+**Instruments.** `scripts/search_centre_geometry.py` (the scorer is
+`measure_centre_gap.classify_cell`, unchanged), `scripts/sweep_mount_geometry.py`
+(translation and rotation of the mounts by the target-transform trick),
+`scripts/probe_centre_limit.py` (best-of-K branches, the upper bound),
+`scripts/apply_mount_candidate.py` (the same change put into the URDF for real),
+`scripts/verify_centre_layout.py` (the layout point by point).
+
+### What each lever bought, as built
+
+| lever | innermost `\|x\|`, L / R | what blocks the centre |
+| --- | --- | --- |
+| as built | 0.350 / 0.275 | `bracelet -> end_effector` **20 mm inside the torso** |
+| (a) wearer stands back, near edge 0.380 | 0.250 / 0.250 | FLOOR, and the body changes: **the wearer's own forearm**, not the torso |
+| (a) near edge >= 0.480 | none | IK — forward reach is spent |
+| (b) table width 0.15 … 1.05 | 0.225 … 0.400 / 0.225 … 0.375 | **null.** The verdict is never TABLE; the scatter is the solver |
+| (c) rotated, wearer at the short end | 0.275 / 0.300 | **null**, and it is (b) at a narrow width by construction |
+| (d) mount, 32 candidates | nothing better than 0.325 / 0.275 | FLOOR at every candidate |
+| table height 0.95 … 1.25 | best 0.225 / 0.225 at 1.15 | FLOOR |
+
+**Levers (b) and (c) are dead for a reason, not for a number.** In 18 table
+geometries the centre column never once returned TABLE. The slab is under the
+object at `x = 0` at every width and every rotation, so no table geometry can
+move the thing that is actually in the way.
+
+**Lever (a) changes the mechanism and that is what makes the rest work.** At the
+as-built distance the gripper is inside the torso. Past 0.330 m the torso is
+clear and the binding body is the wearer's own upper arm against the robot's
+`forearm_link -> spherical_wrist_1_link`. The brief's premise — "deleting the
+wearer's arms changes nothing, it is the torso" — is true at 0.280 and false at
+0.380, and the two answers were being read as one.
+
+### What the combination bought, and the certification
+
+Single levers all leave the centre 110–150 mm inside the floor. **Crossed, two of
+them clear it**: the mounts moved 150 mm OUTBOARD and yawed 15 deg outboard, over
+a table at 1.25 with its near edge at 0.430, approached at 65 deg inboard.
+
+    best-of-40-branch clearance at |x| <= 0.10   L +0.220 / R +0.196  (floor 0.150)
+    certified, N=10, worst branch, full path     innermost |x| = 0.225 (L) / 0.100 (R)
+
+The gap between those two rows is the null-space branch scatter, not geometry:
+the pose is admissible and TRAC-IK will not reliably find it. `t1_task` already
+records the same risk under `independent` seeding.
+
+**Two things that looked promising and are not.** Heading 70–75 deg reads best of
+all on the geometric probe and returns COLLISION:TABLE at every column on the
+relaunched stack — the probe's slab test stops at `bracelet_link` and cannot see
+the gripper, exactly as `sweep_gap_vs_mount` warns. And making the two mounts
+EXACT MIRRORS made the LEFT arm **worse** (0.225 -> 0.350), which is the
+repository's own note holding up: two identical arms on mirrored mounts do not
+mirror.
+
+### Where the pads ended up
+
+`T1_PLANES = [[0.320, PAD_Y], [-0.165, PAD_Y]]`, every slot and every cube
+REACHABLE at N=10 over the full pick path with 0.157–0.220 m of clearance
+(`recordings/baselines/centre_layout.json`). Off the centreline: **320 mm (blue,
+left) and 165 mm (green, right)**, against 530 and 350 before. The pair is
+centred 78 mm left of the centreline and its inner edges are 385 mm apart.
+
+**It is not the centre.** `|x| <= 0.10` is met by the RIGHT arm and missed by the
+LEFT by 125 mm. The left arm has been the worse of the two in every certified run
+in this session and the mount asymmetry is not the cause.
+
+### What it costs, unmeasured
+
+The mount change moves the anchor, so `WORKSPACE_ORIENT`, `PAD_OFFSET_BY_ARM`,
+`P_HOME` and every T0–T3 coordinate derived through `ee_for()` are re-derivations
+— TASK_SPEC section 2A lists them. Home clearance itself IMPROVES, 0.1610 ->
+0.2202 m, because the mount is no longer the closest thing to the wearer.
+`test_t1_layout_is_verified` fails on all three of its assertions: it compares the
+shipped constants against `t1_paths.json`, which records the walk of the OLD
+layout on the OLD mount. Regenerating it means walking the whole composed 203
+waypoint path on the new geometry, which was outside this brief and has NOT been
+done.

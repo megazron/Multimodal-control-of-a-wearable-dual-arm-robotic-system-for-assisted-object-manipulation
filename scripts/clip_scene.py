@@ -31,6 +31,7 @@ import os
 import sys
 import time
 
+import numpy as _np
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile
@@ -395,15 +396,16 @@ def marked_arms(task):
     T0 draws none: it is reaching in free space with no work surface at all,
     so a surface marking would describe a table that is not in the scene.
 
-    A ONE-ARM TASK DRAWS ONE MARKING. T1 runs on msc_clip_tasks.T1_ARM and
-    used to draw both, which put a large empty rectangle on the idle side --
-    in the middle of the front view, while the actual work sat at the edge of
-    the frame. Two arms, two markings, only where two arms work.
+    A ONE-ARM TASK DRAWS ONE MARKING. That used to include T1, which ran on
+    `msc_clip_tasks.T1_ARM`; drawing both put a large empty rectangle on the
+    idle side, in the middle of the front view, while the actual work sat at
+    the edge of the frame.
+
+    T1 IS A TWO-ARM TASK AS OF THE 2026-08-17 REBUILD. Its pads straddle the
+    centreline -- blue at the left arm's innermost workable column, green at
+    the right arm's -- so both arms work and both markings belong.
     """
-    import msc_clip_tasks as _M
-    if task == "t1":
-        return (_M.T1_ARM,)
-    if task in ("t1s2", "t2", "t3"):
+    if task in ("t1", "t1s2", "t2", "t3"):
         return ("left", "right")
     return ()
 
@@ -674,6 +676,20 @@ def _lip(name, obj_xyz, obj_size, bench_y, top_z=None):
             TAN)
 
 
+def table_geometry(task):
+    """(top z, near edge y, far edge y) for THIS task's table.
+
+    ONE PLACE THAT ANSWERS "WHICH TABLE", because two tasks now want
+    different ones and every consumer -- the collision furniture, the drawn
+    slab, the legs, the apron and the workspace marking -- has to agree.
+    """
+    if task == "t1":
+        import t1_task as _t1
+        return (_t1.TABLE_TOP, _t1.TABLE_NEAR_Y,
+                max(TABLE_FAR_Y, _t1.TABLE_NEAR_Y + 0.40))
+    return (TABLE_TOP, TABLE_NEAR_Y, TABLE_FAR_Y)
+
+
 def furniture_boxes(task):
     """(name, xyz, size, colour) for every SOLID in THIS task's scene.
 
@@ -759,9 +775,24 @@ def furniture_boxes(task):
     if task in ("a", "b", "c"):
         out.append(("bench", [0.0, yc, _ct.BENCH_TOP - _ct.BENCH_THICK / 2.0],
                     [2 * _ct.BENCH_HALF_X, yd, _ct.BENCH_THICK], TAN))
-    tyc = (TABLE_NEAR_Y + TABLE_FAR_Y) / 2.0
-    tyd = TABLE_FAR_Y - TABLE_NEAR_Y
-    out.append(("table", [0.0, tyc, TABLE_TOP - TABLE_THICK / 2.0],
+    # T1 HAS ITS OWN TABLE, AND IT IS NOT A PREFERENCE.
+    #
+    # Rebuilt 2026-08-17, T1 stands every object ON the surface, so the
+    # surface has to be where the layout was verified: top 0.950 with the
+    # near edge at 0.280. The shared table is 0.980 with its near edge at
+    # 0.100 -- 30 mm higher and 180 mm nearer -- and against that table T1's
+    # cubes sit INSIDE the slab and all four grasp poses are refused.
+    # Measured exactly that way, 74 IK failures per arm, before this branch
+    # existed.
+    #
+    # It is not moved for everyone: every other task works on the plane 120 mm
+    # ABOVE the table and would gain nothing, while T2 and T3's coordinates
+    # are verified against the table where it is. `table_geometry(task)` is
+    # the one place that answers "which table".
+    _tt, _tn, _tf = table_geometry(task)
+    tyc = (_tn + _tf) / 2.0
+    tyd = _tf - _tn
+    out.append(("table", [0.0, tyc, _tt - TABLE_THICK / 2.0],
                 [2 * TABLE_HALF_X, tyd, TABLE_THICK], OAK))
     if task in ("a", "b", "c"):
         out.append(("circuit_box", list(_ct.BOX_OBJ),
@@ -820,19 +851,31 @@ def work_top_for(arm, task):
     """The z of the plane THIS ARM's work rests on, in THIS task.
 
     Derived from the arm's own pads where the task has them, so a marking can
-    never drift from the work it encloses. It is `BENCH_TOP` for every arm and
-    task today; the point is that it is read from the pads rather than restated,
-    which is the difference between two numbers that agree and two numbers that
-    cannot disagree.
+    never drift from the work it encloses. The point is that it is read from
+    the pads rather than restated, which is the difference between two numbers
+    that agree and two numbers that cannot disagree.
+
+    IT IS NO LONGER `BENCH_TOP` FOR EVERY TASK. T1 was rebuilt on 2026-08-17
+    with its objects RESTING on the table, 120 mm below the plane every other
+    task works on, so painting its marking at `BENCH_TOP` would put the
+    boundary 120 mm above the work it encloses -- the same defect, in the same
+    direction, as the 116.5 mm one this function was written to fix.
     """
     import clip_tasks as _ct
     import msc_clip_tasks as _mct
-    if task in ("t1", "t1s2"):
+    if task == "t1":
+        # THE TABLE TOP, NOT THE PAD TOP. T1's cubes STAND ON THE TABLE; the
+        # pads are 10 mm mats lying on it under two of the six positions. The
+        # plane the marking bounds is the one the work stands on, and painting
+        # it on the pads instead would leave it 10 mm proud of the surface it
+        # is supposed to be drawn on -- reported by `verify_objects_on_table`
+        # as 8 tiles, 8 FLOATING.
+        import t1_task as _t1
+        return _t1.TABLE_TOP
+    if task == "t1s2":
         # The pads are drawn as mats with their TOP flush to the plane a placed
         # cube's base sits on -- so that plane IS the top of the pad.
-        pads = (_mct.T1_PLANES_BY_ARM.get(arm) if task == "t1s2"
-                else (_mct.T1_PLANES if arm == _mct.T1_ARM else None))
-        if pads:
+        if _mct.T1_PLANES_BY_ARM.get(arm):
             return _ct.BENCH_TOP
     return _ct.BENCH_TOP
 
@@ -840,6 +883,44 @@ def work_top_for(arm, task):
 def marking_z(arm, task):
     """Where the workspace marking is painted for this arm. See work_top_for."""
     return work_top_for(arm, task) + MARK_T / 2.0
+
+
+def t1_marking_cells(arm):
+    """T1's OWN marked cells: the boundary of what this task verified.
+
+    THE SURVEYED REGION IS NOT T1'S REGION ANY MORE. `REGION_CELLS` was
+    measured at the PINNED anchor, on the work plane 120 mm above the table,
+    over `y` 0.075 to 0.300. T1 now works at its own approach, on the table,
+    in a SINGLE ROW at `y = ROW_Y` -- so every one of those 24 cells sits over
+    thin air, which is exactly what `verify_objects_on_table` reported: 24
+    tiles, 24 FLOATING.
+
+    Rather than paint a survey that was not taken, this draws the boundary of
+    the cells this task's own verification actually walked: each arm's own
+    objects, grown by one cube so the boundary encloses them rather than
+    cutting through them. It is narrow because the workspace IS narrow -- a
+    level hand on a table edge has one row to work in -- and a marking that
+    claimed more would be claiming reach nobody measured.
+    """
+    import t1_task as _t1
+    xs = [p[0] for p in _t1.T1_CUBES if (p[0] > 0) == (arm == "left")]
+    for i, (px, _py) in enumerate(_t1.T1_PLANES):
+        if _t1.arm_for_pad(i) == arm:
+            xs += [px - _t1.SLOT_DX, px + _t1.SLOT_DX]
+    if not xs:
+        return []
+    lo = min(xs) - _t1.CUBE_M
+    hi = max(xs) + _t1.CUBE_M
+    y0 = _t1.ROW_Y - _t1.CUBE_M
+    y1 = max(_t1.PAD_Y + _t1.PAD_D / 2.0, _t1.ROW_Y) + _t1.CUBE_M / 2.0
+    out, x = [], lo
+    while x <= hi + 1e-9:
+        y = y0
+        while y <= y1 + 1e-9:
+            out.append((round(x, 4), round(y, 4)))
+            y += REGION_STEP
+        x += REGION_STEP
+    return out
 
 
 def cells_on_surface(task, arm):
@@ -855,7 +936,8 @@ def cells_on_surface(task, arm):
             for s in furniture_boxes(task)]
     h = REGION_STEP / 2.0
     keep, off = [], 0
-    for cx, cy in REGION_CELLS[arm]:
+    _cells = (t1_marking_cells(arm) if task == "t1" else REGION_CELLS[arm])
+    for cx, cy in _cells:
         if any(sx0 - 1e-9 <= cx - h and cx + h <= sx1 + 1e-9
                and sy0 - 1e-9 <= cy - h and cy + h <= sy1 + 1e-9
                for _tz, sx0, sx1, sy0, sy1 in tops):
@@ -1034,34 +1116,28 @@ class Scene(Node):
             return {}
         if task == "t1":
             # Four cubes, two blue and two green, colour matched onto two
-            # planes. The pairing is 0,2 -> blue and 1,3 -> green, declared in
-            # msc_clip_tasks so a WRONG-COLOUR placement is scoreable rather
-            # than ambiguous. Only the first is graspable in the clip; the
-            # rest are shown so the colour-matching task is legible.
+            # pads. REBUILT 2026-08-17: the pads straddle the centreline, one
+            # per arm, the objects REST on the table rather than floating over
+            # it, and each cube is picked by the arm that can reach the pad of
+            # its colour. `t1_task` owns all of it.
+            #
+            # THE WRIST POSE IS TAKEN AT T1'S OWN APPROACH, NOT AT THE ANCHOR.
+            # `CT.ee_for` bakes in `WORKSPACE_ORIENT`, which this task does not
+            # command; using it here would draw every cube 111.8 mm from where
+            # the fingers close, which is nearly four times the capture window.
+            import t1_task as _T1
             out = {}
-            for i, (cx, cy) in enumerate(MCT.T1_CUBES):
-                # ee_for(), NOT the object position. _items() positions are
-                # WRIST poses: tick() adds pad_off to recover where the object
-                # actually sits, exactly as the a/b/c tables do (their pos is
-                # A_PICK = ee_for(A_BLOCK_OBJ)). Passing the OBJECT position
-                # here displaced every MSc item by |PAD_OFFSET| -- measured as
-                # T1's min_pad_obj_m of 0.0957 m against a 0.03 m gate, so the
-                # fingers closed at the right MOMENT 96 mm from the cube.
+            for i, (cx, cy) in enumerate(_T1.T1_CUBES):
+                _arm = _T1.arm_for_pad(_T1.T1_PAIR[i])
                 out["cube_%d" % i] = dict(
-                    # FOLLOW THE TASK'S ARM. This was hardcoded "left" while
-                    # the task moved to the RIGHT arm, so the right gripper
-                    # closed on the cube and the scene was watching the left
-                    # one. Every T1 grasp went unrecorded: "NO GRASP RECORDED
-                    # at all" on a run where the arm plainly picked things up.
-                    arm=MCT.T1_ARM, width_mm=40,
-                    pos=CT.ee_for([cx, cy, MCT.T1_Z], MCT.T1_ARM),
-                    size=(0.04,) * 3,
-                    col=(BLUE if i in (0, 2) else GREEN), held=False,
-                    # ALL FOUR are picked, one after another: T1's schedule is
-                    # four closes and four opens. The flag stays because
-                    # tick() now honours it, and a future fixtured item will
-                    # need it.
-                    graspable=True)
+                    arm=_arm, width_mm=int(_T1.CUBE_M * 1000),
+                    pos=_T1.ee_for([cx, cy, _T1.T1_Z], _arm),
+                    size=(_T1.CUBE_M,) * 3,
+                    # WHAT IT LOOKS LIKE, not what the task believes. Same
+                    # reason as `mock_rgbd_camera`: the mislabel control flips
+                    # T1_PAIR and the picture must not follow it.
+                    col=(BLUE if _T1.T1_RENDERED[i] == "blue" else GREEN),
+                    held=False, graspable=True)
             return out
         if task == "t1s2":
             # BOTH ARMS, RANDOM POSITIONS, drawn from the surveyed cells at
@@ -1303,7 +1379,19 @@ class Scene(Node):
         picture and the path cannot disagree about where an object is. Two
         descriptions of one offset is what produced the 49 mm error this
         module already carries a comment about.
+
+        AND IT IS AT THE TASK'S OWN ORIENTATION, NOT ALWAYS THE ANCHOR. T1
+        commands its own approach (see `t1_task.APPROACH`), and the offset is
+        a wrist-to-pad vector expressed in WORLD, so it rotates with the hand.
+        Left at the anchor for T1 the whole scene would be drawn 111.8 mm out
+        -- the same defect as the 49 mm one above, one rebuild later.
         """
+        if self.task == "t1":
+            import t1_task as _T1
+            import grasp_frames as _GF
+            return [float(v) for v in
+                    _GF.q_matrix(_T1.APPROACH[arm]) @ _np.asarray(
+                        _GF.PAD_MID_EE)]
         off = CT.PAD_OFFSET_BY_ARM.get(arm)
         if off is not None:
             return list(off)
@@ -1470,19 +1558,25 @@ class Scene(Node):
             # y = 0.100 is the measured edge (0 waypoint failures; 0.02 cost
             # T1 four), |x| = 1.05 covers the marking out to 1.000, and the
             # top at 0.95 is the highest slab that costs nothing.
-            tyc = (TABLE_NEAR_Y + TABLE_FAR_Y) / 2.0
-            tyd = TABLE_FAR_Y - TABLE_NEAR_Y
+            # THE TASK'S OWN TABLE, from the one function that answers it.
+            # T1's is 30 mm lower and 180 mm further forward than the shared
+            # one; drawing the shared legs and apron under T1's top would put
+            # the picture 30 mm out of register with the collision object the
+            # paths were verified against.
+            _tt, _tn, _tf = table_geometry(self.task)
+            tyc = (_tn + _tf) / 2.0
+            tyd = _tf - _tn
             for sx in (-1, 1):
-                for sy in (TABLE_NEAR_Y + TABLE_LEG_INSET,
-                           TABLE_FAR_Y - TABLE_LEG_INSET):
+                for sy in (_tn + TABLE_LEG_INSET,
+                           _tf - TABLE_LEG_INSET):
                     add(Marker.CUBE,
                         [sx * (TABLE_HALF_X - TABLE_LEG_INSET), sy,
-                         (TABLE_TOP - TABLE_THICK) / 2.0],
-                        (TABLE_LEG, TABLE_LEG, TABLE_TOP - TABLE_THICK),
+                         (_tt - TABLE_THICK) / 2.0],
+                        (TABLE_LEG, TABLE_LEG, _tt - TABLE_THICK),
                         LEG)
-            z_apron = TABLE_TOP - TABLE_THICK - TABLE_APRON / 2.0
+            z_apron = _tt - TABLE_THICK - TABLE_APRON / 2.0
             inset = TABLE_LEG_INSET - TABLE_LEG / 2.0
-            for sy in (TABLE_NEAR_Y + inset, TABLE_FAR_Y - inset):
+            for sy in (_tn + inset, _tf - inset):
                 add(Marker.CUBE, [0.0, sy, z_apron],
                     (2 * (TABLE_HALF_X - inset), 0.022, TABLE_APRON), APRON)
             for sx in (-1, 1):
@@ -1497,10 +1591,10 @@ class Scene(Node):
             # is 700 mm below the top and nowhere near the approach cone: the
             # arm never descends past the table top, so nothing about them can
             # touch a verified waypoint.
-            z_str = (TABLE_TOP - TABLE_THICK) * 0.28
+            z_str = (_tt - TABLE_THICK) * 0.28
             lx = TABLE_HALF_X - TABLE_LEG_INSET
-            for sy in (TABLE_NEAR_Y + TABLE_LEG_INSET,
-                       TABLE_FAR_Y - TABLE_LEG_INSET):
+            for sy in (_tn + TABLE_LEG_INSET,
+                       _tf - TABLE_LEG_INSET):
                 add(Marker.CUBE, [0.0, sy, z_str],
                     (2 * lx, 0.030, 0.030), STRETCHER)
             for sx in (-1, 1):
@@ -1694,27 +1788,35 @@ class Scene(Node):
             # cannot be scored from a frame, which is the whole reason the pads
             # were added to stage 1 in the first place.
             import msc_clip_tasks as _MCT
-            _pads = []
+            import t1_task as _T1
+            # T1 AND T1S2 NO LONGER SHARE PAD GEOMETRY, AND THAT IS THE 2026-08-17
+            # REBUILD. Stage 1's two pads straddle the centreline, one per arm,
+            # resting ON the table; stage 2 still has a pair per side, 120 mm
+            # above the table, on the geometry it was verified against. Reusing
+            # one set for both would put stage 2's cubes onto pads its paths
+            # were never walked for.
+            _pads, _top = [], CT.BENCH_TOP
             if self.task == "t1":
-                _pads = [(_MCT.T1_ARM, p) for p in _MCT.T1_PLANES]
+                _pads = [(_T1.arm_for_pad(i), p, i)
+                         for i, p in enumerate(_T1.T1_PLANES)]
+                _top = _T1.T1_Z - _T1.CUBE_M / 2.0 + _T1.PLANE_T
             else:
                 for _a in ("left", "right"):
-                    _pads += [(_a, p) for p in _MCT.T1_PLANES_BY_ARM[_a]]
-            for pi, (_arm_of_pad, (px, py)) in enumerate(_pads):
-                _pw, _pd = PLANE_SIZE_BY_ARM[_arm_of_pad]
-                # the colour alternates within each side's pair, so both sides
-                # show one blue and one green
-                pi = pi % len(_MCT.T1_PLANES)
+                    _pads += [(_a, p, i) for i, p
+                              in enumerate(_MCT.T1_PLANES_BY_ARM[_a])]
+            for _arm_of_pad, (px, py), pi in _pads:
+                _pw, _pd = ((_T1.PAD_W, _T1.PAD_D) if self.task == "t1"
+                            else PLANE_SIZE_BY_ARM[_arm_of_pad])
                 name = "plane_%s_%s" % ("blue" if pi == 0 else "green",
                                         _arm_of_pad)
                 add(Marker.CUBE,
-                    [px, py, CT.BENCH_TOP - PLANE_T / 2.0],
+                    [px, py, _top - PLANE_T / 2.0],
                     (_pw, _pd, PLANE_T),
                     BLUE if pi == 0 else GREEN, ns="planes")
                 # an outline, so the mat reads as a target and not as a
                 # shadow on the bench
                 add(Marker.CUBE,
-                    [px, py, CT.BENCH_TOP - PLANE_T / 2.0],
+                    [px, py, _top - PLANE_T / 2.0],
                     (_pw * 1.06, _pd * 1.08, PLANE_T * 0.5),
                     ((BLUE if pi == 0 else GREEN)[0],
                      (BLUE if pi == 0 else GREEN)[1],

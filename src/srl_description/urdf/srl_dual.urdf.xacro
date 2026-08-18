@@ -29,11 +29,11 @@
        CLAUDE.md. Position is backpack-relative; the backpack link is at
        torso+(0,-0.12,0.02), so world = (mount_x, mount_y-0.12, mount_z+1.07).
        Exposed as arguments so a candidate can be swept without editing. -->
-  <xacro:arg name="mount_x" default="0.20"/>
-  <xacro:arg name="mount_y" default="-0.20"/>
+  <xacro:arg name="mount_x" default="0.35"/>
+  <xacro:arg name="mount_y" default="-0.2"/>
   <xacro:arg name="mount_z" default="0.18"/>
-  <xacro:arg name="left_mount_rpy"  default="1.247666407 -0.232161321 1.508064663"/>
-  <xacro:arg name="right_mount_rpy" default="-1.256457931 -0.033197491 1.699631975"/>
+  <xacro:arg name="left_mount_rpy"  default="1.247666407 -0.232161321 1.769864051"/>
+  <xacro:arg name="right_mount_rpy" default="-1.256457931 -0.033197491 1.437832587"/>
 
   <link name="world"/>
 

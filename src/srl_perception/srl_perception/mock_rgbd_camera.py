@@ -234,12 +234,18 @@ class MockRGBD(Node):
         # fixtures_for(), which is a NAME list.
         if self.task == "t1":
             try:
-                import msc_clip_tasks as MCT
-                import clip_tasks as CT
-                for i, (px, py) in enumerate(MCT.T1_PLANES):
+                # T1's OWN GEOMETRY, from the module that owns it. Rebuilt
+                # 2026-08-17: the pads rest ON the table rather than hanging
+                # at BENCH_TOP, and they are T1's own size, not clip_scene's
+                # generic one. Rendering them at the old height would put the
+                # detector's depth step 120 mm from where the cubes are, and
+                # the depth step is the ONLY thing that separates a cube from
+                # the same-coloured pad it stands on.
+                import t1_task as T1M
+                for i, (px, py) in enumerate(T1M.T1_PLANES):
                     out.append(dict(
-                        xyz=[px, py, CT.BENCH_TOP + CS.PLANE_T / 2.0],
-                        size=[CS.PLANE_W, CS.PLANE_D, CS.PLANE_T],
+                        xyz=[px, py, T1M.TABLE_TOP + T1M.PLANE_T / 2.0],
+                        size=[T1M.PAD_W, T1M.PAD_D, T1M.PLANE_T],
                         rgb=CS.BLUE[:3] if i == 0 else CS.GREEN[:3],
                         name="plane_%d" % i))
             except Exception as e:
@@ -249,12 +255,11 @@ class MockRGBD(Node):
             # objects" -- the question a scan pose exists to answer -- is
             # unanswerable from it.
             try:
-                import msc_clip_tasks as MCT
-                import clip_tasks as CT
-                for i, (px, py) in enumerate(MCT.T1_CUBES):
+                import t1_task as T1M
+                for i, (px, py) in enumerate(T1M.T1_CUBES):
                     out.append(dict(
-                        xyz=[px, py, CT.BENCH_TOP + MCT.CUBE_M / 2.0],
-                        size=[MCT.CUBE_M] * 3,
+                        xyz=[px, py, T1M.T1_Z],
+                        size=[T1M.CUBE_M] * 3,
                         # THE SCENE'S OWN COLOURS, NOT A SECOND COPY.
                         #
                         # These were literals here, and they had already
@@ -272,7 +277,22 @@ class MockRGBD(Node):
                         # H,S,V = 21, 29, 25 against the old 17, 32, 51, so
                         # the hue margin IMPROVES and the value margin drops
                         # to the same 25 the blue cube already had.
-                        rgb=CS.BLUE[:3] if i % 2 == 0 else CS.GREEN[:3],
+                        # THE CUBE'S DECLARED COLOUR, which the detector then has
+                        # to READ back off the pixels. Two blue then two
+                        # green, not alternating: the blue pair stands on
+                        # the LEFT arm's side and the green pair on the
+                        # RIGHT arm's, because a cube goes to the pad of
+                        # its own colour and one arm cannot reach both.
+                        # `T1_RENDERED`, NOT `T1_PAIR`. The pair table is
+                        # what the TASK believes; this node paints what the
+                        # camera SEES, and the mislabel control works only
+                        # because the two are separate. Reading T1_PAIR here
+                        # would repaint the scene whenever the declaration was
+                        # flipped, so the control would compare a file with
+                        # itself and always report agreement.
+                        rgb=(CS.BLUE[:3]
+                             if T1M.T1_RENDERED[i] == "blue"
+                             else CS.GREEN[:3]),
                         name="cube_%d" % i))
             except Exception as e:
                 self.get_logger().warn("no cube geometry: %s" % e)

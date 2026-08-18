@@ -181,11 +181,38 @@ def test_a_destination_that_is_not_the_cubes_colour_is_HONOURED():
 # ------------------------------------------------------------- the path
 def test_the_path_is_built_by_the_ONE_builder_and_a_subset_is_shorter():
     """A two-cube instruction must produce a two-cube path, not the four-cube
-    routine with two picks ignored."""
+    routine with two picks ignored.
+
+    IT IS NO LONGER "HALF AS LONG", AND THAT IS THE TWO-ARM REBUILD RATHER
+    THAN A REGRESSION. The old T1 ran one arm, so a path's length was
+    proportional to the cube count and `two * 2 == four` held to a few
+    waypoints. The rebuilt T1 runs the arms IN TURN and both arrays are the
+    same length by construction -- the idle arm is padded at its park pose --
+    so the total is (left work + right work) for both arms whatever the split.
+    Two blue cubes are all LEFT-arm work; four cubes are two each. The
+    property that still has to hold is the one the test is named for: a
+    subset is genuinely shorter, and no pick is silently dropped.
+    """
     two = TI.build_path([(0.560, 0.120, BLUE), (0.680, 0.120, BLUE)])
     four = TI.build_path([(x, y, p) for x, y, p in SEEN])
-    assert len(two["left"]) * 2 == pytest.approx(len(four["left"]), abs=8)
-    assert len(two["left"]) == len(two["right"]), "the idle arm must be held"
+    assert len(two["left"]) < len(four["left"]), (
+        "a two-cube plan is not shorter than a four-cube one, so picks are "
+        "being padded rather than dropped from the path")
+    assert len(two["left"]) == len(two["right"]), "both arrays run together"
+    assert len(four["left"]) == len(four["right"])
+    # AND THE COUNT IS RIGHT, not merely smaller: two closes for two cubes.
+    # REBUILD FIRST. `t1_task.grip()` returns the schedule belonging to the
+    # LAST path built, which is `four` by this line -- reading it without
+    # rebuilding measured the four-cube schedule against a two-cube path and
+    # answered 4. That is the module's documented contract (the schedule is
+    # built WITH the path it belongs to) and the test has to honour it.
+    import t1_task as _T1
+    two = TI.build_path([(0.560, 0.120, BLUE), (0.680, 0.120, BLUE)])
+    g = _T1.grip(len(two["left"]))
+    closes = sum(1 for a in ("left", "right")
+                 for i in range(1, len(g[a]))
+                 if g[a][i] != g[a][i - 1] and g[a][i] != 0.0)
+    assert closes == 2, closes
 
 
 def test_the_path_picks_where_the_CAMERA_said_and_not_where_the_file_says():

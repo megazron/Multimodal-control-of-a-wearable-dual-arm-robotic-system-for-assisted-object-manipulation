@@ -505,7 +505,8 @@ def main():
     # not slowed by 100 s of pytest, and nothing that produces a citable
     # artefact can run while a test nobody has looked at is failing.
     # --skip-tests exists for a deliberate override and says so in the log.
-    joined = " ".join(cmd)
+    import shlex as _shlex
+    joined = " ".join(_shlex.quote(c) for c in cmd)
     records = any(k in joined for k in ("record_abc_sweep", "record_rviz",
                                         "record_gui_tutorials"))
     if records and not a.skip_tests:
@@ -611,8 +612,22 @@ def main():
 
     rc = 1
     try:
+        # QUOTED, ONE ARGUMENT AT A TIME. `" ".join(cmd)` handed the shell a
+        # string, so any argument containing a space was silently split:
+        # `--instruct "put every cube on the pad of its own colour"` reached
+        # the sweep as `--instruct put` plus six unrecognised extras, and the
+        # recording died with an argparse usage message after the stack was up
+        # and the unit suite had run. Measured 2026-08-18, on the first
+        # instruction-driven recording.
+        #
+        # The shell is still needed -- `SRC` sources the ROS setup, and that
+        # has to happen in the same shell -- so the fix is to quote rather
+        # than to drop it.
+        import shlex
         r = subprocess.run(["bash", "-lc",
-                            "%s && %s" % (SRC, " ".join(cmd))],
+                            "%s && %s" % (SRC,
+                                          " ".join(shlex.quote(c)
+                                                   for c in cmd))],
                            timeout=a.run_timeout)
         rc = r.returncode
     except subprocess.TimeoutExpired:

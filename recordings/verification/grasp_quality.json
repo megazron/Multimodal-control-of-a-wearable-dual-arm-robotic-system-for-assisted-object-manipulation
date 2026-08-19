@@ -429,8 +429,8 @@
     "approach": true,
     "attach": true,
     "sil_change": 0.926,
-    "wrist_deg": 0.3,
-    "straight_px": 2.4,
+    "wrist_deg": 0.0,
+    "straight_px": 1.1,
     "genuine": false,
     "refused": ""
   },
@@ -445,7 +445,7 @@
     "attach": true,
     "sil_change": 0.916,
     "wrist_deg": 0.0,
-    "straight_px": 0.5,
+    "straight_px": 0.3,
     "genuine": false,
     "refused": ""
   },

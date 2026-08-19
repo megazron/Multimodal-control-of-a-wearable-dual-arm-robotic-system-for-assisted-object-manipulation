@@ -459,13 +459,13 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 166.5,
+    "duration_s": 172.8,
     "bright": 115.5,
-    "variety": 7022,
-    "delta": 1.24,
+    "variety": 6936,
+    "delta": 1.36,
     "objects": {
-      "msc_blue": 243,
-      "msc_green": 606
+      "msc_blue": 242,
+      "msc_green": 608
     },
     "angles_bad": [],
     "mode": "06_full_autonomy",
@@ -476,12 +476,12 @@
   {
     "ok": true,
     "why": "",
-    "duration_s": 166.4,
+    "duration_s": 168.1,
     "bright": 126.2,
-    "variety": 7738,
-    "delta": 3.14,
+    "variety": 7730,
+    "delta": 3.5,
     "objects": {
-      "msc_blue": 523,
+      "msc_blue": 520,
       "msc_green": 959
     },
     "angles_bad": [],

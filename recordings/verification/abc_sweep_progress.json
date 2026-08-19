@@ -302,10 +302,10 @@
       "after_approach": {
         "at": "at waypoint 0 (after the approach)",
         "per_arm": {
-          "left": 0.3263,
-          "right": 0.9665
+          "left": 0.3233,
+          "right": 0.9657
         },
-        "worst_rad": 0.9665
+        "worst_rad": 0.9657
       },
       "trail": [
         {
@@ -327,10 +327,10 @@
         {
           "at": "at waypoint 0 (after the approach)",
           "per_arm": {
-            "left": 0.3263,
-            "right": 0.9665
+            "left": 0.3233,
+            "right": 0.9657
           },
-          "worst_rad": 0.9665
+          "worst_rad": 0.9657
         }
       ],
       "allow_unhomed": false
@@ -1211,7 +1211,7 @@
       "after_approach": {
         "at": "at waypoint 0 (after the approach)",
         "per_arm": {
-          "left": 0.3214,
+          "left": 0.32,
           "right": 0.9666
         },
         "worst_rad": 0.9666
@@ -1236,7 +1236,7 @@
         {
           "at": "at waypoint 0 (after the approach)",
           "per_arm": {
-            "left": 0.3214,
+            "left": 0.32,
             "right": 0.9666
           },
           "worst_rad": 0.9666

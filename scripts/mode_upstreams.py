@@ -115,6 +115,29 @@ ALL_UPSTREAMS = ["lib/srl_vr_teleop/vr_pose_mapper",
 
 
 
+def _reset_mapper(timeout=12.0):
+    """Call vr_pose_mapper's /vr/reset and REQUIRE an answer.
+
+    Via `ros2 service call` rather than an rclpy client because this module is
+    imported by two callers with different node situations (the sweep has no
+    node at all) and a service client needs one.
+    """
+    try:
+        r = subprocess.run(
+            ["ros2", "service", "call", "/vr/reset", "std_srvs/srv/Trigger"],
+            capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return False, ("/vr/reset did not answer in %.0f s -- the mapper is up "
+                       "but not serving it" % timeout)
+    out = (r.stdout or "") + (r.stderr or "")
+    if "success=True" in out.replace(" ", ""):
+        return True, "vr_pose_mapper RESET (per-run state cleared)"
+    if "Unable to find service" in out or "waiting for service" in out:
+        return False, ("/vr/reset not found. An old vr_pose_mapper without the "
+                       "reset service is running; restart it")
+    return False, "/vr/reset returned: %s" % out.strip().replace("\n", " ")[:200]
+
+
 def isolate(mode, graph, started, own=()):
     """Make `mode` the only source. Returns (ok, message).
 
@@ -153,6 +176,27 @@ def isolate(mode, graph, started, own=()):
             started[pat] = p
             _log("   started %s (pid %d)" % (name, p.pid))
             time.sleep(9.0)
+
+    # RESET THE MAPPER, EVERY RUN, WHETHER OR NOT WE JUST STARTED IT.
+    #
+    # vr_pose_mapper carries per-run state -- latched references, anchors, the
+    # rate-limited filter, and the thumbstick's scale. Carried into a second
+    # run it cost 02_vr_teleop every grasping task, missing by 88, 115, 156 and
+    # 205 mm and GROWING. The clip path worked around it by starting a fresh
+    # process per clip; the data path (`run_abc`) starts one per SESSION and
+    # walked straight into it. Both call isolate(), so the reset belongs here
+    # AND in the node -- the node owns the state, this owns "a run begins now".
+    #
+    # A freshly started mapper is already clean, so this is a no-op there; it
+    # is not skipped in that case, because "we think we just started it" is
+    # exactly the assumption that produced the session-lifetime bug.
+    if any("vr_pose_mapper" in n for n, _a in spec["needs"]):
+        ok_reset, why = _reset_mapper()
+        _log("   %s" % why)
+        if not ok_reset:
+            return False, ("vr_pose_mapper is running but would not reset: %s. "
+                           "Refusing rather than recording a run that begins "
+                           "from the previous run's anchors." % why)
 
     # THE COUNT. Before the runner starts, the follower's input topic should
     # carry ONLY this mode's upstream -- 0 for the modes whose upstream IS the

@@ -52,6 +52,12 @@ class VrFeedback(Node):
         self.prev_autonomy = dict(self.autonomy)
         self.frozen = False
         self.prev_frozen = False
+        # The overlay's single most important field. It was being dropped here:
+        # /vr/safety carries the REASON and only the bool was forwarded, so an
+        # in-headset panel could say FROZEN and never say why -- and 'tracking
+        # lost', 'observer e-stop withdrawn' and 'network dropout' need three
+        # different reactions from the operator.
+        self.freeze_reason = 'startup'
         self.mapper = {}
         self.boundary = []
 
@@ -87,9 +93,11 @@ class VrFeedback(Node):
 
     def _on_safety(self, m):
         try:
-            self.frozen = bool(json.loads(m.data).get('frozen'))
+            d = json.loads(m.data)
         except ValueError:
-            pass
+            return
+        self.frozen = bool(d.get('frozen'))
+        self.freeze_reason = str(d.get('reason', '') or '')
 
     def _pulse(self, kind):
         s = String()
@@ -130,7 +138,9 @@ class VrFeedback(Node):
                            intent_dist=dict(zip(it.get('ids', []), it.get('p', []))))
         s = String()
         s.data = json.dumps(dict(arms=arms, objects=self.objects,
-                                 frozen=self.frozen, boundary=self.boundary,
+                                 frozen=self.frozen,
+                                 freeze_reason=self.freeze_reason,
+                                 boundary=self.boundary,
                                  mapper=self.mapper))
         self.render_pub.publish(s)
 

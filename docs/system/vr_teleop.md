@@ -31,7 +31,22 @@ with orientation.
 Every difference between `vr_pose_mapper` and `master_pose_node` traces back
 to that one fact.
 
-## Transport: WebXR over a WebSocket
+## Transport: two routes, one protocol shape
+
+**Route A (default): Unity over `adb reverse` on USB, port 8766.**
+**Route B (no adb): WebXR in the Quest's own browser over wifi, port 8765.**
+
+Route B exists because Route A needs Developer Mode, an accepted USB-debugging
+prompt and a sideloaded app — three things you do not have on a BORROWED
+headset. It costs a self-signed certificate and a firewall rule and gains
+nothing else; the client is a single HTML file the bridge serves itself, from
+the same TLS origin as the socket so one accepted warning covers both.
+Verified end to end on 2026-08-19 (`scripts/verify_vr_wifi_route.py`).
+
+WebXR is **right-handed** and Unity is **left-handed**, so the two bridges
+carry different conversions on purpose. See `vr_bringup.md` section 6.
+
+## Why WebXR over a WebSocket is a reasonable transport
 
 Chosen on latency and iteration cost. The dominant term is the headset's own
 frame period — poses arrive in `requestAnimationFrame`, so pose age is bounded
@@ -46,7 +61,8 @@ fixed 14-float protocol.
 
 Measured on the mock: **controller 72.0 Hz, robot command 100 Hz, ROS-side lag
 below the 5 ms measurement resolution.** The headset-to-bridge leg is
-unmeasured until a Quest is connected.
+unmeasured until a Quest is connected — `scripts/vr_headset_check.py` is the
+instrument, and its analysers are validated against constructed truth.
 
 ## Assistance differs from the mannequin, deliberately
 

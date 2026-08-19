@@ -6022,3 +6022,163 @@ one missed, this clip would have been filed as good. It now names every object
 that was never carried, and every object still in the hand at the end.
 Re-run against the rejected clip on disk it answers
 `NEVER MOVED: ['cube_0', 'cube_2']`.
+
+---
+
+# 2026-08-19: THE VR PATH OVER WIFI, AND WHAT RUNNING IT FOR THE FIRST TIME FOUND
+
+The question that started it was narrow: does the VR path need `adb`? A
+borrowed lab headset showed `unauthorized` and the in-headset authorisation
+prompt never appeared, which on a device you may not reconfigure is terminal
+-- Developer Mode needs the owner's Meta account.
+
+**The answer is that it depends which route, and the doc named only one.**
+`vr_bringup.md` listed `adb` as prerequisite 1 and called it "the ONE hard
+blocker", which is true of the route it documents (a sideloaded Unity client
+reaching `ws://127.0.0.1:8766` through `adb reverse`) and not true of the
+repo's own WebXR fallback, which `wsl.md` had recorded and then set aside. So
+`adb` blocked ONE route and was listed as blocking VR.
+
+## 1. THE WEBXR BRIDGE HAD NEVER BEEN STARTED. NOT ONCE.
+
+    self.clients = set()        # quest_bridge_node.__init__
+
+`rclpy.node.Node.clients` is a read-only PROPERTY -- the node's service
+clients. Assigning it raises `AttributeError` during construction, so
+`quest_bridge_node` has never come up since it was written on 2026-08-07. It
+was carried in the tree, in the launch file, and in two documents as "the
+fallback for a headset without USB access", and the failure is on the first
+statement of `__init__`: a single attempt to run it would have found it.
+
+This is the "feature present but does nothing" row of the instrument-failure
+table, one level further out than usual. Nothing checked that the node was
+STORED correctly, let alone that it RAN.
+
+## 2. AND ITS AXIS MAP WAS FOR A DIFFERENT FRAME
+
+    quest_to_ros_p(p) = [-z, -x, y]        # as shipped
+
+That lands in the ROS convention -- x forward, y left, z up. **This repo's
+world frame is x = the wearer's RIGHT, y = FORWARD, z = UP**, which
+`vr_bringup.md` section 6 states explicitly and which
+`quest_vendor_bridge.quest_to_world_*` implements for the Unity route.
+
+It matters because `vr_pose_mapper` adds the controller displacement STRAIGHT
+onto the robot's world-frame pose:
+
+    p_cmd = p_anchor + scale * (p_controller - p_ref)
+
+The docstring above that line promises an `R_align`; there is none in the
+code. So the controller frame IS the world frame by assumption, and a
+mismatch is a rotation applied to every command the operator gives.
+
+Measured through the real node, real socket, real topic:
+
+| the hand does | as shipped, the arm was commanded | after the fix |
+| --- | --- | --- |
+| 3 m forward, 1 m right, 2 m up | **3 m RIGHT, 1 m BACKWARD**, 2 m up | 1 m right, 3 m forward, 2 m up |
+
+The two transports genuinely need different conversions and must not share
+one: **WebXR is right-handed** (+z toward the viewer), **Unity is
+left-handed** (+z forward). The Unity map carries its handedness flip in a
+negated `w`; the WebXR map is a pure -90 deg rotation about x with det = +1
+and `w` must be left alone. Copying one into the other inverts every rotation.
+`test_webxr_frames.py` pins both, including one test whose only job is to fail
+if someone "unifies" them. Its first two tests fail against the shipped
+mapping -- checked by putting the shipped mapping back.
+
+## 3. ONE ORIGIN. THIS IS THE PART THAT WOULD HAVE COST A LAB DAY.
+
+The 2026-08-07 decision to drop WebXR listed the HTTPS cost correctly: a
+self-signed cert with the IP in `subjectAltName`, a firewall rule, and a
+warning accepted inside a headset. All of that is still real. What it did not
+say is the trap underneath:
+
+**a certificate exception is granted per ORIGIN, and a WebSocket cannot
+prompt for one.** Serve the page on 8443 and the socket on 8765 and the
+operator accepts one warning, gets a page that looks completely healthy, and a
+socket that fails with no reason shown anywhere. From inside a headset that is
+indistinguishable from a bridge that is down.
+
+`quest_bridge_node` now serves the client page from the SAME port and the same
+TLS context as the socket, via `websockets`' `process_request`. One warning,
+one exception, both work. (`websockets`' `Headers` is a multidict whose
+`__setitem__` APPENDS, so the response headers must be deleted before being
+set; two `Content-Length` values drop the connection.)
+
+## 4. PROVE THE NETWORK BEFORE THE CERTIFICATE
+
+`scripts/vr_reachability.py` serves a page over **plain HTTP**, deliberately.
+Lab wifi commonly has AP client isolation -- both clients reach the internet,
+neither reaches the other -- and from inside a headset that failure looks
+exactly like a certificate problem, so the natural reaction is to go and fight
+the cert. If the plain page loads, policy allows it and every later failure is
+TLS or firewall. If it does not, no certificate will help.
+
+It also runs a WebSocket echo on a second port: some networks pass HTTP
+through a proxy that eats the `Upgrade`, and the VR path is a socket, so HTTP
+alone is not proof. Both hits print in the terminal, so nothing must be read
+inside the headset. `--selftest` probes a live port and a dead one and
+requires different answers.
+
+## 5. THE MAPPER RESETS NOW, IN THE NODE
+
+`NEXT_SESSION.md` item 1 -- `vr_pose_mapper` does not reset between runs, which
+cost 02_vr_teleop every grasping task at 88/115/156/206 mm and GROWING -- is
+fixed where the state is:
+
+* `reset()` clears references, anchors, `filt`, `last_cmd`, the jump history
+  and **`scale`**, which the thumbstick moves live and which is per-run state
+  as much as anything else;
+* a `/vr/reset` Trigger service and a `/vr/reset_request` topic;
+* `mode_upstreams.isolate()` calls it EVERY run -- not only when it did not
+  just start the process -- and REFUSES the mode if it does not answer, because
+  "we think we just started it" is exactly the assumption that produced the
+  session-lifetime bug;
+* **the accumulating term is named and published.** It is `filt`: the EMA is
+  rate-limited to `max_speed_mps`, so whenever the command moves faster than
+  that it falls behind and cannot catch up while the motion continues. That is
+  a LAG, not an offset, which is precisely why the four cube misses grew by
+  27, 41 and 50 mm instead of repeating one number. It is now `lag_m` on
+  `/vr/mapper_<hand>` with a warning past 30 mm -- the capture gate.
+
+Also fixed while in there: **tracking loss now drops the clutch** instead of
+only pausing publication. Staying engaged across a dropout means resuming from
+a filter latched before the loss against a controller that has since moved,
+and the clutch's "zero jump by construction" guarantee is void for exactly the
+motion nobody saw. Dropping it costs a re-grip, which `_on_joy` retries
+automatically while the grip is still held.
+
+All eight tests in `test_vr_mapper_resets_between_runs.py` fail against the
+node as it was.
+
+## 6. AN ANALYSER THAT WAS WRONG, CAUGHT BY ITS OWN SELF-TEST
+
+`vr_headset_check.py` scores the gripper by correlating the trigger against
+the commanded angle. Its self-test fed it a known-GOOD latching trace and the
+analyser returned r = 0.033 and called the gripper broken.
+
+The gripper was fine. A latching gripper deliberately HOLDS the firmest value
+seen while the trigger falls away, so a correlation over the whole trace is
+near zero for a perfectly working one. The statistic was wrong, not the
+signal. It now correlates only over the pre-latch region, where proportional
+control is actually in force, and reads 0.989 on the same trace.
+
+That is the standing rule doing its job on this session's own instrument,
+before it was ever pointed at a headset.
+
+## 7. What is measured and what is still not
+
+Verified end to end, no headset needed: `scripts/verify_vr_wifi_route.py`,
+seven checks, plus two negative controls (`--break-cert` serves a certificate
+for an address this host does not hold; `--break-frame` restores the shipped
+axis map through an external launcher, so the production node carries no
+"break me" switch). The script exits non-zero if either negative control
+passes.
+
+Still unmeasured, and only a physical headset can close them -- pose rate,
+end-to-end latency, freeze-on-real-dropout, re-engage jump, live scaling,
+gripper, overlay legibility. `scripts/vr_headset_check.py` is the instrument
+and it is guided; its analysers are validated against constructed truth and
+against deliberately broken traces. **An item it reports as NOT MEASURED is
+not a pass**, and it says so.

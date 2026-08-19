@@ -26,6 +26,19 @@ def generate_launch_description():
                                           "headset, everything downstream of "
                                           "the bridge still exercised"),
         DeclareLaunchArgument("port", default_value="8765"),
+        # THE WIFI ROUTE. Empty = plain ws://, which is right for adb reverse
+        # (127.0.0.1 is a secure origin) and useless over wifi: WebXR refuses
+        # to start outside a secure context. Both must be set together.
+        DeclareLaunchArgument("certfile", default_value="",
+                              description="TLS cert with the LAN IP in "
+                                          "subjectAltName; see "
+                                          "scripts/make_vr_cert.sh"),
+        DeclareLaunchArgument("keyfile", default_value=""),
+        DeclareLaunchArgument("web_dir", default_value="",
+                              description="directory holding vr_client.html; "
+                                          "served from the SAME TLS origin as "
+                                          "the socket so one cert exception "
+                                          "covers both"),
         DeclareLaunchArgument("scale", default_value="0.5"),
         DeclareLaunchArgument("command_orientation", default_value="true",
                               description="VR can do this; the mannequin cannot"),
@@ -36,7 +49,10 @@ def generate_launch_description():
         Node(package="srl_vr_teleop", executable="quest_bridge_node",
              name="quest_bridge_node", output="screen",
              condition=UnlessCondition(mock),
-             parameters=[{"port": LaunchConfiguration("port")}]),
+             parameters=[{"port": LaunchConfiguration("port"),
+                          "certfile": LaunchConfiguration("certfile"),
+                          "keyfile": LaunchConfiguration("keyfile"),
+                          "web_dir": LaunchConfiguration("web_dir")}]),
         Node(package="srl_vr_teleop", executable="vr_mock_publisher",
              name="vr_mock_publisher", output="screen",
              condition=IfCondition(mock)),

@@ -254,6 +254,22 @@ in-headset overlay needs. The 31 KB file is mostly GUI; the protocol part is
 
 WebXR is kept as a fallback for a headset without USB access.
 
+**REVISITED 2026-08-19, and the fallback is now the working route.** On a
+BORROWED headset the adb route is not merely inconvenient, it is unavailable:
+`adb` reports `unauthorized` and the in-headset prompt never appears because
+turning on Developer Mode needs the device owner's account. None of the HTTPS
+cost listed above went away — the cert, the SAN, the firewall rule and the
+in-headset warning are all still real — but they are all one-time, and they
+are on THIS side of the glass where they can be automated. They now are:
+`scripts/make_vr_cert.sh`, `scripts/start_vr_wifi.sh`,
+`scripts/vr_reachability.py`. The route is verified end to end by
+`scripts/verify_vr_wifi_route.py`, which has two negative controls.
+
+The one point the original decision got exactly right and is worth keeping:
+**one origin.** The page and the socket are served by the same node on the
+same TLS port, because a cert exception is per-origin and a WebSocket cannot
+prompt for one.
+
 ## Environment facts found while doing this
 
 - **WSL interop works only via the lowercase path** `/mnt/c/windows/...`.

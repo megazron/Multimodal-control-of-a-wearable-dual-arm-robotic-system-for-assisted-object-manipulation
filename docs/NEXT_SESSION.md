@@ -740,9 +740,11 @@ reachability, and they were quoted as usable space.
 2. **`vr_pose_mapper` has two defects.** It HOLDS THE ARMS — isolated with a
    control either side, staging arrives at 0.0000 rad without it and does not
    move at all with it — and it DOES NOT RESET BETWEEN RUNS, which is what
-   made 02 fail every grasping task. The sweep works around both. **The mapper
-   itself is not fixed, and `run_abc` starts it once per SESSION**, so a real
-   trial block under 02 walks straight into it. Fix it in the node.
+   made 02 fail every grasping task. The sweep works around both.
+   **UPDATE 2026-08-19: the RESET half is fixed in the node** (`/vr/reset`,
+   called from `isolate()` on every run, so `run_abc`'s once-per-session mapper
+   no longer carries state into a trial block). **Holding the arms is still
+   unfixed.**
 
 3. **The robot does not perform identically across modes**, with no operator
    present. TASK_SPEC section 1 is corrected. A mode difference in a trial
@@ -765,9 +767,17 @@ reachability, and they were quoted as usable space.
 
 ## WHAT TO DO NEXT, IN ORDER
 
-1. **Fix `vr_pose_mapper`**: make it reset per run, and stop it holding the
-   arm against a joint-space trajectory. Both are demonstrated above with
-   controls. This is the highest-value item because it is on a DATA path.
+1. **Fix `vr_pose_mapper`** — **HALF DONE, 2026-08-19.**
+   *Reset per run: DONE, in the node.* `reset()` + a `/vr/reset` Trigger
+   service + a `/vr/reset_request` topic clear references, anchors, `filt` and
+   `scale`; `mode_upstreams.isolate()` calls it every run and refuses the mode
+   if it does not answer, so the CLIP path and the DATA path get it from one
+   place. The accumulating term is `filt`, the rate limiter, and it is now
+   published as `lag_m` with a warning past the 30 mm capture gate. Eight
+   tests, all of which fail against the old node.
+   *Still holding the arm against a joint-space trajectory: NOT FIXED.* The
+   sweep still stops the mapper for staging. That is the remaining half and it
+   is still on a DATA path.
 2. **Decide what T2 is.** Either make the tray rigid and let the picture show
    the coupling failing, or drop the coupling claim. As it stands T2-1 and
    T2-2 are unfalsifiable and the ball cannot fall.

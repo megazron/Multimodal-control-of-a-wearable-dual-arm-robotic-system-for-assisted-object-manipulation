@@ -1,0 +1,478 @@
+<!doctype html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>SRL VR teleoperation</title>
+<!--
+  vr_client.html -- the WebXR client for the WIFI route.
+
+  Served BY quest_bridge_node itself, on the same port and the same TLS
+  origin as the WebSocket. That is deliberate: a self-signed certificate is
+  trusted per ORIGIN, and a WebSocket handshake cannot show a certificate
+  prompt -- it fails with no reason at all. Page on one port and socket on
+  another means one accepted warning, a page that looks fine, and a socket
+  that never connects. One origin, one warning.
+
+  It speaks quest_bridge_node's native protocol, one object per
+  requestAnimationFrame:
+
+    {"t":<client ms>, "seq":<int>, "rtt":<ms|absent>,
+     "l":{"p":[x,y,z],"q":[x,y,z,w],"trig":0..1,"grip":0..1,
+          "a":bool,"b":bool,"stick":[x,y],"valid":bool},
+     "r":{...}, "hmd":{"p":[x,y,z],"q":[x,y,z,w]}}
+
+  POSES ARE SENT IN RAW WEBXR AXES. The conversion to this repo's world frame
+  lives in ONE place, quest_bridge_node.webxr_to_world_*, where it is pinned
+  by tests. A client that "helpfully" pre-converted would put the same
+  conversion in two places in two languages, and the day they disagree the
+  symptom is an arm that moves 90 degrees off -- see test_webxr_frames.py.
+-->
+<style>
+ :root{color-scheme:dark}
+ body{margin:0;background:#07121a;color:#dfe9ee;
+      font:500 18px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+ main{padding:4vh 6vw;max-width:60em}
+ h1{font-size:34px;margin:0 0 .2em;color:#4fe08a}
+ h2{font-size:20px;margin:1.4em 0 .3em;color:#8fb}
+ button{font:700 30px/1 system-ui;padding:.6em 1.4em;border:0;border-radius:12px;
+        background:#4fe08a;color:#052014;margin:.6em .6em .6em 0}
+ button:disabled{background:#33555f;color:#8aa}
+ table{border-collapse:collapse;font-size:17px}
+ td{padding:.2em 1.2em .2em 0;vertical-align:top}
+ .k{color:#7fa8b8}
+ .ok{color:#4fe08a}.bad{color:#ff6a6a}.warn{color:#ffc857}
+ code{background:#0e2029;padding:.1em .4em;border-radius:4px}
+ #log{font:400 14px/1.45 ui-monospace,monospace;background:#0a1a22;
+      padding:.8em;border-radius:8px;height:11em;overflow:auto;white-space:pre-wrap}
+ canvas{position:fixed;inset:0;width:100%;height:100%;display:none}
+</style>
+</head><body>
+<canvas id="gl"></canvas>
+<main id="ui">
+<h1>SRL VR teleoperation</h1>
+
+<button id="enter" disabled>ENTER VR</button>
+<button id="flat">flat test (no headset)</button>
+
+<h2>state</h2>
+<table>
+<tr><td class="k">secure context</td><td id="s-sec">&mdash;</td></tr>
+<tr><td class="k">WebXR</td><td id="s-xr">&mdash;</td></tr>
+<tr><td class="k">socket</td><td id="s-ws">&mdash;</td></tr>
+<tr><td class="k">sent / recv</td><td id="s-cnt">0 / 0</td></tr>
+<tr><td class="k">pose rate</td><td id="s-hz">&mdash;</td></tr>
+<tr><td class="k">round trip</td><td id="s-rtt">&mdash;</td></tr>
+<tr><td class="k">controllers</td><td id="s-ctl">&mdash;</td></tr>
+<tr><td class="k">robot</td><td id="s-rob">&mdash;</td></tr>
+</table>
+
+<h2>controls</h2>
+<table>
+<tr><td class="k">grip (middle finger)</td><td>clutch. Hold to drive, release to freeze.</td></tr>
+<tr><td class="k">trigger</td><td>gripper, proportional, latching.</td></tr>
+<tr><td class="k">thumbstick up/down</td><td>motion scale, live.</td></tr>
+</table>
+
+<h2>log</h2>
+<div id="log"></div>
+</main>
+
+<script>
+"use strict";
+// ---------------------------------------------------------------- plumbing
+const $  = function(id){ return document.getElementById(id); };
+const LOGN = 400;
+let logLines = [];
+function log(m){
+  logLines.push(new Date().toISOString().slice(11,23) + '  ' + m);
+  if(logLines.length > LOGN) logLines = logLines.slice(-LOGN);
+  const el = $('log');
+  el.textContent = logLines.join('\n');
+  el.scrollTop = el.scrollHeight;
+}
+
+// ------------------------------------------------------------------ socket
+const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://')
+             + location.host + '/';
+let sock = null, sockOpen = false;
+let nSent = 0, nRecv = 0, seq = 0;
+let state = {};                       // last robot state from the bridge
+let lastEcho = 0, rttMs = NaN, rttEwma = NaN;
+const rttHist = [];
+
+function dial(){
+  $('s-ws').innerHTML = 'connecting ' + WS_URL;
+  try{ sock = new WebSocket(WS_URL); }
+  catch(e){ $('s-ws').innerHTML = '<span class=bad>' + e + '</span>'; return; }
+  sock.onopen = function(){
+    sockOpen = true;
+    $('s-ws').innerHTML = '<span class=ok>OPEN</span> ' + WS_URL;
+    log('socket OPEN ' + WS_URL);
+  };
+  sock.onmessage = function(ev){
+    nRecv++;
+    let j; try{ j = JSON.parse(ev.data); }catch(e){ return; }
+    state = j;
+    if(j.echo_t){
+      const r = Date.now() - j.echo_t;
+      // Only the CLIENT has one clock at both ends, so the round trip is
+      // measured here and reported back up. A bridge-side number would need
+      // two clocks to agree, which they do not.
+      if(r >= 0 && r < 5000){
+        rttMs = r; rttHist.push(r); if(rttHist.length > 600) rttHist.shift();
+        rttEwma = isNaN(rttEwma) ? r : 0.9*rttEwma + 0.1*r;
+      }
+    }
+  };
+  sock.onerror = function(){
+    $('s-ws').innerHTML = '<span class=bad>ERROR</span> ' + WS_URL +
+      ' &mdash; if the page loaded but this failed, the certificate was ' +
+      'accepted for the PAGE and the socket is on a different origin.';
+  };
+  sock.onclose = function(){
+    sockOpen = false;
+    $('s-ws').innerHTML = '<span class=bad>CLOSED</span> &mdash; retrying';
+    log('socket CLOSED -- the arm will FREEZE on the 0.2 s watchdog');
+    setTimeout(dial, 1000);
+  };
+}
+
+// -------------------------------------------------------------- capability
+$('s-sec').innerHTML = window.isSecureContext
+  ? '<span class=ok>yes</span>'
+  : '<span class=bad>NO. WebXR will refuse. Use https:// (or 127.0.0.1).</span>';
+
+if(!navigator.xr){
+  $('s-xr').innerHTML = '<span class=bad>navigator.xr absent</span>' +
+    (window.isSecureContext ? ' &mdash; not a WebXR browser'
+                            : ' &mdash; because this is not a secure context');
+}else{
+  navigator.xr.isSessionSupported('immersive-vr').then(function(ok){
+    $('s-xr').innerHTML = ok ? '<span class=ok>immersive-vr supported</span>'
+                             : '<span class=bad>immersive-vr NOT supported</span>';
+    $('enter').disabled = !ok;
+  });
+}
+dial();
+
+// ---------------------------------------------------------------- sampling
+// Per-controller sample, in RAW WebXR axes. Converted once, in the bridge.
+function sampleInput(src, frame, refSpace){
+  const out = {p:[0,0,0], q:[0,0,0,1], trig:0, grip:0,
+               a:false, b:false, stick:[0,0], valid:false};
+  if(!src) return out;
+  // gripSpace is the HELD pose (where the hand is). targetRaySpace is where
+  // the controller POINTS. Teleoperation wants the hand.
+  const space = src.gripSpace || src.targetRaySpace;
+  if(space){
+    const pose = frame.getPose(space, refSpace);
+    if(pose){
+      const t = pose.transform.position, r = pose.transform.orientation;
+      out.p = [t.x, t.y, t.z];
+      out.q = [r.x, r.y, r.z, r.w];
+      // emulatedPosition true means the runtime is GUESSING the position from
+      // the headset -- tracking is lost. Treating that as valid drives the arm
+      // off a fabricated pose.
+      out.valid = !pose.emulatedPosition;
+    }
+  }
+  const g = src.gamepad;
+  if(g){
+    // Meta Quest Touch mapping (xr-standard):
+    //   buttons[0] trigger, [1] squeeze/grip, [3] thumbstick press,
+    //   [4] A/X, [5] B/Y;  axes[2],[3] thumbstick
+    if(g.buttons[0]) out.trig = g.buttons[0].value;
+    if(g.buttons[1]) out.grip = g.buttons[1].value;
+    if(g.buttons[4]) out.a = !!g.buttons[4].pressed;
+    if(g.buttons[5]) out.b = !!g.buttons[5].pressed;
+    if(g.axes.length >= 4) out.stick = [g.axes[2], g.axes[3]];
+    else if(g.axes.length >= 2) out.stick = [g.axes[0], g.axes[1]];
+  }
+  return out;
+}
+
+// --------------------------------------------------------------- send loop
+let hzWin = [];
+function poseRate(){
+  const now = performance.now();
+  hzWin.push(now);
+  while(hzWin.length && now - hzWin[0] > 2000) hzWin.shift();
+  return hzWin.length > 2 ? (hzWin.length-1) / ((hzWin[hzWin.length-1]-hzWin[0])/1000) : 0;
+}
+
+function send(l, r, hmd){
+  if(!sockOpen || sock.readyState !== 1) return;
+  const m = {t: Date.now(), seq: seq++, l: l, r: r};
+  if(hmd) m.hmd = hmd;
+  if(!isNaN(rttMs)) m.rtt = rttMs;
+  sock.send(JSON.stringify(m));
+  nSent++;
+}
+
+let hz = 0;
+function refreshUi(l, r){
+  hz = poseRate();
+  $('s-cnt').textContent = nSent + ' / ' + nRecv;
+  $('s-hz').innerHTML = hz.toFixed(1) + ' Hz' +
+    (hz && hz < 60 ? ' <span class=bad>(below the 60 Hz requirement)</span>' : '');
+  $('s-rtt').textContent = isNaN(rttMs) ? '--'
+    : rttMs.toFixed(0) + ' ms now, ' + rttEwma.toFixed(1) + ' ms smoothed';
+  $('s-ctl').innerHTML =
+    ['left', 'right'].map(function(k,i){
+      const c = i === 0 ? l : r;
+      return '<b>' + k + '</b> ' +
+        (c.valid ? '<span class=ok>tracked</span>' : '<span class=bad>LOST</span>') +
+        ' trig ' + c.trig.toFixed(2) + ' grip ' + c.grip.toFixed(2) +
+        ' stick ' + c.stick[1].toFixed(2);
+    }).join('<br>');
+  const m = state.mapper || {};
+  $('s-rob').innerHTML =
+    (state.frozen ? '<span class=bad>FROZEN: ' + (state.freeze_reason||'?') + '</span>'
+                  : '<span class=ok>live</span>') +
+    ['left','right'].map(function(k){
+      const q = m[k]; if(!q) return '';
+      return '<br><b>' + k + '</b> clutch ' + (q.engaged ? 'IN' : 'out') +
+             ' scale ' + q.scale +
+             (q.max_reengage_jump_m != null
+               ? ' reengage jump max ' + (q.max_reengage_jump_m*1000).toFixed(1) + ' mm' : '');
+    }).join('');
+}
+
+// ------------------------------------------------------------- XR + overlay
+let gl = null, xrSession = null, xrRef = null;
+let quadProg = null, quadBuf = null, tex = null;
+const panel = document.createElement('canvas');
+panel.width = 1024; panel.height = 512;
+const pctx = panel.getContext('2d');
+
+function wrap(c, text, x, y, maxW, lh){
+  const words = String(text).split(/\s+/);
+  let line = '';
+  for(let i = 0; i < words.length; i++){
+    const test = line ? line + ' ' + words[i] : words[i];
+    if(c.measureText(test).width > maxW && line){
+      c.fillText(line, x, y); y += lh; line = words[i];
+    }else{ line = test; }
+  }
+  if(line) c.fillText(line, x, y);
+  return y + lh;
+}
+
+function drawPanel(l, r){
+  const c = pctx, W = panel.width, H = panel.height;
+  c.fillStyle = 'rgba(4,14,20,0.90)'; c.fillRect(0,0,W,H);
+  c.strokeStyle = '#2a4a58'; c.lineWidth = 4; c.strokeRect(2,2,W-4,H-4);
+
+  // A GUIDED STEP OWNS THE WHOLE PANEL. When a session driver is running, the
+  // operator cannot read a terminal, so the instruction is the only thing that
+  // matters and the telemetry rows are not worth the space.
+  if(state.instruction){
+    c.fillStyle = '#0d2a3a'; c.fillRect(0,0,W,110);
+    c.fillStyle = '#4fe08a'; c.font = 'bold 44px system-ui';
+    c.fillText(String(state.step_label || 'STEP'), 26, 70);
+    c.fillStyle = '#ffc857'; c.font = 'bold 30px system-ui';
+    c.textAlign = 'right'; c.fillText(String(state.step_progress || ''), W - 26, 70);
+    c.textAlign = 'left';
+    c.fillStyle = '#eef6fa'; c.font = '34px system-ui';
+    let y = wrap(c, state.instruction, 26, 165, W - 52, 44);
+    if(state.recording){
+      c.fillStyle = '#ff6a6a'; c.font = 'bold 30px system-ui';
+      c.fillText('\u25cf REC   ' + (state.rec_s || '') + ' s', 26, H - 84);
+    }
+    c.fillStyle = '#7fd7a0'; c.font = 'bold 34px system-ui';
+    c.fillText('press  A  when finished', 26, H - 30);
+    // one telemetry line, because a frozen link during a step invalidates it
+    c.fillStyle = state.frozen ? '#ff6a6a' : '#5f8fa0';
+    c.font = '26px ui-monospace,monospace';
+    c.textAlign = 'right';
+    c.fillText(state.frozen ? ('FROZEN: ' + (state.freeze_reason||'')) 
+               : ('grip ' + r.grip.toFixed(2) + '  trig ' + r.trig.toFixed(2) +
+                  (r.valid ? '' : '  TRACKING LOST')), W - 26, H - 30);
+    c.textAlign = 'left';
+    return;
+  }
+
+  // freeze_reason is drawn FIRST, largest, and over everything, because it is
+  // the only field an operator who cannot see the arm must never miss.
+  if(state.frozen){
+    c.fillStyle = '#4a0d0d'; c.fillRect(0,0,W,150);
+    c.fillStyle = '#ff8080'; c.font = 'bold 62px system-ui';
+    c.fillText('FROZEN', 24, 78);
+    c.fillStyle = '#ffd0d0'; c.font = '30px system-ui';
+    c.fillText((state.freeze_reason || 'no reason given').slice(0, 52), 24, 124);
+  }else{
+    c.fillStyle = '#0d3a22'; c.fillRect(0,0,W,150);
+    c.fillStyle = '#4fe08a'; c.font = 'bold 62px system-ui';
+    c.fillText('LIVE', 24, 78);
+    c.fillStyle = '#9fe8c0'; c.font = '28px system-ui';
+    c.fillText('grip = clutch    trigger = gripper    stick = scale', 24, 124);
+  }
+
+  c.font = '30px ui-monospace,monospace';
+  let y = 200;
+  function row(k, v, col){
+    c.fillStyle = '#79a'; c.fillText(k, 30, y);
+    c.fillStyle = col || '#dfe9ee'; c.fillText(v, 330, y);
+    y += 44;
+  }
+  row('link', sockOpen ? 'connected' : 'DOWN', sockOpen ? '#4fe08a' : '#ff6a6a');
+  row('pose rate', hz.toFixed(1) + ' Hz', hz >= 60 ? '#dfe9ee' : '#ffc857');
+  row('round trip', isNaN(rttEwma) ? '--' : rttEwma.toFixed(1) + ' ms');
+  const m = state.mapper || {};
+  ['left','right'].forEach(function(k, i){
+    const q = m[k] || {};
+    const s = (i === 0 ? l : r);
+    row(k, (q.engaged ? 'CLUTCH IN ' : 'clutch out') +
+           '  scale ' + (q.scale != null ? q.scale : '--') +
+           '  grip ' + s.trig.toFixed(2) +
+           (s.valid ? '' : '  TRACKING LOST'),
+        s.valid ? (q.engaged ? '#4fe08a' : '#dfe9ee') : '#ff6a6a');
+  });
+  const b = state.boundary || [];
+  if(b.length){
+    c.fillStyle = '#ffc857'; c.font = 'bold 32px system-ui';
+    c.fillText('WORKSPACE EDGE: ' + b.map(function(w){
+      return w.arm + ' ' + (w.margin_m*1000).toFixed(0) + ' mm';
+    }).join('   '), 30, H - 30);
+  }
+}
+
+const VS = 'attribute vec2 a;varying vec2 v;uniform mat4 mvp;' +
+           'void main(){v=vec2(a.x*0.5+0.5,0.5-a.y*0.5);' +
+           'gl_Position=mvp*vec4(a,0.0,1.0);}';
+const FS = 'precision mediump float;varying vec2 v;uniform sampler2D t;' +
+           'void main(){vec4 c=texture2D(t,v);gl_FragColor=c;}';
+
+function compile(g, type, src){
+  const s = g.createShader(type); g.shaderSource(s, src); g.compileShader(s);
+  if(!g.getShaderParameter(s, g.COMPILE_STATUS)) throw new Error(g.getShaderInfoLog(s));
+  return s;
+}
+
+function initGL(){
+  quadProg = gl.createProgram();
+  gl.attachShader(quadProg, compile(gl, gl.VERTEX_SHADER, VS));
+  gl.attachShader(quadProg, compile(gl, gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(quadProg);
+  quadBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.bufferData(gl.ARRAY_BUFFER,
+    new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+  tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+}
+
+// Head-locked panel: the model matrix is expressed in VIEW space, so the
+// view matrix is deliberately NOT applied. mvp = projection * model.
+function panelMvp(proj){
+  const w = 0.42, h = 0.21, z = -1.0, yoff = -0.18;
+  const model = new Float32Array([
+    w,0,0,0,  0,h,0,0,  0,0,1,0,  0,yoff,z,1]);
+  const out = new Float32Array(16);
+  for(let i = 0; i < 4; i++)
+    for(let j = 0; j < 4; j++){
+      let s = 0;
+      for(let k = 0; k < 4; k++) s += proj[k*4+j] * model[i*4+k];
+      out[i*4+j] = s;
+    }
+  return out;
+}
+
+function renderOverlay(view, layer){
+  const vp = layer.getViewport(view);
+  gl.viewport(vp.x, vp.y, vp.width, vp.height);
+  gl.useProgram(quadProg);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  const a = gl.getAttribLocation(quadProg, 'a');
+  gl.enableVertexAttribArray(a);
+  gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.uniform1i(gl.getUniformLocation(quadProg, 't'), 0);
+  gl.uniformMatrix4fv(gl.getUniformLocation(quadProg, 'mvp'), false,
+                      panelMvp(view.projectionMatrix));
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+}
+
+let panelTick = 0;
+function onXRFrame(t, frame){
+  const s = frame.session;
+  s.requestAnimationFrame(onXRFrame);
+
+  let L = sampleInput(null), R = sampleInput(null), hmd = null;
+  for(const src of s.inputSources){
+    if(src.handedness === 'left')  L = sampleInput(src, frame, xrRef);
+    if(src.handedness === 'right') R = sampleInput(src, frame, xrRef);
+  }
+  const vpose = frame.getViewerPose(xrRef);
+  if(vpose){
+    const p = vpose.transform.position, q = vpose.transform.orientation;
+    hmd = {p:[p.x,p.y,p.z], q:[q.x,q.y,q.z,q.w]};
+  }
+  send(L, R, hmd);
+  refreshUi(L, R);
+
+  // Panel texture at ~20 Hz; the pose stream must never wait on a canvas.
+  if(++panelTick % 4 === 0){
+    drawPanel(L, R);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, panel);
+  }
+
+  const layer = s.renderState.baseLayer;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  if(vpose) for(const view of vpose.views) renderOverlay(view, layer);
+}
+
+$('enter').onclick = async function(){
+  try{
+    const canvas = $('gl');
+    canvas.style.display = 'block';
+    gl = canvas.getContext('webgl', {xrCompatible:true, alpha:true,
+                                     antialias:false});
+    if(!gl) throw new Error('no WebGL context');
+    initGL();
+    xrSession = await navigator.xr.requestSession('immersive-vr',
+                    {optionalFeatures:['local-floor','bounded-floor']});
+    await gl.makeXRCompatible();
+    xrSession.updateRenderState({baseLayer: new XRWebGLLayer(xrSession, gl)});
+    try{ xrRef = await xrSession.requestReferenceSpace('local-floor'); }
+    catch(e){ xrRef = await xrSession.requestReferenceSpace('local');
+              log('local-floor unavailable, using local'); }
+    log('XR session started, reference space ready');
+    xrSession.addEventListener('end', function(){
+      log('XR session ENDED -- poses stop, the 0.2 s watchdog freezes the arm');
+      canvas.style.display = 'none'; xrSession = null;
+    });
+    xrSession.requestAnimationFrame(onXRFrame);
+  }catch(e){
+    log('ENTER VR failed: ' + e);
+    alert('ENTER VR failed: ' + e);
+  }
+};
+
+// A desktop/flat loop so the socket, the protocol and the panel can be
+// exercised without a headset. It sends valid:false, so nothing downstream
+// can mistake it for tracked input.
+let flat = null;
+$('flat').onclick = function(){
+  if(flat){ clearInterval(flat); flat = null; $('flat').textContent = 'flat test (no headset)'; return; }
+  $('flat').textContent = 'stop flat test';
+  log('flat test running -- valid:false, so the mapper will not drive on it');
+  flat = setInterval(function(){
+    const z = {p:[0,0,0], q:[0,0,0,1], trig:0, grip:0, a:false, b:false,
+               stick:[0,0], valid:false};
+    send(z, z, {p:[0,1.6,0], q:[0,0,0,1]});
+    refreshUi(z, z);
+  }, 1000/72);
+};
+</script>
+</body></html>

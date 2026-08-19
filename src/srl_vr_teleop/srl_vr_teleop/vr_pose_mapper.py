@@ -21,6 +21,22 @@ so the operator's hand can be anywhere; only its motion SINCE engage matters.
 That is what makes indexing work and what makes the re-engage jump zero by
 construction rather than by tuning.
 
+IT MUST BE RESET BETWEEN RUNS, AND IT DID NOT USED TO BE. Everything below
+is per-RUN state: the latched references, the anchors, the EMA/speed-limited
+`filt`, and `scale`, which the thumbstick moves. Carried into a second run
+they are wrong by however far the first run ended up, and the symptom
+measured on 02_vr_teleop was a grasp that missed by 88, 115, 156 and 206 mm
+against a 30 mm gate -- ACCUMULATING, which is what distinguishes it from a
+constant scale error. The harness worked around it by starting a fresh
+process per clip; `reset()` and the `/vr/reset` service fix it here, where the
+state is.
+
+`filt` is the one that accumulates. It is rate-limited to `max_speed_mps`, so
+whenever the command moves faster than that it falls behind and never catches
+up while the motion continues -- a lag, not an offset, which is why the miss
+grows. That lag is now MEASURED and published as `lag_m`, so the next time it
+happens it is visible instead of being inferred from four cube misses.
+
 SCALE CHANGES RE-BASE THE ANCHOR. Changing scale without re-basing moves the
 arm by (new-old) x displacement, worst exactly when the operator is far from
 the engage point. The same fix the mannequin path uses:
@@ -35,7 +51,8 @@ import rclpy
 from geometry_msgs.msg import PoseStamped
 from rclpy.node import Node
 from sensor_msgs.msg import Joy
-from std_msgs.msg import Bool, Float64MultiArray, String
+from std_msgs.msg import Bool, Empty, Float64MultiArray, String
+from std_srvs.srv import Trigger
 
 import tf2_ros
 
@@ -109,7 +126,18 @@ class VrPoseMapper(Node):
         self.filt = {h: None for h in HANDS}
         self.last_cmd = {h: None for h in HANDS}
         self.tracking_ok = False
+        # PER-HAND tracking, separate from the global stream watchdog.
+        # /vr/tracking_ok answers "is the link alive"; this answers "is THIS
+        # controller actually being seen". Off-head operation makes the second
+        # question the one that matters, because an occluded controller is
+        # routine there and the link stays perfectly healthy throughout.
+        # Defaults True so a bridge that does not publish it (an older one)
+        # behaves exactly as before rather than freezing everything.
+        self.hand_tracked = {h: True for h in HANDS}
         self.jump = {h: [] for h in HANDS}
+        self.lag = {h: 0.0 for h in HANDS}
+        self.lag_max = {h: 0.0 for h in HANDS}
+        self.n_resets = 0
 
         self.tf_buf = tf2_ros.Buffer()
         self.tf_lis = tf2_ros.TransformListener(self.tf_buf, self)
@@ -123,13 +151,97 @@ class VrPoseMapper(Node):
             self.cmd_pub[h] = self.create_publisher(
                 PoseStamped, f'/master_arm_pose_{arm}', 10)
             self.st_pub[h] = self.create_publisher(String, f'/vr/mapper_{h}', 10)
-        self.create_subscription(Bool, '/vr/tracking_ok',
-                                 lambda m: setattr(self, 'tracking_ok', m.data), 10)
+        self.create_subscription(Bool, '/vr/tracking_ok', self._on_tracking, 10)
+        for h in HANDS:
+            self.create_subscription(
+                Bool, '/vr/controller_valid_%s' % h,
+                lambda m, h=h: self._on_hand_tracked(h, bool(m.data)), 10)
+        # BOTH a service and a topic on purpose. The service is what a harness
+        # should call, because it gets an answer back; the topic is for a
+        # scripted run that must not block on a service that may not be up.
+        self.create_service(Trigger, '/vr/reset', self._srv_reset)
+        self.create_subscription(Empty, '/vr/reset_request',
+                                 lambda _m: self.reset('/vr/reset_request'), 10)
         self.create_timer(1.0 / float(self.get_parameter('rate_hz').value), self._tick)
         self.get_logger().info(
             'vr_pose_mapper up. Publishes /master_arm_pose_<arm>, the SAME '
             'topic the mannequin path uses, so the robot side is untouched '
             'and only one input may be running at a time.')
+
+    # --------------------------------------------------------------- reset
+    def reset(self, why='request'):
+        """Return the mapper to its just-started state.
+
+        EVERYTHING per-run, including `scale`, which the operator moves with
+        the thumbstick and which therefore does NOT survive a run either. The
+        value restored is the declared parameter, not whatever the last
+        operator left it at.
+        """
+        carried = {h: (None if self.filt[h] is None or self.last_cmd[h] is None
+                       else round(float(np.linalg.norm(self.lag[h])), 5))
+                   for h in HANDS}
+        for h in HANDS:
+            self.engaged[h] = False
+            self.p_ref[h] = None
+            self.q_ref[h] = None
+            self.p_anchor[h] = None
+            self.q_anchor[h] = None
+            self.filt[h] = None
+            self.last_cmd[h] = None
+            self.ctrl_hist[h] = []
+            self.jump[h] = []
+            self.lag[h] = 0.0
+            self.lag_max[h] = 0.0
+            # hand_tracked is NOT reset: it reflects what the bridge is
+            # reporting right now, not per-run history, and clearing it to
+            # True would let a run start on an occluded controller.
+        old_scale, self.scale = self.scale, float(self.get_parameter('scale').value)
+        self.n_resets += 1
+        self.get_logger().info(
+            'RESET (%s): clutch out, references and anchors dropped, filter '
+            'cleared, scale %.3f -> %.3f. Lag carried at reset: %s'
+            % (why, old_scale, self.scale, carried))
+        return carried
+
+    def _srv_reset(self, req, res):
+        carried = self.reset('service')
+        res.success = True
+        res.message = ('mapper reset; lag discarded per hand (m): %s' % carried)
+        return res
+
+    def _on_hand_tracked(self, hand, ok):
+        was = self.hand_tracked[hand]
+        self.hand_tracked[hand] = ok
+        if was and not ok:
+            # Same reasoning as a full tracking loss, applied to one arm:
+            # hold the clutch across an occlusion and the reference is latched
+            # against a hand that has since moved, so on regain the arm sweeps
+            # to catch up at max_speed_mps -- a motion nobody commanded.
+            if self.engaged[hand]:
+                self.get_logger().error(
+                    '[%s] controller OCCLUDED / emulated - clutch dropped, '
+                    'this arm freezes. Re-grip in view to re-latch.' % hand)
+            self.engaged[hand] = False
+            self.filt[hand] = None
+
+    def _on_tracking(self, m):
+        was = self.tracking_ok
+        self.tracking_ok = bool(m.data)
+        if was and not self.tracking_ok:
+            # DISENGAGE, do not merely stop publishing. Holding the clutch in
+            # across a dropout means resuming from a filter latched before the
+            # loss against a controller that has since moved, and the clutch's
+            # 'zero jump by construction' guarantee is void for exactly the
+            # motion nobody saw. Dropping the clutch costs a re-grip -- which
+            # _on_joy retries automatically while the grip is still held -- and
+            # buys back a re-latch, so the jump is zero again.
+            for h in HANDS:
+                if self.engaged[h]:
+                    self.get_logger().error(
+                        '[%s] tracking LOST while engaged - clutch dropped. '
+                        'Re-grip to re-latch; the arm holds its last pose.' % h)
+                self.engaged[h] = False
+                self.filt[h] = None
 
     # ------------------------------------------------------------ callbacks
     def _on_pose(self, hand, m):
@@ -186,6 +298,12 @@ class VrPoseMapper(Node):
         if self.ctrl[hand] is None:
             self.get_logger().warn('[%s] engage ignored: no controller pose' % hand)
             return
+        if not self.hand_tracked[hand]:
+            self.get_logger().warn(
+                '[%s] engage REFUSED: the controller is not tracked. Latching '
+                'a reference off an emulated pose anchors the whole run to a '
+                'position the runtime invented.' % hand)
+            return
         if not self._quiet(hand):
             self.get_logger().warn(
                 '[%s] engage while the controller is MOVING - the reference '
@@ -230,12 +348,14 @@ class VrPoseMapper(Node):
                 self._set_scale(hand, self.scale + step)
             if not self.engaged[hand] or self.ctrl[hand] is None:
                 continue
-            if not self.tracking_ok:
+            if not self.tracking_ok or not self.hand_tracked[hand]:
                 # Freeze. Publishing nothing is the correct behaviour: the
                 # follower holds its last command.
                 self.get_logger().error(
-                    '[%s] tracking lost - FREEZING (publishing no command)'
-                    % hand, throttle_duration_sec=1.0)
+                    '[%s] %s - FREEZING (publishing no command)'
+                    % (hand, 'link lost' if not self.tracking_ok
+                       else 'controller not tracked'),
+                    throttle_duration_sec=1.0)
                 continue
             p, q = self.ctrl[hand]
             d = p - self.p_ref[hand]
@@ -253,6 +373,20 @@ class VrPoseMapper(Node):
                     step *= mx / n
                 self.filt[hand] = self.filt[hand] + step
             p_out = self.filt[hand]
+            # THE ACCUMULATING MISS, MADE VISIBLE. This is the distance
+            # between what the operator's hand asks for and what is actually
+            # commanded. A rate limiter cannot give it back while the motion
+            # continues, so it grows -- which is why 02's cube misses grew by
+            # 27, 41 and 50 mm instead of repeating one number.
+            self.lag[hand] = float(np.linalg.norm(p_cmd - p_out))
+            self.lag_max[hand] = max(self.lag_max[hand], self.lag[hand])
+            if self.lag[hand] > 0.030:
+                self.get_logger().warn(
+                    '[%s] command LAGS the hand by %.1f mm (rate limit %.2f '
+                    'm/s). This is the miss that accumulates.'
+                    % (hand, self.lag[hand] * 1000.0,
+                       float(self.get_parameter('max_speed_mps').value)),
+                    throttle_duration_sec=2.0)
 
             if bool(self.get_parameter('command_orientation').value):
                 dq = q_mul(q, q_conj(self.q_ref[hand]))
@@ -280,7 +414,11 @@ class VrPoseMapper(Node):
                                       if self.jump[hand] else None),
                 max_reengage_jump_m=(round(float(np.max(self.jump[hand])), 5)
                                      if self.jump[hand] else None),
-                n_engages=len(self.jump[hand])))
+                n_engages=len(self.jump[hand]),
+                hand_tracked=self.hand_tracked[hand],
+                lag_m=round(self.lag[hand], 5),
+                max_lag_m=round(self.lag_max[hand], 5),
+                resets=self.n_resets))
             self.st_pub[hand].publish(s)
 
     def _set_scale(self, hand, new):

@@ -14,9 +14,17 @@ The rest:
   * network dropout              -> freeze (same watchdog, same threshold)
   * headset asleep / backgrounded-> looks identical to a dropout, and is
                                     handled by the same path on purpose
-  * workspace boundary           -> warn in-headset BEFORE the arm reaches its
-                                    limit, because the operator cannot see it
-                                    approaching
+  * workspace boundary           -> warn BEFORE the arm reaches its limit
+  * THE TRACKING REFERENCE MOVED -> freeze. In desk-operation the headset is
+                                    not worn: it sits on a shelf as the
+                                    tracking reference for the controllers.
+                                    Everything the operator commands is
+                                    measured relative to it, so if somebody
+                                    knocks it, every subsequent controller
+                                    pose is expressed in a frame that has
+                                    silently rotated. Nothing else in the
+                                    system can see that -- the poses stay
+                                    perfectly valid and the rate never dips.
   * collision-aware IK + the same clearance floors as the mannequin path
 
 FREEZE means "publish nothing". The follower holds its last commanded pose.
@@ -48,6 +56,14 @@ class VrSafety(Node):
         self.declare_parameter('ws_min', [-1.10, -0.10, 0.70])
         self.declare_parameter('ws_max', [1.10, 0.90, 1.60])
         self.declare_parameter('ws_warn_margin_m', 0.12)
+        # Tracking-reference stability. Thresholds are deliberately tight:
+        # the reference does not move at all unless something hit it, so any
+        # real motion is an event, not drift. 20 mm is well above tracking
+        # noise on a stationary headset and well below a nudge that would
+        # matter.
+        self.declare_parameter('reference_move_freeze_m', 0.020)
+        self.declare_parameter('reference_rot_freeze_deg', 2.0)
+        self.declare_parameter('watch_tracking_reference', True)
 
         self.arms = list(self.get_parameter('arms').value)
         self.timeout = float(self.get_parameter('tracking_timeout_s').value)
@@ -56,6 +72,8 @@ class VrSafety(Node):
         self.frozen = True
         self.freeze_reason = 'startup'
         self.n_freezes = 0
+        self.ref_hmd = None          # (position, quaternion) at first sight
+        self.ref_moved = None        # (metres, degrees) once it has
 
         self.tf_buf = tf2_ros.Buffer()
         self.tf_lis = tf2_ros.TransformListener(self.tf_buf, self)
@@ -67,6 +85,8 @@ class VrSafety(Node):
         self.create_subscription(Bool, '/vr/observer_estop_present',
                                  self._on_observer, 10)
         self.create_subscription(Bool, '/vr/tracking_ok', self._on_track, 10)
+        self.create_subscription(PoseStamped, '/vr/hmd_pose', self._on_hmd, 10)
+        self.create_service(Trigger, '/vr/rebase_reference', self._srv_rebase)
         for h in ('left', 'right'):
             self.create_subscription(
                 PoseStamped, f'/vr/controller_pose_{h}',
@@ -89,6 +109,50 @@ class VrSafety(Node):
     def _on_track(self, m):
         if not m.data:
             self._freeze('headset tracking lost')
+
+    # ------------------------------------------------- tracking reference
+    @staticmethod
+    def _quat_angle_deg(a, b):
+        """Angle between two orientations, in degrees."""
+        d = abs(float(np.dot(np.asarray(a, float), np.asarray(b, float))))
+        return math.degrees(2.0 * math.acos(max(-1.0, min(1.0, d))))
+
+    def _on_hmd(self, m):
+        if not bool(self.get_parameter('watch_tracking_reference').value):
+            return
+        p = np.array([m.pose.position.x, m.pose.position.y, m.pose.position.z])
+        q = np.array([m.pose.orientation.x, m.pose.orientation.y,
+                      m.pose.orientation.z, m.pose.orientation.w])
+        if self.ref_hmd is None:
+            self.ref_hmd = (p.copy(), q.copy())
+            self.get_logger().info(
+                'tracking reference latched at %s. In desk operation this is '
+                'the headset on its shelf; if it moves, every controller pose '
+                'after that is in a different frame.' % np.round(p, 4))
+            return
+        d = float(np.linalg.norm(p - self.ref_hmd[0]))
+        a = self._quat_angle_deg(q, self.ref_hmd[1])
+        self.ref_moved = (round(d, 4), round(a, 2))
+        if (d > float(self.get_parameter('reference_move_freeze_m').value)
+                or a > float(self.get_parameter('reference_rot_freeze_deg').value)):
+            self._freeze('TRACKING REFERENCE MOVED %.0f mm / %.1f deg - every '
+                         'controller pose since is in a shifted frame. Put it '
+                         'back, or call /vr/rebase_reference to accept the new '
+                         'position and re-calibrate the operator yaw.'
+                         % (d * 1000.0, a))
+
+    def _srv_rebase(self, req, res):
+        """Accept the reference where it now is. DELIBERATE, never automatic:
+        re-latching on its own would silently absorb the very shift the check
+        exists to catch."""
+        self.ref_hmd = None
+        self.ref_moved = None
+        res.success = True
+        res.message = ('tracking reference will re-latch on the next HMD pose. '
+                       'Re-run scripts/calibrate_operator_yaw.py: the heading '
+                       'it measured belonged to the OLD reference.')
+        self.get_logger().warn(res.message)
+        return res
 
     def _freeze(self, why):
         if not self.frozen:
@@ -135,13 +199,25 @@ class VrSafety(Node):
                                   side='min' if ax < 3 else 'max'))
         return warns
 
+    def _reference_bad(self):
+        """A moved reference must NOT be cleared by the ordinary unfreeze
+        path -- poses keep flowing throughout, so the generic 'poses are fine
+        again' condition is true the whole time it is wrong."""
+        if not bool(self.get_parameter('watch_tracking_reference').value):
+            return False
+        if self.ref_moved is None:
+            return False
+        d, a = self.ref_moved
+        return (d > float(self.get_parameter('reference_move_freeze_m').value)
+                or a > float(self.get_parameter('reference_rot_freeze_deg').value))
+
     def _tick(self):
         age = time.monotonic() - self.last_pose_t if self.last_pose_t else 1e9
         if age > self.timeout:
             self._freeze('no controller pose for %.2f s (dropout, sleep or '
                          'backgrounded app all look identical here, and all '
                          'must freeze)' % age)
-        elif self.frozen and self.observer_ok:
+        elif self.frozen and self.observer_ok and not self._reference_bad():
             self.frozen = False
             self.freeze_reason = ''
             self.get_logger().info('VR unfrozen: poses flowing, observer present')
@@ -161,6 +237,8 @@ class VrSafety(Node):
         s = String()
         s.data = json.dumps(dict(frozen=self.frozen, reason=self.freeze_reason,
                                  observer_estop=self.observer_ok,
+                                 reference_latched=self.ref_hmd is not None,
+                                 reference_moved=self.ref_moved,
                                  real_arm_allowed=bool(
                                      self.get_parameter('allow_real_arm').value),
                                  pose_age_s=round(min(age, 999.0), 3),

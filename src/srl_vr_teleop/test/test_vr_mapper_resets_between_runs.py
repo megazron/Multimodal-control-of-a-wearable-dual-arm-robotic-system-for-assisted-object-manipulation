@@ -201,6 +201,28 @@ def test_regripping_after_a_dropout_relatches_at_the_current_pose(mapper, monkey
 
 
 # --------------------------------------------------------- the measurement
+def test_the_engage_metric_is_not_called_a_clutch_jump(mapper):
+    """It was, and it is not one.
+
+    At engage the command is set to `pr` -- the arm's OWN pose from TF -- so
+    the jump the ARM makes is zero by construction. `last_cmd - pr` measures
+    something else: how far the FOLLOWER had fallen behind its last target.
+    Publishing that as `max_reengage_jump_m` puts a number in the write-up
+    that says the clutch is bad when the clutch is fine. Measured on a real
+    run: 150 mm of "re-engage jump" on an engage across which the arm moved
+    zero.
+    """
+    import inspect
+    src = inspect.getsource(VrPoseMapper._tick)
+    assert 'mean_follower_lag_at_engage_m' in src
+    assert 'max_follower_lag_at_engage_m' in src
+    assert 'max_reengage_jump_m=' not in src, (
+        'the follower-lag figure must not be published under a name that '
+        'reads as a clutch discontinuity')
+    eng = inspect.getsource(VrPoseMapper._engage)
+    assert 'TRACKING ERROR' in eng, 'say what the number is, where it is taken'
+
+
 def test_lag_is_published_so_the_next_one_is_visible_not_inferred(mapper):
     """The 2026-08-16 diagnosis needed four cube misses and a re-record. The
     number itself is now on /vr/mapper_<hand>."""

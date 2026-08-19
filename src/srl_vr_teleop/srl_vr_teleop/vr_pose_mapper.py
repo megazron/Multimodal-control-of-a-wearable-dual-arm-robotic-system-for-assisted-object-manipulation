@@ -37,6 +37,23 @@ up while the motion continues -- a lag, not an offset, which is why the miss
 grows. That lag is now MEASURED and published as `lag_m`, so the next time it
 happens it is visible instead of being inferred from four cube misses.
 
+R_ALIGN IS REAL NOW, AND IT IS A ROTATION. The formula above always claimed
+an `R_align` and the code never had one -- the controller displacement was
+added raw, so the controller frame WAS the world frame by assumption. That is
+true only if the operator stands behind the wearer facing the same way. In the
+setup this rig is actually used in, the operator sits ACROSS THE ROOM FACING
+THE WEARER, so their frame is turned roughly 180 deg about the vertical.
+
+It is a YAW, never a mirror. Facing someone and copying them is a reflection,
+and a reflection has det = -1: it would mirror every ORIENTATION as well as
+position, so the gripper would roll the wrong way while the positions looked
+right. That is the single hardest class of bug to see, and it is why
+`align_yaw_deg` is an angle rather than a set of per-axis sign flips. There is
+no configuration of this node that can produce a reflection.
+
+Calibrate it, do not guess it: `scripts/calibrate_operator_yaw.py` solves the
+angle from a recorded hand motion.
+
 SCALE CHANGES RE-BASE THE ANCHOR. Changing scale without re-basing moves the
 arm by (new-old) x displacement, worst exactly when the operator is far from
 the engage point. The same fix the mannequin path uses:
@@ -77,6 +94,19 @@ def q_norm(q):
     return np.array([0.0, 0, 0, 1.0]) if n < 1e-12 else np.asarray(q, float) / n
 
 
+def yaw_quat(deg):
+    """Rotation about world +z (up) as (x, y, z, w). A proper rotation for
+    every input, which a per-axis sign flip is not."""
+    h = math.radians(float(deg)) / 2.0
+    return np.array([0.0, 0.0, math.sin(h), math.cos(h)])
+
+
+def yaw_matrix(deg):
+    a = math.radians(float(deg))
+    c, s = math.cos(a), math.sin(a)
+    return np.array([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]])
+
+
 def q_rot(q, v):
     x, y, z, w = q
     R = np.array([
@@ -93,6 +123,11 @@ class VrPoseMapper(Node):
         # Which robot arm each controller drives. One controller per arm.
         self.declare_parameter('left_controller_arm', 'left')
         self.declare_parameter('right_controller_arm', 'right')
+        # OPERATOR YAW. The angle from the operator's frame to the robot's,
+        # about the vertical. 0 = operator faces the same way as the wearer
+        # (standing behind them); 180 = operator faces the wearer across the
+        # room, which is how this rig is actually driven.
+        self.declare_parameter('align_yaw_deg', 0.0)
         self.declare_parameter('scale', 0.5)
         self.declare_parameter('scale_min', 0.1)
         self.declare_parameter('scale_max', 2.0)
@@ -134,6 +169,7 @@ class VrPoseMapper(Node):
         # Defaults True so a bridge that does not publish it (an older one)
         # behaves exactly as before rather than freezing everything.
         self.hand_tracked = {h: True for h in HANDS}
+        self.safety_frozen = False
         self.jump = {h: [] for h in HANDS}
         self.lag = {h: 0.0 for h in HANDS}
         self.lag_max = {h: 0.0 for h in HANDS}
@@ -152,6 +188,13 @@ class VrPoseMapper(Node):
                 PoseStamped, f'/master_arm_pose_{arm}', 10)
             self.st_pub[h] = self.create_publisher(String, f'/vr/mapper_{h}', 10)
         self.create_subscription(Bool, '/vr/tracking_ok', self._on_tracking, 10)
+        # HONOUR THE SAFETY NODE. vr_safety_node computed a freeze and
+        # published it, and nothing consumed it -- so 'the observer e-stop was
+        # withdrawn' and 'the tracking reference moved' were both states the
+        # system could be in while still commanding the arm. Defaults False
+        # and only ever set by a message actually received, so a stack running
+        # without vr_safety_node (the recording sweep) behaves as before.
+        self.create_subscription(Bool, '/vr/freeze', self._on_safety_freeze, 10)
         for h in HANDS:
             self.create_subscription(
                 Bool, '/vr/controller_valid_%s' % h,
@@ -223,6 +266,18 @@ class VrPoseMapper(Node):
                     'this arm freezes. Re-grip in view to re-latch.' % hand)
             self.engaged[hand] = False
             self.filt[hand] = None
+
+    def _on_safety_freeze(self, m):
+        was = self.safety_frozen
+        self.safety_frozen = bool(m.data)
+        if self.safety_frozen and not was:
+            for h in HANDS:
+                if self.engaged[h]:
+                    self.get_logger().error(
+                        '[%s] safety FREEZE - clutch dropped. The arm holds '
+                        'its last pose; re-grip once the cause is cleared.' % h)
+                self.engaged[h] = False
+                self.filt[h] = None
 
     def _on_tracking(self, m):
         was = self.tracking_ok
@@ -298,6 +353,11 @@ class VrPoseMapper(Node):
         if self.ctrl[hand] is None:
             self.get_logger().warn('[%s] engage ignored: no controller pose' % hand)
             return
+        if self.safety_frozen:
+            self.get_logger().warn(
+                '[%s] engage REFUSED: the safety node is holding a freeze.'
+                % hand)
+            return
         if not self.hand_tracked[hand]:
             self.get_logger().warn(
                 '[%s] engage REFUSED: the controller is not tracked. Latching '
@@ -324,9 +384,19 @@ class VrPoseMapper(Node):
         # frames after engage and shows up as a small jump.
         self.filt[hand] = None
         self.engaged[hand] = True
-        # The command at engage is EXACTLY the current robot pose, so the jump
-        # is zero by construction. Recorded anyway, because "by construction"
-        # has been wrong before.
+        # WHAT THIS NUMBER ACTUALLY IS, because it was reported under the
+        # wrong name. The command at engage is set to `pr`, the arm's OWN
+        # current pose read from TF, so the jump the ARM experiences is zero
+        # by construction -- there is nothing to measure there.
+        #
+        # `last_cmd - pr` is a different quantity entirely: the distance
+        # between what was last COMMANDED and where the arm actually GOT TO.
+        # That is the FOLLOWER'S TRACKING ERROR at the moment of engage. It is
+        # worth recording -- a large value means the arm is a long way behind
+        # its target -- but calling it a "re-engage jump" would put a number
+        # in the write-up that says the clutch is bad when the clutch is fine
+        # and the follower is lagging. Measured 2026-08-19: 150 mm of it, on a
+        # run whose actual arm motion across the engage was zero.
         if self.last_cmd[hand] is not None:
             self.jump[hand].append(float(np.linalg.norm(self.last_cmd[hand] - pr)))
         self.get_logger().info('[%s] CLUTCH ENGAGED, anchored at %s'
@@ -348,18 +418,23 @@ class VrPoseMapper(Node):
                 self._set_scale(hand, self.scale + step)
             if not self.engaged[hand] or self.ctrl[hand] is None:
                 continue
-            if not self.tracking_ok or not self.hand_tracked[hand]:
+            if self.safety_frozen or not self.tracking_ok \
+                    or not self.hand_tracked[hand]:
                 # Freeze. Publishing nothing is the correct behaviour: the
                 # follower holds its last command.
                 self.get_logger().error(
                     '[%s] %s - FREEZING (publishing no command)'
-                    % (hand, 'link lost' if not self.tracking_ok
+                    % (hand, 'safety freeze' if self.safety_frozen
+                       else 'link lost' if not self.tracking_ok
                        else 'controller not tracked'),
                     throttle_duration_sec=1.0)
                 continue
             p, q = self.ctrl[hand]
             d = p - self.p_ref[hand]
-            p_cmd = self.p_anchor[hand] + self.scale * d
+            # R_align: the operator's frame -> the robot's frame.
+            yaw = float(self.get_parameter('align_yaw_deg').value)
+            R = yaw_matrix(yaw)
+            p_cmd = self.p_anchor[hand] + self.scale * (R @ d)
             if self.filt[hand] is None:
                 self.filt[hand] = p_cmd.copy()
             else:
@@ -390,6 +465,14 @@ class VrPoseMapper(Node):
 
             if bool(self.get_parameter('command_orientation').value):
                 dq = q_mul(q, q_conj(self.q_ref[hand]))
+                # The SAME alignment must reach the orientation, conjugated:
+                # a rotation expressed in the operator's frame becomes
+                # qz * dq * qz^-1 in the robot's. Rotating the position and
+                # not the orientation puts them in two different frames, and
+                # IK is then asked for a pose that does not exist.
+                if abs(yaw) > 1e-9:
+                    qz = yaw_quat(yaw)
+                    dq = q_mul(q_mul(qz, dq), q_conj(qz))
                 q_out = q_norm(q_mul(dq, self.q_anchor[hand]))
             else:
                 q_out = self.q_anchor[hand]
@@ -410,12 +493,20 @@ class VrPoseMapper(Node):
                 orientation_commanded=bool(
                     self.get_parameter('command_orientation').value),
                 displacement_m=round(float(np.linalg.norm(d)), 4),
-                mean_reengage_jump_m=(round(float(np.mean(self.jump[hand])), 5)
-                                      if self.jump[hand] else None),
-                max_reengage_jump_m=(round(float(np.max(self.jump[hand])), 5)
-                                     if self.jump[hand] else None),
+                # RENAMED. These are the follower's tracking error at the
+                # moment of engage, NOT the jump the arm makes. The arm's
+                # jump is zero by construction; see _engage().
+                mean_follower_lag_at_engage_m=(
+                    round(float(np.mean(self.jump[hand])), 5)
+                    if self.jump[hand] else None),
+                max_follower_lag_at_engage_m=(
+                    round(float(np.max(self.jump[hand])), 5)
+                    if self.jump[hand] else None),
+                reengage_jump_m=0.0,
                 n_engages=len(self.jump[hand]),
                 hand_tracked=self.hand_tracked[hand],
+                align_yaw_deg=round(yaw, 2),
+                safety_frozen=self.safety_frozen,
                 lag_m=round(self.lag[hand], 5),
                 max_lag_m=round(self.lag_max[hand], 5),
                 resets=self.n_resets))
@@ -430,9 +521,10 @@ class VrPoseMapper(Node):
         # RE-BASE so the commanded pose is continuous. Without this the arm
         # jumps by (new-old) x displacement, worst exactly when the operator
         # is far from the engage point.
+        R = yaw_matrix(float(self.get_parameter('align_yaw_deg').value))
         for h in self.hands:
             if self.engaged[h] and self.ctrl[h] is not None:
-                d = self.ctrl[h][0] - self.p_ref[h]
+                d = R @ (self.ctrl[h][0] - self.p_ref[h])
                 self.p_anchor[h] = self.p_anchor[h] + (self.scale - new) * d
         self.scale = new
 

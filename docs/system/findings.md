@@ -6182,3 +6182,174 @@ gripper, overlay legibility. `scripts/vr_headset_check.py` is the instrument
 and it is guided; its analysers are validated against constructed truth and
 against deliberately broken traces. **An item it reports as NOT MEASURED is
 not a pass**, and it says so.
+
+---
+
+# 2026-08-19 (later): THE SETUP IS NOT VR. IT IS MOTION CAPTURE.
+
+The operator sits across the room **facing the wearer**, holds the two
+controllers as a 6-DOF input device, and watches the real robot with their own
+eyes. **Nobody wears the headset** -- it stands on a shelf as the tracking
+reference for the controllers. Every head-worn assumption in `vr_teleop.md`
+was wrong about who is where, and two of them were load-bearing.
+
+## 1. THE ROUTE DECISION, ON FACTS RATHER THAN PREFERENCE
+
+`SteamVR / OpenVR over Quest Link` was evaluated properly and rejected:
+
+| | checked on this machine |
+| --- | --- |
+| Meta Quest Link PC app | **not installed** |
+| SteamVR | **not installed** (Steam is; SteamVR is not) |
+| OpenXR runtime | **none registered** |
+| Quest on USB | **not attached** |
+
+Those are all installable. The one that is not is the account: **Link pairs
+the headset to the PC app through a Meta account**, and the headset is on its
+owner's. Air Link additionally needs enabling in the headset's own Settings →
+Beta, which is a settings change on borrowed hardware. It is the adb blocker
+again wearing a different hat.
+
+It also buys **no rate**: OpenVR poses are bounded below by the headset's frame
+period exactly as WebXR's are, and WebXR is already delivering **89.9 Hz**.
+
+**What it would carry over is worth writing down**, because it makes the port
+cheap if the lab ever buys its own headset: `vr_pose_mapper`,
+`vr_gripper_node`, `vr_safety_node`, the clutch, the scaling and the reset all
+consume `/vr/controller_pose_<hand>`, `/vr/controller_joy_<hand>` and
+`/vr/controller_valid_<hand>`. **Only the source node changes.** OpenVR even
+shares WebXR's handedness (+x right, +y up, −z forward), so
+`webxr_to_world_*` would apply unchanged. The topic contract is the seam, and
+it held.
+
+## 2. R_ALIGN WAS PROMISED FOR MONTHS AND NEVER EXISTED
+
+`vr_pose_mapper`'s docstring has always said
+
+    p_cmd = p_anchor + scale * R_align * (p_controller - p_ref)
+
+and the code added the displacement **raw**. So the controller frame *was* the
+world frame by assumption -- true only for an operator standing behind the
+wearer facing the same way, which is not how the rig is driven.
+
+**It is a YAW, and it can never be a mirror.** "They're facing me, so mirror
+it" is the intuitive fix and it is a reflection, det = −1. Applied to position
+alone it looks right; applied to the pose it mirrors every **orientation**, so
+the gripper rolls the wrong way while the positions look correct. That is the
+hardest class of bug to see in a video, and it is why the alignment is exposed
+as **one angle** rather than per-axis sign flips: no value of `align_yaw_deg`
+can produce a reflection, pinned over ±720°. The yaw reaches the orientation
+too, conjugated as `qz · dq · qz⁻¹` -- rotating position and not orientation
+puts them in two frames and IK is asked for a pose that does not exist.
+
+**Verified through the whole real chain** -- wss client → `quest_bridge_node`
+→ `vr_pose_mapper` → `/master_arm_pose_right` -- five cases, every one
+**0.0 deg off**:
+
+| yaw | hand moves | commanded |
+| --- | --- | --- |
+| 0 | forward (WebXR −z) | world +y |
+| 0 | right (WebXR +x) | world +x |
+| 180 | forward | world −y |
+| 180 | right | world −x |
+| 90 | right | world +y |
+
+**Calibrated, not guessed.** `scripts/calibrate_operator_yaw.py` has the
+operator move ~40 cm straight towards the robot -- a direction both people in
+the room can identify -- and one known direction fixes one unknown angle. A
+second motion is a cross-check, not an input: after the solved yaw the two
+must still be perpendicular and horizontal, and if they are not the script
+**refuses to write a number**. It also refuses motions under 100 mm or more
+than 35 deg off horizontal.
+
+### An ambiguity this uncovered and did NOT settle
+
+The docs say world **+x is the wearer's right**. The arms sit the other way
+round: `left_end_effector_link` at x = +0.117, `right_end_effector_link` at
+x = −0.160, and T1 places "the green pad at x = −0.290 on the RIGHT arm".
+Either +x is the wearer's *left*, or the arm named `right_` is physically on
+the wearer's left. Those need different fixes and only one is an axis-map
+change. **Still open.** It is why the heading is measured rather than argued.
+
+## 3. TWO SAFETY GAPS THAT DESK OPERATION TURNS FROM RARE INTO ROUTINE
+
+### 3.1 Controller tracking loss froze nothing
+
+`/vr/tracking_ok` is derived from `last_rx`, stamped on **every frame
+arrival**, at line 285 -- *before* the per-controller validity check at line
+296. So it caught a network dropout, a sleeping headset and a backgrounded app
+and **not the case it is named after**. Measured with the real Quest: covering
+a controller for 5 s produced **zero** tracking-loss transitions while the
+stream ran on at 90 Hz, and the mapper kept commanding from the last pose.
+
+Head-worn this is nearly harmless, because the operator's hands are in the
+headset's cameras. Off-head, with the headset on a shelf, occlusion is
+routine. `/vr/controller_valid_<hand>` now exists, the mapper freezes that arm
+and **refuses to engage it** while it is occluded -- latching a reference off
+an emulated pose would anchor the whole run to a position the runtime invented.
+
+### 3.2 Nothing consumed `/vr/freeze`
+
+`vr_safety_node` computed freezes and published them and **no node listened**.
+So "the observer e-stop was withdrawn" and "the tracking reference moved" were
+both states the system could be in while still commanding the arm. The mapper
+honours it now, drops the clutch, and refuses to re-engage while it stands.
+It caught its own author immediately: the first run of the chain test came
+back "clutch did not engage" and the log said
+`engage REFUSED: the safety node is holding a freeze`, because the observer
+e-stop publisher had been killed in a restart.
+
+## 4. THE TRACKING REFERENCE IS A PHYSICAL OBJECT, AND A NUDGE IS SILENT
+
+This is the failure mode desk operation *introduces*. Every other failure in
+this system announces itself -- a dropout stops the frames, an occlusion
+invalidates a pose, a dead link stalls the rate. A knocked headset leaves the
+poses valid, the rate at 90 Hz and the controllers tracked, and silently
+rotates the frame every subsequent pose is expressed in.
+
+`vr_safety_node` latches the first HMD pose and freezes past **20 mm or
+2 deg**. The rotation threshold is the one that matters: a 10 deg twist barely
+moves the headset and puts every command 10 deg wrong. The freeze **survives
+the ordinary unfreeze path**, because poses flow the whole time it is wrong --
+the generic "poses are fine again, observer present" condition is true
+throughout. Clearing it is deliberate (`/vr/rebase_reference`) and the service
+tells you to re-run the yaw calibration, because the heading you measured
+belonged to the old reference.
+
+## 5. THE MAPPER WAS REPORTING FOLLOWER LAG AS A CLUTCH JUMP
+
+`mean_reengage_jump_m` was `|last_cmd − pr|`. At engage the command is set to
+`pr`, the arm's **own** pose from TF, so the jump the ARM makes is zero by
+construction and there is nothing to measure there. `last_cmd − pr` is a
+different quantity: how far the **follower** had fallen behind its last
+target. A real run reported **150 mm of "re-engage jump" across an engage on
+which the arm moved zero**. Published under that name it would have gone into
+the write-up as evidence the clutch is bad. Renamed to
+`max_follower_lag_at_engage_m`, with `reengage_jump_m: 0.0` and the reasoning
+in `_engage()`.
+
+## 6. THREE HARNESSES THAT RECORDED EXACTLY ZERO, AND WHY
+
+Three successive measurement scripts came back with 0 commands and 0 TF
+samples on a system that was working. The cause was the same each time and it
+was mine: `tf2_ros.TransformListener(buffer, node)` joins the node's default
+**mutually-exclusive** callback group, so a lookup inside a timer callback
+blocks *every other callback on that node* -- including the subscriptions.
+`spin_thread=True` gives the listener its own executor and it recorded 2146
+samples immediately. Worth knowing before the next analysis script is written.
+
+## 7. AND A RESULT THAT WAS 0.000 EVERYWHERE, WHICH IS NOT A RESULT
+
+With TF finally recording, every clutch quantity read **0.000 mm** -- which is
+the first row of the instrument table. The data said why: the commands were
+moving correctly (123 mm in world +y, exactly 0.5 scale × 0.25 m of hand) and
+the **end effector never moved at all**, one unique row in 2146 samples. The
+follower log had it: `[BLOCKED:ik_failed]`, **47/64 IK solves succeeded
+(73%)** -- the synthetic drive had pushed the target into a region where IK
+fails, so the arm sat at the first commanded pose.
+
+That makes the clutch numbers **degenerate**, not good: 0.000 mm because
+nothing moved, which cannot distinguish a sound clutch from a frozen arm.
+**The re-engage jump is therefore still NOT measured on this setup**, and it
+needs a drive that stays inside the reachable set. The mapping, the rate and
+the reset are measured; that one is not, and saying so is the point.

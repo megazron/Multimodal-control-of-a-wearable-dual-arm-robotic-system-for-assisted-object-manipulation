@@ -81,9 +81,20 @@ proximity, and it is cancellable at any moment. And it **yields** if the
 operator starts rotating the controller — they are expressing an orientation
 intention, and on this device they can.
 
+## READ `vr_desk_operation.md` FIRST
+
+**The rig is not driven the way this document assumes.** The operator sits
+across the room FACING the wearer, holds the controllers as a 6-DOF motion
+capture device, and watches the real robot. Nobody wears the headset -- it
+stands on a shelf as the tracking reference. That changes the frames (the
+operator's heading is a calibrated yaw, never a mirror), the status display
+(a monitor, not an overlay) and the failure modes (the reference is a physical
+object that can be knocked). Everything below still describes the transport
+and the robot side correctly.
+
 ## Safety, and the one that is unique to VR
 
-**The operator cannot see the arm.** An independent observer e-stop, held by
+**The operator cannot see the arm** -- in the HEAD-WORN case. An independent observer e-stop, held by
 someone not wearing the headset, is mandatory; `vr_safety_node` refuses to
 enable real-arm control until `/vr/observer_estop_present` has been published.
 

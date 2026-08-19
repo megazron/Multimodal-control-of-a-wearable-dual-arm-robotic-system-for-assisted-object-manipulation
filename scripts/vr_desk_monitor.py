@@ -138,9 +138,9 @@ def main():
                 if lag is not None:
                     extra.append('lag %5.1f mm%s' % (lag * 1000,
                                                      ' <-- OVER GATE' if lag > 0.030 else ''))
-                if d.get('max_reengage_jump_m') is not None:
-                    extra.append('worst re-engage %5.1f mm'
-                                 % (d['max_reengage_jump_m'] * 1000))
+                if d.get('max_follower_lag_at_engage_m') is not None:
+                    extra.append('follower lag at engage %5.1f mm'
+                                 % (d['max_follower_lag_at_engage_m'] * 1000))
                 g = S['gripper'].get(h) or {}
                 extra.append('gripper %.3f rad%s'
                              % (g.get('command_rad', 0.0),

@@ -132,18 +132,41 @@ def test_the_two_transports_have_different_conversions_on_purpose():
     assert np.allclose(webxr_same_numbers, [0.0, -1.0, 0.0])
 
 
-def test_the_mapper_adds_this_displacement_with_no_aligning_rotation():
-    """The reason the frame has to be exactly right rather than approximately.
+def test_the_bridge_owns_the_AXES_and_the_mapper_owns_the_HEADING():
+    """The frame question this file used to defer, now answered.
 
-    vr_pose_mapper's docstring promises `p_cmd = p_anchor + scale * R_align *
-    (p_controller - p_ref)`. There is no R_align in the code -- the
-    displacement is added raw. Pinned here so that if one is ever introduced,
-    this test is where the frame question gets re-asked.
+    An R_align WAS introduced (2026-08-19), because the operator sits across
+    the room facing the wearer rather than standing behind them. That splits
+    the job in two, and the split is deliberate:
+
+      quest_bridge_node  WebXR axes -> world AXES.   A fixed relabelling.
+                         Known-answer tested above. Never calibrated.
+      vr_pose_mapper     the operator's HEADING within those axes, as one
+                         yaw angle, measured per setup by
+                         scripts/calibrate_operator_yaw.py.
+
+    Keeping them separate is what stops a calibration from editing a constant
+    that known-answer tests pin. If the bridge absorbed the yaw, every
+    re-calibration would move a number this file asserts, and the two would
+    drift apart with nothing to catch it.
+
+    So: the bridge's conversion must stay heading-free, and the mapper must
+    apply the heading to the displacement rather than adding it raw.
     """
     import inspect
     from srl_vr_teleop import vr_pose_mapper
+
     src = inspect.getsource(vr_pose_mapper.VrPoseMapper._tick)
-    assert 'p_cmd = self.p_anchor[hand] + self.scale * d' in src, (
-        'vr_pose_mapper._tick no longer adds the raw controller displacement. '
-        'If an alignment rotation was added, revisit which frame '
-        'quest_bridge_node should publish in.')
+    assert 'self.scale * (R @ d)' in src, (
+        'the mapper must align the controller displacement by the operator '
+        'yaw before adding it to the anchor')
+
+    # The bridge's conversion carries NO heading: it is pure axis relabelling,
+    # so it must be exactly the constants asserted at the top of this file and
+    # must not consult any parameter.
+    bsrc = inspect.getsource(webxr_to_world_position)
+    assert 'yaw' not in bsrc.lower() and 'align' not in bsrc.lower(), (
+        'the axis conversion has acquired a heading term; it belongs in '
+        'vr_pose_mapper.align_yaw_deg, where it can be calibrated')
+    assert np.allclose(webxr_to_world_position([0.0, 0.0, -1.0]),
+                       [0.0, 1.0, 0.0])

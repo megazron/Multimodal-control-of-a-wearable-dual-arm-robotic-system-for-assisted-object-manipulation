@@ -224,6 +224,31 @@ robot.
    (HARD CONSTRAINT 3). Killing them by process group restored 743 pass / 2
    allowed / 0 new. Check `ps` before believing a test regression.
 
+## VR / DESK OPERATION -- WHAT IS OPEN, 2026-08-19
+
+The rig is driven as MOTION CAPTURE, not VR: operator across the room facing
+the wearer, controllers only, headset on a shelf as the tracking reference,
+nobody wearing it. See `docs/system/vr_desk_operation.md`.
+
+1. **Measure the operator yaw on the real setup.**
+   `python3 scripts/calibrate_operator_yaw.py --apply`. It is 0.0 today, i.e.
+   uncalibrated -- deliberately, so nothing ships a guess. The mapping itself
+   is verified at 0.0 deg error for yaw 0/90/180 through the whole chain.
+2. **The re-engage jump is NOT measured on this setup.** The chain test drove
+   the target into a region where IK fails (47/64 solves, 73%), so the arm sat
+   still and every clutch number read 0.000 mm -- degenerate, not good. Re-run
+   with a drive that stays inside the reachable set.
+3. **Settle whether world +x is the wearer's right.** The docs say it is; the
+   arms sit the other way round (`left_end_effector_link` x = +0.117,
+   `right_` x = -0.160; T1 puts "the green pad at x = -0.290 on the RIGHT
+   arm"). Either the axis doc is wrong or the arm naming is. Only one of those
+   is an axis-map change.
+4. **Physical: proximity sensor.** Off-head operation needs it covered so the
+   headset stays awake. Paper or tape, reversible, no settings changed. If the
+   lab buys its own headset, use the Settings toggle instead.
+5. **`vr_pose_mapper` still HOLDS THE ARMS** during a staging move. The reset
+   half is fixed; this half is not.
+
 ## WHAT TO DO NEXT, IN ORDER
 
 1. **`verify_grasp_quality` reads 5 of 32 and T1 is not among them.** T1's row

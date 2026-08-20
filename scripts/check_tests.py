@@ -46,7 +46,19 @@ def run(paths=None, quiet=False):
     cmd += paths or sorted(_glob.glob(os.path.join(WS, "src", "*", "test")))
     r = subprocess.run(cmd, cwd=WS, capture_output=True, text=True)
     out = r.stdout + r.stderr
-    failed = set(re.findall(r"^FAILED (\S+)", out, re.M))
+    # A PYTEST NODE ID, NOT ANY LINE BEGINNING "FAILED ".
+    #
+    # pep257 and flake8 echo the SOURCE LINES they object to, so a source file
+    # containing a line that starts with `FAILED ` at column 0 lands in this
+    # output and was matched here. `src/srl_teleop/srl_teleop/vr_bringup.py`
+    # has `FAILED = "failed"`, and this gate duly reported "1 test failing
+    # that is not on the allowlist: =" -- a test that does not exist, on a
+    # suite where every real test passed.
+    #
+    # A phantom failure in the gate is worse than a missed one: it is the
+    # thing that decides whether the workspace is healthy, and a gate that
+    # cries wolf gets bypassed. A real id always carries `::` or ends `.py`.
+    failed = set(re.findall(r"^FAILED (\S+\.py(?:::\S+)?)", out, re.M))
     # pytest prints the id relative to the invocation directory
     failed = {f.split(" ")[0] for f in failed}
     # THE LAST MATCH, NOT THE FIRST. `re.search` found a "3 passed" earlier in

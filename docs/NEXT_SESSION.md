@@ -1,3 +1,57 @@
+# RESUME POINT 2026-08-20 (last) — ONE BUTTON STARTS VR, AND IT IS TESTED WITHOUT HARDWARE
+
+## THE ONE-PARAGRAPH VERSION
+
+`START VR TELEOP`, top of the RUN tab. Twelve steps in an order that matters,
+each with a plain-words failure and the fix as a button, idempotent, and
+unable to reach a real arm by construction and by test. Run for real with
+nothing typed it reaches ten of ten machine-side steps and stops honestly on
+the absent headset. **`docs/system/VR_CHECKLIST.md` is the page to print.**
+Finding this out cost six defects, and the first three would have cost a lab
+session.
+
+## THE SIX, IN THE ORDER THEY WOULD HAVE HURT
+
+1. **"READY TO OPERATE" with no headset in the building.** The last step
+   checked the controller pose topic was LISTED. The bridge creates its
+   publishers at start-up, so the topic exists the moment the bridge does.
+   The operator would have put the headset on, squeezed the grip, watched
+   nothing happen, and had a window still saying ready. It counts ARRIVALS
+   now.
+2. **Clearing stale shared memory wedges the daemon, and the button blamed the
+   simulation.** Clearing invalidates every participant including the
+   daemon's cached graph. Measured: 2 topics returned against a fully running
+   stack, and the sequence said "the simulation did not finish starting".
+   The clear restarts the helper now, and the simulation step asks the process
+   table before blaming the simulation.
+3. **Pressing the button twice started a second mapper.** Every repair retries
+   the sequence and the start steps spawned unconditionally; by the fourth
+   press the mapper was running twice -- two publishers on the arm command
+   topic, the one thing the VR architecture says must never happen.
+4. **The panel dropped step results** -- one slot, and the worker overwrote it
+   faster than the GUI collected. Rows never left "...".
+5. **A clean motion scale is 0.5, not 1.0.** The check assumed 1.0, so a
+   freshly reset mapping read as dirty and the repair offered was the reset
+   that had just produced the value it objected to.
+6. **The test gate invented a failing test called `=`.** pep257 echoes the
+   source lines it objects to, so `FAILED = "failed"` in a source file became
+   a failing test on a suite where everything passed.
+
+## WHAT TO DO NEXT
+
+**In the lab, with a headset:** print `docs/system/VR_CHECKLIST.md` and follow
+it. Steps 1-16 need no arms. Then `vr_measure_session.sh yaw` and the rest,
+one command each.
+
+**With the arms:** `docs/system/VR_REAL_ARM_RUN.md`, from step 1. It puts the
+observer and the e-stop test before any teleoperation.
+
+**Before either:** `docs/system/VR_WHAT_IS_VERIFIED.md` §3 lists the six
+real-arm surprises the GUI will NOT tell you about -- you find those by
+watching the arm, and they are all in Part C, with the wearer out of the rig.
+
+---
+
 # RESUME POINT 2026-08-20 (later still) — THE VR PHASE IS FINISHED; THE LAB-DAY PROCEDURE IS `docs/system/VR_REAL_ARM_RUN.md`
 
 ## THE ONE-PARAGRAPH VERSION

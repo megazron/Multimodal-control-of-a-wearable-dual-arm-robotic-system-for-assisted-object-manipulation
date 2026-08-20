@@ -431,6 +431,14 @@ class VrPoseMapper(Node):
             self.st_pub[hand].publish(String(data=json.dumps(dict(
                 hand=hand, arm=self.arm_of[hand], engaged=False,
                 scale=round(self.scale, 3),
+                # WHAT A CLEAN SCALE ACTUALLY IS, published rather than left
+                # for a consumer to assume. The declared default is 0.5, not
+                # 1.0, and a bring-up check that assumed 1.0 reported a
+                # freshly reset mapper as "still holding settings from an
+                # earlier run" -- for ever, because the fix it offered was
+                # the reset that had just produced the value it objected to.
+                scale_default=round(
+                    float(self.get_parameter('scale').value), 3),
                 has_reference=self.p_ref[hand] is not None,
                 has_anchor=self.p_anchor[hand] is not None,
                 filter_primed=self.filt[hand] is not None,

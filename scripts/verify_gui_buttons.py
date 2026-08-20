@@ -208,6 +208,15 @@ def level2_click():
         "kill_second_stack", "would stop the duplicate")
     srl_gui.rad.fix_kill_stray_rsp = _stub(
         "kill_stray_rsp", "would stop the leftover")
+    # AND THE ONE BUTTON. Pressing START VR TELEOP for real inside a button
+    # audit would bring up a whole stack -- and pressing it twice would be the
+    # second stack this project spent a day paying for. The click path runs in
+    # full; only the worker's step execution is replaced.
+    def _fake_vr(self):
+        self.log("VR bring-up: would start (intercepted by the audit)")
+        self.vr_head.setText("INTERCEPTED")
+    srl_gui.Gui.on_vr_start = _fake_vr
+
     srl_gui.Gui._fix_teensy_repoint = lambda self: (
         repaired.append("teensy_repoint"),
         (True, "would restart the master arm reader"))[1]

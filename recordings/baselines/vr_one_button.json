@@ -1,0 +1,149 @@
+{
+ "states": {
+  "environment": "ok",
+  "leftover_memory": "ok",
+  "daemon": "ok",
+  "second_stack": "ok",
+  "sim": "ok",
+  "certificate": "ok",
+  "port": "ok",
+  "bridge": "ok",
+  "mapper": "ok",
+  "mapper_clean": "ok",
+  "observer": "skipped",
+  "ready": "unknown"
+ },
+ "seconds": 130.0,
+ "repairs": [
+  [
+   "leftover_memory",
+   "clear_shm",
+   true,
+   "Nothing left to clear: every block of shared memory is in use by something that is running."
+  ],
+  [
+   "sim",
+   "reset_daemon",
+   true,
+   "Restarted it, and cleared 44 block(s) it left behind. Trying again."
+  ],
+  [
+   "daemon",
+   "kill_detached",
+   true,
+   "Stopped 5 detached part(s) and cleared what they left behind. The simulation will be started fresh."
+  ]
+ ],
+ "checks": [
+  [
+   "machine-side step reached: environment",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step reached: leftover_memory",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step reached: daemon",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step reached: second_stack",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step reached: sim",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step reached: certificate",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step reached: port",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step reached: bridge",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step reached: mapper",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step reached: mapper_clean",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step passed: environment",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step passed: leftover_memory",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step passed: daemon",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step passed: second_stack",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step passed: sim",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step passed: certificate",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step passed: port",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step passed: bridge",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step passed: mapper",
+   true,
+   "ok"
+  ],
+  [
+   "machine-side step passed: mapper_clean",
+   true,
+   "ok"
+  ],
+  [
+   "stops ONLY on the headset, and does not claim ready",
+   true,
+   "Everything on this machine is ready. The headset is not sending "
+  ],
+  [
+   "no topic names in what is displayed",
+   true,
+   "[]"
+  ]
+ ]
+}

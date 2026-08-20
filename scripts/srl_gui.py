@@ -121,6 +121,11 @@ from srl_teleop import procscan                               # noqa: E402
 # be exercised by breaking the actual machine is a panel nobody
 # exercises.
 from srl_teleop import real_arm_doctor as rad                 # noqa: E402
+# THE ONE BUTTON. The twelve-step VR bring-up lives in its own module for
+# the same reason the connection checks do: so a test can hand it a
+# deliberately broken machine and require it to say so, without binding
+# a port or deleting a certificate on the machine running the test.
+from srl_teleop import vr_bringup as vrb                     # noqa: E402
 
 from PyQt5.QtCore import Qt, QTimer                          # noqa: E402
 from PyQt5.QtGui import (QColor, QFont, QImage, QPalette,    # noqa: E402
@@ -971,6 +976,11 @@ class Gui(QMainWindow):
         run = QWidget()
         rv = QVBoxLayout(run)
         rv.setContentsMargins(2, 4, 2, 2)
+        # THE ONE BUTTON GOES FIRST, above everything. It is the only control
+        # a VR session needs, and burying it under the mode and task grids
+        # would mean the thing you press every time is the thing you scroll
+        # to find.
+        rv.addWidget(self._vr_panel())
         rv.addWidget(self._controls())
         rv.addWidget(self._launchers())
         rv.addStretch(1)
@@ -1101,6 +1111,281 @@ class Gui(QMainWindow):
     # NO TOPIC NAMES AND NO RAW ERRORS in what is displayed. The machinery
     # goes to the event log, where it is useful for a bug report and harmless
     # under time pressure.
+    # ====================================================================
+    # THE ONE BUTTON: START VR TELEOP
+    # ====================================================================
+    #
+    # WHAT IT REPLACES. Six commands in four terminals in an order you had to
+    # know, where every one could half-fail and two of them fail SILENTLY --
+    # the bridge dying on a bound port while the other four nodes come up
+    # fine, and the mapper started before the simulation, which gives a clutch
+    # that does nothing and says nothing.
+    #
+    # THE ORDER IS LOAD-BEARING and is encoded in `vr_bringup.STEPS`, not
+    # here: the simulation must be up before the mapper, the certificate must
+    # be right before the bridge starts, the port must be free before the
+    # bridge takes it.
+    #
+    # IT RUNS ON A WORKER. Bringing a stack up takes a minute or more, and the
+    # window carrying the e-stop must not stop repainting for a minute. The
+    # rows update as each step finishes.
+    #
+    # IT CANNOT REACH A REAL ARM, by construction and by test. A one-click
+    # bring-up that could energise a robot as a side effect is the wrong
+    # shape whatever it prints.
+    def _vr_panel(self):
+        g = QGroupBox("VR teleoperation")
+        g.setFont(helvetica(11, True))
+        v = QVBoxLayout(g)
+
+        self.vr_btn = QPushButton("START VR TELEOP")
+        self.vr_btn.setFont(helvetica(13, True))
+        self.vr_btn.setMinimumHeight(44)
+        self.vr_btn.setStyleSheet("color:%s;border:1px solid %s" % (C_OK, C_OK))
+        self.vr_btn.setToolTip(
+            "Brings up everything a VR session needs, in order, and stops at "
+            "the first thing it cannot do -- with the fix as a button. It "
+            "does not touch the real arms.")
+        self.vr_btn.clicked.connect(self.on_vr_start)
+        v.addWidget(self.vr_btn)
+
+        self.vr_head = QLabel("not started")
+        self.vr_head.setFont(helvetica(11, True))
+        self.vr_head.setWordWrap(True)
+        self.vr_head.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.vr_head)
+
+        self.vr_rows = {}
+        for key, title, _fn in vrb.STEPS:
+            box = QWidget()
+            bl = QVBoxLayout(box)
+            bl.setContentsMargins(0, 1, 0, 1)
+            bl.setSpacing(1)
+            t = QLabel("     %s" % title)
+            t.setFont(helvetica(9))
+            t.setStyleSheet("color:%s" % C_MUTED)
+            t.setWordWrap(True)
+            why = QLabel("")
+            why.setFont(helvetica(9))
+            why.setWordWrap(True)
+            why.setStyleSheet("color:%s" % C_MUTED)
+            why.setVisible(False)
+            fix = QPushButton("")
+            fix.setFont(helvetica(9, True))
+            fix.setVisible(False)
+            fix.clicked.connect(lambda _, k=key: self.on_vr_fix(k))
+            bl.addWidget(t)
+            bl.addWidget(why)
+            bl.addWidget(fix)
+            v.addWidget(box)
+            self.vr_rows[key] = (box, t, why, fix)
+
+        row = QHBoxLayout()
+        b = QPushButton("stop VR")
+        b.setFont(helvetica(9))
+        b.setToolTip("Stops everything this button started. Leaves the "
+                     "simulation alone.")
+        b.clicked.connect(self.on_vr_stop)
+        row.addWidget(b)
+        b2 = QPushButton("open the headset page")
+        b2.setFont(helvetica(9))
+        b2.clicked.connect(self.on_vr_show_url)
+        row.addWidget(b2)
+        row.addStretch(1)
+        v.addLayout(row)
+
+        self.vr_note = QLabel("")
+        self.vr_note.setFont(helvetica(9))
+        self.vr_note.setWordWrap(True)
+        self.vr_note.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.vr_note)
+
+        self._vr_world = None
+        self._vr_results = []
+        self._vr_fixes = {}
+        self._vr_busy = False
+        self._vr_lock = threading.Lock()
+        # A QUEUE, NOT A SLOT. The worker finishes a step roughly every second
+        # and `refresh()` collects every 100 ms -- but two fast steps in a row
+        # overwrote each other and the row for the first never left "...".
+        # Rows that never show their outcome is precisely the failure this
+        # panel exists to prevent, reproduced in the panel.
+        self._vr_pending = []
+        return g
+
+    # ------------------------------------------------------------ running
+    def on_vr_start(self):
+        if self._vr_busy:
+            self.log("VR bring-up is already running")
+            return
+        self._vr_busy = True
+        self.vr_btn.setEnabled(False)
+        self.vr_head.setText("STARTING...")
+        self.vr_head.setStyleSheet("color:%s" % C_WARN)
+        self.log("VR bring-up: starting")
+        self._vr_results = []
+        for key, (box, t, why, fix) in self.vr_rows.items():
+            why.setVisible(False)
+            fix.setVisible(False)
+            t.setStyleSheet("color:%s" % C_MUTED)
+        if self._vr_world is None:
+            self._vr_world = vrb.World(ws=_WS)
+
+        def work():
+            out = []
+            for step in vrb.plan():
+                with self._vr_lock:
+                    self._vr_pending.append(
+                        ("running", step.key, None, list(out)))
+                res = step.run(self._vr_world)
+                out.append((step.key, res))
+                with self._vr_lock:
+                    self._vr_pending.append(
+                        ("step", step.key, res, list(out)))
+                if res.state == vrb.FAILED:
+                    break
+            with self._vr_lock:
+                self._vr_pending.append(("done", None, None, list(out)))
+        threading.Thread(target=work, daemon=True).start()
+
+    def _vr_collect(self):
+        """Called from refresh(). Applies whatever the worker has finished."""
+        if not hasattr(self, "vr_rows"):
+            return
+        with self._vr_lock:
+            batch, self._vr_pending = self._vr_pending, []
+        for pending in batch:
+            self._vr_apply(pending)
+
+    def _vr_apply(self, pending):
+        kind, key, res, out = pending
+        self._vr_results = out
+        if kind == "running":
+            box, t, why, fix = self.vr_rows[key]
+            t.setText("...  %s"
+                      % {k: ti for k, ti, _f in vrb.STEPS}[key])
+            t.setStyleSheet("color:%s" % C_WARN)
+            return
+        if kind == "step":
+            self._vr_render_step(key, res)
+            return
+        # done
+        self._vr_busy = False
+        self.vr_btn.setEnabled(True)
+        state, head = vrb.verdict([r for _k, r in out], keyed=out)
+        col = {vrb.OK: C_OK, vrb.FAILED: C_BAD,
+               vrb.UNKNOWN: C_UNKNOWN}.get(state, C_UNKNOWN)
+        self.vr_head.setText(head.upper())
+        self.vr_head.setStyleSheet("color:%s" % col)
+        self.log("VR bring-up: %s" % head, bad=(state == vrb.FAILED))
+        if state == vrb.OK:
+            self.vr_note.setText(
+                "Put the headset on its shelf, open the address above in its "
+                "own browser, accept the one warning and press ENTER VR.")
+
+    def _vr_render_step(self, key, res):
+        titles = {k: t for k, t, _f in vrb.STEPS}
+        box, t, why, fix = self.vr_rows[key]
+        mark = {vrb.OK: "OK  ", vrb.FAILED: "FIX ", vrb.UNKNOWN: "?   ",
+                vrb.SKIPPED: "--  "}.get(res.state, "?   ")
+        col = {vrb.OK: C_TEXT, vrb.FAILED: C_BAD, vrb.UNKNOWN: C_UNKNOWN,
+               vrb.SKIPPED: C_MUTED}.get(res.state, C_UNKNOWN)
+        t.setText("%s%s" % (mark, titles[key]))
+        t.setFont(helvetica(9, res.state in (vrb.FAILED, vrb.UNKNOWN)))
+        t.setStyleSheet("color:%s" % col)
+        why.setText(res.plain)
+        why.setVisible(res.state != vrb.OK)
+        if res.has_fix:
+            self._vr_fixes[key] = res.fix
+            fix.setText(res.fix_label)
+            fix.setToolTip(res.fix_note or res.detail)
+            fix.setVisible(True)
+        else:
+            # HIDDEN AND UNBOUND. A visible button with no repair behind it is
+            # the "feature present but does nothing" row of CLAUDE.md's
+            # instrument table.
+            fix.setVisible(False)
+            self._vr_fixes.pop(key, None)
+        box.setToolTip(res.detail)
+        self.log("VR %s: %s -- %s" % (key, res.state, res.plain[:70]),
+                 bad=(res.state == vrb.FAILED))
+
+    def on_vr_fix(self, key):
+        """Run the repair the latest diagnosis attached to this row, then
+        continue from the top -- the steps are ordered, so a repair three
+        steps down may have changed what the ones above see."""
+        name = self._vr_fixes.get(key)
+        if not name:
+            self.log("nothing to fix on that row any more", bad=True)
+            return
+        if name.startswith("show_"):
+            self._vr_show_log(name)
+            return
+        fn = vrb.FIXES.get(name)
+        if fn is None:
+            self.log("no such repair: %s" % name, bad=True)
+            return
+        self.vr_note.setText("working...")
+        try:
+            ok, msg = fn(self._vr_world or vrb.World(ws=_WS))
+        except Exception as e:                                # noqa: BLE001
+            ok, msg = False, "could not do it: %r" % (e,)
+        self.vr_note.setText(msg)
+        self.log("VR fix %s: %s" % (key, msg), bad=not ok)
+        if ok and not name.endswith("_help"):
+            QTimer.singleShot(400, self.on_vr_start)
+
+    def _vr_show_log(self, name):
+        which = name.replace("show_", "").replace("_log", "")
+        path = os.path.join(_scratch(), "vr_bringup_%s.log" % which)
+        if not os.path.exists(path):
+            self.vr_note.setText("There is nothing written down for that yet.")
+            return
+        try:
+            with open(path, "rb") as fh:
+                fh.seek(0, 2)
+                fh.seek(max(0, fh.tell() - 2500))
+                tail = fh.read().decode("utf-8", "replace")
+        except OSError as e:
+            self.vr_note.setText("could not read it: %r" % (e,))
+            return
+        from PyQt5.QtWidgets import QMessageBox
+        QMessageBox.information(self, "What it printed", tail[-2000:])
+        self.log("showed the %s log" % which)
+
+    def on_vr_stop(self):
+        """Stop what the button started. NOT the simulation.
+
+        Killing the simulation too would mean every retry paid a full stack
+        restart, and the operator would stop using the button.
+        """
+        n = 0
+        w = self._vr_world
+        for name, p in list(getattr(w, "started", []) or []):
+            if name == "simulation" or p is None:
+                continue
+            try:
+                os.killpg(os.getpgid(p.pid), 2)
+                n += 1
+            except Exception:                                 # noqa: BLE001
+                pass
+        if w is not None:
+            w.started = [(nm, p) for nm, p in w.started if nm == "simulation"]
+        self.vr_head.setText("STOPPED")
+        self.vr_head.setStyleSheet("color:%s" % C_MUTED)
+        self.log("VR: stopped %d part(s). The simulation is still up." % n)
+
+    def on_vr_show_url(self):
+        w = self._vr_world or vrb.World(ws=_WS)
+        ip = w.lan_ip()
+        if not ip:
+            self.vr_note.setText("This machine has no address on the network.")
+            self.log("no LAN address", bad=True)
+            return
+        url = "https://%s:%d/" % (ip, w.port)
+        self.vr_note.setText("In the headset's own browser: %s" % url)
+        self.log("headset page: %s" % url)
+
     def _connect_panel(self):
         g = QGroupBox("Connect the real arms")
         g.setFont(helvetica(11, True))
@@ -3323,6 +3608,7 @@ class Gui(QMainWindow):
         self.robot_schema.set_data(s.get("robot_schema"))
         self._sync_embedded()
         self._doctor_collect()
+        self._vr_collect()
         self._refresh_wearer(s)
         self._refresh_actual(s)
         self._refresh_divergence(s)

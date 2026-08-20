@@ -1,3 +1,70 @@
+# RESUME POINT 2026-08-20 (later still) — THE VR PHASE IS FINISHED; THE LAB-DAY PROCEDURE IS `docs/system/VR_REAL_ARM_RUN.md`
+
+## THE ONE-PARAGRAPH VERSION
+
+Everything the VR phase was missing is built: passthrough (`immersive-ar`, no
+sideloading, an ADDITION and worth nothing in desk operation), a desk-mode
+measurement runner that does one step at a time from the keyboard because
+nobody wears the headset, an observer e-stop that can actually be satisfied
+and that treats silence as withdrawal, and the clearance floor following the
+measured body. **The lab-day procedure is `docs/system/VR_REAL_ARM_RUN.md`**
+-- numbered, with a pass condition and a failure branch at every step, and a
+§14 listing what is still unverified ranked by how likely it is to bite.
+
+## THE FOUR DEFECTS THIS SESSION FOUND, ALL IN THE SAFETY PATH
+
+1. **The observer e-stop had never been satisfiable.** Nothing in this
+   repository published `/vr/observer_estop_present`; `start_vr_wifi.sh`
+   checked for a publisher that could not exist and printed a warning. So the
+   interlock was a permanent refusal, and the way that ends is somebody
+   setting `require_observer_estop:=false` on a lab day.
+2. **And silence read as presence.** It was a LATCH: True set the flag and only
+   an explicit False cleared it. A publisher that stopped -- closed terminal,
+   slept laptop, observer walked out with it -- left the system believing
+   somebody was standing next to a 17 kg rig with their hand on a button. That
+   is the single state the interlock exists to detect and it was the one state
+   it could not see. 2 s of silence is now withdrawal.
+3. **The clearance floor was still enforcing the mannequin.** The scene camera's
+   measured body reached MoveIt's planning scene and never reached
+   `mount_guard_node`, which builds its wearer at import time -- so the body
+   MoveIt planned against and the body HARD CONSTRAINT 11's own check enforced
+   were two different bodies.
+4. **The mapper said nothing while disengaged**, so `/vr/reset` was
+   uncheckable: the state it clears was only observable when it had not been
+   cleared.
+
+## WHAT TO DO ON THE DAY
+
+Follow `docs/system/VR_REAL_ARM_RUN.md` from step 1. It is written to be read
+in order with the arms cold, and Parts A-C need no real arm at all.
+
+The measurements are one command each:
+
+    bash scripts/vr_measure_session.sh            # the list, in order
+    bash scripts/vr_measure_session.sh yaw        # FIRST. Not optional.
+
+**Yaw first.** You face the wearer, so your "away from me" is the robot's
+"toward its own front", and until it is measured the mapper adds the
+displacement raw.
+
+**On the freeze step, read the verdict and not the arm.** `/vr/tracking_ok`
+defaults FALSE and is derived from frame ARRIVAL, so covering one controller
+while the headset streams does not move it -- measured with a real Quest,
+zero transitions at 90 Hz. The step prefers `/vr/controller_valid_<hand>` and
+reports `was_true_before`; without that a frozen arm proves only that the
+topic was silent.
+
+## WHAT IS STILL OPEN
+
+* the 1.94 rad home gap -- the bridge refuses, correctly, and the recapture is
+  a decision taken in the room with the wearer out;
+* `vr_pose_mapper` still HOLDS THE ARMS during a staging move;
+* whether world +x is the wearer's right -- still genuinely open, which is why
+  the first real motion is 5 cm and you watch the arm;
+* everything in `VR_REAL_ARM_RUN.md` §14.
+
+---
+
 # RESUME POINT 2026-08-20 (later) — THE SCENE CAMERA PATH IS BUILT, WITH NO CAMERA
 
 ## THE ONE-PARAGRAPH VERSION

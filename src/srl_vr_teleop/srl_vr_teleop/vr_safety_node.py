@@ -51,6 +51,16 @@ class VrSafety(Node):
         self.declare_parameter('arms', ['left', 'right'])
         self.declare_parameter('tracking_timeout_s', 0.2)
         self.declare_parameter('require_observer_estop', True)
+        # SILENCE IS WITHDRAWAL. The observer topic was handled as a LATCH:
+        # True set `observer_ok` and only an explicit False cleared it, so a
+        # publisher that stopped -- a closed terminal, a slept laptop, a
+        # killed process, an observer who put the button down and walked out
+        # -- left the system believing somebody was standing there with their
+        # hand on it, indefinitely. That is the one thing this interlock
+        # exists to know, and it was the one state it could not see.
+        #
+        # 2.0 s is four missed beats at the 5 Hz `observer_estop.py` sends.
+        self.declare_parameter('observer_estop_timeout_s', 2.0)
         self.declare_parameter('allow_real_arm', False)
         # Robot workspace bounds, world frame. Warn before the limit, not at it.
         self.declare_parameter('ws_min', [-1.10, -0.10, 0.70])
@@ -69,6 +79,7 @@ class VrSafety(Node):
         self.timeout = float(self.get_parameter('tracking_timeout_s').value)
         self.last_pose_t = 0.0
         self.observer_ok = False
+        self.observer_t = None            # when it last SAID so
         self.frozen = True
         self.freeze_reason = 'startup'
         self.n_freezes = 0
@@ -99,12 +110,28 @@ class VrSafety(Node):
             'headset cannot see the arm.')
 
     def _on_observer(self, m):
+        if m.data:
+            self.observer_t = time.monotonic()
         if m.data and not self.observer_ok:
             self.observer_ok = True
             self.get_logger().info('observer e-stop CONFIRMED present for this session')
         elif not m.data and self.observer_ok:
             self.observer_ok = False
+            self.observer_t = None
             self._freeze('observer e-stop withdrawn')
+
+    def _observer_stale(self):
+        """True once the observer has stopped saying they are there.
+
+        Checked every tick rather than on message arrival, because the whole
+        point is the message that does NOT arrive.
+        """
+        if not self.observer_ok:
+            return False
+        tmo = float(self.get_parameter('observer_estop_timeout_s').value)
+        if tmo <= 0.0 or self.observer_t is None:
+            return False
+        return (time.monotonic() - self.observer_t) > tmo
 
     def _on_track(self, m):
         if not m.data:
@@ -212,6 +239,17 @@ class VrSafety(Node):
                 or a > float(self.get_parameter('reference_rot_freeze_deg').value))
 
     def _tick(self):
+        # THE OBSERVER GOING QUIET IS CHECKED FIRST, and before the pose
+        # watchdog, because it is the failure with no other symptom: the
+        # poses keep flowing, the rate stays up, the reference has not moved,
+        # and the only thing that changed is that nobody is holding the
+        # button any more.
+        if self._observer_stale():
+            self.observer_ok = False
+            self.observer_t = None
+            self._freeze('observer e-stop stopped reporting -- treated as '
+                         'withdrawn. Silence and absence are the same thing '
+                         'here.')
         age = time.monotonic() - self.last_pose_t if self.last_pose_t else 1e9
         if age > self.timeout:
             self._freeze('no controller pose for %.2f s (dropout, sleep or '

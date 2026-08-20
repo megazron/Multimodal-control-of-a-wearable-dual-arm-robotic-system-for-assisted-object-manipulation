@@ -25,8 +25,10 @@ Parameters:
     check_period_s    0.0    0 = check once at startup and exit; >0 = keep
                              checking, for use during development
 """
+import json
 import math
 import sys
+import time
 
 import numpy as np
 import rclpy
@@ -52,6 +54,24 @@ from . import wearer_posture
 # workspace number was measured against.
 POSTURE = wearer_posture.posture_from_env()
 WEARER = wearer_posture.wearer_model(POSTURE)
+
+# THE MEASURED BODY REACHES THIS CHECK NOW, AND ONLY EVER MAKES IT BIGGER.
+#
+# The scene camera can measure the wearer, and until now that measurement
+# reached MoveIt's planning scene and NOT this file -- so the thing MoveIt
+# planned against and the thing the CLEARANCE FLOOR was enforced against were
+# two different bodies. This is HARD CONSTRAINT 11's own check, and it was
+# the one still looking at the mannequin.
+#
+# `wearer_tracking.fuse()` keeps whichever of the tracked and mannequin
+# primitive is CLOSER to the robot, per part, so subscribing to the estimate
+# cannot loosen this guard however wrong the camera is. When the topic is
+# silent, stale, or every segment is gated out, `fuse()` returns the
+# mannequin unchanged -- which is exactly what this file did before.
+try:
+    from srl_perception import wearer_tracking as _WT
+except Exception:                                             # noqa: BLE001
+    _WT = None
 
 # The arm as a CHAIN OF CAPSULES between consecutive link origins.
 #
@@ -116,12 +136,83 @@ class MountGuard(Node):
         self.buf = tf2_ros.Buffer()
         self.lis = tf2_ros.TransformListener(self.buf, self)
         self.report_pub = self.create_publisher(String, '/mount_guard', 10)
+        # WHICH BODY IS BEING ENFORCED, said out loud on its own topic. The
+        # operator has to be able to tell "the floor is measured against the
+        # person" from "the floor is measured against a mannequin" without
+        # reading a log.
+        self.body_pub = self.create_publisher(String, '/wearer/enforced', 10)
+        self.declare_parameter('use_tracked_wearer', True)
+        self._est = None
+        self._est_t = None
+        self._body_note = 'mannequin (no scene camera seen)'
+        if _WT is not None:
+            self.create_subscription(String, '/wearer/estimate',
+                                     self._on_wearer, 10)
+            self.create_timer(2.0, self._say_body)
         self.estop_pub = self.create_publisher(Bool, '/estop', 10)
         self.done = False
         period = float(self.get_parameter('check_period_s').value)
         self.create_timer(float(self.get_parameter('settle_s').value), self._first)
         if period > 0:
             self.create_timer(period, lambda: self.check(quiet=True))
+
+    # ------------------------------------------------ the body being used
+    def _on_wearer(self, msg):
+        try:
+            self._est = json.loads(msg.data)
+            self._est_t = time.monotonic()
+        except Exception:                                     # noqa: BLE001
+            self._est = None
+
+    def wearer(self):
+        """The primitives this guard enforces against, right now.
+
+        NEVER LESS CONSERVATIVE THAN `WEARER`. Every path out of here either
+        returns the mannequin or returns `fuse()`'s output, and `fuse()` is
+        defined to keep whichever primitive is closer to the robot.
+        """
+        if _WT is None or not bool(
+                self.get_parameter('use_tracked_wearer').value):
+            self._body_note = 'mannequin (tracking not enabled here)'
+            return WEARER
+        est, t = self._est, self._est_t
+        if est is None or t is None:
+            self._body_note = 'mannequin (no scene camera seen)'
+            return WEARER
+        age = time.monotonic() - t
+        if age > _WT.MAX_AGE_S * 4:
+            self._body_note = ('mannequin (the scene camera stopped %.1f s '
+                               'ago)' % age)
+            return WEARER
+        segs = []
+        for name, d in (est.get('segments') or {}).items():
+            if not d.get('usable'):
+                continue
+            segs.append(_WT.Segment(name, d.get('kind', 'cylinder'),
+                                    d.get('dims', (0.0, 0.0)),
+                                    d.get('centre', (0.0, 0.0, 0.0)),
+                                    d.get('rpy', (0.0, 0.0, 0.0)),
+                                    float(d.get('conf', 0.0))))
+        if not segs:
+            self._body_note = 'mannequin (nothing measurable in view)'
+            return WEARER
+        e = _WT.Estimate(segs, stamp=time.monotonic(), source='scene camera')
+        fused, dec = _WT.fuse(WEARER, e, time.monotonic())
+        n, _tot, text = _WT.summarise(dec)
+        self._body_note = ('%s (%d part%s measured)'
+                           % ('measured body' if n else 'mannequin', n,
+                              '' if n == 1 else 's'))
+        return fused
+
+    def _say_body(self):
+        prims = self.wearer()
+        self.body_pub.publish(String(data=json.dumps(dict(
+            enforcing=self._body_note,
+            n_parts=len(prims),
+            floor_m=self.floor,
+            note=('The clearance floor is enforced against this body. It is '
+                  'never smaller than the mannequin: the camera may only '
+                  'make the wearer bigger.')))))
 
     def _first(self):
         if not self.done:
@@ -146,7 +237,7 @@ class MountGuard(Node):
                 ln, a = origins[i]
                 b = origins[i + 1][1] if i + 1 < len(origins) else a
                 pts = [a + (b - a) * (k / float(SAMPLES)) for k in range(SAMPLES + 1)]
-                for nm, kind, prm, ctr, rpy in WEARER:
+                for nm, kind, prm, ctr, rpy in self.wearer():
                     d = min(dist_point(q, kind, prm, ctr, rpy) for q in pts) - TUBE_R
                     pairs.append((d, arm, ln, nm))
         if missing and len(missing) == len(CHAIN) * len(self.arms):

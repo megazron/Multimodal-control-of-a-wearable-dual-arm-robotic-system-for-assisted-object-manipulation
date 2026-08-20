@@ -141,11 +141,42 @@ def analyse(key, seg):
         return out
 
     if key == 'm2':
-        tr = seg['track']
+        # WHICH SIGNAL IS BEING TESTED, AND THE PRECONDITION THAT MAKES THE
+        # ANSWER MEAN ANYTHING.
+        #
+        # `/vr/tracking_ok` defaults FALSE and is derived from frame ARRIVAL,
+        # so covering ONE controller while the headset streams on does not
+        # move it -- measured with the real Quest: zero transitions at 90 Hz.
+        # `/vr/controller_valid_<hand>` is the signal that was added for
+        # exactly this case, so it is preferred and named in the output.
+        #
+        # AND: a freeze proves nothing unless the signal was TRUE FIRST. A
+        # topic that was silent the whole time, or false from the start,
+        # produces the same "arm did not move" as a working freeze. So the
+        # verdict reports `was_true_before` and REFUSES to pass without it.
+        hand = seg.get('hand', 'right')
+        src_name, tr = 'controller_valid_%s' % hand, seg.get(
+            'valid_%s' % hand) or []
+        if not tr:
+            src_name, tr = 'tracking_ok', seg.get('track') or []
+        was_true = any(ok for _, ok in tr)
         losses = [t for i, (t, ok) in enumerate(tr)
                   if not ok and i and tr[i - 1][1]]
         cmd_t = [t for t, _ in seg['cmd']]
-        out = dict(commands=len(cmd_t), losses=len(losses))
+        out = dict(commands=len(cmd_t), losses=len(losses), signal=src_name,
+                   samples=len(tr), was_true_before=bool(was_true),
+                   ended_false=bool(tr and not tr[-1][1]))
+        if not tr:
+            out['verdict'] = ('NOT MEASURED - neither /vr/controller_valid_%s '
+                              'nor /vr/tracking_ok published ANYTHING. A '
+                              'frozen arm here would prove only that the '
+                              'topic was silent.' % hand)
+            return out
+        if not was_true:
+            out['verdict'] = ('NOT MEASURED - %s was never TRUE, so it could '
+                              'not go false. The arm not moving proves '
+                              'nothing.' % src_name)
+            return out
         if not cmd_t:
             out['verdict'] = 'NOT MEASURED - clutch never engaged'
         elif not losses:
@@ -261,6 +292,28 @@ def selftest():
                                                           for i in range(50)],
                            invalid_right=99))
     check('no loss -> NOT MEASURED, and says why', 'NOT MEASURED' in r['verdict'])
+
+    # THE PRECONDITION. A freeze proves nothing unless the signal was TRUE
+    # first, and both of the ways it can fail to be look identical from the
+    # arm: it does not move either way.
+    r_silent = analyse('m2', dict(cmd=[(i * .01, [0, 0, 0]) for i in range(50)]))
+    check('a SILENT topic -> NOT MEASURED, not a pass',
+          'NOT MEASURED' in r_silent['verdict']
+          and r_silent['was_true_before'] is False,
+          r_silent['verdict'][:58])
+    r_false = analyse('m2', dict(valid_right=[(i * .05, False) for i in range(40)],
+                                 cmd=[(i * .01, [0, 0, 0]) for i in range(50)]))
+    check('a topic that was NEVER TRUE -> NOT MEASURED',
+          'NOT MEASURED' in r_false['verdict']
+          and 'never TRUE' in r_false['verdict'], r_false['verdict'][:58])
+    r_pref = analyse('m2', dict(
+        valid_right=[(i * .05, True) for i in range(40)]
+        + [(2.0 + i * .05, False) for i in range(40)],
+        track=[(i * .05, True) for i in range(80)],
+        cmd=[(i * .01, [0, 0, 0]) for i in range(int(2.05 / .01))]))
+    check('per-controller validity is PREFERRED over tracking_ok',
+          r_pref['signal'] == 'controller_valid_right'
+          and r_pref['verdict'] == 'PASS', r_pref['signal'])
     tr = [(i * .05, True) for i in range(40)] + [(2.0 + i * .05, False)
                                                  for i in range(40)]
     cmds = [(i * .01, [0, 0, 0]) for i in range(int(2.05 / .01))]
@@ -297,6 +350,7 @@ def run(args):
     class Session(Node):
         def __init__(self):
             super().__init__('vr_guided_session')
+            self._hand = hand
             self.t0 = time.monotonic()
             self.lock = threading.Lock()
             self.buf = {}
@@ -326,6 +380,11 @@ def run(args):
                                                           m.pose.position.z]), 200)
             self.create_subscription(Joy, '/vr/controller_joy_%s' % hand,
                                      self._on_joy, 200)
+            for _h in ('left', 'right'):
+                self.create_subscription(
+                    Bool, '/vr/controller_valid_%s' % _h,
+                    (lambda m, h=_h: self._add('valid_%s' % h, bool(m.data))),
+                    20)
             self.create_subscription(Bool, '/vr/tracking_ok',
                                      lambda m: self._add('track', bool(m.data),
                                                          raw=True), 50)
@@ -386,6 +445,42 @@ def run(args):
                                      rec_s=None))
             self.instr.publish(s)
 
+        def record_until_enter(self, label, text, progress, timeout):
+            """DESK MODE. End the step on ENTER at the keyboard.
+
+            In desk operation NOBODY WEARS THE HEADSET -- it stands on a
+            shelf as the tracking reference, lenses pointing at the operator's
+            hands. So the in-headset instruction panel this script was built
+            around is showing text to an empty headset, and the A button ends
+            a step nobody can see. The operator is at a keyboard with a
+            monitor, so the keyboard ends the step.
+
+            Everything else is identical: the same recorder, the same
+            analysers, the same output file. Only who says "done" changes.
+            """
+            with self.lock:
+                self.buf = {}
+                self.recording = True
+            t_start = time.monotonic()
+            try:
+                sys.stdin.readline()
+            except KeyboardInterrupt:
+                pass
+            el = time.monotonic() - t_start
+            if el > timeout:
+                print('    (%.0f s, past the %.0f s limit)' % (el, timeout))
+            with self.lock:
+                self.recording = False
+                seg = self.buf
+                self.buf = {}
+            for k in ('ctrl', 'cmd', 'map', 'grip', 'joy', 'lat', 'track',
+                      'valid_left', 'valid_right', 'pose_left', 'pose_right'):
+                seg.setdefault(k, [])
+            seg.setdefault('ee', {'left': [], 'right': []})
+            seg['hand'] = self._hand
+            seg['recorded_s'] = round(el, 2)
+            return seg
+
         def record_until_a(self, label, text, progress, timeout):
             with self.lock:
                 self.buf = {}
@@ -407,6 +502,7 @@ def run(args):
                 self.buf = {}
             self._a_block_until = time.monotonic() + 1.0
             for k in ('ctrl', 'cmd', 'map', 'grip', 'joy', 'lat', 'track',
+                      'valid_left', 'valid_right',
                       'pose_left', 'pose_right'):
                 seg.setdefault(k, [])
             seg.setdefault('ee', {'left': [], 'right': []})
@@ -420,8 +516,13 @@ def run(args):
     time.sleep(2.0)
 
     print('=' * 72)
-    print('GUIDED VR SESSION -- SIM ONLY. Instructions appear IN THE HEADSET.')
-    print('Do each action, then press  A  on the %s controller.' % hand)
+    if getattr(args, 'desk', False):
+        print('VR MEASUREMENT -- DESK MODE. Nobody is wearing the headset.')
+        print('Read the instruction here, do it, then press ENTER.')
+    else:
+        print('GUIDED VR SESSION -- SIM ONLY. Instructions appear IN THE '
+              'HEADSET.')
+        print('Do each action, then press  A  on the %s controller.' % hand)
     print('=' * 72)
 
     report = {}
@@ -430,8 +531,15 @@ def run(args):
             prog = '%d/%d' % (i, len(steps))
             print('\n[%s] %s' % (prog, st['label']))
             print('    %s' % st['text'])
-            n.say(st['label'], st['text'], prog, rec_s=0)
-            seg = n.record_until_a(st['label'], st['text'], prog, args.timeout)
+            if getattr(args, 'desk', False):
+                print('    ... recording. Press ENTER when the action is '
+                      'finished.', flush=True)
+                seg = n.record_until_enter(st['label'], st['text'], prog,
+                                           args.timeout)
+            else:
+                n.say(st['label'], st['text'], prog, rec_s=0)
+                seg = n.record_until_a(st['label'], st['text'], prog,
+                                       args.timeout)
             res = analyse(st['key'], seg)
             report[st['key']] = res
             print('    -> %s' % json.dumps(res, default=str)[:400])
@@ -446,6 +554,18 @@ def run(args):
     out = args.out or os.path.join(
         WS, 'recordings', 'baselines', 'vr_headset_session.json')
     os.makedirs(os.path.dirname(out), exist_ok=True)
+    if getattr(args, 'append', False) and os.path.exists(out):
+        # ONE STEP AT A TIME STILL BUILDS ONE FILE. Without this, running the
+        # steps separately -- which is the whole point of desk mode -- leaves
+        # only the last one on disk, and the session's evidence is whichever
+        # measurement happened to be run last.
+        try:
+            with open(out) as f:
+                prev = json.load(f)
+            prev.update(report)
+            report = prev
+        except Exception:                                     # noqa: BLE001
+            pass
     with open(out, 'w') as f:
         json.dump(report, f, indent=2, default=str)
     print('\nwritten: %s' % out)
@@ -460,6 +580,14 @@ def main():
     ap.add_argument('--timeout', type=float, default=180.0,
                     help='seconds before a step closes itself')
     ap.add_argument('--out', default='')
+    ap.add_argument('--desk', action='store_true',
+                    help='DESK OPERATION: nobody wears the headset, so a '
+                         'step ends on ENTER at the keyboard rather than on '
+                         'the A button on a controller held by somebody who '
+                         'cannot see the panel')
+    ap.add_argument('--append', action='store_true',
+                    help='merge into the existing report instead of replacing '
+                         'it, so one step at a time still builds one file')
     ap.add_argument('--selftest', action='store_true')
     a = ap.parse_args()
     sys.exit(selftest() if a.selftest else run(a))

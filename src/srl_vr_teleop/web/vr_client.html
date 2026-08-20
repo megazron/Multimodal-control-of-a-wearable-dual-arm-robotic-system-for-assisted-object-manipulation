@@ -52,12 +52,15 @@
 <h1>SRL VR teleoperation</h1>
 
 <button id="enter" disabled>ENTER VR</button>
+<button id="enter-ar" disabled>ENTER WITH PASSTHROUGH</button>
 <button id="flat">flat test (no headset)</button>
 
 <h2>state</h2>
 <table>
 <tr><td class="k">secure context</td><td id="s-sec">&mdash;</td></tr>
 <tr><td class="k">WebXR</td><td id="s-xr">&mdash;</td></tr>
+<tr><td class="k">passthrough</td><td id="s-ar">&mdash;</td></tr>
+<tr><td class="k">blend mode</td><td id="s-blend">&mdash;</td></tr>
 <tr><td class="k">socket</td><td id="s-ws">&mdash;</td></tr>
 <tr><td class="k">sent / recv</td><td id="s-cnt">0 / 0</td></tr>
 <tr><td class="k">pose rate</td><td id="s-hz">&mdash;</td></tr>
@@ -151,6 +154,25 @@ if(!navigator.xr){
     $('s-xr').innerHTML = ok ? '<span class=ok>immersive-vr supported</span>'
                              : '<span class=bad>immersive-vr NOT supported</span>';
     $('enter').disabled = !ok;
+  });
+  // PASSTHROUGH IS immersive-ar, AND IT NEEDS NO SIDELOADING. The Quest
+  // browser composites the headset's own passthrough as the AR background,
+  // so this is a session-mode change and nothing else -- no Developer Mode,
+  // no adb, no app, no account. That is the whole reason this route was
+  // chosen over streaming a camera in.
+  //
+  // SUPPORT IS PROBED, NOT ASSUMED. A headset that does not offer
+  // immersive-ar must disable the button rather than fail inside the
+  // headset, where the operator cannot read a console.
+  navigator.xr.isSessionSupported('immersive-ar').then(function(ok){
+    window.__arSupported = ok;
+    $('s-ar').innerHTML = ok
+      ? '<span class=ok>passthrough (immersive-ar) supported</span>'
+      : '<span class=bad>passthrough NOT supported on this headset</span>';
+    $('enter-ar').disabled = !ok;
+  }).catch(function(){
+    $('s-ar').innerHTML = '<span class=bad>passthrough not offered</span>';
+    $('enter-ar').disabled = true;
   });
 }
 dial();
@@ -427,12 +449,24 @@ function onXRFrame(t, frame){
 
   const layer = s.renderState.baseLayer;
   gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
+  // ALPHA 0, AND IT WAS ALREADY 0. In an immersive-ar session the
+  // compositor puts the passthrough image behind whatever this layer does
+  // not cover, so a clear with alpha 1 would paint the room out and the
+  // operator would see a black world through an AR session -- indistinguishable
+  // from passthrough not working. Left explicit so nobody "tidies" it to
+  // an opaque background.
   gl.clearColor(0, 0, 0, 0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   if(vpose) for(const view of vpose.views) renderOverlay(view, layer);
 }
 
-$('enter').onclick = async function(){
+// ONE ENTRY PATH FOR BOTH MODES. The only difference between a VR session
+// and a passthrough session here is the string passed to requestSession and
+// what the compositor puts behind the frame -- the pose path, the protocol,
+// the clutch, the scaling and the watchdog are byte for byte the same code.
+// That is the argument for why passthrough adds no latency to the arm: it is
+// not on the arm's path at all.
+async function enterXR(mode){
   try{
     const canvas = $('gl');
     canvas.style.display = 'block';
@@ -440,24 +474,42 @@ $('enter').onclick = async function(){
                                      antialias:false});
     if(!gl) throw new Error('no WebGL context');
     initGL();
-    xrSession = await navigator.xr.requestSession('immersive-vr',
+    xrSession = await navigator.xr.requestSession(mode,
                     {optionalFeatures:['local-floor','bounded-floor']});
     await gl.makeXRCompatible();
     xrSession.updateRenderState({baseLayer: new XRWebGLLayer(xrSession, gl)});
     try{ xrRef = await xrSession.requestReferenceSpace('local-floor'); }
     catch(e){ xrRef = await xrSession.requestReferenceSpace('local');
               log('local-floor unavailable, using local'); }
-    log('XR session started, reference space ready');
+    // WHAT THE COMPOSITOR IS ACTUALLY DOING, reported rather than assumed.
+    // Asking for immersive-ar does NOT guarantee passthrough: a headset may
+    // grant the session and still composite opaque. `environmentBlendMode`
+    // is the only thing that says which, and 'opaque' in an AR session means
+    // the operator is looking at a black room while the page believes it
+    // showed them the lab.
+    var blend = xrSession.environmentBlendMode || 'unknown';
+    $('s-blend').textContent = blend;
+    if(mode === 'immersive-ar' && blend === 'opaque'){
+      $('s-blend').innerHTML =
+        '<span class=bad>opaque -- the session started but there is NO '
+        + 'passthrough behind it</span>';
+      log('WARNING: immersive-ar granted but blend mode is opaque. '
+          + 'No passthrough.');
+    }
+    log('XR session started (' + mode + ', blend ' + blend
+        + '), reference space ready');
     xrSession.addEventListener('end', function(){
       log('XR session ENDED -- poses stop, the 0.2 s watchdog freezes the arm');
       canvas.style.display = 'none'; xrSession = null;
     });
     xrSession.requestAnimationFrame(onXRFrame);
   }catch(e){
-    log('ENTER VR failed: ' + e);
-    alert('ENTER VR failed: ' + e);
+    log('ENTER ' + mode + ' failed: ' + e);
+    alert('ENTER ' + mode + ' failed: ' + e);
   }
-};
+}
+$('enter').onclick = function(){ enterXR('immersive-vr'); };
+$('enter-ar').onclick = function(){ enterXR('immersive-ar'); };
 
 // A desktop/flat loop so the socket, the protocol and the panel can be
 // exercised without a headset. It sends valid:false, so nothing downstream

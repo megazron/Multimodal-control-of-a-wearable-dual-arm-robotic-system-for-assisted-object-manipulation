@@ -206,6 +206,17 @@ class VrPoseMapper(Node):
         self.create_subscription(Empty, '/vr/reset_request',
                                  lambda _m: self.reset('/vr/reset_request'), 10)
         self.create_timer(1.0 / float(self.get_parameter('rate_hz').value), self._tick)
+        # A HEARTBEAT WHILE DISENGAGED, at 2 Hz.
+        #
+        # The state topic was published ONLY inside the engaged branch, so
+        # while the clutch was out the mapper said nothing at all -- and
+        # "disengaged", "reset", "frozen" and "the process died" were one
+        # observation. In particular `/vr/reset` could not be CHECKED: the
+        # thing it clears is only visible when it is not cleared.
+        #
+        # It carries the same keys as the engaged message so a consumer needs
+        # no second shape, with `engaged: false` and no displacement.
+        self.create_timer(0.5, self._idle_state)
         self.get_logger().info(
             'vr_pose_mapper up. Publishes /master_arm_pose_<arm>, the SAME '
             'topic the mannequin path uses, so the robot side is untouched '
@@ -408,6 +419,27 @@ class VrPoseMapper(Node):
             self.get_logger().info('[%s] CLUTCH RELEASED - robot frozen' % hand)
 
     # ----------------------------------------------------------------- loop
+    def _idle_state(self):
+        """Say what the mapper is, while it is not driving anything."""
+        for hand in self.hands:
+            if self.engaged[hand]:
+                continue                      # the engaged path is richer
+            try:
+                yaw = float(self.get_parameter('align_yaw_deg').value)
+            except Exception:                                 # noqa: BLE001
+                yaw = 0.0
+            self.st_pub[hand].publish(String(data=json.dumps(dict(
+                hand=hand, arm=self.arm_of[hand], engaged=False,
+                scale=round(self.scale, 3),
+                has_reference=self.p_ref[hand] is not None,
+                has_anchor=self.p_anchor[hand] is not None,
+                filter_primed=self.filt[hand] is not None,
+                hand_tracked=self.hand_tracked[hand],
+                tracking_ok=self.tracking_ok,
+                safety_frozen=self.safety_frozen,
+                align_yaw_deg=round(yaw, 2),
+                resets=self.n_resets))))
+
     def _tick(self):
         dt = 1.0 / float(self.get_parameter('rate_hz').value)
         for hand in self.hands:

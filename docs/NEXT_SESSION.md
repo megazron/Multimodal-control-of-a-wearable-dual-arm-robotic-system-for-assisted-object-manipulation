@@ -1,3 +1,107 @@
+# RESUME POINT 2026-08-20 (later) — THE SCENE CAMERA PATH IS BUILT, WITH NO CAMERA
+
+## THE ONE-PARAGRAPH VERSION
+
+The whole path exists and runs end to end: a USB camera node, both calibration
+tools with self-tests that pass exactly, a markerless body tracker on
+MediaPipe Pose, per-segment gating, the fused body into `move_group`'s
+planning scene, and a GUI tab whose top line is which body the robot is
+planning against. **No camera has ever been attached to this machine**, so
+every optical number is still inferred and is listed as such in
+`docs/system/19_scene_camera_as_built.md` section 6. The safety rule is the
+design: the camera may only ever make the wearer BIGGER, and a body injected
+five metres further away changes nothing.
+
+## THE FIRST THING TO DO
+
+Attach the camera. It is the laptop's own webcam and it is one admin command
+away:
+
+    usbipd bind --busid 2-5        # ADMINISTRATOR PowerShell, once
+    usbipd attach --wsl --busid 2-5 # normal PowerShell, after every reboot
+
+`bash scripts/attach_scene_camera.sh` finds the busid itself and prints these;
+`--attach` runs the second step. Windows loses the webcam while it is
+attached; `usbipd detach --busid 2-5` gives it back.
+
+Then, in order, and nothing after this is worth doing until these pass:
+
+1. `python3 scripts/calibrate_scene_camera.py --capture` -- 20 board views,
+   AND MOVE THE BOARD INTO THE CORNERS OF THE FRAME. The self-test failed at
+   11.6 px on the principal point until its own synthetic views were spread
+   out; twelve views near the centre leave cx and cy nearly unconstrained.
+2. Print a 150 mm APRILTAG 36h11 id 0, stick it on the backpack frame,
+   `python3 scripts/calibrate_scene_camera_extrinsics.py --live
+   --marker-on-mount`. MEASURE THE PRINTED SIDE -- a board printed "to fit" is
+   not the size it says, and the error goes straight into the translation.
+3. `.venv_pose/bin/python scripts/verify_scene_camera.py --live` -- eleven
+   stages, each labelled MEASURED or inferred.
+4. `python3 scripts/verify_wearer_fallbacks.py` -- six injected faults through
+   the live node. It was 7 of 7 on recorded frames.
+5. Only then measure the actual wearer into `config/wearer_sizes/<name>.json`.
+   `measured_adult.json` is one person from one photograph and is NOT the
+   wearer.
+
+## WHAT THE BUILD FOUND
+
+1. **The extrinsic solve ran in the wrong frame and answered confidently.**
+   `SOLVEPNP_IPPE_SQUARE` assumes marker-local object points and was handed
+   world-frame corners, so it returned the camera pose relative to the MARKER
+   while the caller read it as a world pose. The tell was a translation error
+   of exactly 1.0500 m against a marker at z = 1.05. On a real camera that is
+   a body 400 mm from where the person is, at full confidence.
+2. **The calibration self-test's own board had 8x5 inner corners while the
+   tool asked for 9x6**, so all twelve views were refused and the self-test
+   reported that it could not certify the tool. It was right, and it was about
+   the test rig.
+3. **The tracked body's rpy convention drifted from `wearer_posture.rpy_for`.**
+   The wearer model holds YAW AT ZERO and spends roll and pitch; the obvious
+   pitch/yaw form is 90 degrees out. Caught by the pinning test before it
+   reached the planning scene.
+4. **The hand model stopped at the knuckle.** The detector's hand landmark is
+   the index MCP, so the measurable segment is a PALM (~80 mm), and checking
+   it against a hand range refused both hands with the perfectly true message
+   "0.079 m is not a hand". A hand that stops at the knuckle leaves the
+   fingers outside the collision model, and the fingers are what a gripper
+   reaches first.
+5. **A fallback test passed while the thing under test had never run.** The
+   detector was capped at two poses, reported one person in a two-person
+   photograph, and the tracker refused for an unrelated reason. Every box
+   green. The check now requires the refusal to NAME the injected fault.
+6. **The tracker resolved its own workspace root by counting `..` and landed
+   one directory too high**, so the model and both calibration files resolved
+   into the home directory. It did not crash; it refused with a clear message
+   about the wrong path.
+
+## WHAT A REAL BODY COSTS, MEASURED
+
+Whole arm, through IK, at z = 1.120, 0.20 m forward, the 150 mm floor:
+
+* arms DOWN: the left column IMPROVES 25 mm (0.375 -> 0.350) -- shorter arms,
+  so the forearm stops binding;
+* arms FOLDED: 25 mm WORSE (0.325 -> 0.350) -- a 70 mm wider chest binds where
+  the mannequin's folded arms did;
+* what binds changes identity: a LIMB for the mannequin, the TORSO every time
+  for the person;
+* **folding the arms is worth 50 mm to the mannequin and nothing at all to
+  this person.** That is an operating instruction that does not survive
+  contact with a broad wearer.
+
+NOT comparable with the published 0.325 / 0.450, which were certified at N=10
+over the whole densified path; these are single-point probes at N=3, and the
+script refuses to print AGREES or DIFFERS against them.
+
+## WHAT IS STILL OPEN
+
+* every optical number (doc 19 section 6);
+* the arms occluding the wearer -- doc 16 called this the dominant failure and
+  it cannot be exercised without a camera pointed at the real rig;
+* limb RADII: a single camera cannot measure thickness, so they are still the
+  mannequin's, deliberately;
+* the four items from the 2026-08-18 list are unchanged.
+
+---
+
 # RESUME POINT 2026-08-20 — THE GUI IS ONE COMMAND, AND THE SECOND VIEW IS REAL
 
 ## THE ONE-PARAGRAPH VERSION

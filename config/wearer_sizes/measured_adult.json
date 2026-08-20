@@ -1,0 +1,14 @@
+{
+  "profile": "measured_adult",
+  "note": "ONE adult, measured through the scene-camera path on 2026-08-20 from a single clear full-body photograph (MediaPipe pose_landmarker_full world landmarks, every landmark visibility >= 0.99). This is NOT the wearer, and n = 1. It exists so the question 'how much does the mannequin matter' has a real answer instead of an invented one, and so the size machinery has a profile that is not the mannequin. Replace it with the actual wearer before any session. MEASURED DIRECTLY: upper_arm_len, lower_arm_len, shoulder_x (half the shoulder-joint separation 0.330), chest_h (0.503 shoulder-mid to hip-mid). DERIVED, and the derivation is an assumption: hand_len = palm 0.080 x 1.9; chest_w = shoulder separation 0.330 + 2 x upper-arm radius 0.05, because the detector gives JOINT CENTRES and the collision model needs a BODY width; hips_w likewise from 0.219 + 2 x 0.055; shoulder_z raised 15 mm in proportion to the longer torso. Radii are unchanged from the mannequin -- a single camera cannot measure limb thickness at all, and pretending it can is exactly the direction that would make the model too small.",
+  "measured_by": "scripts/verify_scene_camera.py, /tmp/pose.jpg",
+  "date": "2026-08-20",
+  "upper_arm_len": 0.256,
+  "lower_arm_len": 0.247,
+  "hand_len": 0.152,
+  "shoulder_x": 0.165,
+  "shoulder_z": 0.395,
+  "chest_w": 0.43,
+  "chest_h": 0.503,
+  "hips_w": 0.33
+}

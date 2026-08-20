@@ -1,0 +1,53 @@
+{
+ "floor": 0.15,
+ "y": 0.2,
+ "z": 1.12,
+ "ik_column": {
+  "left": 0.325,
+  "right": 0.45
+ },
+ "mode": "whole_arm",
+ "rows": [
+  {
+   "size": "mannequin",
+   "posture": "down",
+   "left": 0.37500000000000006,
+   "right": 0.35000000000000003,
+   "clear_left": 0.15841217235565597,
+   "clear_right": 0.1512168451202025,
+   "binds_left": "L-forearm",
+   "binds_right": "R-forearm"
+  },
+  {
+   "size": "mannequin",
+   "posture": "folded",
+   "left": 0.325,
+   "right": 0.325,
+   "clear_left": 0.1541351479856581,
+   "clear_right": 0.15413183175335285,
+   "binds_left": "L-upperarm",
+   "binds_right": "R-upperarm"
+  },
+  {
+   "size": "measured_adult",
+   "posture": "down",
+   "left": 0.35000000000000003,
+   "right": 0.35000000000000003,
+   "clear_left": 0.15632306421165845,
+   "clear_right": 0.16224755961356332,
+   "binds_left": "torso",
+   "binds_right": "torso"
+  },
+  {
+   "size": "measured_adult",
+   "posture": "folded",
+   "left": 0.35000000000000003,
+   "right": 0.35000000000000003,
+   "clear_left": 0.1563151796524955,
+   "clear_right": 0.16224708724231768,
+   "binds_left": "torso",
+   "binds_right": "torso"
+  }
+ ],
+ "worst_shift_m": 0.025000000000000022
+}

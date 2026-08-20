@@ -146,6 +146,7 @@ from srl_hud import (ReadyPanel, ACCENT, BAD, BG, LINE, MUTED, PANEL, TEXT,   # 
                      UNKNOWN, WARN, MasterArmSchematic, RobotSchematic,
                      Strip, mono, sans)
 import srl_arm_view as av                                    # noqa: E402
+import srl_wearer_panel as swp                               # noqa: E402
 
 C_BG = BG
 C_TEXT = TEXT
@@ -315,6 +316,21 @@ class Bus(Node):
         # depth=1 best-effort: a viewer wants the NEWEST frame, and a reliable
         # queue would deliver a backlog after any hiccup -- exactly the stale
         # view this relay exists to prevent.
+        # THE SCENE CAMERA AND THE WEARER ESTIMATE. Separate from the wrist
+        # cameras because they answer a different question: the wrist cameras
+        # show the OBJECT at grasp range, this one shows the PERSON the arms
+        # are bolted to.
+        for topic, key in (("/wearer/estimate", "wearer"),
+                           ("/wearer/overlay", "wearer_overlay"),
+                           ("/scene_camera/state", "scene_cam")):
+            self.create_subscription(String, topic,
+                                     lambda m, k=key: self._set(k, m.data), 10)
+        self.scene_img = None
+        self.scene_img_t = 0.0
+        self.create_subscription(
+            Image, "/scene_camera/image_raw", self._on_scene_image,
+            qos_profile_sensor_data)
+
         self.cam = {a: cr.ChannelState() for a in ARMS}
         self.cam_img = {a: None for a in ARMS}
         for a in ARMS:
@@ -404,6 +420,14 @@ class Bus(Node):
             fut.add_done_callback(done)
             return
 
+    def _on_scene_image(self, msg):
+        # Kept RAW and converted only where it is painted, like the wrist
+        # cameras -- ROS-thread time is not spent on frames the GUI is about
+        # to discard as stale.
+        self.scene_img = (msg.width, msg.height, bytes(msg.data), msg.step,
+                          msg.encoding)
+        self.scene_img_t = time.monotonic()
+
     def _on_image(self, arm, msg):
         self.cam[arm].on_frame(msg.width, msg.height, msg.encoding)
         # Keep the RAW buffer; convert on the GUI thread only when it will
@@ -455,6 +479,8 @@ class Bus(Node):
         s["real_age"] = {a: self.real[a].arrival_age() for a in ARMS}
         s["master_schema"] = self._master_schema()
         s["robot_schema"] = self._robot_schema()
+        s["scene_img"] = self.scene_img
+        s["scene_img_t"] = self.scene_img_t
         s["log"] = list(self.log[-200:])
         self.snap = s
 
@@ -649,7 +675,19 @@ class Bus(Node):
         (self.get_logger().error if bad else self.get_logger().info)(text)
 
     # ------------------------------------------------------------ actions
-    def submit(self, fn):
+    def submit(self, fn, label=None):
+        """Queue an action for the ROS thread, AND SAY SO IMMEDIATELY.
+
+        The queue is drained by a 0.05 s timer, so under load a press could
+        leave no trace for hundreds of milliseconds -- and a press with no
+        trace cannot be told from a disconnected signal, which is the whole
+        bug class the button audit exists for. It caught this as an
+        intermittent failure on `re-base anchor`: the same button passed on
+        one run and failed on the next, which is worse than failing every
+        time, because it reads as a flaky test rather than a real gap.
+        """
+        if label:
+            self.note(label)
         self._q.append(fn)
 
     def _drain(self):
@@ -1012,7 +1050,8 @@ class Gui(QMainWindow):
         b.setToolTip("/master_rebase -- the next VALID frame becomes the "
                      "reference. The bridge calls this when it enables.")
         b.clicked.connect(lambda: self.bus.submit(
-            lambda: self.bus.call_trigger("/master_rebase")))
+            lambda: self.bus.call_trigger("/master_rebase"),
+            label="re-base anchor requested"))
         row.addWidget(b)
         v.addLayout(row)
 
@@ -1144,6 +1183,14 @@ class Gui(QMainWindow):
         # seconds, so a worker does the waiting and `refresh()` collects the
         # answer when it arrives.
         self.doc_checks = []
+        # A TEST SEAM, and it earns its place. The button audit forces each
+        # connection fault into the panel and presses its repair; without a
+        # way to hold the live re-check off, the 30 s timer and the 600 ms
+        # post-repair re-check land mid-loop and replace the injected rows
+        # with this machine's real ones -- so the button the audit is about to
+        # press is destroyed under it. That failed as "missing: daemon, home",
+        # which reads like two broken repairs and was neither.
+        self.doctor_frozen = False
         self._doc_result = None
         self._doc_lock = threading.Lock()
         self._doc_busy = False
@@ -1319,7 +1366,8 @@ class Gui(QMainWindow):
             return False, "Not moved -- nothing was commanded."
         for a in ARMS:
             self.bus.submit(
-                lambda a=a: self.bus.call_trigger("/home_arm_%s" % a))
+                lambda a=a: self.bus.call_trigger("/home_arm_%s" % a),
+                label="home the %s arm requested" % a)
         return True, ("Asked both arms to go to the resting pose. Watch the "
                       "ACTUAL view.")
 
@@ -1339,7 +1387,8 @@ class Gui(QMainWindow):
         for a in ARMS:
             self.bus.submit(
                 lambda a=a: self.bus.call_trigger(
-                    "/real/session_recover_%s" % a))
+                    "/real/session_recover_%s" % a),
+                label="release the %s arm connection requested" % a)
         return True, "Asked the arm to drop the old connection and reopen."
 
     # -------------------------------------------------------- the checking
@@ -1384,6 +1433,8 @@ class Gui(QMainWindow):
     def _doctor_collect(self):
         """Called from refresh(). Applies a finished diagnosis, if there is
         one. Never blocks and never waits."""
+        if self.doctor_frozen:
+            return
         with self._doc_lock:
             out, self._doc_result = self._doc_result, None
         if out is None:
@@ -1559,7 +1610,11 @@ class Gui(QMainWindow):
         # announced intention, a confirm step and a running transcript -- and
         # at 268 px the transcript was two lines high, which for the panel
         # that says why the robot refused is not a readout at all.
-        tabs.setMaximumHeight(430)
+        # 470, up from 430. The Wearer tab is a picture PLUS a nine-row
+        # table, and at 430 the table showed three rows -- so the panel whose
+        # job is "which parts are measured and why not" answered the question
+        # for a third of the body without scrolling.
+        tabs.setMaximumHeight(470)
 
         ch = QWidget()
         cv = QVBoxLayout(ch)
@@ -1681,6 +1736,17 @@ class Gui(QMainWindow):
         self.eventlog.setReadOnly(True)
         self.eventlog.setFont(mono(8))
         self.eventlog.setStyleSheet("color:%s;border:none" % C_MUTED)
+        # THE WEARER TAB. It goes beside Instruct rather than in the left
+        # column because it is a VIEW -- a picture with things drawn on it --
+        # and the left column is controls and indicators. It is also the one
+        # panel whose top line is a safety state rather than a diagnosis:
+        # which body the robot is planning against.
+        self.wearer_panel = swp.WearerPanel(
+            dict(bg=C_BG, line=LINE, muted=C_MUTED, accent=C_OK, bad=C_BAD,
+                 warn=C_WARN, unknown=C_UNKNOWN),
+            on_recalibrate=self.on_scene_recalibrate)
+        self.wearer_panel.set_advice_sink(lambda t: self.log("wearer: " + t))
+        tabs.addTab(self._scroll(self.wearer_panel), "Wearer")
         tabs.addTab(self._instruct_tab(), "Instruct")
         tabs.addTab(self.eventlog, "Event log")
 
@@ -2789,7 +2855,8 @@ class Gui(QMainWindow):
         # /estop_reset IS A SERVICE, NOT A TOPIC. Publishing a Bool at it once
         # left the e-stop latched and made six subsequent fault injections
         # report NOT HANDLED for that one reason.
-        self.bus.submit(lambda: self.bus.call_trigger("/estop_reset"))
+        self.bus.submit(lambda: self.bus.call_trigger("/estop_reset"),
+                        label="e-stop RESET requested")
 
     def on_dial(self, d):
         st = ps.settings(d)
@@ -2804,22 +2871,25 @@ class Gui(QMainWindow):
                                    st["max_step_rad"])
             self.bus.set_param("/master_pose_node", "ema_alpha",
                                st["ema_alpha"])
-        self.bus.submit(act)
+        self.bus.submit(act, label="precision/speed dial -> %s" % d)
         for a in ARMS:
             self.scale[a].setValue(int(round(st["scale"] * 100)))
 
     def on_scale(self, arm, v):
         self.bus.submit(lambda: self.bus.set_param(
-            "/master_pose_node", "%s_scale" % arm, v))
+            "/master_pose_node", "%s_scale" % arm, v),
+            label="%s scale -> %.2f" % (arm, v))
 
     def on_force_clutch(self, state):
         on = bool(state)
         self.bus.submit(lambda: self.bus.set_param(
-            "/master_pose_node", "force_clutch_engaged", on))
+            "/master_pose_node", "force_clutch_engaged", on),
+            label="force clutch engaged -> %s" % on)
 
     def on_release(self, arm):
         self.bus.submit(
-            lambda: self.bus.call_trigger("/gripper_release_%s" % arm))
+            lambda: self.bus.call_trigger("/gripper_release_%s" % arm),
+            label="release %s grip requested" % arm)
 
     def on_launch(self, spec):
         fails = self._preflight(spec)
@@ -3253,6 +3323,7 @@ class Gui(QMainWindow):
         self.robot_schema.set_data(s.get("robot_schema"))
         self._sync_embedded()
         self._doctor_collect()
+        self._refresh_wearer(s)
         self._refresh_actual(s)
         self._refresh_divergence(s)
         self._refresh_cameras(s)
@@ -3347,6 +3418,40 @@ class Gui(QMainWindow):
                     win.resize(max(1, cont.width()), max(1, cont.height()))
             except Exception:                                 # noqa: BLE001
                 self.embedded.pop(key, None)
+
+    def _refresh_wearer(self, s):
+        """Push the newest scene frame and wearer estimate into the panel.
+
+        Called every refresh with WHATEVER the snapshot holds, including
+        nothing -- so the panel cannot keep showing a body after the tracker
+        stops. That is the same rule the camera panels obey and it matters
+        more here: a held body estimate is a collision model the operator
+        believes while the person has walked away.
+        """
+        if not hasattr(self, "wearer_panel"):
+            return
+
+        def val(key):
+            v = s.get(key)
+            return v[0] if isinstance(v, tuple) else None
+        self.wearer_panel.update_from(
+            val("wearer"), val("wearer_overlay"),
+            s.get("scene_img"), s.get("scene_img_t", 0.0), val("scene_cam"))
+
+    def on_scene_recalibrate(self):
+        """Re-solve the camera's position in the robot frame, from the marker.
+
+        Runs the same script a person would run, in a subprocess, and puts its
+        output in the event log. Deliberately NOT a reimplementation: a second
+        copy of the extrinsic solve is a second copy that can disagree with
+        the first, and the disagreement would be invisible.
+        """
+        argv = [sys.executable,
+                os.path.join(_WS, "scripts",
+                             "calibrate_scene_camera_extrinsics.py"),
+                "--live", "--marker-on-mount"]
+        self.log("re-checking the camera transform: %s" % " ".join(argv[1:]))
+        self._run_raw("scene camera extrinsics", argv)
 
     def _refresh_actual(self, s):
         """Push the newest points into the ACTUAL panel, or clear it.

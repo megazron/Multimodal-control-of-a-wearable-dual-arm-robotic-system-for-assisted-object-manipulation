@@ -101,3 +101,19 @@ archive/recordings/*/t?/*/*/rviz_side.mp4
 archive/recordings/*/t?/*/*/rviz_gripper.mp4
 archive/recordings/**/rviz.rviz.*
 archive/recordings/**/*.xvfb
+
+# ------------------------------------------------------- the pose interpreter
+# .venv_pose holds MediaPipe, which pulls numpy 2.x and cannot be installed
+# system-wide without breaking the scipy and matplotlib every analysis script
+# in this repository uses. It is rebuilt by scripts/run_wearer_tracker.sh,
+# which prints the two pip lines and why their ORDER matters.
+.venv_pose/
+
+# The pose model bundles: ~23 MB of binary that is fetched, not authored.
+# scripts/run_wearer_tracker.sh prints the one curl line.
+models/mediapipe/
+
+# Rehearsal calibrations live here and are NOMINAL, NOT MEASURED. They must
+# never be mistaken for a calibration of a real camera, so they never leave
+# scratch and they never enter config/.
+.scratch/

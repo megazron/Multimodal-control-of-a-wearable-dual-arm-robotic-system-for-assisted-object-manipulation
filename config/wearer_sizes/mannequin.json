@@ -1,0 +1,5 @@
+{
+  "profile": "mannequin",
+  "note": "The shipped body. Present as a FILE as well as a built-in so that a sweep comparing profiles has a control that goes through the same code path as the others.",
+  "measured_by": "not measured -- these are the numbers the model has always carried"
+}

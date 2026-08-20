@@ -417,6 +417,13 @@ def level2_click():
         ("kortex", dict(ktail="the process died\n")),
     ]
     pressed_fixes = []
+    # HOLD THE LIVE RE-CHECK OFF. Otherwise the 30 s timer and the 600 ms
+    # post-repair re-check land in the middle of this loop and replace the
+    # injected rows with the real machine's, destroying the button about to
+    # be pressed. It showed up as "missing: daemon, home" -- two repairs
+    # reported unpressed that had never been offered.
+    g.doctor_frozen = True
+    g.doc_timer.stop()
     for name, kw in WORLDS:
         checks = rad.run_all(_Broken(**kw), g._doctor_fixes())
         bad = [c for c in checks if c.state == rad.BAD and c.has_fix]
@@ -484,6 +491,7 @@ def level2_click():
     shown = [k for k, row in g.doc_rows.items() if row[3].isVisible()]
     check("2b", "no repair offered when nothing is wrong", not shown,
           "buttons shown: %s" % (", ".join(shown) or "none"))
+    g.doctor_frozen = False
 
     # Every enabled launch spec must have been pressed.
     enabled = {s.key for s in g.specs if s.enabled}

@@ -1,0 +1,271 @@
+#!/usr/bin/env python3
+"""scene_camera_node.py -- the front-of-the-table USB camera, into ROS.
+
+    ros2 run srl_perception scene_camera_node
+    ros2 run srl_perception scene_camera_node --ros-args -p device:=/dev/video2
+    ros2 run srl_perception scene_camera_node --ros-args -p source:=file:/tmp/x.png
+
+Publishes:
+    /scene_camera/image_raw      sensor_msgs/Image, bgr8
+    /scene_camera/camera_info    sensor_msgs/CameraInfo, from the calibration
+    /scene_camera/state          std_msgs/String, JSON -- the honest one
+
+WHY NOT `usb_cam` OR `v4l2_camera`. Both are packaged and neither is
+installed, and installing either would not give the two behaviours this
+repository requires of anything that produces frames:
+
+  * IT REFUSES RATHER THAN REPUBLISHING. If the device stops delivering, this
+    node publishes NOTHING and says so on /scene_camera/state. It never
+    re-sends the last good frame. A frozen picture of a workspace cannot be
+    told from a live picture of a workspace that is not moving, which is
+    CLAUDE.md's "data fresh but never changes" row -- and here the consumer
+    is a body tracker feeding a collision model.
+  * IT PUBLISHES CameraInfo THAT IS EITHER REAL OR EMPTY. An uncalibrated
+    camera publishes a ZERO K and says `calibrated: false`, rather than a
+    plausible guessed focal length. A guessed intrinsic silently scales every
+    body position; nothing downstream disagrees with it.
+
+USB PASSTHROUGH. There is no USB on WSL without usbipd, exactly as for the
+Teensy. `scripts/attach_scene_camera.sh` checks and prints the two commands.
+The kernel here has CONFIG_USBIP_VHCI_HCD=m and CONFIG_USB_VIDEO_CLASS=m, so
+the modules exist and load on attach; what it does NOT have is a camera
+already attached, and this node says which of those is wrong.
+"""
+import json
+import os
+import time
+
+import numpy as np
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+from sensor_msgs.msg import CameraInfo, Image
+from std_msgs.msg import String
+
+DEFAULT_INTRINSICS = "config/scene_camera_intrinsics.yaml"
+
+
+def load_intrinsics(path):
+    """(K, D, w, h, source) or (None, ...) -- never a guess.
+
+    Deliberately parsed with the stdlib rather than yaml so that a missing
+    PyYAML cannot turn "uncalibrated" into "crashed", which are different
+    problems with different fixes.
+    """
+    if not path or not os.path.exists(path):
+        return None, None, 0, 0, "no calibration file at %s" % path
+    try:
+        import yaml
+        with open(path) as fh:
+            d = yaml.safe_load(fh)
+        K = np.array(d["camera_matrix"], dtype=float).reshape(3, 3)
+        D = np.array(d.get("distortion", [0] * 5), dtype=float).ravel()
+        return K, D, int(d["image_width"]), int(d["image_height"]), path
+    except Exception as e:                                    # noqa: BLE001
+        return None, None, 0, 0, "calibration file unreadable: %r" % (e,)
+
+
+class SceneCamera(Node):
+
+    def __init__(self):
+        super().__init__("scene_camera")
+        self.declare_parameter("device", "")
+        self.declare_parameter("source", "v4l2")
+        self.declare_parameter("width", 1280)
+        self.declare_parameter("height", 720)
+        self.declare_parameter("fps", 30.0)
+        self.declare_parameter("intrinsics", DEFAULT_INTRINSICS)
+        self.declare_parameter("stale_after_s", 0.5)
+
+        ws = os.environ.get("SRL_WS") or os.path.expanduser("~/kortex_ws")
+        ip = self.get_parameter("intrinsics").value
+        if ip and not os.path.isabs(ip):
+            ip = os.path.join(ws, ip)
+        self.K, self.D, self.cw, self.ch, self.calib_src = load_intrinsics(ip)
+
+        self.pub = self.create_publisher(Image, "/scene_camera/image_raw",
+                                         qos_profile_sensor_data)
+        self.info_pub = self.create_publisher(
+            CameraInfo, "/scene_camera/camera_info", 10)
+        self.state_pub = self.create_publisher(String, "/scene_camera/state", 10)
+
+        self.cap = None
+        self.last_ok = 0.0
+        self.n_frames = 0
+        self.n_fail = 0
+        self.reason = "starting"
+        self._still = None
+
+        self._open()
+        hz = max(1.0, float(self.get_parameter("fps").value))
+        self.create_timer(1.0 / hz, self.tick)
+        self.create_timer(1.0, self.say)
+
+    # -------------------------------------------------------------- open
+    def _candidates(self):
+        import glob
+        d = self.get_parameter("device").value
+        if d:
+            return [d]
+        return sorted(glob.glob("/dev/video*"))
+
+    def _open(self):
+        src = str(self.get_parameter("source").value)
+        if src.startswith("file:"):
+            # A STILL, for testing the whole path with no device. It is
+            # published with a MOVING timestamp and identical pixels, which is
+            # exactly the input the staleness rule must NOT be fooled by --
+            # so the state message says `source: file` and every consumer can
+            # see that this is not a camera.
+            import cv2
+            path = src.split(":", 1)[1]
+            img = cv2.imread(path)
+            if img is None:
+                self.reason = "cannot read %s" % path
+                return
+            self._still = img
+            self.reason = "file source %s (NOT A CAMERA)" % path
+            return
+        import cv2
+        cands = self._candidates()
+        if not cands:
+            self.reason = (
+                "no camera is attached to this machine. On WSL a USB camera "
+                "must be handed over from Windows first -- run "
+                "scripts/attach_scene_camera.sh, which prints the two "
+                "commands.")
+            return
+        for dev in cands:
+            cap = cv2.VideoCapture(dev, cv2.CAP_V4L2)
+            if not cap.isOpened():
+                cap.release()
+                continue
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH,
+                    int(self.get_parameter("width").value))
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT,
+                    int(self.get_parameter("height").value))
+            cap.set(cv2.CAP_PROP_FPS, float(self.get_parameter("fps").value))
+            # A DEVICE THAT OPENS IS NOT A DEVICE THAT DELIVERS. Several
+            # things on this machine present as /dev/video* and return
+            # nothing -- the IR sensor of this very webcam is one. So the
+            # candidate has to produce a frame before it is accepted.
+            ok, frame = cap.read()
+            if not ok or frame is None:
+                cap.release()
+                continue
+            self.cap = cap
+            self.dev = dev
+            self.reason = "open on %s, %dx%d" % (dev, frame.shape[1],
+                                                 frame.shape[0])
+            self.get_logger().info("scene camera %s" % self.reason)
+            return
+        self.reason = ("found %s but none of them delivered a frame "
+                       "(an IR or depth node often presents as a camera and "
+                       "returns nothing)" % ", ".join(cands))
+
+    # -------------------------------------------------------------- tick
+    def tick(self):
+        frame = None
+        if self._still is not None:
+            frame = self._still
+        elif self.cap is not None:
+            ok, f = self.cap.read()
+            if ok and f is not None:
+                frame = f
+            else:
+                self.n_fail += 1
+                if self.n_fail in (1, 30) or self.n_fail % 300 == 0:
+                    self.get_logger().error(
+                        "scene camera delivered no frame (%d in a row). "
+                        "NOTHING is being published -- the last picture is "
+                        "not being re-sent." % self.n_fail)
+                return
+        if frame is None:
+            return
+        self.n_fail = 0
+        self.n_frames += 1
+        self.last_ok = time.monotonic()
+        stamp = self.get_clock().now().to_msg()
+        m = Image()
+        m.header.stamp = stamp
+        m.header.frame_id = "scene_camera"
+        m.height, m.width = frame.shape[0], frame.shape[1]
+        m.encoding = "bgr8"
+        m.is_bigendian = 0
+        m.step = frame.shape[1] * 3
+        m.data = frame.tobytes()
+        self.pub.publish(m)
+        self.info_pub.publish(self._info(stamp, frame.shape))
+
+    def _info(self, stamp, shape):
+        ci = CameraInfo()
+        ci.header.stamp = stamp
+        ci.header.frame_id = "scene_camera"
+        ci.height, ci.width = shape[0], shape[1]
+        if self.K is None:
+            # ZERO, NOT A GUESS. A plausible-looking focal length here would
+            # scale every body position by an unknown factor and nothing
+            # downstream would disagree with it.
+            ci.k = [0.0] * 9
+            ci.d = []
+            ci.distortion_model = ""
+            return ci
+        K = self.K
+        if (self.cw, self.ch) != (shape[1], shape[0]) and self.cw and self.ch:
+            # THE CALIBRATION WAS TAKEN AT A DIFFERENT SIZE. Scaling the
+            # intrinsic is correct and is done here rather than left to the
+            # consumer, because a consumer that forgets is a consumer whose
+            # body positions are wrong by the ratio.
+            sx, sy = shape[1] / float(self.cw), shape[0] / float(self.ch)
+            K = K.copy()
+            K[0, 0] *= sx
+            K[0, 2] *= sx
+            K[1, 1] *= sy
+            K[1, 2] *= sy
+        ci.k = [float(x) for x in K.ravel()]
+        ci.d = [float(x) for x in self.D]
+        ci.distortion_model = "plumb_bob"
+        ci.p = [float(x) for x in
+                np.hstack([K, np.zeros((3, 1))]).ravel()]
+        return ci
+
+    # ------------------------------------------------------------- state
+    def say(self):
+        age = None if self.last_ok == 0.0 else time.monotonic() - self.last_ok
+        stale = float(self.get_parameter("stale_after_s").value)
+        live = age is not None and age <= stale
+        st = dict(
+            live=bool(live),
+            source=("file" if self._still is not None
+                    else ("v4l2" if self.cap is not None else "none")),
+            reason=self.reason,
+            frames=self.n_frames,
+            consecutive_failures=self.n_fail,
+            age_s=None if age is None else round(age, 3),
+            calibrated=self.K is not None,
+            calibration=self.calib_src,
+        )
+        self.state_pub.publish(String(data=json.dumps(st)))
+        if not live and self.n_frames == 0:
+            self.get_logger().warn("scene camera: %s" % self.reason,
+                                   throttle_duration_sec=10.0)
+
+
+def main(argv=None):
+    rclpy.init(args=argv)
+    n = SceneCamera()
+    try:
+        rclpy.spin(n)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        if n.cap is not None:
+            n.cap.release()
+        n.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
+    return 0
+
+
+if __name__ == "__main__":
+    main()

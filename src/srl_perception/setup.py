@@ -26,6 +26,17 @@ setup(
     entry_points={
         'console_scripts': [
             'mock_rgbd_camera = srl_perception.mock_rgbd_camera:main',
+            # THE SCENE CAMERA: the front-of-table view of the table, the
+            # objects and the WEARER. Its job is to make the wearer's body a
+            # measured quantity rather than a declared one.
+            'scene_camera_node = srl_perception.scene_camera_node:main',
+            # The body tracker is NOT registered here on purpose. It needs
+            # MediaPipe, which lives in .venv_pose and must not be installed
+            # system-wide -- `ros2 run` would start it under the system
+            # interpreter, where it cannot import its model and would refuse
+            # every frame. scripts/run_wearer_tracker.sh starts it correctly.
+            # The end-to-end check is scripts/verify_scene_camera.py, a
+            # script rather than a node: it must be runnable with no stack.
             # PRIMARY detector. Named for what it does, not for the library.
             'apriltag_detector = srl_perception.apriltag_detector:main',
             # Clearly-secondary fallback; off unless explicitly enabled.

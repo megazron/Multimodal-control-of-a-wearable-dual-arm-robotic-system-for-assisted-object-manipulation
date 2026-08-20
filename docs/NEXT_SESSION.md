@@ -1,3 +1,84 @@
+# RESUME POINT 2026-08-20 — THE GUI IS ONE COMMAND, AND THE SECOND VIEW IS REAL
+
+## THE ONE-PARAGRAPH VERSION
+
+`bash scripts/start_gui.sh` opens the operations window with everything
+reachable from it. RViz (COMMANDED) is embedded beside a native ACTUAL panel
+drawn from the real arms' own `real_*` frames, with the per-joint and
+end-effector divergence readout underneath both, against the trip threshold
+read from the bridge. The left column is grouped SET UP / RUN / STATUS, and a
+CONNECT THE REAL ARMS panel names eight connection faults in plain words with
+the fix as a button. `verify_gui_buttons.py` reads 163 checks, 0 failed.
+Parts 2 to 4 of the brief are DESIGNED, not built: docs/system/16, 17 and 18,
+with costs.
+
+## WHAT THE BUILD FOUND, AND ALL OF IT WAS THE GUI
+
+1. **"Embedding does not work here" was a fact about the DISPLAY, not about
+   the technique.** The measurement behind that conclusion was taken on a host
+   with no window manager. On this box's real display (WSLg, which runs one)
+   `--embed-rviz` puts RViz inside the panel and clips it -- confirmed from the
+   geometry dump: overlay 1005..1554, actual_arms 1566..1913, divergence
+   1002..1918, side by side and not overlapping. Embedding is now the default
+   WHERE A WINDOW MANAGER IS ACTUALLY PRESENT, asked of the X root window by
+   `_have_wm()` rather than inferred from the platform.
+2. **Four of T1's five mode buttons could only ever exit 1**, because T1
+   declares `modes=("06_full_autonomy",)` and the GUI did not read it. They
+   are disabled now with the task's own reason on them.
+3. **T1 STAGE 2 HAD NO MODE RESTRICTION AT ALL, and it sends the same
+   non-anchor approach.** Stage 1's four teleop buttons refused loudly; stage
+   2's four would have SUCCEEDED and filed T1's geometry under a teleop mode's
+   name. `modes` added to the task spec.
+4. **The connection check froze the window for 16.7 seconds** when it was run
+   inline -- correctly, because finding out that the daemon is not answering
+   means WAITING for it. It runs on a worker now. A window carrying the e-stop
+   must not stop repainting for sixteen seconds.
+5. **Re-rendering the connection rows deleted the buttons underneath them.**
+   The audit found it by crashing on a QPushButton that had been deleted
+   mid-walk; on a rig that is a re-check landing while somebody is reaching for
+   a fix. Seven -- now eight -- permanent rows, updated in place.
+6. **`_scratch()` read a directory it never created**, so with SRL_SCRATCH set
+   to a path that did not exist, writing the RViz config raised inside a Qt
+   slot and RViz never started while the panel said "starting RViz..." for
+   ever.
+7. **The level-1 dispatch check was testing an argv no button produces.** It
+   ran `run_experiment.sh <task> --dry-run` with no `--mode`, failed on m1, and
+   filed a correct refusal as a broken button. It now dispatches each enabled
+   button's OWN argv, and separately requires every mode-locked button's stated
+   reason to be TRUE by dispatching it and requiring a refusal.
+8. **The task drop-down in the Instruct tab changed what CONFIRM would run and
+   left no trace anywhere**, with the previous stage's plan still on screen.
+   Switching now clears the plan and says why.
+
+## WHAT THE CONNECTION PANEL FOUND ON THIS BOX, WHICH IS THE POINT
+
+Running it for the first time diagnosed a real mess left from 2026-08-19: an
+18-hour-old teleop stack still running, the ros2 daemon hung so the graph was
+invisible, 293 leftover Fast DDS segments, and -- after the launch was stopped
+-- **seven of its nodes still running and still publishing**, re-parented to
+init. That last one is not a second stack and is not a stray robot description,
+so neither existing check could see it. It is now the eighth row,
+`check_orphans`, and its fix stopped exactly those seven and nothing else.
+
+## WHAT TO DO NEXT, IN ORDER
+
+1. **Open the GUI on the real display and look at the embedded RViz.** The
+   geometry dump says the panels are side by side and not overlapping;
+   x11grab records black on WSLg, so that is measured and not SEEN. It is the
+   one claim in this session backed by numbers rather than pixels.
+2. **Decide what to build of Parts 2 to 4.** The cheapest useful items are, in
+   order: the per-participant tape-measured wearer size (0.5 session, no
+   hardware, no new failure mode, removes most of the mannequin error); the
+   capability panel over the ladders that ALREADY EXIST (1.5 sessions, adds no
+   new fallback behaviour); `immersive-ar` passthrough (1 session, two client
+   lines).
+3. The four items from the 2026-08-18 list are unchanged and still open:
+   `verify_grasp_quality`'s wrist criterion against a pinned wrist,
+   `verify_gripper_motion` / `verify_object_attachment`, the 128 s look, and
+   `PAD_OFFSET_BY_ARM` still 13.45 mm longer than the measured `PAD_MID_EE`.
+
+---
+
 # RUNNING FULL AUTONOMY (MODE 06) ON THE REAL ARMS — READ BEFORE TRYING
 
 **Nothing in this repository has ever run against a real arm.** Everything

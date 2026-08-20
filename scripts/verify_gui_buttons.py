@@ -66,19 +66,57 @@ def level1_dispatch():
     check("1", "dispatcher task list parsed", True,
           "%d tasks: %s" % (len(accepted), " ".join(sorted(accepted))))
 
-    for t in sorted(accepted):
-        argv = [os.path.join(WS, "scripts", "run_experiment.sh"), t,
-                "--participant", "GUIVERIFY", "--dry-run"]
+    # DISPATCH THE ARGV THE BUTTON ACTUALLY SENDS, not a shortened one.
+    #
+    # This used to run `run_experiment.sh <task> --dry-run` with NO --mode,
+    # which is a command line no button in the GUI produces. It failed on m1,
+    # correctly and unhelpfully: T1 runs under 06 only, the dispatcher said so
+    # in a sentence, and the audit filed it as a broken button. The button was
+    # never broken; the check was testing an argv that does not exist.
+    #
+    # So: one dispatch per ENABLED task and demo button, using its own argv.
+    # A disabled button is not dispatched, because a disabled button cannot be
+    # pressed -- but it is counted, so "0 enabled buttons" cannot pass.
+    specs = [x for x in gls.all_specs()
+             if x.group in ("task", "demo") and x.enabled]
+    disabled = [x for x in gls.all_specs()
+                if x.group in ("task", "demo") and not x.enabled]
+    check("1", "enabled task/demo buttons to dispatch", bool(specs),
+          "%d enabled, %d disabled with a stated reason" % (len(specs),
+                                                            len(disabled)))
+    for sp in specs:
+        argv = list(sp.argv) + ["--dry-run"]
         try:
             p = subprocess.run(argv, capture_output=True, text=True,
                                timeout=120)
         except subprocess.TimeoutExpired:
-            check("1", "dispatch %s" % t, False, "timed out after 120 s")
+            check("1", "dispatch %s" % sp.key, False, "timed out after 120 s")
             continue
         tail = (p.stderr or p.stdout or "").strip().splitlines()
         tail = tail[-1][:70] if tail else ""
-        check("1", "dispatch %s" % t, p.returncode == 0,
+        check("1", "dispatch %s" % sp.key, p.returncode == 0,
               "exit %d  %s" % (p.returncode, tail))
+
+    # AND THE OTHER HALF: a DISABLED button must be disabled for a reason that
+    # is TRUE. A button greyed out with a false explanation is as bad as a
+    # button that exits 2, and harder to notice -- it simply looks unavailable
+    # for ever. So every mode-locked button is dispatched too, and is required
+    # to be REFUSED.
+    locked = [x for x in disabled if "runs under" in (x.disabled_reason or "")]
+    for sp in locked:
+        argv = list(sp.argv) + ["--dry-run"]
+        try:
+            p = subprocess.run(argv, capture_output=True, text=True,
+                               timeout=120)
+        except subprocess.TimeoutExpired:
+            check("1", "refusal is real: %s" % sp.key, False, "timed out")
+            continue
+        out = (p.stderr or "") + (p.stdout or "")
+        check("1", "refusal is real: %s" % sp.key,
+              p.returncode != 0 and "REFUSING" in out,
+              "exit %d  %s" % (p.returncode,
+                               out.strip().splitlines()[0][:60] if out.strip()
+                               else ""))
 
 
 # ---------------------------------------------------------------- level 2
@@ -145,8 +183,36 @@ def level2_click():
     _QMB.question = staticmethod(lambda *a, **k: _QMB.No)
     _QMB.information = staticmethod(lambda *a, **k: _QMB.Ok)
 
+    # THE CONNECTION PANEL'S REPAIRS, INTERCEPTED FOR THE SAME REASON AS THE
+    # LAUNCHES AND NO OTHER. Three of them are real repairs to the machine
+    # this audit is running on: restarting the discovery helper takes several
+    # seconds and would be reported here as a frozen window, and restarting
+    # the master arm reader would leave a node running after the audit
+    # finished. The click path -- the diagnosis, the wrapper, the log line,
+    # the re-check -- runs in full; only the last step is replaced.
+    #
+    # NOT INTERCEPTED, deliberately: clearing the leftover memory blocks.
+    # That button only exists when there ARE leftovers and NOTHING is
+    # running, which is precisely the state in which clearing them is the
+    # correct action, and the repair refuses on its own if a stack appears.
+    repaired = []
+
+    def _stub(name, msg):
+        def go():
+            repaired.append(name)
+            return True, msg
+        return go
+    srl_gui.rad.fix_reset_daemon = _stub(
+        "reset_daemon", "would restart the discovery helper")
+    srl_gui.rad.fix_kill_second_stack = _stub(
+        "kill_second_stack", "would stop the duplicate")
+    srl_gui.rad.fix_kill_stray_rsp = _stub(
+        "kill_stray_rsp", "would stop the leftover")
+    srl_gui.Gui._fix_teensy_repoint = lambda self: (
+        repaired.append("teensy_repoint"),
+        (True, "would restart the master arm reader"))[1]
+
     from PyQt5.QtWidgets import QApplication, QPushButton, QCheckBox, QSlider
-    from PyQt5.QtCore import Qt
 
     rclpy.init()
     bus = srl_gui.Bus()
@@ -158,6 +224,26 @@ def level2_click():
     g = srl_gui.Gui(bus, Args())
     g.show()
     app.processEvents()
+
+    # THE CONNECTION PANEL'S ROWS ARE BUILT FROM A DIAGNOSIS, so they do not
+    # exist until one has been made -- and the first one is scheduled 1.2 s
+    # after the window opens, deliberately, because the checks shell out and a
+    # window that does not appear for eight seconds reads as a crash.
+    #
+    # Collecting the buttons before that ran would have audited a panel with
+    # no rows in it and reported a pass. This is the same defect as the modal
+    # dialog that hid five buttons for months: the audit walking a window that
+    # is not finished.
+    g.on_doctor_check()
+    checks = g.doctor_wait(45)
+    check("2", "connection panel rendered its checks", len(checks) >= 7,
+          "%d row(s): %s" % (len(checks), ", ".join(c.key for c in checks)))
+    _states = {c.state for c in checks}
+    check("2", "connection panel never green on unknown",
+          not (srl_gui.rad.verdict(checks)[0] == srl_gui.rad.OK
+               and srl_gui.rad.UNKNOWN in _states),
+          "verdict %s over states %s" % (srl_gui.rad.verdict(checks)[0],
+                                         "/".join(sorted(_states))))
 
     buttons = g.findChildren(QPushButton)
     # A BUTTON THAT DOES NOT RETURN IS A FAILURE, reported as one rather than
@@ -226,6 +312,178 @@ def level2_click():
             time.sleep(0.05)
         check("2", "checkbox %s" % c.text(), len(bus.log) > before,
               "%d entries" % (len(bus.log) - before))
+
+    # DROP-DOWNS ARE CONTROLS TOO, and none of them was ever exercised. The
+    # ACTUAL panel's view selector is one: it changes what the operator is
+    # looking at, and a selector wired to nothing looks exactly like a view
+    # that has only one angle.
+    from PyQt5.QtWidgets import QComboBox
+    for cb in g.findChildren(QComboBox):
+        if cb.count() < 2:
+            continue
+        before = len(bus.log)
+        cb.setCurrentIndex((cb.currentIndex() + 1) % cb.count())
+        app.processEvents()
+        time.sleep(0.2)
+        for _ in range(4):
+            app.processEvents()
+            time.sleep(0.05)
+        check("2", "drop-down -> %s" % cb.currentText()[:28],
+              len(bus.log) > before, "%d entries" % (len(bus.log) - before))
+
+    # ------------------------------------------------------------ level 2b
+    # EVERY REPAIR BUTTON, INCLUDING THE ONES THE MACHINE IS TOO HEALTHY TO
+    # SHOW.
+    #
+    # The connection panel draws a row's fix button only when that row is
+    # BAD, so a walk of the live window presses whichever repairs the box
+    # happens to need that day -- one of eight, on a healthy machine. Six
+    # buttons would then go unpressed for ever while the audit reported that
+    # every button had been pressed, which is the "a check that cannot fail"
+    # shape.
+    #
+    # So each fault is forced into the panel through the SAME render path the
+    # live diagnosis uses, and the resulting button is pressed for real. The
+    # three repairs that would disturb this machine are already stubbed above;
+    # the rest run, and the modal ones are answered No, which exercises the
+    # decline branch.
+    print("\n-- LEVEL 2b: force each connection fault and press its repair")
+    rad = srl_gui.rad
+
+    class _Broken(rad.Probe):
+        """A world with exactly one thing wrong in it."""
+
+        def __init__(self, **kw):
+            self.kw = kw
+
+        def my_env(self):
+            return self.kw.get("env", dict(rad.EXPECTED))
+
+        def stack_pids(self):
+            return self.kw.get("stack", [])
+
+        def live_pids(self):
+            return self.kw.get("live", [])
+
+        def env_of(self, pid):
+            return self.kw.get("envs", {}).get(pid)
+
+        def shm_segments(self):
+            return self.kw.get("shm", [])
+
+        def daemon_nodes(self, timeout_s=8):
+            return self.kw.get("daemon", (["/x"], False))
+
+        def find(self, rx):
+            for k, v in self.kw.get("procs", {}).items():
+                if k in rx:
+                    return v
+            return []
+
+        def orphan_nodes(self):
+            return self.kw.get("orphans", [])
+
+        def tty_candidates(self):
+            return self.kw.get("ttys", ["/dev/ttyACM0"])
+
+        def master_port_param(self):
+            return self.kw.get("port", "")
+
+        def joint_states(self):
+            return None, self.kw.get("real")
+
+        def home_radians(self, arm):
+            return [0.0] * 7
+
+        def kortex_procs(self):
+            return []
+
+        def kortex_log_tail(self):
+            return self.kw.get("ktail", "kortex session closed cleanly")
+
+    WORLDS = [
+        ("discovery", dict(env=dict(rad.EXPECTED,
+                                    FASTDDS_BUILTIN_TRANSPORTS=""))),
+        ("shm", dict(shm=["/dev/shm/fastrtps_synthetic"], live=[])),
+        ("daemon", dict(daemon=([], True))),
+        ("second_stack", dict(procs={"master_pose_node": [
+            (1, "a/lib/srl_teleop/master_pose_node"),
+            (2, "b/lib/srl_teleop/master_pose_node")]})),
+        ("orphans", dict(orphans=[(1, "/opt/ros/jazzy/lib/rviz2/rviz2")])),
+        ("teensy-absent", dict(ttys=[])),
+        ("teensy-moved", dict(ttys=["/dev/ttyACM1"], port="/dev/ttyACM0")),
+        ("home", dict(real={"left_joint_%d" % (i + 1): (1.94 if i == 6 else 0.0)
+                            for i in range(7)})),
+        ("kortex", dict(ktail="the process died\n")),
+    ]
+    pressed_fixes = []
+    for name, kw in WORLDS:
+        checks = rad.run_all(_Broken(**kw), g._doctor_fixes())
+        bad = [c for c in checks if c.state == rad.BAD and c.has_fix]
+        g._doctor_render(checks)
+        app.processEvents()
+        if not bad:
+            check("2b", "fault appears: %s" % name, False,
+                  "no BAD row with a repair -- the fault was not reproduced")
+            continue
+        ok_all, detail = True, []
+        for c in bad:
+            row = g.doc_rows.get(c.key)
+            if row is None:
+                ok_all = False
+                detail.append("%s has no row" % c.key)
+                continue
+            btn = row[3]
+            if not btn.isVisible() and btn.text() != c.fix_label:
+                ok_all = False
+                detail.append("%s button not shown" % c.key)
+                continue
+            before = len(bus.log)
+            t0 = time.time()
+            try:
+                btn.click()
+                app.processEvents()
+                time.sleep(0.15)
+                for _ in range(6):
+                    app.processEvents()
+                    time.sleep(0.05)
+            except Exception as e:                            # noqa: BLE001
+                ok_all = False
+                detail.append("%s RAISED %r" % (c.key, e))
+                continue
+            dt = time.time() - t0
+            if dt > SLOW_S:
+                ok_all = False
+                detail.append("%s took %.1f s" % (c.key, dt))
+            if len(bus.log) <= before:
+                ok_all = False
+                detail.append("%s pressed SILENTLY" % c.key)
+            else:
+                pressed_fixes.append(c.key)
+                # [1] is the MESSAGE. [0] is the timestamp, and printing
+                # that showed a clock beside every repair instead of what the
+                # repair said it had done.
+                detail.append("%s: %s" % (c.fix_label[:22],
+                                          bus.log[-1][1][:34]))
+        check("2b", "repair pressed: %s" % name, ok_all,
+              "; ".join(detail)[:110])
+
+    # AND EVERY ONE OF THEM, not just the ones this machine happened to need.
+    want = {"discovery", "shm", "daemon", "second_stack", "orphans", "teensy",
+            "home", "kortex"}
+    check("2b", "every repair button pressed at least once",
+          want <= set(pressed_fixes),
+          "missing: %s" % (", ".join(sorted(want - set(pressed_fixes)))
+                           or "none"))
+
+    # A HEALTHY WORLD MUST SHOW NO REPAIR BUTTONS AT ALL. Without this the
+    # test above passes on a panel that shows every button all the time.
+    healthy = rad.run_all(_Broken(), g._doctor_fixes())
+    g._doctor_render(healthy)
+    app.processEvents()
+    shown = [k for k, row in g.doc_rows.items() if row[3].isVisible()]
+    check("2b", "no repair offered when nothing is wrong", not shown,
+          "buttons shown: %s" % (", ".join(shown) or "none"))
 
     # Every enabled launch spec must have been pressed.
     enabled = {s.key for s in g.specs if s.enabled}

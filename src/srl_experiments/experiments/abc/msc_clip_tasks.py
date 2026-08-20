@@ -530,6 +530,22 @@ TASKS = {
         # error is CLAUDE.md's "everything matches" row, and it read as a
         # perfect approach and a dead gripper.
         orient=T1M.APPROACH,
+        # THE SAME MODE RESTRICTION STAGE 1 CARRIES, AND IT WAS MISSING.
+        #
+        # Stage 1 declares `modes=("06_full_autonomy",)` because it commands
+        # its own approach orientation rather than the pinned anchor, so a
+        # run under a teleop mode would put an operator's pinned wrist against
+        # a geometry that was never measured for it -- and the difference
+        # would then be reported as a MODE effect, which is the one thing the
+        # mode-independence property exists to prevent.
+        #
+        # Stage 2 sends `T1M.APPROACH` -- the line directly above -- so every
+        # word of that applies to it, and it had no restriction at all. The
+        # GUI therefore offered four buttons that would each have run T1's
+        # geometry under a teleop mode's name and logged it as a trial. Stage
+        # 1's four buttons refused loudly; stage 2's would have succeeded,
+        # which is worse.
+        modes=("06_full_autonomy",),
         grip=lambda n: t1s2_grip(n),
         grip_at=lambda n: t1s2_grip_at(n),
         width_mm=40,

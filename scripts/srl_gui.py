@@ -1,9 +1,32 @@
 #!/usr/bin/env python3
 """SRL operations GUI -- DUAL VIEW: commanded beside actual, and the gap named.
 
-    python3 scripts/srl_gui.py                 # both panels
-    python3 scripts/srl_gui.py --single-rviz   # fallback: one panel, ghosted
+    bash scripts/start_gui.sh                  # THE ONE COMMAND. Use this.
+    python3 scripts/srl_gui.py                 # if the environment is already set
+    python3 scripts/srl_gui.py --no-embed-rviz # RViz as its own window
     python3 scripts/srl_gui.py --no-rviz       # indicators only (capture/CI)
+
+THREE THINGS ARE ON SCREEN AT ONCE, and that is the whole layout argument:
+
+  COMMANDED   RViz, the sim, driven by whichever mode is active. Embedded
+              where a window manager exists (detected, see `_have_wm`).
+  ACTUAL      where the REAL arms are, drawn from the `real_*` frames in the
+              shared /tf, or from /real/joint_states through the robot model
+              when the real publisher is not up. The panel names which.
+              See scripts/srl_arm_view.py.
+  DIVERGENCE  underneath both: per-joint (commanded - actual) and end-effector
+              distance, against the trip threshold READ FROM THE BRIDGE.
+
+THE LEFT COLUMN IS GROUPED BY WHAT YOU ARE DOING, not by what the system
+contains: SET UP (connect the arms, the things you set once), RUN (start a
+mode, run a task, the controls you touch while it runs), STATUS (read-only).
+
+CONNECTING THE REAL ARMS IS A PANEL, NOT A MEMORY TEST. Eight checks, each in
+plain words with the fix as a button: the discovery partition, leftover shared
+memory, a hung daemon, a second stack, pieces of an earlier run still going,
+the Teensy moving between sockets, the sim/real home gap, and a leaked Kortex
+session. The checks live in srl_teleop/real_arm_doctor.py so a test can hand
+each one a deliberately broken world -- see test_real_arm_doctor.py.
 
 WHY TWO PANELS. The cascade drives the real arms from the sim arms, and the
 lag monitor trips at `lag_trip_rad`. Until now that threshold was a number
@@ -92,6 +115,12 @@ from srl_teleop import precision_speed as ps                 # noqa: E402
 # does the same damage as a second stack and is not caught by the process
 # count. The guard against it has been dead for as long as it has existed.
 from srl_teleop import procscan                               # noqa: E402
+# THE SEVEN CONNECTION FAULTS, EACH WITH A BUTTON. Kept out of this
+# file so they can be driven by a test with a deliberately broken
+# world -- see test_real_arm_doctor.py. A panel whose checks can only
+# be exercised by breaking the actual machine is a panel nobody
+# exercises.
+from srl_teleop import real_arm_doctor as rad                 # noqa: E402
 
 from PyQt5.QtCore import Qt, QTimer                          # noqa: E402
 from PyQt5.QtGui import (QColor, QFont, QImage, QPalette,    # noqa: E402
@@ -116,6 +145,7 @@ ARMS = ("left", "right")
 from srl_hud import (ReadyPanel, ACCENT, BAD, BG, LINE, MUTED, PANEL, TEXT,   # noqa: E402
                      UNKNOWN, WARN, MasterArmSchematic, RobotSchematic,
                      Strip, mono, sans)
+import srl_arm_view as av                                    # noqa: E402
 
 C_BG = BG
 C_TEXT = TEXT
@@ -414,10 +444,108 @@ class Bus(Node):
             s["div"][a] = r
         s["lag_trip"] = self.lag_trip
         s["lag_trip_src"] = self.lag_trip_src
+        # THE ACTUAL PANEL'S POINTS, taken on the ROS thread with everything
+        # else. Computed here rather than in the widget so the widget never
+        # touches TF and never blocks the paint on a lookup.
+        s["skel"] = self._skeletons()
+        # The raw joint dictionaries, for the connection panel's home check.
+        # Copied, not shared: the panel must not see a dict mutate under it.
+        s["sim_pos"] = {k: v for a in ARMS for k, v in self.sim[a].pos.items()}
+        s["real_pos"] = {k: v for a in ARMS for k, v in self.real[a].pos.items()}
+        s["real_age"] = {a: self.real[a].arrival_age() for a in ARMS}
         s["master_schema"] = self._master_schema()
         s["robot_schema"] = self._robot_schema()
         s["log"] = list(self.log[-200:])
         self.snap = s
+
+    # --------------------------------------------------- the ACTUAL panel
+    def _skeletons(self):
+        """(real, sim, note, state) for the ACTUAL view.
+
+        TWO SOURCES, IN ORDER, AND THE ONE USED IS NAMED ON SCREEN:
+
+          1. the `real_*` frames in the SHARED /tf -- the stack's own answer,
+             computed by the same publisher RViz would read. THERE IS NO
+             /real/tf; both real launches use frame_prefix="real_".
+          2. forward kinematics on /real/joint_states, when the joint stream
+             is up but the real robot_state_publisher is not. That is a state
+             this rig actually reaches, and without this branch the panel
+             would read NO REAL ARM while the arm was reporting.
+
+        THERE IS NO THIRD SOURCE. When neither works, the skeletons come back
+        empty and the panel draws nothing -- it never holds the last good
+        pose, because a frozen skeleton and a still arm are the same picture.
+        """
+        real, sim = {}, {}
+        used = None
+        for a in ARMS:
+            sk = av.from_tf(self, a, "real_")
+            if sk.ok:
+                real[a] = sk
+                used = used or sk.source
+            else:
+                real[a] = av.Skeleton(a)
+            sim[a] = av.from_tf(self, a, "")
+        # Fall back to FK only for arms TF could not answer for, and only
+        # when that arm is actually reporting joint angles.
+        for a in ARMS:
+            if real[a].ok:
+                continue
+            q = self._joint_vector(self.real[a], a)
+            if q is None:
+                continue
+            fk = self._fk()
+            sk = av.from_fk(fk, a, q)
+            if sk.ok:
+                real[a] = sk
+                used = used or sk.source
+            if not sim[a].ok:
+                qs = self._joint_vector(self.sim[a], a)
+                if qs is not None and fk is not None:
+                    sim[a] = av.from_fk(fk, a, qs)
+        n_real = sum(1 for a in ARMS if real[a].ok)
+        if n_real == 0:
+            note, state = ("nothing is reporting where the real arms are",
+                           "unknown")
+        else:
+            ages = [self.real[a].arrival_age() for a in ARMS
+                    if self.real[a].arrival_age() is not None]
+            age = min(ages) if ages else None
+            stale = age is not None and age > 2.0
+            note = "%d of 2 arms, from %s%s" % (
+                n_real, used or "the arms' own report",
+                "" if age is None else "  (last heard %.1f s ago)" % age)
+            state = "bad" if stale else ("ok" if n_real == 2 else "bad")
+        return real, sim, note, state
+
+    @staticmethod
+    def _joint_vector(side, arm):
+        """Seven joint angles for `arm` from a divergence.Side, or None.
+
+        ALL SEVEN OR NONE. Six angles and a zero draws a plausible arm in the
+        wrong place, which is worse than drawing nothing.
+        """
+        out = []
+        for i in range(7):
+            v = side.pos.get("%s_joint_%d" % (arm, i + 1))
+            if v is None:
+                return None
+            out.append(v)
+        return out
+
+    def _fk(self):
+        """The URDF kinematics, built once, lazily, and never on the paint
+        path. Returns None if the model cannot be built -- which is UNKNOWN,
+        not a reason to draw an arm at zero."""
+        if hasattr(self, "_fk_cache"):
+            return self._fk_cache
+        self._fk_cache = None
+        try:
+            import srl_fk
+            self._fk_cache = srl_fk.FK()
+        except Exception as e:                                # noqa: BLE001
+            self.note("robot model unavailable for the actual view: %r" % (e,))
+        return self._fk_cache
 
     # ------------------------------------------------------- schematics
     def _frozen_idx(self, arm):
@@ -663,6 +791,8 @@ class Gui(QMainWindow):
         super().__init__()
         self.bus = bus
         self.args = args
+        self.specs = None               # the launch manifest, built once
+        self.buttons = {}
         self.rviz = []                  # [(name, Popen)]
         self.embedded = {}              # key -> (QWindow, container)
         self.jobs = []                  # [(label, Popen)]
@@ -696,7 +826,7 @@ class Gui(QMainWindow):
         # RViz covering the banner, controls, cameras, indicators AND the
         # divergence readout, i.e. every panel the GUI exists to show.
         self.split.setCollapsible(0, False)
-        self.split.setSizes([336, 1090, 494])
+        self.split.setSizes([376, 620, 924])
 
         outer.addLayout(self._bottom_bar())
         self.setCentralWidget(root)
@@ -727,16 +857,17 @@ class Gui(QMainWindow):
 
     # ---------------------------------------------------------- left column
     def _left_column(self):
-        host = QScrollArea()
-        host.setWidgetResizable(True)
-        # NO HORIZONTAL SCROLL. With one, the inner widget keeps its natural
-        # width and every button is clipped at both edges -- which is how the
-        # column looked before: labels sliced down the middle.
-        host.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        host.setMinimumWidth(330)
-        inner = QWidget()
-        inner.setMaximumWidth(330)
-        col = QVBoxLayout(inner)
+        # ONE SCROLL LEVEL, NOT TWO. The column was a QScrollArea holding
+        # everything; the three activity tabs inside it scroll on their own,
+        # and a scroll area inside a scroll area gives two scrollbars, two
+        # sets of margins and a content width narrow enough to slice every
+        # button label down the middle -- measured from a screenshot: "release
+        # RIGHT g", "PRECISION ... SP".
+        host = QWidget()
+        host.setMinimumWidth(362)
+        host.setMaximumWidth(392)
+        col = QVBoxLayout(host)
+        col.setContentsMargins(0, 0, 0, 0)
 
         # THE CAMERAS GO FIRST. For a remote operator this is the only view of
         # the workspace at all: every other panel describes the ROBOT, and the
@@ -759,6 +890,11 @@ class Gui(QMainWindow):
             cap = QLabel()
             cap.setFont(helvetica(9))
             cap.setAlignment(Qt.AlignCenter)
+            # WRAPPED, NOT CLIPPED. Centred in a 140 px label the caption lost
+            # BOTH ends: "AMERA -- no frame has ever a". A camera panel whose
+            # caption cannot be read is a camera panel with no caption, and
+            # the caption is the only thing separating "live" from "stale".
+            cap.setWordWrap(True)
             c.addWidget(nm)
             c.addWidget(img)
             c.addWidget(cap)
@@ -766,9 +902,45 @@ class Gui(QMainWindow):
             self.cam_lbl[a], self.cam_cap[a] = img, cap
         col.addWidget(campanel)
 
-        col.addWidget(self._controls())
-        col.addWidget(self._launchers())
+        # GROUPED BY WHAT YOU ARE DOING, NOT BY WHAT THE SYSTEM CONTAINS.
+        #
+        # Everything here was previously one long column: connect-the-arms
+        # controls, per-run controls and read-only status stacked together, so
+        # the two sliders you set once at the start of a session sat between
+        # the buttons you press during it. Three tabs, and the rule for which
+        # tab something goes in is the question it answers:
+        #
+        #   SET UP   things you do BEFORE a run and then stop touching
+        #   RUN      what you press and watch WHILE something is running
+        #   STATUS   read-only. Nothing in here changes the robot.
+        #
+        # Nothing is removed and no widget is renamed -- `verify_gui_buttons`
+        # walks this window and presses everything it finds, and the recording
+        # sweep calls Gui.on_launch directly, so both keep working.
+        acttabs = QTabWidget()
+        acttabs.setFont(helvetica(10))
+        self.act_tabs = acttabs
 
+        setup = QWidget()
+        sv = QVBoxLayout(setup)
+        sv.setContentsMargins(2, 4, 2, 2)
+        sv.addWidget(self._connect_panel())
+        sv.addWidget(self._setup_controls())
+        sv.addWidget(self._diag_launchers())
+        sv.addStretch(1)
+        acttabs.addTab(self._scroll(setup), "SET UP")
+
+        run = QWidget()
+        rv = QVBoxLayout(run)
+        rv.setContentsMargins(2, 4, 2, 2)
+        rv.addWidget(self._controls())
+        rv.addWidget(self._launchers())
+        rv.addStretch(1)
+        acttabs.addTab(self._scroll(run), "RUN")
+
+        status = QWidget()
+        stv = QVBoxLayout(status)
+        stv.setContentsMargins(2, 4, 2, 2)
         self.ind = {}
         for title, keys in (
             ("Master", ("capability_left", "capability_right", "channels",
@@ -785,19 +957,52 @@ class Gui(QMainWindow):
                 w = Ind(k.replace("_", " "))
                 self.ind[k] = w
                 gl.addWidget(w, i // 2, i % 2)
-            col.addWidget(g)
+            stv.addWidget(g)
+        stv.addStretch(1)
+        acttabs.addTab(self._scroll(status), "STATUS")
+        acttabs.setCurrentIndex(1)              # RUN, which is the usual case
 
-        col.addStretch(1)
-        host.setWidget(inner)
+        col.addWidget(acttabs, 1)
         return host
 
+    @staticmethod
+    def _scroll(widget):
+        sa = QScrollArea()
+        sa.setWidgetResizable(True)
+        sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        sa.setStyleSheet("border:none")
+        sa.setWidget(widget)
+        return sa
+
     def _controls(self):
-        g = QGroupBox("Controls")
+        """WHAT YOU TOUCH WHILE SOMETHING IS RUNNING, and nothing else.
+
+        The precision dial and the two grip releases. The scale sliders, the
+        anchor re-base and the clutch override moved to SET UP: they are set
+        once at the start of a session, and a control you use once does not
+        belong beside the one you reach for when the gripper will not let go.
+        """
+        g = QGroupBox("While it is running")
         g.setFont(helvetica(11, True))
         v = QVBoxLayout(g)
 
         self.dial = Dial(self.on_dial)
         v.addWidget(self.dial)
+
+        r = QHBoxLayout()
+        for lbl, fn in (("release LEFT grip", lambda: self.on_release("left")),
+                        ("release RIGHT grip", lambda: self.on_release("right"))):
+            b = QPushButton(lbl)
+            b.clicked.connect(fn)
+            r.addWidget(b)
+        v.addLayout(r)
+        return g
+
+    def _setup_controls(self):
+        """Set once, before a run. Deliberately NOT beside the running ones."""
+        g = QGroupBox("Set once, before a run")
+        g.setFont(helvetica(11, True))
+        v = QVBoxLayout(g)
 
         row = QHBoxLayout()
         self.force_clutch = QCheckBox("force clutch ENGAGED")
@@ -815,76 +1020,506 @@ class Gui(QMainWindow):
         for a in ARMS:
             r = QHBoxLayout()
             r.addWidget(QLabel("%s scale" % a))
-            s = QSlider(Qt.Horizontal)
-            s.setRange(20, 200)
-            s.setValue(100)
+            sl = QSlider(Qt.Horizontal)
+            sl.setRange(20, 200)
+            sl.setValue(100)
             lab = QLabel("1.00")
             lab.setFont(helvetica(10))
-            s.valueChanged.connect(lambda x, l=lab: l.setText("%.2f" % (x / 100.0)))
-            s.sliderReleased.connect(
-                lambda a=a, s=s: self.on_scale(a, s.value() / 100.0))
-            r.addWidget(s, 1)
+            sl.valueChanged.connect(
+                lambda x, l=lab: l.setText("%.2f" % (x / 100.0)))
+            sl.sliderReleased.connect(
+                lambda a=a, sl=sl: self.on_scale(a, sl.value() / 100.0))
+            r.addWidget(sl, 1)
             r.addWidget(lab)
             v.addLayout(r)
-            self.scale[a] = s
-
-        r = QHBoxLayout()
-        for lbl, fn in (("release LEFT grip", lambda: self.on_release("left")),
-                        ("release RIGHT grip", lambda: self.on_release("right"))):
-            b = QPushButton(lbl)
-            b.clicked.connect(fn)
-            r.addWidget(b)
-        v.addLayout(r)
+            self.scale[a] = sl
         return g
 
-    def _launchers(self):
-        g = QGroupBox("Launch")
+    # ====================================================================
+    # CONNECTING THE REAL ARMS -- the seven faults, named, each with a button
+    # ====================================================================
+    #
+    # WHAT THIS PANEL IS FOR. Every connection problem this project has hit
+    # was diagnosed by a person remembering something: which shell had sourced
+    # what, that /dev/shm had to be cleared with the stack DOWN, that the
+    # daemon hangs rather than fails, that the Teensy moves between ACM0 and
+    # ACM1, that the arm permits exactly one session. Remembering is not a
+    # mechanism. Each of those is now a row here: what is wrong in plain
+    # words, and the fix as a button.
+    #
+    # THE TWO RULES THE ROWS OBEY, and they are the reason the checks live in
+    # srl_teleop/real_arm_doctor.py rather than in this file:
+    #
+    #   * NEVER GREEN ON UNKNOWN. A check that could not run reads "could not
+    #     be checked" in purple. G-3 says the readiness gate is never green on
+    #     unknown; a connection panel that says "ready" because it could not
+    #     look is the same defect with the arms switched on.
+    #   * A CHECK THAT CANNOT FAIL ON A DELIBERATELY BROKEN INPUT IS NOT A
+    #     CHECK. Every check reads the world through a Probe object, so
+    #     test_real_arm_doctor.py hands each one a broken world and requires
+    #     it to say so -- without unplugging a board or killing a daemon.
+    #
+    # NO TOPIC NAMES AND NO RAW ERRORS in what is displayed. The machinery
+    # goes to the event log, where it is useful for a bug report and harmless
+    # under time pressure.
+    def _connect_panel(self):
+        g = QGroupBox("Connect the real arms")
         g.setFont(helvetica(11, True))
         v = QVBoxLayout(g)
-        self.specs = gls.all_specs()
-        gls.validate(self.specs)
-        self.buttons = {}
-        # EVERY GROUP THE MANIFEST DECLARES, NOT THREE OF THE FOUR.
+
+        self.doc_head = QLabel("NOT CHECKED YET")
+        self.doc_head.setFont(helvetica(11, True))
+        self.doc_head.setStyleSheet("color:%s" % C_UNKNOWN)
+        self.doc_head.setWordWrap(True)
+        v.addWidget(self.doc_head)
+
+        row = QHBoxLayout()
+        b = QPushButton("CHECK EVERYTHING")
+        b.setFont(helvetica(10, True))
+        b.setToolTip("Runs the seven connection checks. They shell out, so "
+                     "they run off this window's thread -- the window stays "
+                     "responsive and the e-stop stays live while they run.")
+        b.clicked.connect(lambda: self.on_doctor_check(announce=True))
+        row.addWidget(b)
+        self.doc_auto = QCheckBox("re-check every 30 s")
+        self.doc_auto.setChecked(True)
+        # LOGGED, like every other control. A checkbox that changes behaviour
+        # and leaves no trace is indistinguishable from a disconnected signal,
+        # which is the whole bug class the button audit exists for -- and the
+        # audit itself requires a trace from every control it touches.
+        self.doc_auto.stateChanged.connect(
+            lambda st: self.log("connection re-check every 30 s: %s"
+                                % ("ON" if st else "OFF")))
+        row.addWidget(self.doc_auto)
+        v.addLayout(row)
+
+        # SEVEN PERMANENT ROWS, BUILT ONCE AND UPDATED IN PLACE.
         #
-        # `demo` was missing, so the fifteen dance specs had NO BUTTON AT ALL
-        # and the three routines could not be launched from this GUI -- which
-        # is G-1 and G-2, "launch every mode" and "run every task", quietly
-        # unmet. They were filmable only because `record_abc_sweep` calls
-        # `Gui.on_launch(spec)` directly rather than pressing anything.
+        # The first version rebuilt them from each diagnosis, which is tidy
+        # and wrong: a re-check lands every 30 s and would delete the button
+        # the operator is reaching for, mid-reach. The button audit found it
+        # by crashing on a QPushButton that had been deleted while it was
+        # being walked -- the same event, with a machine doing the reaching.
         #
-        # Found by `verify_gui_buttons`, whose "every enabled launch button
-        # pressed" check read 50 of 65 and named the fifteen. A manifest entry
-        # with no button is the same defect as a button with no manifest entry
-        # and is harder to see.
+        # So the widgets are fixed and only their CONTENT changes. Each row's
+        # fix button is connected once, to a slot that looks up whatever fix
+        # the latest diagnosis put there; a row with no fix hides its button
+        # rather than keeping a stale one wired to the previous run's repair.
+        self.doc_rows = {}
+        self._doc_fix = {}
+        for key in rad.KEYS:
+            box = QWidget()
+            bl = QVBoxLayout(box)
+            bl.setContentsMargins(0, 3, 0, 3)
+            bl.setSpacing(1)
+            title = QLabel("?  %s" % rad.UNCHECKED[key])
+            title.setFont(helvetica(10))
+            title.setStyleSheet("color:%s" % C_UNKNOWN)
+            title.setWordWrap(True)
+            plain = QLabel("")
+            plain.setFont(helvetica(9))
+            plain.setWordWrap(True)
+            plain.setStyleSheet("color:%s" % C_MUTED)
+            plain.setVisible(False)
+            fix = QPushButton("")
+            fix.setFont(helvetica(9, True))
+            fix.setVisible(False)
+            fix.clicked.connect(lambda _, k=key: self._doctor_fix(k))
+            bl.addWidget(title)
+            bl.addWidget(plain)
+            bl.addWidget(fix)
+            v.addWidget(box)
+            self.doc_rows[key] = (box, title, plain, fix)
+
+        self.doc_note = QLabel("")
+        self.doc_note.setFont(helvetica(9))
+        self.doc_note.setWordWrap(True)
+        self.doc_note.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.doc_note)
+
+        # THE CHECKS RUN OFF THIS THREAD. Measured: run inline they froze the
+        # window for 16.7 s, because asking what is running has to WAIT to
+        # find out that the answer is not coming -- that wait is the check.
+        # A window carrying the e-stop must not stop repainting for sixteen
+        # seconds, so a worker does the waiting and `refresh()` collects the
+        # answer when it arrives.
+        self.doc_checks = []
+        self._doc_result = None
+        self._doc_lock = threading.Lock()
+        self._doc_busy = False
+        QTimer.singleShot(1200, self.on_doctor_check)
+        self.doc_timer = QTimer(self)
+        self.doc_timer.timeout.connect(
+            lambda: self.on_doctor_check() if self.doc_auto.isChecked()
+            else None)
+        self.doc_timer.start(30000)
+        return g
+
+    # ---------------------------------------------------------- the fixes
+    def _doctor_fix(self, key):
+        """Run the repair the LATEST diagnosis attached to this row.
+
+        Looked up rather than bound at connect time, so a row can never fire
+        the previous diagnosis's repair -- which, for a row whose repair stops
+        processes, is the difference between fixing the fault in front of you
+        and stopping something that is now fine.
+        """
+        fn = self._doc_fix.get(key)
+        if fn is None:
+            self.log("nothing to fix on that row any more", bad=True)
+            return
+        fn()
+
+    def _doctor_fixes(self):
+        """The button behind each row. Every one of them says what it did.
+
+        A fix that runs silently is a fix the operator cannot tell from a
+        button that does nothing, which is the failure the whole button audit
+        exists for.
+        """
+        def wrap(fn):
+            def go():
+                try:
+                    ok, msg = fn()
+                except Exception as e:                        # noqa: BLE001
+                    ok, msg = False, "could not do it: %r" % (e,)
+                self.log(msg, bad=not ok)
+                self.doc_note.setText(msg)
+                QTimer.singleShot(600, self.on_doctor_check)
+            return go
+
+        return {
+            "reexec": wrap(self._fix_reexec),
+            "clear_shm": wrap(rad.fix_clear_shm),
+            "reset_daemon": wrap(rad.fix_reset_daemon),
+            "kill_second_stack": wrap(rad.fix_kill_second_stack),
+            "kill_stray_rsp": wrap(rad.fix_kill_stray_rsp),
+            "kill_orphans": wrap(self._fix_kill_orphans),
+            "teensy_help": wrap(self._fix_teensy_help),
+            "teensy_repoint": wrap(self._fix_teensy_repoint),
+            "home_arms": wrap(self._fix_home_arms),
+            "release_kortex": wrap(self._fix_release_kortex),
+        }
+
+    def _fix_reexec(self):
+        """Restart this window with the settings everything else is using.
+
+        THE ONLY HONEST FIX FOR THIS ONE. Discovery settings are read when the
+        middleware starts, so changing them in this process now would change
+        nothing and report success -- the exact silent-acceptance failure this
+        GUI is written against. So the window really does restart.
+        """
+        env = dict(os.environ)
+        probe = rad.Probe()
+        target = None
+        for pid in probe.stack_pids():
+            e = probe.env_of(pid)
+            if e:
+                target = e
+                break
+        for k in rad.DISCOVERY_VARS:
+            want = (target or {}).get(k, rad.EXPECTED.get(k, ""))
+            if want:
+                env[k] = want
+            else:
+                env.pop(k, None)
+        from PyQt5.QtWidgets import QMessageBox
+        r = QMessageBox.question(
+            self, "Restart this window",
+            "This window will close and reopen with the settings the rest of "
+            "the system is using.\n\nAnything it launched keeps running.\n\n"
+            "Restart now?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if r != QMessageBox.Yes:
+            return False, "Restart declined -- nothing changed."
+        argv = [sys.executable, os.path.abspath(sys.argv[0])] + sys.argv[1:]
+        try:
+            subprocess.Popen(argv, env=env, start_new_session=True)
+        except Exception as e:                                # noqa: BLE001
+            return False, "Could not reopen the window: %r" % (e,)
+        QTimer.singleShot(500, self.close)
+        return True, "Reopening with matching settings."
+
+    def _fix_kill_orphans(self):
+        """Confirmed first, and it names what it will stop.
+
+        Every other repair here undoes something that is already broken. This
+        one stops running processes, and a list of names is the difference
+        between "stop the leftovers" and "stop seven things I cannot see".
+        """
+        targets = rad.Probe().orphan_nodes()
+        if not targets:
+            return False, "Nothing left over to stop."
+        names = "\n".join("  " + c.rsplit("/", 1)[-1][:60]
+                          for _, c in targets[:12])
+        from PyQt5.QtWidgets import QMessageBox
+        r = QMessageBox.question(
+            self, "Stop the leftovers",
+            "These are still running and the run that started them has "
+            "ended:\n\n%s%s\n\nStop them?"
+            % (names, "\n  ..." if len(targets) > 12 else ""),
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if r != QMessageBox.Yes:
+            return False, "Left alone -- nothing was stopped."
+        return rad.fix_kill_orphans()
+
+    def _fix_teensy_help(self):
+        from PyQt5.QtWidgets import QMessageBox
+        QMessageBox.information(self, "Attaching the master arm",
+                                rad.teensy_help_text())
+        return True, "Shown the steps for attaching the master arm."
+
+    def _fix_teensy_repoint(self):
+        """Point the running reader at the socket the board is actually on.
+
+        The port is not a live parameter -- the node opens the device at
+        startup -- so this stops the reader and starts it again on the right
+        one. Stated plainly on the button rather than pretending a parameter
+        write would work.
+        """
+        cands = rad.Probe().tty_candidates() or []
+        if not cands:
+            return (False, "The board is not plugged in, so there is nothing "
+                           "to point at.")
+        from srl_teleop import serial_port
+        try:
+            port = serial_port.find_port()
+        except Exception:                                     # noqa: BLE001
+            port = cands[0]
+        procscan.kill_all(r"lib/srl_teleop/master_pose_node", 2)
+        argv = ["ros2", "run", "srl_teleop", "master_pose_node",
+                "--ros-args", "-p", "serial_port:=%s" % port]
+        try:
+            p = subprocess.Popen(argv, env=dict(os.environ),
+                                 start_new_session=True,
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.STDOUT)
+        except Exception as e:                                # noqa: BLE001
+            return False, "Could not restart the master arm reader: %r" % (e,)
+        self.jobs.append(("master arm reader on %s" % port, p))
+        return True, "Master arm reader restarted on %s." % port
+
+    def _fix_home_arms(self):
+        """Ask the homing service to drive the real arms to the stored pose.
+
+        NEVER changes a stored value, and never commands the sim to match the
+        arm: home joint angles are ground truth and the REAL arm's are the
+        ones that count (HARD CONSTRAINT 1). If the gap is the 2026-08-15
+        home change, this will not close it, which is the correct answer --
+        the fix for that is a recapture on the arms, not a move.
+        """
+        from PyQt5.QtWidgets import QMessageBox
+        r = QMessageBox.question(
+            self, "Move the real arms",
+            "The real arms will move to the stored resting pose.\n\n"
+            "Check that nobody is wearing the rig and that the space around "
+            "the arms is clear.\n\nMove them now?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if r != QMessageBox.Yes:
+            return False, "Not moved -- nothing was commanded."
+        for a in ARMS:
+            self.bus.submit(
+                lambda a=a: self.bus.call_trigger("/home_arm_%s" % a))
+        return True, ("Asked both arms to go to the resting pose. Watch the "
+                      "ACTUAL view.")
+
+    def _fix_release_kortex(self):
+        """Hand the arm's one connection back, in process, without relaunching.
+
+        A relaunch re-homes the arm and a participant session cannot absorb
+        that, so the bridge has a service that closes the stale session and
+        opens a fresh one on the spot. If no bridge is running there is
+        nothing to ask, and this says so rather than pretending.
+        """
+        procs = rad.Probe().kortex_procs()
+        if not procs:
+            return (False, "Nothing is holding the connection from here. If "
+                           "the arm still refuses, it is holding a session "
+                           "from another machine and will time it out.")
+        for a in ARMS:
+            self.bus.submit(
+                lambda a=a: self.bus.call_trigger(
+                    "/real/session_recover_%s" % a))
+        return True, "Asked the arm to drop the old connection and reopen."
+
+    # -------------------------------------------------------- the checking
+    def on_doctor_check(self, announce=False):
+        """Start the seven checks on a worker. Returns immediately.
+
+        WHY A WORKER. Run inline these froze the window for 16.7 s, measured
+        by the button audit, which is right: the daemon check finds out that
+        the answer is not coming by WAITING for it, and that wait IS the
+        check. A window that carries the e-stop must not stop repainting for
+        sixteen seconds to run a diagnostic.
+
+        The joint state the home check needs is read from the snapshot the ROS
+        thread already published, so the worker touches no subscription and
+        takes no lock the ROS thread wants.
+        """
+        if self._doc_busy:
+            if announce:
+                self.log("connection check already running")
+            return self.doc_checks
+        # A PRESS THAT LEAVES NO TRACE IS A PRESS THAT CANNOT BE TOLD FROM A
+        # DISCONNECTED SIGNAL. The answer arrives seconds later, so the press
+        # itself says that it started.
+        if announce:
+            self.log("checking the connection to the real arms...")
+        self._doc_busy = True
+        snap = self.bus.snap
+        fixes = self._doctor_fixes()
+
+        class GuiProbe(rad.Probe):
+            def joint_states(self_inner):
+                return (snap.get("sim_pos") or None,
+                        snap.get("real_pos") or None)
+
+        def work():
+            out = rad.run_all(GuiProbe(), fixes)
+            with self._doc_lock:
+                self._doc_result = out
+        threading.Thread(target=work, daemon=True).start()
+        return self.doc_checks
+
+    def _doctor_collect(self):
+        """Called from refresh(). Applies a finished diagnosis, if there is
+        one. Never blocks and never waits."""
+        with self._doc_lock:
+            out, self._doc_result = self._doc_result, None
+        if out is None:
+            return
+        self._doc_busy = False
+        self.doc_checks = out
+        state, head = rad.verdict(out)
+        col = {rad.OK: C_OK, rad.BAD: C_BAD, rad.UNKNOWN: C_UNKNOWN}[state]
+        self.doc_head.setText(head.upper())
+        self.doc_head.setStyleSheet("color:%s" % col)
+        self._doctor_render(out)
+        # ONE LINE PER CHECK RUN, always. The event log is what an operator
+        # reads afterwards to find out what the rig looked like at the time,
+        # and "it said it was fine" is only worth something if the moment it
+        # said so is recorded.
+        self.log("connection check: %s (%s)"
+                 % (head, ", ".join("%s=%s" % (c.key, c.state) for c in out)),
+                 bad=(state == rad.BAD))
+
+    def doctor_wait(self, timeout_s=40.0):
+        """Block until a diagnosis lands, pumping the event loop. FOR TESTS.
+
+        The GUI itself never calls this -- that is the entire point of the
+        worker. The button audit does, because it has to walk a window whose
+        rows are built from a diagnosis, and walking it before the first one
+        arrives audits an empty panel and reports a pass. That is the same
+        defect as the modal dialog which hid five buttons for months.
+        """
+        from PyQt5.QtWidgets import QApplication
+        end = time.monotonic() + timeout_s
+        while time.monotonic() < end:
+            QApplication.processEvents()
+            self._doctor_collect()
+            if self.doc_checks:
+                return self.doc_checks
+            time.sleep(0.05)
+        return self.doc_checks
+
+    def _doctor_render(self, checks):
+        """Update the seven rows in place. No widget is created or destroyed."""
+        self._doc_fix = {}
+        for c in checks:
+            row = self.doc_rows.get(c.key)
+            if row is None:
+                continue
+            box, title, plain, fix = row
+            col = {rad.OK: C_TEXT, rad.BAD: C_BAD,
+                   rad.UNKNOWN: C_UNKNOWN}[c.state]
+            mark = {rad.OK: "OK", rad.BAD: "FIX", rad.UNKNOWN: "?"}[c.state]
+            title.setText("%s  %s" % (mark, c.title))
+            title.setFont(helvetica(10, c.state != rad.OK))
+            title.setStyleSheet("color:%s" % col)
+            plain.setText(c.plain)
+            plain.setVisible(c.state != rad.OK)
+            if c.has_fix:
+                self._doc_fix[c.key] = c.fix
+                fix.setText(c.fix_label)
+                fix.setToolTip(c.fix_note or c.detail)
+                fix.setVisible(True)
+            else:
+                # HIDDEN AND UNBOUND. A button left visible with no repair
+                # behind it is the "feature present but does nothing" row of
+                # CLAUDE.md's instrument table.
+                fix.setVisible(False)
+                fix.setText("")
+            box.setToolTip(c.detail)
+
+    def _ensure_specs(self):
+        """ONE manifest, whichever panel is built first.
+
+        The launch groups are split across two tabs now, and both need the
+        validated manifest. Validating it twice would double every
+        subprocess `validate()` runs, and building it in whichever panel
+        happens to be constructed first is exactly the kind of ordering
+        dependence that breaks silently when a tab is reordered.
+        """
+        if getattr(self, "specs", None) is None:
+            self.specs = gls.all_specs()
+            gls.validate(self.specs)
+            self.buttons = {}
+        return self.specs
+
+    def _spec_group(self, layout, group, title):
+        items = [x for x in self._ensure_specs() if x.group == group]
+        lab = QLabel(title)
+        lab.setFont(helvetica(10, True))
+        layout.addWidget(lab)
+        grid = QGridLayout()
+        for i, sp in enumerate(items):
+            b = QPushButton(sp.label)
+            b.setFont(helvetica(9))
+            b.setMinimumWidth(0)
+            b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+            if sp.enabled:
+                b.setToolTip(sp.note)
+                b.clicked.connect(lambda _, x=sp: self.on_launch(x))
+            else:
+                # DISABLED WITH THE REASON ON IT. A button that exits 2 on
+                # press looks exactly like one that launched something
+                # invisible; a greyed button with a sentence does not.
+                b.setEnabled(False)
+                b.setToolTip(sp.disabled_reason)
+                b.setText(sp.label + "  (unavailable)")
+            grid.addWidget(b, i, 0)
+            self.buttons[sp.key] = b
+        layout.addLayout(grid)
+
+    def _launchers(self):
+        """EVERY GROUP THE MANIFEST DECLARES, NOT THREE OF THE FOUR.
+
+        `demo` was missing once, so the fifteen dance specs had NO BUTTON AT
+        ALL and the three routines could not be launched from this GUI --
+        which is G-1 and G-2, "launch every mode" and "run every task",
+        quietly unmet. They were filmable only because `record_abc_sweep`
+        calls `Gui.on_launch(spec)` directly rather than pressing anything.
+        Found by `verify_gui_buttons`, whose "every enabled launch button
+        pressed" check read 50 of 65 and named the fifteen. A manifest entry
+        with no button is the same defect as a button with no manifest entry
+        and is harder to see.
+        """
+        g = QGroupBox("Start a mode, run a task")
+        g.setFont(helvetica(11, True))
+        v = QVBoxLayout(g)
         for group, title in (("mode", "Modes"), ("task", "Tasks"),
-                             ("demo", "Demonstrations (no trial data)"),
-                             ("diag", "Diagnostics")):
-            lab = QLabel(title)
-            lab.setFont(helvetica(10, True))
-            v.addWidget(lab)
-            grid = QGridLayout()
-            items = [s for s in self.specs if s.group == group]
-            for i, s in enumerate(items):
-                b = QPushButton(s.label)
-                b.setFont(helvetica(9))
-                b.setMinimumWidth(0)
-                b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
-                if s.enabled:
-                    b.setToolTip(s.note)
-                    b.clicked.connect(lambda _, sp=s: self.on_launch(sp))
-                else:
-                    # DISABLED WITH THE REASON ON IT. A button that exits 2 on
-                    # press looks exactly like one that launched something
-                    # invisible; a greyed button with a sentence does not.
-                    b.setEnabled(False)
-                    b.setToolTip(s.disabled_reason)
-                    b.setText(s.label + "  (unavailable)")
-                grid.addWidget(b, i, 0)
-                self.buttons[s.key] = b
-            v.addLayout(grid)
+                             ("demo", "Demonstrations (no trial data)")):
+            self._spec_group(v, group, title)
         b = QPushButton("stop all launched jobs")
         b.clicked.connect(self.on_stop_jobs)
         v.addWidget(b)
+        return g
+
+    def _diag_launchers(self):
+        g = QGroupBox("Checks and repairs")
+        g.setFont(helvetica(11, True))
+        v = QVBoxLayout(g)
+        self._spec_group(v, "diag", "Diagnostics")
         return g
 
     # --------------------------------------------------------- right column
@@ -1027,11 +1662,19 @@ class Gui(QMainWindow):
         self._tabs = tabs
         want = getattr(self.args, "tab", None)
         if want:
+            # BOTH TAB BARS, not just this one. The left column gained three
+            # activity tabs, and `--tab` -- which exists so a capture can be
+            # pointed at a panel -- could not reach them, so the one panel a
+            # screenshot most needs to show (the connection checks) could not
+            # be screenshotted at all.
             def _pick():
-                for i in range(self._tabs.count()):
-                    if want.lower() in self._tabs.tabText(i).lower():
-                        self._tabs.setCurrentIndex(i)
-                        return
+                for bar in (self._tabs, getattr(self, "act_tabs", None)):
+                    if bar is None:
+                        continue
+                    for i in range(bar.count()):
+                        if want.lower() in bar.tabText(i).lower():
+                            bar.setCurrentIndex(i)
+                            return
             QTimer.singleShot(900, _pick)
 
         self.eventlog = QTextEdit()
@@ -1093,6 +1736,19 @@ class Gui(QMainWindow):
         self.inst_task = QComboBox()
         self.inst_task.addItems(["m1  (stage 1)", "m1s2  (stage 2)"])
         self.inst_task.setFont(helvetica(9))
+        # CHANGING WHICH STAGE INVALIDATES WHAT WAS SEEN, AND SAYS SO.
+        #
+        # Found by the button audit, which presses every control and requires
+        # a trace from each: this drop-down changed what CONFIRM would run and
+        # left no mark anywhere. The plan on screen stayed up, still showing
+        # the other stage's cubes, and the only thing standing between that
+        # and a run was the seed check inside `_inst_load_detections` -- which
+        # fires at plan time, i.e. after the operator has read a plan for the
+        # wrong table and believed it.
+        #
+        # The two stages are different tables: stage 2 draws its cubes from a
+        # seed. So switching clears the plan rather than warning about it.
+        self.inst_task.currentTextChanged.connect(self._inst_task_changed)
         row.addWidget(self.inst_task)
         row.addWidget(QLabel("seed"))
         self.inst_seed = QLineEdit("0")
@@ -1249,6 +1905,18 @@ class Gui(QMainWindow):
     def _inst_set_state(self, text, colour=None):
         self.inst_state.setText(text)
         self.inst_state.setStyleSheet("color:%s" % (colour or C_TEXT))
+
+    def _inst_task_changed(self, text):
+        self._inst_pending = None
+        self._inst_outcome = None
+        self._inst_seen = []
+        self.inst_go.setEnabled(False)
+        self.inst_intent.setText("--")
+        self._inst_set_state("IDLE")
+        self.log("instruct: task is now %s" % text)
+        self._inst_say("task changed to %s. The two stages are different "
+                       "tables, so anything the camera saw before does not "
+                       "describe this one -- press LOOK again." % text)
 
     def _inst_task_key(self):
         return "m1s2" if self.inst_task.currentIndex() else "m1"
@@ -1604,14 +2272,17 @@ class Gui(QMainWindow):
                    ("actual", "ACTUAL  --  real arms (real_* frames)")]
                   if getattr(self.args, "dual_rviz", False) else
                   [("overlay",
-                    "COMMANDED (solid) ghosted over ACTUAL (translucent)")])
+                    "COMMANDED  --  the sim, driven by the active mode")])
         for key, title in panels:
             box = QGroupBox(title)
             box.setFont(helvetica(11, True))
             bl = QVBoxLayout(box)
             bl.setContentsMargins(2, 2, 2, 2)
             host = QWidget()
-            host.setMinimumSize(600, 420)
+            # 600 wide squeezed the ACTUAL panel beside it to a strip. RViz
+            # renders fine at 420 and the second view needs to be readable,
+            # which is the whole reason it is there.
+            host.setMinimumSize(420, 420)
             hl = QVBoxLayout(host)
             hl.setContentsMargins(0, 0, 0, 0)
             msg = QLabel("starting RViz...")
@@ -1621,9 +2292,43 @@ class Gui(QMainWindow):
             bl.addWidget(host)
             self.viz_host[key], self.viz_msg[key] = host, msg
             self.viz_split.addWidget(box)
+        # ------------------------------------------------ THE SECOND VIEW
+        # The brief asks for two views side by side: the sim, and the REAL
+        # arms' actual positions. The second one is drawn here rather than by
+        # a second RViz, and that is a measurement and not a preference --
+        # two embedded RViz windows are not clipped to their containers on
+        # this display stack and paint over each other and over every
+        # indicator (screenshotted; docs/system/07_gui_rviz_embedding.md).
+        # This panel also survives an RViz crash, which matters because RViz
+        # is the thing most likely to take the tool down.
+        self.viz_split.addWidget(self._actual_panel())
+        self.viz_split.setStretchFactor(0, 3)
+        self.viz_split.setStretchFactor(self.viz_split.count() - 1, 2)
+        self.viz_split.setSizes([560, 360])
         v.addWidget(self.viz_split, 1)
         v.addWidget(self._divergence_panel())
         return w
+
+    def _actual_panel(self):
+        box = QGroupBox("ACTUAL  --  where the real arms are")
+        box.setFont(helvetica(11, True))
+        bl = QVBoxLayout(box)
+        bl.setContentsMargins(4, 2, 4, 4)
+        self.arm_view = av.ArmView(dict(bg=C_BG, line=LINE, muted=C_MUTED,
+                                        accent=C_OK, bad=C_BAD,
+                                        unknown=C_UNKNOWN))
+        bl.addWidget(self.arm_view, 1)
+        row = QHBoxLayout()
+        self.view_pick = QComboBox()
+        for name in av.VIEWS:
+            self.view_pick.addItem(name)
+        self.view_pick.setCurrentText(av.DEFAULT_VIEW)
+        self.view_pick.currentTextChanged.connect(self.arm_view.set_view)
+        self.view_pick.currentTextChanged.connect(
+            lambda t: self.log("actual view: %s" % t))
+        row.addWidget(self.view_pick, 1)
+        bl.addLayout(row)
+        return box
 
     def _divergence_panel(self):
         g = QGroupBox("Divergence: commanded vs actual")
@@ -1746,6 +2451,19 @@ class Gui(QMainWindow):
 
     # ---------------------------------------------------------------- rviz
     def start_rviz(self):
+        """Wrapper: a failure here is SHOWN, never swallowed by Qt."""
+        try:
+            return self._start_rviz()
+        except Exception as e:                                # noqa: BLE001
+            for key, msg in self.viz_msg.items():
+                msg.setText("RViz could not start:\n%s\n\nEverything else "
+                            "in this window still works, including the "
+                            "ACTUAL view beside this one." % (e,))
+                msg.setStyleSheet("color:%s" % C_BAD)
+            self.bus.note("RViz could not start: %r" % (e,), bad=True)
+            return None
+
+    def _start_rviz(self):
         """Start RViz. NOT EMBEDDED BY DEFAULT, and that is a measurement.
 
         X11 reparenting via QWindow.fromWinId + createWindowContainer does
@@ -1765,14 +2483,35 @@ class Gui(QMainWindow):
         GUI's own window then reliably shows the things only it provides: the
         cameras, the controls, the launchers and the divergence readout.
 
-        --embed-rviz opts into reparenting where a window manager makes it
-        behave.
+        THAT MEASUREMENT WAS ON A HOST WITH NO WINDOW MANAGER, and the
+        conclusion was written as if it were a property of the technique. It
+        is not: it is a property of the display. Re-measured 2026-08-20 on
+        this box's real display (WSLg, which runs one), `--embed-rviz` puts
+        RViz INSIDE the commanded panel and clips it -- confirmed from the
+        geometry dump, which reads
+
+            overlay      1005..1554     the embedded RViz
+            actual_arms  1566..1913     the second view, beside it
+            divergence   1002..1918     underneath both
+
+        side by side and not overlapping, which is exactly what the brief
+        asks for. So embedding is now the DEFAULT WHERE A WINDOW MANAGER IS
+        ACTUALLY PRESENT -- detected, not assumed, and not guessed from the
+        platform name: `_have_wm()` asks the X root window whether anything
+        claims to be managing it. On Xvfb, where nothing does, RViz still
+        opens as its own window and the panel says so.
         """
         if self.args.no_rviz:
             for k in self.viz_msg:
                 self.viz_msg[k].setText("RViz disabled (--no-rviz)")
             return
-        if not getattr(self.args, "embed_rviz", False):
+        embed = getattr(self.args, "embed_rviz", False)
+        if not embed and not getattr(self.args, "no_embed_rviz", False):
+            embed = _have_wm()
+            if embed:
+                self.bus.note("a window manager is running, so RViz will be "
+                              "embedded in the panel beside the actual arms")
+        if not embed:
             key = list(self.viz_msg.keys())[0]
             cfg = self._rviz_config(key)
             try:
@@ -1867,10 +2606,19 @@ class Gui(QMainWindow):
         # Re-asserted every refresh rather than once, because RViz resizes
         # itself when its own docks change.
         self.embedded[key] = (foreign, container)
+        # SAY SO. Embedding either worked or it did not, and until now the
+        # only evidence either way was a screenshot -- which on this host
+        # records black, so on the display the operator actually uses there
+        # was no evidence at all.
+        self.bus.note("embedded RViz into the %s panel (X window 0x%x)"
+                      % (key.upper(), wid))
         self._pending.pop(0)
         # Re-assert the split AFTER embedding, because the container is what
         # disturbed it.
-        self.split.setSizes([336, 1090, max(360, self.width() - 1426)])
+        # SAME NUMBERS AS THE CONSTRUCTOR. These were the OLD split (336 /
+        # 1090), so embedding silently undid the widening that stopped the
+        # left column slicing its own button labels in half.
+        self.split.setSizes([376, 620, max(420, self.width() - 996)])
         QTimer.singleShot(600, self._launch_next_rviz)
         QTimer.singleShot(1500, self._dump_geometry)
 
@@ -1949,8 +2697,15 @@ class Gui(QMainWindow):
         try:
             out = {}
             for name, w in [("commanded", self.viz_host.get("commanded")),
-                            ("actual", self.viz_host.get("actual")),
+                            ("actual_rviz", self.viz_host.get("actual")),
                             ("overlay", self.viz_host.get("overlay")),
+                            # THE SECOND VIEW. It was not in this dump, so
+                            # the pixel proof had no region for the one panel
+                            # that was added to satisfy "two views side by
+                            # side" -- a check with nothing to crop cannot
+                            # fail, which is the shape CLAUDE.md's standing
+                            # rule is about.
+                            ("actual_arms", getattr(self, "arm_view", None)),
                             ("controls", self.split.widget(0)),
                             ("divergence", self.div_head.parentWidget())]:
                 if w is None:
@@ -2497,6 +3252,8 @@ class Gui(QMainWindow):
         self.master_schema.set_data(s.get("master_schema"))
         self.robot_schema.set_data(s.get("robot_schema"))
         self._sync_embedded()
+        self._doctor_collect()
+        self._refresh_actual(s)
         self._refresh_divergence(s)
         self._refresh_cameras(s)
 
@@ -2590,6 +3347,24 @@ class Gui(QMainWindow):
                     win.resize(max(1, cont.width()), max(1, cont.height()))
             except Exception:                                 # noqa: BLE001
                 self.embedded.pop(key, None)
+
+    def _refresh_actual(self, s):
+        """Push the newest points into the ACTUAL panel, or clear it.
+
+        CLEARING IS THE POINT. `set_pose` is called on every refresh with
+        whatever the snapshot holds, including nothing -- so the panel cannot
+        keep showing a pose after the arms stop reporting, which is the
+        exact failure mode ('data fresh but never changes') that this GUI's
+        camera panel already refuses to have.
+        """
+        if not hasattr(self, "arm_view"):
+            return
+        real, sim, note, state = s.get(
+            "skel", ({a: av.Skeleton(a) for a in ARMS},
+                     {a: av.Skeleton(a) for a in ARMS},
+                     "nothing is reporting where the real arms are",
+                     "unknown"))
+        self.arm_view.set_pose(real, sim, note, state)
 
     def _refresh_divergence(self, s):
         trip = s.get("lag_trip", 0.5)
@@ -2686,7 +3461,20 @@ class Gui(QMainWindow):
 #  helpers
 # ===========================================================================
 def _scratch():
+    """The scratch directory, CREATED. It was only read.
+
+    With SRL_SCRATCH pointing at a directory that did not exist yet, writing
+    the RViz config raised FileNotFoundError inside a Qt slot -- where PyQt
+    prints a traceback to a stderr nobody reads and returns -- so RViz never
+    started and the panel said "starting RViz..." for ever. That is the exact
+    silent-failure shape this GUI is written against, and it was in the one
+    helper too small to look at.
+    """
     d = os.environ.get("SRL_SCRATCH") or "/tmp"
+    try:
+        os.makedirs(d, exist_ok=True)
+    except OSError:
+        return "/tmp"
     return d
 
 
@@ -2717,6 +3505,28 @@ def _stack_pids():
         return int(o or 0)
     except Exception:                                         # noqa: BLE001
         return 0
+
+
+def _have_wm():
+    """Is anything actually managing windows on this display?
+
+    THE QUESTION THAT WAS NEVER ASKED. Embedding a foreign X window is only
+    clipped to its container if a window manager is running, and this project
+    concluded "embedding does not work here" from a host that had none --
+    then carried that conclusion onto a display that does.
+
+    Asked of the display itself: `_NET_SUPPORTING_WM_CHECK` is set on the
+    root window by every EWMH-compliant window manager and by nothing else.
+    Not inferred from the platform, the session type or whether WSLg is
+    mentioned in an environment variable, all of which can be true with no
+    window manager running.
+    """
+    try:
+        out = subprocess.run(["xprop", "-root", "_NET_SUPPORTING_WM_CHECK"],
+                             capture_output=True, text=True, timeout=5)
+    except Exception:                                         # noqa: BLE001
+        return False
+    return "window id" in (out.stdout or "")
 
 
 def _teensy():
@@ -2867,6 +3677,9 @@ def main(argv=None):
                          "foreign window to its container and the two "
                          "instances paint over each other and over this GUI "
                          "(measured -- see docs/system/07_gui_rviz_embedding.md)")
+    ap.add_argument("--no-embed-rviz", action="store_true",
+                    help="keep RViz as its own top-level window even where a "
+                         "window manager would let it be embedded")
     ap.add_argument("--single-rviz", action="store_true",
                     help="deprecated alias; the ghosted single panel is now "
                          "the default")

@@ -80,8 +80,43 @@ def test_only_the_two_CURRENT_task_sets_are_offered():
     # was right; a stale count in a test that exists to catch drift is the
     # thing it is supposed to catch.
     assert len(msc) == 25, "5 launchable cells (T1 has two stages) x 5 modes"
+    # ENABLED UNLESS THE TASK ITSELF FORBIDS THAT MODE.
+    #
+    # This was a flat "every one of them is enabled", and it was wrong in the
+    # direction that costs a run: T1 declares `modes=("06_full_autonomy",)`
+    # and `run_abc` REFUSES it under anything else, so four of stage 1's five
+    # buttons could only ever exit 1 -- and stage 2, which sends the same
+    # non-anchor approach, had no restriction at all, so its four would have
+    # SUCCEEDED and logged T1's geometry under a teleop mode's name.
+    #
+    # The lock is read from the task spec, not listed here, so a task that
+    # gains or loses one cannot leave a stale copy in this test.
+    locks = gls.task_mode_locks()
+    assert locks, "no task declares a mode restriction -- the lookup broke"
     for s in abc + msc:
+        # READ OFF THE ARGV, not parsed out of the key. The key is
+        # "msc_m1s2_01_master_teleop" and every scheme for cutting a task out
+        # of that is a guess about where the boundaries are; the command line
+        # says `run_experiment.sh <task> --mode <mode>` and cannot be
+        # ambiguous.
+        key = s.argv[1]
+        mode = s.argv[s.argv.index("--mode") + 1]
+        if key in locks and mode not in locks[key]:
+            assert not s.enabled, (
+                "%s is offered but %s runs under %s only"
+                % (s.key, key, locks[key]))
+            assert "runs under" in (s.disabled_reason or ""), s.key
+            continue
         assert s.enabled, "%s disabled: %s" % (s.key, s.disabled_reason)
+
+    # AND THE LOCK MUST LEAVE SOMETHING LAUNCHABLE. A restriction naming a
+    # mode that has no button would disable every button for that task and
+    # read as "the task is gone" rather than "the task is mode-locked".
+    for key, modes in locks.items():
+        live = [s for s in msc
+                if s.key.startswith("msc_%s_" % key) and s.enabled]
+        assert live, "%s is locked to %s and has no enabled button" % (
+            key, modes)
 
     tasks = [s for s in specs if s.group == "task"]
     assert len(tasks) == len(abc) + len(msc), (

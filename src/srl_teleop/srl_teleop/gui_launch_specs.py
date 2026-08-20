@@ -150,9 +150,46 @@ DIAGNOSTICS = [
 ]
 
 
+def task_mode_locks():
+    """{dispatcher key: (modes it will run under)} for every task that
+    restricts them, read from the task specification itself.
+
+    WHY THIS IS PARSED AND NOT LISTED HERE. T1 was rebuilt for
+    `06_full_autonomy` alone -- it commands its own approach orientation
+    instead of the pinned anchor -- and `run_abc` REFUSES it under any other
+    mode, by name and with a reason. The GUI did not know that, so it drew
+    four buttons per stage that could only ever exit 1: exactly the
+    "button that exits 2 on press" failure this whole manifest exists to
+    prevent, reintroduced from the other end.
+
+    Read from `msc_clip_tasks.TASKS[..]["modes"]`, which is what the runner
+    reads, so a task that gains or loses a restriction cannot leave a stale
+    copy behind here.
+    """
+    import sys
+    d = os.path.join(WS, "src/srl_experiments/experiments/abc")
+    if d not in sys.path:
+        sys.path.insert(0, d)
+    try:
+        import msc_clip_tasks as MCT
+    except Exception:                                         # noqa: BLE001
+        return {}
+    # The dispatcher key is m0..m3 / m1s2; the task key is t0..t3 / t1s2. The
+    # mapping is `run_abc._MSC_KEY` inverted, written explicitly rather than
+    # as "t" + key[1], which silently maps m1s2 to t1.
+    back = {"t0": "m0", "t1": "m1", "t1s2": "m1s2", "t2": "m2", "t3": "m3"}
+    out = {}
+    for tk, spec in MCT.TASKS.items():
+        modes = spec.get("modes")
+        if modes and tk in back:
+            out[back[tk]] = tuple(modes)
+    return out
+
+
 def task_specs():
     """One button per task the dispatcher accepts, plus the A/B/C row."""
     accepted = dispatcher_tasks()
+    locks = task_mode_locks()
     out = []
     # ONE GENERATION OF TASK SET, NOT THREE.
     #
@@ -265,9 +302,17 @@ def task_specs():
                     "msc", "--participant", "PILOT", "--scripted", *_extra),
                 needs_stack=True,
                 disabled_reason=(
-                    None if k in accepted else
-                    "run_experiment.sh does not accept %r -- this button "
-                    "would exit 2" % k),
+                    ("run_experiment.sh does not accept %r -- this button "
+                     "would exit 2" % k) if k not in accepted else
+                    # THE TASK'S OWN MODE RESTRICTION, ON THE BUTTON.
+                    # Pressing this would have exited 1 with a refusal nobody
+                    # sees, because a launched job's output goes to a file.
+                    ("this task runs under %s only -- it commands its own "
+                     "approach orientation rather than the pinned anchor "
+                     "every teleop mode sends, so a run under %s would be "
+                     "measuring a different geometry under a mode's name"
+                     % (" and ".join(locks[k]), short))
+                    if k in locks and mode not in locks[k] else None),
                 note="MSc set; coordinates verified N=10 over the full "
                      "densified CLIP path with the bench in scene"))
 

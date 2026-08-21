@@ -53,6 +53,7 @@
 
 <button id="enter" disabled>ENTER VR</button>
 <button id="enter-ar" disabled>ENTER WITH PASSTHROUGH</button>
+<button id="enter-cam" disabled>ENTER WITH CAMERA</button>
 <button id="flat">flat test (no headset)</button>
 
 <h2>state</h2>
@@ -154,6 +155,10 @@ if(!navigator.xr){
     $('s-xr').innerHTML = ok ? '<span class=ok>immersive-vr supported</span>'
                              : '<span class=bad>immersive-vr NOT supported</span>';
     $('enter').disabled = !ok;
+    // ENTER WITH CAMERA rides on immersive-vr support, NOT on
+    // immersive-ar: it shows the scene camera inside a VR session, so
+    // a headset with no passthrough can still use it.
+    $('enter-cam').disabled = !ok;
   });
   // PASSTHROUGH IS immersive-ar, AND IT NEEDS NO SIDELOADING. The Quest
   // browser composites the headset's own passthrough as the AR background,
@@ -511,6 +516,33 @@ async function enterXR(mode){
 $('enter').onclick = function(){ enterXR('immersive-vr'); };
 $('enter-ar').onclick = function(){ enterXR('immersive-ar'); };
 
+// ENTER WITH CAMERA. A THIRD MODE, and it is not the same as passthrough.
+//
+// Passthrough (immersive-ar) shows the operator THEIR OWN room through the
+// headset's cameras. This shows them the SCENE camera -- the one pointed at
+// the wearer and the arms from across the room -- which is the view that
+// matters when the arms are on somebody else's back and the operator is
+// looking at their own hands.
+//
+// It is immersive-vr, not immersive-ar, on purpose: the scene camera is the
+// picture we want in front of the operator, and compositing it over a
+// passthrough view of their own room puts two rooms on top of each other.
+// A headset with no passthrough support can still use this one.
+window.__forceCam = false;
+$('enter-cam').onclick = function(){
+  window.__forceCam = true;
+  var w = document.getElementById('camwrap');
+  if(w){
+    // Bigger and centred: in this mode the camera IS the view, not a
+    // thumbnail in the corner of one.
+    w.style.width = '58%';
+    w.style.right = '21%';
+    w.style.bottom = '14%';
+    w.style.border = '2px solid #6f6';
+  }
+  enterXR('immersive-vr');
+};
+
 // A desktop/flat loop so the socket, the protocol and the panel can be
 // exercised without a headset. It sends valid:false, so nothing downstream
 // can mistake it for tracked input.
@@ -526,5 +558,43 @@ $('flat').onclick = function(){
     refreshUi(z, z);
   }, 1000/72);
 };
+</script>
+<!-- SCENE CAMERA. Served from the SAME https origin as this page and the
+     socket, so it rides the certificate exception the operator already
+     accepted. Polled, not streamed: the bridge serves a snapshot, so a
+     stalled camera shows a stale frame instead of hanging the connection.
+     Hidden until a frame actually arrives -- a permanently broken <img> in
+     the corner is worse than no panel, because it reads as "camera present". -->
+<div id="camwrap" style="position:fixed;right:8px;bottom:8px;width:320px;
+     border:1px solid #444;background:#000;display:none;z-index:50">
+  <img id="camimg" style="width:100%;display:block" alt="scene camera">
+  <div id="camlbl" style="font:11px monospace;color:#8f8;padding:2px 4px">scene camera</div>
+</div>
+<script>
+(function(){
+  var wrap=document.getElementById('camwrap'),
+      img=document.getElementById('camimg'),
+      lbl=document.getElementById('camlbl'),
+      fails=0, shown=0, t0=Date.now();
+  function tick(){
+    var u='/camera.jpg?t='+Date.now();
+    var probe=new Image();
+    probe.onload=function(){
+      img.src=probe.src; fails=0; shown++;
+      wrap.style.display='block';
+      lbl.textContent='scene camera  '+
+        (shown/((Date.now()-t0)/1000)).toFixed(1)+' fps';
+      setTimeout(tick,100);
+    };
+    probe.onerror=function(){
+      fails++;
+      // Give up quietly rather than hammering a device that is not there.
+      if(fails>10){ wrap.style.display='none'; lbl.textContent='no camera'; return; }
+      setTimeout(tick,1000);
+    };
+    probe.src=u;
+  }
+  tick();
+})();
 </script>
 </body></html>

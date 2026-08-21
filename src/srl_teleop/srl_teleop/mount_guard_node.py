@@ -171,6 +171,14 @@ class MountGuard(Node):
         returns the mannequin or returns `fuse()`'s output, and `fuse()` is
         defined to keep whichever primitive is closer to the robot.
         """
+        # NOBODY IN THE RIG is checked FIRST, before tracking, before the
+        # mannequin, before anything. It is the one condition under which
+        # this guard has nothing to guard.
+        if not wearer_posture.wearer_present():
+            self._body_note = 'NO WEARER -- declared absent'
+            self.get_logger().warn(wearer_posture.absence_banner(),
+                                   throttle_duration_sec=10.0)
+            return []
         if _WT is None or not bool(
                 self.get_parameter('use_tracked_wearer').value):
             self._body_note = 'mannequin (tracking not enabled here)'

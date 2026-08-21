@@ -1,0 +1,1710 @@
+{
+  "controls": {
+    "fk_vs_live_tf_m": 6.1e-05,
+    "compiled_fk_vs_urdf": 0.0,
+    "shipped_reproduces_render": true,
+    "mirror_can_be_nonzero_m": 1.2409
+  },
+  "torso_half_width_m": 0.18,
+  "torso_front_y_m": 0.11,
+  "mount_cap_m": {
+    "left": 0.2202,
+    "right": 0.2202
+  },
+  "floor_m": 0.15,
+  "moving_floor_m": 0.3,
+  "pick": "widest",
+  "hand_y": 0.34,
+  "hand_z": 1.18,
+  "shipped": {
+    "rows": [
+      {
+        "constraint": "a_forearm_forward",
+        "target": "<= 40 deg",
+        "left": 33.6714,
+        "right": 32.31988,
+        "ok": true
+      },
+      {
+        "constraint": "b_elbow_below_shoulder",
+        "target": ">= 0.10 m",
+        "left": 0.27764,
+        "right": 0.27941,
+        "ok": true
+      },
+      {
+        "constraint": "c_wrist_level",
+        "target": "|elev| <= 2.0 deg",
+        "left": -1.47409,
+        "right": -1.42444,
+        "ok": true
+      },
+      {
+        "constraint": "c2_wrist_faces_forward",
+        "target": "<= 25 deg",
+        "left": 24.49164,
+        "right": 36.80579,
+        "ok": false
+      },
+      {
+        "constraint": "d_camera_on_top",
+        "target": "<= 15 deg off +z",
+        "left": 12.04968,
+        "right": 12.0464,
+        "ok": true
+      },
+      {
+        "constraint": "e_hand_x",
+        "target": "|x| = 0.550 m",
+        "left": 0.37696,
+        "right": 0.3696,
+        "ok": false
+      },
+      {
+        "constraint": "e_hand_in_front",
+        "target": ">= 0.10 m",
+        "left": 0.263,
+        "right": 0.25824,
+        "ok": true
+      },
+      {
+        "constraint": "h_seam_margin",
+        "target": ">= 0.30 rad from +/-pi",
+        "left": 1.67203,
+        "right": 0.5695,
+        "ok": true
+      },
+      {
+        "constraint": "f_clearance",
+        "target": ">= 0.150 m",
+        "left": 0.213,
+        "right": 0.22019,
+        "ok": true
+      },
+      {
+        "constraint": "f2_moving_clearance",
+        "target": ">= 0.300 m",
+        "left": 0.213,
+        "right": 0.22447,
+        "ok": false
+      },
+      {
+        "constraint": "g_mirror_ee",
+        "target": "<= 0.020 m",
+        "left": 0.00877,
+        "right": 0.00877,
+        "ok": true
+      },
+      {
+        "constraint": "g_mirror_whole_chain",
+        "target": "(reported)",
+        "left": 0.10187,
+        "right": 0.10187,
+        "ok": null
+      }
+    ],
+    "clearance_detail": {
+      "left": {
+        "whole_chain_m": 0.21299799319878054,
+        "whole_chain_to": "L-upperarm",
+        "moving_chain_m": 0.21299799319878054,
+        "moving_chain_to": "L-upperarm",
+        "mount_cap_m": 0.22018512172212595,
+        "per_wearer_link_m": {
+          "torso": 0.2202,
+          "head": 0.4622,
+          "neck": 0.4024,
+          "hips": 0.2912,
+          "L-thigh": 0.3616,
+          "R-thigh": 0.5191,
+          "L-upperarm": 0.213,
+          "L-forearm": 0.218,
+          "L-hand": 0.2985,
+          "R-upperarm": 0.545,
+          "R-forearm": 0.5603,
+          "R-hand": 0.6322
+        },
+        "per_wearer_link_moving_m": {
+          "torso": 0.2383,
+          "head": 0.5241,
+          "neck": 0.4522,
+          "hips": 0.2912,
+          "L-thigh": 0.3616,
+          "R-thigh": 0.5191,
+          "L-upperarm": 0.213,
+          "L-forearm": 0.218,
+          "L-hand": 0.2985,
+          "R-upperarm": 0.5523,
+          "R-forearm": 0.5603,
+          "R-hand": 0.6322
+        },
+        "per_arm_segment": [
+          {
+            "segment": "base_link -> shoulder_link",
+            "fixed": true,
+            "clearance_m": 0.2202,
+            "to": "torso"
+          },
+          {
+            "segment": "shoulder_link -> half_arm_1_link",
+            "fixed": true,
+            "clearance_m": 0.317,
+            "to": "L-upperarm"
+          },
+          {
+            "segment": "half_arm_1_link -> half_arm_2_link",
+            "fixed": false,
+            "clearance_m": 0.3226,
+            "to": "L-upperarm"
+          },
+          {
+            "segment": "half_arm_2_link -> forearm_link",
+            "fixed": false,
+            "clearance_m": 0.2749,
+            "to": "L-forearm"
+          },
+          {
+            "segment": "forearm_link -> spherical_wrist_1_link",
+            "fixed": false,
+            "clearance_m": 0.2131,
+            "to": "L-upperarm"
+          },
+          {
+            "segment": "spherical_wrist_1_link -> spherical_wrist_2_link",
+            "fixed": false,
+            "clearance_m": 0.213,
+            "to": "L-upperarm"
+          },
+          {
+            "segment": "spherical_wrist_2_link -> bracelet_link",
+            "fixed": false,
+            "clearance_m": 0.2234,
+            "to": "L-upperarm"
+          },
+          {
+            "segment": "bracelet_link -> end_effector_link",
+            "fixed": false,
+            "clearance_m": 0.2538,
+            "to": "torso"
+          },
+          {
+            "segment": "end_effector_link -> robotiq_85_left_finger_tip_link",
+            "fixed": false,
+            "clearance_m": 0.2772,
+            "to": "torso"
+          }
+        ]
+      },
+      "right": {
+        "whole_chain_m": 0.22018512172212595,
+        "whole_chain_to": "torso",
+        "moving_chain_m": 0.22446683075682072,
+        "moving_chain_to": "R-upperarm",
+        "mount_cap_m": 0.22018512172212595,
+        "per_wearer_link_m": {
+          "torso": 0.2202,
+          "head": 0.4622,
+          "neck": 0.4024,
+          "hips": 0.3073,
+          "L-thigh": 0.5235,
+          "R-thigh": 0.3548,
+          "L-upperarm": 0.545,
+          "L-forearm": 0.5619,
+          "L-hand": 0.6547,
+          "R-upperarm": 0.2245,
+          "R-forearm": 0.2279,
+          "R-hand": 0.2855
+        },
+        "per_wearer_link_moving_m": {
+          "torso": 0.2566,
+          "head": 0.5393,
+          "neck": 0.4698,
+          "hips": 0.3073,
+          "L-thigh": 0.5235,
+          "R-thigh": 0.3548,
+          "L-upperarm": 0.5867,
+          "L-forearm": 0.5936,
+          "L-hand": 0.6565,
+          "R-upperarm": 0.2245,
+          "R-forearm": 0.2279,
+          "R-hand": 0.2855
+        },
+        "per_arm_segment": [
+          {
+            "segment": "base_link -> shoulder_link",
+            "fixed": true,
+            "clearance_m": 0.2202,
+            "to": "torso"
+          },
+          {
+            "segment": "shoulder_link -> half_arm_1_link",
+            "fixed": true,
+            "clearance_m": 0.317,
+            "to": "R-upperarm"
+          },
+          {
+            "segment": "half_arm_1_link -> half_arm_2_link",
+            "fixed": false,
+            "clearance_m": 0.3016,
+            "to": "R-upperarm"
+          },
+          {
+            "segment": "half_arm_2_link -> forearm_link",
+            "fixed": false,
+            "clearance_m": 0.2512,
+            "to": "R-forearm"
+          },
+          {
+            "segment": "forearm_link -> spherical_wrist_1_link",
+            "fixed": false,
+            "clearance_m": 0.2245,
+            "to": "R-upperarm"
+          },
+          {
+            "segment": "spherical_wrist_1_link -> spherical_wrist_2_link",
+            "fixed": false,
+            "clearance_m": 0.2271,
+            "to": "R-upperarm"
+          },
+          {
+            "segment": "spherical_wrist_2_link -> bracelet_link",
+            "fixed": false,
+            "clearance_m": 0.2499,
+            "to": "R-upperarm"
+          },
+          {
+            "segment": "bracelet_link -> end_effector_link",
+            "fixed": false,
+            "clearance_m": 0.2581,
+            "to": "torso"
+          },
+          {
+            "segment": "end_effector_link -> robotiq_85_left_finger_tip_link",
+            "fixed": false,
+            "clearance_m": 0.2704,
+            "to": "torso"
+          }
+        ]
+      }
+    },
+    "left": {
+      "elbow_below_shoulder_m": 0.27763634657741276,
+      "forearm_off_forward_deg": 33.6713981483506,
+      "approach_elevation_deg": -1.4740908340175942,
+      "approach_off_forward_deg": 24.491641977967678,
+      "camera_off_top_deg": 12.0496776944774,
+      "camera_from_fingertips_off_top_deg": 60.13933735361133,
+      "camera_above_fingers_m": 0.057757596202219874,
+      "hand": [
+        0.3769628458122821,
+        0.3730000223757739,
+        1.1789854567780613
+      ],
+      "hand_abs_x_m": 0.3769628458122821,
+      "hand_in_front_of_torso_m": 0.2630000223757739,
+      "shoulder": [
+        0.49766483371096515,
+        -0.30186903824615996,
+        1.2983395284523318
+      ],
+      "elbow": [
+        0.5797110085619572,
+        -0.013096573282987328,
+        1.020703181874919
+      ],
+      "camera": [
+        0.3882663189474095,
+        0.3763490431975032,
+        1.2342136212833124
+      ],
+      "fingers": [
+        0.33627924305916396,
+        0.46247900342024506,
+        1.1764560250810925
+      ],
+      "approach_axis": [
+        -0.41376156866753916,
+        0.9100217545727507,
+        -0.02572490035177575
+      ],
+      "camera_dir_world_z": 0.9780050285365877,
+      "clearance_m": 0.21299799319878054,
+      "clearance_to": "L-upperarm",
+      "clearance_moving_m": 0.21299799319878054,
+      "clearance_moving_to": "L-upperarm"
+    },
+    "right": {
+      "elbow_below_shoulder_m": 0.2794105766721495,
+      "forearm_off_forward_deg": 32.319884974308735,
+      "approach_elevation_deg": -1.4244368380109418,
+      "approach_off_forward_deg": 36.80579363739905,
+      "camera_off_top_deg": 12.046395090596441,
+      "camera_from_fingertips_off_top_deg": 60.18745571431647,
+      "camera_above_fingers_m": 0.057673086786691474,
+      "hand": [
+        -0.3695989217224881,
+        0.36824461470794745,
+        1.1791197389013122
+      ],
+      "hand_abs_x_m": 0.3695989217224881,
+      "hand_in_front_of_torso_m": 0.25824461470794746,
+      "shoulder": [
+        -0.4976648337063846,
+        -0.30186903826472655,
+        1.298339528473288
+      ],
+      "elbow": [
+        -0.5556162920322405,
+        -0.0197781798944118,
+        1.0189289518011384
+      ],
+      "camera": [
+        -0.3612599199471827,
+        0.3599156952671961,
+        1.2343485787437434
+      ],
+      "fingers": [
+        -0.3107419777795673,
+        0.44697153140748136,
+        1.176675491957052
+      ],
+      "approach_axis": [
+        0.5985886156784335,
+        0.8006707947579982,
+        -0.02485855188403762
+      ],
+      "camera_dir_world_z": 0.978063863436513,
+      "clearance_m": 0.22018512172212595,
+      "clearance_to": "torso",
+      "clearance_moving_m": 0.22446683075682072,
+      "clearance_moving_to": "R-upperarm"
+    },
+    "mirror_ee_m": 0.008766944266738333,
+    "mirror_chain_worst_m": 0.10186555067776257,
+    "mirror_per_link": {
+      "base_link": 0.0,
+      "shoulder_link": 2.8370038475994334e-11,
+      "half_arm_1_link": 0.010746853453632715,
+      "half_arm_2_link": 0.022448609738258504,
+      "forearm_link": 0.02506685309152195,
+      "spherical_wrist_1_link": 0.014097634789089321,
+      "spherical_wrist_2_link": 0.0271895362856972,
+      "bracelet_link": 0.004467381389506369,
+      "end_effector_link": 0.008766944266738333,
+      "robotiq_85_left_finger_tip_link": 0.10186555067776257
+    },
+    "all_ok": false
+  },
+  "real_arms": {
+    "legacy_home": {
+      "q_left": [
+        -1.762259,
+        -1.436581,
+        -1.610241,
+        -1.2891,
+        -2.895501,
+        0.479616,
+        0.964469
+      ],
+      "q_right": [
+        -0.983493,
+        1.344951,
+        1.720371,
+        1.022239,
+        -0.748048,
+        0.635125,
+        2.700199
+      ],
+      "left": {
+        "elbow_below_shoulder_m": 0.2951301104482995,
+        "forearm_off_forward_deg": 20.902590066066573,
+        "approach_elevation_deg": 30.760934659687674,
+        "approach_off_forward_deg": 38.98566993825451,
+        "camera_off_top_deg": 35.34934330999073,
+        "camera_from_fingertips_off_top_deg": 92.08895996016975,
+        "camera_above_fingers_m": -0.004228485453888098,
+        "hand": [
+          0.6827296358965185,
+          0.3572281792800026,
+          1.146334927107967
+        ],
+        "hand_abs_x_m": 0.6827296358965185,
+        "hand_in_front_of_torso_m": 0.24722817928000262,
+        "shoulder": [
+          0.49766483371096515,
+          -0.30186903824615996,
+          1.2983395284523318
+        ],
+        "elbow": [
+          0.7694902981504097,
+          -0.08100800560537742,
+          1.0032094180040323
+        ],
+        "camera": [
+          0.6865003631615287,
+          0.32477379628694053,
+          1.1923960738634762
+        ],
+        "fingers": [
+          0.6467079871262341,
+          0.43365746240207437,
+          1.1966245593173643
+        ],
+        "approach_axis": [
+          -0.3663484276854427,
+          0.777303334432448,
+          0.511457090881142
+        ],
+        "camera_dir_world_z": 0.8444953162386349,
+        "clearance_m": 0.22018512172212595,
+        "clearance_to": "torso",
+        "clearance_moving_m": 0.3957469519422023,
+        "clearance_moving_to": "L-upperarm"
+      },
+      "right": {
+        "elbow_below_shoulder_m": 0.23914899862957006,
+        "forearm_off_forward_deg": 16.395592854086814,
+        "approach_elevation_deg": 22.09461935100446,
+        "approach_off_forward_deg": 37.59396143985509,
+        "camera_off_top_deg": 27.566477472864566,
+        "camera_from_fingertips_off_top_deg": 83.52725460183451,
+        "camera_above_fingers_m": 0.013077216229947952,
+        "hand": [
+          -0.7335567797879473,
+          0.42248658672776884,
+          1.1788108435811198
+        ],
+        "hand_abs_x_m": 0.7335567797879473,
+        "hand_in_front_of_torso_m": 0.31248658672776886,
+        "shoulder": [
+          -0.4976648337063846,
+          -0.30186903826472655,
+          1.298339528473288
+        ],
+        "elbow": [
+          -0.7834195243218225,
+          -0.017970413197688134,
+          1.0591905298437179
+        ],
+        "camera": [
+          -0.7362226822432884,
+          0.3964887499443865,
+          1.2288722063940039
+        ],
+        "fingers": [
+          -0.6863298966840681,
+          0.5003957390801363,
+          1.215794990164056
+        ],
+        "approach_axis": [
+          0.4803082301958097,
+          0.7923539438355951,
+          0.3761372511389256
+        ],
+        "camera_dir_world_z": 0.9081145846578796,
+        "clearance_m": 0.22018512172212595,
+        "clearance_to": "torso",
+        "clearance_moving_m": 0.3944096710328837,
+        "clearance_moving_to": "R-upperarm"
+      },
+      "mirror_ee_m": 0.08886362275728958,
+      "mirror_chain_worst_m": 0.20568462808087362,
+      "checks": {
+        "a_forearm_forward": {
+          "want": "<= 40 deg",
+          "left": 20.90259,
+          "right": 16.39559,
+          "ok": true
+        },
+        "b_elbow_below_shoulder": {
+          "want": ">= 0.10 m",
+          "left": 0.29513,
+          "right": 0.23915,
+          "ok": true
+        },
+        "c_wrist_level": {
+          "want": "|elev| <= 2.0 deg",
+          "left": 30.76093,
+          "right": 22.09462,
+          "ok": false
+        },
+        "c2_wrist_faces_forward": {
+          "want": "<= 25 deg",
+          "left": 38.98567,
+          "right": 37.59396,
+          "ok": false
+        },
+        "d_camera_on_top": {
+          "want": "<= 15 deg off +z",
+          "left": 35.34934,
+          "right": 27.56648,
+          "ok": false
+        },
+        "e_hand_x": {
+          "want": "|x| = 0.550 m",
+          "left": 0.68273,
+          "right": 0.73356,
+          "ok": false
+        },
+        "e_hand_in_front": {
+          "want": ">= 0.10 m",
+          "left": 0.24723,
+          "right": 0.31249,
+          "ok": true
+        },
+        "h_seam_margin": {
+          "want": ">= 0.30 rad from +/-pi",
+          "left": 0.24609,
+          "right": 0.44139,
+          "ok": false
+        },
+        "f_clearance": {
+          "want": ">= 0.150 m",
+          "left": 0.22019,
+          "right": 0.22019,
+          "ok": true
+        },
+        "f2_moving_clearance": {
+          "want": ">= 0.300 m",
+          "left": 0.39575,
+          "right": 0.39441,
+          "ok": true
+        }
+      }
+    },
+    "live_reading_20260731": {
+      "right": "NEVER READ FROM HARDWARE",
+      "q_left": [
+        -1.448798,
+        -0.873886,
+        0.389557,
+        -0.881566,
+        0.778417,
+        -0.303164,
+        2.572441
+      ],
+      "left": {
+        "elbow_below_shoulder_m": 0.18143488121027795,
+        "forearm_off_forward_deg": 103.65205153270355,
+        "approach_elevation_deg": -64.99220160148812,
+        "approach_off_forward_deg": 114.74827670827933,
+        "camera_off_top_deg": 109.73066738646422,
+        "camera_from_fingertips_off_top_deg": 52.8575906289161,
+        "camera_above_fingers_m": 0.07004310306902073,
+        "hand": [
+          1.0297645452315194,
+          -0.2996462698455729,
+          0.6588049685491744
+        ],
+        "hand_abs_x_m": 1.0297645452315194,
+        "hand_in_front_of_torso_m": -0.4096462698455729,
+        "shoulder": [
+          0.49766483371096515,
+          -0.30186903824615996,
+          1.2983395284523318
+        ],
+        "elbow": [
+          0.9631078353229469,
+          -0.18720795455605482,
+          1.1169046472420538
+        ],
+        "camera": [
+          1.0006370675805016,
+          -0.25518000331551194,
+          0.6397399275954541
+        ],
+        "fingers": [
+          1.0355460639432503,
+          -0.3408088051981035,
+          0.5696968245264333
+        ],
+        "approach_axis": [
+          0.05879937098892102,
+          -0.4186324230218457,
+          -0.9062502570295718
+        ],
+        "camera_dir_world_z": -0.3871094917123691,
+        "clearance_m": 0.22018512172212595,
+        "clearance_to": "torso",
+        "clearance_moving_m": 0.3958120520494451,
+        "clearance_moving_to": "L-upperarm"
+      },
+      "checks": {
+        "a_forearm_forward": {
+          "ok": false,
+          "got": 103.65205,
+          "want": "<= 40 deg"
+        },
+        "b_elbow_below_shoulder": {
+          "ok": true,
+          "got": 0.18143,
+          "want": ">= 0.10 m"
+        },
+        "c_wrist_level": {
+          "ok": false,
+          "got": -64.9922,
+          "want": "|elev| <= 2.0 deg"
+        },
+        "c2_wrist_faces_forward": {
+          "ok": false,
+          "got": 114.74828,
+          "want": "<= 25 deg"
+        },
+        "d_camera_on_top": {
+          "ok": false,
+          "got": 109.73067,
+          "want": "<= 15 deg off +z"
+        },
+        "e_hand_x": {
+          "ok": false,
+          "got": 1.02976,
+          "want": "|x| = 0.550 m"
+        },
+        "e_hand_in_front": {
+          "ok": false,
+          "got": -0.40965,
+          "want": ">= 0.10 m"
+        },
+        "h_seam_margin": {
+          "ok": true,
+          "got": NaN,
+          "want": ">= 0.30 rad from +/-pi"
+        },
+        "f_clearance": {
+          "ok": true,
+          "got": 0.22019,
+          "want": ">= 0.150 m"
+        },
+        "f2_moving_clearance": {
+          "ok": true,
+          "got": 0.39581,
+          "want": ">= 0.300 m"
+        }
+      }
+    }
+  },
+  "sweep": [
+    {
+      "x": 0.48,
+      "ok": false,
+      "unmet": [
+        "c2_wrist_faces_forward"
+      ],
+      "detail": {
+        "rows": [
+          {
+            "constraint": "a_forearm_forward",
+            "target": "<= 40 deg",
+            "left": 34.22724,
+            "right": 34.2264,
+            "ok": true
+          },
+          {
+            "constraint": "b_elbow_below_shoulder",
+            "target": ">= 0.10 m",
+            "left": 0.29433,
+            "right": 0.29434,
+            "ok": true
+          },
+          {
+            "constraint": "c_wrist_level",
+            "target": "|elev| <= 2.0 deg",
+            "left": -0.0079,
+            "right": 0.00032,
+            "ok": true
+          },
+          {
+            "constraint": "c2_wrist_faces_forward",
+            "target": "<= 25 deg",
+            "left": 26.38939,
+            "right": 26.38556,
+            "ok": false
+          },
+          {
+            "constraint": "d_camera_on_top",
+            "target": "<= 15 deg off +z",
+            "left": 10.26121,
+            "right": 11.98815,
+            "ok": true
+          },
+          {
+            "constraint": "e_hand_x",
+            "target": "|x| = 0.480 m",
+            "left": 0.48809,
+            "right": 0.48809,
+            "ok": true
+          },
+          {
+            "constraint": "e_hand_in_front",
+            "target": ">= 0.10 m",
+            "left": 0.23446,
+            "right": 0.23446,
+            "ok": true
+          },
+          {
+            "constraint": "h_seam_margin",
+            "target": ">= 0.30 rad from +/-pi",
+            "left": 0.35603,
+            "right": 0.35587,
+            "ok": true
+          },
+          {
+            "constraint": "f_clearance",
+            "target": ">= 0.150 m",
+            "left": 0.22019,
+            "right": 0.22019,
+            "ok": true
+          },
+          {
+            "constraint": "f2_moving_clearance",
+            "target": ">= 0.300 m",
+            "left": 0.30277,
+            "right": 0.30276,
+            "ok": true
+          },
+          {
+            "constraint": "g_mirror_ee",
+            "target": "<= 0.020 m",
+            "left": 1e-05,
+            "right": 1e-05,
+            "ok": true
+          },
+          {
+            "constraint": "g_mirror_whole_chain",
+            "target": "(reported)",
+            "left": 0.13551,
+            "right": 0.13551,
+            "ok": null
+          }
+        ],
+        "clearance_detail": {
+          "left": {
+            "whole_chain_m": 0.22018512172212595,
+            "whole_chain_to": "torso",
+            "moving_chain_m": 0.3027699531255417,
+            "moving_chain_to": "L-upperarm",
+            "mount_cap_m": 0.22018512172212595,
+            "per_wearer_link_m": {
+              "torso": 0.2202,
+              "head": 0.4622,
+              "neck": 0.4024,
+              "hips": 0.3116,
+              "L-thigh": 0.4361,
+              "R-thigh": 0.5352,
+              "L-upperarm": 0.2493,
+              "L-forearm": 0.2771,
+              "L-hand": 0.3821,
+              "R-upperarm": 0.545,
+              "R-forearm": 0.5619,
+              "R-hand": 0.6547
+            },
+            "per_wearer_link_moving_m": {
+              "torso": 0.3072,
+              "head": 0.5632,
+              "neck": 0.5015,
+              "hips": 0.3565,
+              "L-thigh": 0.452,
+              "R-thigh": 0.5703,
+              "L-upperarm": 0.3028,
+              "L-forearm": 0.3098,
+              "L-hand": 0.3821,
+              "R-upperarm": 0.6182,
+              "R-forearm": 0.626,
+              "R-hand": 0.6904
+            },
+            "per_arm_segment": [
+              {
+                "segment": "base_link -> shoulder_link",
+                "fixed": true,
+                "clearance_m": 0.2202,
+                "to": "torso"
+              },
+              {
+                "segment": "shoulder_link -> half_arm_1_link",
+                "fixed": true,
+                "clearance_m": 0.317,
+                "to": "L-upperarm"
+              },
+              {
+                "segment": "half_arm_1_link -> half_arm_2_link",
+                "fixed": false,
+                "clearance_m": 0.3692,
+                "to": "L-upperarm"
+              },
+              {
+                "segment": "half_arm_2_link -> forearm_link",
+                "fixed": false,
+                "clearance_m": 0.3662,
+                "to": "L-upperarm"
+              },
+              {
+                "segment": "forearm_link -> spherical_wrist_1_link",
+                "fixed": false,
+                "clearance_m": 0.3112,
+                "to": "L-upperarm"
+              },
+              {
+                "segment": "spherical_wrist_1_link -> spherical_wrist_2_link",
+                "fixed": false,
+                "clearance_m": 0.3028,
+                "to": "L-upperarm"
+              },
+              {
+                "segment": "spherical_wrist_2_link -> bracelet_link",
+                "fixed": false,
+                "clearance_m": 0.3028,
+                "to": "L-upperarm"
+              },
+              {
+                "segment": "bracelet_link -> end_effector_link",
+                "fixed": false,
+                "clearance_m": 0.3207,
+                "to": "L-upperarm"
+              },
+              {
+                "segment": "end_effector_link -> robotiq_85_left_finger_tip_link",
+                "fixed": false,
+                "clearance_m": 0.3072,
+                "to": "torso"
+              }
+            ]
+          },
+          "right": {
+            "whole_chain_m": 0.22018512172212595,
+            "whole_chain_to": "torso",
+            "moving_chain_m": 0.30276235181556077,
+            "moving_chain_to": "R-upperarm",
+            "mount_cap_m": 0.22018512172212595,
+            "per_wearer_link_m": {
+              "torso": 0.2202,
+              "head": 0.4622,
+              "neck": 0.4024,
+              "hips": 0.3116,
+              "L-thigh": 0.5352,
+              "R-thigh": 0.4361,
+              "L-upperarm": 0.545,
+              "L-forearm": 0.5619,
+              "L-hand": 0.6547,
+              "R-upperarm": 0.2493,
+              "R-forearm": 0.2771,
+              "R-hand": 0.3821
+            },
+            "per_wearer_link_moving_m": {
+              "torso": 0.3302,
+              "head": 0.5965,
+              "neck": 0.5367,
+              "hips": 0.3776,
+              "L-thigh": 0.6085,
+              "R-thigh": 0.452,
+              "L-upperarm": 0.6785,
+              "L-forearm": 0.6852,
+              "L-hand": 0.7404,
+              "R-upperarm": 0.3028,
+              "R-forearm": 0.3098,
+              "R-hand": 0.3821
+            },
+            "per_arm_segment": [
+              {
+                "segment": "base_link -> shoulder_link",
+                "fixed": true,
+                "clearance_m": 0.2202,
+                "to": "torso"
+              },
+              {
+                "segment": "shoulder_link -> half_arm_1_link",
+                "fixed": true,
+                "clearance_m": 0.317,
+                "to": "R-upperarm"
+              },
+              {
+                "segment": "half_arm_1_link -> half_arm_2_link",
+                "fixed": false,
+                "clearance_m": 0.3692,
+                "to": "R-upperarm"
+              },
+              {
+                "segment": "half_arm_2_link -> forearm_link",
+                "fixed": false,
+                "clearance_m": 0.3662,
+                "to": "R-upperarm"
+              },
+              {
+                "segment": "forearm_link -> spherical_wrist_1_link",
+                "fixed": false,
+                "clearance_m": 0.3112,
+                "to": "R-upperarm"
+              },
+              {
+                "segment": "spherical_wrist_1_link -> spherical_wrist_2_link",
+                "fixed": false,
+                "clearance_m": 0.3028,
+                "to": "R-upperarm"
+              },
+              {
+                "segment": "spherical_wrist_2_link -> bracelet_link",
+                "fixed": false,
+                "clearance_m": 0.3028,
+                "to": "R-upperarm"
+              },
+              {
+                "segment": "bracelet_link -> end_effector_link",
+                "fixed": false,
+                "clearance_m": 0.3207,
+                "to": "R-upperarm"
+              },
+              {
+                "segment": "end_effector_link -> robotiq_85_left_finger_tip_link",
+                "fixed": false,
+                "clearance_m": 0.3372,
+                "to": "torso"
+              }
+            ]
+          }
+        },
+        "left": {
+          "elbow_below_shoulder_m": 0.29433471753418794,
+          "forearm_off_forward_deg": 34.22724472281271,
+          "approach_elevation_deg": -0.007904187570450723,
+          "approach_off_forward_deg": 26.389392054399515,
+          "camera_off_top_deg": 10.261214428818723,
+          "camera_from_fingertips_off_top_deg": 61.37045580170377,
+          "camera_above_fingers_m": 0.05558275945852431,
+          "hand": [
+            0.48809179842085365,
+            0.3444581764663672,
+            1.1799916885740243
+          ],
+          "hand_abs_x_m": 0.48809179842085365,
+          "hand_in_front_of_torso_m": 0.23445817646636724,
+          "shoulder": [
+            0.49766483371096515,
+            -0.30186903824615996,
+            1.2983395284523318
+          ],
+          "elbow": [
+            0.6798733570043879,
+            -0.038157318198444645,
+            1.0040048109181439
+          ],
+          "camera": [
+            0.49803353290987135,
+            0.34599475944568214,
+            1.2355608835303806
+          ],
+          "fingers": [
+            0.4443888196724539,
+            0.43253820298181056,
+            1.1799781240718563
+          ],
+          "approach_axis": [
+            -0.4444693148763987,
+            0.8957940662350756,
+            -0.00013795409736200133
+          ],
+          "camera_dir_world_z": 0.9854366766511707,
+          "clearance_m": 0.22018512172212595,
+          "clearance_to": "torso",
+          "clearance_moving_m": 0.3027699531255417,
+          "clearance_moving_to": "L-upperarm"
+        },
+        "right": {
+          "elbow_below_shoulder_m": 0.294340303337284,
+          "forearm_off_forward_deg": 34.22639632700561,
+          "approach_elevation_deg": 0.00031876901431731805,
+          "approach_off_forward_deg": 26.385564794196995,
+          "camera_off_top_deg": 11.988147818961222,
+          "camera_from_fingertips_off_top_deg": 61.56301550539521,
+          "camera_above_fingers_m": 0.055240245985114234,
+          "hand": [
+            -0.48809312621884343,
+            0.3444631652759374,
+            1.1799910771877276
+          ],
+          "hand_abs_x_m": 0.48809312621884343,
+          "hand_in_front_of_torso_m": 0.2344631652759374,
+          "shoulder": [
+            -0.4976648337063846,
+            -0.30186903826472655,
+            1.298339528473288
+          ],
+          "elbow": [
+            -0.679872927812874,
+            -0.038167552961244466,
+            1.003999225136004
+          ],
+          "camera": [
+            -0.4995950779398028,
+            0.34676414160323304,
+            1.2352318702174256
+          ],
+          "fingers": [
+            -0.44439602906161296,
+            0.4325461108793419,
+            1.1799916242323114
+          ],
+          "approach_axis": [
+            0.4444094977455699,
+            0.8958237540289817,
+            5.563568853145442e-06
+          ],
+          "camera_dir_world_z": 0.979620677399949,
+          "clearance_m": 0.22018512172212595,
+          "clearance_to": "torso",
+          "clearance_moving_m": 0.30276235181556077,
+          "clearance_moving_to": "R-upperarm"
+        },
+        "mirror_ee_m": 5.198563420109546e-06,
+        "mirror_chain_worst_m": 0.1355079187030619,
+        "mirror_per_link": {
+          "base_link": 0.0,
+          "shoulder_link": 2.8370038475994334e-11,
+          "half_arm_1_link": 2.0122874569932567e-06,
+          "half_arm_2_link": 5.794711037051681e-06,
+          "forearm_link": 1.1667713445189244e-05,
+          "spherical_wrist_1_link": 1.9407847344339194e-05,
+          "spherical_wrist_2_link": 2.6107859411548144e-05,
+          "bracelet_link": 1.023094877263658e-05,
+          "end_effector_link": 5.198563420109546e-06,
+          "robotiq_85_left_finger_tip_link": 0.1355079187030619
+        },
+        "all_ok": false
+      }
+    },
+    {
+      "x": 0.5,
+      "ok": true,
+      "mirror_ee_m": 2.3428128572716547e-06,
+      "mirror_chain_worst_m": 0.13275130916000605,
+      "clearance_m": 0.22018512172212595,
+      "clearance_moving_m": 0.3075194521397986,
+      "q_left": [
+        1.194904,
+        1.565474,
+        -1.48162,
+        1.62859,
+        -0.358414,
+        -0.604439,
+        1.290147
+      ],
+      "q_right": [
+        2.156101,
+        -1.565483,
+        1.481601,
+        -1.628564,
+        0.358407,
+        0.604269,
+        -1.694678
+      ]
+    },
+    {
+      "x": 0.52,
+      "ok": true,
+      "mirror_ee_m": 4.150372428363139e-06,
+      "mirror_chain_worst_m": 0.13280851263849588,
+      "clearance_m": 0.22018512172212595,
+      "clearance_moving_m": 0.311939047564454,
+      "q_left": [
+        -1.87477,
+        -1.659067,
+        -1.540213,
+        -1.710146,
+        -0.277262,
+        0.666902,
+        -1.397355
+      ],
+      "q_right": [
+        2.13528,
+        -1.660517,
+        -1.5971,
+        1.650297,
+        0.280127,
+        -0.638004,
+        1.791732
+      ]
+    },
+    {
+      "x": 0.55,
+      "ok": true,
+      "mirror_ee_m": 1.2976800132472325e-06,
+      "mirror_chain_worst_m": 0.13261177438190117,
+      "clearance_m": 0.22018512172212595,
+      "clearance_moving_m": 0.3119926263187705,
+      "q_left": [
+        -1.882239,
+        -1.784953,
+        -1.789307,
+        -1.715213,
+        -0.469102,
+        0.76567,
+        -1.024302
+      ],
+      "q_right": [
+        -1.049918,
+        1.784959,
+        1.789293,
+        1.715212,
+        0.469071,
+        -0.765655,
+        1.439254
+      ]
+    },
+    {
+      "x": 0.58,
+      "ok": true,
+      "mirror_ee_m": 8.476086588493584e-07,
+      "mirror_chain_worst_m": 0.13239435396198504,
+      "clearance_m": 0.22018512172212595,
+      "clearance_moving_m": 0.3119965110759264,
+      "q_left": [
+        -1.887839,
+        -1.797026,
+        -1.895526,
+        -1.716405,
+        -0.542618,
+        0.814184,
+        -1.234873
+      ],
+      "q_right": [
+        -1.053245,
+        1.76704,
+        -1.196539,
+        -1.713336,
+        -2.507492,
+        -0.845909,
+        0.853966
+      ]
+    },
+    {
+      "x": 0.6,
+      "ok": true,
+      "mirror_ee_m": 8.653106113803372e-06,
+      "mirror_chain_worst_m": 0.1328141695738866,
+      "clearance_m": 0.22018512172212595,
+      "clearance_moving_m": 0.31199845982874563,
+      "q_left": [
+        -1.883625,
+        -1.76633,
+        1.128721,
+        1.706643,
+        -0.68811,
+        -0.885008,
+        1.959431
+      ],
+      "q_right": [
+        2.155072,
+        -1.797141,
+        -1.160541,
+        1.648971,
+        -2.504395,
+        0.821393,
+        -2.346723
+      ]
+    }
+  ],
+  "solved": {
+    "hand_abs_x_m": 0.6,
+    "hand_y": 0.34,
+    "hand_z": 1.18,
+    "q_left": [
+      -1.852384,
+      -1.68803,
+      1.445569,
+      1.745862,
+      0.231648,
+      -0.76908,
+      1.037302
+    ],
+    "q_right": [
+      2.13431,
+      -1.737698,
+      -1.275181,
+      1.661894,
+      -2.571834,
+      0.79861,
+      -2.19999
+    ],
+    "detail": {
+      "rows": [
+        {
+          "constraint": "a_forearm_forward",
+          "target": "<= 40 deg",
+          "left": 26.397,
+          "right": 26.87077,
+          "ok": true
+        },
+        {
+          "constraint": "b_elbow_below_shoulder",
+          "target": ">= 0.10 m",
+          "left": 0.31459,
+          "right": 0.31419,
+          "ok": true
+        },
+        {
+          "constraint": "c_wrist_level",
+          "target": "|elev| <= 2.0 deg",
+          "left": -1.44541,
+          "right": -1.47117,
+          "ok": true
+        },
+        {
+          "constraint": "c2_wrist_faces_forward",
+          "target": "<= 25 deg",
+          "left": 5.59127,
+          "right": 21.07889,
+          "ok": true
+        },
+        {
+          "constraint": "d_camera_on_top",
+          "target": "<= 15 deg off +z",
+          "left": 12.10637,
+          "right": 12.1059,
+          "ok": true
+        },
+        {
+          "constraint": "e_hand_x",
+          "target": "|x| = 0.600 m",
+          "left": 0.60993,
+          "right": 0.59018,
+          "ok": true
+        },
+        {
+          "constraint": "e_hand_in_front",
+          "target": ">= 0.10 m",
+          "left": 0.23134,
+          "right": 0.2287,
+          "ok": true
+        },
+        {
+          "constraint": "h_seam_margin",
+          "target": ">= 0.30 rad from +/-pi",
+          "left": 1.28921,
+          "right": 0.56976,
+          "ok": true
+        },
+        {
+          "constraint": "f_clearance",
+          "target": ">= 0.150 m",
+          "left": 0.22019,
+          "right": 0.22019,
+          "ok": true
+        },
+        {
+          "constraint": "f2_moving_clearance",
+          "target": ">= 0.300 m",
+          "left": 0.31188,
+          "right": 0.33699,
+          "ok": true
+        },
+        {
+          "constraint": "g_mirror_ee",
+          "target": "<= 0.020 m",
+          "left": 0.01993,
+          "right": 0.01993,
+          "ok": true
+        },
+        {
+          "constraint": "g_mirror_whole_chain",
+          "target": "(reported)",
+          "left": 0.06401,
+          "right": 0.06401,
+          "ok": null
+        }
+      ],
+      "clearance_detail": {
+        "left": {
+          "whole_chain_m": 0.22018512172212595,
+          "whole_chain_to": "torso",
+          "moving_chain_m": 0.31188165485373,
+          "moving_chain_to": "L-upperarm",
+          "mount_cap_m": 0.22018512172212595,
+          "per_wearer_link_m": {
+            "torso": 0.2202,
+            "head": 0.4622,
+            "neck": 0.4024,
+            "hips": 0.3116,
+            "L-thigh": 0.4361,
+            "R-thigh": 0.5352,
+            "L-upperarm": 0.2493,
+            "L-forearm": 0.2771,
+            "L-hand": 0.3602,
+            "R-upperarm": 0.545,
+            "R-forearm": 0.5619,
+            "R-hand": 0.6547
+          },
+          "per_wearer_link_moving_m": {
+            "torso": 0.3694,
+            "head": 0.5891,
+            "neck": 0.5617,
+            "hips": 0.4084,
+            "L-thigh": 0.4378,
+            "R-thigh": 0.6119,
+            "L-upperarm": 0.3119,
+            "L-forearm": 0.3166,
+            "L-hand": 0.3602,
+            "R-upperarm": 0.723,
+            "R-forearm": 0.7288,
+            "R-hand": 0.7639
+          },
+          "per_arm_segment": [
+            {
+              "segment": "base_link -> shoulder_link",
+              "fixed": true,
+              "clearance_m": 0.2202,
+              "to": "torso"
+            },
+            {
+              "segment": "shoulder_link -> half_arm_1_link",
+              "fixed": true,
+              "clearance_m": 0.317,
+              "to": "L-upperarm"
+            },
+            {
+              "segment": "half_arm_1_link -> half_arm_2_link",
+              "fixed": false,
+              "clearance_m": 0.3576,
+              "to": "L-upperarm"
+            },
+            {
+              "segment": "half_arm_2_link -> forearm_link",
+              "fixed": false,
+              "clearance_m": 0.3476,
+              "to": "L-forearm"
+            },
+            {
+              "segment": "forearm_link -> spherical_wrist_1_link",
+              "fixed": false,
+              "clearance_m": 0.3119,
+              "to": "L-upperarm"
+            },
+            {
+              "segment": "spherical_wrist_1_link -> spherical_wrist_2_link",
+              "fixed": false,
+              "clearance_m": 0.3119,
+              "to": "L-upperarm"
+            },
+            {
+              "segment": "spherical_wrist_2_link -> bracelet_link",
+              "fixed": false,
+              "clearance_m": 0.3222,
+              "to": "L-upperarm"
+            },
+            {
+              "segment": "bracelet_link -> end_effector_link",
+              "fixed": false,
+              "clearance_m": 0.3835,
+              "to": "L-upperarm"
+            },
+            {
+              "segment": "end_effector_link -> robotiq_85_left_finger_tip_link",
+              "fixed": false,
+              "clearance_m": 0.4258,
+              "to": "L-upperarm"
+            }
+          ]
+        },
+        "right": {
+          "whole_chain_m": 0.22018512172212595,
+          "whole_chain_to": "torso",
+          "moving_chain_m": 0.3369938567438481,
+          "moving_chain_to": "R-forearm",
+          "mount_cap_m": 0.22018512172212595,
+          "per_wearer_link_m": {
+            "torso": 0.2202,
+            "head": 0.4622,
+            "neck": 0.4024,
+            "hips": 0.3116,
+            "L-thigh": 0.5352,
+            "R-thigh": 0.4347,
+            "L-upperarm": 0.545,
+            "L-forearm": 0.5619,
+            "L-hand": 0.6547,
+            "R-upperarm": 0.2493,
+            "R-forearm": 0.2771,
+            "R-hand": 0.3522
+          },
+          "per_wearer_link_moving_m": {
+            "torso": 0.402,
+            "head": 0.5971,
+            "neck": 0.5837,
+            "hips": 0.4251,
+            "L-thigh": 0.6119,
+            "R-thigh": 0.4347,
+            "L-upperarm": 0.7532,
+            "L-forearm": 0.7559,
+            "L-hand": 0.7629,
+            "R-upperarm": 0.3422,
+            "R-forearm": 0.337,
+            "R-hand": 0.3522
+          },
+          "per_arm_segment": [
+            {
+              "segment": "base_link -> shoulder_link",
+              "fixed": true,
+              "clearance_m": 0.2202,
+              "to": "torso"
+            },
+            {
+              "segment": "shoulder_link -> half_arm_1_link",
+              "fixed": true,
+              "clearance_m": 0.317,
+              "to": "R-upperarm"
+            },
+            {
+              "segment": "half_arm_1_link -> half_arm_2_link",
+              "fixed": false,
+              "clearance_m": 0.3538,
+              "to": "R-upperarm"
+            },
+            {
+              "segment": "half_arm_2_link -> forearm_link",
+              "fixed": false,
+              "clearance_m": 0.3383,
+              "to": "R-forearm"
+            },
+            {
+              "segment": "forearm_link -> spherical_wrist_1_link",
+              "fixed": false,
+              "clearance_m": 0.337,
+              "to": "R-forearm"
+            },
+            {
+              "segment": "spherical_wrist_1_link -> spherical_wrist_2_link",
+              "fixed": false,
+              "clearance_m": 0.3505,
+              "to": "R-upperarm"
+            },
+            {
+              "segment": "spherical_wrist_2_link -> bracelet_link",
+              "fixed": false,
+              "clearance_m": 0.3767,
+              "to": "R-upperarm"
+            },
+            {
+              "segment": "bracelet_link -> end_effector_link",
+              "fixed": false,
+              "clearance_m": 0.3908,
+              "to": "R-upperarm"
+            },
+            {
+              "segment": "end_effector_link -> robotiq_85_left_finger_tip_link",
+              "fixed": false,
+              "clearance_m": 0.4092,
+              "to": "R-upperarm"
+            }
+          ]
+        }
+      },
+      "left": {
+        "elbow_below_shoulder_m": 0.31459156554994616,
+        "forearm_off_forward_deg": 26.396999353191276,
+        "approach_elevation_deg": -1.4454126848119946,
+        "approach_off_forward_deg": 5.591270843093067,
+        "camera_off_top_deg": 12.106365731866251,
+        "camera_from_fingertips_off_top_deg": 60.1740096315669,
+        "camera_above_fingers_m": 0.05769670599889176,
+        "hand": [
+          0.6099340332405779,
+          0.3413443986285784,
+          1.1799503378896963
+        ],
+        "hand_abs_x_m": 0.6099340332405779,
+        "hand_in_front_of_torso_m": 0.23134439862857842,
+        "shoulder": [
+          0.49766483371096515,
+          -0.30186903824615996,
+          1.2983395284523318
+        ],
+        "elbow": [
+          0.6483374843994739,
+          -0.061455832664461085,
+          0.9837479629023856
+        ],
+        "camera": [
+          0.6214531146049488,
+          0.33859005035677914,
+          1.2351668112479128
+        ],
+        "fingers": [
+          0.6191874511939939,
+          0.4392027876847422,
+          1.177470105249021
+        ],
+        "approach_axis": [
+          0.09410938237637559,
+          0.9952422554330768,
+          -0.02522453466802648
+        ],
+        "camera_dir_world_z": 0.9778247655165645,
+        "clearance_m": 0.22018512172212595,
+        "clearance_to": "torso",
+        "clearance_moving_m": 0.31188165485373,
+        "clearance_moving_to": "L-upperarm"
+      },
+      "right": {
+        "elbow_below_shoulder_m": 0.3141888479540246,
+        "forearm_off_forward_deg": 26.870773427153726,
+        "approach_elevation_deg": -1.4711712658415148,
+        "approach_off_forward_deg": 21.078885648150987,
+        "camera_off_top_deg": 12.1058977231386,
+        "camera_from_fingertips_off_top_deg": 60.14879271497856,
+        "camera_above_fingers_m": 0.05774099313437375,
+        "hand": [
+          -0.5901840099382738,
+          0.33869845678509375,
+          1.1800258143784936
+        ],
+        "hand_abs_x_m": 0.5901840099382738,
+        "hand_in_front_of_torso_m": 0.22869845678509376,
+        "shoulder": [
+          -0.4976648337063846,
+          -0.30186903826472655,
+          1.298339528473288
+        ],
+        "elbow": [
+          -0.6391152791311493,
+          -0.059760710640297615,
+          0.9841506805192634
+        ],
+        "camera": [
+          -0.5798210500243208,
+          0.3329648673151172,
+          1.235242384478524
+        ],
+        "fingers": [
+          -0.5549109179746907,
+          0.4304452707794351,
+          1.1775013913441503
+        ],
+        "approach_axis": [
+          0.3587354333187202,
+          0.9330861356824671,
+          -0.02567396110439588
+        ],
+        "camera_dir_world_z": 0.9778021727019338,
+        "clearance_m": 0.22018512172212595,
+        "clearance_to": "torso",
+        "clearance_moving_m": 0.3369938567438481,
+        "clearance_moving_to": "R-forearm"
+      },
+      "mirror_ee_m": 0.019926618513461343,
+      "mirror_chain_worst_m": 0.06400869081871764,
+      "mirror_per_link": {
+        "base_link": 0.0,
+        "shoulder_link": 2.8370038475994334e-11,
+        "half_arm_1_link": 0.010742171126233688,
+        "half_arm_2_link": 0.01340113674404985,
+        "forearm_link": 0.009385344435174563,
+        "spherical_wrist_1_link": 0.038775163179022534,
+        "spherical_wrist_2_link": 0.05661006738770982,
+        "bracelet_link": 0.008197027712902758,
+        "end_effector_link": 0.019926618513461343,
+        "robotiq_85_left_finger_tip_link": 0.06400869081871764
+      },
+      "all_ok": true
+    },
+    "recapture": {
+      "left": {
+        "ros_rad": [
+          -1.852384,
+          -1.68803,
+          1.445569,
+          1.745862,
+          0.231648,
+          -0.76908,
+          1.037302
+        ],
+        "ros_deg": [
+          -106.13,
+          -96.72,
+          82.82,
+          100.03,
+          13.27,
+          -44.07,
+          59.43
+        ],
+        "kortex_deg": [
+          253.87,
+          263.28,
+          82.82,
+          100.03,
+          13.27,
+          315.93,
+          59.43
+        ]
+      },
+      "right": {
+        "ros_rad": [
+          2.13431,
+          -1.737698,
+          -1.275181,
+          1.661894,
+          -2.571834,
+          0.79861,
+          -2.19999
+        ],
+        "ros_deg": [
+          122.29,
+          -99.56,
+          -73.06,
+          95.22,
+          -147.36,
+          45.76,
+          -126.05
+        ],
+        "kortex_deg": [
+          122.29,
+          260.44,
+          286.94,
+          95.22,
+          212.64,
+          45.76,
+          233.95
+        ]
+      }
+    },
+    "distance_from_hardware": {
+      "legacy_home.left": {
+        "per_joint_rad": [
+          -0.0901,
+          -0.2514,
+          3.0558,
+          3.035,
+          3.1271,
+          -1.2487,
+          0.0728
+        ],
+        "worst_rad": 3.1271,
+        "worst_joint": 5,
+        "worst_deg": 179.17
+      },
+      "legacy_home.right": {
+        "per_joint_rad": [
+          3.1178,
+          -3.0826,
+          -2.9956,
+          0.6397,
+          -1.8238,
+          0.1635,
+          1.383
+        ],
+        "worst_rad": 3.1178,
+        "worst_joint": 1,
+        "worst_deg": 178.64
+      },
+      "live_reading_20260731.left": {
+        "per_joint_rad": [
+          -0.4036,
+          -0.8141,
+          1.056,
+          2.6274,
+          -0.5468,
+          -0.4659,
+          -1.5351
+        ],
+        "worst_rad": 2.6274,
+        "worst_joint": 4,
+        "worst_deg": 150.54
+      }
+    }
+  }
+}

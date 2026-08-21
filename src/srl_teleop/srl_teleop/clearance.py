@@ -17,21 +17,72 @@ import math
 
 import numpy as np
 
+try:
+    from srl_teleop import wearer_posture as _WP
+except Exception:                                              # noqa: BLE001
+    from . import wearer_posture as _WP
+
 # Wearer body primitives, in the `torso` frame, straight from
 # human_backpack.xacro. (kind, params, origin)
 #   sphere:   radius
 #   cylinder: (radius, length)  -- axis along z
 #   box:      (sx, sy, sz)
-TORSO_BODY = [
-    ("box", (0.36, 0.22, 0.48), (0.0, 0.0, 0.17)),          # torso
-]
-HEAD_BODY = [
-    ("sphere", (0.105,), (0.0, 0.0, 0.245)),
-    ("cylinder", (0.055, 0.16), (0.0, 0.0, 0.10)),
-]
-HIPS_BODY = [
-    ("box", (0.32, 0.21, 0.18), (0.0, 0.0, 0.17)),
-]
+# THE WEARER'S SIZE REACHED THIS FILE THROUGH NOTHING, AND THIS IS THE LIVE
+# CHECK.
+#
+# `SRL_WEARER_SIZE` has been a variable since 2026-08-15 and CLAUDE.md
+# describes it as going "through the SAME one source the posture uses". It
+# reached `mount_guard_node.WEARER`, which is an OFFLINE guard, and it did not
+# reach here -- and this module is what `ik_follower_node`, `real_homing_node`
+# and `sim_to_real_bridge` enforce a floor with. Measured before the fix:
+#
+#     SRL_WEARER_SIZE=measured_adult
+#     mount_guard torso box    0.430 x 0.220 x 0.503     follows the profile
+#     clearance.py torso box   0.360 x 0.220 x 0.480     the mannequin
+#     clearance.py upper arm   0.300 m long              the mannequin
+#
+# So the arm was stopped at 150 mm from a body 70 mm narrower than the one
+# configured, and every consumer reported the floor as held. That is CLAUDE.md
+# rule 11's "a posture that reaches one and not the other measures the old
+# wearer under a new name", one level down and on the live path.
+#
+# The dimensions are now built from `wearer_posture`, per instance, at
+# construction. The ORIGINS are unchanged and stay hardcoded: they are offsets
+# within each body part's OWN LINK FRAME, TF places the frames, and they are
+# not a function of size.
+def parts_for(size=None):
+    """Every wearer primitive, in its own link frame, at the given size.
+
+    `size` is a profile name, a path or a dict; None means SRL_WEARER_SIZE,
+    whose default is the shipped mannequin -- so a caller that asks for
+    nothing gets exactly the body this file has always carried.
+    """
+    # A dict is a profile already. Same idiom as `wearer_posture.arm_links`
+    # and `torso_parts_for`, so a caller can hand any of the three the same
+    # thing -- a name, a path, or a body it built itself.
+    s = size if isinstance(size, dict) else _WP.size_profile(size)
+    out = {
+        "torso": [("box", (s["chest_w"], s["chest_d"], s["chest_h"]),
+                   (0.0, 0.0, 0.17))],
+        "head": [("sphere", (s["head_r"],), (0.0, 0.0, 0.245)),
+                 ("cylinder", (0.055, 0.16), (0.0, 0.0, 0.10))],
+        "hips": [("box", (s["hips_w"], s["hips_d"], 0.18),
+                  (0.0, 0.0, 0.17))],
+    }
+    for name, kind, dims, _len, _mat in _WP.segments_for(s):
+        for side in ("left", "right"):
+            out["human_%s_%s" % (side, name)] = [
+                (kind, tuple(dims), (0.0, 0.0, 0.0))]
+    return out
+
+
+# The shipped body, kept as module constants because callers import them.
+# They are DERIVED from the mannequin profile rather than retyped, so there is
+# no second copy to drift.
+_MANNEQUIN = parts_for("mannequin")
+TORSO_BODY = _MANNEQUIN["torso"]
+HEAD_BODY = _MANNEQUIN["head"]
+HIPS_BODY = _MANNEQUIN["hips"]
 
 # THE WEARER'S OWN ARMS, AND THEY WERE NOT HERE.
 #
@@ -49,22 +100,35 @@ HIPS_BODY = [
 # posture moves the LINK, TF carries it, and the shape in the link frame is the
 # same whatever the wearer is doing with their arms. The dimensions come from
 # `wearer_posture.SEGMENTS`, which is also what writes the URDF.
-_ARM_PRIMS = {}
-try:
-    from srl_teleop.wearer_posture import SEGMENTS as _SEGS
-except Exception:                                              # noqa: BLE001
-    from .wearer_posture import SEGMENTS as _SEGS
-for _name, _kind, _dims, _len, _mat in _SEGS:
-    for _side in ("left", "right"):
-        _ARM_PRIMS["human_%s_%s" % (_side, _name)] = [
-            (_kind, tuple(_dims), (0.0, 0.0, 0.0))]
-WEARER_ARM_PARTS = dict(_ARM_PRIMS)
+WEARER_ARM_PARTS = {k: v for k, v in _MANNEQUIN.items()
+                    if k.startswith("human_")}
 
 # Arm links that must stay clear. Proximal links are bolted to the harness
 # and are excluded in the SRDF, so checking them would only produce noise.
 DISTAL_LINKS = ["forearm_link", "spherical_wrist_1_link",
                 "spherical_wrist_2_link", "bracelet_link",
                 "end_effector_link"]
+
+# THE PROXIMAL LINKS ARE THE ONES A SHOULDER MOUNT ACTUALLY SWINGS THROUGH.
+#
+# DISTAL_LINKS starts at the forearm, so the shoulder and both half-arm tubes
+# -- the segments that sweep across the wearer's head and chest when the arm
+# rotates about its base -- were never measured against the body at all. The
+# hand can be a metre clear while the upper tube is inside somebody's neck,
+# and the check would report the hand's distance and call it clearance.
+#
+# This is the SRDF trap one layer down: CLAUDE.md hard constraint 11 says the
+# SRDF excludes the 44 proximal pairs a shoulder mount threatens, and the
+# homing check then reproduced the same blind spot in its own link list.
+#
+# base_link is deliberately NOT here. It is rigid to the mount at 0.1610 m
+# from the torso and no joint moves it, so including it would peg every
+# reading at 0.1610 and mask the arm entirely -- a constant dressed as a
+# measurement.
+PROXIMAL_LINKS = ["shoulder_link", "half_arm_1_link", "half_arm_2_link"]
+
+# What the wearer check should sweep: everything that moves.
+WEARER_CHECK_LINKS = PROXIMAL_LINKS + DISTAL_LINKS
 
 
 def _dist_point_box(p, half):
@@ -115,8 +179,18 @@ class ClearanceModel:
     has TF), so this stays pure geometry and is unit-testable.
     """
 
-    PARTS = dict({"torso": TORSO_BODY, "head": HEAD_BODY, "hips": HIPS_BODY},
-                 **WEARER_ARM_PARTS)
+    #: The shipped body, for callers that read the class rather than an
+    #: instance. An INSTANCE built with a size overrides it.
+    PARTS = dict(_MANNEQUIN)
+
+    def __init__(self, size=None):
+        """`size` is a wearer profile. None means SRL_WEARER_SIZE.
+
+        The body is fixed at construction rather than looked up per call, so
+        one node cannot measure two different people during a run.
+        """
+        self.PARTS = parts_for(size)
+        self.size = size if isinstance(size, dict) else _WP.size_profile(size)
 
     def clearance(self, points_by_part, pad=0.0):
         """points_by_part: {part_name: [p, ...]} in that part's frame."""

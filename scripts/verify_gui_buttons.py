@@ -145,6 +145,24 @@ def level2_click():
         self.bus.note("would launch %s" % spec.label)
     srl_gui.Gui.on_launch = fake_launch
 
+    # AND `_run_raw`, WHICH WAS NOT INTERCEPTED AND SHOULD ALWAYS HAVE BEEN.
+    #
+    # `on_launch` covers the manifest Specs. `_run_raw` is the OTHER launch
+    # path -- the ported console buttons and the real-arm panel -- and it went
+    # straight to Popen during an audit. Measured 2026-08-21: pressing
+    # `1. START REAL ARMS` ran scripts/start_real.sh for real, whose first act
+    # is a teardown, and it CLOSED BOTH LIVE KORTEX SESSIONS mid-session. The
+    # left arm then sagged under gravity.
+    #
+    # An audit that can move a robot is not an audit. Same principle as
+    # above: the whole click path runs, only the final Popen is replaced.
+    raw_launched = []
+
+    def fake_run_raw(self, label, argv):
+        raw_launched.append((label, " ".join(argv)))
+        self.bus.note("would run %s" % label)
+    srl_gui.Gui._run_raw = fake_run_raw
+
     # AND THE PROMPT PANEL'S OWN LAUNCHES, for the same reason and no other.
     # LOOK moves the arm to the observe pose and VOICE opens a listener; both
     # are real actions with real side effects, and pressing them here would

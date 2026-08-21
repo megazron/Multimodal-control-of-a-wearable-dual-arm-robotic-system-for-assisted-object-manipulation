@@ -48,6 +48,13 @@ class FakeWorld(V.World):
             mapper={"engaged": False, "has_reference": False,
                     "has_anchor": False, "filter_primed": False,
                     "scale": 0.5, "scale_default": 0.5},
+            # A HEALTHY MACHINE IS ONE WHOSE ROBOT IS SAYING WHERE IT IS.
+            # `joint_beats=None` models the probe failing, `0` models the
+            # state the operator actually hit: topic listed, nothing on it.
+            joint_beats=40,
+            # Nobody has declared they are working alone, by default. The
+            # bypass must never be what a test gets for not mentioning it.
+            bypass=(False, "no bypass has been taken"),
             beats=10, pose_beats=30, bridge_dies=False,
             nodes_direct=["/move_group"],
             spawn_ok=True,
@@ -81,6 +88,12 @@ class FakeWorld(V.World):
     def topics(self, timeout_s=10):
         t = self.k["topics"]
         return None if t is None else list(t)
+
+    def joint_beats(self, window_s=2.0):
+        return self.k["joint_beats"]
+
+    def observer_bypass(self):
+        return self.k["bypass"]
 
     def port_owner(self, port):
         return self.k["port_owner"]
@@ -172,15 +185,47 @@ def test_the_steps_run_in_an_order_that_matters():
 
 
 # ============================================================ INJECTIONS
-def test_stale_shared_memory_is_caught_and_the_fix_waits():
+def test_stale_shared_memory_is_CLEARED_rather_than_reported(monkeypatch):
+    """FOUND IN THE LAB. Removing a segment nobody has mapped is safe by
+    definition, so there is nothing for the operator to decide -- and because
+    the check has a 20 s age floor, the COUNT MOVES WHILE YOU LOOK AT IT as
+    leftovers age past the threshold. An operator pressing the button twice
+    saw "2 blocks" then "10 blocks" and reasonably concluded something was
+    creating them faster than they could be cleared. Nothing was.
+
+    A fault that is always safe to repair, and whose count changes between
+    attempts, must be repaired rather than reported.
+    """
+    cleared = {}
+
+    def fake_clear(w):
+        cleared["n"] = len(w.k["stale_shm"])
+        w.k["stale_shm"] = []
+        return True, "cleared %d" % cleared["n"]
+    monkeypatch.setattr(V, "fix_clear_shm", fake_clear)
+
     w = FakeWorld(shm=["/dev/shm/fastrtps_a", "/dev/shm/sem.fastrtps_a"],
                   stale_shm=["/dev/shm/fastrtps_a"], procs={})
     o = outcome(w, "leftover_memory")
-    assert o.state == V.FAILED and o.has_fix
-    assert "five seconds" in o.fix_note, (
-        "the five-second settle is the half of this fix that gets forgotten")
-    # ... and segments that a live process HAS MAPPED are in use, not stale,
-    # whatever else is or is not running.
+    assert o.state == V.OK, (
+        "the sequence stopped for something it could simply have fixed")
+    assert cleared.get("n") == 1
+    assert "cleared" in o.plain.lower()
+
+
+def test_leftovers_that_will_not_clear_DO_stop_the_sequence(monkeypatch):
+    """The other half: if clearing does not work, something is genuinely
+    wrong and carrying on would start a stack into a broken transport."""
+    monkeypatch.setattr(V, "fix_clear_shm",
+                        lambda w: (True, "tried and failed"))
+    w = FakeWorld(shm=["/dev/shm/fastrtps_a"],
+                  stale_shm=["/dev/shm/fastrtps_a"], procs={})
+    o = outcome(w, "leftover_memory")
+    assert o.state == V.FAILED
+    assert o.has_fix and o.fix == "show_shm"
+
+def test_segments_a_live_process_has_mapped_are_not_leftovers():
+    """In use, whatever else is or is not running."""
     w2 = FakeWorld(shm=["/dev/shm/fastrtps_a"], stale_shm=[])
     assert outcome(w2, "leftover_memory").state == V.OK
 
@@ -588,8 +633,6 @@ def test_nothing_the_operator_reads_contains_a_topic_name_or_a_traceback():
     somebody who has not read anything else."""
     worlds = [
         FakeWorld(),
-        FakeWorld(shm=["/dev/shm/fastrtps_a"],
-                  stale_shm=["/dev/shm/fastrtps_a"]),
         FakeWorld(nodes=([], True)),
         FakeWorld(procs={"move_group": [(1, "a/lib/moveit_ros_move_group/"
                                             "move_group"),
@@ -614,9 +657,7 @@ def test_nothing_the_operator_reads_contains_a_topic_name_or_a_traceback():
 
 
 def test_every_failure_offers_a_fix_or_explains_why_it_cannot():
-    for w in (FakeWorld(shm=["/dev/shm/fastrtps_a"],
-                        stale_shm=["/dev/shm/fastrtps_a"]),
-              FakeWorld(nodes=([], True)),
+    for w in (FakeWorld(nodes=([], True)),
               FakeWorld(cert=(False, False, "x")),
               FakeWorld(port_owner=(1, "x")),
               FakeWorld(bridge_dies=True),
@@ -663,3 +704,129 @@ def test_no_step_can_power_a_real_arm():
         assert forbidden not in src, (
             "the bring-up sequence mentions %r -- it must not be able to "
             "reach hardware" % forbidden)
+
+
+# ===========================================================================
+#  THE SIMULATION IS RUNNING AND THE SIMULATION IS NOT REPORTING
+#
+#  Both were printed in the same run on 2026-08-20: step 5 logged
+#  "VR sim: ok -- The simulation is running" and step 12 stopped at
+#  "ALMOST READY: THE SIMULATION IS NOT REPORTING", with all fourteen joints
+#  showing "--". They came from the same predicate -- `/joint_states` in the
+#  topic list -- read twice, and only the second was allowed to sound certain.
+#
+#  Two separate defects, and each gets its own test.
+# ===========================================================================
+def test_a_topic_probe_that_fails_is_not_a_verdict_about_the_simulation():
+    """`w.topics()` returning None means the question could not be asked.
+
+    The step read `w.topics() or []`, so None became an empty list and the
+    next line reported, by name, that the simulation was not reporting. False,
+    specific and confident -- and it sends the operator to the simulation log,
+    which is the one place the answer is not.
+    """
+    out = V.step_ready(FakeWorld(topics=None))
+    assert out.state == V.UNKNOWN, out
+    assert "not reporting" not in out.plain.lower(), out.plain
+    assert "could not" in out.plain.lower(), out.plain
+    assert out.has_fix
+
+
+def test_a_simulation_that_is_listed_but_silent_is_caught_at_step_5():
+    """Listed is not reporting.
+
+    `/joint_states` appears in the topic list as soon as anything publishes OR
+    SUBSCRIBES to it, so the old test passed against a stack whose controllers
+    had not come up. That is what put "the simulation is running" beside
+    fourteen dashes.
+    """
+    out = V.step_sim_stack(FakeWorld(joint_beats=0))
+    assert out.state == V.FAILED, out
+    assert "not saying where the robot is" in out.plain, out.plain
+    assert out.fix == "restart_sim"
+
+
+def test_a_simulation_that_is_reporting_says_so_with_a_count():
+    out = V.step_sim_stack(FakeWorld(joint_beats=40))
+    assert out.state == V.OK, out
+    assert "40" in out.detail, out.detail
+
+
+def test_step_5_does_not_guess_when_it_cannot_count_arrivals():
+    """None is not zero here either, and it must not become a failure."""
+    out = V.step_sim_stack(FakeWorld(joint_beats=None))
+    assert out.state == V.UNKNOWN, out
+    assert out.has_fix
+
+
+def test_ready_also_refuses_a_listed_but_silent_simulation():
+    out = V.step_ready(FakeWorld(joint_beats=0))
+    assert out.state == V.FAILED, out
+    assert "dash" in out.plain, out.plain
+
+
+def test_restarting_the_simulation_is_offered_as_its_own_repair():
+    """Not routed to `reset_daemon`.
+
+    The picture is not stale in this state -- the robot really is silent -- so
+    restarting the helper that lists what is running repairs nothing and
+    reports success, which is the silent-acceptance failure this file exists
+    to prevent.
+    """
+    assert "restart_sim" in V.FIXES
+
+
+# ===========================================================================
+#  WORKING ALONE
+# ===========================================================================
+def test_no_bypass_is_the_default_everywhere():
+    """A FakeWorld that says nothing about the bypass must not have one."""
+    out = V.step_observer(FakeWorld(beats=0))
+    assert out.state == V.SKIPPED, out
+    assert "bypass" not in out.plain.lower()
+
+
+def test_a_taken_bypass_reports_BYPASSED_and_names_who_and_when():
+    out = V.step_observer(FakeWorld(beats=0, bypass=(
+        True, {"who": "gui", "granted_at_iso": "2026-08-21T09:00:00+0100"})))
+    assert out.state == V.BYPASSED, out
+    assert "WORKING ALONE" in out.plain
+    assert "gui" in out.detail and "09:00:00" in out.detail
+    assert out.fix == "cancel_bypass", "it must be cancellable from the row"
+
+
+def test_the_bypass_does_not_hide_an_observer_who_IS_posted():
+    """The check runs first, always.
+
+    If somebody is actually posted, that is what the row says -- otherwise
+    ticking the box would mask a working heartbeat and the operator would
+    never learn the observer path was fine.
+    """
+    out = V.step_observer(FakeWorld(beats=3, bypass=(True, {"who": "gui"})))
+    assert out.state == V.OK, out
+    assert "present" in out.plain.lower()
+
+
+def test_working_alone_is_said_in_the_headline_and_not_folded_away():
+    """The one line the operator reads must not make an unobserved run look
+    like every other run."""
+    res = [o for _k, o in run_all(FakeWorld(
+        beats=0, bypass=(True, {"who": "gui", "granted_at_iso": "x"})))]
+    state, head = V.verdict(res)
+    assert "WORKING ALONE" in head or "no observer" in head, head
+
+
+def test_a_bypassed_observer_does_not_spoil_the_run():
+    keyed = run_all(FakeWorld(
+        beats=0, bypass=(True, {"who": "gui", "granted_at_iso": "x"})))
+    res = [o for _k, o in keyed]
+    state, _head = V.verdict(res, keyed=keyed)
+    assert state in (V.OK, V.UNKNOWN), state
+    assert not [r for r in res if r.state == V.FAILED]
+
+
+def test_the_observer_check_itself_is_unchanged():
+    """The bypass ADDS a state. It must not have altered the other three."""
+    assert V.step_observer(FakeWorld(beats=3)).state == V.OK
+    assert V.step_observer(FakeWorld(beats=0)).state == V.SKIPPED
+    assert V.step_observer(FakeWorld(beats=None)).state == V.UNKNOWN

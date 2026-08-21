@@ -34,6 +34,7 @@ import glob
 import os
 import re
 import subprocess
+import sys
 import time
 
 OK = "ok"
@@ -42,6 +43,17 @@ UNKNOWN = "unknown"
 RUNNING = "running"
 PENDING = "pending"
 SKIPPED = "skipped"
+# A FOURTH ANSWER TO THE OBSERVER QUESTION, and it needed to exist.
+#
+# OK meant "somebody is watching", SKIPPED meant "nobody is, and that is fine
+# because nothing here moves a real arm", UNKNOWN meant "nothing is saying".
+# There was no way to say "nobody is watching, a named person decided that at
+# a known time, and the real arm is going to move anyway" -- so an operator
+# alone in the lab had no supported route past the interlock and the
+# unsupported ones all end in the check being switched off for good.
+#
+# BYPASSED is that state. It does not spoil a pass, and it is never quiet.
+BYPASSED = "bypassed"
 
 WS = os.environ.get("SRL_WS") or os.path.expanduser("~/kortex_ws")
 PORT = int(os.environ.get("VR_PORT", "8765"))
@@ -206,13 +218,134 @@ class World:
             return None
         return [x.strip() for x in p.stdout.splitlines() if x.strip()]
 
-    def topics(self, timeout_s=10):
+    # ASK THE GRAPH, NOT THE DAEMON.
+    #
+    # `ros2 topic list` goes through the ros2 daemon, which caches network
+    # state and on this box goes stale constantly. Using it for LIVENESS
+    # checks was wrong three separate times in one lab session: it reported
+    # the simulation absent while 34 nodes were running, it reported the
+    # controller mapping absent while it was publishing at 2 Hz, and it made
+    # the final step say "not ready" for the same reason. Each time the
+    # operator was sent to look at a component that was working.
+    #
+    # A fresh participant is the thing that matters anyway: the question is
+    # not "does the daemon remember this topic" but "can something that
+    # starts now talk to it". Run in a subprocess so it cannot collide with
+    # an rclpy context the caller already owns -- the GUI has one.
+    # WAIT UNTIL THE ANSWER STOPS CHANGING, don't sample for a fixed 1.5 s.
+    #
+    # Discovery over shared memory is not instant, and a fixed short window
+    # reported /joint_states ABSENT and then PRESENT one second later against
+    # a simulation that was fine throughout. Declaring something missing from
+    # a sample too short to see it is the same mistake as every other one
+    # today, and here it would have sent the operator to restart a healthy
+    # stack.
+    #
+    # So: spin until the topic count has been unchanged for a second, capped.
+    # A settled count is evidence; an elapsed timer is not.
+    _TOPIC_PROBE = (
+        "import rclpy, time\n"
+        "from rclpy.node import Node\n"
+        "rclpy.init()\n"
+        "n = Node('srl_topic_probe')\n"
+        "seen, stable_since, t0 = 0, None, time.time()\n"
+        "while time.time() - t0 < 8.0:\n"
+        "    rclpy.spin_once(n, timeout_sec=0.1)\n"
+        "    cur = len(n.get_topic_names_and_types())\n"
+        "    if cur != seen:\n"
+        "        seen, stable_since = cur, time.time()\n"
+        "    elif stable_since and time.time() - stable_since > 1.0 "
+        "and cur > 0:\n"
+        "        break\n"
+        "print('\\n'.join(sorted(x for x, _ in n.get_topic_names_and_types())))\n"
+        "rclpy.shutdown()\n")
+
+    # COUNTING ARRIVALS WITH `ros2 topic echo` DOES NOT WORK ON THIS BOX, AND
+    # IT IS ACTIVELY HARMFUL.
+    #
+    # Measured 2026-08-21 against a stack that a direct rclpy subscriber read
+    # at 98 Hz (784 messages in 8 s):
+    #
+    #     timeout 2.5 ros2 topic echo /joint_states --field header.stamp.sec
+    #     -> "Terminated", rc 143, ZERO lines
+    #
+    # at every window from 1 to 4 seconds. The CLI never got as far as
+    # delivering a message. So `joint_beats` returned 0 against a healthy
+    # simulation, `step_ready` believed it, and the button reported
+    # "the simulation is not saying where the robot is" about a simulation
+    # that was saying it 98 times a second. The instrument was the fault --
+    # CLAUDE.md's standing rule, and it caught this one on the first check.
+    #
+    # And the plain `timeout` is the second half: SIGTERM hard-kills a DDS
+    # participant holding shared memory, which is the exact hazard
+    # VR_REAL_ARM_AS_RUN.md records ("Never run `ros2 topic hz`", ten call
+    # sites changed to `timeout -s INT`). Three of these ran on every press of
+    # the button, between step 5 and step 12 -- which is precisely the window
+    # in which the simulation went from reporting to silent.
+    #
+    # So: a real subscriber, in a subprocess, exiting on its own. Same shape
+    # as `_TOPIC_PROBE`, which has always worked. Nothing is signalled.
+    _COUNT_PROBE = (
+        "import sys, time, rclpy\n"
+        "from rclpy.node import Node\n"
+        "from rosidl_runtime_py.utilities import get_message\n"
+        "topic, window = sys.argv[1], float(sys.argv[2])\n"
+        "rclpy.init()\n"
+        "n = Node('srl_count_probe')\n"
+        "typ, t0 = None, time.time()\n"
+        "while time.time() - t0 < 5.0 and typ is None:\n"
+        "    for name, types in n.get_topic_names_and_types():\n"
+        "        if name == topic and types:\n"
+        "            typ = types[0]\n"
+        "            break\n"
+        "    if typ is None:\n"
+        "        rclpy.spin_once(n, timeout_sec=0.1)\n"
+        "if typ is None:\n"
+        "    print('NOTOPIC')\n"
+        "    sys.exit(0)\n"
+        "seen = [0]\n"
+        "n.create_subscription(get_message(typ), topic,\n"
+        "                      lambda _m: seen.__setitem__(0, seen[0] + 1), 10)\n"
+        "t1 = time.time()\n"
+        "while time.time() - t1 < window:\n"
+        "    rclpy.spin_once(n, timeout_sec=0.05)\n"
+        "print(seen[0])\n"
+        "rclpy.shutdown()\n")
+
+    def _count(self, topic, window_s):
+        """Messages that ARRIVED on `topic` in `window_s`. None = unaskable.
+
+        `NOTOPIC` is reported as 0, not None: the probe ran, waited five
+        seconds for the topic to appear in the graph, and it never did. That
+        is an answer.
+        """
         try:
-            p = subprocess.run(["ros2", "topic", "list"], capture_output=True,
-                               text=True, timeout=timeout_s)
+            p = subprocess.run(
+                [sys.executable, "-c", self._COUNT_PROBE, topic,
+                 "%.1f" % window_s],
+                capture_output=True, text=True, timeout=window_s + 20.0)
         except Exception:                                     # noqa: BLE001
             return None
-        return [x.strip() for x in p.stdout.splitlines() if x.strip()]
+        out = (p.stdout or "").strip().splitlines()
+        if not out:
+            return None
+        last = out[-1].strip()
+        if last == "NOTOPIC":
+            return 0
+        try:
+            return int(last)
+        except ValueError:
+            return None
+
+    def topics(self, timeout_s=30):
+        try:
+            p = subprocess.run([sys.executable, "-c", self._TOPIC_PROBE],
+                               capture_output=True, text=True,
+                               timeout=timeout_s)
+        except Exception:                                     # noqa: BLE001
+            return None
+        out = [x.strip() for x in p.stdout.splitlines() if x.strip()]
+        return out if out else None
 
     def port_owner(self, port):
         """(pid, cmd) holding the port, or None."""
@@ -232,16 +365,39 @@ class World:
             cmd = ""
         return (pid, cmd.strip())
 
-    def lan_ip(self):
+    def lan_ips(self):
+        """Every IPv4 address this machine has, best candidate FIRST.
+
+        THE FIRST ONE `hostname -I` RETURNS IS NOT NECESSARILY THE RIGHT ONE.
+        On this box it is 172.26.244.255 -- the interface carrying the default
+        route, a NAT or corporate link -- while the lab switch the arms are on
+        is 192.168.1.25 on a different interface. Handing the operator the
+        first address sends them to a page the headset cannot load, and the
+        symptom inside a headset is indistinguishable from a firewall problem
+        or a bad certificate.
+
+        Ordered by "is this the network the robot is on": a 192.168.x address
+        first, because that is what this lab uses, then anything else. The
+        caller shows the whole list rather than trusting the order blindly.
+        """
         try:
             out = subprocess.run(["hostname", "-I"], capture_output=True,
                                  text=True, timeout=6).stdout
         except Exception:                                     # noqa: BLE001
-            return None
-        for tok in out.split():
-            if tok and not tok.startswith("127.") and tok[0].isdigit():
-                return tok
-        return None
+            return []
+        # IPv4 ONLY. `t[0].isdigit()` let the IPv6 addresses through -- they
+        # start with a hex digit -- and the certificate check then demanded
+        # that the certificate carry them as IP entries, which it never does:
+        # `make_vr_cert.sh` puts IPv6 in as DNS names. The certificate step
+        # duly failed on a certificate that was completely correct.
+        ips = [t for t in out.split()
+               if t and "." in t and ":" not in t
+               and t[0].isdigit() and not t.startswith("127.")]
+        return sorted(ips, key=lambda t: (not t.startswith("192.168."), t))
+
+    def lan_ip(self):
+        ips = self.lan_ips()
+        return ips[0] if ips else None
 
     def cert_paths(self):
         d = os.environ.get("VR_CERT_DIR") or os.path.expanduser(
@@ -288,40 +444,51 @@ class World:
     def pose_beats(self, window_s=2.0):
         """How many controller poses ARRIVED in `window_s`, or None.
 
-        COUNTED, NOT LISTED. `quest_bridge_node` creates its publishers at
-        start-up, so the pose topic EXISTS the moment the bridge does --
-        with or without a headset. Checking the topic list therefore said
-        READY TO OPERATE on a machine with no headset in the building, which
-        is CLAUDE.md's "feature present but does nothing" row: the topic was
-        advertised and nothing was flowing.
+        COUNTED, NOT LISTED. `quest_bridge_node` creates its publishers
+        at start-up, so the pose topic EXISTS the moment the bridge
+        does -- with or without a headset. Checking the topic list
+        therefore said READY TO OPERATE on a machine with no headset in
+        the building.
+        """
+        return self._count('/vr/controller_pose_right', window_s)
+
+    def joint_beats(self, window_s=2.0):
+        """How many joint-state messages ARRIVED in `window_s`, or None.
+
+        COUNTED, NOT LISTED. `/joint_states` is advertised the moment
+        anything publishes OR SUBSCRIBES to it, so its presence in a
+        topic list says nothing about whether the robot is reporting
+        where it is. Measured 2026-08-20: the window said "the
+        simulation is running", the panel showed all fourteen joints as
+        "--", and both were reading the same topic list.
+
+        None means the question could not be asked. It does NOT mean
+        zero, and the callers must not collapse the two.
+        """
+        return self._count('/joint_states', window_s)
+
+    def observer_bypass(self):
+        """(True, record) if an operator has declared they are working alone.
+
+        Read through `observer_bypass`, which is the one place that decides
+        what counts as a live grant, so this cannot drift from what
+        `vr_safety_node` enforces. Any error is False -- see that module.
         """
         try:
-            p = subprocess.run(
-                ["timeout", "%.1f" % (window_s + 0.5), "ros2", "topic", "echo",
-                 "/vr/controller_pose_right", "--field", "header.frame_id"],
-                capture_output=True, text=True, timeout=window_s + 4.0)
-        except Exception:                                     # noqa: BLE001
-            return None
-        return sum(1 for ln in (p.stdout or "").splitlines() if ln.strip()
-                   and not ln.startswith("-"))
+            from srl_teleop import observer_bypass
+            return observer_bypass.active()
+        except Exception as e:                                # noqa: BLE001
+            return False, "the bypass could not be read (%r)" % (e,)
 
     def observer_beats(self, window_s=2.0):
         """How many observer heartbeats arrived in `window_s`, or None.
 
         COUNTED, NOT LATCHED. The observer interlock is a heartbeat, so
-        "present" is a rate and not a value -- a single retained True from a
-        publisher that has since gone away is exactly the state this is meant
-        to distinguish.
+        "present" is a rate and not a value -- a single retained True
+        from a publisher that has since gone away is exactly the state
+        this is meant to distinguish.
         """
-        try:
-            p = subprocess.run(
-                ["timeout", "%.1f" % (window_s + 0.5), "ros2", "topic", "echo",
-                 "/vr/observer_estop_present", "--field", "data"],
-                capture_output=True, text=True, timeout=window_s + 4.0)
-        except Exception:                                     # noqa: BLE001
-            return None
-        return sum(1 for ln in (p.stdout or "").splitlines()
-                   if ln.strip().lower() == "true")
+        return self._count('/vr/observer_estop_present', window_s)
 
     def now(self):
         """THE CLOCK LIVES HERE TOO.
@@ -403,29 +570,56 @@ LIVE_RX = (r"(/opt/ros/[a-z]+/lib/[^/ ]+/"
 def step_leftover_memory(w):
     """2. Nothing an earlier run left behind is in the way.
 
-    STALE MEANS NOBODY HAS IT OPEN, and that is asked of the kernel rather
-    than inferred from the process table. Two inferences were tried and both
-    were wrong in opposite directions -- see `World.stale_shm_segments`.
+    THIS STEP CLEARS RATHER THAN ASKS, and that is a correction.
+
+    It used to stop the whole bring-up and offer a button. In the lab that
+    was wrong twice over. Removing a segment NOBODY HAS MAPPED is safe by
+    definition -- that is the entire content of "unowned" -- so there is
+    nothing for the operator to decide. And because the check has a 20 s age
+    floor, the count CHANGES between attempts as segments left by processes
+    that have just exited age past it: an operator pressing the button twice
+    saw "2 blocks", then "10 blocks", and reasonably concluded something was
+    creating them faster than they could be cleared. Nothing was. They were
+    the same leftovers, arriving at the threshold.
+
+    A fault that is always safe to repair, and whose count moves while you
+    look at it, must be repaired rather than reported. So: clear, and carry
+    on. It only FAILS if clearing did not work, which means something is
+    genuinely wrong.
     """
-    segs = w.stale_shm_segments()
+    stale = w.stale_shm_segments()
     total = len(w.shm_segments())
-    if not segs:
+    if not stale:
         return Outcome(OK, "Shared memory is in use by what is running now, "
                            "which is normal."
                        if total else "Nothing left over from an earlier run.",
                        detail="%d segment(s), none unowned" % total)
+    if _anything_running(w):
+        # NOT A FAILURE, AND NOT SOMETHING TO CLEAR. Leftovers alongside a
+        # running system are only a problem for the NEXT start, and removing
+        # them now can take the running system's own memory with them.
+        return Outcome(
+            OK,
+            "There are %d blocks of memory that look left over, and they are "
+            "being left alone because things are running. They will be "
+            "cleared next time everything is stopped." % len(stale),
+            detail="%d of %d unowned; %d process(es) running, so NOT cleared"
+                   % (len(stale), total, len(_anything_running(w))))
+    ok, msg = fix_clear_shm(w)
+    after = w.stale_shm_segments()
+    if not after:
+        return Outcome(
+            OK,
+            "An earlier run had left %d blocks of memory behind. They have "
+            "been cleared." % len(stale),
+            detail=msg)
     return Outcome(
         FAILED,
-        "A previous run was killed rather than stopped and left %d blocks of "
-        "shared memory behind. While they are there, parts of the system see "
-        "each other one moment and not the next." % len(segs),
-        detail="%d stale segments, nothing running" % len(segs),
-        fix_label="Clear the leftovers and wait",
-        fix="clear_shm",
-        fix_note="removes them, then waits five seconds before anything "
-                 "starts -- the participants using them do not find out "
-                 "instantly, and starting into a half-torn-down transport "
-                 "looks exactly like the fault just cleared")
+        "An earlier run left %d blocks of memory behind and %d of them could "
+        "not be cleared. Something still has a claim on them that this window "
+        "cannot see." % (len(stale), len(after)),
+        detail="%s; %d still unowned afterwards" % (msg, len(after)),
+        fix_label="Show me what is holding them", fix="show_shm")
 
 
 def step_daemon(w):
@@ -529,8 +723,31 @@ def step_sim_stack(w, wait_s=90.0):
         return Outcome(UNKNOWN, "Could not tell whether the simulation is "
                                 "running.", detail="topic list unavailable")
     if "/joint_states" in topics:
-        return Outcome(OK, "The simulation is running.",
-                       detail="%d topics" % len(topics))
+        # LISTED IS NOT REPORTING. `/joint_states` appears in the topic list
+        # as soon as anything publishes OR SUBSCRIBES to it, so this test
+        # passed against a stack whose controllers had not come up -- and the
+        # operator got "the simulation is running" beside fourteen dashes.
+        beats = w.joint_beats(2.0)
+        if beats is None:
+            return Outcome(UNKNOWN, "The simulation is listed, but this "
+                                    "window could not read anything from it.",
+                           detail="/joint_states listed; arrival count "
+                                  "unavailable",
+                           fix_label="Restart the helper that lists what is "
+                                     "running", fix="reset_daemon")
+        if beats > 0:
+            return Outcome(OK, "The simulation is running and reporting where "
+                               "the robot is.",
+                           detail="%d topics, %d joint updates in 2 s"
+                                  % (len(topics), beats))
+        return Outcome(
+            FAILED,
+            "The simulation is running but it is not saying where the robot "
+            "is. Nothing that needs to know the robot's position will work, "
+            "and the panel will show every joint as a dash.",
+            detail="/joint_states listed, 0 messages in 2 s",
+            fix_label="Restart the simulation", fix="restart_sim",
+            fix_note="stops it and starts it again; takes about a minute")
 
     # RUNNING, BUT INVISIBLE. Before concluding the simulation is not there,
     # ask the process table -- the two are different problems with different
@@ -580,16 +797,25 @@ def step_sim_stack(w, wait_s=90.0):
 
 def step_certificate(w):
     """6. The headset will accept the page."""
-    ip = w.lan_ip()
-    if not ip:
+    ips = w.lan_ips() if hasattr(w, "lan_ips") else (
+        [w.lan_ip()] if w.lan_ip() else [])
+    if not ips:
         return Outcome(FAILED, "This machine has no address on the network, "
                                "so nothing can reach it.",
                        detail="no non-loopback IPv4 address")
     crt, key = w.cert_paths()
-    exists, covers, detail = w.cert_covers(crt, ip)
+    # EVERY ADDRESS, not just the preferred one. The headset may be on either
+    # network, and a certificate that covers the one we happen to prefer and
+    # not the one the headset is on fails inside the headset -- where the
+    # message reads as a broken certificate rather than a missing address.
+    results = [w.cert_covers(crt, i) for i in ips]
+    exists = any(e for e, _c, _d in results)
+    covers = all(c for _e, c, _d in results)
+    ip = ips[0]
+    detail = "%s; addresses %s" % (results[0][2], ", ".join(ips))
     if exists and covers:
         return Outcome(OK, "The headset will accept this machine's page.",
-                       detail="%s covers %s" % (crt, ip))
+                       detail="%s covers all of %s" % (crt, ", ".join(ips)))
     if not exists:
         return Outcome(
             FAILED,
@@ -779,13 +1005,32 @@ def step_observer(w, wait_s=2.0):
     It is required before any real arm moves, and the runbook is where that
     is enforced.
     """
+    # THE CHECK IS ASKED FIRST, ALWAYS, AND ITS ANSWER IS RECORDED.
+    #
+    # The bypass does not skip the question. If somebody IS posted, that is
+    # what this reports, bypass or no bypass -- otherwise taking the bypass
+    # would hide a real observer and the operator would never learn that the
+    # heartbeat was working.
     beats = w.observer_beats(wait_s)
-    if beats is None:
-        return Outcome(UNKNOWN, "Could not tell whether an observer is "
-                                "present.", detail="topic unreadable")
     if beats:
         return Outcome(OK, "An observer is present and holding the e-stop.",
                        detail="%d heartbeat(s) in %.0f s" % (beats, wait_s))
+    on, info = w.observer_bypass()
+    if on:
+        return Outcome(
+            BYPASSED,
+            "WORKING ALONE -- the observer requirement is bypassed for this "
+            "session. Nobody is holding an e-stop. If the arm does something "
+            "you did not ask for, you are the only person who can stop it.",
+            detail="bypass taken by %s at %s; %s"
+                   % (info.get("who", "?"), info.get("granted_at_iso", "?"),
+                      "no observer heartbeat"
+                      if beats == 0 else "observer topic unreadable"),
+            fix_label="Cancel the bypass", fix="cancel_bypass",
+            fix_note="puts the observer requirement back for this session")
+    if beats is None:
+        return Outcome(UNKNOWN, "Could not tell whether an observer is "
+                                "present.", detail="topic unreadable")
     return Outcome(
         SKIPPED,
         "No observer is posted. That is fine for practice -- nothing here "
@@ -806,15 +1051,47 @@ def step_ready(w, window_s=2.0):
     last step: the operator would put the headset on, squeeze the grip, and
     nothing would move, with the window still saying ready.
     """
-    t = w.topics() or []
-    for topic, why in (("/joint_states",
-                        "the simulation is not reporting"),
-                       ("/vr/mapper_right",
-                        "the controller mapping is not reporting")):
-        if topic not in t:
-            return Outcome(FAILED, "Almost ready: %s." % why,
-                           detail="%s absent" % topic,
-                           fix_label="What do I do", fix="ready_help")
+    # "COULD NOT ASK" IS NOT "IT IS NOT THERE", AND THIS STEP USED TO SAY IT
+    # WAS.
+    #
+    # `w.topics()` returns None when the probe fails or times out, and this
+    # read `w.topics() or []` -- so a failed probe became an empty list, and
+    # the very next line reported, confidently and by name, that THE
+    # SIMULATION IS NOT REPORTING. That is how the button printed
+    # "ALMOST READY: THE SIMULATION IS NOT REPORTING" in the same run that
+    # step 5 had logged "the simulation is running": same predicate, one
+    # working probe and one failed one, and only the second was allowed to
+    # sound certain. It is CLAUDE.md's worst combination -- false, specific
+    # and confident -- and it sends the operator to the wrong log.
+    t = w.topics()
+    if t is None:
+        return Outcome(
+            UNKNOWN,
+            "This window could not get an answer out of the system just now, "
+            "so it cannot tell you whether everything is ready. Nothing is "
+            "known to be wrong.",
+            detail="topic probe returned nothing",
+            fix_label="Restart the helper that lists what is running",
+            fix="reset_daemon")
+    if "/vr/mapper_right" not in t:
+        return Outcome(FAILED, "Almost ready: the controller mapping is not "
+                               "reporting.",
+                       detail="/vr/mapper_right absent",
+                       fix_label="What do I do", fix="ready_help")
+    if "/joint_states" not in t:
+        return Outcome(FAILED, "Almost ready: the simulation is not "
+                               "reporting.",
+                       detail="/joint_states absent",
+                       fix_label="What do I do", fix="ready_help")
+    # And listed is still not reporting, here as in step 5.
+    jb = w.joint_beats(1.0)
+    if jb is not None and jb <= 0:
+        return Outcome(
+            FAILED,
+            "Almost ready: the simulation is listed but is not saying where "
+            "the robot is, so every joint reads as a dash.",
+            detail="/joint_states listed, 0 messages in 1 s",
+            fix_label="Restart the simulation", fix="restart_sim")
     beats = w.pose_beats(window_s)
     if beats is None:
         return Outcome(UNKNOWN, "Could not tell whether the headset is "
@@ -889,6 +1166,11 @@ def verdict(results, keyed=None):
     unk = [r for r in results if r.state == UNKNOWN]
     if bad:
         return FAILED, "stopped: %s" % bad[0].plain.split(".")[0]
+    # A BYPASSED OBSERVER IS SAID OUT LOUD IN THE HEADLINE. Folding it into
+    # "READY TO OPERATE" would make the one run with nobody watching look
+    # exactly like every other run, on the one line the operator actually
+    # reads.
+    alone = any(r.state == BYPASSED for r in results)
     if keyed:
         others = [r for k, r in keyed if k != "ready"]
         ready = dict(keyed).get("ready")
@@ -896,24 +1178,57 @@ def verdict(results, keyed=None):
                 and all(r.state in (OK, SKIPPED) for r in others)
                 and len(keyed) == len(STEPS)):
             return UNKNOWN, ("everything on this machine is ready -- "
-                             "connect the headset")
+                             "connect the headset"
+                             + (" (WORKING ALONE: no observer)"
+                                if alone else ""))
     if unk:
         return UNKNOWN, "%d step%s could not be checked" % (
             len(unk), "" if len(unk) == 1 else "s")
     if len(results) < len(STEPS):
         return RUNNING, "step %d of %d" % (len(results), len(STEPS))
+    if alone:
+        return OK, "READY TO OPERATE -- WORKING ALONE, no observer posted"
     return OK, "READY TO OPERATE"
 
 
 # ===========================================================================
 #  THE FIXES. Each returns (ok, one sentence saying what it did.)
 # ===========================================================================
+def _anything_running(w):
+    """Any ROS process at all, including the daemon and the GUI.
+
+    THE GUARD THAT SHOULD NEVER HAVE BEEN REMOVED. See `_sweep_unowned`.
+    """
+    return w.procs(r"(/opt/ros/[a-z]+/lib/[^/ ]+/"
+                   r"|/install/[A-Za-z0-9_]+/lib/[A-Za-z0-9_]+/"
+                   r"|ros2cli\.daemon"
+                   r"|scripts/srl_gui\.py"
+                   r"|/rviz2)")
+
+
 def _sweep_unowned(w):
     """Remove every shared-memory segment no live process has mapped.
 
     ONE PLACE. Both repairs need it, and a second copy is a second thing that
     can be given the wrong pattern.
     """
+    # NEVER WHILE ANYTHING IS RUNNING. This guard was removed on the grounds
+    # that "nobody has it mapped" is a better test than "nothing is running",
+    # and that reasoning cost a working stack in a lab session: a fresh
+    # participant went from seeing 34 nodes to seeing 7, with zero publishers
+    # on /tf and /joint_states, while every controller was still active.
+    #
+    # A live Fast DDS participant's segment CAN be absent from /proc/*/maps at
+    # the instant it is sampled, and the 20 s age floor does not protect it --
+    # a stack that has been up for an hour has hour-old segments. Ownership
+    # narrows what is removed; it does not make removal safe.
+    #
+    # CLAUDE.md HARD CONSTRAINT 5 and env.sh both said "with the stack
+    # STOPPED". They were right and this file overrode them with an
+    # inference.
+    live = _anything_running(w)
+    if live:
+        return 0
     n = 0
     for path in w.stale_shm_segments():
         for target in (path, path.replace("/dev/shm/", "/dev/shm/sem.")):
@@ -1054,6 +1369,57 @@ def fix_kill_stray_rsp(w):
     return rad.fix_kill_stray_rsp()
 
 
+def show_shm(w):
+    """Name what is still there, since clearing did not remove it."""
+    left = w.stale_shm_segments()
+    return True, ("%d block(s) are still there after being cleared. Either "
+                  "this window may not remove them, or something is "
+                  "recreating them. The first two are:\n  %s"
+                  % (len(left), "\n  ".join(os.path.basename(x)
+                                             for x in left[:2])))
+
+
+def fix_restart_sim(w):
+    """Stop the simulation and start it again.
+
+    For the state the button could not previously describe: the processes are
+    up, the topic is advertised, and nothing is arriving. Restarting the
+    daemon does not help that one -- the picture is not stale, the robot
+    really is silent -- so it needs a repair of its own rather than being
+    routed to `reset_daemon` because that is the repair that exists.
+    """
+    from srl_teleop import procscan
+    stopped = 0
+    for pat in (r"ros2 launch srl_teleop",
+                r"lib/moveit_ros_move_group/move_group",
+                r"lib/controller_manager/ros2_control_node",
+                r"robot_state_publisher"):
+        try:
+            stopped += len(procscan.kill_all(pat) or [])
+        except Exception:                                     # noqa: BLE001
+            pass
+    w.sleep(5.0)
+    w.spawn("simulation",
+            [os.path.join(w.ws, "scripts", "run_teleop.sh"), "gate:=false"],
+            log=os.path.join(_scratch(w), "vr_bringup_sim.log"))
+    return True, ("Stopped %d part(s) and started the simulation again. It "
+                  "takes about a minute; press the button again when it "
+                  "settles." % stopped)
+
+
+def fix_cancel_bypass(w):
+    """Put the observer requirement back. Always available, never automatic."""
+    try:
+        from srl_teleop import observer_bypass
+        had = observer_bypass.clear(who="gui", note="cancelled by operator")
+    except Exception as e:                                    # noqa: BLE001
+        return False, "Could not cancel it: %r" % (e,)
+    if not had:
+        return True, "There was no bypass in force."
+    return True, ("The observer requirement is back. Press the button again; "
+                  "it will now ask for an observer.")
+
+
 def observer_help(w):
     return True, (
         "On the OTHER person's terminal, next to the wearer:\n\n"
@@ -1126,6 +1492,9 @@ FIXES = {
     "reset_mapper": fix_reset_mapper,
     "kill_second_stack": fix_kill_second_stack,
     "kill_stray_rsp": fix_kill_stray_rsp,
+    "show_shm": show_shm,
     "observer_help": observer_help,
+    "cancel_bypass": fix_cancel_bypass,
+    "restart_sim": fix_restart_sim,
     "ready_help": ready_help,
 }

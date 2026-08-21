@@ -1,0 +1,141 @@
+{
+ "right": {
+  "home_ee": [
+   -0.7357577984489582,
+   0.3413434654543741,
+   1.179784965989324
+  ],
+  "rows": [
+   [
+    "-1-1-1",
+    true,
+    "first step OK, worst 0.403 m"
+   ],
+   [
+    "-1-1+0",
+    true,
+    "first step OK, worst 0.403 m"
+   ],
+   [
+    "-1-1+1",
+    true,
+    "first step OK, worst 0.305 m"
+   ],
+   [
+    "-1+0-1",
+    true,
+    "first step OK, worst 0.403 m"
+   ],
+   [
+    "-1+0+0",
+    true,
+    "first step OK, worst 0.403 m"
+   ],
+   [
+    "-1+0+1",
+    true,
+    "first step OK, worst 0.320 m"
+   ],
+   [
+    "-1+1-1",
+    true,
+    "first step OK, worst 0.403 m"
+   ],
+   [
+    "-1+1+0",
+    true,
+    "first step OK, worst 0.403 m"
+   ],
+   [
+    "-1+1+1",
+    true,
+    "first step OK, worst 0.403 m"
+   ],
+   [
+    "+0-1-1",
+    true,
+    "first step OK, worst 0.403 m"
+   ],
+   [
+    "+0-1+0",
+    true,
+    "first step OK, worst 0.289 m"
+   ],
+   [
+    "+0-1+1",
+    true,
+    "first step OK, worst 0.293 m"
+   ],
+   [
+    "+0+0-1",
+    true,
+    "first step OK, worst 0.403 m"
+   ],
+   [
+    "+0+0+1",
+    true,
+    "first step OK, worst 0.309 m"
+   ],
+   [
+    "+0+1-1",
+    true,
+    "first step OK, worst 0.403 m"
+   ],
+   [
+    "+0+1+0",
+    true,
+    "first step OK, worst 0.403 m"
+   ],
+   [
+    "+0+1+1",
+    true,
+    "first step OK, worst 0.322 m"
+   ],
+   [
+    "+1-1-1",
+    true,
+    "first step OK, worst 0.403 m"
+   ],
+   [
+    "+1-1+0",
+    true,
+    "first step OK, worst 0.403 m"
+   ],
+   [
+    "+1-1+1",
+    true,
+    "first step OK, worst 0.284 m"
+   ],
+   [
+    "+1+0-1",
+    true,
+    "first step OK, worst 0.403 m"
+   ],
+   [
+    "+1+0+0",
+    true,
+    "first step OK, worst 0.278 m"
+   ],
+   [
+    "+1+0+1",
+    true,
+    "first step OK, worst 0.293 m"
+   ],
+   [
+    "+1+1-1",
+    true,
+    "first step OK, worst 0.403 m"
+   ],
+   [
+    "+1+1+0",
+    true,
+    "first step OK, worst 0.403 m"
+   ],
+   [
+    "+1+1+1",
+    true,
+    "first step OK, worst 0.309 m"
+   ]
+  ]
+ }
+}

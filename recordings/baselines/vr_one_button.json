@@ -3,35 +3,33 @@
   "environment": "ok",
   "leftover_memory": "ok",
   "daemon": "ok",
-  "second_stack": "ok",
-  "sim": "ok",
-  "certificate": "ok",
-  "port": "ok",
-  "bridge": "ok",
-  "mapper": "ok",
-  "mapper_clean": "ok",
-  "observer": "skipped",
-  "ready": "unknown"
+  "second_stack": "failed"
  },
- "seconds": 130.0,
+ "seconds": 79.7,
  "repairs": [
   [
-   "leftover_memory",
-   "clear_shm",
+   "certificate",
+   "make_cert",
    true,
-   "Nothing left to clear: every block of shared memory is in use by something that is running."
+   "Made a new certificate for this machine's address."
+  ],
+  [
+   "ready",
+   "restart_sim",
+   true,
+   "Stopped 8 part(s) and started the simulation again. It takes about a minute; press the button again when it settles."
   ],
   [
    "sim",
-   "reset_daemon",
+   "restart_sim",
    true,
-   "Restarted it, and cleared 44 block(s) it left behind. Trying again."
+   "Stopped 8 part(s) and started the simulation again. It takes about a minute; press the button again when it settles."
   ],
   [
-   "daemon",
-   "kill_detached",
+   "mapper",
+   "kill_mapper",
    true,
-   "Stopped 5 detached part(s) and cleared what they left behind. The simulation will be started fresh."
+   "Stopped 4 part(s). Press the button again."
   ]
  ],
  "checks": [
@@ -53,37 +51,37 @@
   [
    "machine-side step reached: second_stack",
    true,
-   "ok"
+   "failed"
   ],
   [
    "machine-side step reached: sim",
-   true,
-   "ok"
+   false,
+   "not reached"
   ],
   [
    "machine-side step reached: certificate",
-   true,
-   "ok"
+   false,
+   "not reached"
   ],
   [
    "machine-side step reached: port",
-   true,
-   "ok"
+   false,
+   "not reached"
   ],
   [
    "machine-side step reached: bridge",
-   true,
-   "ok"
+   false,
+   "not reached"
   ],
   [
    "machine-side step reached: mapper",
-   true,
-   "ok"
+   false,
+   "not reached"
   ],
   [
    "machine-side step reached: mapper_clean",
-   true,
-   "ok"
+   false,
+   "not reached"
   ],
   [
    "machine-side step passed: environment",
@@ -102,43 +100,18 @@
   ],
   [
    "machine-side step passed: second_stack",
-   true,
-   "ok"
-  ],
-  [
-   "machine-side step passed: sim",
-   true,
-   "ok"
-  ],
-  [
-   "machine-side step passed: certificate",
-   true,
-   "ok"
-  ],
-  [
-   "machine-side step passed: port",
-   true,
-   "ok"
-  ],
-  [
-   "machine-side step passed: bridge",
-   true,
-   "ok"
-  ],
-  [
-   "machine-side step passed: mapper",
-   true,
-   "ok"
-  ],
-  [
-   "machine-side step passed: mapper_clean",
-   true,
-   "ok"
+   false,
+   "failed"
   ],
   [
    "stops ONLY on the headset, and does not claim ready",
+   false,
+   "ready step not reached"
+  ],
+  [
+   "failure offers a fix: second_stack",
    true,
-   "Everything on this machine is ready. The headset is not sending "
+   "Stop the extra copy"
   ],
   [
    "no topic names in what is displayed",

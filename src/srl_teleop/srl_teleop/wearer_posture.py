@@ -80,6 +80,63 @@ SEGMENTS = (
 # generator the posture does, because a size that reached one and not the
 # other would measure the old body under a new name -- which is the exact trap
 # `test_wearer_posture_has_one_source.py` was written for.
+# ---------------------------------------------------------------- PRESENCE
+# IS THERE A PERSON IN THE RIG AT ALL?
+#
+# Until now the answer was always yes. The wearer's POSTURE was a variable and
+# their SIZE was a variable, but their EXISTENCE was not -- so a bench-mounted
+# arm with nobody in the harness was still checked against a mannequin torso,
+# and homing halted at 0.114 m from a person who was not there. There was no
+# supported way to say "nobody is wearing this today", so the only routes were
+# to lower the clearance floor or to edit the model, and both of those are
+# changes that quietly become permanent.
+#
+# THIS IS THE MOST DANGEROUS SETTING IN THE REPOSITORY, so it is arranged to
+# be impossible to leave on by accident:
+#
+#   * it DEFAULTS TO PRESENT. Absence is never the fallback, never inferred,
+#     and never what you get from a typo -- an unrecognised value raises.
+#   * every consumer must SAY SO, loudly and repeatedly, for as long as it is
+#     set. A silent "no wearer" is exactly the state that gets someone hurt.
+#   * it is a statement about the ROOM, not a tuning parameter. It does not
+#     lower the clearance floor; it says the thing the floor protects is not
+#     there. HARD CONSTRAINT 11 is about the floor and is untouched.
+PRESENT_ENV = 'SRL_WEARER_PRESENT'
+_ABSENT_WORDS = ('0', 'no', 'false', 'none', 'off', 'absent')
+_PRESENT_WORDS = ('1', 'yes', 'true', 'on', 'present')
+
+
+def wearer_present(env=None):
+    """False ONLY when explicitly declared absent. Default True.
+
+    An unrecognised value is an ERROR rather than a fallback: silently
+    treating `SRL_WEARER_PRESENT=maybe` as either answer is how a bench
+    setting survives into a session with somebody in the harness.
+    """
+    env = os.environ if env is None else env
+    raw = env.get(PRESENT_ENV)
+    if raw is None or not raw.strip():
+        return True
+    v = raw.strip().lower()
+    if v in _PRESENT_WORDS:
+        return True
+    if v in _ABSENT_WORDS:
+        return False
+    raise ValueError(
+        '%s=%r is not yes or no. Known: %s. It is not defaulted, because '
+        'defaulting it is how a bench setting reaches a session with a '
+        'person in the rig.'
+        % (PRESENT_ENV, raw, ', '.join(_PRESENT_WORDS + _ABSENT_WORDS)))
+
+
+def absence_banner():
+    """The sentence every consumer prints while the wearer is declared away."""
+    return ('NO WEARER IN THE MODEL. %s says nobody is in the rig, so the '
+            'clearance floor is protecting nothing. This is correct ONLY for '
+            'a bench-mounted arm with the harness empty. Unset it before '
+            'anybody puts the rig on.' % PRESENT_ENV)
+
+
 SIZE_ENV = 'SRL_WEARER_SIZE'
 SIZE_DIR = 'config/wearer_sizes'
 
@@ -287,7 +344,7 @@ def torso_parts_for(size=None):
     ]
 
 
-def wearer_model(posture=None, size=None):
+def wearer_model(posture=None, size=None, present=None):
     """The whole wearer as world-frame primitives: (name, kind, dims, ctr, rpy).
 
     This is what the geometric clearance check measures against. It is NOT the
@@ -302,6 +359,11 @@ def wearer_model(posture=None, size=None):
     posture = posture_from_env() if posture is None else posture
     if posture not in POSTURES:
         raise ValueError('unknown posture %r' % (posture,))
+    # NOBODY IN THE RIG MEANS NO PRIMITIVES, not a smaller person. A partial
+    # body would be the worst of both: a floor that still fires, protecting a
+    # shape that does not exist.
+    if not (wearer_present() if present is None else present):
+        return []
     prof = size if isinstance(size, dict) else size_profile(size)
     parts = list(torso_parts_for(prof))
     for side, tag in (('left', 'L'), ('right', 'R')):

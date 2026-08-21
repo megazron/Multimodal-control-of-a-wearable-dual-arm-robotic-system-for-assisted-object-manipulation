@@ -35,11 +35,12 @@ class FakeProbe(D.Probe):
     def __init__(self, env=None, stack=(), envs=None, shm=None,
                  daemon=([], False), procs=None, ttys=(), port="",
                  sim=None, real=None, home=HOME, kortex=(), ktail=None,
-                 live=None, orphans=()):
+                 live=None, orphans=(), stale_shm=None):
         self._env = dict(env if env is not None else D.EXPECTED)
         self._stack = list(stack)
         self._envs = envs or {}
         self._shm = shm
+        self._stale_shm = (shm if stale_shm is None else stale_shm)
         self._daemon = daemon
         self._procs = procs or {}
         self._ttys = ttys
@@ -68,6 +69,9 @@ class FakeProbe(D.Probe):
 
     def shm_segments(self):
         return self._shm
+
+    def stale_shm_segments(self):
+        return self._stale_shm
 
     def daemon_nodes(self, timeout_s=8):
         return self._daemon
@@ -127,15 +131,68 @@ def test_discovery_ok_bad_unknown():
 
 
 # --------------------------------------------------------------------- 2
+def test_only_segments_nobody_has_open_are_called_leftovers():
+    """FOUND IN THE LAB, WITH AN OPERATOR WATCHING.
+
+    The check asked "is an installed node executable running?" and, if not,
+    called every segment on disk stale. Measured on the day: 20 segments, of
+    which 10 were held by the ros2 daemon, the operations GUI itself and
+    RViz -- none of which is a node executable. The panel offered to clear all
+    20, which would have pulled the shared memory out from under the window
+    the operator was reading it in.
+
+    Ownership is a fact the kernel already has. It is no longer inferred.
+    """
+    segs = ["/dev/shm/fastrtps_a", "/dev/shm/fastrtps_b"]
+    # Both on disk, NEITHER unowned: in use, whatever else is running.
+    c = _one(D.check_shm, FakeProbe(shm=segs, stale_shm=[], live=[]))
+    assert c.state == D.OK and not c.has_fix, c.plain
+
+    # One of the two is a leftover: BAD, and the message must say ONE.
+    c = _one(D.check_shm, FakeProbe(shm=segs, stale_shm=segs[:1], live=[9]),
+             {"clear_shm": lambda: None})
+    assert c.state == D.BAD and c.has_fix
+    assert "left 1 blocks" in c.plain or "1 block" in c.plain, c.plain
+    assert "1 of 2" in c.detail, c.detail
+    assert "STOPPED" in c.plain, (
+        "the message must say they can only be cleared with everything "
+        "stopped -- ownership narrows what is removed, it does not make "
+        "removal safe while a participant is live")
+
+
+def test_the_repair_refuses_while_anything_is_running():
+    """THE GUARD THAT SHOULD NEVER HAVE BEEN REMOVED.
+
+    It was dropped on the grounds that "nobody has it mapped" is a better
+    test than "nothing is running". That reasoning cost a working stack in a
+    lab session: a fresh participant went from seeing 34 nodes to 7, with
+    zero publishers on /tf and /joint_states, while every controller was
+    still active. A live Fast DDS participant's segment can be absent from
+    /proc/*/maps at the instant it is sampled, and the age floor does not
+    protect a stack that has been up for an hour.
+
+    Ownership narrows WHAT is removed. It does not make removal safe.
+    HARD CONSTRAINT 5 says "with the stack STOPPED".
+    """
+    import inspect
+    src = inspect.getsource(D.fix_clear_shm)
+    assert "procscan.find" in src, (
+        "the repair no longer checks whether anything is running")
+    assert src.index("procscan.find") < src.index("stale_shm_segments"), (
+        "it looks for stale segments before checking whether anything is "
+        "running, so the guard is decorative")
+    assert "Not cleared" in src
+
+
 def test_shm_only_bad_when_nothing_is_running():
     segs = ["/dev/shm/fastrtps_port7002", "/dev/shm/sem.fastrtps_port7002"]
     c = _one(D.check_shm, FakeProbe(shm=segs, stack=[]),
              {"clear_shm": lambda: None})
     assert c.state == D.BAD and c.has_fix
 
-    # The same segments with a stack up are IN USE, not stale. Offering to
-    # clear them there would break a healthy run.
-    c = _one(D.check_shm, FakeProbe(shm=segs, stack=[101]))
+    # The same segments with nothing unowned are IN USE, not stale. Offering
+    # to clear them would break a healthy run.
+    c = _one(D.check_shm, FakeProbe(shm=segs, stale_shm=[], stack=[101]))
     assert c.state == D.OK and not c.has_fix
 
     assert _one(D.check_shm, FakeProbe(shm=[], stack=[])).state == D.OK
@@ -211,11 +268,14 @@ def test_shm_counts_the_real_arm_stack_as_running():
     ros2_control_node, so with the arms up and the sim down the panel offered
     to clear memory that the arms were using."""
     segs = ["/dev/shm/fastrtps_x"]
-    # No SIM stack, but the real arm stack is up.
-    c = _one(D.check_shm, FakeProbe(shm=segs, stack=[], live=[9001]))
+    # The real arm stack has it MAPPED, so it is not unowned. This used to be
+    # decided by "is a process from a hard-coded list running", which counted
+    # the arm stack as nothing; it is decided by ownership now, which is the
+    # property that was being stood in for.
+    c = _one(D.check_shm, FakeProbe(shm=segs, stale_shm=[], live=[9001]))
     assert c.state == D.OK and not c.has_fix
-    # Genuinely nothing running.
-    c = _one(D.check_shm, FakeProbe(shm=segs, stack=[], live=[]),
+    # Nobody has it open: a genuine leftover, whatever is or is not running.
+    c = _one(D.check_shm, FakeProbe(shm=segs, stale_shm=segs, live=[9001]),
              {"clear_shm": lambda: None})
     assert c.state == D.BAD
 

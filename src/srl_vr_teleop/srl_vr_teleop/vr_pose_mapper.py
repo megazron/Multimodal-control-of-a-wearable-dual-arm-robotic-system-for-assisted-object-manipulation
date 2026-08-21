@@ -127,8 +127,37 @@ class VrPoseMapper(Node):
         # about the vertical. 0 = operator faces the same way as the wearer
         # (standing behind them); 180 = operator faces the wearer across the
         # room, which is how this rig is actually driven.
-        self.declare_parameter('align_yaw_deg', 0.0)
-        self.declare_parameter('scale', 0.5)
+        # 180 DEGREES, AND IT IS DERIVED, NOT TUNED.
+        #
+        # The operator stands ACROSS THE ROOM FACING THE WEARER. Work the
+        # frames rather than guessing signs:
+        #   world  +y is the direction the WEARER faces, +z up, so the
+        #          wearer's RIGHT is +x (face north, right is east).
+        #   the operator faces the wearer, i.e. faces -y, so the OPERATOR's
+        #          right is -x (face south, right is west).
+        # The controller displacement arrives in the OPERATOR's frame, so
+        # +x_op is physically -x_world and +y_op is physically -y_world. That
+        # is exactly a 180 deg yaw, and nothing else.
+        #
+        # AT THE OLD DEFAULT OF 0 THIS WAS MEASURED IN THE LAB, 2026-08-21:
+        # left/right was inverted, forward/back was inverted, and ONLY UP AND
+        # DOWN WORKED -- because a yaw does not touch z, so z was the one axis
+        # a zero yaw could not get wrong. "Only up/down works" is the
+        # signature of a missing yaw, not of a broken controller.
+        #
+        # IT IS A ROTATION AND NEVER A MIRROR. Facing someone and copying them
+        # is a reflection (det -1); that would leave positions looking right
+        # while every ORIENTATION came out mirrored. No value of this
+        # parameter can produce one, which is why it is an angle and not a set
+        # of per-axis sign flips.
+        self.declare_parameter('align_yaw_deg', 180.0)
+        # 1:1. At 0.5 the operator moved 200 mm to command 100 mm, which
+        # reads as a sluggish arm rather than as a scale, and it doubles the
+        # reach the operator needs for a workspace the arm can already cover.
+        # `vr_bringup`'s clean-scale check reads `scale_default` out of the
+        # mapper's own state rather than hardcoding a number, so raising this
+        # cannot make a freshly reset mapping report as dirty.
+        self.declare_parameter('scale', 1.0)
         self.declare_parameter('scale_min', 0.1)
         self.declare_parameter('scale_max', 2.0)
         # Thumbstick y adjusts scale live; VR's play space is much larger than
@@ -140,7 +169,14 @@ class VrPoseMapper(Node):
         # noise source, so this is much lighter than the mannequin's 0.3 EMA.
         self.declare_parameter('ema_alpha', 0.6)
         self.declare_parameter('rate_hz', 100.0)
-        self.declare_parameter('max_speed_mps', 0.35)
+        # THE RATE LIMIT WAS THE OTHER HALF OF "SLOW". 0.35 m/s is slower
+        # than an ordinary reach, so any brisk hand movement hit the limiter
+        # and the command fell behind the hand -- published as `lag_m`, and
+        # the miss ACCUMULATES while the motion continues, which is what cost
+        # mode 02 every grasping task. Raised to 1.20 m/s: still well under
+        # the follower's own limit, so the follower and not this node remains
+        # the thing that bounds arm speed.
+        self.declare_parameter('max_speed_mps', 1.20)
         self.declare_parameter('quiet_engage_m', 0.003)
         self.declare_parameter('quiet_window_s', 0.10)
 

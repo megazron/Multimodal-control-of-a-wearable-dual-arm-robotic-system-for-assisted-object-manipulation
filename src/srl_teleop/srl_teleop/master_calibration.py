@@ -95,7 +95,7 @@ WORKSPACE_SCALE = 1.0   # DEAD -- see quarantine note above
 # it -- run_abc commands world poses directly and does not go through this
 # mapping -- and master teleop is blocked on the lab with 7 of 14 channels
 # incoherent, so the first exercise of these values will be a lab session.
-WORKSPACE_CENTRE= {"left":(0.4054,0.3424,1.1790), "right":(-0.3971,0.3397,1.1791)}
+WORKSPACE_CENTRE= {"left":(0.7442,0.3387,1.1799), "right":(-0.7358,0.3413,1.1798)}
 WORKSPACE_ORIENT= {"left":(-0.0896,0.4860,0.8693,0.0032),
                    "right":(0.1335,0.5423,0.8288,0.0345)}
 DEFAULT_SIGNS   = [1,1,1,1,1,1,1]

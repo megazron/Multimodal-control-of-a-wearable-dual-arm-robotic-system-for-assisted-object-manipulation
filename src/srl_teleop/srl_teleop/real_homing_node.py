@@ -78,8 +78,15 @@ import home_positions                                        # noqa: E402
 
 from srl_teleop.kortex_convention import (                   # noqa: E402
     pose_delta_rad, ros_list_to_kortex, wrap_rad_pi)
+from srl_teleop import wearer_posture                        # noqa: E402
 from srl_teleop.clearance import (                           # noqa: E402
-    ClearanceModel, DISTAL_LINKS, REAL_ROBOT_PAD_M)
+    ClearanceModel, WEARER_CHECK_LINKS, REAL_ROBOT_PAD_M)
+
+# The real stack publishes the WHOLE URDF -- arms, mount and wearer alike --
+# under this prefix (`real_torso`, `real_left_bracelet_link`). It is named
+# once so the arm side and the wearer side of a TF lookup cannot be written
+# differently, which is the defect that made the wearer guard unresolvable.
+REAL_FRAME_PREFIX = "real_"
 
 CONTINUOUS_IDX = (0, 2, 4, 6)
 
@@ -267,21 +274,86 @@ class RealHoming(Node):
         self.status_pub.publish(m)
 
     def measure_clearance(self):
+        # NOBODY IN THE RIG? THEN THERE IS NOTHING TO KEEP CLEAR OF.
+        #
+        # The wearer reaches this check as TF FRAMES from the robot
+        # description, so no parameter could turn it off -- and a bench-
+        # mounted arm with an empty harness was halted at 0.114 m from a
+        # mannequin torso that was not in the room. The declaration is
+        # explicit, defaults to PRESENT, and is shouted every time it is
+        # honoured: a silent "no wearer" is the state that gets somebody hurt.
+        if not wearer_posture.wearer_present():
+            self.get_logger().warn(wearer_posture.absence_banner(),
+                                   throttle_duration_sec=5.0)
+            return float("inf"), None
+        # EVERY PART OF THE BODY, not three of twelve.
+        #
+        # This iterated ("torso", "head", "hips") while the wearer model holds
+        # twelve primitives -- neck, both thighs, and both of the wearer's own
+        # upper arms, forearms and hands. Nine of twelve were unprotected, and
+        # CLAUDE.md records that the wearer's ARMS are what bind the right arm
+        # inboard: the exact geometry this check could not see.
+        #
+        # A part the model has but TF cannot resolve is NAMED, not skipped in
+        # silence -- an unresolvable part is a hole in the floor, and a hole
+        # that says nothing is the one that gets somebody hurt.
+        # ONE PREFIX, APPLIED TO BOTH SIDES.
+        #
+        # This looked the ARM link up as `real_<arm>_<link>` and the WEARER
+        # part up as a bare `torso` / `head` / `human_left_hand`. The real
+        # stack publishes the whole URDF under `real_`, so the wearer side
+        # never resolved -- not once, for any part, in any run. That is the
+        # true cause of the "0 of 9 parts checked" seen on 2026-08-21; the
+        # NaN-and-halt below is the SYMPTOM handler and was fixed first,
+        # which left a guard that always halted instead of always passing.
+        # Neither of those is a clearance check.
+        #
+        # The prefix is named once and used on both operands, because the
+        # failure was precisely that two names which must agree were written
+        # in two places and drifted.
+        pfx = REAL_FRAME_PREFIX
         pts = {}
-        for part in ("torso", "head", "hips"):
+        missing = []
+        for part in self.clearance.PARTS.keys():
             got = []
-            for link in DISTAL_LINKS:
+            for link in WEARER_CHECK_LINKS:
                 try:
                     t = self.tf_buf.lookup_transform(
-                        part, f"real_{self.arm}_{link}",
+                        f"{pfx}{part}", f"{pfx}{self.arm}_{link}",
                         rclpy.time.Time()).transform.translation
                     got.append((t.x, t.y, t.z))
                 except Exception:
                     continue
             if got:
                 pts[part] = got
+            else:
+                missing.append(part)
+        if missing:
+            self.get_logger().warn(
+                "WEARER CLEARANCE IS PARTIAL: no transform for %s. Those parts "
+                "of the body are NOT being kept clear. %d of %d parts checked."
+                % (", ".join(sorted(missing)), len(pts),
+                   len(self.clearance.PARTS)),
+                throttle_duration_sec=10.0)
         if not pts:
-            return float("inf"), None
+            # NO DATA IS NOT "INFINITELY CLEAR".
+            #
+            # This returned inf when NOT ONE wearer transform resolved, which
+            # made the guard silently inert: the caller compares against a
+            # floor, inf always passes, and the arm moves unguarded while the
+            # only trace is a throttled warning in a log nobody is reading.
+            #
+            # Measured 2026-08-21: a 176 deg sweep of the left arm ran with
+            # "0 of 9 parts checked" and `clear inf m` on every progress line.
+            # The wearer is DECLARED PRESENT in that configuration, so the
+            # honest answer to "how close is the arm to the person" was "I
+            # cannot see the person", and the guard reported the one value
+            # that can never trip.
+            #
+            # Returning NaN makes every comparison against the floor false, so
+            # `clear < self.min_clear` no longer passes by default; the caller
+            # checks for it explicitly and halts.
+            return float("nan"), "NO WEARER TRANSFORMS RESOLVED"
         return self.clearance.clearance(pts, REAL_ROBOT_PAD_M)
 
     # ---------------- plan ----------------
@@ -478,6 +550,15 @@ class RealHoming(Node):
                     break
 
                 clear, part = self.measure_clearance()
+                if clear != clear:      # NaN: the guard could not see at all
+                    self.get_logger().error(
+                        "HOMING HALTED: the wearer clearance guard resolved "
+                        "NO transforms, so it cannot say how close the arm is "
+                        "to the person. Refusing to keep moving on an "
+                        "unmeasured guard. Declare the wearer absent "
+                        "(SRL_WEARER_PRESENT=no) if nobody is in the rig.")
+                    self.aborted = True
+                    break
                 if clear < self.min_clear:
                     self.get_logger().error(
                         "HOMING HALTED: clearance %.3f m from %s is under the "

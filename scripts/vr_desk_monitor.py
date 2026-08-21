@@ -103,10 +103,18 @@ def main():
 
             b = S['bridge']
             cl = b.get('clients', 0)
-            out.append('  link      %s   %s Hz   frames %s   dropped %s'
-                       % (c('CONNECTED', GREEN) if cl else c('NO CLIENT', RED),
-                          b.get('rate_hz', '--'), b.get('frames', '--'),
-                          b.get('dropped', '--')))
+            # `live` not `clients`: an open socket is not a sending client.
+            # A suspended page (headset taken off) keeps the socket up and
+            # answers pings, so `clients` reads 1 with nothing arriving.
+            live = b.get('live')
+            tag = (c('LIVE', GREEN) if live else
+                   c('NO FRAMES (socket open, page suspended?)', RED) if cl else
+                   c('NO CLIENT', RED))
+            out.append('  link      %s   %s Hz   frames %s   dropped %s%s'
+                       % (tag, b.get('rate_hz', '--'), b.get('frames', '--'),
+                          b.get('dropped', '--'),
+                          ('   last frame %.1f s ago' % b['age_s'])
+                          if (b.get('age_s') is not None and not live) else ''))
             if S['lat'] and len(S['lat']) > 3 and not math.isnan(S['lat'][1]):
                 out.append('  latency   round trip %.1f ms   one-way est %.1f ms'
                            % (S['lat'][1], S['lat'][1] / 2 + S['lat'][3]))

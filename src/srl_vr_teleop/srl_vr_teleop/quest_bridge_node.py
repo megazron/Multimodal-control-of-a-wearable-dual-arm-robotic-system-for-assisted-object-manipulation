@@ -118,8 +118,23 @@ class QuestBridge(Node):
         # one warning, gets a working page, and a socket that silently never
         # connects. One origin, one warning, no trap.
         self.declare_parameter('web_dir', '')
+        # SCENE CAMERA IN THE HEADSET. Off by nothing -- the endpoint only
+        # opens the device when a client actually asks for a frame, so a rig
+        # with no camera attached costs nothing and logs nothing.
+        self.declare_parameter('camera_index', 0)
+        self.declare_parameter('camera_width', 640)
+        self.declare_parameter('camera_height', 480)
+        self.declare_parameter('camera_quality', 70)
+        self.declare_parameter('camera_fps', 10.0)
+        self.declare_parameter('camera_enabled', True)
 
         self.port = int(self.get_parameter('port').value)
+        self.camera_index = int(self.get_parameter('camera_index').value)
+        self.camera_w = int(self.get_parameter('camera_width').value)
+        self.camera_h = int(self.get_parameter('camera_height').value)
+        self.camera_q = int(self.get_parameter('camera_quality').value)
+        self.camera_fps = float(self.get_parameter('camera_fps').value)
+        self.camera_enabled = bool(self.get_parameter('camera_enabled').value)
         self.stale = float(self.get_parameter('stale_timeout_s').value)
         self.certfile = str(self.get_parameter('certfile').value)
         self.keyfile = str(self.get_parameter('keyfile').value)
@@ -205,6 +220,81 @@ class QuestBridge(Node):
             ctx.load_cert_chain(self.certfile, self.keyfile)
             scheme, wscheme = 'https', 'wss'
 
+        # ------------------------------------------------ scene camera
+        # ONE JPEG ENDPOINT ON THE EXISTING ORIGIN, not a second server.
+        # The page and the socket already share one port so the operator
+        # accepts ONE certificate exception; a camera on its own port would
+        # need a second one, and an <img> cannot prompt for it -- it would
+        # just show a broken image with nothing in the log.
+        #
+        # THE GRAB RUNS IN ITS OWN THREAD AND THE REQUEST NEVER TOUCHES THE
+        # DEVICE. This is not tidiness. `process_request` runs ON THE ASYNCIO
+        # EVENT LOOP, and cv2's open/read are blocking calls that take seconds
+        # over usbip -- the first version of this endpoint called them inline
+        # and the very first GET wedged the whole server: the page stopped
+        # serving AND the WebSocket stopped answering, which on a lab day is
+        # indistinguishable from the bridge having died. The handler now only
+        # reads a bytes object another thread has already filled.
+        #
+        # MJPG IS NOT OPTIONAL. Over usbip the default uncompressed YUYV
+        # negotiates and then delivers no frames at all -- the device opens,
+        # every call succeeds, and read() returns False forever. Measured on
+        # this rig 2026-08-21: MJPG 640x480 24.9 fps, YUYV nothing.
+        cam_lock = threading.Lock()
+        cam_latest = {'jpg': None, 'n': 0, 'err': None}
+
+        def _camera_loop():
+            try:
+                import cv2
+            except Exception as exc:                          # noqa: BLE001
+                with cam_lock:
+                    cam_latest['err'] = 'opencv not installed: %s' % exc
+                return
+            cap = None
+            while rclpy.ok():
+                if cap is None or not cap.isOpened():
+                    cap = cv2.VideoCapture(self.camera_index, cv2.CAP_V4L2)
+                    cap.set(cv2.CAP_PROP_FOURCC,
+                            cv2.VideoWriter_fourcc(*'MJPG'))
+                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.camera_w)
+                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.camera_h)
+                    if not cap.isOpened():
+                        with cam_lock:
+                            cam_latest['err'] = (
+                                '/dev/video%d will not open -- attached with '
+                                'usbipd, and readable by this user?'
+                                % self.camera_index)
+                        time.sleep(2.0)
+                        continue
+                ok, frame = cap.read()
+                if not ok or frame is None:
+                    try:
+                        cap.release()
+                    except Exception:                         # noqa: BLE001
+                        pass
+                    cap = None
+                    with cam_lock:
+                        cam_latest['err'] = (
+                            'opened but returned no frame -- over usbip that '
+                            'means the pixel format is wrong; MJPG is required')
+                    time.sleep(1.0)
+                    continue
+                ok, buf = cv2.imencode(
+                    '.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, self.camera_q])
+                if ok:
+                    with cam_lock:
+                        cam_latest['jpg'] = buf.tobytes()
+                        cam_latest['n'] += 1
+                        cam_latest['err'] = None
+                time.sleep(max(0.0, 1.0 / max(self.camera_fps, 1.0)))
+
+        if self.camera_enabled:
+            threading.Thread(target=_camera_loop, daemon=True).start()
+            self.get_logger().info(
+                'scene camera thread started on /dev/video%d (%dx%d) -- '
+                'served at /camera.jpg on this same origin'
+                % (self.camera_index, self.camera_w, self.camera_h))
+
         def _page(path):
             """Static file out of web_dir, path-traversal refused."""
             name = 'vr_client.html' if path in ('/', '') else path.lstrip('/')
@@ -227,6 +317,21 @@ class QuestBridge(Node):
             # exception.
             if request.headers.get('Upgrade', '').lower() == 'websocket':
                 return None
+            if request.path.split('?')[0] == '/camera.jpg':
+                with cam_lock:
+                    jpg = cam_latest['jpg']
+                    err = cam_latest['err']
+                if jpg is None:
+                    return conn.respond(503, (err or 'no frame yet') + '\n')
+                r = conn.respond(200, '')
+                r.body = jpg
+                for k in ('Content-Type', 'Content-Length', 'Cache-Control'):
+                    if k in r.headers:
+                        del r.headers[k]
+                r.headers['Content-Type'] = 'image/jpeg'
+                r.headers['Content-Length'] = str(len(jpg))
+                r.headers['Cache-Control'] = 'no-store'
+                return r
             body, ct = _page(request.path)
             if body is None:
                 return conn.respond(404, 'no such file\n')
@@ -375,11 +480,31 @@ class QuestBridge(Node):
                 % (age, self.stale), throttle_duration_sec=2.0)
 
     def _report(self):
+        # RATE MUST DECAY TO ZERO WHEN FRAMES STOP.
+        #
+        # This was computed as (n-1)/(last-first) over a window of ARRIVAL
+        # times. When the stream stops the window stops changing, so the
+        # expression keeps returning the last healthy value FOREVER -- and
+        # `clients` keeps reading 1, because the browser's networking answers
+        # WebSocket pings while the page is suspended. Measured 2026-08-19:
+        # the headset was taken off, frames froze at 21343, and the bridge
+        # went on reporting "89.8 Hz, 1 client" indefinitely. The desk
+        # monitor is the operator's only status display in off-head
+        # operation, and it would have shown a healthy green link with
+        # nothing arriving at all.
+        #
+        # Only the frame COUNTER told the truth, so the rate is now computed
+        # against a window ending NOW.
+        now = time.monotonic()
+        age = now - self.last_rx if self.last_rx else float('inf')
+        live = age < 1.0
         hz = 0.0
-        if len(self.rate_win) > 5:
-            span = self.rate_win[-1] - self.rate_win[0]
-            if span > 0:
-                hz = (len(self.rate_win) - 1) / span
+        if live and len(self.rate_win) > 5:
+            recent = [t for t in self.rate_win if now - t <= 2.0]
+            if len(recent) > 5:
+                span = recent[-1] - recent[0]
+                if span > 0:
+                    hz = (len(recent) - 1) / span
         m = Float64MultiArray()
         # [rate_hz, rtt_mean_ms, rtt_p95_ms, bridge_ms, dropped, frames]
         m.data = [hz,
@@ -389,9 +514,23 @@ class QuestBridge(Node):
                   float(self.n_dropped), float(self.n_frames)]
         self.lat_pub.publish(m)
         s = String()
-        s.data = json.dumps(dict(rate_hz=round(hz, 1), clients=len(self.ws_clients),
+        s.data = json.dumps(dict(rate_hz=round(hz, 1),
+                                 # `clients` counts OPEN SOCKETS, which is not
+                                 # the same as a client that is sending. Read
+                                 # `live` instead.
+                                 clients=len(self.ws_clients),
+                                 live=bool(live),
+                                 age_s=(round(age, 2) if age != float('inf')
+                                        else None),
                                  dropped=self.n_dropped, frames=self.n_frames))
         self.stat_pub.publish(s)
+        if not live and self.last_rx:
+            self.get_logger().warn(
+                'NO FRAMES for %.1f s. The socket may still be open -- a '
+                'suspended page still answers pings -- so treat `clients` as '
+                'meaningless here. On a Quest this is what taking the headset '
+                'off looks like: the session suspends within about a second.'
+                % age, throttle_duration_sec=5.0)
         if hz and hz < 60.0 and self.n_frames > 100:
             self.get_logger().warn(
                 'pose rate %.1f Hz is below the 60 Hz requirement' % hz,

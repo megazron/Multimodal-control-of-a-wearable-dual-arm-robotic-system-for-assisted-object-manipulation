@@ -62,6 +62,8 @@ class VrSafety(Node):
         # 2.0 s is four missed beats at the 5 Hz `observer_estop.py` sends.
         self.declare_parameter('observer_estop_timeout_s', 2.0)
         self.declare_parameter('allow_real_arm', False)
+        # Deliberately SEPARATE from require_observer_estop -- see _srv_enable.
+        self.declare_parameter('allow_real_arm_without_observer', False)
         # Robot workspace bounds, world frame. Warn before the limit, not at it.
         self.declare_parameter('ws_min', [-1.10, -0.10, 0.70])
         self.declare_parameter('ws_max', [1.10, 0.90, 1.60])
@@ -120,12 +122,64 @@ class VrSafety(Node):
             self.observer_t = None
             self._freeze('observer e-stop withdrawn')
 
+    def _bypass(self):
+        """(True, record) if the operator declared they are working alone.
+
+        A FILE, NOT A PARAMETER, and deliberately. This node is restarted by
+        several of the bring-up repairs; a parameter set on the instance that
+        died is silently gone, and the operator would find that out by
+        squeezing the grip and watching nothing happen. The bring-up sequence
+        and this node therefore read the SAME record, through the same module,
+        so "the window says bypassed" and "the gate is open" cannot disagree.
+        """
+        try:
+            from srl_teleop import observer_bypass
+            return observer_bypass.active()
+        except Exception as e:                                # noqa: BLE001
+            self.get_logger().warn(
+                'could not read the working-alone bypass (%r); treating it '
+                'as NOT taken' % (e,), throttle_duration_sec=30.0)
+            return False, 'unreadable'
+
+    def _observer_required(self):
+        """Is an independent observer needed to leave the freeze?
+
+        `require_observer_estop` gated ONLY `_srv_enable` -- the real-arm
+        request. The freeze/unfreeze path tested `self.observer_ok` with no
+        parameter at all, so setting the parameter false disabled the check
+        it was named after and left the clutch held shut anyway. In the lab
+        on 2026-08-20 that read as a broken clutch: grip pressed, gripper
+        moved (the gripper node does not consult the freeze), arm dead, and
+        the only explanation in a log on a machine the operator could not
+        see while wearing the headset.
+
+        REAL-ARM ENABLE STILL REQUIRES IT UNCONDITIONALLY -- that is
+        `_srv_enable`, and it is not what this affects. This parameter now
+        means what it says: whether the SIMULATED arm may move without an
+        observer posted.
+        """
+        return bool(self.get_parameter('require_observer_estop').value)
+
+    # THE FREEZE PATH HAS TO HONOUR IT TOO, or the bypass opens the enable
+    # service and leaves the arm frozen -- which is the 2026-08-20 defect
+    # exactly (`require_observer_estop` gated only `_srv_enable`), with the
+    # sign flipped. A bypass that lets you arm an arm you cannot move is a
+    # bypass that sends the operator looking for a second fault.
+    def _observer_satisfied(self):
+        """Confirmed present, or not required for this (simulation) run."""
+        return (self.observer_ok or not self._observer_required()
+                or self._bypass()[0])
+
     def _observer_stale(self):
         """True once the observer has stopped saying they are there.
 
         Checked every tick rather than on message arrival, because the whole
         point is the message that does NOT arrive.
         """
+        if not self._observer_required():
+            return False
+        if self._bypass()[0]:
+            return False
         if not self.observer_ok:
             return False
         tmo = float(self.get_parameter('observer_estop_timeout_s').value)
@@ -190,13 +244,62 @@ class VrSafety(Node):
         self.freeze_reason = why
 
     def _srv_enable(self, req, res):
-        if bool(self.get_parameter('require_observer_estop').value) and not self.observer_ok:
-            res.success = False
-            res.message = ('REFUSED: no observer e-stop confirmed. Publish '
-                           '/vr/observer_estop_present after physically '
-                           'handing it to someone not wearing the headset.')
-            self.get_logger().error(res.message)
-            return res
+        # ONE SWITCH MUST NOT OPEN TWO DOORS.
+        #
+        # This read `require_observer_estop` -- the same parameter the freeze
+        # path uses. So relaxing the interlock to let the SIMULATED arm move
+        # unobserved silently also opened the REAL arm. On 2026-08-20 that is
+        # exactly what happened: the parameter was set false to free a clutch
+        # that turned out to be held for an unrelated reason, and the
+        # real-arm gate came open with it, unremarked, while the operator was
+        # in a headset and could not see the arm.
+        #
+        # Bypassing the real-arm interlock is a decision somebody is allowed
+        # to make. It is NOT a decision anybody should make BY ACCIDENT while
+        # trying to do something else. It now has its own name and its own
+        # default, and taking it is shouted.
+        if not self.observer_ok:
+            # THE WORKING-ALONE BYPASS. Added beside the parameter, not in
+            # place of it: `allow_real_arm_without_observer` still does what
+            # it always did, still defaults False, and is still the route for
+            # a launch file. This is the route for a person, and it differs in
+            # the two ways that matter -- it expires, and it is written down.
+            alone, rec = self._bypass()
+            if alone:
+                self.get_logger().error(
+                    'REAL ARM ENABLED WITH NO OBSERVER POSTED -- '
+                    'WORKING-ALONE BYPASS, taken by %s at %s. Nobody is '
+                    'holding a physical e-stop. You are the only person who '
+                    'can stop this arm.'
+                    % (rec.get('who', '?'), rec.get('granted_at_iso', '?')))
+                self._bypass_announced = True
+                self.set_parameters([rclpy.parameter.Parameter(
+                    'allow_real_arm', rclpy.Parameter.Type.BOOL, True)])
+                res.success = True
+                res.message = ('real-arm control enabled for this VR session '
+                               '-- WORKING ALONE, no observer')
+                return res
+            if not bool(self.get_parameter(
+                    'allow_real_arm_without_observer').value):
+                res.success = False
+                res.message = (
+                    'REFUSED: no observer e-stop confirmed. Publish '
+                    '/vr/observer_estop_present after physically '
+                    'handing it to someone not wearing the headset. '
+                    '(require_observer_estop governs the SIMULATED arm only; '
+                    'this gate has its own parameter, '
+                    'allow_real_arm_without_observer.) If you are alone in '
+                    'the lab, tick "I am working alone" in the operations '
+                    'window -- that is recorded and expires; the parameter '
+                    'is neither.')
+                self.get_logger().error(res.message)
+                return res
+            self.get_logger().error(
+                'REAL ARM ENABLED WITH NO OBSERVER POSTED. '
+                'allow_real_arm_without_observer is set. Nothing in software '
+                'is now checking that a person who can see the arm has their '
+                'hand on a physical e-stop. The operator is in a headset and '
+                'cannot see the arm.')
         self.set_parameters([rclpy.parameter.Parameter(
             'allow_real_arm', rclpy.Parameter.Type.BOOL, True)])
         res.success = True
@@ -255,11 +358,15 @@ class VrSafety(Node):
             self._freeze('no controller pose for %.2f s (dropout, sleep or '
                          'backgrounded app all look identical here, and all '
                          'must freeze)' % age)
-        elif self.frozen and self.observer_ok and not self._reference_bad():
+        elif self.frozen and self._observer_satisfied() and not self._reference_bad():
             self.frozen = False
             self.freeze_reason = ''
-            self.get_logger().info('VR unfrozen: poses flowing, observer present')
-        elif self.frozen and not self.observer_ok:
+            self.get_logger().info(
+                'VR unfrozen: poses flowing, observer %s'
+                % ('present' if self.observer_ok else
+                   'NOT REQUIRED (require_observer_estop:=false -- '
+                   'simulation only; the real arm still refuses)'))
+        elif self.frozen and not self._observer_satisfied():
             self.freeze_reason = 'awaiting observer e-stop confirmation'
 
         b = Bool()

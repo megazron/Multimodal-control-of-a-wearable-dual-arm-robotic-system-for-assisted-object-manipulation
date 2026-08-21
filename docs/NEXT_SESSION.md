@@ -1,3 +1,14 @@
+> **SUPERSEDED — read `docs/NEXT_SESSION_2026_08_22.md` first.**
+>
+> Two real-arm sessions have happened since this page was written. Eight
+> defects in the code that COMMANDS the arms were found, six of which made
+> healthy hardware look broken. The next session is a redesign -- calibration,
+> the RViz master, the per-mode GUI, and universal pick-and-place -- and it is
+> specified there. `scripts/real_calibration/README.md` holds what is
+> measured and, separately, what is still unverified.
+>
+> Everything below remains true about the VR one-button path.
+
 # RESUME POINT 2026-08-20 (last) — ONE BUTTON STARTS VR, AND IT IS TESTED WITHOUT HARDWARE
 
 ## THE ONE-PARAGRAPH VERSION

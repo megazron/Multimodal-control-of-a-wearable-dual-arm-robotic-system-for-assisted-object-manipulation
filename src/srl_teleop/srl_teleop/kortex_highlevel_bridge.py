@@ -142,7 +142,32 @@ class KortexHighLevelBridge(Node):
         self.ns = self.get_parameter("real_ns").value.rstrip("/")
         self.rate = float(self.get_parameter("rate_hz").value)
         self.kp = float(self.get_parameter("kp").value)
+        self.declare_parameter("ki", 0.40)
+        self.declare_parameter("integ_max_rad_s", 0.05)
+        self.ki = float(self.get_parameter("ki").value)
+        self.imax = float(self.get_parameter("integ_max_rad_s").value)
+        self._integ = [0.0] * NJ
         self.vmax = float(self.get_parameter("vmax_rad_s").value)
+        # A PARAMETER THAT CANNOT BE CHANGED IS NOT A PARAMETER.
+        #
+        # These were read ONCE here and the control loop then used the cached
+        # attribute forever. `ros2 param set` answered "Set parameter
+        # successful", the parameter store held the new value, and the arm
+        # went on moving at the old one -- the exact "feature present but does
+        # nothing" shape CLAUDE.md lists, where a field is STORED and no
+        # consumer READS it.
+        #
+        # Measured 2026-08-21: a directional calibration swept vmax over
+        # 0.10 / 0.25 / 0.50 rad/s and every one of its 36 runs actually ran
+        # at the 0.40 it started with. Settle times were identical across the
+        # "speeds" and one run commanded at 0.10 measured a peak of 0.284
+        # rad/s -- above its own limit, which is what gave it away.
+        #
+        # Only the three that are safe to retune live are accepted. The robot
+        # IP, the rate and the watchdog are structural and a change to those
+        # needs a restart, so they are refused with a reason rather than
+        # silently ignored.
+        self.add_on_set_parameters_callback(self._on_param)
         self.deadband = math.radians(
             float(self.get_parameter("deadband_deg").value))
         self.watchdog = float(self.get_parameter("watchdog_s").value)
@@ -252,6 +277,50 @@ class KortexHighLevelBridge(Node):
         info.connection_inactivity_timeout = 2000
         self._ss.CreateSession(info)
         self.base = BaseClient.BaseClient(self._rt)
+
+        # PUT THE ARM IN HIGH-LEVEL SERVOING, DO NOT ASSUME IT IS THERE.
+        #
+        # The servoing mode is arm state, not session state: it SURVIVES a
+        # session ending, including one that crashed. Anything that ever put
+        # this arm into LOW_LEVEL_SERVOING -- the cyclic driver, a killed
+        # process, somebody else's experiment -- leaves it there, and every
+        # high-level session afterwards fails on every single command with
+        #     Failed to select joint speed: Invalid command for the current
+        #     servoing mode
+        # while the session, the feedback and the joint states all look
+        # perfectly healthy.
+        #
+        # Measured 2026-08-21: the left arm was found in LOW_LEVEL_SERVOING.
+        # The bridge connected, reported ARMSTATE_SERVOING_LOW_LEVEL, streamed
+        # joint states at full rate, accepted a homing request -- and the arm
+        # never moved, because every speed command was rejected. The homing
+        # node then reported 176 deg of error as though the arm had gone
+        # somewhere, when it had not moved at all.
+        try:
+            mode = self.base.GetServoingMode().servoing_mode
+            if mode != Base_pb2.SINGLE_LEVEL_SERVOING:
+                self.get_logger().warn(
+                    "arm was in %s -- high-level speed commands are REJECTED "
+                    "in that mode. Setting SINGLE_LEVEL_SERVOING."
+                    % Base_pb2.ServoingMode.Name(mode))
+                m = Base_pb2.ServoingModeInformation()
+                m.servoing_mode = Base_pb2.SINGLE_LEVEL_SERVOING
+                self.base.SetServoingMode(m)
+                now = self.base.GetServoingMode().servoing_mode
+                if now != Base_pb2.SINGLE_LEVEL_SERVOING:
+                    raise RuntimeError(
+                        "could not leave %s; the arm will accept no high-level "
+                        "command. Power-cycle it."
+                        % Base_pb2.ServoingMode.Name(now))
+                self.get_logger().info("servoing mode is now "
+                                       "SINGLE_LEVEL_SERVOING")
+        except RuntimeError:
+            raise
+        except Exception as exc:                              # noqa: BLE001
+            self.get_logger().warn(
+                "could not read or set the servoing mode (%s). If every "
+                "command is rejected, this is why." % exc)
+
         state = Base_pb2.ArmState.Name(self.base.GetArmState().active_state)
         self.get_logger().info("session created -- arm state %s" % state)
         if state != "ARMSTATE_SERVOING_READY":
@@ -357,6 +426,43 @@ class KortexHighLevelBridge(Node):
 
     # ---------------- the loop ----------------
 
+    def _on_param(self, params):
+        """Apply the live-tunable parameters; refuse the structural ones."""
+        from rcl_interfaces.msg import SetParametersResult
+        live = {"vmax_rad_s": "vmax", "kp": "kp", "deadband_deg": None,
+                "ki": "ki", "integ_max_rad_s": "imax"}
+        for prm in params:
+            if prm.name not in live:
+                return SetParametersResult(
+                    successful=False,
+                    reason=("%s is structural -- it is used to build the "
+                            "session or the loop timing, so changing it needs "
+                            "a restart rather than a live set." % prm.name))
+            try:
+                v = float(prm.value)
+            except Exception:                                 # noqa: BLE001
+                return SetParametersResult(
+                    successful=False, reason="%s must be a number" % prm.name)
+            if v <= 0.0:
+                return SetParametersResult(
+                    successful=False,
+                    reason="%s must be positive (got %r)" % (prm.name, v))
+            if prm.name == "vmax_rad_s":
+                self.vmax = v
+            elif prm.name == "kp":
+                self.kp = v
+            elif prm.name == "deadband_deg":
+                self.deadband = math.radians(v)
+            elif prm.name == "ki":
+                self.ki = v
+                self._integ = [0.0] * NJ      # a new gain, a fresh integral
+            elif prm.name == "integ_max_rad_s":
+                self.imax = v
+            self.get_logger().warn(
+                "%s changed live to %.4f -- the control loop uses it from the "
+                "next cycle" % (prm.name, v))
+        return SetParametersResult(successful=True)
+
     def _control_loop(self):
         period = 1.0 / self.rate
         next_t = time.monotonic()
@@ -393,12 +499,18 @@ class KortexHighLevelBridge(Node):
             if estopped:
                 speeds = [0.0] * NJ
                 reason = "estop"
+                self._integ = [0.0] * NJ
             elif not commanding or target is None:
                 speeds = [0.0] * NJ
                 reason = "no target yet"
+                self._integ = [0.0] * NJ
             elif t_age > self.watchdog:
                 speeds = [0.0] * NJ
                 reason = "watchdog (%.2f s since last target)" % t_age
+                # RESET, NOT HOLD. Whatever the integrator accumulated while
+                # the link was down describes a target that is no longer
+                # current, and applying it on reconnect is a lurch.
+                self._integ = [0.0] * NJ
             else:
                 # FEEDFORWARD + FEEDBACK, and the feedforward is not optional.
                 #
@@ -432,12 +544,64 @@ class KortexHighLevelBridge(Node):
                 else:
                     v_ff = [0.0] * NJ
 
+                # AN INTEGRAL TERM, BECAUSE A CONSTANT ERROR NEEDS ONE.
+                #
+                # This node had proportional feedback only. Measured on the
+                # rig 2026-08-21, both arms at rest at home: joints 2-6 all
+                # sat 0.10-0.11 deg from target with the SAME SIGN, joint_1
+                # opposite, and joint_7 exact to 0.001 deg. joint_7 is the
+                # wrist roll -- the one joint carrying no gravity moment. That
+                # signature is gravity sag, and proportional control cannot
+                # remove a constant offset: kp*err shrinks with the error and
+                # dies inside the deadband with the error still there.
+                #
+                # real_homing_node already closes to 0.09 deg on this
+                # hardware, and the only thing it has that this node lacked is
+                # ki. So teleoperation tracked the simulation to ~1 deg per
+                # joint while homing tracked it to 0.1, and the difference was
+                # one term.
+                #
+                # THE INTEGRATOR IS BOUNDED AND IT IS RESET, both deliberately.
+                # It winds up whenever the arm cannot follow -- a watchdog
+                # stop, an e-stop, a joint against its limit -- and an
+                # unbounded integrator would then dump that stored error as a
+                # lurch the moment motion is permitted again. On a wearable
+                # rig that lurch happens next to somebody's head.
+                # ONE INTEGRATOR AT A TIME. If the SENDER supplied
+                # velocities it owns the control law and this node is a pure
+                # executor -- `real_homing_node` computes its own kp/ki law
+                # and fills velocities[], and adding a second integral here
+                # integrates an error another integrator is already closing.
+                #
+                # Measured 2026-08-21, immediately after this term was added:
+                # homing settled to 0.19-0.88 deg where the same node had
+                # reached 0.03-0.12 deg before. Two integrators in series
+                # overshoot and hunt; the arm was worse for the "fix".
+                #
+                # The integral belongs to the POSITION path -- sim_to_real_bridge
+                # sends setpoints with no velocities, nobody else is closing
+                # the gravity offset, and that is the case it was added for.
+                use_i = (t_vel is None) and self.ki > 0.0
+                if not use_i:
+                    self._integ = [0.0] * NJ
+                dt_i = 1.0 / max(self.rate, 1.0)
                 speeds = []
                 for i in range(NJ):
                     # The deadband suppresses the CORRECTION only. Applying it
                     # to the total would reintroduce the deadlock above.
-                    fb = 0.0 if abs(delta[i]) <= self.deadband \
-                        else self.kp * delta[i]
+                    if abs(delta[i]) <= self.deadband:
+                        fb = 0.0
+                    else:
+                        fb = self.kp * delta[i]
+                    if use_i:
+                        # Inside the deadband the proportional term is off but
+                        # the error is real, so this is exactly where the
+                        # integrator has to keep working -- it is the only
+                        # thing that can close the last tenth of a degree.
+                        self._integ[i] += delta[i] * dt_i
+                        self._integ[i] = clip(self._integ[i], -self.imax,
+                                              self.imax)
+                        fb += self.ki * self._integ[i]
                     speeds.append(clip(v_ff[i] + fb, -self.vmax, self.vmax))
 
             try:

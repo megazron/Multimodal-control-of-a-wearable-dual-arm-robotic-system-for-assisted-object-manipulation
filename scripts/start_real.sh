@@ -55,6 +55,24 @@ MAX_VEL=0.15
 # Homing speed, passed explicitly. The banner used to print $MAX_VEL --
 # the BRIDGE parameter -- while nothing passed anything to the homing node.
 HOMING_VMAX=0.15
+# KORTEX COMMAND RATE, PER ARM. Every high-level command is a network round
+# trip (HARD CONSTRAINT 4), and the two arms share one link.
+#
+# MEASURED 2026-08-20 in the lab, same box, same session:
+#   one arm   21.0 Hz sustained, send latency 12-33 ms
+#   two arms   8.1-12.2 Hz,      send latency SPIKING TO 519 ms
+# 519 ms is past the 0.5 s bridge watchdog, so it zeroed the speed and the
+# joints stopped WHILE STILL BEING COMMANDED. Homing then reported "BELOW
+# VELOCITY FLOOR" -- a true statement about a symptom two layers down.
+#
+# 30 Hz x 2 arms x ~23 ms per send oversubscribes the link and the requests
+# queue; the queue IS the 519 ms. Ask for less than the link can carry and
+# the spikes go away. Override with KORTEX_RATE=<hz>.
+if [ "$ARM" = "both" ]; then
+  KORTEX_RATE="${KORTEX_RATE:-12.0}"
+else
+  KORTEX_RATE="${KORTEX_RATE:-30.0}"
+fi
 MAX_STEP=0.05
 LAG_TRIP=0.5
 COUNTDOWN=10
@@ -86,10 +104,10 @@ cleanup() {
   # failure this loop now cannot have.
   if command -v ros2 >/dev/null 2>&1; then
     for A in left right; do
-      timeout 8 ros2 service call "/bridge_disable_${A}" std_srvs/srv/Trigger {} \
+      timeout -s INT 8 ros2 service call "/bridge_disable_${A}" std_srvs/srv/Trigger {} \
         >/dev/null 2>&1 && say "  bridge disabled (${A})"
       # 2. Abort homing if it is still running; leaves the arm where it stands.
-      timeout 8 ros2 service call "/home_abort_${A}" std_srvs/srv/Trigger {} \
+      timeout -s INT 8 ros2 service call "/home_abort_${A}" std_srvs/srv/Trigger {} \
         >/dev/null 2>&1 && say "  homing aborted (${A})"
     done
   fi
@@ -255,7 +273,7 @@ Start terminal 1 first:
 fi
 
 # /joint_states must actually be flowing, not merely advertised.
-HZ="$(timeout 15 ros2 topic hz /joint_states --window 10 2>&1 | grep -m1 'average rate' || true)"
+HZ="$(timeout -s INT 15 ros2 topic hz /joint_states --window 10 2>&1 | grep -m1 'average rate' || true)"
 [ -n "$HZ" ] || die "/joint_states is not publishing. Is the sim controller up?"
 ok "  sim stack up -- $HZ"
 
@@ -291,7 +309,7 @@ else
   for _ in 1 2 3; do
     MASTER_OK=1
     for A in $ARMS; do
-      timeout 6 ros2 topic echo "/master_arm_raw_$A" --once >/dev/null 2>&1 || MASTER_OK=0
+      timeout -s INT 6 ros2 topic echo "/master_arm_raw_$A" --once >/dev/null 2>&1 || MASTER_OK=0
     done
     if [ "$MASTER_OK" = 1 ]; then
       GOT=1; break
@@ -308,7 +326,7 @@ else
 fi
 
 # ---------------------------------------------------------------- estop check
-ESTOP="$(timeout 10 ros2 topic echo /estop_state --once 2>/dev/null | head -1 || true)"
+ESTOP="$(timeout -s INT 10 ros2 topic echo /estop_state --once 2>/dev/null | head -1 || true)"
 if echo "$ESTOP" | grep -q "true"; then
   die "E-STOP IS LATCHED. Reset it before connecting:
     ros2 service call /estop_reset std_srvs/srv/Trigger {}"
@@ -337,6 +355,7 @@ LOG="$(mktemp -t start_real.XXXXXX.log)"
 say "  log: $LOG"
 
 if [ "$MOCK" = "1" ]; then
+  # the mock has no network round trip and no rate_hz argument
   setsid ros2 launch srl_teleop mock_real.launch.py \
     arm:="$ARM" \
     preview_delay_s:="$PREVIEW_DELAY" \
@@ -350,6 +369,7 @@ else
     preview_delay_s:="$PREVIEW_DELAY" \
     max_vel_rad_s:="$MAX_VEL" \
     homing_vmax:="$HOMING_VMAX" \
+    rate_hz:="$KORTEX_RATE" \
     max_step_rad:="$MAX_STEP" \
     lag_trip_rad:="$LAG_TRIP" >"$LOG" 2>&1 &
 fi

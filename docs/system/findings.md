@@ -6353,3 +6353,102 @@ nothing moved, which cannot distinguish a sound clutch from a frozen arm.
 **The re-engage jump is therefore still NOT measured on this setup**, and it
 needs a drive that stays inside the reachable set. The mapping, the rate and
 the reset are measured; that one is not, and saying so is the point.
+
+---
+
+## 2026-08-20 — the first real-arm VR session, and four bugs in our own tooling
+
+**The VR path worked.** A Quest in the operator's hands drove a real Kinova
+Gen3 over wifi, in passthrough, with the gripper live. Almost none of the day
+was spent on that path; it was spent on discovery partitions that we caused.
+
+### 1. The launch swept the ros2 daemon's own shared memory
+
+`run_teleop.sh` line 12 calls `srl_clear_stale_shm`, which removed
+`/dev/shm/fastrtps_*` unconditionally. The `ros2 daemon` is a participant and
+its segments are in there. It does not die when they vanish — **it goes
+deaf**. `ros2 node list` then returns nothing against a fully healthy stack,
+and `start_real.sh` reports `DISCOVERY PROBLEM, not a missing stack`: true,
+specific, confident, and pointing at the wrong thing, because the sweep two
+seconds earlier caused it.
+
+Measured: removed 14 segments, and every subsequent preflight failed. Four
+full teardown-and-restart cycles were spent before the sweep was suspected —
+the message was so specific that it read as evidence about the network.
+
+The sweeper now stops the daemon, sweeps, and restarts it. Its live-process
+guard also named only three sim nodes, so the VR stack, the real-arm bridge
+and `observer_estop.py` were all invisible to it: a sweep "with the stack
+stopped" could still be a sweep under a live observer e-stop. All four are
+now counted.
+
+**A guard that names processes by an explicit list will be wrong the moment a
+new process exists. This one was wrong for the observer e-stop.**
+
+### 2. `timeout N ros2 …` sends SIGTERM
+
+A hard-killed DDS participant holding shared memory poisons discovery for
+everything that joins afterwards. `env.sh` and `start_real.sh` had ten such
+call sites, including `ros2 topic hz`, which **never exits on its own and is
+therefore always killed**. All now `timeout -s INT`, so rclpy releases its
+segments on the way out.
+
+### 3. `require_observer_estop` did not gate the thing it is named after
+
+`vr_safety_node` tested `self.observer_ok` directly in the freeze/unfreeze
+path, with no parameter. The parameter gated only `_srv_enable`. Setting it
+false therefore disabled the real-arm request and left the clutch held shut
+anyway.
+
+In the lab this presented as a **broken clutch**: grip pressed, gripper moved,
+arm dead, and the only explanation in a log on a machine the operator could
+not see while wearing the headset. `_observer_required()` /
+`_observer_satisfied()` now carry it. `_srv_enable` is unchanged and still
+refuses unconditionally.
+
+### 4. Two arms cannot share the Kortex high-level path over WSL
+
+Measured on the same box in the same session:
+
+```
+one arm    21.0 Hz sustained,  send latency 12-33 ms
+two arms    8.1-12.2 Hz,       send latency SPIKING TO 519 ms
+```
+
+519 ms is past the bridge's 0.5 s watchdog, so it zeroes the speed. The joints
+stop **while still being commanded**, and `real_homing_node` reports `HOMING
+BELOW VELOCITY FLOOR` — a true statement about a symptom two layers down, and
+one that sends you to the homing gains instead of the network. Both arms
+froze simultaneously, which is the giveaway.
+
+This is HARD CONSTRAINT 4 appearing on the high-level path, not just the
+cyclic one. `KORTEX_RATE` defaults to 12 Hz per arm for `arm:=both`.
+**Untested — it is a hypothesis derived from the latency, not a result.**
+
+### 5. The wearer clearance check was measuring almost nothing
+
+`real_homing_node.measure_clearance()` iterated `("torso", "head", "hips")`
+against a model holding **twelve** primitives — it never checked the neck, the
+thighs, or the wearer's own upper arms, forearms and hands, which CLAUDE.md
+records as the geometry that binds the right arm inboard.
+
+It also swept `DISTAL_LINKS`, which starts at the forearm. The shoulder and
+both half-arm tubes — the segments a shoulder mount actually swings across a
+person's head and chest — were never measured. **The hand can be a metre clear
+while the upper tube is inside somebody's neck, and the check reports the
+hand.** This is the SRDF trap of hard constraint 11 reproduced one layer down,
+in the node whose whole job is that check.
+
+Both fixed; a part the model has but TF cannot resolve is now NAMED in a
+warning rather than skipped in silence. **Not re-measured** — every clearance
+figure from a real-arm run before this date was taken with the proximal half
+of the arm invisible.
+
+### 6. And the one that is not a code bug
+
+Every real-arm run so far, including this one, used `SRL_WEARER_PRESENT=0`,
+which deletes the wearer from the model entirely and prints `clear inf m` on
+every homing tick. That is correct for a bench-mounted rig with an empty
+harness and wrong the instant anybody stands in the arms' volume. It was left
+set after the situation changed. **No real-arm run has ever happened with a
+wearer in the model.**

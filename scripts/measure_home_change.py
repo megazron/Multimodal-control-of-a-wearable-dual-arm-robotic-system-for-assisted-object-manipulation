@@ -273,13 +273,33 @@ def main():
               % (arm, d[0], d[1], d[2]))
 
     # ---- control: the clearance model reports negative inside a person --
-    jt = n.solve_arm_joints("left", [0.05, -0.02, 1.22],
+    # THE PROBE POINT MOVED BECAUSE THE MOUNT DID, and this control has been
+    # REFUSING since 2026-08-18 as a result -- so this whole script, the one
+    # that certifies "the tasks still work after a home change", could not
+    # run through the mount change, the T1 re-layout or anything after them.
+    #
+    # It asked for [0.05, -0.02, 1.22]: deep inside the torso box
+    # (x +/-0.18, y +/-0.11, z 0.98-1.46) and, once the mounts went 150 mm
+    # outboard and 15 deg of yaw, out of the left arm's reach. IK returned
+    # None, `c_t` was None, and the banner said the CLEARANCE MODEL cannot go
+    # negative -- which is false and is about the IK.
+    #
+    # The control's purpose is that the model reads NEGATIVE inside a person.
+    # Which interior point is incidental; being reachable is not. Measured on
+    # the geometry that exists: [0.10, 0.00, 1.25] solves and reads
+    # -0.1406 m. Still deep inside the chest, and now it can be asked.
+    jt = n.solve_arm_joints("left", [0.10, 0.00, 1.25],
                             as_msg(anchors["stored"]["left"]),
                             avoid=False, tries=8)
     c_t = rig.clearance("left", jt)[0] if jt is not None else None
     print("\nCONTROL  a pose inside the torso: %s (must be < 0)"
           % ("None" if c_t is None else "%.4f m" % c_t))
-    if c_t is None or c_t >= 0.0:
+    if c_t is None:
+        print("REFUSING TO REPORT: the control point is UNREACHABLE, which "
+              "is a fact about IK and the mount, not about clearance. Pick "
+              "an interior point this arm can still solve.")
+        return 6
+    if c_t >= 0.0:
         print("REFUSING TO REPORT: the clearance model cannot go negative.")
         return 6
 

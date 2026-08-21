@@ -105,6 +105,27 @@ FLOOR = 0.15
 CONTINUOUS_IDX = (0, 2, 4, 6)
 SEAM_MARGIN_RAD = 0.30
 
+# THE MOUNT IS NOT A JOINT, AND IT SETS THE CEILING ON THIS WHOLE QUESTION.
+#
+# `MG.CHAIN` starts at `base_link`, whose origin is FIXED by the backpack
+# frame -- measured here rather than believed: over 50 random poses across the
+# full joint range it returns ONE distinct position on each arm. So the worst
+# clearance over the whole chain can never exceed the clearance of that one
+# point, no matter what the seven joints do.
+#
+# CLAUDE.md carries this as "base_link sits 0.1610 m from the torso". THAT
+# FIGURE IS STALE: the mounts moved 150 mm outboard and 15 deg of yaw on
+# 2026-08-18 and nothing re-measured it. It is 0.2202 m today, computed below
+# from the geometry that is actually loaded.
+#
+# The consequence is the answer to "solve home with a much larger margin":
+# against the WHOLE chain there is nothing to solve, because the fixed
+# structure already binds. What a home pose can move is everything from
+# `shoulder_link` outward, so that is scored as its own number.
+MOVING_FIRST_SEG = 2        # see measure_home_clearance.py: base_link AND
+#                             shoulder_link are immobile, and half_arm_1_link
+#                             moves 6 mm over the whole joint range
+
 LINKS = ["shoulder_link", "forearm_link", "end_effector_link", "camera_link",
          "robotiq_85_left_finger_tip_link", "robotiq_85_right_finger_tip_link"]
 IDX = {n: i for i, n in enumerate(LINKS)}
@@ -165,16 +186,25 @@ class Scorer:
             return np.where(both, np.maximum(radial, axial), outv)
         return np.linalg.norm(Q, axis=1) - float(prm[0])
 
-    def sample_points(self, arm, q):
+    def segments(self, arm, q):
+        """Sample points, kept per segment: (n_segments, SAMPLES+1, 3)."""
         pts = np.array([M[:3, 3] for M in self.chain[arm](q)])
         A, B = pts[:-1], pts[1:]
         t = np.linspace(0.0, 1.0, MG.SAMPLES + 1)
-        P = A[:, None, :] + (B - A)[:, None, :] * t[None, :, None]
-        return P.reshape(-1, 3)
+        return A[:, None, :] + (B - A)[:, None, :] * t[None, :, None]
 
-    def clearance(self, arm, q):
+    def sample_points(self, arm, q, first=0):
+        """Every sample point from segment `first` onward, flattened.
+
+        `first=0` is the guard's own set and is what `clearance()` scores.
+        `first=MOVING_FIRST_SEG` drops the one segment that starts at the
+        immobile mount.
+        """
+        return self.segments(arm, q)[first:].reshape(-1, 3)
+
+    def clearance(self, arm, q, first=0):
         """Worst clearance over the capsule chain, and which wearer part."""
-        P = self.sample_points(arm, q)
+        P = self.sample_points(arm, q, first)
         worst, who = None, None
         for prim in self.prims:
             d = self._dist_to(P, prim) - MG.TUBE_R
@@ -182,6 +212,53 @@ class Scorer:
             if worst is None or m < worst:
                 worst, who = m, prim[0]
         return float(worst), who
+
+    def mount_cap(self, arm):
+        """Clearance of the immobile stub alone. The ceiling on (f).
+
+        Computed from the loaded geometry every time rather than quoted, so a
+        mount that moves again cannot leave a stale ceiling behind.
+        """
+        S = self.segments(arm, np.zeros(7))[:MOVING_FIRST_SEG].reshape(-1, 3)
+        return min(float((self._dist_to(S, pr) - MG.TUBE_R).min())
+                   for pr in self.prims)
+
+    def clearance_parts(self, arm, q):
+        """The full breakdown. Reporting only -- never in the search loop.
+
+        Per WEARER link and per ARM segment, because "0.2202 m of clearance"
+        does not say whether the thing that is close is the fixed mount or the
+        gripper, and the brief asks for exactly that distinction.
+        """
+        S = self.segments(arm, q)
+        flat = S.reshape(-1, 3)
+        moving = S[MOVING_FIRST_SEG:].reshape(-1, 3)
+        per_wearer, per_wearer_moving = {}, {}
+        for pr in self.prims:
+            per_wearer[pr[0]] = float((self._dist_to(flat, pr)
+                                       - MG.TUBE_R).min())
+            per_wearer_moving[pr[0]] = float((self._dist_to(moving, pr)
+                                              - MG.TUBE_R).min())
+        per_seg = []
+        for i in range(S.shape[0]):
+            d = [(float((self._dist_to(S[i], pr) - MG.TUBE_R).min()), pr[0])
+                 for pr in self.prims]
+            v, who = min(d)
+            per_seg.append(dict(segment="%s -> %s" % (MG.CHAIN[i],
+                                                      MG.CHAIN[i + 1]),
+                                fixed=(i < MOVING_FIRST_SEG),
+                                clearance_m=round(v, 4), to=who))
+        w_v, w_who = min((v, k) for k, v in per_wearer.items())
+        m_v, m_who = min((v, k) for k, v in per_wearer_moving.items())
+        return dict(whole_chain_m=w_v, whole_chain_to=w_who,
+                    moving_chain_m=m_v, moving_chain_to=m_who,
+                    mount_cap_m=self.mount_cap(arm),
+                    per_wearer_link_m={k: round(v, 4)
+                                       for k, v in per_wearer.items()},
+                    per_wearer_link_moving_m={k: round(v, 4)
+                                              for k, v in
+                                              per_wearer_moving.items()},
+                    per_arm_segment=per_seg)
 
     # -- (a)-(e) -----------------------------------------------------------
     def arm_terms(self, arm, q, with_clearance=True):
@@ -263,6 +340,8 @@ class Scorer:
         if with_clearance:
             c, who = self.clearance(arm, q)
             out["clearance_m"], out["clearance_to"] = c, who
+            cm, whom = self.clearance(arm, q, MOVING_FIRST_SEG)
+            out["clearance_moving_m"], out["clearance_moving_to"] = cm, whom
         return out
 
     # -- (g) ---------------------------------------------------------------
@@ -335,7 +414,7 @@ class Target:
                  elbow_margin=0.10, forearm_tol_deg=25.0,
                  level_tol_deg=2.0, camera_tol_deg=15.0,
                  approach_tol_deg=25.0,
-                 floor=FLOOR, mirror_tol=0.02):
+                 floor=FLOOR, moving_floor=None, mirror_tol=0.02):
         self.hand_x = hand_x
         self.hand_y = hand_y
         self.hand_z = hand_z
@@ -345,6 +424,10 @@ class Target:
         self.approach_tol_deg = approach_tol_deg
         self.camera_tol_deg = camera_tol_deg
         self.floor = floor
+        # (f2) THE CONSTRAINT THE BRIEF ACTUALLY ASKS FOR. (f) is capped by
+        # the mount and cannot be raised; this one is about the seven joints.
+        # Defaults to (f) so nothing that does not ask for it changes.
+        self.moving_floor = floor if moving_floor is None else moving_floor
         self.mirror_tol = mirror_tol
 
     def check(self, t, q=None):
@@ -387,6 +470,10 @@ class Target:
             "f_clearance": (
                 t.get("clearance_m", -9) >= self.floor,
                 t.get("clearance_m", float("nan")), ">= %.3f m" % self.floor),
+            "f2_moving_clearance": (
+                t.get("clearance_moving_m", -9) >= self.moving_floor,
+                t.get("clearance_moving_m", float("nan")),
+                ">= %.3f m" % self.moving_floor),
         }
 
 
@@ -402,7 +489,12 @@ class Target:
 # constraint as written, with room to spare rather than none.
 SOLVE_MARGIN = dict(clearance=0.012, forearm_deg=4.0, camera=0.012,
                     elbow=0.025, level_deg=0.6, approach_deg=4.0,
-                    camera_deg=3.0)
+                    camera_deg=3.0, mirror=0.004, seam=0.05)
+# (h) HAD NO MARGIN, AND A HINGE WITH NO MARGIN PARKS ON THE BOUNDARY.
+# The |x| = 0.780 sweep row came back with the right arm 0.3002 rad from the
+# wrap point against a 0.30 rad limit -- 0.2 mrad of room, which is the same
+# "rounding error away from a solution" this block exists to forbid. The cost
+# now aims 0.05 rad inside; the CHECK is still the stated 0.30.
 
 
 def cost(q, sc, arm, tg, w=None):
@@ -431,12 +523,15 @@ def cost(q, sc, arm, tg, w=None):
     c += 6.0e-3 * hinge(t["camera_off_top_deg"]
                         - (tg.camera_tol_deg - m["camera_deg"]))         # (d)
     c += 400.0 * hinge(tg.floor + m["clearance"] - t["clearance_m"])     # (f)
+    c += 400.0 * hinge(tg.moving_floor + m["clearance"]
+                       - t["clearance_moving_m"])                        # (f2)
     # Preferences, an order of magnitude below the constraints: as forward as
     # the wrist can be, as low an elbow as the rest allows. They break ties;
     # they never override a constraint.
     # (h) keep every continuous joint clear of the +/-pi seam
     for i in CONTINUOUS_IDX:
-        c += 20.0 * hinge(SEAM_MARGIN_RAD - (math.pi - abs(float(q[i]))))
+        c += 20.0 * hinge(SEAM_MARGIN_RAD + m["seam"]
+                          - (math.pi - abs(float(q[i]))))
     c += 1.0e-4 * t["forearm_off_forward_deg"]
     c += 1.0e-3 * max(0.0, 0.25 - t["elbow_below_shoulder_m"])
     return c
@@ -569,9 +664,24 @@ def refine_pair(sc, tg, ql, qr, iters=900):
         except Exception:                                         # noqa: BLE001
             continue
         out_l, out_r = np.array(r.x[:7]), np.array(r.x[7:])
-        okl = all(v[0] for v in tg.check(sc.arm_terms("left", out_l)).values())
-        okr = all(v[0] for v in tg.check(
-            sc.arm_terms("right", out_r)).values())
+        # THE JOINT VECTOR HAS TO GO IN, AND IT DID NOT.
+        #
+        # `Target.check(t)` with no `q` sets `seam_ok = True` and moves on --
+        # it cannot see (h), because (h) is about JOINTS and `t` is about
+        # geometry. So the polish was free to walk a continuous joint onto the
+        # +/-pi seam and still report every constraint met. Measured: the
+        # |x| = 0.740 solve came back with the right arm 0.2963 rad from the
+        # wrap point against a 0.30 limit, accepted here, and only caught by
+        # `report_pair` at the very end -- which is after the pose has been
+        # chosen.
+        #
+        # This is the same shape as the (g) bug three lines down, which is
+        # already commented: a check that scores a SUBSET of the constraints
+        # and reads as if it scored all of them.
+        okl = all(v[0] for v in tg.check(sc.arm_terms("left", out_l),
+                                         out_l).values())
+        okr = all(v[0] for v in tg.check(sc.arm_terms("right", out_r),
+                                         out_r).values())
         ee_new, ch_new, _ = sc.mirror(out_l, out_r)
         # (g) IS A CONSTRAINT ON THE PAIR AND HAS TO BE CHECKED HERE.
         # tg.check() scores one arm at a time, so a polish that improved the
@@ -579,7 +689,12 @@ def refine_pair(sc, tg, ql, qr, iters=900):
         # both per-arm checks and broke the constraint the brief actually
         # states. Measured: it returned a pose with 0.0353 m of end-effector
         # mirror error against a 0.020 m limit, and reported it as solved.
-        ok_g = ee_new <= tg.mirror_tol
+        # AND IT IS SOLVED INSIDE THE CONSTRAINT, like everything else here.
+        # `SOLVE_MARGIN`'s whole rationale is that a hinge penalty parks the
+        # optimiser exactly on the boundary; (g) had no margin, and the
+        # |x| = 0.600 solve duly returned 0.0199 m against a 0.020 m limit --
+        # 0.1 mm of room, which CLAUDE.md calls MARGINAL and not usable.
+        ok_g = ee_new <= tg.mirror_tol - SOLVE_MARGIN["mirror"]
         if okl and okr and ok_g and ch_new < best[0]:
             best = (ch_new, out_l, out_r)
     return best[1], best[2], ch_old, best[0]
@@ -649,7 +764,13 @@ def score_real(sc, tg, result, verbose=True):
             tl = sc.arm_terms("left", qs["left"])
             tr = sc.arm_terms("right", qs["right"])
             ee, ch, _ = sc.mirror(qs["left"], qs["right"])
-            cl, cr = tg.check(tl, ql), tg.check(tr, qr)
+            # ql/qr never existed -- the joint vectors live in `qs`. Passing
+            # them matters: `check` derives the SEAM MARGIN (h) from q, and
+            # with q=None it silently reports nan and PASSES. So this line
+            # both crashed the two-arm branch and, had it not crashed, would
+            # have scored the seam constraint as satisfied without looking.
+            cl = tg.check(tl, qs["left"])
+            cr = tg.check(tr, qs["right"])
             out[name] = dict(
                 q_left=[round(float(v), 6) for v in qs["left"]],
                 q_right=[round(float(v), 6) for v in qs["right"]],
@@ -816,6 +937,8 @@ def report_pair(sc, tg, ql, qr, label, verbose=True):
     return dict(rows=[dict(constraint=k, target=w, left=round(a, 5),
                            right=round(b, 5), ok=o)
                       for k, w, a, b, o in rows],
+                clearance_detail={"left": sc.clearance_parts("left", ql),
+                                  "right": sc.clearance_parts("right", qr)},
                 left=tl, right=tr, mirror_ee_m=ee,
                 mirror_chain_worst_m=chain_worst, mirror_per_link=per,
                 all_ok=bool(all_ok))
@@ -839,6 +962,28 @@ def main():
     ap.add_argument("--seed-from", default=None,
                     help="a previous home_solved.json, used as extra seeds")
     ap.add_argument("--forearm-tol-deg", type=float, default=25.0)
+    # (a) and (c2) are PRESENTATION constraints -- how the pose LOOKS, not
+    # how far it is from the person. They are what stops the hands moving
+    # outboard: bringing them out swings the forearm across the body's
+    # forward axis. When the ask is distance from the wearer rather than a
+    # tidy photograph, these are the two to spend.
+    ap.add_argument("--approach-tol-deg", type=float, default=25.0,
+                    help="(c2) how far off forward the wrist may face")
+    ap.add_argument("--level-tol-deg", type=float, default=2.0,
+                    help="(c) how far off level the approach axis may sit")
+    # (f2). SEPARATE FROM --floor ON PURPOSE. --floor scores the guard's own
+    # chain, which starts at the immobile mount and is therefore capped; this
+    # one scores what the seven joints control. Asking for a "much larger
+    # margin" is a request about (f2), and stating it as (f) would return
+    # INFEASIBLE at every column for a reason that has nothing to do with the
+    # pose.
+    ap.add_argument("--moving-floor", type=float, default=None,
+                    help="(f2) floor on the chain from shoulder_link outward")
+    ap.add_argument("--pick", choices=("symmetric", "widest"),
+                    default="symmetric",
+                    help="which feasible column to take: the most symmetric "
+                         "(the 2026-08-16 rule) or the one furthest from the "
+                         "wearer")
     a = ap.parse_args()
 
     print("INSTRUMENT CHECKS")
@@ -905,11 +1050,38 @@ def main():
     print("   mirror test can be non-zero (left vs itself)       %.4f m -> %s"
           % (selfm, "PASS" if ctl_mirror else "FAIL"))
     ok3, worst3 = vectorised_clearance_matches_the_guard(sc)
-    if not (repro and ctl_mirror and ok3):
+
+    # THE CEILING ON (f), MEASURED. Stated before the sweep, because every
+    # "INFEASIBLE -- f_clearance" line below is explained by it and would
+    # otherwise read as a fact about the pose.
+    caps = {arm: sc.mount_cap(arm) for arm in ("left", "right")}
+    print("   the immobile mount clears the wearer by            "
+          "L %.4f m / R %.4f m" % (caps["left"], caps["right"]))
+    print("      -> no home pose can score (f) above that. CLAUDE.md's "
+          "0.1610 m is stale (the mounts moved 2026-08-18).")
+    # A CONTROL ON THE NEW METRIC, because a number that can only go up is
+    # not a measurement. The moving chain is a SUBSET of the whole chain, so
+    # its worst case can never be smaller -- checked over random poses, both
+    # arms, rather than argued from the definition.
+    rngc = np.random.default_rng(23)
+    subset_ok, subset_worst = True, 0.0
+    for arm in ("left", "right"):
+        lo_c, hi_c, _ = sc.lim[arm]
+        for _ in range(12):
+            qc = rngc.uniform(lo_c, hi_c)
+            w_all, _ = sc.clearance(arm, qc)
+            w_mov, _ = sc.clearance(arm, qc, MOVING_FIRST_SEG)
+            subset_worst = max(subset_worst, w_all - w_mov)
+            if w_mov < w_all - 1e-12:
+                subset_ok = False
+    print("   moving-chain clearance >= whole-chain, 24 poses     "
+          "%.1e -> %s" % (subset_worst, "PASS" if subset_ok else "FAIL"))
+    if not (repro and ctl_mirror and ok3 and subset_ok):
         print("REFUSING: a control failed.")
         return 6
 
     tg0 = Target(0.55, 0.36, 1.18, floor=a.floor,
+                 moving_floor=a.moving_floor,
                  forearm_tol_deg=a.forearm_tol_deg)
     shipped = report_pair(sc, tg0, hq["left"], hq["right"],
                           "THE SHIPPED HOME, scored against (a)-(g)")
@@ -919,12 +1091,14 @@ def main():
     print("   (|x| is not constrained here -- these poses were never chosen "
           "to satisfy it)")
     tg_real = Target(0.55, 0.36, 1.18, floor=a.floor,
+                 moving_floor=a.moving_floor,
                  forearm_tol_deg=a.forearm_tol_deg)
     score_real(sc, tg_real, result_real)
 
     if a.self_test:
         print("\nSELF-TEST: a target demanded INSIDE the torso must fail")
         bad = Target(0.05, 0.0, 1.22, floor=a.floor,
+                 moving_floor=a.moving_floor,
                  forearm_tol_deg=a.forearm_tol_deg)
         seeds = seed_set(sc, "left", 40, rng)
         got = solve_arm(sc, "left", bad, seeds)
@@ -945,9 +1119,9 @@ def main():
     print("   torso half-width %.2f m, torso front face y = %.2f m"
           % (TORSO_HALF_W, TORSO_FRONT_Y))
     print("   solved OUTER to INNER, so the rows print widest first")
-    print("   %-7s %-9s %-9s %-9s %-9s %-9s %-8s %s"
+    print("   %-7s %-9s %-9s %-9s %-9s %-9s %-9s %-8s %s"
           % ("|x|", "L elbow", "R elbow", "L cam deg", "R cam deg", "clear",
-             "mirrorEE", "all"))
+             "movclear", "mirrorEE", "all"))
     # SWEPT OUTER TO INNER, CARRYING SOLUTIONS FORWARD.
     #
     # A wide column is easy and a narrow one is hard, and the hard one's
@@ -960,7 +1134,10 @@ def main():
     sweep, best, carry = [], None, {"left": [], "right": []}
     for x in sorted(xs, reverse=True):
         tg = Target(x, a.y, a.z, floor=a.floor,
-                 forearm_tol_deg=a.forearm_tol_deg)
+                 moving_floor=a.moving_floor,
+                 forearm_tol_deg=a.forearm_tol_deg,
+                 approach_tol_deg=a.approach_tol_deg,
+                 level_tol_deg=a.level_tol_deg)
         sl = solve_arm(sc, "left", tg,
                        carry["left"] + seed_set(
                            sc, "left", a.restarts, rng,
@@ -977,12 +1154,20 @@ def main():
         # of the pair, and picking each arm's own best is what left the last
         # attempt 0.2166 m from mirroring.
         pick = None
+        # THE JOINT VECTOR GOES IN HERE TOO. `Target.check(t)` with no `q`
+        # scores nine constraints and silently passes the tenth: (h) is about
+        # JOINTS and `t` carries only geometry. So the pair chosen for this
+        # column was chosen without (h) ever being evaluated, and the first
+        # thing that looked at it was `report_pair`, after the pose had been
+        # picked, polished and written. Measured: the |x| = 0.780 row was
+        # accepted at 0.3002 rad from the wrap point. Same defect as the one
+        # already commented in `refine_pair`; it lived in two places.
         for _, ql in sl:
-            fl = tg.check(sc.arm_terms("left", ql))
+            fl = tg.check(sc.arm_terms("left", ql), ql)
             if not all(v[0] for v in fl.values()):
                 continue
             for _, qr in sr:
-                fr = tg.check(sc.arm_terms("right", qr))
+                fr = tg.check(sc.arm_terms("right", qr), qr)
                 if not all(v[0] for v in fr.values()):
                     continue
                 ee, ch, _ = sc.mirror(ql, qr)
@@ -1008,14 +1193,17 @@ def main():
         _, ql, qr, ee, ch = pick
         tl2, tr2 = sc.arm_terms("left", ql), sc.arm_terms("right", qr)
         ok = ee <= tg.mirror_tol
-        print("   %-7.3f %+9.4f %+9.4f %+9.4f %+9.4f %9.4f %8.4f %s"
+        mov = min(tl2["clearance_moving_m"], tr2["clearance_moving_m"])
+        print("   %-7.3f %+9.4f %+9.4f %+9.4f %+9.4f %9.4f %9.4f %8.4f %s"
               % (x, tl2["elbow_below_shoulder_m"],
                  tr2["elbow_below_shoulder_m"],
                  tl2["camera_off_top_deg"], tr2["camera_off_top_deg"],
-                 min(tl2["clearance_m"], tr2["clearance_m"]), ee,
+                 min(tl2["clearance_m"], tr2["clearance_m"]), mov, ee,
                  "yes" if ok else "no (mirror)"))
         row = dict(x=x, ok=bool(ok), mirror_ee_m=ee,
                    mirror_chain_worst_m=ch,
+                   clearance_m=min(tl2["clearance_m"], tr2["clearance_m"]),
+                   clearance_moving_m=mov,
                    q_left=[round(float(v), 6) for v in ql],
                    q_right=[round(float(v), 6) for v in qr])
         sweep.append(row)
@@ -1029,7 +1217,9 @@ def main():
         shipped_reproduces_render=bool(repro),
         mirror_can_be_nonzero_m=round(selfm, 4)),
         torso_half_width_m=TORSO_HALF_W, torso_front_y_m=TORSO_FRONT_Y,
-        floor_m=a.floor, hand_y=a.y, hand_z=a.z,
+        mount_cap_m={k: round(v, 4) for k, v in caps.items()},
+        floor_m=a.floor, moving_floor_m=a.moving_floor, pick=a.pick,
+        hand_y=a.y, hand_z=a.z,
         shipped=shipped, real_arms=result_real.get("real_arms"),
         sweep=sorted(sweep, key=lambda r: r["x"]))
 
@@ -1049,7 +1239,17 @@ def main():
         # the only number that tracks what the render shows. So: among the
         # feasible columns, take the most symmetric, and break ties inward.
         cands = [r for r in sweep if r.get("ok")]
-        cands.sort(key=lambda r: (round(r["mirror_chain_worst_m"], 4), r["x"]))
+        if a.pick == "widest":
+            # FURTHEST FROM THE WEARER, and the tie-break is symmetry.
+            # Rounded to the millimetre before sorting: two columns that
+            # differ by 0.2 mm of clearance are the same answer, and letting
+            # that decide would pick on solver noise rather than geometry.
+            cands.sort(key=lambda r: (-round(r["clearance_moving_m"], 3),
+                                      round(r["mirror_chain_worst_m"], 4),
+                                      -r["x"]))
+        else:
+            cands.sort(key=lambda r: (round(r["mirror_chain_worst_m"], 4),
+                                      r["x"]))
         short = [r for r in cands[:3]]
         if not any(r["x"] == x for r in short):
             short.append([r for r in cands if r["x"] == x][0])
@@ -1058,17 +1258,30 @@ def main():
         polished = []
         for r in short:
             tgr = Target(r["x"], a.y, a.z, floor=a.floor,
-                         forearm_tol_deg=a.forearm_tol_deg)
+                         moving_floor=a.moving_floor,
+                         forearm_tol_deg=a.forearm_tol_deg,
+                         approach_tol_deg=a.approach_tol_deg,
+                         level_tol_deg=a.level_tol_deg)
             pl, pr, cb, ca = refine_pair(sc, tgr, np.array(r["q_left"]),
                                          np.array(r["q_right"]), iters=300)
             print("      |x| = %.3f   whole-chain mirror %.4f -> %.4f m"
                   % (r["x"], cb, ca))
-            polished.append((ca, r["x"], pl, pr))
-        polished.sort(key=lambda t: (round(t[0], 4), t[1]))
-        ch_after, x, ql, qr = polished[0]
+            mv = min(sc.arm_terms("left", pl)["clearance_moving_m"],
+                     sc.arm_terms("right", pr)["clearance_moving_m"])
+            polished.append((ca, r["x"], pl, pr, mv))
+        # THE POLISH OPTIMISES SYMMETRY AND CAN SPEND CLEARANCE BUYING IT.
+        # Under --pick widest the clearance is the thing being asked for, so
+        # it sorts first here too; refine_pair already refuses any polish that
+        # breaks a constraint, so this only chooses among legal ones.
+        if a.pick == "widest":
+            polished.sort(key=lambda t: (-round(t[4], 3), round(t[0], 4)))
+        else:
+            polished.sort(key=lambda t: (round(t[0], 4), t[1]))
+        ch_after, x, ql, qr, _mv = polished[0]
         print("   TAKING |x| = %.3f m, whole-chain mirror residual %.4f m"
               % (x, ch_after))
         tgx = Target(x, a.y, a.z, floor=a.floor,
+                     moving_floor=a.moving_floor,
                      forearm_tol_deg=a.forearm_tol_deg)
         det = report_pair(sc, tgx, ql, qr, "THE SOLVED HOME POSE")
         result["solved"] = dict(

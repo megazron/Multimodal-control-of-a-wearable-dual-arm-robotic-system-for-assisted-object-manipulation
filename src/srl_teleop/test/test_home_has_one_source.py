@@ -196,3 +196,36 @@ def test_continuous_joints_are_inside_pi():
             "and unwinds 360 deg in sim. Store the wrapped value -- it is the "
             "same physical pose, and the Kortex value is unchanged."
             % (arm, ", ".join("joint_%d=%.4f rad" % w for w in wound)))
+
+
+# THE +/-pi SEAM, AND WHY "INSIDE pi" IS NOT THE SAME CHECK.
+#
+# The test above asks `abs(q) > pi`, and pi is not greater than pi -- so a
+# continuous joint parked EXACTLY on the wrap point passes it. That is not a
+# hypothetical: an earlier home candidate sat joint_5 at 180.00 deg, 0.00 rad
+# of margin, and nothing in this repository objected. `solve_home_pose.py`
+# grew constraint (h) because of it and keeps a 0.30 rad margin, but a rule
+# enforced only inside the solver is a rule that holds until somebody edits
+# the text file by hand.
+#
+# A joint resting on the seam reads +pi one sample and -pi the next for no
+# motion at all. Everything downstream that differences joint angles -- the
+# bridge's require_homed gate, the homing node's shortest-path error, the
+# follower's lag monitor -- then sees a 2*pi step out of a stationary arm.
+SEAM_MARGIN_RAD = 0.30
+
+
+def test_continuous_joints_are_clear_of_the_seam():
+    import home_positions as hp
+    for arm in ("left", "right"):
+        q = hp.load_home_radians(arm)
+        tight = [(i + 1, math.pi - abs(q[i])) for i in CONTINUOUS_IDX
+                 if math.pi - abs(q[i]) < SEAM_MARGIN_RAD]
+        assert not tight, (
+            "%s home parks a continuous joint within %.2f rad of the +/-pi "
+            "seam: %s. A joint on the seam flips sign between samples with "
+            "the arm stationary, and every consumer that differences joint "
+            "angles reads that as a 2*pi jump. This is constraint (h) in "
+            "scripts/solve_home_pose.py -- re-solve, do not hand-edit."
+            % (arm, SEAM_MARGIN_RAD,
+               ", ".join("joint_%d is %.4f rad from it" % t for t in tight)))

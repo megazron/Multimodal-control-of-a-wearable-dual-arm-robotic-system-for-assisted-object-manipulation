@@ -981,6 +981,8 @@ class Gui(QMainWindow):
         # would mean the thing you press every time is the thing you scroll
         # to find.
         rv.addWidget(self._vr_panel())
+        rv.addWidget(self._real_panel())
+        rv.addWidget(self._vision_panel())
         rv.addWidget(self._controls())
         rv.addWidget(self._launchers())
         rv.addStretch(1)
@@ -1021,6 +1023,417 @@ class Gui(QMainWindow):
         sa.setStyleSheet("border:none")
         sa.setWidget(widget)
         return sa
+
+    def _real_panel(self):
+        """THE REAL ARMS, AND THE ORDER IS THE SAFETY CASE.
+
+        `START VR TELEOP` deliberately cannot reach a real arm -- that is a
+        property it is tested for. So the real-arm path is a SEPARATE panel
+        with a separate, explicit act, and the buttons are laid out in the
+        order they must be pressed rather than the order they were written.
+
+        Every button here is a thin wrapper over the same command a person
+        would type. Nothing is reimplemented in the GUI, so the GUI cannot
+        drift away from the procedure that was tested at the terminal.
+        """
+        g = QGroupBox("Real arms")
+        g.setFont(helvetica(11, True))
+        v = QVBoxLayout(g)
+
+        # THE E-STOP IS FIRST AND BIGGEST, and it is not at the bottom of the
+        # panel. A stop control you have to scroll to is not a stop control.
+        self.real_estop_btn = QPushButton("E-STOP  --  HALT BOTH ARMS")
+        self.real_estop_btn.setFont(helvetica(13, True))
+        self.real_estop_btn.setMinimumHeight(46)
+        self.real_estop_btn.setStyleSheet(
+            "color:%s;border:2px solid %s" % (C_BAD, C_BAD))
+        self.real_estop_btn.setToolTip(
+            "Halts both arms NOW and LATCHES. Proven on real hardware "
+            "2026-08-21: a moving arm stopped dead, 0.000 deg of travel "
+            "after the trip. 'reset e-stop' is the only way out.")
+        self.real_estop_btn.clicked.connect(self.on_real_estop)
+        v.addWidget(self.real_estop_btn)
+
+        self.real_head = QLabel("arms not started")
+        self.real_head.setFont(helvetica(10, True))
+        self.real_head.setWordWrap(True)
+        self.real_head.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.real_head)
+
+        for text, slot, tip, big in (
+            ("1.  START REAL ARMS",
+             self.on_real_start,
+             "Opens ONE Kortex session per arm and homes both to the pose in "
+             "config/home_positions_*.txt. The arm permits exactly one "
+             "session, so never start this twice.", True),
+            ("2.  HOME BOTH ARMS",
+             self.on_real_home,
+             "Drives both arms to the config home under the velocity law, "
+             "with the wearer clearance floor live. Safe to press again; a "
+             "homed arm simply reports it is already there.", False),
+            ("3.  OBSERVER STATION",
+             self.on_real_observer,
+             "Opens the observer's e-stop station. It is a 5 Hz HEARTBEAT: "
+             "two seconds of silence reads as the observer having WITHDRAWN, "
+             "which is the state the interlock exists to catch.", False),
+            ("4.  START REAL ARM TELEOP",
+             self.on_real_teleop,
+             "Hands the VR mapper the real arms. Refuses unless the observer "
+             "is present or the 'working alone' box above is ticked. This is "
+             "the only control in this window that lets VR move real metal.",
+             True),
+        ):
+            b = QPushButton(text)
+            b.setFont(helvetica(12 if big else 10, True))
+            if big:
+                b.setMinimumHeight(38)
+                b.setStyleSheet("color:%s;border:1px solid %s" % (C_OK, C_OK))
+            b.setToolTip(tip)
+            b.clicked.connect(slot)
+            v.addWidget(b)
+
+        row = QHBoxLayout()
+        for text, slot, tip in (
+            ("reset e-stop", self.on_real_estop_reset,
+             "Clears the latch. Deliberate act -- nothing else clears it."),
+            ("stop real arms", self.on_real_stop,
+             "SIGINT, never SIGKILL: the handler zeroes speeds, calls Stop() "
+             "and closes the session. Killed harder, the session leaks and "
+             "the next run cannot connect."),
+            ("arm status", self.on_real_status,
+             "Network, session, joint feed and distance from home, per arm."),
+        ):
+            b = QPushButton(text)
+            b.setFont(helvetica(9))
+            b.setToolTip(tip)
+            b.clicked.connect(slot)
+            row.addWidget(b)
+        row.addStretch(1)
+        v.addLayout(row)
+
+        self.real_note = QLabel("")
+        self.real_note.setFont(helvetica(9))
+        self.real_note.setWordWrap(True)
+        self.real_note.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.real_note)
+        return g
+
+    # ------------------------------------------------------ real-arm slots
+    #
+    # EVERY ONE OF THESE IS WRAPPED. PyQt SWALLOWS EXCEPTIONS RAISED INSIDE A
+    # SLOT: the button appears to work, nothing happens, and nothing is
+    # logged. That exact failure hid five dead buttons in this window until
+    # the button audit found them, so a bare slot here is a defect waiting to
+    # repeat. `bus.note` is the log -- there is no `self.log`.
+    def _real_say(self, text, bad=False):
+        try:
+            self.real_note.setText(text)
+            self.real_note.setStyleSheet("color:%s" % (C_BAD if bad else C_MUTED))
+            self.bus.note(text, bad=bad)
+        except Exception:                                     # noqa: BLE001
+            pass
+
+    def _real_guard(self, label, fn):
+        try:
+            fn()
+        except Exception as e:                                # noqa: BLE001
+            self._real_say("%s FAILED: %r" % (label, e), bad=True)
+
+    def _svc(self, name, typ="std_srvs/srv/Trigger"):
+        self._run_raw("service %s" % name,
+                      ["ros2", "service", "call", name, typ, "{}"])
+
+    def on_real_start(self):
+        self._real_guard("start real arms", lambda: (
+            self._run_raw("start_real.sh",
+                          ["bash", os.path.join(_WS, "scripts/start_real.sh"),
+                           "arm:=both"]),
+            self.real_head.setText("starting both arms -- watch this window"),
+            self._real_say(
+                "Opening one Kortex session per arm, then homing. Two arms "
+                "share one link, so the script drops the command rate to "
+                "12 Hz per arm on purpose.")))
+
+    def on_real_home(self):
+        self._real_guard("home", lambda: (
+            self._svc("/home_arm_left"), self._svc("/home_arm_right"),
+            self._real_say("homing both arms to the config pose")))
+
+    def on_real_observer(self):
+        self._real_guard("observer", lambda: (
+            self._run_raw("observer_estop",
+                          ["x-terminal-emulator", "-e", "python3",
+                           os.path.join(_WS, "scripts/observer_estop.py")]),
+            self._real_say("observer station opened -- it must stay running; "
+                           "2 s of silence reads as withdrawal")))
+
+    def on_real_teleop(self):
+        self._real_guard("real arm teleop", lambda: (
+            self._svc("/vr/enable_real_arm"),
+            self._real_say(
+                "Asked for real-arm control. REFUSED means the observer is "
+                "not present and the 'working alone' box is not ticked.")))
+
+    def on_real_estop(self):
+        self._real_guard("e-stop", lambda: (
+            self._svc("/estop"),
+            self._real_say("E-STOP SENT -- latched until reset", bad=True)))
+
+    def on_real_estop_reset(self):
+        self._real_guard("reset", lambda: (
+            self._svc("/estop_reset"),
+            self._real_say("e-stop reset requested")))
+
+    def on_real_stop(self):
+        self._real_guard("stop", lambda: (
+            self._svc("/home_abort_left"), self._svc("/home_abort_right"),
+            self._real_say(
+                "Homing aborted; arms stop where they stand. Close the "
+                "session from the terminal running start_real.sh with "
+                "Ctrl-C -- SIGINT, so the session closes cleanly.")))
+
+    def on_real_status(self):
+        def go():
+            names = ("left", "right")
+            bits = []
+            for a in names:
+                ip = {"left": "192.168.1.10", "right": "192.168.1.9"}[a]
+                up = subprocess.run(["ping", "-c", "1", "-W", "1", ip],
+                                    stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.DEVNULL).returncode == 0
+                sess = subprocess.run(
+                    ["pgrep", "-f", "kortex_highlevel_bridge.*arm:=%s" % a],
+                    stdout=subprocess.DEVNULL).returncode == 0
+                bits.append("%s: net %s, session %s"
+                            % (a.upper(), "UP" if up else "DOWN",
+                               "up" if sess else "down"))
+            self.real_head.setText("   |   ".join(bits))
+            self._real_say("arm status refreshed")
+        self._real_guard("status", go)
+
+    def _vision_panel(self):
+        """SAY WHAT YOU WANT PICKED UP. Available in EVERY mode, not just VR.
+
+        The Instruct tab drives mode 06 from a sentence through a grammar.
+        This is the other half: a sentence naming an OBJECT, resolved against
+        what the cameras can actually see, with the grasp and its
+        reachability shown BEFORE anything moves.
+
+        The panel states which detection backend is live. That is not
+        decoration: the colour backend knows eleven colour words and nothing
+        else, and a detection that does not say how it was made invites the
+        reader to assume the open-vocabulary model was running when it was
+        not.
+        """
+        g = QGroupBox("Vision: say what to pick up")
+        g.setFont(helvetica(11, True))
+        v = QVBoxLayout(g)
+
+        row = QHBoxLayout()
+        self.vis_prompt = QLineEdit()
+        self.vis_prompt.setFont(helvetica(11))
+        self.vis_prompt.setPlaceholderText(
+            "e.g. the green cube   /   pick up the red block")
+        self.vis_prompt.returnPressed.connect(self.on_vision_find)
+        row.addWidget(self.vis_prompt, 1)
+        b = QPushButton("FIND")
+        b.setFont(helvetica(11, True))
+        b.setStyleSheet("color:%s;border:1px solid %s" % (C_OK, C_OK))
+        b.setToolTip("Looks with the selected camera, detects what you named, "
+                     "builds a grasp and checks whether the arm can reach it. "
+                     "Moves nothing.")
+        b.clicked.connect(self.on_vision_find)
+        row.addWidget(b)
+        v.addLayout(row)
+
+        row2 = QHBoxLayout()
+        row2.addWidget(QLabel("camera"))
+        self.vis_cam = QComboBox()
+        self.vis_cam.addItems(["gripper (RGB-D)", "scene (colour only)"])
+        self.vis_cam.setToolTip(
+            "The gripper camera has DEPTH, so it gives a position. The scene "
+            "camera is colour only -- it can say what it sees and where in "
+            "the image, but not how far away, so it cannot produce a grasp.")
+        self.vis_cam.currentTextChanged.connect(
+            lambda t: self.bus.note("vision camera: %s" % t))
+        row2.addWidget(self.vis_cam, 1)
+        row2.addWidget(QLabel("arm"))
+        self.vis_arm = QComboBox()
+        self.vis_arm.addItems(["left", "right"])
+        self.vis_arm.currentTextChanged.connect(
+            lambda t: self.bus.note("vision arm: %s" % t))
+        row2.addWidget(self.vis_arm)
+        v.addLayout(row2)
+
+        self.vis_backend = QLabel("")
+        self.vis_backend.setFont(helvetica(9))
+        self.vis_backend.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.vis_backend)
+
+        self.vis_result = QLabel("nothing looked for yet")
+        self.vis_result.setFont(helvetica(10))
+        self.vis_result.setWordWrap(True)
+        self.vis_result.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.vis_result)
+
+        self.vis_plan = QLabel("")
+        self.vis_plan.setFont(helvetica(9))
+        self.vis_plan.setWordWrap(True)
+        self.vis_plan.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.vis_plan)
+
+        QTimer.singleShot(600, self._vision_backend_note)
+        return g
+
+    def _vision_backend_note(self):
+        try:
+            from srl_perception.prompt_detector import PromptDetector
+            av = PromptDetector().available()
+            if av.get("yoloworld"):
+                txt = ("backend: YOLO-World (open vocabulary -- name any "
+                       "object)")
+            else:
+                txt = ("backend: colour+depth (knows colour words only; "
+                       "install ultralytics for open vocabulary)")
+            self.vis_backend.setText(txt)
+        except Exception as e:                                # noqa: BLE001
+            self.vis_backend.setText("vision module not importable: %r" % e)
+
+    def on_vision_find(self):
+        """Look, detect, plan, and say which stage failed if one did."""
+        try:
+            self._vision_find()
+        except Exception as e:                                # noqa: BLE001
+            self.vis_result.setText("vision failed: %r" % e)
+            self.vis_result.setStyleSheet("color:%s" % C_BAD)
+            self.bus.note("vision failed: %r" % e, bad=True)
+
+    def _vision_find(self):
+        import numpy as np
+        from srl_perception import srl_cameras as CAMS
+        from srl_perception.grasp_pipeline import PlanFailure, plan_grasp
+        from srl_perception.prompt_detector import PromptDetector
+
+        prompt = self.vis_prompt.text().strip()
+        if not prompt:
+            # EVERY PATH LOGS, including this one. The button audit requires a
+            # trace from every control it presses, and it is right to: a
+            # button that sets a label and logs nothing is indistinguishable
+            # from a button that did nothing, which is the exact defect that
+            # hid five dead controls in this window.
+            self.vis_result.setText("type what to look for first")
+            self.bus.note("vision: no prompt typed -- nothing to look for")
+            return
+        arm = self.vis_arm.currentText()
+        use_grip = self.vis_cam.currentIndex() == 0
+        self.vis_result.setText("looking ...")
+        self.vis_result.setStyleSheet("color:%s" % C_MUTED)
+        QApplication.processEvents()
+
+        det = PromptDetector(backend="auto", far_m=1.8)
+        if not use_grip:
+            # SCENE CAMERA HAS NO DEPTH, so it CANNOT produce a grasp. Saying
+            # so is the point: a panel that quietly returned a 2D hit here
+            # would look like it had localised the object.
+            cam = CAMS.SceneCamera().open()
+            try:
+                bgr = cam.read()
+            finally:
+                cam.close()
+            hits = det.detect(bgr, prompt)
+            if not hits:
+                self.vis_result.setText("scene camera: nothing matching %r"
+                                        % prompt)
+                self.bus.note("vision: scene camera found nothing matching %r"
+                              % prompt)
+                return
+            self.vis_result.setText(
+                "scene camera sees %d match(es); best %s at pixel "
+                "(%.0f, %.0f)" % (len(hits), hits[0].label,
+                                  hits[0].centre_uv[0], hits[0].centre_uv[1]))
+            self.vis_plan.setText(
+                "No grasp: the scene camera has no depth, so this is a "
+                "direction and not a position. Switch to the gripper camera "
+                "to get a graspable pose.")
+            self.bus.note("vision: scene camera matched %d, no depth so no "
+                          "grasp" % len(hits))
+            return
+
+        ip = {"left": "192.168.1.10", "right": "192.168.1.9"}[arm]
+        cam = CAMS.GripperCamera(ip)
+        bgr = cam.read_colour()
+        depth = cam.read_depth()
+        cam.close()
+        cam_p, cam_R = self._camera_pose(arm)
+        if cam_p is None:
+            self.vis_result.setText(
+                "no joint states for the %s arm, so the camera's pose is "
+                "unknown and any 3D answer would be meaningless" % arm)
+            self.bus.note("vision: no %s joint states, camera pose unknown"
+                          % arm, bad=True)
+            return
+        try:
+            plan = plan_grasp(bgr, depth, prompt, cam_p, cam_R,
+                              CAMS.KINOVA_COLOR_K, CAMS.KINOVA_DEPTH_K,
+                              detector=det)
+        except PlanFailure as pf:
+            self.vis_result.setText("REFUSED at the %s stage" % pf.stage)
+            self.vis_result.setStyleSheet("color:%s" % C_BAD)
+            self.vis_plan.setText(pf.reason)
+            self.bus.note("vision refused (%s): %s" % (pf.stage, pf.reason),
+                          bad=True)
+            return
+        c = plan["centre"]
+        self.vis_result.setText(
+            "FOUND %s at x=%+.3f y=%+.3f z=%+.3f m  (%.0f mm wide, %d depth "
+            "points, %s)" % (plan["detection"]["label"], c[0], c[1], c[2],
+                             plan["width_m"] * 1000, plan["n_points"],
+                             plan["backend"]))
+        self.vis_result.setStyleSheet("color:%s" % C_OK)
+        ok, why = self._vision_reach(arm, plan)
+        self.vis_plan.setText(
+            "pregrasp %s   |   reach: %s"
+            % (np.round(plan["pregrasp"], 3), why))
+        self.bus.note("vision found %s at %s" % (plan["detection"]["label"],
+                                                 np.round(c, 3)))
+
+    def _camera_pose(self, arm):
+        """Where the wrist camera is, from the arm's own joint states."""
+        import numpy as np
+        try:
+            import sys
+            sys.path.insert(0, os.path.join(_WS, "scripts"))
+            import solve_home_pose as SHP
+            # THE REAL ARM'S OWN JOINTS, from divergence.Side.pos -- the same
+            # stream the ACTUAL panel draws. Not the sim's: the camera pose
+            # has to be where the metal is, or a 3D answer computed from it
+            # describes a robot that is not in the room.
+            js = self.real[arm].pos
+            names = ["%s_joint_%d" % (arm, i) for i in range(1, 8)]
+            if not all(n in js for n in names):
+                return None, None
+            q = np.array([js[n] for n in names], float)
+            M = SHP.Scorer().cf[arm](q)
+            T = M[SHP.IDX["camera_link"]]
+            return T[:3, 3], T[:3, :3]
+        except Exception:                                     # noqa: BLE001
+            return None, None
+
+    def _vision_reach(self, arm, plan):
+        try:
+            import sys
+            import numpy as np
+            sys.path.insert(0, os.path.join(_WS, "scripts"))
+            sys.path.insert(0, os.path.join(_WS, "config"))
+            import solve_home_pose as SHP
+            import home_positions as hp
+            from srl_perception.grasp_pipeline import reachable
+            sc = SHP.Scorer()
+            home = np.array(hp.load_home_radians(arm), float)
+            ok, _q, why = reachable(sc, arm, plan["centre"], home, restarts=25)
+            return ok, why
+        except Exception as e:                                # noqa: BLE001
+            return False, "reachability check unavailable: %r" % e
 
     def _controls(self):
         """WHAT YOU TOUCH WHILE SOMETHING IS RUNNING, and nothing else.
@@ -1149,6 +1562,31 @@ class Gui(QMainWindow):
         self.vr_btn.clicked.connect(self.on_vr_start)
         v.addWidget(self.vr_btn)
 
+        # I AM WORKING ALONE. Beside the observer check, never instead of it.
+        #
+        # It is UNTICKED every time this window opens -- `clear()` runs in
+        # __init__ -- so it is a decision taken this session and not a setting
+        # that quietly carries over. Ticking it writes an audit line with a
+        # timestamp; the run afterwards is identifiable as one that had nobody
+        # watching the arm.
+        self.vr_alone = QCheckBox(
+            "I am working alone - bypass the observer requirement")
+        self.vr_alone.setFont(helvetica(9, True))
+        self.vr_alone.setToolTip(
+            "The observer check still runs and still reports what it finds. "
+            "With this ticked, having no observer stops blocking the real "
+            "arms instead of refusing them. Every use is written to "
+            "recordings/observer_bypass_log.jsonl with the time. It clears "
+            "itself when this window closes and expires after four hours.")
+        self.vr_alone.toggled.connect(self.on_vr_alone)
+        v.addWidget(self.vr_alone)
+
+        self.vr_alone_note = QLabel("")
+        self.vr_alone_note.setFont(helvetica(8))
+        self.vr_alone_note.setWordWrap(True)
+        self.vr_alone_note.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.vr_alone_note)
+
         self.vr_head = QLabel("not started")
         self.vr_head.setFont(helvetica(11, True))
         self.vr_head.setWordWrap(True)
@@ -1200,6 +1638,17 @@ class Gui(QMainWindow):
         self.vr_note.setStyleSheet("color:%s" % C_MUTED)
         v.addWidget(self.vr_note)
 
+        # THE BYPASS NEVER SURVIVES A WINDOW. Clearing here is what makes
+        # ticking the box a decision taken THIS session: a grant left behind
+        # by yesterday's run cannot authorise today's, and the operator has to
+        # say it again. The checkbox is therefore always drawn unticked, and
+        # that is the true state rather than a default appearance.
+        try:
+            from srl_teleop import observer_bypass as _OB
+            _OB.clear(who="gui", note="operations window opened")
+        except Exception:                                     # noqa: BLE001
+            pass
+
         self._vr_world = None
         self._vr_results = []
         self._vr_fixes = {}
@@ -1214,6 +1663,28 @@ class Gui(QMainWindow):
         return g
 
     # ------------------------------------------------------------ running
+    def on_vr_alone(self, on):
+        """Take or drop the working-alone bypass. Deliberate, and recorded."""
+        try:
+            from srl_teleop import observer_bypass as OB
+        except Exception as e:                                # noqa: BLE001
+            self.vr_alone_note.setText("could not reach the bypass: %r" % (e,))
+            return
+        if on:
+            rec = OB.grant(who="gui", reason="operator working alone")
+            self.vr_alone_note.setText(
+                "WORKING ALONE since %s. Nobody is holding an e-stop. This "
+                "is in the log." % rec["granted_at_iso"])
+            self.vr_alone_note.setStyleSheet("color:%s" % C_WARN)
+            self.log("OBSERVER BYPASS TAKEN at %s -- no observer for this "
+                     "session" % rec["granted_at_iso"], bad=True)
+        else:
+            OB.clear(who="gui", note="unticked")
+            self.vr_alone_note.setText("Observer required.")
+            self.vr_alone_note.setStyleSheet("color:%s" % C_MUTED)
+            self.log("observer bypass cancelled -- an observer is required "
+                     "again")
+
     def on_vr_start(self):
         if self._vr_busy:
             self.log("VR bring-up is already running")
@@ -1287,9 +1758,11 @@ class Gui(QMainWindow):
         titles = {k: t for k, t, _f in vrb.STEPS}
         box, t, why, fix = self.vr_rows[key]
         mark = {vrb.OK: "OK  ", vrb.FAILED: "FIX ", vrb.UNKNOWN: "?   ",
-                vrb.SKIPPED: "--  "}.get(res.state, "?   ")
+                vrb.SKIPPED: "--  ",
+                vrb.BYPASSED: "!!  "}.get(res.state, "?   ")
         col = {vrb.OK: C_TEXT, vrb.FAILED: C_BAD, vrb.UNKNOWN: C_UNKNOWN,
-               vrb.SKIPPED: C_MUTED}.get(res.state, C_UNKNOWN)
+               vrb.SKIPPED: C_MUTED,
+               vrb.BYPASSED: C_WARN}.get(res.state, C_UNKNOWN)
         t.setText("%s%s" % (mark, titles[key]))
         t.setFont(helvetica(9, res.state in (vrb.FAILED, vrb.UNKNOWN)))
         t.setStyleSheet("color:%s" % col)
@@ -1320,6 +1793,17 @@ class Gui(QMainWindow):
             return
         if name.startswith("show_"):
             self._vr_show_log(name)
+            return
+        # `reexec` lives on this window, not in `vr_bringup` -- restarting the
+        # process is something only the GUI can do. It was in the DOCTOR
+        # panel's table and not this one, so step 1's fix button answered
+        # "no such repair: reexec". Step 1 is the environment check, which is
+        # the first thing that fails on an unsourced window, so the one
+        # button an operator would reach for first was the dead one.
+        if name == "reexec":
+            ok, msg = self._fix_reexec()
+            self.vr_note.setText(msg)
+            self.log("VR fix %s: %s" % (key, msg), bad=not ok)
             return
         fn = vrb.FIXES.get(name)
         if fn is None:
@@ -1376,15 +1860,30 @@ class Gui(QMainWindow):
         self.log("VR: stopped %d part(s). The simulation is still up." % n)
 
     def on_vr_show_url(self):
+        """EVERY address, not the one we guess.
+
+        This machine has two: the interface with the default route (a NAT or
+        corporate link) and the lab switch the robot is on. Handing over one
+        of them sends the operator to a page the headset cannot load, and
+        inside a headset that is indistinguishable from a firewall problem or
+        a bad certificate.
+        """
         w = self._vr_world or vrb.World(ws=_WS)
-        ip = w.lan_ip()
-        if not ip:
+        ips = w.lan_ips()
+        if not ips:
             self.vr_note.setText("This machine has no address on the network.")
             self.log("no LAN address", bad=True)
             return
-        url = "https://%s:%d/" % (ip, w.port)
-        self.vr_note.setText("In the headset's own browser: %s" % url)
-        self.log("headset page: %s" % url)
+        urls = ["https://%s:%d/" % (i, w.port) for i in ips]
+        if len(urls) == 1:
+            msg = "In the headset's own browser: %s" % urls[0]
+        else:
+            msg = ("In the headset's own browser, whichever is the wifi the "
+                   "headset is on: " + "   or   ".join(urls)
+                   + "    (the first is the network the robot is on)")
+        self.vr_note.setText(msg)
+        for u in urls:
+            self.log("headset page: %s" % u)
 
     def _connect_panel(self):
         g = QGroupBox("Connect the real arms")

@@ -13,7 +13,7 @@
 #   The graph was fine -- `ros2 node list --no-daemon` saw all 28 nodes the
 #   whole time. What had broken was the ros2 DAEMON, which caches network
 #   state and was still holding the pre-mirrored interface (172.21.248.59).
-#   It did not fail, it HUNG, so `timeout 20 ros2 node list` returned an
+#   It did not fail, it HUNG, so `timeout -s INT 20 ros2 node list` returned an
 #   empty string and the caller concluded nothing was running.
 #
 #   So the job here is not to pin interfaces. Measured on this host with a
@@ -100,10 +100,10 @@ srl_stack_procs() {
 # daemon is wedged -- which is the exact case we are here to fix -- so it gets
 # a timeout and a pkill fallback rather than being trusted.
 srl_ros_daemon_reset() {
-  timeout 10 ros2 daemon stop >/dev/null 2>&1
+  timeout -s INT 10 ros2 daemon stop >/dev/null 2>&1
   pkill -f 'ros2cli\.daemon\.daemonize' >/dev/null 2>&1
   sleep 1
-  timeout 25 ros2 daemon start >/dev/null 2>&1
+  timeout -s INT 25 ros2 daemon start >/dev/null 2>&1
   sleep 2
 }
 
@@ -128,11 +128,11 @@ srl_ros_node_list() {
   local timeout_s="${1:-20}"
   local out rc reset=0
 
-  out="$(timeout "$timeout_s" ros2 node list 2>/dev/null)"; rc=$?
+  out="$(timeout -s INT "$timeout_s" ros2 node list 2>/dev/null)"; rc=$?
   if [ "$rc" -ne 0 ] || [ -z "$out" ]; then
     srl_ros_daemon_reset
     reset=1
-    out="$(timeout "$timeout_s" ros2 node list 2>/dev/null)"
+    out="$(timeout -s INT "$timeout_s" ros2 node list 2>/dev/null)"
   fi
 
   [ -n "$out" ] && printf '%s\n' "$out"
@@ -169,14 +169,43 @@ srl_ros_node_list_direct() {
 srl_clear_stale_shm() {
   local force="${1:-}"
   local live
-  live=$(pgrep -c -f "opt/ros/jazzy/lib/(moveit_ros_move_group|controller_manager|robot_state_publisher)" 2>/dev/null || echo 0)
+  # EVERY PARTICIPANT COUNTS, not just the three sim nodes this used to name.
+  # The VR stack, the observer station and the real-arm bridge are all Fast
+  # DDS participants; none of them matched, so a sweep "with the stack
+  # stopped" could still be a sweep under a live observer e-stop.
+  live=$(pgrep -c -f "opt/ros/jazzy/lib/(moveit_ros_move_group|controller_manager|robot_state_publisher)|install/srl_(teleop|vr_teleop|experiments|autonomy|perception)/lib|kortex_highlevel_bridge|observer_estop\.py" 2>/dev/null || echo 0)
   if [ "$live" -gt 0 ] && [ "$force" != "--force" ]; then
     echo "srl_clear_stale_shm: $live stack process(es) running -- NOT clearing." >&2
     echo "  Stop the stack first, or pass --force if you know they are orphans." >&2
     return 1
   fi
+  # THE ros2 DAEMON IS A PARTICIPANT AND ITS SEGMENTS ARE IN HERE TOO.
+  #
+  # This swept /dev/shm/fastrtps_* unconditionally, which deleted the running
+  # daemon's own segments out from under it. The daemon does not notice and
+  # does not die: it goes DEAF. `ros2 node list` then returns nothing against
+  # a fully healthy stack, and start_real.sh reads that as "DISCOVERY
+  # PROBLEM, not a missing stack" -- true, specific, confident, and pointing
+  # at the wrong thing, because the sweep two seconds earlier caused it.
+  #
+  # Measured 2026-08-20 in the lab: run_teleop.sh line 12 called this, removed
+  # 14 segments including the daemon's, and every subsequent preflight failed.
+  # It cost the afternoon.
+  #
+  # So: stop the daemon, sweep, start it again. Same rule vr_bringup.py
+  # already follows for exactly this reason.
+  local had_daemon=0
+  pgrep -f "ros2cli.daemon" >/dev/null 2>&1 && had_daemon=1
+  [ "$had_daemon" = "1" ] && timeout -s INT 10 ros2 daemon stop >/dev/null 2>&1
   local n
   n=$(ls -1 /dev/shm 2>/dev/null | grep -c '^sem\.fastrtps_\|^fastrtps_' || true)
   rm -f /dev/shm/fastrtps_* /dev/shm/sem.fastrtps_* 2>/dev/null || true
-  echo "srl_clear_stale_shm: removed $n stale Fast DDS segment(s)."
+  # A stopping daemon has not finished releasing when `stop` returns.
+  sleep 2
+  if [ "$had_daemon" = "1" ]; then
+    timeout -s INT 25 ros2 daemon start >/dev/null 2>&1
+    echo "srl_clear_stale_shm: removed $n segment(s); ros2 daemon restarted."
+  else
+    echo "srl_clear_stale_shm: removed $n stale Fast DDS segment(s)."
+  fi
 }

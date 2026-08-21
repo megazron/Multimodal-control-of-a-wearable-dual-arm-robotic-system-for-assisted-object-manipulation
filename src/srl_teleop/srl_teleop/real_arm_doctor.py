@@ -181,6 +181,52 @@ class Probe:
         except OSError:
             return None
 
+    # A SEGMENT YOUNGER THAN THIS IS NOT A LEFTOVER, whatever the maps say: a
+    # process that is STARTING has created segments it has not mapped yet.
+    SHM_MIN_AGE_S = 20.0
+
+    def stale_shm_segments(self):
+        """Segments that NO LIVE PROCESS HAS MAPPED, and are not brand new.
+
+        THIS REPLACES A GUESS THAT WAS WRONG IN THE LAB. The check asked "is
+        an installed node executable running?" and, if not, called every
+        segment on disk stale. Measured on 2026-08-20 with an operator
+        watching: 20 segments, of which 10 were held by the ros2 daemon, the
+        operations GUI itself and RViz -- none of which is a node executable.
+        The panel offered to clear all 20, which would have pulled the shared
+        memory out from under the window the operator was reading it in.
+
+        The kernel already knows the answer. /proc/*/maps names every segment
+        every live process has mapped; anything on disk, in nobody's map, and
+        older than a start-up window, is a leftover.
+        """
+        try:
+            on_disk = {os.path.basename(q): q
+                       for q in glob.glob("/dev/shm/fastrtps_*")}
+        except OSError:
+            return None
+        mapped = set()
+        for maps in glob.glob("/proc/[0-9]*/maps"):
+            try:
+                with open(maps) as fh:
+                    for line in fh:
+                        if "/dev/shm/fastrtps_" in line:
+                            mapped.add(line.rsplit("/", 1)[-1].strip())
+            except OSError:
+                continue            # it died while we were reading
+        now = time.time()
+        out = []
+        for name, q in on_disk.items():
+            if name in mapped:
+                continue
+            try:
+                if now - os.path.getmtime(q) < self.SHM_MIN_AGE_S:
+                    continue        # something is starting; leave it alone
+            except OSError:
+                continue
+            out.append(q)
+        return sorted(out)
+
     # ------------------------------------------------------------- daemon
     def daemon_nodes(self, timeout_s=8):
         """(nodes, timed_out). nodes is None if the command could not run."""
@@ -350,33 +396,43 @@ def check_discovery(p, fixes=None):
 
 
 def check_shm(p, fixes=None):
-    """2. Leftover shared-memory segments from a killed stack."""
+    """2. Leftover shared-memory segments from a killed stack.
+
+    STALE MEANS NOBODY HAS IT OPEN, asked of the kernel. It used to mean "no
+    installed node executable is running", which counted the operations GUI,
+    RViz and the ros2 daemon as nothing -- see `Probe.stale_shm_segments`.
+    """
     segs = p.shm_segments()
     if segs is None:
         return Check("shm", "Cannot check for leftovers from an earlier run",
                      UNKNOWN,
                      "The place those leftovers live could not be read.",
                      detail="/dev/shm not listable")
-    live = bool(p.live_pids())
+    stale = p.stale_shm_segments()
+    if stale is None:
+        return Check("shm", "Cannot check for leftovers from an earlier run",
+                     UNKNOWN,
+                     "Which blocks are still in use could not be established.",
+                     detail="/proc not readable")
     if not segs:
         return Check("shm", "No leftovers from an earlier run", OK,
                      "Nothing an earlier run left behind is in the way.",
                      detail="0 Fast DDS segments in /dev/shm")
-    if live:
+    if not stale:
         return Check("shm", "Shared memory in use by what is running", OK,
                      "The blocks in use belong to the system that is "
                      "running now, which is normal.",
-                     detail="%d segment(s), %d node process(es) live"
-                            % (len(segs), len(p.live_pids())))
+                     detail="%d segment(s), none unowned" % len(segs))
     return Check(
         "shm", "An earlier run left blocks of memory behind", BAD,
         "A previous run was killed rather than stopped, and it left %d blocks "
         "of shared memory behind. While they are there, parts of the system "
         "can see each other one moment and not the next, which looks exactly "
-        "like a broken node. Nothing is running now, so they are safe to "
-        "clear." % len(segs),
-        detail="%d stale Fast DDS segment(s); no stack process running"
-               % len(segs),
+        "like a broken node. They can only be cleared with everything "
+        "STOPPED, including this window -- clearing them while anything is "
+        "running can take its memory with them." % len(stale),
+        detail="%d of %d segment(s) unowned for more than %.0f s"
+               % (len(stale), len(segs), Probe.SHM_MIN_AGE_S),
         fix_label="Clear the leftovers",
         fix=(fixes or {}).get("clear_shm"),
         fix_note="removes both the segments and their semaphores; refuses "
@@ -697,20 +753,49 @@ def verdict(checks):
 #  beyond stopping a process it has named first.
 # ===========================================================================
 def fix_clear_shm():
-    """Refuses while anything is running, exactly as env.sh does."""
-    live = procscan.find(STACK_RX)
+    """Remove only the segments NOBODY HAS OPEN.
+
+    The old guard was "refuse if anything is running", a proxy for "do not
+    remove a segment somebody is using". It was too coarse in both directions:
+    it let the sweep delete blocks held by the GUI, RViz and the ros2 daemon
+    (none of which is a node executable), and it refused to clear a dead
+    stack's leftovers whenever a healthy one was up -- which is exactly the
+    state a partitioned graph is in.
+
+    Ownership is now asked of the kernel, so no guard is needed: a segment
+    nobody has mapped cannot be in use.
+    """
+    # NEVER WHILE ANYTHING IS RUNNING. Ownership narrows WHAT is removed; it
+    # does not make removal safe. A live Fast DDS participant's segment can be
+    # absent from /proc/*/maps at the instant it is sampled, and clearing on
+    # that basis partitioned a working stack in a lab session -- a fresh
+    # participant went from 34 nodes to 7, with zero publishers on /tf, while
+    # every controller was still active. HARD CONSTRAINT 5 says "with the
+    # stack STOPPED" and it is right.
+    live = procscan.find(r"(/opt/ros/[a-z]+/lib/[^/ ]+/"
+                         r"|/install/[A-Za-z0-9_]+/lib/[A-Za-z0-9_]+/"
+                         r"|ros2cli\.daemon"
+                         r"|scripts/srl_gui\.py"
+                         r"|/rviz2)")
     if live:
-        return False, ("Not cleared: %d thing(s) are still running. Stop "
-                       "them first." % len(live))
+        return False, ("Not cleared: %d thing(s) are still running, including "
+                       "this window. Stop everything first -- removing these "
+                       "while anything is up can take its memory with them."
+                       % len(live))
+    stale = Probe().stale_shm_segments()
+    if not stale:
+        return True, ("Nothing to clear: every block of shared memory is in "
+                      "use by something that is running.")
     n = 0
-    for path in glob.glob("/dev/shm/fastrtps_*") + \
-            glob.glob("/dev/shm/sem.fastrtps_*"):
-        try:
-            os.remove(path)
-            n += 1
-        except OSError:
-            pass
-    return True, "Cleared %d leftover block(s)." % n
+    for path in stale:
+        for target in (path, path.replace("/dev/shm/", "/dev/shm/sem.")):
+            try:
+                os.remove(target)
+                n += 1 if target == path else 0
+            except OSError:
+                pass
+    return True, ("Cleared %d leftover block(s). Anything still in use was "
+                  "left alone." % n)
 
 
 def fix_reset_daemon():

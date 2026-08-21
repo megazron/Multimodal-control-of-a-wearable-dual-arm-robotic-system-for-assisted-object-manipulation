@@ -14,6 +14,11 @@ __pycache__/
 # .percep_venv is 5.6 GB: torch, CUDA runtime libraries, faster-whisper and
 # ultralytics. Nothing in it is ours.
 .percep_venv/
+# .venv_vision is 1.4 GB: torch, ultralytics, opencv and pyrealsense2. It is
+# built with --system-site-packages so rclpy stays visible, which is why the
+# vision scripts and the ROS nodes can run in one process. Nothing in it is
+# ours; rebuild it rather than commit it.
+.venv_vision/
 
 # ------------------------------------------------------------ model weights
 # Downloaded on first use, not authored here, and one of them is larger than

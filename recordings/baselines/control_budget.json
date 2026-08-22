@@ -1,0 +1,184 @@
+{
+ "grasp_gate_m": 0.03,
+ "floor_m": 0.15,
+ "positioning_mm": [
+  {
+   "term": "terminal joint error, UNCOMPENSATED",
+   "mm": 7.24,
+   "systematic": true,
+   "note": "0.305 deg per joint on 36 real runs; systematic, and it points along the direction of travel"
+  },
+  {
+   "term": "  the same, if the overshoot is switched on",
+   "mm": 1.877,
+   "systematic": true,
+   "note": "modelled, held out on an unseen axis. NOT yet tried on hardware"
+  },
+  {
+   "term": "IK solve residual",
+   "mm": 0.2,
+   "systematic": false,
+   "note": "arm_ik solves to 0.00-0.20 mm on the poses it accepts and REPORTS the achieved residual; a refusal is searched"
+  },
+  {
+   "term": "camera_link vs the physical module",
+   "mm": null,
+   "systematic": true,
+   "note": "UNMEASURED. The wrist camera's pose is forward kinematics, which is exact given the URDF -- and nothing has ever checked the URDF against the module. A 10 mm error here is invisible and lands directly in every grasp. This is the cheapest high-value calibration left"
+  },
+  {
+   "term": "depth noise at 0.4-0.8 m",
+   "mm": 2.0,
+   "systematic": false,
+   "note": "RealSense D4xx, subpixel-limited; the 0.082 m figure in the notes is at 4 m and does not apply at grasp range"
+  },
+  {
+   "term": "shell bias from a single view, BEFORE the plane",
+   "mm": 10.5,
+   "systematic": true,
+   "note": "measured on constructed data; the object's bottom was unknown"
+  },
+  {
+   "term": "  the same, with the support plane",
+   "mm": 0.0,
+   "systematic": true,
+   "note": "the object RESTS on the plane, so its bottom is known"
+  },
+  {
+   "term": "declared vs measured pad offset (T0, T2, T3)",
+   "mm": 13.45,
+   "systematic": true,
+   "note": "PAD_OFFSET_BY_ARM is 13.45 mm longer than the FK-measured 0.09833 m and is deliberately unchanged, so task and picture agree -- but the declared coordinate is that far from where the object is grasped"
+  }
+ ],
+ "positioning_rss_mm": 18.644304760435556,
+ "positioning_worst_mm": 33.39,
+ "reaction": [
+  {
+   "motion": "a deliberate reach",
+   "latency_s": 0.062,
+   "which": "best",
+   "speed_lo": 0.8,
+   "speed_hi": 1.5,
+   "travel_lo_m": 0.049600000000000005,
+   "travel_hi_m": 0.093,
+   "eats_floor_pct_hi": 62.00000000000001,
+   "exceeds_floor": false
+  },
+  {
+   "motion": "a deliberate reach",
+   "latency_s": 0.562,
+   "which": "worst",
+   "speed_lo": 0.8,
+   "speed_hi": 1.5,
+   "travel_lo_m": 0.44960000000000006,
+   "travel_hi_m": 0.8430000000000001,
+   "eats_floor_pct_hi": 562.0000000000001,
+   "exceeds_floor": true
+  },
+  {
+   "motion": "a quick reach or a fidget",
+   "latency_s": 0.062,
+   "which": "best",
+   "speed_lo": 1.5,
+   "speed_hi": 2.5,
+   "travel_lo_m": 0.093,
+   "travel_hi_m": 0.155,
+   "eats_floor_pct_hi": 103.33333333333334,
+   "exceeds_floor": true
+  },
+  {
+   "motion": "a quick reach or a fidget",
+   "latency_s": 0.562,
+   "which": "worst",
+   "speed_lo": 1.5,
+   "speed_hi": 2.5,
+   "travel_lo_m": 0.8430000000000001,
+   "travel_hi_m": 1.4050000000000002,
+   "eats_floor_pct_hi": 936.6666666666669,
+   "exceeds_floor": true
+  },
+  {
+   "motion": "a startle or flinch",
+   "latency_s": 0.062,
+   "which": "best",
+   "speed_lo": 2.5,
+   "speed_hi": 4.0,
+   "travel_lo_m": 0.155,
+   "travel_hi_m": 0.248,
+   "eats_floor_pct_hi": 165.33333333333334,
+   "exceeds_floor": true
+  },
+  {
+   "motion": "a startle or flinch",
+   "latency_s": 0.562,
+   "which": "worst",
+   "speed_lo": 2.5,
+   "speed_hi": 4.0,
+   "travel_lo_m": 1.4050000000000002,
+   "travel_hi_m": 2.248,
+   "eats_floor_pct_hi": 1498.6666666666667,
+   "exceeds_floor": true
+  }
+ ],
+ "posture_gap": {
+  "left": {
+   "clearance_m": {
+    "behind": 0.2779053763802282,
+    "down": 0.316984379570289,
+    "folded": 0.3211127516188598,
+    "none": 0.3211127516188598,
+    "out": 0.0932599622970187
+   },
+   "vs_down_m": {
+    "behind": -0.0390790031900608,
+    "down": 0.0,
+    "folded": 0.004128372048570805,
+    "none": 0.004128372048570805,
+    "out": -0.2237244172732703
+   },
+   "worst_posture": "out",
+   "worst_m": 0.0932599622970187,
+   "breaches_floor": [
+    "out"
+   ]
+  },
+  "right": {
+   "clearance_m": {
+    "behind": 0.2779053763904885,
+    "down": 0.31698437958057,
+    "folded": 0.32111275162453806,
+    "none": 0.32111275162453806,
+    "out": 0.09325996232501814
+   },
+   "vs_down_m": {
+    "behind": -0.03907900319008151,
+    "down": 0.0,
+    "folded": 0.004128372043968043,
+    "none": 0.004128372043968043,
+    "out": -0.22372441725555187
+   },
+   "worst_posture": "out",
+   "worst_m": 0.09325996232501814,
+   "breaches_floor": [
+    "out"
+   ]
+  }
+ },
+ "freedom": {
+  "at_the_work_point": {
+   "pinned": 0.0646,
+   "spin": 0.0646,
+   "cone15": 0.3042,
+   "cone45": 0.325,
+   "free": 0.3625
+  },
+  "at_home": {
+   "pinned": 0.4598,
+   "spin": 0.4625,
+   "cone15": 0.492,
+   "cone45": 0.5304,
+   "free": 0.5491
+  }
+ }
+}

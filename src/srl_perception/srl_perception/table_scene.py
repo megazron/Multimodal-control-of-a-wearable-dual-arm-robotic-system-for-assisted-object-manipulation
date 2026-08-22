@@ -212,15 +212,41 @@ class TableObject:
         e1 /= np.linalg.norm(e1)
         e2 = np.cross(self.up, e1)
         uv = np.stack([F @ e1, F @ e2], axis=1)
+        # ROTATING CALIPERS, NOT PCA.
+        #
+        # PCA on a SQUARE footprint is degenerate: the two eigenvalues are
+        # equal, so the "short" axis is whatever the numerics pick, and it
+        # lands on the diagonal as readily as on a side. Measured 2026-08-22
+        # on constructed boxes: a 50 mm cube reported 68 mm, a 25 mm bar
+        # 34 mm, a 130 mm block 179 mm -- every one of them inflated by a
+        # factor of about sqrt(2), which is exactly the diagonal.
+        #
+        # That is not cosmetic. The gripper is commanded to the reported
+        # width, and a 60 mm cube reading 82 mm is REFUSED as too wide for
+        # jaws that would have closed on it perfectly well.
+        #
+        # A parallel jaw cares about the MINIMUM width across all
+        # orientations, which is the rotating-calipers answer and is what
+        # `rgbd_grasp.min_width_frame` already does for a free cloud. Here
+        # the search is over the plane only, which is what makes the result
+        # a width the jaws can actually close across rather than a diagonal
+        # through the object.
         if len(uv) >= 3:
-            cov = np.cov(uv.T)
-            w, V = np.linalg.eigh(cov)
-            long2, short2 = V[:, 1], V[:, 0]
+            best = None
+            for ang in np.linspace(0.0, math.pi, 180, endpoint=False):
+                c_, s_ = math.cos(ang), math.sin(ang)
+                w_ = float(np.ptp(uv @ np.array([c_, s_])))
+                if best is None or w_ < best[0]:
+                    best = (w_, ang)
+            w_min, ang = best
+            short2 = np.array([math.cos(ang), math.sin(ang)])
+            long2 = np.array([-math.sin(ang), math.cos(ang)])
         else:
+            w_min = 0.0
             long2, short2 = np.array([1.0, 0.0]), np.array([0.0, 1.0])
         self.long_axis = e1 * long2[0] + e2 * long2[1]
         self.short_axis = e1 * short2[0] + e2 * short2[1]
-        self.width_m = float(np.ptp(uv @ short2)) if len(uv) else 0.0
+        self.width_m = float(w_min)
         self.length_m = float(np.ptp(uv @ long2)) if len(uv) else 0.0
 
         # THE SHELL CORRECTION, AND THE PLANE IS WHAT MAKES IT POSSIBLE.

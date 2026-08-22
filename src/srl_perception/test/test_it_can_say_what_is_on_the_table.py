@@ -134,6 +134,60 @@ def test_the_pad_never_goes_below_the_surface():
                 % (size, (h - TS.PAD_HALF_M) * 1000))
 
 
+# --------------------------------------------------- any height, any object
+@pytest.mark.parametrize("z", [0.40, 0.60, 0.75, 0.90, 1.10, 1.25, 1.40])
+def test_the_table_can_be_any_height(z):
+    """A real table is whatever height it is. RANSAC finds the plane
+    wherever it lies; nothing here assumes a bench height."""
+    P = np.vstack([_table(z=z),
+                   _box((0.05, 0.03, z + 0.025), (0.05, 0.05, 0.05), seed=3)])
+    sc = TS.analyse(P)
+    assert abs(sc["plane"].offset - z) < 0.002, (
+        "plane at %.4f for a table at %.2f" % (sc["plane"].offset, z))
+    assert len(sc["objects"]) == 1
+    d = np.linalg.norm(sc["objects"][0].centre
+                       - np.array([0.05, 0.03, z + 0.025]))
+    assert d < 0.004, "centre %.1f mm out at height %.2f" % (d * 1000, z)
+
+
+@pytest.mark.parametrize("size,true_width_mm,graspable", [
+    ((0.05, 0.05, 0.05), 50, True),        # a cube
+    ((0.07, 0.07, 0.06), 70, True),        # a bigger cube -- was REFUSED
+    ((0.025, 0.025, 0.12), 25, True),      # tall and thin
+    ((0.02, 0.02, 0.20), 20, True),        # a rod
+    ((0.09, 0.06, 0.10), 60, True),        # a rectangular block
+    ((0.13, 0.13, 0.06), 130, False),      # genuinely wider than the jaws
+    ((0.09, 0.06, 0.018), 60, False),      # a slab too flat for the pad
+])
+def test_the_object_can_be_any_shape_and_the_width_is_the_real_one(
+        size, true_width_mm, graspable):
+    """THE WIDTH MUST BE THE WIDTH, and it was not.
+
+    It came from PCA on the footprint, and PCA on a SQUARE is degenerate --
+    equal eigenvalues, so the "short" axis lands on the DIAGONAL as readily
+    as on a side. Measured 2026-08-22: a 50 mm cube reported 68 mm, a 25 mm
+    bar 34 mm, a 130 mm block 179 mm. Every one inflated by about sqrt(2).
+
+    That is not cosmetic. The gripper is commanded to the reported width, and
+    a 70 mm cube reading 95 mm is REFUSED as too wide for jaws that would
+    have closed on it. Rotating calipers over the plane give the width a
+    parallel jaw actually needs.
+    """
+    P = np.vstack([_table(),
+                   _box((0.0, 0.0, 0.90 + size[2] / 2), size, n=2400,
+                        seed=5)])
+    sc = TS.analyse(P)
+    assert len(sc["objects"]) == 1, "the object must be FOUND either way"
+    o = sc["objects"][0]
+    assert abs(o.width_m * 1000 - true_width_mm) < 6, (
+        "%s: width read %.0f mm, true short axis %d mm"
+        % (size, o.width_m * 1000, true_width_mm))
+    assert bool(sc["graspable"]) is graspable, (
+        "%s: graspable=%s, reason: %s"
+        % (size, bool(sc["graspable"]),
+           sc["rows"][0]["why"] if sc["rows"] else "-"))
+
+
 # ------------------------------------------------------------ the refusals
 def test_a_wall_is_not_a_table():
     """A wall is a plane, has plenty of inliers, and is not a support

@@ -241,6 +241,23 @@ Lab-day fault table: `docs/system/03_real_robot_bringup.md`.
 
 ---
 
+## HOW GOOD IS IT
+
+**SET UP → `HOW GOOD IS THE SYSTEM?`**, or
+`python3 scripts/measure_control_budget.py`.
+
+It composes the recorded baselines into one budget: where the hand ends up
+against the 30 mm grasp gate, how far the wearer moves before the guard hears
+about it, what losing tracking costs, and how free the arms are. It measures
+nothing new and prints **UNMEASURED** where nothing has been measured.
+
+The full reading is `docs/system/23_how_good_is_it.md`. The three-line
+version: the geometry is good, the positioning is marginally over budget with
+two fixes switched off, and **everything that is genuinely hard is about a
+person moving faster than a 0.5 s perception chain can follow.**
+
+---
+
 ## WHAT IS STILL BLOCKED, SO YOU DO NOT WASTE A SESSION ON IT
 
 * **7 of 14 master channels are incoherent** — a soldering problem. Master

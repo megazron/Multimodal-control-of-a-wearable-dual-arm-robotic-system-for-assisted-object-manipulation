@@ -3285,6 +3285,23 @@ class Gui(QMainWindow):
         lab = QLabel("Dependencies")
         lab.setFont(helvetica(10, True))
         v.addWidget(lab)
+        b2 = QPushButton("HOW GOOD IS THE SYSTEM?")
+        b2.setFont(helvetica(9, True))
+        b2.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        b2.setToolTip(
+            "The control budget: where the hand ends up against the 30 mm "
+            "grasp gate, how far the wearer moves before the guard hears "
+            "about it, what losing tracking costs, and how free the arms "
+            "are. Reads the recorded baselines -- it measures nothing new "
+            "and prints UNMEASURED where nothing has been measured.")
+        b2.clicked.connect(self.on_control_budget)
+        v.addWidget(b2)
+        self.budget_lbl = QLabel("not checked yet")
+        self.budget_lbl.setWordWrap(True)
+        self.budget_lbl.setFont(mono(8))
+        self.budget_lbl.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.budget_lbl)
+
         b = QPushButton("CHECK DEPENDENCIES")
         b.setFont(helvetica(9, True))
         b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
@@ -3301,6 +3318,55 @@ class Gui(QMainWindow):
         self.dep_lbl.setStyleSheet("color:%s" % C_MUTED)
         v.addWidget(self.dep_lbl)
         return g
+
+    def on_control_budget(self):
+        """The honest answer to 'how good is this', from the baselines."""
+        def go():
+            try:
+                sys.path.insert(0, os.path.join(_WS, "scripts"))
+                import measure_control_budget as MCB
+                rep = MCB.report(verbose=False)
+            except Exception as e:                            # noqa: BLE001
+                self._budget_say("could not compute the budget: %r" % (e,),
+                                 bad=True)
+                return
+            unm = [r["term"] for r in rep["positioning_mm"]
+                   if r["mm"] is None]
+            over = rep["positioning_worst_mm"] > rep["grasp_gate_m"] * 1000
+            fast = [r for r in rep.get("reaction", [])
+                    if r.get("exceeds_floor")]
+            pg = rep.get("posture_gap") or {}
+            breach = sorted({p for a in pg.values()
+                             if isinstance(a, dict)
+                             for p in a.get("breaches_floor", [])})
+            lines = [
+                "WHERE THE HAND LANDS: %.1f mm worst case against a %.0f mm "
+                "gate%s"
+                % (rep["positioning_worst_mm"], rep["grasp_gate_m"] * 1000,
+                   "  -- OVER BUDGET" if over else ""),
+                "  and %d term(s) UNMEASURED: %s"
+                % (len(unm), ", ".join(unm)) if unm else "",
+                "THE WEARER: %d of %d limb motions travel further than the "
+                "whole %.0f mm floor before the guard hears about it"
+                % (len(fast), len(rep.get("reaction", [])),
+                   rep["floor_m"] * 1000),
+                "LOSING TRACKING: posture(s) that BREACH the floor while the "
+                "fallback assumes clearance: %s"
+                % (", ".join(breach) if breach else "none"),
+            ]
+            self._budget_say("\n".join(x for x in lines if x),
+                             bad=bool(over or fast or breach))
+
+        self._budget_say("composing the budget from the baselines...")
+        self.bus.submit(go, label="control budget")
+
+    def _budget_say(self, text, bad=False):
+        lbl = getattr(self, "budget_lbl", None)
+        if lbl is not None:
+            lbl.setText(text)
+            lbl.setStyleSheet("color:%s" % (C_BAD if bad else C_TEXT))
+        self.bus.note("budget: %s" % text.replace("\n", " | ")[:170],
+                      bad=bad)
 
     def on_check_dependencies(self):
         """Run it OFF the Qt thread -- it spawns four interpreters."""

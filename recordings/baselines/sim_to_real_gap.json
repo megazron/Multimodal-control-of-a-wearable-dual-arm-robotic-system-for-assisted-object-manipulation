@@ -1,0 +1,254 @@
+{
+ "source": "recordings/baselines/arm_directional_calibration.json",
+ "step_m": 0.1,
+ "speeds_rad_s": [
+  0.1,
+  0.25,
+  0.5
+ ],
+ "n_runs": 36,
+ "arms": {
+  "left": {
+   "n_runs": 18,
+   "n_directions": 6,
+   "identity_rms_mm": 7.2404,
+   "fit_rms_mm": 0.9763,
+   "held_out_direction_rms_mm": 1.9373,
+   "held_out_axis_rms_mm": 93.4985,
+   "held_out_direction_affine_rms_mm": 2.2561,
+   "M": [
+    [
+     0.9275,
+     0.0354,
+     -0.009683
+    ],
+    [
+     0.003283,
+     0.955583,
+     0.002217
+    ],
+    [
+     0.007417,
+     0.021217,
+     0.92035
+    ]
+   ],
+   "gain_xyz": [
+    0.9275,
+    0.95558,
+    0.92035
+   ],
+   "tiers": {
+    "scalar": {
+     "params": 0.9344777777777775,
+     "held_out_rms_mm": {
+      "direction": 3.2494,
+      "axis": 3.5188
+     }
+    },
+    "diagonal": {
+     "params": [
+      0.9275,
+      0.955583,
+      0.92035
+     ],
+     "held_out_rms_mm": {
+      "direction": 2.7421,
+      "axis": 7.2404
+     }
+    },
+    "full3x3": {
+     "params": [
+      [
+       0.9275,
+       0.0354,
+       -0.009683
+      ],
+      [
+       0.003283,
+       0.955583,
+       0.002217
+      ],
+      [
+       0.007417,
+       0.021217,
+       0.92035
+      ]
+     ],
+     "held_out_rms_mm": {
+      "direction": 1.9373,
+      "axis": 93.4985
+     }
+    }
+   },
+   "tiers_valid_for_any_direction": [
+    "scalar"
+   ]
+  },
+  "right": {
+   "n_runs": 18,
+   "n_directions": 6,
+   "identity_rms_mm": 7.2146,
+   "fit_rms_mm": 1.1344,
+   "held_out_direction_rms_mm": 2.2655,
+   "held_out_axis_rms_mm": 93.5797,
+   "held_out_direction_affine_rms_mm": 2.4364,
+   "M": [
+    [
+     0.926233,
+     -0.035183,
+     0.003467
+    ],
+    [
+     0.000317,
+     0.96015,
+     0.001583
+    ],
+    [
+     -0.002617,
+     0.021,
+     0.919383
+    ]
+   ],
+   "gain_xyz": [
+    0.92623,
+    0.96015,
+    0.91938
+   ],
+   "tiers": {
+    "scalar": {
+     "params": 0.9352555555555554,
+     "held_out_rms_mm": {
+      "direction": 3.4015,
+      "axis": 3.7553
+     }
+    },
+    "diagonal": {
+     "params": [
+      0.926233,
+      0.96015,
+      0.919383
+     ],
+     "held_out_rms_mm": {
+      "direction": 2.6898,
+      "axis": 7.2146
+     }
+    },
+    "full3x3": {
+     "params": [
+      [
+       0.926233,
+       -0.035183,
+       0.003467
+      ],
+      [
+       0.000317,
+       0.96015,
+       0.001583
+      ],
+      [
+       -0.002617,
+       0.021,
+       0.919383
+      ]
+     ],
+     "held_out_rms_mm": {
+      "direction": 2.2655,
+      "axis": 93.5797
+     }
+    }
+   },
+   "tiers_valid_for_any_direction": [
+    "scalar"
+   ]
+  }
+ },
+ "speed_sweep_was_inert": {
+  "runs_exceeding_their_own_vmax": 7,
+  "of": 36,
+  "by_vmax": {
+   "0.1": 6,
+   "0.25": 1,
+   "0.5": 0
+  },
+  "error_mm_by_vmax": {
+   "0.1": 7.2344,
+   "0.25": 7.2188,
+   "0.5": 7.2287
+  },
+  "verdict": "vmax was read once at bridge start-up and never applied, so these are three replicates of ONE speed. Any leave-one-speed-out figure is a fit residual. How the error varies with speed is UNMEASURED.",
+  "still_true": true
+ },
+ "joint_floor_deg": {
+  "worst_per_run_min": 0.2893,
+  "worst_per_run_max": 0.2963,
+  "worst_per_run_mean": 0.2936,
+  "as_mrad": 5.124,
+  "bridge_deadband_deg": 1.0,
+  "note": "every run stops within a 0.007 deg band of the same value, which is a floor rather than a distribution. It sits INSIDE the bridge's 1.0 deg deadband, where the proportional term is off by design and only the integrator acts. Confirming the mechanism needs the arms; this file records the signature, not the cause."
+ },
+ "cross_arm": {
+  "left_to_right": {
+   "identity_rms_mm": 7.2146,
+   "corrected_rms_mm": 4.3491
+  },
+  "right_to_left": {
+   "identity_rms_mm": 7.2404,
+   "corrected_rms_mm": 4.3105
+  }
+ },
+ "cross_arm_note": "one arm's matrix on the other arm still beats doing nothing but is roughly half as good as its own. The two arms are NOT the same machine -- their mounts differ by 168 deg of roll -- so the model is per-arm.",
+ "joint_terminal": {
+  "left": {
+   "eps_rad": 0.00532709,
+   "eps_deg": 0.30522,
+   "identity_rms_mm": 7.24,
+   "fitted_rms_mm": 1.831,
+   "held_out_axis_rms_mm": 1.877,
+   "scrambled_signs_rms_mm": 7.187,
+   "removed_pct": 74.1
+  },
+  "right": {
+   "eps_rad": 0.00533836,
+   "eps_deg": 0.30587,
+   "identity_rms_mm": 7.215,
+   "fitted_rms_mm": 1.675,
+   "held_out_axis_rms_mm": 1.719,
+   "scrambled_signs_rms_mm": 7.164,
+   "removed_pct": 76.2
+  }
+ },
+ "primary_model": "joint_terminal",
+ "primary_model_note": "One EPS per arm: every joint parks EPS radians short of its target, on the side it came from. Compensation is to overshoot each joint by EPS in the direction of travel, which needs no Cartesian matrix, no direction basis and no step length -- so unlike the 3x3 it is usable for any move. The Cartesian tiers below are kept because they are what the error looks like from outside, and because the 3x3's 93 mm axis hold-out is the evidence that a Cartesian fit to six axis-aligned directions cannot be trusted off them.",
+ "model": "linear3x3",
+ "model_choice_note": "affine fits better and predicts worse -- the bias term is fitting noise. Recorded so it is not re-tried.",
+ "what_is_and_is_not_validated": {
+  "validated": "the map is stable ACROSS SPEED: fit on two speeds, predict the third, error falls from 7.2 mm to about 1.0 mm on both arms. Speed was varied independently and nothing structural leaks.",
+  "NOT_validated": "that the map holds for an OFF-AXIS direction. The six measured directions are +/-X, +/-Y, +/-Z -- exactly a basis, with no redundancy -- so a 3x3 matrix can absorb any relabelling of them. Proof: permuting which direction's result belongs to which command gives an IDENTICAL leave-one-direction-out score, and leave-one-AXIS-out is about 93 mm. Fixing this needs off-axis directions in the sweep, which is already the first item of THE FOUR THINGS TO BUILD in docs/NEXT_SESSION_2026_08_22.md."
+ },
+ "validity_domain": {
+  "step_m": 0.1,
+  "directions": [
+   "+X",
+   "+Y",
+   "+Z",
+   "-X",
+   "-Y",
+   "-Z"
+  ],
+  "start_ee_per_arm": {
+   "left": [
+    0.744244,
+    0.338694,
+    1.179906
+   ],
+   "right": [
+    -0.735758,
+    0.341343,
+    1.179785
+   ]
+  },
+  "WARNING": "every run is a 100 mm step from ONE start pose along ONE of six axis directions. The map is measured at a single point of the workspace at a single step length and is NOT known to hold elsewhere. srl_teleop.sim_to_real_gap refuses outside this domain rather than extrapolating."
+ },
+ "controls_passed": true
+}

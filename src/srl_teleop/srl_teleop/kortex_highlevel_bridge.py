@@ -124,7 +124,29 @@ class KortexHighLevelBridge(Node):
         self.declare_parameter("rate_hz", 30.0)
         self.declare_parameter("kp", 0.5)
         self.declare_parameter("vmax_rad_s", 0.05)
-        self.declare_parameter("deadband_deg", 1.0)
+        # THE DEADBAND, AND WHY IT IS NO LONGER 1.0 DEG.
+        #
+        # Inside the deadband the proportional term is switched off, so the
+        # only thing that can close the last fraction of a degree is the
+        # integrator. Measured on the rig 2026-08-21 over 36 runs and both
+        # arms: joints park **0.305 deg** from target, bimodal at +/- that
+        # value with the sign a coin flip -- 211 of 252 samples sit at the
+        # bound. That is a joint stopping just inside a band, on the side it
+        # arrived from, and it costs 7.2 mm at the end effector on every
+        # move. See scripts/measure_sim_to_real_gap.py.
+        #
+        # 1.0 deg is 3.3x wider than the residual it leaves behind, so the
+        # band the correction is suppressed in is much larger than the error
+        # the suppression causes. 0.10 deg keeps the proportional term alive
+        # through the region the arm was actually parking in.
+        #
+        # THE DEADBAND'S REAL JOB IS UNCHANGED: stop the joint dithering
+        # against encoder noise. The measurement says the arm was not
+        # dithering at 0.3 deg, it was parked -- a limit cycle looks like a
+        # spread, and this is a bound. But the value has NOT been tried on
+        # hardware, so it is a live parameter and the first real session must
+        # watch for dither and raise it if it appears.
+        self.declare_parameter("deadband_deg", 0.10)
         self.declare_parameter("watchdog_s", 0.5)
         # Full travel of the driven knuckle in radians, matching
         # fsr_gripper_node's CLOSED_RAD. The Kortex gripper takes a
@@ -137,6 +159,26 @@ class KortexHighLevelBridge(Node):
         self.declare_parameter("gripper_min_delta", 0.02)
         self.declare_parameter("gripper_enabled", True)
         self.declare_parameter("report_every_s", 5.0)
+        # TERMINAL OVERSHOOT COMPENSATION.
+        #
+        # The measured fix for what the deadband change above is the cause
+        # of, applied at the setpoint rather than in the gains: command each
+        # joint EPS past its target in the direction it is travelling, so
+        # that a joint which parks EPS short parks ON the target.
+        #
+        # Belt and braces on purpose. The deadband change should make this
+        # unnecessary and it has not been tried on hardware; this one is
+        # arithmetic on a setpoint and is trivially reversible. Both are
+        # live parameters, so the first session can measure with each on and
+        # off and keep whichever wins -- which is the measurement that
+        # settles it, and it takes four runs.
+        #
+        # DEFAULT OFF. Two corrections for one error is one too many, and
+        # with the deadband narrowed the residual may already be gone.
+        # Turning this on without re-measuring would just move the error to
+        # the other side.
+        self.declare_parameter("terminal_overshoot", False)
+        self.declare_parameter("terminal_overshoot_rad", 0.0)
 
         self.arm = self.get_parameter("arm").value
         self.ns = self.get_parameter("real_ns").value.rstrip("/")
@@ -170,6 +212,35 @@ class KortexHighLevelBridge(Node):
         self.add_on_set_parameters_callback(self._on_param)
         self.deadband = math.radians(
             float(self.get_parameter("deadband_deg").value))
+        # The overshoot, and where its size comes from. `terminal_overshoot_rad`
+        # of 0 means "use the MEASURED value for this arm", so the number in
+        # the loop is the one in recordings/baselines/sim_to_real_gap.json and
+        # not a second copy that can drift from the measurement.
+        self.overshoot_on = bool(
+            self.get_parameter("terminal_overshoot").value)
+        self.overshoot = float(
+            self.get_parameter("terminal_overshoot_rad").value)
+        if self.overshoot_on and self.overshoot <= 0.0:
+            try:
+                from srl_teleop import sim_to_real_gap as _stg
+                self.overshoot = _stg.eps_rad(self.arm)
+                self.get_logger().info(
+                    "terminal overshoot ON at the MEASURED %.4f deg for the "
+                    "%s arm" % (math.degrees(self.overshoot), self.arm))
+            except Exception as e:                          # noqa: BLE001
+                # REFUSE, do not fall back to zero. "On but doing nothing" is
+                # the worst of the three states: the log says compensated and
+                # the arm is not.
+                raise SystemExit(
+                    "terminal_overshoot is on but the measured value could "
+                    "not be loaded (%s). Either run "
+                    "scripts/measure_sim_to_real_gap.py, or set "
+                    "terminal_overshoot_rad explicitly. Refusing to run "
+                    "'on' with an overshoot of zero." % e)
+        # NOT `_prev_target` -- that name is already the feed-forward's own
+        # previous setpoint and reusing it would silently couple the
+        # overshoot to the velocity estimate.
+        self._overshoot_prev = None
         self.watchdog = float(self.get_parameter("watchdog_s").value)
         self.report_every = float(self.get_parameter("report_every_s").value)
 
@@ -344,6 +415,26 @@ class KortexHighLevelBridge(Node):
         closed = float(self.get_parameter("gripper_closed_rad").value)
         self._grip_target = max(0.0, min(1.0, rad / max(1e-6, closed)))
 
+    def _overshoot(self, target):
+        """`target`, each joint pushed EPS further in the direction it is
+        travelling. A joint moving less than EPS is left alone: "the way it
+        was going" is not defined for a joint that was not going anywhere.
+
+        Applied to the SETPOINT, so it is visible in the commanded stream and
+        a divergence display comparing sim to real sees the overshoot rather
+        than being surprised by it.
+        """
+        if not self.overshoot_on or self.overshoot <= 0.0:
+            return target
+        prev = self._overshoot_prev
+        self._overshoot_prev = list(target)
+        if prev is None:
+            return target
+        d = pose_delta_rad(target, prev, CONTINUOUS_IDX)
+        return [t + (self.overshoot if s > 0 else -self.overshoot)
+                if abs(s) > self.overshoot else t
+                for t, s in zip(target, d)]
+
     def _send_gripper(self):
         """Push the gripper target on the EXISTING session. Never opens one.
 
@@ -494,6 +585,16 @@ class KortexHighLevelBridge(Node):
                 t_age = time.monotonic() - self._target_t
                 estopped = self._estopped
                 commanding = self._commanding
+
+            # THE OVERSHOOT IS APPLIED HERE, to the setpoint the control law
+            # then chases -- not to the speed it computes. A joint that parks
+            # EPS short of an overshot target parks on the real one.
+            #
+            # Applied AFTER the lock and BEFORE anything reads `target`, so
+            # there is exactly one place it happens and no path around it.
+            # It is a no-op when the parameter is off, which is the default.
+            if target is not None:
+                target = self._overshoot(target)
 
             reason = None
             if estopped:

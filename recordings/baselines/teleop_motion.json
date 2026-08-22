@@ -1,0 +1,242 @@
+{
+  "arms": {
+    "left": {
+      "arm": "left",
+      "dt_s": 0.02,
+      "generators": {
+        "clamp_towards": {
+          "accel_step_frac_of_jerk_dt": 1342.8346343908904,
+          "arrival_cycles": [
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "cycles": 2,
+          "jerk_limited": false,
+          "note": "per-joint clamp, max_step 0.35 rad",
+          "off_path_max_mm": 51.322697217039824,
+          "off_path_mean_mm": 23.71864441186131,
+          "peak_velocity_frac_of_limit": 12.533123254314978,
+          "same_cycle_max_mm": 135.2681113442674,
+          "same_cycle_mean_mm": 45.089370448089134,
+          "synchronised": false,
+          "velocity_limits_respected": false
+        },
+        "ruckig": {
+          "accel_step_frac_of_jerk_dt": 1.0000000000000013,
+          "arrival_cycles": [
+            36,
+            36,
+            36,
+            36,
+            36,
+            36,
+            36
+          ],
+          "cycles": 36,
+          "jerk_limited": true,
+          "note": "ruckig, phase-synchronised, 1 re-plan(s)",
+          "off_path_max_mm": 9.415183682206292e-09,
+          "off_path_mean_mm": 4.371431375467789e-09,
+          "peak_velocity_frac_of_limit": 0.9999269796063116,
+          "same_cycle_max_mm": 69.80126783287044,
+          "same_cycle_mean_mm": 41.58511474471315,
+          "synchronised": true,
+          "velocity_limits_respected": true
+        },
+        "synchronised-clamp": {
+          "accel_step_frac_of_jerk_dt": 62.49999999999999,
+          "arrival_cycles": [
+            18,
+            18,
+            18,
+            18,
+            18,
+            18,
+            18
+          ],
+          "cycles": 19,
+          "jerk_limited": false,
+          "note": "the fallback: one scale factor for the vector",
+          "off_path_max_mm": 9.415183682206292e-09,
+          "off_path_mean_mm": 4.7408205198964e-09,
+          "peak_velocity_frac_of_limit": 1.0000000000000002,
+          "same_cycle_max_mm": 22.742084097985227,
+          "same_cycle_mean_mm": 11.402440014267672,
+          "synchronised": true,
+          "velocity_limits_respected": true
+        }
+      },
+      "limit_provenance": {
+        "acceleration": "ASSUMED: v_max / 0.25 s. joint_limits.yaml declares has_acceleration_limits: false",
+        "jerk": "ASSUMED: a_max / 0.10 s",
+        "velocity": "joint_limits.yaml"
+      },
+      "max_step_rad": 0.35,
+      "slew_rad": [
+        0.5,
+        -0.3,
+        0.1,
+        0.25,
+        -0.05,
+        0.15,
+        0.02
+      ],
+      "start_rad": [
+        1.1568042282218416,
+        0.9826203688728075,
+        2.2322761133007476,
+        -1.6461945504810516,
+        -2.68396732371688,
+        -1.1241665712095477,
+        -0.11938052083641214
+      ],
+      "velocity_limits_rad_s": [
+        1.3963,
+        1.3963,
+        1.3963,
+        1.3963,
+        1.2218,
+        1.2218,
+        1.2218
+      ]
+    },
+    "right": {
+      "arm": "right",
+      "dt_s": 0.02,
+      "generators": {
+        "clamp_towards": {
+          "accel_step_frac_of_jerk_dt": 1342.8346343908904,
+          "arrival_cycles": [
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "cycles": 2,
+          "jerk_limited": false,
+          "note": "per-joint clamp, max_step 0.35 rad",
+          "off_path_max_mm": 39.23062400128508,
+          "off_path_mean_mm": 18.275954184873676,
+          "peak_velocity_frac_of_limit": 12.533123254314978,
+          "same_cycle_max_mm": 74.96794031649124,
+          "same_cycle_mean_mm": 24.98931343883049,
+          "synchronised": false,
+          "velocity_limits_respected": false
+        },
+        "ruckig": {
+          "accel_step_frac_of_jerk_dt": 1.0000000000000013,
+          "arrival_cycles": [
+            36,
+            36,
+            36,
+            36,
+            36,
+            36,
+            36
+          ],
+          "cycles": 36,
+          "jerk_limited": true,
+          "note": "ruckig, phase-synchronised, 1 re-plan(s)",
+          "off_path_max_mm": 7.518968234813526e-09,
+          "off_path_mean_mm": 3.312267604859914e-09,
+          "peak_velocity_frac_of_limit": 0.9999269796063116,
+          "same_cycle_max_mm": 54.798427148314616,
+          "same_cycle_mean_mm": 31.623953921864867,
+          "synchronised": true,
+          "velocity_limits_respected": true
+        },
+        "synchronised-clamp": {
+          "accel_step_frac_of_jerk_dt": 62.49999999999999,
+          "arrival_cycles": [
+            18,
+            18,
+            18,
+            18,
+            18,
+            18,
+            18
+          ],
+          "cycles": 19,
+          "jerk_limited": false,
+          "note": "the fallback: one scale factor for the vector",
+          "off_path_max_mm": 7.51932247571733e-09,
+          "off_path_mean_mm": 3.6124191627950828e-09,
+          "peak_velocity_frac_of_limit": 1.0000000000000002,
+          "same_cycle_max_mm": 18.07195684464323,
+          "same_cycle_mean_mm": 8.784705709435169,
+          "synchronised": true,
+          "velocity_limits_respected": true
+        }
+      },
+      "limit_provenance": {
+        "acceleration": "ASSUMED: v_max / 0.25 s. joint_limits.yaml declares has_acceleration_limits: false",
+        "jerk": "ASSUMED: a_max / 0.10 s",
+        "velocity": "joint_limits.yaml"
+      },
+      "max_step_rad": 0.35,
+      "slew_rad": [
+        0.5,
+        -0.3,
+        0.1,
+        0.25,
+        -0.05,
+        0.15,
+        0.02
+      ],
+      "start_rad": [
+        2.130174352059079,
+        -0.9176941206986184,
+        1.0395181024878226,
+        -1.640260431024271,
+        2.793923066592523,
+        -0.6974335690969341,
+        2.792003204415329
+      ],
+      "velocity_limits_rad_s": [
+        1.3963,
+        1.3963,
+        1.3963,
+        1.3963,
+        1.2218,
+        1.2218,
+        1.2218
+      ]
+    }
+  },
+  "case": "left/right home + [0.5, -0.3, 0.1, 0.25, -0.05, 0.15, 0.02], 50 Hz",
+  "clamp_step_sweep_left": {
+    "0.01": {
+      "cycles": 50,
+      "off_path_max_mm": 67.97874466813704
+    },
+    "0.02": {
+      "cycles": 25,
+      "off_path_max_mm": 67.97874466813704
+    },
+    "0.05": {
+      "cycles": 10,
+      "off_path_max_mm": 67.97874466813704
+    },
+    "0.10": {
+      "cycles": 5,
+      "off_path_max_mm": 67.9787446681369
+    },
+    "0.20": {
+      "cycles": 3,
+      "off_path_max_mm": 34.43283131291081
+    },
+    "0.35": {
+      "cycles": 2,
+      "off_path_max_mm": 51.322697217039824
+    }
+  },
+  "grasp_gate_mm": 30.0
+}

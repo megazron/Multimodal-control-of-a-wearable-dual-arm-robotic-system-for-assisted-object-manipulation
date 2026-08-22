@@ -95,7 +95,19 @@ class PolicyError(ValueError):
 
 
 def normalise(policy=None, cone_deg=None):
-    """(policy, cone_rad). Raises rather than guessing.
+    """(policy, cone_RADIANS). Raises rather than guessing.
+
+    THE UNIT CHANGES ON THE WAY OUT AND THAT HAS BITTEN. This takes DEGREES
+    and returns RADIANS, while `describe()` and `candidates()` -- its two
+    siblings -- both take DEGREES. `describe(*normalise("cone", 15.0))`
+    therefore prints "within a 0 deg cone", which is what
+    `scripts/verify_t1.py` printed on 2026-08-23 while correctly solving
+    inside a 15 deg one. The value was right and the sentence was wrong,
+    which is the worse way round.
+
+    `ik_follower_node` does not hit it -- it discards this radian value and
+    keeps the degrees parameter -- but nothing said why. Callers that want a
+    sentence should pass the DEGREES they started with.
 
     `cone_deg` of 0 under CONE is EXACT and is returned as EXACT, so a caller
     that sets a tolerance of zero gets the strict path and not a cone search

@@ -1,0 +1,13 @@
+{
+ "mode": "06_full_autonomy",
+ "task": "t1",
+ "scenario": "S1_both_arms_centre",
+ "grab_t0": 1787097334.4098928,
+ "grab_t1": 1787097373.4655333,
+ "card_hold_s": 6.0,
+ "look_s": 133.6554820537567,
+ "instruction": "put every cube on the pad of its own colour",
+ "seed": 3,
+ "ok": true,
+ "msg": "run exited 0"
+}

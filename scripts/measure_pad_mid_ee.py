@@ -33,6 +33,37 @@ other; moving it would move every coordinate in those three tasks and every
 scene that draws them, which is a re-derivation and not a fix. What it means is
 that in those tasks the declared coordinate is 13.45 mm from where the object
 is drawn and grasped, and that is now written down instead of unknown.
+
+=============================================================================
+2026-08-23: BOTH NUMBERS ABOVE ARE RIGHT, AND THE COMPARISON BETWEEN THEM WAS
+NOT. THE PAD MIDPOINT IS NOT A CONSTANT.
+=============================================================================
+The Robotiq 85 is a FOUR-BAR LINKAGE. Its fingers swing; they do not
+translate. So the distance from the wrist to the midpoint of the finger tips
+is a function of HOW OPEN THE HAND IS, and every number above was measured at
+one unstated opening. Measured here through the URDF's own mimic chain
+(`--by-width`):
+
+    knuckle 0.0000 rad, span 135.5 mm (WIDE OPEN)   0.09833 m
+    knuckle 0.4235 rad, span  93.3 mm (a 40 mm cube) 0.10976 m
+    knuckle 0.6118 rad, span  ~52 mm  (a 20 mm object) 0.11179 m
+
+The 0.09833 that replaced the 0.11178 in 2026-08-18 is the WIDE OPEN hand.
+The 0.11178 it replaced is the hand almost shut. Neither is where the pads are
+when they close on T1's 40 mm cube, which is 0.10976 -- **11.43 mm** beyond
+the constant every T1 grasp has been built on since.
+
+AND IT EXPLAINS WHY THE CHECK FLIPPED. `verify_t1.py` reads the finger tips
+out of FK at whatever opening the simulation's gripper happens to be left at.
+On 2026-08-18 that was the open hand and the pad miss read 0.00 mm; on
+2026-08-23 it was a nearly shut hand and the same check on the same geometry
+read 13.52 mm. A measurement whose answer depends on leftover state is not a
+measurement, and this one had been quoted as the evidence for the constant.
+
+So the quantity is `pad_mid_ee_for(width_mm)`, a table measured through the
+linkage, and the opening has to be stated with the number. `--by-width` writes
+it; `grasp_frames.pad_mid_ee_for` reads it; the fully-open row reproduces the
+0.09833 above, which is the control that says the two instruments agree.
 """
 import json
 import os
@@ -56,7 +87,96 @@ from srl_teleop import master_calibration as MC                # noqa: E402
 OUT = os.path.join(ROOT, "recordings/baselines/pad_mid_ee.json")
 
 
+BY_WIDTH_OUT = os.path.join(ROOT,
+                            "recordings/baselines/pad_mid_ee_by_width.json")
+
+# The widths worth tabulating: every object this rig is asked to grasp, plus
+# the ends of the range so an interpolation is never an extrapolation.
+WIDTHS_MM = (0, 10, 20, 30, 40, 50, 60, 70, 80, 85)
+
+
+def measure_by_width(verbose=True):
+    """The pad midpoint at each gripper opening, from the URDF's own linkage.
+
+    OFFLINE. `scripts/srl_fk.py` walks the URDF, including the Robotiq's mimic
+    joints, so this needs no stack and cannot be perturbed by whatever opening
+    a running simulation was left at -- which is precisely the fault it exists
+    to remove.
+    """
+    sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    sys.path.insert(0, os.path.join(ROOT, "src/srl_teleop"))
+    from srl_fk import FK as OfflineFK, compiled_matches_urdf
+    from srl_teleop import gripper_state as GS
+    import numpy as _np
+
+    # THE INSTRUMENT FIRST. srl_fk's own control, before any of its answers
+    # are written to a baseline.
+    if not compiled_matches_urdf(verbose=False):
+        raise SystemExit("REFUSING: srl_fk disagrees with itself; see its "
+                         "own control. No table written.")
+    fk = OfflineFK()
+    rows, ctl = [], {}
+    for arm in ("left", "right"):
+        per = []
+        for w in WIDTHS_MM:
+            kn = 0.0 if w >= 85 else float(GS.grip_for(w))
+            kn = float(GS.grip_for(w)) if w > 0 else 0.0
+            P = fk.poses(arm, [0.0] * 7,
+                         ["end_effector_link",
+                          "robotiq_85_left_finger_tip_link",
+                          "robotiq_85_right_finger_tip_link"], gripper=kn)
+            ee, a, b = P[0][:3, 3], P[1][:3, 3], P[2][:3, 3]
+            R = P[0][:3, :3]
+            mid_ee = R.T @ ((a + b) / 2.0 - ee)
+            per.append(dict(width_mm=w, knuckle_rad=round(kn, 6),
+                            span_mm=round(float(_np.linalg.norm(a - b)) * 1000, 2),
+                            pad_mid_ee=[round(float(v), 6) for v in mid_ee],
+                            along_axis_m=round(float(mid_ee[2]), 6),
+                            off_axis_mm=round(float(_np.linalg.norm(mid_ee[:2]))
+                                              * 1000, 4)))
+        rows.append((arm, per))
+    left = {r["width_mm"]: r for r in rows[0][1]}
+    right = {r["width_mm"]: r for r in rows[1][1]}
+    # CONTROLS, and the report is refused if one fails.
+    ctl["open_hand_reproduces_PAD_MID_EE"] = (
+        abs(left[0]["along_axis_m"] - 0.09833) < 1e-4)
+    ctl["the_two_arms_agree"] = all(
+        abs(left[w]["along_axis_m"] - right[w]["along_axis_m"]) < 1e-6
+        for w in WIDTHS_MM)
+    ctl["the_pad_stays_on_the_tool_axis"] = all(
+        r["off_axis_mm"] < 0.2 for r in rows[0][1])
+    # IT MUST MOVE, or there is nothing to tabulate.
+    ctl["the_opening_changes_it"] = (
+        abs(left[40]["along_axis_m"] - left[0]["along_axis_m"]) > 0.005)
+    res = dict(controls=ctl, widths_mm=list(WIDTHS_MM),
+               arms={"left": rows[0][1], "right": rows[1][1]},
+               note=("pad midpoint in the END EFFECTOR frame at the gripper "
+                     "opening grip_for(width). Measured offline from the URDF "
+                     "through the Robotiq's mimic chain; needs no stack, so "
+                     "it cannot be perturbed by leftover gripper state."))
+    if verbose:
+        print("PAD MIDPOINT vs GRIPPER OPENING (left arm, from the URDF)")
+        print("  %6s %10s %9s %12s" % ("object", "knuckle", "span", "along axis"))
+        for r in rows[0][1]:
+            print("  %4d mm %8.4f %7.1f mm %10.5f m"
+                  % (r["width_mm"], r["knuckle_rad"], r["span_mm"],
+                     r["along_axis_m"]))
+        print("\nCONTROLS")
+        for k, v in ctl.items():
+            print("  %-38s %s" % (k, "OK" if v else "*** FAILED ***"))
+    if not all(ctl.values()):
+        raise SystemExit("REFUSING to write the table: a control failed.")
+    os.makedirs(os.path.dirname(BY_WIDTH_OUT), exist_ok=True)
+    json.dump(res, open(BY_WIDTH_OUT, "w"), indent=2, sort_keys=True)
+    if verbose:
+        print("\n-> %s" % BY_WIDTH_OUT)
+    return res
+
+
 def main():
+    if "--by-width" in sys.argv:
+        measure_by_width()
+        return 0
     rclpy.init()
     n = Solver()
     n.spin(8.0)

@@ -41,6 +41,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 for p in (HERE, os.path.join(ROOT, "config"),
           os.path.join(ROOT, "src/srl_teleop"),
+          os.path.join(ROOT, "src/srl_experiments/experiments/abc"),
           os.path.join(ROOT, "src/srl_perception")):
     if p not in sys.path:
         sys.path.insert(0, p)
@@ -50,6 +51,38 @@ OUT = os.path.join(ROOT, "recordings/baselines/control_budget.json")
 # The tolerances everything has to fit inside.
 GRASP_GATE_M = 0.030          # what a pad miss must stay under
 FLOOR_M = 0.150               # participant_safety_node's clearance floor
+
+def _pad_offset_disagreement():
+    """How far the pads land from the coordinate a task DECLARES, in mm.
+
+    Read from the two constants rather than quoted, so this row follows the
+    code. Returns (millimetres, the sentence that explains it).
+    """
+    import clip_tasks as _ct
+    import grasp_frames as _gf
+    from srl_teleop import master_calibration as _mc
+    worst, arm_worst = 0.0, None
+    for arm in ("left", "right"):
+        q = np.asarray(_mc.WORKSPACE_ORIENT[arm], float)
+        R = _gf.q_matrix(q / np.linalg.norm(q))
+        obj = np.array([0.40, 0.175, 1.12])
+        pads = np.asarray(_ct.ee_for(list(obj), arm), float) + R @ np.asarray(
+            _gf.PAD_MID_EE)
+        d = float(np.linalg.norm(pads - obj)) * 1000.0
+        if d > worst:
+            worst, arm_worst = d, arm
+    if worst < 1.0:
+        note = ("PAD_OFFSET_BY_ARM is DERIVED from the FK-measured "
+                "PAD_MID_EE since 2026-08-23, so the pads land on the "
+                "declared coordinate; what is left (%s arm) is the 0.1 mm "
+                "grid ee_for rounds to. It was 13.45 mm." % arm_worst)
+    else:
+        note = ("the pads land %.2f mm from the coordinate the task declares "
+                "(%s arm). PAD_OFFSET_BY_ARM and grasp_frames.PAD_MID_EE "
+                "disagree; they are meant to be one constant."
+                % (worst, arm_worst))
+    return round(worst, 2), note
+
 
 # ASSUMPTIONS, LABELLED AS SUCH. These are the only numbers here that are not
 # measured on this rig, and they are literature ranges rather than a value.
@@ -128,11 +161,20 @@ def positioning_budget():
     # f) the pinned wrist -- not an error but a constraint that forces a
     #    different pose, and the anchor is 13.45 mm from where objects are
     #    drawn in three of the tasks.
-    rows.append(("declared vs measured pad offset (T0, T2, T3)", 13.45, True,
-                 "PAD_OFFSET_BY_ARM is 13.45 mm longer than the FK-measured "
-                 "0.09833 m and is deliberately unchanged, so task and "
-                 "picture agree -- but the declared coordinate is that far "
-                 "from where the object is grasped"))
+    # MEASURED FROM THE CONSTANTS, NOT QUOTED. This row read a hardcoded
+    # 13.45 mm, which was correct on the day it was written and would have
+    # stayed in the budget unchanged after the defect was fixed -- a budget
+    # that cannot notice its own repair is a budget nobody can act on.
+    #
+    # `clip_tasks.PAD_OFFSET_BY_ARM` was two hand-recorded world vectors
+    # 13.45/13.51 mm longer than `grasp_frames.PAD_MID_EE`, the FK
+    # measurement, so the pads landed that far SHORT of every declared object
+    # in T0, T2 and T3. It is derived from that measurement as of 2026-08-23
+    # and this row now computes what is actually left, which is the 0.1 mm
+    # grid `ee_for` rounds its coordinates to.
+    pad_mm, pad_note = _pad_offset_disagreement()
+    rows.append(("declared vs measured pad offset (T0, T2, T3)", pad_mm, True,
+                 pad_note))
     return rows
 
 
@@ -362,19 +404,34 @@ def self_test(verbose=True):
     check("the budget names an UNMEASURED term rather than estimating it",
           any(r[1] is None for r in rows),
           "; ".join(r[0] for r in rows if r[1] is None))
-    # THE ORDERING SURPRISED ME AND THE ASSERTION WAS WRONG FIRST. I claimed
-    # the terminal joint error (7.2 mm) was the biggest term; the declared
-    # pad offset (13.45 mm) is. What is TRUE and worth asserting is that
-    # every large term is SYSTEMATIC -- so the RSS understates the real
-    # error and the worst case is the figure to design to.
+    # THE ORDERING SURPRISED ME AND THE ASSERTION WAS WRONG TWICE.
+    #
+    # First I claimed the terminal joint error (7.2 mm) was the biggest term;
+    # the declared pad offset (13.45 mm) was. Then the pad offset was FIXED on
+    # 2026-08-23 and dropped to 0.05 mm, and this control fired again --
+    # correctly -- because the third-biggest term is now `depth noise`, which
+    # is RANDOM. That is the instrument noticing its own subject changed,
+    # which is what it is for.
+    #
+    # What is true and worth asserting is the TWO biggest: while the largest
+    # terms are systematic the RSS understates the real error and the worst
+    # case is the figure to design to. When they stop being systematic, that
+    # advice changes, and this control is what would say so.
     top = sorted((r for r in rows
                   if r[1] is not None and not r[0].startswith("  ")),
-                 key=lambda r: -r[1])[:3]
-    check("the three biggest measured terms are all systematic",
+                 key=lambda r: -r[1])[:2]
+    check("the two biggest measured terms are systematic",
           all(r[2] for r in top),
           "; ".join("%s %.1f mm" % (r[0][:28], r[1]) for r in top))
-    check("the terminal joint error is among the three biggest",
+    check("the terminal joint error is among the two biggest",
           any(r[0].startswith("terminal joint error") for r in top))
+    # AND THE PAD ROW FOLLOWS THE CONSTANTS RATHER THAN QUOTING THEM. If the
+    # derivation in `clip_tasks` is ever reverted, this row goes back to
+    # ~13.45 mm on its own and the budget says so without anyone editing it.
+    pad = [r for r in rows if r[0].startswith("declared vs measured pad")][0]
+    check("the pad-offset row is computed, not quoted",
+          pad[1] < 1.0 and "DERIVED" in pad[3],
+          "%.2f mm -- %s" % (pad[1], pad[3][:70]))
 
     try:
         _load("recordings/baselines/does_not_exist.json")

@@ -46,13 +46,13 @@
   },
   {
    "term": "declared vs measured pad offset (T0, T2, T3)",
-   "mm": 13.45,
+   "mm": 0.05,
    "systematic": true,
-   "note": "PAD_OFFSET_BY_ARM is 13.45 mm longer than the FK-measured 0.09833 m and is deliberately unchanged, so task and picture agree -- but the declared coordinate is that far from where the object is grasped"
+   "note": "PAD_OFFSET_BY_ARM is DERIVED from the FK-measured PAD_MID_EE since 2026-08-23, so the pads land on the declared coordinate; what is left (left arm) is the 0.1 mm grid ee_for rounds to. It was 13.45 mm."
   }
  ],
- "positioning_rss_mm": 18.644304760435556,
- "positioning_worst_mm": 33.39,
+ "positioning_rss_mm": 12.911626543545937,
+ "positioning_worst_mm": 19.990000000000002,
  "reaction": [
   {
    "motion": "a deliberate reach",

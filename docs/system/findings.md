@@ -6651,3 +6651,187 @@ exactly one assignment.
   under the generator it LOWERS the velocity limit instead, which also makes
   the ramp jerk-limited. Same intent, different mechanism, unmeasured on an
   arm.
+
+---
+
+# 2026-08-23 (later) — the accuracy pass: a constant that was a curve, and six verifiers asking the wrong question
+
+Asked to improve the accuracy as far as it would go and then check that
+everything works. The error budget in `scripts/measure_control_budget.py` was
+the map, and every term it named turned out to be worth chasing.
+
+    RSS of the measured terms   18.64 mm  ->  12.91 mm
+    WORST CASE (they add)       33.39 mm  ->  19.99 mm   against a 30 mm gate
+
+The worst case is inside the capture gate for the first time.
+
+## 1. THE PAD MIDPOINT IS NOT A CONSTANT. IT IS A FUNCTION OF THE OPENING
+
+**The Robotiq 85 is a four-bar linkage: its fingers SWING, they do not
+translate.** So the distance from the wrist to the midpoint of the finger tips
+depends on how open the hand is. Measured from the URDF's own mimic chain by
+`scripts/measure_pad_mid_ee.py --by-width`, offline:
+
+| the hand | knuckle | tip span | pad from wrist |
+| --- | --- | --- | --- |
+| wide open | 0.0000 | 135.5 mm | **0.09833 m** |
+| on a 40 mm cube | 0.4235 | 93.3 mm | **0.10976 m** |
+| on a 20 mm object | 0.6118 | 72.2 mm | **0.11179 m** |
+
+**Both numbers this repository has argued about are points on that curve.**
+`clip_tasks.PAD_OFFSET_BY_ARM` had magnitude 0.11178 — the hand almost shut.
+`grasp_frames.PAD_MID_EE` is 0.09833 — the hand wide open. The 2026-08-18 note
+calls the first "13.47 mm too long" against the second and treats the
+difference as an error in one of them. Neither was wrong. They are two gripper
+states, and the quantity was compared as though it did not have one.
+
+**T1's grasp has been built on the open-hand value ever since, so the wrist
+sits 11.43 mm too close and the fingers close past the cube's centre.**
+
+### And it explains why the evidence flipped
+
+`verify_t1.py` reads the finger tips out of `/compute_fk`, which uses the
+simulation's CURRENT gripper joints — whatever the last thing to touch the
+hand left them at. On 2026-08-18 that was an open hand and the pad miss read
+0.00 mm, which is the measurement quoted as the evidence for the constant. On
+2026-08-23, same geometry, same code, it read **13.52 mm**, because the hand
+was nearly shut. A measurement whose answer depends on leftover state.
+
+Both sides are fixed. `grasp_frames.pad_mid_ee_for(width_mm)` is the table;
+`t1_task.ee_for` builds the grasp at the opening its 40 mm cube needs; and
+`verify_t1` reads the tips through `srl_fk` at a STATED opening instead of
+through the live stack. T1's pad miss at zero tilt is now 0.0000 mm by
+construction, and the measured miss went **13.52 → 9.58 mm** — what is left is
+the tilt, below.
+
+### The instrument could not do it before
+
+`scripts/srl_fk.py` set every gripper joint to 0.0 and ignored the Robotiq's
+`mimic` tags entirely, so the finger tips — the only part of the robot that
+touches anything — could not be placed anywhere except one arbitrary opening.
+It walks the mimic chain now and takes a `gripper=` angle.
+
+## 2. THE DECLARED PAD OFFSET, 13.45 mm, AND WHY IT WAS INVISIBLE
+
+`clip_tasks.PAD_OFFSET_BY_ARM` is DERIVED from the measurement now rather than
+hand-recorded, so T0, T2 and T3 put their pads on the coordinate they declare:
+**13.45 mm → 0.05 mm**, which is the 0.1 mm grid `ee_for` rounds to.
+
+It was invisible because it cancelled: `clip_scene` DRAWS each object at
+`ee_for(obj) + the same offset`, so the picture was right whatever the
+constant was. What did not cancel is where the fingers went.
+
+Re-verified because moving three tasks' coordinates is exactly the kind of
+change that is fine until it is not — `verify_msc_tasks`, N=10, both arms,
+each task's own furniture, every clip waypoint the recorder drives:
+**6024 IK calls, 0 failures**.
+
+## 3. THE SHELL BIAS WAS FIXED IN THE SCENE READER AND NOT IN THE PICK PATH
+
+`table_scene` has corrected it since 2026-08-21. `grasp_pipeline.plan_grasp`
+— the function `find_object.py` and the recording path actually plan grasps
+with — never had it: 10.5 mm in the budget, and two readers of the same scene
+disagreeing. One `shell_corrected_centre` now, in `rgbd_grasp`, used by both.
+
+Without a support height the plan SAYS the centre is the shell's rather than
+reporting a biased number as a measurement, and an object whose top is below
+the surface it is said to rest on is REFUSED rather than corrected into
+nonsense. The test records the assumption the correction really rests on: the
+TOP has to be observed, and with the top third unseen the centre reads 10 mm
+low.
+
+**T1 uses its plane instead of only gating on it.** `vision_grasp` had already
+established that an accepted detection is a cube RESTING on the work plane;
+its centre is then at `T1_Z` exactly, while the deprojected z is that same
+quantity through a depth pixel, an intrinsic, a TF lookup and a half-a-cube
+ray correction the function itself calls approximate. The snap runs AFTER the
+gate — a cube off the plane is still rejected and named — and x and y are
+untouched.
+
+## 4. SIX VERIFIERS WERE ASKING A QUESTION THE ROBOT DOES NOT ASK
+
+This is the "check that everything works" half, and almost everything that
+looked broken was the instrument.
+
+### 4a. `verify_msc_tasks.py` had not run since T1 became two-armed
+
+It read `msc_clip_tasks.T1_ARM`, which was deleted when T1 moved to both arms
+on 2026-08-16, and has **raised AttributeError on import ever since**. It did
+not verify T1 wrongly; it did not run at all, and nothing said so. It is the
+second time this file has held its own stale copy of T1's layout. T1 is
+verified by `verify_t1.py` now and this file REFUSES BY NAME if a T1 layout is
+reintroduced.
+
+### 4b. The verifiers solve at the HOME wrist, not the anchor the tasks command
+
+`run_abc.send()` writes `master_calibration.WORKSPACE_ORIENT` into every
+waypoint. Around twenty scripts read `Solver.ee_quat()` — the live home wrist
+— and call it the anchor. Measured on 2026-08-23 against the shipped home:
+
+    left  42.94 deg apart      right  27.29 deg apart
+
+CLAUDE.md already records this fault and it was fixed in
+`measure_what_binds.Rig` on 2026-08-17 **and nowhere else**. What it costs,
+measured with A/B/C's own furniture applied: task A's own pick solves **10 of
+10 at the anchor and 0 of 10 at the home wrist**. `verify_msc_tasks`'s
+"known-good pick" control was therefore failing on a task that runs — the
+first thing it said when it was finally able to run at all.
+
+`verify_task_scenes.task_anchor()` is one source for it now, and
+`anchor_gap_deg()` prints the gap in the verifier's own output so the choice
+is visible rather than implicit.
+
+### 4c. The verifiers ask for EXACT while the follower has run a 15 deg cone since 2026-08-22
+
+`ik_follower_node` defaults to `orientation_policy:=cone`,
+`orientation_cone_deg:=15.0` in every mode. The verifiers asked `/compute_ik`
+for the commanded orientation only, so a waypoint the robot solves by tilting
+two degrees read as unreachable. `docs/NEXT_SESSION_2026_08_23.md` asked for
+exactly this change.
+
+| | asking EXACT | asking what the robot asks |
+| --- | --- | --- |
+| T1 stage 1 | 32 IK failures per arm | **0** |
+| T1 stage 2, seed 3 | 48 left / 16 right | **0 / 0** |
+| dance d1 | 64 of 382 | **0** |
+| dance d2 | 135 of 356 | 62 |
+| dance d3 | 13 of 560 | 6 |
+
+The commanded orientation is candidate 0, so nothing that solved before stops
+solving; `--orientation-policy exact` reproduces every earlier figure.
+
+### 4d. `normalise()` returns RADIANS while its two siblings take DEGREES
+
+`describe(*normalise("cone", 15.0))` prints "within a 0 deg cone" — 0.2618 rad
+formatted as degrees. `verify_t1` printed exactly that while correctly solving
+inside a 15 deg cone, and `verify_dance_paths` did worse: it passed the radian
+value on to `candidates()`, so its first "cone" run was a **0.26 deg** cone
+and rescued almost nothing. The value was right in one place and wrong in the
+other, and the sentence was wrong in both.
+
+### 4e. `verify_t1 --stage2 N` overwrote the STAGE 1 baseline
+
+Same output file for both stages, so a stage-2 run silently replaced the
+record `test_t1_layout_is_verified` reads — and did, turning three green tests
+red with a result from a different stage. One file per stage now.
+
+## 5. WHAT IS STILL OPEN, WITH NUMBERS
+
+* **T1's exact grasp pose is refused by T1's own table.** It solves 10 of 10
+  with no furniture and needs a 5.0 deg tilt with the table in the scene. The
+  follower's cone supplies it, and the tilt costs `2·|pad|·sin(tilt/2)` =
+  8.58 mm, measured 9.58 mm — inside the 30 mm capture gate, and not zero.
+  `verify_t1` now bounds the two claims separately: 2 mm at zero tilt, because
+  there the pads land on the cube BY CONSTRUCTION, and the capture gate when a
+  tilt was needed. Loosening the first to cover the second would be a
+  tolerance that binds nothing.
+* **The dance routines d2 and d3 have 68 unreachable waypoints** between them
+  at the anchor with the 15 deg cone (down from 171 at the home wrist). d1 is
+  clean. `verify_dance_paths` still refuses to certify them for filming.
+* **camera_link against the physical module is UNMEASURED** and is now the
+  largest unknown in the budget. There is no CAD of the Kinova gripper in this
+  repository — only the master arm's — so it needs the hardware.
+* **The terminal joint error stays UNCOMPENSATED at 7.24 mm.** The model says
+  1.88 mm with `terminal_overshoot` on, and it stays off: it and the
+  `deadband_deg` 1.0 → 0.10 change are two corrections for one error and
+  neither has been tried on hardware.

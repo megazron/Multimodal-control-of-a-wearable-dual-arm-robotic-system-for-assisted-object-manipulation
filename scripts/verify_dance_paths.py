@@ -31,12 +31,14 @@ import os
 import sys
 
 import rclpy
+from geometry_msgs.msg import Quaternion
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(ROOT, "src/srl_experiments/experiments/abc"))
-from verify_task_scenes import Solver, HOME_TOL_RAD            # noqa: E402
+from verify_task_scenes import (Solver, HOME_TOL_RAD,
+                                anchor_gap_deg, task_anchor)            # noqa: E402
 import choreography as CH                                      # noqa: E402
 
 OUT = os.path.join(ROOT, "recordings/baselines/dance_paths.json")
@@ -45,6 +47,14 @@ OUT = os.path.join(ROOT, "recordings/baselines/dance_paths.json")
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repeats", type=int, default=3)
+    ap.add_argument("--anchor", default="workspace",
+                    choices=("workspace", "home"),
+                    help="which wrist to solve at. `workspace` is what "
+                         "run_abc commands; `home` reproduces the figures "
+                         "recorded before 2026-08-23.")
+    ap.add_argument("--orientation-policy", default="cone",
+                    choices=("cone", "exact", "free"))
+    ap.add_argument("--orientation-cone-deg", type=float, default=15.0)
     ap.add_argument("--stride", type=int, default=2,
                     help="check every Nth waypoint; 1 checks all of them")
     a = ap.parse_args()
@@ -60,13 +70,49 @@ def main():
         if w > HOME_TOL_RAD:
             print("REFUSING: %s is %.4f rad from home" % (arm, w))
             return 3
-    quat = {arm: n.ee_quat(arm) for arm in ("left", "right")}
+    # THE WRIST THE ROUTINES ARE COMMANDED AT, AND THE POLICY THE FOLLOWER
+    # RUNS. Both were wrong here, in the same direction: stricter than the
+    # robot, so a routine that films fine reads as unreachable.
+    #
+    #   * `n.ee_quat(arm)` is the HOME wrist. `run_abc.send()` writes
+    #     `master_calibration.WORKSPACE_ORIENT` into every waypoint, and the
+    #     two are 42.9 deg apart on the left arm at the shipped home.
+    #   * `ik_follower_node` has defaulted to a 15 deg orientation cone in
+    #     every mode since 2026-08-22; this asked for the exact orientation.
+    #
+    # The commanded orientation is still candidate 0, so nothing that solved
+    # before stops solving. `--anchor home` and `--orientation-policy exact`
+    # reproduce every figure recorded before 2026-08-23.
+    quat = task_anchor(n, a.anchor)
+    gap = anchor_gap_deg(n)
+    print("wrist: %s anchor; the home wrist is %s deg from WORKSPACE_ORIENT"
+          % (a.anchor, ", ".join("%s %.1f" % (k, v) for k, v in gap.items()
+                                 if v is not None)))
     calls = {"n": 0}
+    import srl_teleop.orientation_policy as _opm
+    # DEGREES THROUGHOUT. `normalise` returns the cone in RADIANS while
+    # `describe` and `candidates` take DEGREES -- see the note on normalise.
+    # Only the POLICY is taken from it; the tolerance stays in degrees.
+    _pol = _opm.normalise(a.orientation_policy, a.orientation_cone_deg)[0]
+    _cone = 0.0 if _pol == "exact" else a.orientation_cone_deg
+    print("wrist policy: %s" % _opm.describe(_pol, _cone))
+
+    def _solve_one(arm, p):
+        """Through the follower's own candidate list -- commanded first."""
+        if _pol == "exact":
+            return n.solve(arm, list(p), quat[arm], tries=6)
+        q = [quat[arm].x, quat[arm].y, quat[arm].z, quat[arm].w]
+        for cand, _t, _l in _opm.candidates(q, _pol, _cone):
+            m = Quaternion()
+            m.x, m.y, m.z, m.w = (float(v) for v in cand)
+            if n.solve(arm, list(p), m, tries=6):
+                return True
+        return False
 
     def ok(arm, p):
         for _ in range(a.repeats):
             calls["n"] += 1
-            if not n.solve(arm, list(p), quat[arm], tries=6):
+            if not _solve_one(arm, p):
                 return False
         return True
 

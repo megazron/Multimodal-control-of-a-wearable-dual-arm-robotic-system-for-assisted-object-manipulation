@@ -1,0 +1,150 @@
+{
+  "01_master_teleop": [
+    {
+      "task": "t3",
+      "n": 2,
+      "grasped": 2,
+      "pos_err": [
+        0.0,
+        0.0
+      ],
+      "place_err": [],
+      "smallest": 30.0
+    },
+    {
+      "task": "t1s2",
+      "n": 4,
+      "grasped": 4,
+      "pos_err": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "place_err": [],
+      "smallest": 40.0
+    }
+  ],
+  "02_vr_teleop": [
+    {
+      "task": "t3",
+      "n": 2,
+      "grasped": 2,
+      "pos_err": [
+        0.0,
+        0.0
+      ],
+      "place_err": [],
+      "smallest": 30.0
+    },
+    {
+      "task": "t1s2",
+      "n": 4,
+      "grasped": 4,
+      "pos_err": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "place_err": [],
+      "smallest": 40.0
+    }
+  ],
+  "06_full_autonomy": [
+    {
+      "task": "t1",
+      "n": 4,
+      "grasped": 4,
+      "pos_err": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "place_err": [
+        0.05777793696559265,
+        0.6012339727593576,
+        0.5413852602352598,
+        0.045981409286797635
+      ],
+      "smallest": 40.0
+    },
+    {
+      "task": "t3",
+      "n": 2,
+      "grasped": 2,
+      "pos_err": [
+        0.0,
+        0.0
+      ],
+      "place_err": [],
+      "smallest": 30.0
+    },
+    {
+      "task": "t1s2",
+      "n": 4,
+      "grasped": 4,
+      "pos_err": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "place_err": [],
+      "smallest": 40.0
+    }
+  ],
+  "04_vr_shared": [
+    {
+      "task": "t3",
+      "n": 2,
+      "grasped": 2,
+      "pos_err": [
+        0.0,
+        0.0
+      ],
+      "place_err": [],
+      "smallest": 30.0
+    },
+    {
+      "task": "t1s2",
+      "n": 4,
+      "grasped": 4,
+      "pos_err": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "place_err": [],
+      "smallest": 40.0
+    }
+  ],
+  "03_shared_autonomy": [
+    {
+      "task": "t3",
+      "n": 2,
+      "grasped": 2,
+      "pos_err": [
+        0.0,
+        0.0
+      ],
+      "place_err": [],
+      "smallest": 30.0
+    },
+    {
+      "task": "t1s2",
+      "n": 4,
+      "grasped": 4,
+      "pos_err": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "place_err": [],
+      "smallest": 40.0
+    }
+  ]
+}

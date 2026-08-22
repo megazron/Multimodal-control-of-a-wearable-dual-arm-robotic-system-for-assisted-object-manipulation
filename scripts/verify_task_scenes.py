@@ -33,7 +33,7 @@ import numpy as np
 import rclpy
 import rclpy.time
 import yaml
-from geometry_msgs.msg import Pose, PoseStamped
+from geometry_msgs.msg import Pose, PoseStamped, Quaternion
 from moveit_msgs.msg import PositionIKRequest, RobotState
 from moveit_msgs.srv import GetPositionIK
 from rclpy.node import Node
@@ -191,6 +191,74 @@ class Solver(Node):
             if self.solve(arm, xyz, q, avoid=avoid, tries=3):
                 return True
         return False
+
+
+
+# ===========================================================================
+#  WHICH WRIST A TASK ACTUALLY COMMANDS
+# ===========================================================================
+def task_anchor(node, which="workspace"):
+    """The orientation to solve task poses at, per arm, as a Quaternion.
+
+    ONE SOURCE, AND IT IS NOT `Solver.ee_quat`.
+    ------------------------------------------
+    Every verifier in this repository used to read the LIVE end-effector
+    orientation off TF at start-up -- the HOME wrist -- and call it "the
+    anchor". The tasks do not command that. `run_abc.send()` writes
+    `master_calibration.WORKSPACE_ORIENT` into every waypoint of every mode,
+    and the two are not close: measured on 2026-08-23 against the shipped
+    home, the LEFT arm's home wrist is **42.94 deg** from the anchor.
+
+    CLAUDE.md already records this fault -- "the wrist every sweep measured
+    at: it was the HOME wrist, not the anchor the task sends" -- and it was
+    fixed in `measure_what_binds.Rig` on 2026-08-17 and NOWHERE ELSE. Around
+    twenty scripts still read `ee_quat`. What that costs is not subtle: with
+    A/B/C's own furniture applied, task A's own pick solves **10 of 10 at the
+    anchor and 0 of 10 at the home wrist**, so a verifier asking the home
+    wrist reports a task that runs every day as unreachable -- and did, as a
+    failed control, the first time it was able to run at all.
+
+    `which="home"` keeps the old behaviour for the one question that
+    legitimately wants it: what can the arm do FROM THE POSE IT IS IN. It has
+    to be asked for by name now, rather than arrived at by accident.
+    """
+    if which == "workspace":
+        from srl_teleop import master_calibration as _mc
+        out = {}
+        for a in ("left", "right"):
+            q = Quaternion()
+            # AS A MESSAGE, not the 4-tuple WORKSPACE_ORIENT stores: every
+            # reader uses attribute access and a tuple fails far from here.
+            q.x, q.y, q.z, q.w = (float(v) for v in _mc.WORKSPACE_ORIENT[a])
+            out[a] = q
+        return out
+    if which == "home":
+        return {a: node.ee_quat(a) for a in ("left", "right")}
+    raise ValueError("anchor must be 'workspace' or 'home', not %r" % which)
+
+
+def anchor_gap_deg(node):
+    """How far the home wrist is from the anchor right now, per arm.
+
+    Printed by the verifiers that switched, so the change is visible in their
+    own output rather than only in a commit message. If this ever reads ~0 the
+    home pose and the anchor have converged and the distinction stops
+    mattering -- which is worth knowing, not worth assuming.
+    """
+    import numpy as _np
+    out = {}
+    work = task_anchor(node, "workspace")
+    for a in ("left", "right"):
+        h = node.ee_quat(a)
+        if h is None:
+            out[a] = None
+            continue
+        hv = _np.array([h.x, h.y, h.z, h.w])
+        wv = _np.array([work[a].x, work[a].y, work[a].z, work[a].w])
+        hv = hv / _np.linalg.norm(hv)
+        wv = wv / _np.linalg.norm(wv)
+        out[a] = math.degrees(2.0 * math.acos(min(1.0, abs(float(hv @ wv)))))
+    return out
 
 
 def classify(n, arm, xyz, quat):

@@ -1,0 +1,267 @@
+{
+  "arms": {
+    "left": [
+      {
+        "along_axis_m": 0.098326,
+        "knuckle_rad": 0.0,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          -0.0,
+          0.0,
+          0.098326
+        ],
+        "span_mm": 135.52,
+        "width_mm": 0
+      },
+      {
+        "along_axis_m": 0.112053,
+        "knuckle_rad": 0.7,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          0.0,
+          0.0,
+          0.112053
+        ],
+        "span_mm": 62.1,
+        "width_mm": 10
+      },
+      {
+        "along_axis_m": 0.111791,
+        "knuckle_rad": 0.611765,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          -0.0,
+          -0.0,
+          0.111791
+        ],
+        "span_mm": 72.16,
+        "width_mm": 20
+      },
+      {
+        "along_axis_m": 0.111024,
+        "knuckle_rad": 0.517647,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          0.0,
+          0.0,
+          0.111024
+        ],
+        "span_mm": 82.81,
+        "width_mm": 30
+      },
+      {
+        "along_axis_m": 0.109761,
+        "knuckle_rad": 0.423529,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          0.0,
+          0.0,
+          0.109761
+        ],
+        "span_mm": 93.26,
+        "width_mm": 40
+      },
+      {
+        "along_axis_m": 0.108011,
+        "knuckle_rad": 0.329412,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          0.0,
+          0.0,
+          0.108011
+        ],
+        "span_mm": 103.43,
+        "width_mm": 50
+      },
+      {
+        "along_axis_m": 0.105792,
+        "knuckle_rad": 0.235294,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          0.0,
+          0.0,
+          0.105792
+        ],
+        "span_mm": 113.22,
+        "width_mm": 60
+      },
+      {
+        "along_axis_m": 0.103123,
+        "knuckle_rad": 0.141176,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          0.0,
+          0.0,
+          0.103123
+        ],
+        "span_mm": 122.56,
+        "width_mm": 70
+      },
+      {
+        "along_axis_m": 0.102462,
+        "knuckle_rad": 0.12,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          -0.0,
+          -0.0,
+          0.102462
+        ],
+        "span_mm": 124.59,
+        "width_mm": 80
+      },
+      {
+        "along_axis_m": 0.102462,
+        "knuckle_rad": 0.12,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          -0.0,
+          -0.0,
+          0.102462
+        ],
+        "span_mm": 124.59,
+        "width_mm": 85
+      }
+    ],
+    "right": [
+      {
+        "along_axis_m": 0.098326,
+        "knuckle_rad": 0.0,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          -0.0,
+          0.0,
+          0.098326
+        ],
+        "span_mm": 135.52,
+        "width_mm": 0
+      },
+      {
+        "along_axis_m": 0.112053,
+        "knuckle_rad": 0.7,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          0.0,
+          -0.0,
+          0.112053
+        ],
+        "span_mm": 62.1,
+        "width_mm": 10
+      },
+      {
+        "along_axis_m": 0.111791,
+        "knuckle_rad": 0.611765,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          -0.0,
+          0.0,
+          0.111791
+        ],
+        "span_mm": 72.16,
+        "width_mm": 20
+      },
+      {
+        "along_axis_m": 0.111024,
+        "knuckle_rad": 0.517647,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          -0.0,
+          0.0,
+          0.111024
+        ],
+        "span_mm": 82.81,
+        "width_mm": 30
+      },
+      {
+        "along_axis_m": 0.109761,
+        "knuckle_rad": 0.423529,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          0.0,
+          -0.0,
+          0.109761
+        ],
+        "span_mm": 93.26,
+        "width_mm": 40
+      },
+      {
+        "along_axis_m": 0.108011,
+        "knuckle_rad": 0.329412,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          -0.0,
+          0.0,
+          0.108011
+        ],
+        "span_mm": 103.43,
+        "width_mm": 50
+      },
+      {
+        "along_axis_m": 0.105792,
+        "knuckle_rad": 0.235294,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          -0.0,
+          0.0,
+          0.105792
+        ],
+        "span_mm": 113.22,
+        "width_mm": 60
+      },
+      {
+        "along_axis_m": 0.103123,
+        "knuckle_rad": 0.141176,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          -0.0,
+          -0.0,
+          0.103123
+        ],
+        "span_mm": 122.56,
+        "width_mm": 70
+      },
+      {
+        "along_axis_m": 0.102462,
+        "knuckle_rad": 0.12,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          0.0,
+          -0.0,
+          0.102462
+        ],
+        "span_mm": 124.59,
+        "width_mm": 80
+      },
+      {
+        "along_axis_m": 0.102462,
+        "knuckle_rad": 0.12,
+        "off_axis_mm": 0.0,
+        "pad_mid_ee": [
+          0.0,
+          -0.0,
+          0.102462
+        ],
+        "span_mm": 124.59,
+        "width_mm": 85
+      }
+    ]
+  },
+  "controls": {
+    "open_hand_reproduces_PAD_MID_EE": true,
+    "the_opening_changes_it": true,
+    "the_pad_stays_on_the_tool_axis": true,
+    "the_two_arms_agree": true
+  },
+  "note": "pad midpoint in the END EFFECTOR frame at the gripper opening grip_for(width). Measured offline from the URDF through the Robotiq's mimic chain; needs no stack, so it cannot be perturbed by leftover gripper state.",
+  "widths_mm": [
+    0,
+    10,
+    20,
+    30,
+    40,
+    50,
+    60,
+    70,
+    80,
+    85
+  ]
+}

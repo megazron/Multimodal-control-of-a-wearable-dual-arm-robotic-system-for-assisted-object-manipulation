@@ -357,8 +357,16 @@ def ee_for(obj_xyz, arm):
     NOT `clip_tasks.ee_for`, which bakes in the anchor. Same construction,
     different orientation; `test_pad_offset_has_one_source.py` pins that the
     two agree wherever the anchor is what is being sent.
+
+    AT THE OPENING THE CUBE NEEDS, NOT AT THE OPEN HAND. The Robotiq's fingers
+    swing on a four-bar, so the pad midpoint sits 0.09833 m from the wrist
+    wide open and 0.10976 m when closed on a 40 mm cube -- **11.43 mm** apart.
+    `grasp_frames.PAD_MID_EE` is the open-hand value, and building the grasp on
+    it puts the wrist 11.43 mm too close, so the fingers close past the cube's
+    centre. Measured by `scripts/measure_pad_mid_ee.py --by-width`.
     """
-    return GF.wrist_for(obj_xyz, APPROACH[arm])
+    return GF.wrist_for(obj_xyz, APPROACH[arm],
+                        pad_mid_ee=GF.pad_mid_ee_for(CUBE_M * 1000.0, arm))
 
 
 _GRIP = {}

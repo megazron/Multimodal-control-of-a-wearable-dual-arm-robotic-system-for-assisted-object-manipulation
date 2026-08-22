@@ -230,28 +230,77 @@ def main():
     ap.add_argument("--discover-s", type=float, default=15.0,
                     help="how long to wait for /joint_states to appear")
     ap.add_argument("--home", action="store_true",
-                    help="go to HOME instead, for teardown")
+                    help="go to HOME instead, for teardown. Since 2026-08-16 "
+                         "home IS the presentation pose, so this now only "
+                         "changes the label.")
+    ap.add_argument("--stored-pose", action="store_true",
+                    help="stage to recordings/baselines/presentation_pose.json "
+                         "instead of the config. That file predates the "
+                         "2026-08-16 home change and is 3.06 rad from it; use "
+                         "this only to reproduce an older recording.")
     a = ap.parse_args()
 
-    if a.home:
-        import home_positions as hp
-        want = {arm: list(hp.load_home_radians(arm))
-                for arm in ("left", "right")}
-        what = "home"
-    else:
+    # ==================================================================
+    # THE TARGET IS `config/home_positions_*.txt`, AND IT USED NOT TO BE
+    # ==================================================================
+    # This staged to `recordings/baselines/presentation_pose.json` -- a SIXTH
+    # copy of the home pose, in a file `test_home_has_one_source` does not
+    # look at. CLAUDE.md's own note on `initial_positions.yaml` warns about
+    # exactly this shape, in exactly these words, about a different file.
+    #
+    # HOME BECAME THE PRESENTATION POSE ON 2026-08-16 (HARD CONSTRAINT 0) and
+    # that JSON was written before it. Measured 2026-08-23, the stored pose is
+    #
+    #     left  3.0557 rad from home (joint_4)      175.1 deg
+    #     right 3.0805 rad from home (joint_4)      176.5 deg
+    #
+    # WHAT IT COST, and it is the whole recording pipeline. `run_abc` gained
+    # `require_home()` after that date: it stages, re-reads /joint_states and
+    # REFUSES to run from an unknown pose. Staging put the arms on the stored
+    # pose and reported "worst joint error 0.0000 rad" -- true, against its own
+    # target -- and `require_home` then measured 3.08 rad against the source
+    # and refused. Every cell of the sweep has failed that way since, with two
+    # sentences one line apart saying 0.0000 and 3.0805 about the same arms.
+    # Neither was lying; they were staging to two different poses.
+    #
+    # So the target is the one source. The JSON is kept as the RECORD of the
+    # solve that produced the pose -- its controls and achieved constraint
+    # values are still the evidence -- and `--stored-pose` still stages to it
+    # deliberately, for anyone reproducing a recording made before this date.
+    import home_positions as hp
+    want = {arm: list(hp.load_home_radians(arm)) for arm in ("left", "right")}
+    what = "home" if a.home else "presentation"
+    if a.stored_pose:
         if not os.path.exists(POSE_FILE):
             print("no %s -- run scripts/find_presentation_pose.py --save"
                   % POSE_FILE)
             return 2
         d = json.load(open(POSE_FILE))
-        failed = [k for k, v in d.get("controls", {}).items()
-                  if v is False]
+        failed = [k for k, v in d.get("controls", {}).items() if v is False]
         if failed:
             print("REFUSING: the stored pose was saved by a run whose "
                   "controls failed: %s" % failed)
             return 3
         want = {arm: d["poses"][arm]["q"] for arm in ("left", "right")}
-        what = "presentation"
+        what = "STORED presentation (pre-2026-08-16)"
+    elif os.path.exists(POSE_FILE) and not a.home:
+        # SAY SO WHEN THEY DISAGREE. A silent divergence between the record of
+        # the solve and the pose that ships is how this happened; naming it
+        # every time makes it impossible to acquire again unnoticed.
+        try:
+            d = json.load(open(POSE_FILE))
+            worst = 0.0
+            for arm in ("left", "right"):
+                q = d["poses"][arm]["q"]
+                worst = max(worst, max(
+                    abs(((x - y + math.pi) % (2 * math.pi)) - math.pi)
+                    for x, y in zip(q, want[arm])))
+            if worst > 0.05:
+                print("   NOTE: %s is %.4f rad from config/home_positions_*."
+                      " Staging to the CONFIG, which is the source."
+                      % (os.path.basename(POSE_FILE), worst))
+        except Exception:                                      # noqa: BLE001
+            pass
 
     # RETRY THE DDS BRING-UP. Every clip runs this as a fresh process, and
     # Fast DDS leaks a shared-memory segment per participant on this host --

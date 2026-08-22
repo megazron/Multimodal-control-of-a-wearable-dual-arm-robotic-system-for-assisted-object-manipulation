@@ -194,13 +194,14 @@
     "dir": "recordings/verification/01_master_teleop/T3/S1_measure_cycle"
   },
   "06_full_autonomy/t0/D3_three_targets": {
-    "ok": true,
-    "msg": "run exited 0",
+    "ok": false,
+    "msg": "run exited 2; NO HOME RECORD",
     "mode": "06_full_autonomy",
     "task": "t0",
     "scenario": "D3_three_targets",
     "quad": true,
     "opened_on": "presentation",
+    "started_from_home": null,
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",

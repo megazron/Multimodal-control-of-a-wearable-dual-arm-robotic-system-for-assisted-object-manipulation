@@ -60,6 +60,77 @@ import numpy as np
 # the object is drawn and grasped -- written down now instead of unknown.
 PAD_MID_EE = (0.0, 0.0, 0.09833)
 
+# =============================================================================
+# AND IT IS THE WIDE-OPEN HAND, WHICH IS NOT WHERE A GRASP HAPPENS
+# =============================================================================
+# THE ROBOTIQ 85 IS A FOUR-BAR LINKAGE. Its fingers SWING; they do not
+# translate. So the distance from the wrist to the midpoint of the finger tips
+# is a function of how open the hand is, and the constant above is one point on
+# that curve -- the fully open one, knuckle 0.0000 rad, tip span 135.5 mm.
+#
+# Measured from the URDF's own mimic chain by
+# `scripts/measure_pad_mid_ee.py --by-width`, offline:
+#
+#     wide open (0 mm)      0.09833 m     <- PAD_MID_EE
+#     a 40 mm cube          0.10976 m     +11.43 mm
+#     a 20 mm object        0.11179 m     +13.46 mm
+#
+# BOTH OF THE NUMBERS THIS FILE HAS ARGUED ABOUT ARE ON THAT CURVE. The
+# 0.11178 that `clip_tasks.PAD_OFFSET_BY_ARM` carried and that the 2026-08-18
+# note calls "13.47 mm long" is the hand almost SHUT -- a 20 mm object. The
+# 0.09833 that replaced it is the hand WIDE OPEN. The disagreement was never an
+# error in either measurement; it was two gripper states being compared as
+# though the quantity did not depend on one.
+#
+# AND IT EXPLAINS WHY THE EVIDENCE FLIPPED. `verify_t1.py` reads the finger
+# tips out of FK at whatever opening the simulation's gripper was left at. On
+# 2026-08-18 that was the open hand and the pad miss read 0.00 mm; on
+# 2026-08-23, same geometry, same code, it read 13.52 mm. A measurement whose
+# answer depends on leftover state was the evidence for the constant.
+#
+# SO THE QUANTITY TAKES A WIDTH. `pad_mid_ee_for(width_mm)` is the pad midpoint
+# at `gripper_state.grip_for(width_mm)` -- the opening the fingers will be at
+# when they are ON the object, which is the only opening at which "the pads are
+# on the object" means anything.
+_BY_WIDTH = None
+
+
+def _by_width():
+    global _BY_WIDTH
+    if _BY_WIDTH is None:
+        import json
+        import os
+        here = os.path.dirname(os.path.abspath(__file__))
+        root = os.path.abspath(os.path.join(here, "..", "..", "..", ".."))
+        path = os.path.join(root, "recordings/baselines/pad_mid_ee_by_width.json")
+        if not os.path.exists(path):
+            raise RuntimeError(
+                "no pad_mid_ee_by_width.json -- run `python3 "
+                "scripts/measure_pad_mid_ee.py --by-width` (offline, no stack "
+                "needed). The pad midpoint depends on the gripper opening and "
+                "this module will not guess it.")
+        _BY_WIDTH = json.load(open(path))
+    return _BY_WIDTH
+
+
+def pad_mid_ee_for(width_mm, arm="left"):
+    """Pad midpoint in the EE frame, at the opening a `width_mm` object needs.
+
+    Linear between tabulated widths; the table spans 0-85 mm, which is the
+    whole range the jaws have, so this never extrapolates. `width_mm=0` is the
+    wide-open hand and returns `PAD_MID_EE` exactly, which is the control that
+    says the table and the constant are the same measurement.
+    """
+    rows = _by_width()["arms"][arm]
+    ws = [r["width_mm"] for r in rows]
+    zs = [r["along_axis_m"] for r in rows]
+    w = max(ws[0], min(ws[-1], float(width_mm)))
+    for i in range(1, len(ws)):
+        if w <= ws[i]:
+            t = (w - ws[i - 1]) / float(ws[i] - ws[i - 1] or 1)
+            return (0.0, 0.0, zs[i - 1] + t * (zs[i] - zs[i - 1]))
+    return (0.0, 0.0, zs[-1])
+
 
 def q_matrix(q):
     """(x, y, z, w) -> 3x3 rotation matrix."""

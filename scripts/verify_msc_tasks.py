@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Verify the FOUR MSc tasks -- T0, T1, T2, T3 -- N=10, full densified path,
-bench in the scene, BOTH arm assignments.
+"""Verify the MSc tasks T0, T2 and T3 -- N=10, full densified path, bench in
+the scene, BOTH arm assignments. T1 IS VERIFIED BY `scripts/verify_t1.py`.
 
 This is the one verifier for the MSc set. It replaces nothing: the legacy
 A/B/C set keeps verify_abc_scenarios.py, and the two report separately so a
@@ -16,6 +16,28 @@ THE GUARDS, as code:
     reported 0 failures for a carry path whose grips were inside the bench.
 
     python3 scripts/verify_msc_tasks.py [--repeats 10]
+
+T1 IS NOT VERIFIED HERE, AND IT USED TO BE -- BADLY.
+====================================================
+This file carried its own T1 section built on `MCT.T1_ARM`, a single arm and
+a single row of cubes. T1 became a TWO-ARM task on 2026-08-16: the pads
+straddle the centreline at +/-0.290, each cube is picked by the arm on its own
+side (`T1_PAIR` / `t1_task.arm_for_pad`), neither arm can cross the centreline
+-- 0 of 10 IK solutions at every cross-side slot -- and there is a stage 2
+whose layout is drawn from a seed.
+
+So `T1_ARM` was deleted from `msc_clip_tasks`, and THIS FILE HAS RAISED
+AttributeError ON IMPORT EVER SINCE. It did not verify T1 wrongly; it did not
+run at all, and nothing said so until 2026-08-23. That is worse than the
+drifted copy it replaced, and it is the second time this exact file has held
+its own stale copy of T1's layout -- see the note below the imports.
+
+The cure is not to repair the copy. `scripts/verify_t1.py` walks both stages
+on both arms at N=10 over the composed path, checks the 0.15 m wearer floor
+at every densified sample, and reads the finger tips out of FK to check what
+the hand is actually closing on. Two verifiers for one task is how the drift
+started. This one covers T0, T2 and T3, which have no dedicated verifier, and
+REFUSES BY NAME if anyone reintroduces a T1 layout here.
 """
 import argparse
 import itertools
@@ -31,7 +53,8 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(ROOT, "src/srl_experiments/experiments/abc"))
 sys.path.insert(0, os.path.join(ROOT, "src/srl_experiments"))
-from verify_task_scenes import Solver, HOME_TOL_RAD          # noqa: E402
+from verify_task_scenes import (Solver, HOME_TOL_RAD,        # noqa: E402
+                                anchor_gap_deg, task_anchor)
 from audit_scenario_reachability import densify              # noqa: E402
 import clip_tasks as CT                                      # noqa: E402
 import tasks as TSK                                          # noqa: E402
@@ -45,22 +68,35 @@ OUT = os.path.join(ROOT, "recordings/baselines/msc_verification.json")
 STEP = 0.02
 STANDOFF, LIFT = 0.10, 0.08
 
-# T1'S LAYOUT, IMPORTED. It used to be a COPY, written down here on
-# 2026-08-11 and never touched again:
+# T1 IS DELIBERATELY NOT IMPORTED HERE.
+#
+# This block used to read T1_CUBES / T1_PLANES / T1_ARM from `msc_clip_tasks`,
+# and before that it held its OWN copy of them:
 #
 #     T1_CUBES = [[0.280, 0.230], [0.340, 0.230], [0.380, 0.170], [0.400, 0.230]]
 #     T1_PLANES = [[0.300, 0.145], [0.460, 0.145]]
 #     T1_ARM = "left"
 #
 # The task moved to the right arm, then to cubes at y = 0.190 and planes at
-# y = 0.300, then to the left arm again, and this file verified the 2026-08-11
-# coordinates through every one of those changes and reported zero failures.
-# It was checking a layout nothing runs. A verifier with its own copy of the
-# thing it verifies is not a verifier.
-T1_CUBES = MCT.T1_CUBES
-T1_PLANES = MCT.T1_PLANES
-T1_ARM = MCT.T1_ARM
+# y = 0.300, then to the left arm, then to BOTH arms with the pads straddling
+# the centreline -- and this file reported zero failures through the first
+# three of those and then stopped importing at all through the fourth.
+#
+# A verifier with its own copy of the thing it verifies is not a verifier, and
+# importing the copy from one module further away only moves the problem. T1
+# is verified by `scripts/verify_t1.py`, which is the only thing that knows
+# about two arms, two stages and a seeded layout.
 CUBE_M = MCT.CUBE_M
+
+# A REFUSAL, NOT A COMMENT. If a T1 layout is ever reintroduced into this
+# file's imports, say so at import time rather than quietly verifying two
+# different T1s in two places again.
+for _stale in ("T1_ARM",):
+    if hasattr(MCT, _stale):
+        raise SystemExit(
+            "REFUSING: msc_clip_tasks.%s exists again. T1 is verified by "
+            "scripts/verify_t1.py; this file must not grow a second copy of "
+            "its layout. See the note above." % _stale)
 
 
 def require(seq, what):
@@ -89,7 +125,22 @@ def main():
         if w > HOME_TOL_RAD:
             print("REFUSING: %s %.4f rad from home" % (arm, w))
             return 3
-    quat = {arm: n.ee_quat(arm) for arm in ("left", "right")}
+    # THE WRIST THE TASKS COMMAND, NOT THE ONE THE ARM HAPPENS TO BE IN.
+    #
+    # This read `n.ee_quat(arm)` -- the live HOME wrist -- and every number
+    # this file has ever produced was taken there. `run_abc.send()` writes
+    # `master_calibration.WORKSPACE_ORIENT` into every waypoint, and on
+    # 2026-08-23 the two are 42.94 deg apart on the left arm. Measured with
+    # A/B/C's own furniture applied, task A's own pick solves 10 of 10 at the
+    # anchor and 0 of 10 at the home wrist -- so this file's "known-good pick"
+    # control was failing on a task that runs, which is what a wrong wrist
+    # looks like from the outside.
+    quat = task_anchor(n, "workspace")
+    gap = anchor_gap_deg(n)
+    print("solving at the TASK ANCHOR (WORKSPACE_ORIENT). The home wrist is "
+          "%s deg away."
+          % ", ".join("%s %.1f" % (a, gap[a]) for a in ("left", "right")
+                      if gap.get(a) is not None))
     if any(q is None for q in quat.values()):
         print("REFUSING: no tf2 EE orientation")
         return 4
@@ -150,7 +201,7 @@ def main():
                        "pick path for %s" % (obj_xyz,))
 
     print("=" * 74)
-    print("MSc TASKS T0 / T1 / T2 / T3 -- N=%d, bench in scene, both arm "
+    print("MSc TASKS T0 / T2 / T3 -- N=%d, bench in scene, both arm "
           "assignments" % N)
     print("=" * 74)
 
@@ -223,35 +274,15 @@ def main():
     print("   sampled: %d poses, %d unreachable" % (checked, len(sbad)))
     out["T0"] = t0
 
-    # ------------------------------------------------ T1
-    print("\nT1  pick and place -- 4 cubes + 2 planes, %s arm, full path "
-          "(scene: %s)" % (T1_ARM, ", ".join(use("t1"))))
-    zc = CT.BENCH_TOP + CUBE_M / 2.0
-    t1, t1bad = {}, 0
-    for kind, items in (("cube", T1_CUBES), ("plane", T1_PLANES)):
-        for i, (x, y) in enumerate(items):
-            path = pick_path([x, y, zc])
-            b = sum(1 for w in path if not ok(T1_ARM, w))
-            t1["%s_%d" % (kind, i)] = dict(xy=[x, y], waypoints=len(path),
-                                           failures=b)
-            t1bad += b
-    fails += t1bad
-    print("   %d items, %d waypoint failures" % (len(T1_CUBES) + len(T1_PLANES),
-                                                 t1bad))
-    # every cube -> every plane transport, densified
-    tbad = 0
-    for (cx, cy) in T1_CUBES:
-        for (px, py) in T1_PLANES:
-            src = CT.ee_for([cx, cy, zc])
-            dst = CT.ee_for([px, py, zc])
-            path = require(densify([[src[0], src[1], src[2] + LIFT],
-                                    [dst[0], dst[1], dst[2] + LIFT]], STEP),
-                           "T1 transport")
-            tbad += sum(1 for w in path if not ok(T1_ARM, w))
-    t1["transport_failures"] = tbad
-    fails += tbad
-    print("   %d transports, %d waypoint failures" % (8, tbad))
-    out["T1"] = t1
+    # ------------------------------------------------ T1 -- ELSEWHERE
+    print("\nT1  pick and place -- NOT VERIFIED HERE.")
+    print("    Two arms, two stages, a seeded layout and a centreline neither")
+    print("    arm can cross. scripts/verify_t1.py walks it at N=10 with the")
+    print("    wearer floor and reads the finger tips out of FK.")
+    out["T1"] = {"verified_by": "scripts/verify_t1.py",
+                 "why": "two-arm, two-stage, seeded layout; a second copy of "
+                        "it here drifted through three layout changes and "
+                        "then stopped importing"}
 
     # ------------------------------------------------ T2
     print("\nT2  coordinated carry -- both grippers, %d mm span, both "

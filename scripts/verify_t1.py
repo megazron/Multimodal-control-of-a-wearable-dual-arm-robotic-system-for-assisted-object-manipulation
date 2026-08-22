@@ -39,6 +39,7 @@ import os
 import sys
 
 import rclpy
+from geometry_msgs.msg import Quaternion              # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -49,10 +50,40 @@ sys.path.insert(0, os.path.join(ROOT, "src/srl_teleop"))
 from verify_task_scenes import Solver, HOME_TOL_RAD          # noqa: E402
 from measure_what_binds import Rig, CLEAR_FLOOR              # noqa: E402
 from measure_grasp_approach import FK, pad_mid_in_ee, as_msg  # noqa: E402
+from srl_fk import FK as OfflineFK                           # noqa: E402
+from srl_teleop import gripper_state as _GS                  # noqa: E402
 from search_t1_centre import controls                        # noqa: E402
 import t1_task as T1                                         # noqa: E402
 
 OUT = os.path.join(ROOT, "recordings/baselines/t1_paths.json")
+
+# What a grasp has to hit. `clip_scene` scores a grasp against this and the
+# whole error budget in `scripts/measure_control_budget.py` is quoted against
+# it, so it is the same number here rather than a second one.
+CAPTURE_GATE_M = 0.030
+
+
+def _solve_as_follower(rig, arm, xyz, qm, policy, cone_deg, tries=6,
+                       want_tilt=False):
+    """One waypoint, through the SAME candidate list `ik_follower_node` uses.
+
+    The commanded orientation is candidate 0 and a tilt is only reached after
+    it has failed, so this can never change a waypoint that already solved --
+    it can only rescue one that did not. `orientation_policy` owns the order
+    and the tilt sizes; this is a caller, not a second implementation.
+    """
+    if policy == "exact":
+        j = rig.n.solve_arm_joints(arm, xyz, qm, avoid=True, tries=tries)
+        return (j, 0.0) if want_tilt else j
+    import srl_teleop.orientation_policy as _op
+    q = [qm.x, qm.y, qm.z, qm.w]
+    for cand, tilt, _lab in _op.candidates(q, policy, cone_deg):
+        m = Quaternion()
+        m.x, m.y, m.z, m.w = (float(v) for v in cand)
+        j = rig.n.solve_arm_joints(arm, xyz, m, avoid=True, tries=tries)
+        if j is not None:
+            return (j, float(tilt)) if want_tilt else j
+    return (None, None) if want_tilt else None
 
 
 def main():
@@ -68,10 +99,44 @@ def main():
                          "table, same pads, same builder -- the SIDE of each "
                          "cube is drawn, so the split and the columns change "
                          "and the paths have to be walked per seed.")
+    # THE POLICY THE FOLLOWER RUNS, NOT A STRICTER ONE.
+    #
+    # `ik_follower_node` has defaulted to `orientation_policy:=cone`,
+    # `orientation_cone_deg:=15.0` in EVERY MODE since 2026-08-22, and this
+    # file has always asked /compute_ik for the EXACT commanded orientation.
+    # So a waypoint the robot solves by tilting the tool axis two degrees --
+    # after every redundancy seed has failed, which is the follower's own
+    # order -- was reported here as unreachable.
+    #
+    # `docs/NEXT_SESSION_2026_08_23.md` asked for exactly this: "run
+    # --as-follower ... so the number quoted is the discrete candidate search
+    # the robot runs rather than a continuous bound".
+    #
+    # `exact` is kept and reproduces every earlier number in this file. It is
+    # the right question for a GRASP -- at the instant of a grasp the tool
+    # axis IS the approach and the roll sets the jaw line -- and the wrong one
+    # for transit, which is most of the path. BOTH are reported.
+    ap.add_argument("--orientation-policy", default="cone",
+                    choices=("cone", "exact", "free"),
+                    help="solve through srl_teleop.orientation_policy, as the "
+                         "follower does. `exact` reproduces every figure "
+                         "recorded before 2026-08-23.")
+    ap.add_argument("--orientation-cone-deg", type=float, default=15.0)
     ap.add_argument("--self-test", action="store_true")
-    ap.add_argument("--out", default=OUT)
+    # ONE FILE PER STAGE. `--stage2 N` wrote into the STAGE 1 baseline, so a
+    # stage-2 run silently replaced the record `test_t1_layout_is_verified`
+    # reads -- and did, on 2026-08-23, turning three green tests red with a
+    # result from a different stage. The default now carries the stage.
+    ap.add_argument("--out", default=None)
     a = ap.parse_args()
 
+    if a.out is None:
+        a.out = (OUT if a.stage2 is None
+                 else OUT.replace(".json", "_stage2_seed%d.json" % a.stage2))
+    pol = a.orientation_policy
+    # `exact` with a tolerance is refused by orientation_policy, by design, so
+    # the flag combination has to be resolved here rather than passed on.
+    cone = 0.0 if pol == "exact" else a.orientation_cone_deg
     rclpy.init()
     n = Solver()
     n.spin(8.0)
@@ -91,6 +156,9 @@ def main():
         home = [n.js.get(k, 0.0) for k in n.names(arm)]
         pad_mid[arm], _ = pad_mid_in_ee(fk, arm, home)
 
+    # OFFLINE FK for the finger tips, so the gripper opening is stated rather
+    # than inherited from the simulation. See the note at its use below.
+    _off_fk = OfflineFK()
     ctl, good = controls(rig, pad_mid, a.floor)
     print("CONTROLS")
     for k, v in ctl.items():
@@ -126,6 +194,9 @@ def main():
     oc = T1.offcentre_mm()
     print("   pads       %s   %.0f mm and %.0f mm off the centreline"
           % (T1.T1_PLANES, oc["left"], oc["right"]))
+    import srl_teleop.orientation_policy as _opm
+    print("   wrist      through the FOLLOWER'S policy: %s"
+          % _opm.describe(_opm.normalise(pol, cone)[0], cone))
     print("   waypoints  left %d, right %d, N=%d, floor %.3f m"
           % (len(wp["left"]), len(wp["right"]), a.repeats, a.floor))
 
@@ -165,8 +236,7 @@ def main():
             for _ in range(reps):
                 if a.mode == "sequential" and seed is not None:
                     rig.n.js.update(dict(zip(rig.n.names(arm), seed)))
-                j = rig.n.solve_arm_joints(arm, list(w), qm, avoid=True,
-                                           tries=6)
+                j = _solve_as_follower(rig, arm, list(w), qm, pol, cone)
                 rig.calls += 1
                 if j is None:
                     solved = False
@@ -231,17 +301,45 @@ def main():
         arm = T1.arm_for_pad(_pad)
         obj = [cx, cy, T1.T1_Z]
         ee = T1.ee_for(obj, arm)
-        j = rig.n.solve_arm_joints(arm, list(ee), as_msg(T1.APPROACH[arm]),
-                                   avoid=True, tries=8)
+        # THROUGH THE FOLLOWER'S POLICY, AND THE TILT IS MEASURED.
+        #
+        # This asked for the EXACT approach, and on 2026-08-23 all four cubes
+        # came back GRASP POSE DOES NOT SOLVE while the whole path around them
+        # was clean -- because `ik_follower_node` has run a 15 deg cone in
+        # every mode since 2026-08-22 and this file had not been told.
+        #
+        # A tilt at a GRASP is not free, and that is exactly why it is
+        # measured rather than assumed away: the FK block below reads the two
+        # finger tips at whatever pose came back, so `across_mm`,
+        # `pad_miss_mm` and the tip height are the tilted hand's, not the
+        # commanded one's. If a tilt moved the pads off the cube, these
+        # numbers say so.
+        j, tilt = _solve_as_follower(rig, arm, list(ee), as_msg(T1.APPROACH[arm]),
+                                     pol, cone, tries=8, want_tilt=True)
         rig.calls += 1
         if j is None:
             print("   cube_%d %-5s GRASP POSE DOES NOT SOLVE" % (i, arm))
             grasps.append(dict(cube=i, arm=arm, solved=False))
             bad_total += 1
             continue
-        p = fk.poses(arm, j, link_names(arm))
-        tips = [p["%s_robotiq_85_%s_finger_tip_link" % (arm, s)][0]
-                for s in ("left", "right")]
+        # THE TIPS AT THE OPENING THE CUBE NEEDS, NOT AT LEFTOVER STATE.
+        #
+        # This read them through /compute_fk, which uses the SIMULATION'S
+        # CURRENT gripper joints -- whatever the last thing to touch the hand
+        # left them at. The Robotiq's fingers swing on a four-bar, so the pad
+        # midpoint moves 11.43 mm along the tool axis between a wide-open hand
+        # and one closed on a 40 mm cube. Measured: the same check on the same
+        # geometry read 0.00 mm on 2026-08-18 (open hand) and 13.52 mm on
+        # 2026-08-23 (nearly shut). That is leftover state, not the robot.
+        #
+        # `srl_fk` walks the URDF including the mimic chain, so the opening is
+        # STATED here and the answer cannot drift with the simulation.
+        p = _off_fk.poses(arm, j,
+                          ["end_effector_link",
+                           "robotiq_85_left_finger_tip_link",
+                           "robotiq_85_right_finger_tip_link"],
+                          gripper=_GS.grip_for(int(T1.CUBE_M * 1000)))
+        tips = [p[1][:3, 3], p[2][:3, 3]]
         import numpy as _np
         axis = tips[0] - tips[1]
         span = float(_np.linalg.norm(axis))
@@ -251,8 +349,31 @@ def main():
         # A 40 mm cube's extent along an arbitrary unit axis
         across = float(T1.CUBE_M * sum(abs(v) for v in axis))
         low = float(min(t[2] for t in tips)) - T1.TABLE_TOP
-        ok = across <= 0.085 and miss <= 0.002 and low > 0.0
+        # TWO DIFFERENT CLAIMS, AND THEY NEED TWO DIFFERENT BOUNDS.
+        #
+        # "pad miss must be 0 BY CONSTRUCTION" is true only at zero tilt: the
+        # task subtracts the pad offset to get the wrist, so at the commanded
+        # orientation the two compose exactly. That is a 2 mm check on
+        # arithmetic and it stays a 2 mm check.
+        #
+        # When the follower has to TILT -- and here it does, because T1's
+        # table refuses the exact approach and the 15 deg cone rescues it at
+        # 5 deg -- the pads necessarily leave the cube centre by
+        # 2*|pad|*sin(tilt/2), which is 8.58 mm at 5 deg on a 98-110 mm pad
+        # offset. That is not an arithmetic error and cannot be made zero
+        # without changing the geometry. What it must stay inside is the thing
+        # a grasp actually has to hit: the 30 mm capture gate.
+        #
+        # Loosening the 2 mm bound to cover the tilted case would be a
+        # tolerance that binds nothing, which is a row in CLAUDE.md's own
+        # table. So the bound is chosen by WHICH CLAIM is being made, the
+        # tilt is recorded beside the miss, and a tilt appearing where there
+        # was none is visible rather than absorbed.
+        gate = 0.002 if tilt <= 1e-9 else CAPTURE_GATE_M
+        ok = across <= 0.085 and miss <= gate and low > 0.0
         grasps.append(dict(cube=i, arm=arm, solved=True,
+                           tool_axis_tilt_deg=round(tilt, 2),
+                           gate_mm=round(gate * 1000, 1),
                            across_mm=round(across * 1000, 1),
                            pad_miss_mm=round(miss * 1000, 2),
                            lowest_tip_above_table_mm=round(low * 1000, 1),
@@ -261,11 +382,22 @@ def main():
                            ok=ok))
         print("   cube_%d %-5s across the closing axis %5.1f mm (hand opens "
               "85)  pad miss %5.2f mm  lowest finger tip %+6.1f mm above the "
-              "table  %s" % (i, arm, across * 1000, miss * 1000, low * 1000,
-                             "" if ok else "<-- PROBLEM"))
+              "table  tilt %4.1f deg  %s"
+              % (i, arm, across * 1000, miss * 1000, low * 1000, tilt,
+                 "" if ok else "<-- PROBLEM"))
         if not ok:
             bad_total += 1
     res["grasps"] = grasps
+    res["worst_pad_miss_mm"] = max((g.get("pad_miss_mm", 0.0)
+                                    for g in grasps), default=0.0)
+    res["worst_tool_axis_tilt_deg"] = max(
+        (g.get("tool_axis_tilt_deg", 0.0) for g in grasps), default=0.0)
+    res["capture_gate_mm"] = CAPTURE_GATE_M * 1000
+    res["path_clean"] = all(
+        v["ik_failures"] == 0 and v["floor_breaches"] == 0
+        for v in res["arms"].values())
+    res["orientation_policy"] = pol
+    res["orientation_cone_deg"] = cone
 
     print("\n" + "=" * 72)
     print("VERDICT: %s" % ("CLEAN -- every waypoint of both arms solves and "

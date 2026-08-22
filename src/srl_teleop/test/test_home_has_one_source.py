@@ -229,3 +229,80 @@ def test_continuous_joints_are_clear_of_the_seam():
             "scripts/solve_home_pose.py -- re-solve, do not hand-edit."
             % (arm, SEAM_MARGIN_RAD,
                ", ".join("joint_%d is %.4f rad from it" % t for t in tight)))
+
+
+# ===========================================================================
+#  AND THE STAGING SCRIPT IS A CONSUMER, NOT A SIXTH COPY
+# ===========================================================================
+# `scripts/stage_presentation_pose.py` is what puts the arms on home before
+# every recorded clip and before every task run. It staged to
+# `recordings/baselines/presentation_pose.json` -- a file written before the
+# 2026-08-16 home change and, measured on 2026-08-23, **3.0557 rad (left) /
+# 3.0805 (right) from the shipped home**, both on joint_4.
+#
+# WHAT THAT COST WAS THE WHOLE RECORDING PIPELINE. `run_abc.require_home()`
+# stages, re-reads /joint_states and refuses to run from an unknown pose. The
+# staging reported "worst joint error 0.0000 rad" against its own target and
+# `require_home` then measured 3.08 rad against the config and refused --
+# two sentences one line apart, about the same arms, both true, staging to two
+# different poses. Every cell of the recording sweep failed that way.
+#
+# This is the same shape as the `initial_positions.yaml` note in
+# `config/srl_dual.urdf.xacro`: a sixth copy of the home pose in a file this
+# test did not look at. It looks at it now.
+
+def test_the_staging_script_loads_the_config_and_not_a_stored_pose():
+    import os
+    here = os.path.dirname(os.path.abspath(__file__))
+    ws = os.path.dirname(os.path.dirname(os.path.dirname(here)))
+    src = open(os.path.join(ws, "scripts",
+                            "stage_presentation_pose.py")).read()
+    assert "hp.load_home_radians(arm)" in src, (
+        "stage_presentation_pose no longer loads config/home_positions_*.txt; "
+        "if it stages somewhere else, every run that calls require_home "
+        "afterwards refuses")
+    # the stored pose must be reachable only by an explicit, named flag
+    assert "--stored-pose" in src
+    i_default = src.index("want = {arm: list(hp.load_home_radians(arm))")
+    i_stored = src.index("if a.stored_pose:")
+    assert i_default < i_stored, (
+        "the stored pose is read before the config, so it is the default "
+        "again")
+
+
+def test_the_stored_presentation_pose_is_recorded_as_disagreeing():
+    """It is kept as the RECORD of the solve, and it no longer matches.
+
+    Not deleted -- ARCHIVE, NEVER DELETE, and its controls and achieved
+    constraint values are still the evidence for how the pose was found. What
+    must stay true is that nothing STAGES to it by default, and that the size
+    of the disagreement is a checked number rather than a memory.
+    """
+    import json
+    import math
+    import os
+    here = os.path.dirname(os.path.abspath(__file__))
+    ws = os.path.dirname(os.path.dirname(os.path.dirname(here)))
+    path = os.path.join(ws, "recordings", "baselines",
+                        "presentation_pose.json")
+    if not os.path.exists(path):
+        return                      # nothing to disagree with
+    import sys
+    sys.path.insert(0, os.path.join(ws, "config"))
+    import home_positions as hp
+    d = json.load(open(path))
+    worst = 0.0
+    for arm in ("left", "right"):
+        want = hp.load_home_radians(arm)
+        q = d["poses"][arm]["q"]
+        worst = max(worst, max(
+            abs(((x - y + math.pi) % (2 * math.pi)) - math.pi)
+            for x, y in zip(q, want)))
+    # If someone re-saves it against the current home this becomes ~0, which
+    # is fine and is the other acceptable state. What is NOT acceptable is a
+    # small-but-nonzero drift nobody has noticed, so the assertion is that it
+    # is either the same pose or the known-different one.
+    assert worst < 1e-3 or worst > 3.0, (
+        "presentation_pose.json is %.4f rad from home -- neither the same "
+        "pose nor the recorded 3.06 rad difference. Something has drifted."
+        % worst)

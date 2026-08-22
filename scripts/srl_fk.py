@@ -145,12 +145,24 @@ class FK:
         return np.array(lo), np.array(hi), cont
 
     # -------------------------------------------------------------------- FK
-    def poses(self, arm, q, links):
+    def poses(self, arm, q, links, gripper=None):
         """4x4 world transforms for `links`, with `arm`'s joints set to q.
 
         `links` are bare names ("forearm_link"); the arm prefix is added. A
         name that already carries the prefix is passed through, so the wearer
         and the mount can be asked for too.
+
+        `gripper` is the knuckle angle in radians. THE HAND WAS UNREACHABLE
+        FROM HERE UNTIL 2026-08-23: every gripper joint defaulted to 0.0 and
+        the Robotiq's mimic joints were ignored entirely, so this class could
+        not put the finger tips anywhere except one arbitrary opening -- and
+        the finger tips are the only part of the robot that touches anything.
+
+        The Robotiq 85 is a FOUR-BAR LINKAGE. Its fingers swing rather than
+        translate, so the tips' distance ALONG THE TOOL AXIS is a function of
+        the opening. "Where the pads are" is therefore not one number unless
+        the opening is stated with it, and `grasp_frames.PAD_MID_EE` states
+        one number.
         """
         want = set()
         full = []
@@ -160,6 +172,18 @@ class FK:
             full.append(f)
             want.add(f)
         qmap = {"%s_joint_%d" % (arm, i + 1): float(q[i]) for i in range(7)}
+        if gripper is not None:
+            # The driving joint, then everything that MIMICS it. urdf_parser_py
+            # carries the multiplier and offset; applying them is the whole
+            # difference between a hand that opens and a hand frozen at 0.
+            drive = "%s_robotiq_85_left_knuckle_joint" % arm
+            qmap[drive] = float(gripper)
+            for j in self.robot.joints:
+                m = getattr(j, "mimic", None)
+                if m is not None and m.joint in qmap:
+                    mult = 1.0 if m.multiplier is None else float(m.multiplier)
+                    off = 0.0 if m.offset is None else float(m.offset)
+                    qmap[j.name] = qmap[m.joint] * mult + off
         cache = {}
         for f in full:
             if f in cache:

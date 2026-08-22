@@ -9,15 +9,15 @@
   "furniture_per_task": {
     "t0": [],
     "t1": [
-      "bench",
+      "table"
+    ],
+    "t1s2": [
       "table"
     ],
     "t2": [
-      "bench",
       "table"
     ],
     "t3": [
-      "bench",
       "table"
     ]
   },
@@ -36,55 +36,8 @@
     }
   },
   "T1": {
-    "cube_0": {
-      "xy": [
-        0.28,
-        0.23
-      ],
-      "waypoints": 13,
-      "failures": 0
-    },
-    "cube_1": {
-      "xy": [
-        0.34,
-        0.23
-      ],
-      "waypoints": 13,
-      "failures": 0
-    },
-    "cube_2": {
-      "xy": [
-        0.38,
-        0.17
-      ],
-      "waypoints": 13,
-      "failures": 0
-    },
-    "cube_3": {
-      "xy": [
-        0.4,
-        0.23
-      ],
-      "waypoints": 13,
-      "failures": 0
-    },
-    "plane_0": {
-      "xy": [
-        0.3,
-        0.145
-      ],
-      "waypoints": 13,
-      "failures": 0
-    },
-    "plane_1": {
-      "xy": [
-        0.46,
-        0.145
-      ],
-      "waypoints": 13,
-      "failures": 0
-    },
-    "transport_failures": 0
+    "verified_by": "scripts/verify_t1.py",
+    "why": "two-arm, two-stage, seeded layout; a second copy of it here drifted through three layout changes and then stopped importing"
   },
   "T2": {
     "S1_short_lift": {
@@ -128,13 +81,25 @@
     },
     "t1": {
       "left": {
-        "waypoints": 140,
-        "distinct": 76,
+        "waypoints": 199,
+        "distinct": 46,
         "failures": 0
       },
       "right": {
-        "waypoints": 140,
-        "distinct": 1,
+        "waypoints": 199,
+        "distinct": 46,
+        "failures": 0
+      }
+    },
+    "t1s2": {
+      "left": {
+        "waypoints": 201,
+        "distinct": 45,
+        "failures": 0
+      },
+      "right": {
+        "waypoints": 201,
+        "distinct": 49,
         "failures": 0
       }
     },
@@ -163,7 +128,7 @@
       }
     }
   },
-  "clip_waypoints_tested": 165,
-  "ik_calls": 6304,
+  "clip_waypoints_tested": 274,
+  "ik_calls": 6024,
   "failures": 0
 }

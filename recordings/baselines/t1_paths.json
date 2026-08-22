@@ -2,7 +2,7 @@
   "controls": {
     "inside_torso_is_negative": "-0.1595 at [0.05, 0.02, 1.22]",
     "far_1.6m_unreachable": true,
-    "shipped_cube_reachable_and_clear": "True / 0.2041",
+    "shipped_cube_reachable_and_clear": "True / 0.2202",
     "slab_control_free_then_buried": "True -> False (want True -> False)"
   },
   "arms": {
@@ -10,9 +10,9 @@
       "waypoints": 199,
       "ik_failures": 0,
       "floor_breaches": 0,
-      "worst_clearance": 0.1978,
-      "worst_at": 96,
-      "worst_to": "L-upperarm",
+      "worst_clearance": 0.2202,
+      "worst_at": 0,
+      "worst_to": "torso",
       "failures": [],
       "breaches": []
     },
@@ -27,71 +27,77 @@
       "breaches": []
     }
   },
-  "mode": "sequential",
+  "mode": "independent",
   "grasps": [
     {
       "cube": 0,
       "arm": "left",
       "solved": true,
-      "across_mm": 56.4,
-      "pad_miss_mm": 0.01,
-      "lowest_tip_above_table_mm": 20.0,
-      "finger_span_mm": 135.5,
+      "tool_axis_tilt_deg": 5.0,
+      "across_mm": 56.3,
+      "pad_miss_mm": 9.58,
+      "lowest_tip_above_table_mm": 21.3,
+      "finger_span_mm": 93.3,
       "closing_axis": [
-        -0.6428,
-        -0.766,
-        -0.0
+        -0.576,
+        -0.8174,
+        0.0141
       ],
-      "ok": true
+      "ok": false
     },
     {
       "cube": 1,
       "arm": "left",
       "solved": true,
-      "across_mm": 56.4,
-      "pad_miss_mm": 0.0,
-      "lowest_tip_above_table_mm": 20.0,
-      "finger_span_mm": 135.5,
+      "tool_axis_tilt_deg": 5.0,
+      "across_mm": 56.3,
+      "pad_miss_mm": 9.58,
+      "lowest_tip_above_table_mm": 21.3,
+      "finger_span_mm": 93.3,
       "closing_axis": [
-        -0.6428,
-        -0.766,
-        -0.0
+        -0.576,
+        -0.8174,
+        0.0141
       ],
-      "ok": true
+      "ok": false
     },
     {
       "cube": 2,
       "arm": "right",
       "solved": true,
-      "across_mm": 56.4,
-      "pad_miss_mm": 0.0,
-      "lowest_tip_above_table_mm": 20.0,
-      "finger_span_mm": 135.5,
+      "tool_axis_tilt_deg": 5.0,
+      "across_mm": 56.3,
+      "pad_miss_mm": 9.58,
+      "lowest_tip_above_table_mm": 21.3,
+      "finger_span_mm": 93.3,
       "closing_axis": [
-        -0.6428,
-        0.766,
-        0.0
+        -0.576,
+        0.8174,
+        -0.0141
       ],
-      "ok": true
+      "ok": false
     },
     {
       "cube": 3,
       "arm": "right",
       "solved": true,
-      "across_mm": 56.4,
-      "pad_miss_mm": 0.01,
-      "lowest_tip_above_table_mm": 20.0,
-      "finger_span_mm": 135.5,
+      "tool_axis_tilt_deg": 5.0,
+      "across_mm": 56.3,
+      "pad_miss_mm": 9.58,
+      "lowest_tip_above_table_mm": 21.3,
+      "finger_span_mm": 93.3,
       "closing_axis": [
-        -0.6428,
-        0.766,
-        0.0
+        -0.576,
+        0.8174,
+        -0.0141
       ],
-      "ok": true
+      "ok": false
     }
   ],
-  "clean": true,
-  "ik_calls": 423,
+  "orientation_policy": "cone",
+  "orientation_cone_deg": 15.0,
+  "clean": false,
+  "ik_calls": 4005,
   "stage2_seed": null,
   "layout": {
     "cubes": [

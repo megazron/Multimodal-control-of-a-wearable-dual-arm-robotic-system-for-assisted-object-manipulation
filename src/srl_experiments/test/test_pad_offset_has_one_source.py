@@ -48,6 +48,7 @@ import os
 import sys
 
 import numpy as np
+import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
@@ -208,3 +209,87 @@ def test_approach_path_comes_in_along_the_axis():
     # and the pads land ON the object, not the wrist
     pads = np.asarray(ee) + GF.q_matrix(q) @ np.asarray(GF.PAD_MID_EE)
     assert float(np.linalg.norm(pads - np.array([0.35, 0.30, 1.02]))) < 1e-9
+
+
+# ===========================================================================
+#  THE PAD MIDPOINT IS NOT A CONSTANT, AND BOTH OLD NUMBERS ARE ON THE CURVE
+# ===========================================================================
+# The Robotiq 85's fingers swing on a four-bar linkage, so the distance from
+# the wrist to the midpoint of the finger tips depends on HOW OPEN THE HAND IS.
+# Measured from the URDF's own mimic chain by
+# `scripts/measure_pad_mid_ee.py --by-width`:
+#
+#     wide open           0.09833 m   <- grasp_frames.PAD_MID_EE
+#     a 40 mm cube        0.10976 m   +11.43 mm
+#     a 20 mm object      0.11179 m   +13.46 mm
+#
+# `clip_tasks.LEGACY_PAD_OFFSET_BY_ARM` has magnitude 0.11178 -- the hand
+# almost SHUT. The 2026-08-18 note calls that "13.47 mm too long" against the
+# open-hand value. Neither was wrong; they are two gripper states, and the
+# quantity was compared as though it did not have one.
+
+def test_the_two_disputed_numbers_are_both_points_on_the_opening_curve():
+    """The reconciliation, as an assertion rather than a story."""
+    open_hand = GF.pad_mid_ee_for(0)[2]
+    shut_ish = GF.pad_mid_ee_for(20)[2]
+    # 1e-5, because PAD_MID_EE is stored to five decimals (0.09833) and the
+    # table to six (0.098326). That 4 um is the constant's own rounding, not a
+    # disagreement between the two instruments.
+    assert open_hand == pytest.approx(GF.PAD_MID_EE[2], abs=1e-5)
+    legacy = float(np.linalg.norm(CT.LEGACY_PAD_OFFSET_BY_ARM["left"]))
+    assert legacy == pytest.approx(shut_ish, abs=2e-5), (
+        "the legacy world offset is %.5f m and a 20 mm grip measures %.5f m; "
+        "they are meant to be the same point on the curve" % (legacy, shut_ish))
+
+
+def test_the_opening_really_changes_it_and_by_how_much():
+    """A CHECK THAT CANNOT FAIL IS NOT A CHECK: if the curve were flat there
+    would be nothing to tabulate and the constant would have been fine."""
+    d = GF.pad_mid_ee_for(40)[2] - GF.pad_mid_ee_for(0)[2]
+    assert d * 1000 == pytest.approx(11.43, abs=0.05), (
+        "a 40 mm cube moves the pad %.2f mm from the open hand; it was "
+        "11.43 mm when this was measured" % (d * 1000))
+
+
+def test_it_stays_on_the_tool_axis_at_every_opening():
+    """Only the AXIAL distance changes. If the midpoint left the axis the
+    whole one-vector model would be wrong, not just its length."""
+    for w in (0, 10, 20, 30, 40, 50, 60, 70, 85):
+        v = GF.pad_mid_ee_for(w)
+        assert abs(v[0]) < 1e-9 and abs(v[1]) < 1e-9, (w, v)
+
+
+def test_t1_builds_its_grasp_at_the_opening_the_cube_needs():
+    """The consumer. T1's cubes are 40 mm, so its wrist must be placed with
+    the 40 mm value or the fingers close past the cube's centre."""
+    import t1_task as T1
+    obj = [T1.T1_CUBES[0][0], T1.T1_CUBES[0][1], T1.T1_Z]
+    ee = np.asarray(T1.ee_for(obj, "left"), float)
+    R = GF.q_matrix(T1.APPROACH["left"])
+    at_grip = ee + R @ np.asarray(GF.pad_mid_ee_for(T1.CUBE_M * 1000))
+    at_open = ee + R @ np.asarray(GF.PAD_MID_EE)
+    assert float(np.linalg.norm(at_grip - np.asarray(obj))) < 1e-6, (
+        "the pads do not land on the cube at the opening it needs")
+    was = float(np.linalg.norm(at_open - np.asarray(obj))) * 1000
+    assert was == pytest.approx(11.43, abs=0.05), (
+        "the control: building on the OPEN-hand constant should miss by "
+        "11.43 mm and misses by %.2f" % was)
+
+
+def test_the_table_refuses_rather_than_guessing_when_it_is_missing():
+    """A baseline that is not there must raise, not return a plausible
+    number -- the whole point is that this quantity cannot be guessed."""
+    import os
+    import grasp_frames as _gf
+    saved = _gf._BY_WIDTH
+    _gf._BY_WIDTH = None
+    real = os.path.exists
+    try:
+        os.path.exists = lambda p: False if "pad_mid_ee_by_width" in str(p) \
+            else real(p)
+        with pytest.raises(RuntimeError) as e:
+            _gf.pad_mid_ee_for(40)
+        assert "measure_pad_mid_ee.py --by-width" in str(e.value)
+    finally:
+        os.path.exists = real
+        _gf._BY_WIDTH = saved

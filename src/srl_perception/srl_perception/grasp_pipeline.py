@@ -135,6 +135,31 @@ def plan_grasp(bgr, depth_m, prompt, cam_p, cam_R, colour_K, depth_K,
     return gr
 
 
+_SEED_TABLES = {}
+
+
+def _seed_table(scorer, arm, seed, n=40000):
+    """A cached table of (joint vector, hand position) for one arm.
+
+    Built once per (arm, seed) and reused: the table is the expensive part
+    and every call to `reachable` wants the same one. 40 000 samples over a
+    7-DOF box puts a seed within a few centimetres of anywhere the arm can
+    put its hand, which is what the optimiser needs to converge.
+    """
+    key = (id(scorer), arm, seed, n)
+    hit = _SEED_TABLES.get(key)
+    if hit is not None:
+        return hit
+    lo, hi, _ = scorer.lim[arm]
+    rng = np.random.default_rng(seed)
+    Q = rng.uniform(lo, hi, size=(n, 7))
+    P = np.array([np.asarray(
+        scorer.arm_terms(arm, q, with_clearance=False)["hand"], float)
+        for q in Q])
+    _SEED_TABLES[key] = (Q, P)
+    return Q, P
+
+
 def reachable(scorer, arm, goal, home, restarts=40, seed=11,
               seam=SEAM_MARGIN_RAD, floor=CLEARANCE_FLOOR_M):
     """(ok, q, why) for a Cartesian point. MULTI-START, deliberately.
@@ -143,7 +168,6 @@ def reachable(scorer, arm, goal, home, restarts=40, seed=11,
     module stays importable with no ROS and no robot.
     """
     from scipy.optimize import minimize
-    rng = np.random.default_rng(seed)
     lo, hi, _ = scorer.lim[arm]
     goal = np.asarray(goal, float)
 
@@ -153,32 +177,73 @@ def reachable(scorer, arm, goal, home, restarts=40, seed=11,
 
     def cost(q):
         return float(np.sum((hand(q) - goal) ** 2))
-
+    # SEEDED, NOT UNIFORM-RANDOM -- and this is a hardening, not a fix for a
+    # failure I could reproduce.
+    #
+    # It used to start from `home` plus N uniform-random joint vectors.
+    # `scripts/real_calibration/arm_ik.py` was written on 2026-08-21 with a
+    # seeded table because a target refused at 301 restarts was walked to
+    # 42 mm by plain sampling, and this function was left behind. Bringing it
+    # onto the same method costs nothing and cannot converge worse.
+    #
+    # HONESTLY: the test beside this could NOT make the uniform version fail.
+    # Points from the full joint box, 4 to 40 restarts, both find 10 of 10.
+    # So the claim here is only that seeding from nearby samples is at least
+    # as good -- see
+    # src/srl_perception/test/test_the_grasp_pipeline_looks_before_it_says_no.py
+    Q, P = _seed_table(scorer, arm, seed)
+    order = np.argsort(np.linalg.norm(P - goal, axis=1))[:restarts]
     sols = []
-    for s0 in [np.asarray(home, float)] + [rng.uniform(lo, hi)
-                                           for _ in range(restarts)]:
+    for s0 in [np.asarray(home, float)] + [Q[i] for i in order]:
         r = minimize(cost, s0, method="L-BFGS-B", bounds=list(zip(lo, hi)),
                      options=dict(maxiter=400, ftol=1e-14))
         if math.sqrt(max(r.fun, 0.0)) < 0.010:
             sols.append(r.x)
     if not sols:
-        return False, None, ("no IK solution in %d starts -- this point is "
-                             "outside the arm's %d mm reach, not blocked by a "
-                             "rule" % (restarts + 1, 902))
+        # REPORT WHAT WAS MEASURED, not what it implies. The closest the
+        # SEEDED search got is a number; "outside the arm's reach" is an
+        # inference from a search, and this function used to make it after
+        # looking in the wrong places.
+        closest = float(np.min(np.linalg.norm(P - goal, axis=1)))
+        return False, None, (
+            "no IK solution within 10 mm from %d SEEDED starts; the nearest "
+            "sampled configuration puts the hand %.0f mm away. This is a "
+            "searched refusal, not an assumption about the arm's reach."
+            % (restarts + 1, closest * 1000))
+    # THE MOVING CHAIN, NOT THE WHOLE CHAIN.
+    #
+    # `arm_terms` returns both. `clearance_m` is the WHOLE chain, which
+    # includes `base_link -> shoulder_link` -- the immobile stub of the
+    # mount. That stub is the nearest thing to the wearer in every pose the
+    # arm can reach, so the whole-chain number is the constant 0.2202 m
+    # whatever the joints do. Measured on real hardware 2026-08-21 and
+    # recorded in docs/NEXT_SESSION_2026_08_22.md: "the whole-chain clearance
+    # reads that constant for every pose ever tried. Always use
+    # moving_chain_m."
+    #
+    # This function was reading the constant. 0.2202 >= 0.15 is true for
+    # every pose, so the wearer floor here has NEVER FIRED -- the grasp
+    # pipeline has been approving poses against a check that could not fail.
+    # That is the same defect the real-arm guard had (0 of 9 parts resolved),
+    # in the code that decides where to put the gripper.
     best = None
     for q in sols:
         t = scorer.arm_terms(arm, q)
+        c = float(t["clearance_moving_m"])
         mg = min(math.pi - abs(float(q[i])) for i in CONT_IDX)
-        key = (t["clearance_m"] >= floor, mg >= seam, t["clearance_m"])
+        key = (c >= floor, mg >= seam, c)
         if best is None or key > best[0]:
-            best = (key, q, t, mg)
+            best = (key, q, t, mg, c)
     if not best[0][0]:
-        return False, best[1], ("wearer clearance %.3f m, under the %.3f m "
-                                "floor" % (best[2]["clearance_m"], floor))
+        return False, best[1], (
+            "wearer clearance %.3f m to %s, under the %.3f m floor"
+            % (best[4], best[2].get("clearance_moving_to", "?"), floor))
     if not best[0][1]:
         return False, best[1], ("a continuous joint sits %.3f rad from the "
                                 "+/-pi seam (limit %.2f)" % (best[3], seam))
-    return True, best[1], "reachable, clearance %.3f m" % best[2]["clearance_m"]
+    return True, best[1], ("reachable, clearance %.3f m to %s"
+                           % (best[4], best[2].get("clearance_moving_to",
+                                                   "?")))
 
 
 def plan_and_check(scorer, arm, home, *args, **kw):

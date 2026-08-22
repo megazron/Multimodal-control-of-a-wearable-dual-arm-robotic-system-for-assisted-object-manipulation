@@ -33,6 +33,7 @@ CONTINUOUS-JOINT WIND-UP
 Run:
   ros2 run srl_teleop ik_follower_node
 """
+import copy
 import sys
 import os
 import math
@@ -172,6 +173,50 @@ class IKFollowerNode(Node):
         # commanded pose, rather than giving up on the pose.
         self.declare_parameter("redundancy_samples", 6)
         self.declare_parameter("redundancy_span_rad", 2.0)
+        # HOW STRICTLY THE COMMANDED WRIST ORIENTATION IS INSISTED UPON.
+        #
+        # Default `exact`, which is byte-for-byte the behaviour every
+        # recorded mode ran with, so importing this changes nothing until
+        # somebody asks for it. HARD CONSTRAINT 1 is untouched:
+        # WORKSPACE_ORIENT is not re-derived, moved, or recomputed.
+        #
+        # Why the option exists, measured 2026-08-22 with the 0.15 m wearer
+        # floor enforced throughout (recordings/baselines/orientation_cost*):
+        # from the WORK POINT the pinned wrist reaches 0.065 m mean over 12
+        # directions with 11 of 12 bound by the wearer; a 45 deg cone reaches
+        # 0.440 m with 5. The pin spends the 7th DOF -- the joint whose whole
+        # purpose is moving the elbow out of the person while the hand stays
+        # put -- and the arm then has nothing left to avoid them with.
+        #
+        # `spin` is refused by name: freeing the ROLL and holding the axis
+        # measured +0 mm. See srl_teleop.orientation_policy.
+        # DEFAULT: a 15 degree cone, ON, for every mode.
+        #
+        # Measured through the follower's OWN discrete candidate list, from
+        # the work point (0.4, 0.175, 1.12), wearer floor 0.15 m enforced
+        # throughout -- recordings/baselines/orientation_cost_what_binds
+        # _as_follower.json:
+        #
+        #     pinned   0.065 m mean reach over 12 directions
+        #     cone15   0.304 m      +239 mm
+        #     cone45   0.325 m      +260 mm
+        #     free     0.362 m      +298 mm
+        #
+        # 15 degrees buys 239 of the 260 mm a 45 degree cone buys, at a third
+        # of the tilt, so it is the default. 45 is available and measured.
+        #
+        # WHY THIS IS SAFE TO DEFAULT ON, and it is a property with a test
+        # rather than an argument: `orientation_policy.candidates()` yields
+        # the COMMANDED orientation first, and `on_ik_response` only reaches
+        # the next candidate after every redundancy seed has failed. So a
+        # pose that solves at the commanded wrist today is still solved at
+        # the commanded wrist. The cone cannot change a motion that works; it
+        # can only rescue one that currently fails outright.
+        #
+        # Set `orientation_policy:=exact` to reproduce a recording made
+        # before 2026-08-22.
+        self.declare_parameter("orientation_policy", "cone")
+        self.declare_parameter("orientation_cone_deg", 15.0)
         # real_robot mode -- see CLAUDE.md. Slower, stricter, opt-in motion.
         self.declare_parameter("real_robot", False)
         # time_from_start = unwrapped_delta / max_vel, floored at min_time.
@@ -192,6 +237,27 @@ class IKFollowerNode(Node):
         self.min_clear = float(self.get_parameter("min_clearance_m").value)
         self.redundancy_n = int(self.get_parameter("redundancy_samples").value)
         self.redundancy_span = float(self.get_parameter("redundancy_span_rad").value)
+        from srl_teleop import orientation_policy as _op
+        self._op = _op
+        try:
+            self.ori_policy, _ = _op.normalise(
+                self.get_parameter("orientation_policy").value,
+                self.get_parameter("orientation_cone_deg").value)
+            self.ori_cone_deg = float(
+                self.get_parameter("orientation_cone_deg").value)
+        except _op.PolicyError as e:
+            # REFUSE, DO NOT COERCE. A node that quietly falls back to
+            # `exact` after being asked for a cone is a node whose logs say
+            # one thing and whose arm does another.
+            raise SystemExit("orientation policy refused: %s" % e)
+        self.ori_candidates = []      # rebuilt per target
+        self.ori_try = 0
+        self.ori_relaxed = 0          # how many solves needed a tilt
+        self.ori_last_tilt_deg = 0.0
+        self.ori_worst_tilt_deg = 0.0
+        self.get_logger().info("orientation: %s"
+                               % _op.describe(self.ori_policy,
+                                              self.ori_cone_deg))
         self.real_robot = bool(self.get_parameter("real_robot").value)
         # ORDER MATTERS HERE. These four MUST be read from parameters BEFORE
         # the real_robot block, for two reasons:
@@ -519,7 +585,17 @@ class IKFollowerNode(Node):
                      # the cascade the sim leads the real arm by the bridge
                      # delay, so "sim" and "real" are different questions and
                      # a reader must not have to guess which was answered.
-                     {"sim": 0.0, "real": 1.0}.get(self._clear_src, -1.0)])
+                     {"sim": 0.0, "real": 1.0}.get(self._clear_src, -1.0),
+                     # [13] HOW MANY SOLVES NEEDED THE TOOL AXIS TILTED,
+                     # [14] the last tilt and [15] the worst so far, degrees.
+                     # A relaxation the operator cannot see is a workspace
+                     # that widened without anyone agreeing to it, which is
+                     # the exact shape of "feature present but does nothing"
+                     # inverted. Under the default `exact` policy these are
+                     # 0 forever and say so.
+                     float(self.ori_relaxed),
+                     float(self.ori_last_tilt_deg),
+                     float(self.ori_worst_tilt_deg)])
         self.status_pub.publish(m)
 
     def log_stats(self):
@@ -869,10 +945,25 @@ class IKFollowerNode(Node):
         self.pending_target = ((p.x, p.y, p.z), (o.x, o.y, o.z, o.w))
         self.pending_target_msg = msg
 
+        # THE ORIENTATION ACTUALLY ASKED FOR. Candidate 0 is always the
+        # commanded orientation, so under the default policy this branch is
+        # a no-op and the request is identical to the one this node has
+        # always sent. Candidates beyond 0 exist only after the strict pose
+        # has already failed every redundancy seed.
+        ask = msg
+        self.ori_tilt_deg = 0.0
+        if self.ori_try > 0 and self.ori_try < len(self.ori_candidates):
+            q, tilt, label = self.ori_candidates[self.ori_try]
+            ask = copy.deepcopy(msg)
+            (ask.pose.orientation.x, ask.pose.orientation.y,
+             ask.pose.orientation.z, ask.pose.orientation.w) = q
+            self.ori_tilt_deg = tilt
+            self.ori_label = label
+
         req = GetPositionIK.Request()
         req.ik_request = PositionIKRequest()
         req.ik_request.group_name = f"{self.arm}_arm"
-        req.ik_request.pose_stamped = msg
+        req.ik_request.pose_stamped = ask
         req.ik_request.ik_link_name = f"{self.arm}_end_effector_link"
         req.ik_request.timeout = Duration(sec=0, nanosec=200_000_000)
         # The wearer is in the collision model (human_backpack.xacro now
@@ -932,13 +1023,58 @@ class IKFollowerNode(Node):
                 self.request_ik(self.pending_target_msg,
                                 seed_perturb=self.redundancy_try)
                 return
+            # THE SECOND ESCALATION: tilt the tool axis, nearest first.
+            #
+            # Ordered strictly after the redundancy seeds, so a pose that
+            # solves at the commanded orientation is ALWAYS solved at the
+            # commanded orientation -- relaxation is reached only once the
+            # strict answer has failed every seed. Under the default policy
+            # `candidates()` yields one entry and this branch never fires.
+            if self.pending_target is not None:
+                if not self.ori_candidates:
+                    self.ori_candidates = list(self._op.candidates(
+                        self.pending_target[1], self.ori_policy,
+                        self.ori_cone_deg))
+                if self.ori_try + 1 < len(self.ori_candidates):
+                    self.ori_try += 1
+                    self.redundancy_try = 0
+                    self.request_ik(self.pending_target_msg)
+                    return
             self.redundancy_try = 0
+            self.ori_try = 0
+            self.ori_candidates = []
             self.fail_count += 1; self.tot["fail"] += 1
-            self.blocks.block("ik_failed", "error code %d after %d redundancy "
-                              "retries" % (resp.error_code.val, self.redundancy_n))
+            self.blocks.block(
+                "ik_failed",
+                "error code %d after %d redundancy retries and %d "
+                "orientation candidate(s) within %s"
+                % (resp.error_code.val, self.redundancy_n,
+                   max(0, len(self.ori_candidates) - 1),
+                   self._op.describe(self.ori_policy, self.ori_cone_deg)))
             return
 
         self.success_count += 1; self.tot["success"] += 1
+        # A RELAXATION IS NEVER SILENT. The arm reached the commanded POSITION
+        # with the hand pointing somewhere other than commanded, and an
+        # operator watching a gripper approach at an angle they did not ask
+        # for must be able to find out why from the log and the status topic,
+        # not by reading this file.
+        if self.ori_try > 0:
+            self.ori_relaxed += 1
+            self.ori_last_tilt_deg = self.ori_tilt_deg
+            self.ori_worst_tilt_deg = max(self.ori_worst_tilt_deg,
+                                          self.ori_tilt_deg)
+            self.get_logger().info(
+                "[ORIENT] solved by tilting the tool axis %.1f deg (%s); the "
+                "commanded orientation had no solution at any redundancy "
+                "seed. Policy: %s"
+                % (self.ori_tilt_deg, getattr(self, "ori_label", "?"),
+                   self._op.describe(self.ori_policy, self.ori_cone_deg)),
+                throttle_duration_sec=2.0)
+        else:
+            self.ori_last_tilt_deg = 0.0
+        self.ori_try = 0
+        self.ori_candidates = []
 
         name_to_pos = dict(zip(resp.solution.joint_state.name,
                                 resp.solution.joint_state.position))

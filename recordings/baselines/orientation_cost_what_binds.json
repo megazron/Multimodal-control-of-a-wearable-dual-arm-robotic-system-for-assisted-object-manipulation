@@ -1,0 +1,623 @@
+{
+ "floor_m": 0.15,
+ "step_m": 0.025,
+ "seeds": 28,
+ "start_mode": "what_binds",
+ "tol_p_m": 0.005,
+ "policies": [
+  "pinned",
+  "spin",
+  "cone15",
+  "cone45",
+  "free"
+ ],
+ "cone_deg": {
+  "pinned": 0.0,
+  "spin": 0.0,
+  "cone15": 15.0,
+  "cone45": 45.0,
+  "free": 180.0
+ },
+ "controls": [
+  {
+   "control": "fk_constructed",
+   "arm": "left",
+   "policy": "pinned",
+   "want": "OK",
+   "got": "OK",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "control": "fk_constructed",
+   "arm": "left",
+   "policy": "spin",
+   "want": "OK",
+   "got": "OK",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "control": "fk_constructed",
+   "arm": "left",
+   "policy": "cone15",
+   "want": "OK",
+   "got": "OK",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "control": "fk_constructed",
+   "arm": "left",
+   "policy": "cone45",
+   "want": "OK",
+   "got": "OK",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "control": "fk_constructed",
+   "arm": "left",
+   "policy": "free",
+   "want": "OK",
+   "got": "OK",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "control": "five_metres",
+   "arm": "left",
+   "policy": "pinned",
+   "want": "UNREACHABLE",
+   "got": "UNREACHABLE",
+   "pass": true,
+   "detail": "no pose met 5 mm and the pinned policy in 14 seeded starts; closest position 4430.8 mm. A SEARCHED refusal."
+  },
+  {
+   "control": "five_metres",
+   "arm": "left",
+   "policy": "spin",
+   "want": "UNREACHABLE",
+   "got": "UNREACHABLE",
+   "pass": true,
+   "detail": "no pose met 5 mm and the spin policy in 14 seeded starts; closest position 4430.8 mm. A SEARCHED refusal."
+  },
+  {
+   "control": "five_metres",
+   "arm": "left",
+   "policy": "cone15",
+   "want": "UNREACHABLE",
+   "got": "UNREACHABLE",
+   "pass": true,
+   "detail": "no pose met 5 mm and the cone15 policy in 14 seeded starts; closest position 4430.8 mm. A SEARCHED refusal."
+  },
+  {
+   "control": "five_metres",
+   "arm": "left",
+   "policy": "cone45",
+   "want": "UNREACHABLE",
+   "got": "UNREACHABLE",
+   "pass": true,
+   "detail": "no pose met 5 mm and the cone45 policy in 14 seeded starts; closest position 4430.8 mm. A SEARCHED refusal."
+  },
+  {
+   "control": "five_metres",
+   "arm": "left",
+   "policy": "free",
+   "want": "UNREACHABLE",
+   "got": "UNREACHABLE",
+   "pass": true,
+   "detail": "no pose met 5 mm and the free policy in 14 seeded starts; closest position 4430.8 mm. A SEARCHED refusal."
+  },
+  {
+   "control": "inside_torso",
+   "arm": "left",
+   "policy": "free",
+   "want": "WEARER",
+   "got": "WEARER",
+   "pass": true,
+   "detail": "reachable to 0.0 mm but the best of 14 solutions clears the wearer by only -0.1600 m against the 0.15 m floor"
+  },
+  {
+   "control": "fk_constructed",
+   "arm": "right",
+   "policy": "pinned",
+   "want": "OK",
+   "got": "OK",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "control": "fk_constructed",
+   "arm": "right",
+   "policy": "spin",
+   "want": "OK",
+   "got": "OK",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "control": "fk_constructed",
+   "arm": "right",
+   "policy": "cone15",
+   "want": "OK",
+   "got": "OK",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "control": "fk_constructed",
+   "arm": "right",
+   "policy": "cone45",
+   "want": "OK",
+   "got": "OK",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "control": "fk_constructed",
+   "arm": "right",
+   "policy": "free",
+   "want": "OK",
+   "got": "OK",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "control": "five_metres",
+   "arm": "right",
+   "policy": "pinned",
+   "want": "UNREACHABLE",
+   "got": "UNREACHABLE",
+   "pass": true,
+   "detail": "no pose met 5 mm and the pinned policy in 14 seeded starts; closest position 4430.8 mm. A SEARCHED refusal."
+  },
+  {
+   "control": "five_metres",
+   "arm": "right",
+   "policy": "spin",
+   "want": "UNREACHABLE",
+   "got": "UNREACHABLE",
+   "pass": true,
+   "detail": "no pose met 5 mm and the spin policy in 14 seeded starts; closest position 4430.8 mm. A SEARCHED refusal."
+  },
+  {
+   "control": "five_metres",
+   "arm": "right",
+   "policy": "cone15",
+   "want": "UNREACHABLE",
+   "got": "UNREACHABLE",
+   "pass": true,
+   "detail": "no pose met 5 mm and the cone15 policy in 14 seeded starts; closest position 4430.8 mm. A SEARCHED refusal."
+  },
+  {
+   "control": "five_metres",
+   "arm": "right",
+   "policy": "cone45",
+   "want": "UNREACHABLE",
+   "got": "UNREACHABLE",
+   "pass": true,
+   "detail": "no pose met 5 mm and the cone45 policy in 14 seeded starts; closest position 4430.8 mm. A SEARCHED refusal."
+  },
+  {
+   "control": "five_metres",
+   "arm": "right",
+   "policy": "free",
+   "want": "UNREACHABLE",
+   "got": "UNREACHABLE",
+   "pass": true,
+   "detail": "no pose met 5 mm and the free policy in 14 seeded starts; closest position 4430.8 mm. A SEARCHED refusal."
+  },
+  {
+   "control": "inside_torso",
+   "arm": "right",
+   "policy": "free",
+   "want": "WEARER",
+   "got": "WEARER",
+   "pass": true,
+   "detail": "reachable to 0.0 mm but the best of 14 solutions clears the wearer by only -0.1600 m against the 0.15 m floor"
+  }
+ ],
+ "walks": [
+  {
+   "arm": "left",
+   "dir": "+1+0+0",
+   "start": [
+    0.4,
+    0.175,
+    1.12
+   ],
+   "reach": {
+    "pinned": 0.0,
+    "spin": 0.0,
+    "cone15": 0.825,
+    "cone45": 0.9,
+    "free": 0.9
+   },
+   "why": {
+    "pinned": "WEARER",
+    "spin": "WEARER",
+    "cone15": "UNREACHABLE",
+    "cone45": "CAP",
+    "free": "CAP"
+   },
+   "detail": {
+    "pinned": "reachable to 0.0 mm but the best of 24 solutions clears the wearer by only 0.1478 m against the 0.15 m floor",
+    "spin": "reachable to 0.0 mm but the best of 25 solutions clears the wearer by only 0.1478 m against the 0.15 m floor",
+    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 3.6 mm. A SEARCHED refusal.",
+    "cone45": "not bounded within 0.90 m",
+    "free": "not bounded within 0.90 m"
+   },
+   "gain_spin_m": 0.0,
+   "gain_free_m": 0.9
+  },
+  {
+   "arm": "left",
+   "dir": "-1+0+0",
+   "start": [
+    0.4,
+    0.175,
+    1.12
+   ],
+   "reach": {
+    "pinned": 0.0,
+    "spin": 0.0,
+    "cone15": 0.0,
+    "cone45": 0.0,
+    "free": 0.0
+   },
+   "why": {
+    "pinned": "WEARER",
+    "spin": "WEARER",
+    "cone15": "WEARER",
+    "cone45": "WEARER",
+    "free": "WEARER"
+   },
+   "detail": {
+    "pinned": "reachable to 0.0 mm but the best of 23 solutions clears the wearer by only 0.0987 m against the 0.15 m floor",
+    "spin": "reachable to 0.0 mm but the best of 24 solutions clears the wearer by only 0.0987 m against the 0.15 m floor",
+    "cone15": "reachable to 0.0 mm but the best of 26 solutions clears the wearer by only 0.1315 m against the 0.15 m floor",
+    "cone45": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1408 m against the 0.15 m floor",
+    "free": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1408 m against the 0.15 m floor"
+   },
+   "gain_spin_m": 0.0,
+   "gain_free_m": 0.0
+  },
+  {
+   "arm": "left",
+   "dir": "+0+1+0",
+   "start": [
+    0.4,
+    0.175,
+    1.12
+   ],
+   "reach": {
+    "pinned": 0.0,
+    "spin": 0.0,
+    "cone15": 0.35,
+    "cone45": 0.375,
+    "free": 0.375
+   },
+   "why": {
+    "pinned": "WEARER",
+    "spin": "WEARER",
+    "cone15": "UNREACHABLE",
+    "cone45": "UNREACHABLE",
+    "free": "UNREACHABLE"
+   },
+   "detail": {
+    "pinned": "reachable to 0.0 mm but the best of 20 solutions clears the wearer by only 0.1285 m against the 0.15 m floor",
+    "spin": "reachable to 0.0 mm but the best of 22 solutions clears the wearer by only 0.1284 m against the 0.15 m floor",
+    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 9.1 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 12.7 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 12.7 mm. A SEARCHED refusal."
+   },
+   "gain_spin_m": 0.0,
+   "gain_free_m": 0.375
+  },
+  {
+   "arm": "left",
+   "dir": "+0-1+0",
+   "start": [
+    0.4,
+    0.175,
+    1.12
+   ],
+   "reach": {
+    "pinned": 0.0,
+    "spin": 0.0,
+    "cone15": 0.0,
+    "cone45": 0.0,
+    "free": 0.0
+   },
+   "why": {
+    "pinned": "WEARER",
+    "spin": "WEARER",
+    "cone15": "WEARER",
+    "cone45": "WEARER",
+    "free": "WEARER"
+   },
+   "detail": {
+    "pinned": "reachable to 0.0 mm but the best of 22 solutions clears the wearer by only 0.1188 m against the 0.15 m floor",
+    "spin": "reachable to 0.0 mm but the best of 24 solutions clears the wearer by only 0.1188 m against the 0.15 m floor",
+    "cone15": "reachable to 0.0 mm but the best of 24 solutions clears the wearer by only 0.1406 m against the 0.15 m floor",
+    "cone45": "reachable to 0.0 mm but the best of 26 solutions clears the wearer by only 0.1423 m against the 0.15 m floor",
+    "free": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1423 m against the 0.15 m floor"
+   },
+   "gain_spin_m": 0.0,
+   "gain_free_m": 0.0
+  },
+  {
+   "arm": "left",
+   "dir": "+0+0+1",
+   "start": [
+    0.4,
+    0.175,
+    1.12
+   ],
+   "reach": {
+    "pinned": 0.0,
+    "spin": 0.0,
+    "cone15": 0.025,
+    "cone45": 0.9,
+    "free": 0.9
+   },
+   "why": {
+    "pinned": "WEARER",
+    "spin": "WEARER",
+    "cone15": "WEARER",
+    "cone45": "CAP",
+    "free": "CAP"
+   },
+   "detail": {
+    "pinned": "reachable to 0.0 mm but the best of 24 solutions clears the wearer by only 0.1234 m against the 0.15 m floor",
+    "spin": "reachable to 0.0 mm but the best of 24 solutions clears the wearer by only 0.1233 m against the 0.15 m floor",
+    "cone15": "reachable to 0.0 mm but the best of 25 solutions clears the wearer by only 0.1490 m against the 0.15 m floor",
+    "cone45": "not bounded within 0.90 m",
+    "free": "not bounded within 0.90 m"
+   },
+   "gain_spin_m": 0.0,
+   "gain_free_m": 0.9
+  },
+  {
+   "arm": "left",
+   "dir": "+0+0-1",
+   "start": [
+    0.4,
+    0.175,
+    1.12
+   ],
+   "reach": {
+    "pinned": 0.0,
+    "spin": 0.0,
+    "cone15": 0.15,
+    "cone45": 0.45,
+    "free": 0.525
+   },
+   "why": {
+    "pinned": "WEARER",
+    "spin": "WEARER",
+    "cone15": "WEARER",
+    "cone45": "WEARER",
+    "free": "UNREACHABLE"
+   },
+   "detail": {
+    "pinned": "reachable to 0.0 mm but the best of 22 solutions clears the wearer by only 0.1233 m against the 0.15 m floor",
+    "spin": "reachable to 0.0 mm but the best of 23 solutions clears the wearer by only 0.1233 m against the 0.15 m floor",
+    "cone15": "reachable to 0.0 mm but the best of 26 solutions clears the wearer by only 0.1487 m against the 0.15 m floor",
+    "cone45": "reachable to 2.6 mm but the best of 28 solutions clears the wearer by only 0.1343 m against the 0.15 m floor",
+    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 19.6 mm. A SEARCHED refusal."
+   },
+   "gain_spin_m": 0.0,
+   "gain_free_m": 0.525
+  },
+  {
+   "arm": "right",
+   "dir": "+1+0+0",
+   "start": [
+    -0.4,
+    0.175,
+    1.12
+   ],
+   "reach": {
+    "pinned": 0.0,
+    "spin": 0.0,
+    "cone15": 0.0,
+    "cone45": 0.0,
+    "free": 0.0
+   },
+   "why": {
+    "pinned": "WEARER",
+    "spin": "WEARER",
+    "cone15": "WEARER",
+    "cone45": "WEARER",
+    "free": "WEARER"
+   },
+   "detail": {
+    "pinned": "reachable to 0.0 mm but the best of 23 solutions clears the wearer by only 0.1130 m against the 0.15 m floor",
+    "spin": "reachable to 0.0 mm but the best of 26 solutions clears the wearer by only 0.1124 m against the 0.15 m floor",
+    "cone15": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1357 m against the 0.15 m floor",
+    "cone45": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1408 m against the 0.15 m floor",
+    "free": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1408 m against the 0.15 m floor"
+   },
+   "gain_spin_m": 0.0,
+   "gain_free_m": 0.0
+  },
+  {
+   "arm": "right",
+   "dir": "-1+0+0",
+   "start": [
+    -0.4,
+    0.175,
+    1.12
+   ],
+   "reach": {
+    "pinned": 0.775,
+    "spin": 0.775,
+    "cone15": 0.825,
+    "cone45": 0.9,
+    "free": 0.9
+   },
+   "why": {
+    "pinned": "UNREACHABLE",
+    "spin": "UNREACHABLE",
+    "cone15": "UNREACHABLE",
+    "cone45": "CAP",
+    "free": "CAP"
+   },
+   "detail": {
+    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 4.6 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 4.6 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 4.5 mm. A SEARCHED refusal.",
+    "cone45": "not bounded within 0.90 m",
+    "free": "not bounded within 0.90 m"
+   },
+   "gain_spin_m": 0.0,
+   "gain_free_m": 0.125
+  },
+  {
+   "arm": "right",
+   "dir": "+0+1+0",
+   "start": [
+    -0.4,
+    0.175,
+    1.12
+   ],
+   "reach": {
+    "pinned": 0.0,
+    "spin": 0.0,
+    "cone15": 0.375,
+    "cone45": 0.375,
+    "free": 0.375
+   },
+   "why": {
+    "pinned": "WEARER",
+    "spin": "WEARER",
+    "cone15": "UNREACHABLE",
+    "cone45": "UNREACHABLE",
+    "free": "UNREACHABLE"
+   },
+   "detail": {
+    "pinned": "reachable to 0.0 mm but the best of 24 solutions clears the wearer by only 0.1443 m against the 0.15 m floor",
+    "spin": "reachable to 0.3 mm but the best of 28 solutions clears the wearer by only 0.1437 m against the 0.15 m floor",
+    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 19.6 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 12.7 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 12.7 mm. A SEARCHED refusal."
+   },
+   "gain_spin_m": 0.0,
+   "gain_free_m": 0.375
+  },
+  {
+   "arm": "right",
+   "dir": "+0-1+0",
+   "start": [
+    -0.4,
+    0.175,
+    1.12
+   ],
+   "reach": {
+    "pinned": 0.0,
+    "spin": 0.0,
+    "cone15": 0.0,
+    "cone45": 0.0,
+    "free": 0.0
+   },
+   "why": {
+    "pinned": "WEARER",
+    "spin": "WEARER",
+    "cone15": "WEARER",
+    "cone45": "WEARER",
+    "free": "WEARER"
+   },
+   "detail": {
+    "pinned": "reachable to 0.0 mm but the best of 21 solutions clears the wearer by only 0.1299 m against the 0.15 m floor",
+    "spin": "reachable to 0.0 mm but the best of 26 solutions clears the wearer by only 0.1294 m against the 0.15 m floor",
+    "cone15": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1417 m against the 0.15 m floor",
+    "cone45": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1423 m against the 0.15 m floor",
+    "free": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1423 m against the 0.15 m floor"
+   },
+   "gain_spin_m": 0.0,
+   "gain_free_m": 0.0
+  },
+  {
+   "arm": "right",
+   "dir": "+0+0+1",
+   "start": [
+    -0.4,
+    0.175,
+    1.12
+   ],
+   "reach": {
+    "pinned": 0.0,
+    "spin": 0.0,
+    "cone15": 0.9,
+    "cone45": 0.9,
+    "free": 0.9
+   },
+   "why": {
+    "pinned": "WEARER",
+    "spin": "WEARER",
+    "cone15": "CAP",
+    "cone45": "CAP",
+    "free": "CAP"
+   },
+   "detail": {
+    "pinned": "reachable to 0.7 mm but the best of 22 solutions clears the wearer by only 0.1347 m against the 0.15 m floor",
+    "spin": "reachable to 0.7 mm but the best of 25 solutions clears the wearer by only 0.1346 m against the 0.15 m floor",
+    "cone15": "not bounded within 0.90 m",
+    "cone45": "not bounded within 0.90 m",
+    "free": "not bounded within 0.90 m"
+   },
+   "gain_spin_m": 0.0,
+   "gain_free_m": 0.9
+  },
+  {
+   "arm": "right",
+   "dir": "+0+0-1",
+   "start": [
+    -0.4,
+    0.175,
+    1.12
+   ],
+   "reach": {
+    "pinned": 0.0,
+    "spin": 0.0,
+    "cone15": 0.375,
+    "cone45": 0.475,
+    "free": 0.525
+   },
+   "why": {
+    "pinned": "WEARER",
+    "spin": "WEARER",
+    "cone15": "WEARER",
+    "cone45": "UNREACHABLE",
+    "free": "UNREACHABLE"
+   },
+   "detail": {
+    "pinned": "reachable to 0.0 mm but the best of 23 solutions clears the wearer by only 0.1370 m against the 0.15 m floor",
+    "spin": "reachable to 0.0 mm but the best of 27 solutions clears the wearer by only 0.1365 m against the 0.15 m floor",
+    "cone15": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1460 m against the 0.15 m floor",
+    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 4.6 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 19.6 mm. A SEARCHED refusal."
+   },
+   "gain_spin_m": 0.0,
+   "gain_free_m": 0.525
+  }
+ ],
+ "monotonic": true,
+ "monotonic_failures": [],
+ "mean_reach_m": {
+  "pinned": 0.0646,
+  "spin": 0.0646,
+  "cone15": 0.3187,
+  "cone45": 0.4396,
+  "free": 0.45
+ },
+ "wearer_bound_walks": {
+  "pinned": 11,
+  "spin": 11,
+  "cone15": 7,
+  "cone45": 5,
+  "free": 4
+ }
+}

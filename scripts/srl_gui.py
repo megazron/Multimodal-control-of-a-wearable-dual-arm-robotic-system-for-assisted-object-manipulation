@@ -128,6 +128,40 @@ from srl_teleop import real_arm_doctor as rad                 # noqa: E402
 # a port or deleting a certificate on the machine running the test.
 from srl_teleop import vr_bringup as vrb                     # noqa: E402
 
+# THE MOTION GENERATORS, AND WHAT EACH COSTS. Measured offline by
+# `scripts/measure_teleop_motion.py` on the left arm's shipped home plus
+# [0.50 -0.30 0.10 0.25 -0.05 0.15 0.02] at 50 Hz; full numbers in
+# recordings/baselines/teleop_motion.json. "Off the path" is how far the HAND
+# strays from the curve the straight joint-space line traces, against a 30 mm
+# grasp capture gate.
+# THE LABELS ARE SHORT BECAUSE THE COLUMN IS NARROW. At the shipped column
+# width a drop-down eats ~30 px for its arrow, and the first version's
+# "Ruckig -- jerk-limited, synchronised (default)" rendered as
+# "...synchronised (default" -- a closing bracket lost off the right edge,
+# which is this window's own recurring defect. The detail belongs in the note
+# under the box, which wraps.
+MOTION_GENERATORS = [
+    ("ruckig", "Ruckig -- jerk-limited (default)"),
+    ("clamp", "synchronised clamp"),
+    ("legacy", "legacy clamp_towards"),
+]
+MOTION_NOTES = [
+    ("ruckig",
+     "Every joint arrives on the same cycle and the hand stays ON the path "
+     "it was asked for: 0.0 mm off it, peak joint speed 1.00x the limit in "
+     "joint_limits.yaml."),
+    ("clamp",
+     "One scale factor for the whole joint vector, so it is synchronised and "
+     "inside the velocity limits -- but NOT jerk-limited: 62x the "
+     "jerk-limited acceleration step. This is the fallback used when ruckig "
+     "is not installed. Choosing it deliberately is unusual."),
+    ("legacy",
+     "The per-joint clamp shipped before 2026-08-23. NOT synchronised: the "
+     "hand leaves the commanded path by 51.3 mm against a 30 mm grasp gate, "
+     "and peak joint speed is 12.5x the limit in joint_limits.yaml. Select "
+     "it only to reproduce a recording made before that date."),
+]
+
 from PyQt5.QtCore import Qt, QTimer                          # noqa: E402
 from PyQt5.QtGui import (QColor, QFont, QImage, QPalette,    # noqa: E402
                          QPixmap, QWindow)
@@ -1220,6 +1254,7 @@ class Gui(QMainWindow):
         sv.setContentsMargins(2, 4, 2, 2)
         sv.addWidget(self._connect_panel())
         sv.addWidget(self._setup_controls())
+        sv.addWidget(self._motion_panel())
         sv.addWidget(self._diag_launchers())
         sv.addStretch(1)
         acttabs.addTab(self._scroll(setup), "SET UP")
@@ -1257,6 +1292,13 @@ class Gui(QMainWindow):
             ("Mode", ("mode", "autonomy", "intent")),
             ("Target", ("gripper", "clearance_left", "clearance_right")),
             ("Safety", ("estop", "blockers", "ik_left", "ik_right")),
+            # WHAT IS ACTUALLY GENERATING THE MOTION, read from the
+            # follower's own status topic and never from which item is
+            # selected in SET UP. A follower launched before the selection
+            # changed, or launched from a terminal, or one where `auto` fell
+            # back because ruckig would not import, all read correctly here
+            # and would all read wrongly from the combo box.
+            ("Motion", ("motion_left", "motion_right")),
         ):
             g = QGroupBox(title)
             g.setFont(helvetica(11, True))
@@ -2445,6 +2487,136 @@ class Gui(QMainWindow):
             v.addLayout(r)
             self.scale[a] = sl
         return g
+
+    # ====================================================================
+    # HOW THE ARMS MOVE -- the motion generator
+    # ====================================================================
+    #
+    # WHY THIS IS A CONTROL AND NOT A CONSTANT. Until 2026-08-23 the whole of
+    # motion generation for teleoperation was `clamp_towards`, which clamps
+    # each joint INDEPENDENTLY to `max_step_rad` per cycle. The joints
+    # therefore sit at different fractions of their own travel at every
+    # instant, and the hand leaves the straight line the IK solution implies
+    # by up to 51.3 mm on a realistic slew -- against a 30 mm grasp gate.
+    # It is now Ruckig: jerk-limited, synchronised, and the first thing in
+    # this project ever to read joint_limits.yaml.
+    #
+    # THE OLD ONE IS STILL SELECTABLE, because a recording made before that
+    # date was made with it, exactly as `orientation_policy:=exact`
+    # reproduces one made before the cone. Selecting it is a deliberate act
+    # and the window says what it costs.
+    #
+    # IT TAKES EFFECT ON THE NEXT LAUNCH AND THE PANEL SAYS SO. Every
+    # parameter in `ik_follower_node` except `motion_enabled` is read once at
+    # construction -- the node warns about this itself -- so a control that
+    # appeared to change a running follower would be a control that changed
+    # nothing. The STATUS tab reads what is ACTUALLY running, from the
+    # follower's own status topic, never from which item is selected here.
+    def _motion_panel(self):
+        g = QGroupBox("How the arms move (next launch)")
+        g.setFont(helvetica(11, True))
+        v = QVBoxLayout(g)
+
+        row = QHBoxLayout()
+        row.addWidget(QLabel("generator"))
+        self.motion_gen = QComboBox()
+        self.motion_gen.setFont(helvetica(10))
+        for key, lab in MOTION_GENERATORS:
+            self.motion_gen.addItem(lab, key)
+        self.motion_gen.currentIndexChanged.connect(self.on_motion_generator)
+        row.addWidget(self.motion_gen, 1)
+        v.addLayout(row)
+
+        self.motion_note = QLabel()
+        self.motion_note.setFont(helvetica(9))
+        self.motion_note.setWordWrap(True)
+        self.motion_note.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.motion_note)
+
+        b = QPushButton("measure what it does to the hand")
+        b.setToolTip("scripts/measure_teleop_motion.py -- runs its own "
+                     "instrument self-test first, then reports how far the "
+                     "end effector strays from the path it was asked for, "
+                     "for every generator, offline. No stack needed.")
+        b.clicked.connect(self.on_measure_motion)
+        v.addWidget(b)
+
+        self.motion_result = QLabel()
+        self.motion_result.setFont(helvetica(9))
+        self.motion_result.setWordWrap(True)
+        self.motion_result.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.motion_result)
+        self._motion_describe()
+        return g
+
+    def _motion_describe(self):
+        key = self.motion_gen.currentData()
+        self.motion_note.setText(dict(MOTION_NOTES)[key])
+        self.motion_note.setStyleSheet(
+            "color:%s" % (C_MUTED if key == "ruckig" else C_WARN))
+
+    def on_motion_generator(self, _i=0):
+        """A control that changes what the next run does SAYS so."""
+        key = self.motion_gen.currentData()
+        self._motion_describe()
+        self.bus.note("motion generator for the NEXT launch -> %s "
+                      "(running followers are unchanged; it is read at "
+                      "startup)" % key, bad=(key != "ruckig"))
+
+    def on_measure_motion(self):
+        """Run it OFF the Qt thread -- it spawns an interpreter and does FK.
+
+        The result is stashed and rendered by a timer, the same shape
+        `on_check_dependencies` uses: touching a widget from a worker thread
+        is how a Qt program crashes in a way that looks like a robot fault.
+        """
+        self._motion_rows = None
+        self.motion_result.setText("measuring, offline, a few seconds...")
+        self.motion_result.setStyleSheet("color:%s" % C_MUTED)
+
+        def go():
+            try:
+                r = subprocess.run(
+                    [sys.executable,
+                     os.path.join(_WS, "scripts/measure_teleop_motion.py"),
+                     "--no-write"],
+                    capture_output=True, text=True, timeout=600)
+            except Exception as e:                            # noqa: BLE001
+                self._motion_rows = ("FAILED to run: %r" % (e,), True)
+                self.bus.note("motion measurement failed: %r" % (e,), bad=True)
+                return
+            out = (r.stdout or "") + (r.stderr or "")
+            rows = [ln.rstrip() for ln in out.splitlines()
+                    if ln.strip().startswith(("clamp_towards", "ruckig",
+                                              "synchronised-clamp"))]
+            if r.returncode != 0 or not rows:
+                self._motion_rows = ("measurement FAILED (exit %d) -- see the "
+                                     "event log" % r.returncode, True)
+                self.bus.note("measure_teleop_motion exited %d: %s"
+                              % (r.returncode, out[-400:]), bad=True)
+                return
+            self._motion_rows = (
+                "off-path mm / same-cycle mm / peak speed / arrives:\n"
+                + "\n".join(rows), False)
+            self.bus.note("motion measured -- %s" % "; ".join(
+                " ".join(x.split()) for x in rows[:3]))
+
+        self.bus.submit(go, label="motion measurement")
+        QTimer.singleShot(1500, self._motion_render)
+
+    def _motion_render(self, tries=40):
+        got = getattr(self, "_motion_rows", None)
+        if got is None:
+            if tries > 0:
+                QTimer.singleShot(500, lambda: self._motion_render(tries - 1))
+            else:
+                self.motion_result.setText("measurement did not finish")
+                self.motion_result.setStyleSheet("color:%s" % C_BAD)
+            return
+        text, bad = got
+        self.motion_result.setText(text)
+        self.motion_result.setStyleSheet("color:%s"
+                                         % (C_BAD if bad else C_MUTED))
 
     # ====================================================================
     # CONNECTING THE REAL ARMS -- the seven faults, named, each with a button
@@ -5000,11 +5172,43 @@ class Gui(QMainWindow):
             label="release %s grip requested" % arm)
 
     def on_launch(self, spec):
+        """Rewrite the spec for the session's settings, preflight it, spawn it.
+
+        THE SPAWN IS A SEPARATE METHOD ON PURPOSE. `verify_gui_buttons` has to
+        stop these actually starting stacks, and it used to do that by
+        replacing `on_launch` with a stub that reimplemented the preflight and
+        the refusal -- so everything the real `on_launch` does BEFORE the
+        Popen was invisible to the audit, and stayed invisible when this
+        method grew the motion-generator rewrite below. A stub that duplicates
+        production logic drifts from it silently, which is the same shape as
+        two home poses. The audit now replaces `_spawn` alone and the whole of
+        this method runs for real.
+        """
+        spec = self._launch_spec(spec)
         fails = self._preflight(spec)
         if fails:
             self.bus.note("REFUSED %s: %s" % (spec.label, "; ".join(fails)),
                           bad=True)
             return
+        self._spawn(spec)
+
+    def _launch_spec(self, spec):
+        """The spec as it will actually be run, with this session's settings.
+
+        Today that is one setting: the selected motion generator, and only
+        where the launch file DECLARES the argument. `ros2 launch` fails
+        outright on an argument it does not know, so appending one to a stack
+        that cannot take it would not degrade -- it would kill the button.
+        """
+        want = (self.motion_gen.currentData()
+                if getattr(self, "motion_gen", None) is not None else "ruckig")
+        if getattr(spec, "motion_generator", False) and want != "ruckig":
+            spec = spec.with_argv(spec.argv + ["motion_generator:=%s" % want])
+            self.bus.note("launching with motion_generator:=%s -- NOT the "
+                          "default" % want, bad=True)
+        return spec
+
+    def _spawn(self, spec):
         env = dict(os.environ, PYTHONUNBUFFERED="1")
         # KEEP WHAT IT SAID. This was DEVNULL on both streams, so a launched
         # job that REFUSED -- naming its reason, as every refusal in this
@@ -5444,6 +5648,27 @@ class Gui(QMainWindow):
                 C_OK if pct > 90 else C_WARN if pct > 60 else C_BAD,
                 "%d attempts" % att)
 
+        # ---- MOTION GENERATOR, per arm. Field [15] of /ik_status_<arm>:
+        # 2 ruckig, 1 the synchronised fallback, 0 legacy clamp_towards.
+        # An older follower publishes a shorter array and reads UNKNOWN --
+        # never green, because "the field is missing" is not "it is fine".
+        for a in ARMS:
+            v = val("ik_%s" % a)
+            k = "motion_%s" % a
+            if not v:
+                self.ind[k].set("--", C_UNKNOWN, "no ik_status published")
+            elif len(v) < 18:
+                self.ind[k].set("?", C_UNKNOWN,
+                                "follower predates the generator")
+            else:
+                which = int(round(v[15]))
+                self.ind[k].set(
+                    {2: "ruckig", 1: "sync clamp", 0: "LEGACY"}.get(
+                        which, "?"),
+                    C_OK if which == 2 else C_WARN,
+                    "%d resync(s), %d cycle(s) still travelling"
+                    % (int(v[16]), int(v[17])))
+
         self.master_schema.set_data(s.get("master_schema"))
         self.robot_schema.set_data(s.get("robot_schema"))
         self._sync_embedded()
@@ -5881,8 +6106,15 @@ def _good_snapshot():
         "grip": w(json.dumps(dict(startup=dict(left="open_confirmed",
                                                right="open_confirmed")))),
         "blocking": w(json.dumps(dict(n_blocking=0, state_unknown=0))),
-        "ik_left": w([100.0, 100.0, 0, 0, 0, 0.35, 0, 0]),
-        "ik_right": w([100.0, 100.0, 0, 0, 0, 0.35, 0, 0]),
+        # EIGHTEEN FIELDS, because [15] is the motion generator and a
+        # healthy stack publishes it. A short array reads UNKNOWN, which is
+        # correct for an old follower and useless as a healthy fixture: the
+        # indicator self-test requires healthy and abnormal to DIFFER, and it
+        # caught this row reading the same in both.
+        "ik_left": w([100.0, 100.0, 0, 0, 0, 0.35, 0, 0, 0.6, 0, 0.35, 0,
+                      0, 0, 0, 2.0, 0, 0]),
+        "ik_right": w([100.0, 100.0, 0, 0, 0, 0.35, 0, 0, 0.6, 0, 0.35, 0,
+                       0, 0, 0, 2.0, 0, 0]),
         "cam": {a: ("live 15.0 Hz 320x240", "live", False, 15.0) for a in ARMS},
         "cam_img": {a: None for a in ARMS},
         "div": {a: dv.compare(sim, real, dv.joint_names(a)) for a in ARMS},
@@ -5919,8 +6151,13 @@ def _bad_snapshot():
         "grip": w(json.dumps(dict(startup=dict(left="open_UNCONFIRMED",
                                                right="no_feedback")))),
         "blocking": w(json.dumps(dict(n_blocking=3, state_unknown=2))),
-        "ik_left": w([0.0] * 8),
-        "ik_right": w([10.0, 1.0, 0, 0, 0, 0.05, 0, 0]),
+        # [15] = 0 is the legacy per-joint clamp, which is a real abnormal
+        # state and not a missing field: a follower launched to reproduce an
+        # old recording and left that way. [16] counts resyncs -- a generator
+        # fighting the controller.
+        "ik_left": w([0.0] * 15 + [0.0, 0.0, 0.0]),
+        "ik_right": w([10.0, 1.0, 0, 0, 0, 0.05, 0, 0, 0.6, 0, 0.05, 0,
+                       0, 0, 0, 0.0, 41.0, 12.0]),
         "cam": {a: ("no signal", "dead", False, 0.0) for a in ARMS},
         "cam_img": {a: None for a in ARMS},
         "div": {a: dv.compare(sim, real, dv.joint_names(a)) for a in ARMS},

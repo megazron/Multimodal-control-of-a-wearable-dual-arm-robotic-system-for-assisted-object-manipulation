@@ -30,7 +30,7 @@ WS = os.environ.get("SRL_WS") or os.path.expanduser("~/kortex_ws")
 class Spec:
     def __init__(self, key, label, group, argv, starts_stack=False,
                  needs_stack=False, needs_teensy=False, needs_real=False,
-                 note="", disabled_reason=None):
+                 note="", disabled_reason=None, motion_generator=False):
         self.key = key
         self.label = label
         self.group = group
@@ -40,6 +40,12 @@ class Spec:
         self.needs_teensy = needs_teensy
         self.needs_real = needs_real
         self.note = note
+        # Does this entry launch the followers, i.e. can it carry a
+        # `motion_generator:=` argument. Declared per spec rather than guessed
+        # from the argv, because `ros2 launch` fails outright on an argument
+        # the launch file does not declare -- a button that appends one to a
+        # stack that cannot take it does not degrade, it dies.
+        self.motion_generator = motion_generator
         # Set by validate(), or given up front for a thing we KNOW cannot run.
         self.disabled_reason = disabled_reason
 
@@ -58,7 +64,8 @@ class Spec:
         """
         out = Spec(self.key, self.label, self.group, argv,
                    self.starts_stack, self.needs_stack, self.needs_teensy,
-                   self.needs_real, self.note, self.disabled_reason)
+                   self.needs_real, self.note, self.disabled_reason,
+                   self.motion_generator)
         return out
 
     def __repr__(self):
@@ -119,9 +126,10 @@ def dispatcher_tasks():
 MODES = [
     Spec("sim", "Sim teleop only", "mode",
          _sh("run_teleop.sh", "gate:=false"), starts_stack=True,
+         motion_generator=True,
          note="MoveIt, RViz, master_pose_node, both followers, e-stop"),
     Spec("autonomy", "+ perception and shared autonomy", "mode",
-         _sh("run_autonomy.sh"), starts_stack=True,
+         _sh("run_autonomy.sh"), starts_stack=True, motion_generator=True,
          note="mode 4: adds vision, grasp generation, the arbiter"),
     Spec("real", "Cascade to the REAL arms", "mode",
          _sh("start_real.sh"), needs_stack=True, needs_real=True,

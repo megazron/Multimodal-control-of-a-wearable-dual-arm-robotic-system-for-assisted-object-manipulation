@@ -137,19 +137,32 @@ def level2_click():
     # logging -- and only the final Popen is replaced. Pressing these for real
     # would start stacks, and the second-stack refusal that would then fire is
     # correct behaviour that would mask everything after it.
+    # ONLY THE SPAWN IS REPLACED, and that is a correction.
+    #
+    # This used to replace `on_launch` itself with a stub that reimplemented
+    # the preflight and the refusal. Everything the real `on_launch` does
+    # before the Popen was therefore invisible to this audit -- and stayed
+    # invisible when it grew a step that rewrites the command line for the
+    # session's settings. A stub that duplicates production logic drifts from
+    # it silently. `on_launch` now ends in `_spawn`, this replaces `_spawn`
+    # alone, and the whole click path runs for real.
     launched = []
-    real_launch = srl_gui.Gui.on_launch
+    seen_argv = []          # every spec that reached the preflight, with argv
+    real_pre = srl_gui.Gui._preflight
+    real_spawn = srl_gui.Gui._spawn
 
-    def fake_launch(self, spec):
-        fails = self._preflight(spec)
+    def watched_pre(self, spec):
+        seen_argv.append((spec.key, list(spec.argv)))
+        fails = real_pre(self, spec)
         if fails:
-            self.bus.note("REFUSED %s: %s" % (spec.label, "; ".join(fails)),
-                          bad=True)
             launched.append((spec.key, "refused", "; ".join(fails)))
-            return
+        return fails
+
+    def fake_spawn(self, spec):
         launched.append((spec.key, "would launch", " ".join(spec.argv)))
         self.bus.note("would launch %s" % spec.label)
-    srl_gui.Gui.on_launch = fake_launch
+    srl_gui.Gui._preflight = watched_pre
+    srl_gui.Gui._spawn = fake_spawn
 
     # AND `_run_raw`, WHICH WAS NOT INTERCEPTED AND SHOULD ALWAYS HAVE BEEN.
     #
@@ -595,6 +608,54 @@ def level2_click():
               g.inst_edit.text() == "pick up the blue one",
               repr(g.inst_edit.text()))
 
+    # 4g -- THE MOTION GENERATOR CHOOSER MUST REACH A LAUNCH.
+    #
+    # THE PRESS IS NOT THE POINT. A combo box that logs a new value and then
+    # does not change the command line is the "feature present but does
+    # nothing" row of CLAUDE.md's table, and it is invisible from a return
+    # code -- the button still launches, the stack still comes up, and the
+    # followers run the default. So the check is on the ARGV: select the
+    # legacy generator and require that a stack-starting spec picks it up,
+    # and that a spec whose launch file does not declare the argument does
+    # NOT (`ros2 launch` fails outright on an argument it does not know, so
+    # appending one there would kill the button rather than degrade it).
+    if hasattr(g, "motion_gen"):
+        from srl_teleop import gui_launch_specs as _gls
+        keys = [g.motion_gen.itemData(i) for i in range(g.motion_gen.count())]
+        check("2b", "the motion generator chooser offers all three",
+              keys == ["ruckig", "clamp", "legacy"], "%s" % (keys,))
+        note0 = g.motion_note.text()
+        g.motion_gen.setCurrentIndex(keys.index("legacy"))
+        _settle(4)
+        check("2b", "choosing a non-default generator changes the warning",
+              g.motion_note.text() != note0 and "51.3 mm"
+              in g.motion_note.text(), g.motion_note.text()[:60])
+        check("2b", "and it is logged as a change to the next run",
+              any("motion generator for the NEXT launch" in txt
+                  for _, txt, _ in g.bus.log),
+              "%d event log lines searched" % len(g.bus.log))
+        # DRIVE THE REAL CLICK PATH and read the argv the spawn WOULD have
+        # been given -- `seen_argv` records every spec that reached the
+        # preflight, which is after the rewrite. Reading the manifest entry
+        # instead would test `with_argv`, not the button.
+        want = "motion_generator:=legacy"
+        base = len(seen_argv)
+        g.on_launch(next(x for x in _gls.MODES if x.key == "sim"))
+        g.on_launch(next(x for x in _gls.MODES if x.key == "vr"))
+        got = dict(seen_argv[base:])
+        check("2b", "the chosen generator reaches the launch command line",
+              want in got.get("sim", []), "sim argv: %s" % (got.get("sim"),))
+        check("2b", "and NOT a launch file that cannot take the argument",
+              want not in got.get("vr", []), "vr argv: %s" % (got.get("vr"),))
+        g.motion_gen.setCurrentIndex(keys.index("ruckig"))
+        _settle(2)
+        base = len(seen_argv)
+        g.on_launch(next(x for x in _gls.MODES if x.key == "sim"))
+        got = dict(seen_argv[base:])
+        check("2b", "back on the default, nothing is appended",
+              not any("motion_generator" in a for a in got.get("sim", [])),
+              "%s" % (got.get("sim"),))
+
     # 5 -- HIDDEN BUTTONS ARE NOT OPERATOR-REACHABLE, and counting them as
     #      passes inflates the audit. Report the split so the number means
     #      something, and require every hidden one to be unlabelled -- a
@@ -876,7 +937,8 @@ def level2_click():
     check("2c", "no button raised during the sweep", n_err == 0,
           "%d raised" % n_err)
 
-    srl_gui.Gui.on_launch = real_launch
+    srl_gui.Gui._preflight = real_pre
+    srl_gui.Gui._spawn = real_spawn
     g.close()
     app.processEvents()
     bus.destroy_node()

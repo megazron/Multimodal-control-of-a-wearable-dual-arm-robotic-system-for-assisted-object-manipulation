@@ -50,8 +50,16 @@ OK, WARN, BAD = "ok", "warn", "bad"
 # (name, python, [modules that must import TOGETHER], why it matters)
 ENVS = [
     ("system", sys.executable,
-     ["rclpy", "PyQt5.QtWidgets", "numpy", "yaml"],
-     "the GUI and every ROS node"),
+     # ruckig is in this list because `ik_follower_node` runs in THIS
+     # interpreter and this is where it looks for it. It has NO dependencies
+     # at all -- one compiled .so -- so it cannot move numpy, which is why it
+     # is installed here rather than in a venv the nodes could not reach:
+     #     pip install --user --no-deps --break-system-packages ruckig
+     # Without it the follower does not fail: `motion_generator:=auto`
+     # degrades to the synchronised clamp and says so on /ik_status_<arm>.
+     # It stops being jerk-limited, which is why this row exists.
+     ["rclpy", "PyQt5.QtWidgets", "numpy", "yaml", "ruckig"],
+     "the GUI and every ROS node. ruckig is the teleop motion generator"),
     (".venv_vision", os.path.join(WS, ".venv_vision/bin/python"),
      ["numpy", "scipy.optimize", "cv2", "torch", "ultralytics"],
      "scripts/real_calibration/ and the detector. scipy here is the SYSTEM "

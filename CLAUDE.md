@@ -340,6 +340,8 @@ seems not to apply, suspect a stale PROCESS, not a stale install.
 | `docs/system/21_what_makes_the_workspace_small.md` | **WHY THE ARMS BARELY MOVE, sized.** The pinned wrist per direction per policy, the reconciliation of two baselines that walked from different points, why freeing the roll is worth nothing, and what is still not measured |
 | `docs/NEXT_SESSION_2026_08_23.md` | **the current resume point.** What 2026-08-22 measured and what it changed about the plan |
 | `docs/HOW_TO_RUN.md` | **START HERE TO OPERATE IT.** One page: the two commands, every mode and where its button is, full autonomy end to end, how much the arms can move and why, what to run before hardware, and a symptom table |
+| `docs/system/24_motion_planning.md` | **THE MOTION PLANNING RESEARCH.** What we actually run (nothing planned), every candidate scored against 4 GB of VRAM and a safety case MoveIt's collision model is blind to, what was built instead and what it measured, the Kinova sensor surface we were not reading, and the order to do the rest in. Sources cited |
+| `docs/system/23_how_good_is_it.md` | **THE HONEST ASSESSMENT.** The control budget, the reaction budget, what losing tracking costs, and the six things that make it hard for an operator across the room |
 | `docs/system/22_grasping.md` | **detection and grasping.** What is built, the two defects fixed on 2026-08-22 (a wearer floor that could never fire, refusals that asserted instead of measuring), what is actually broken in order, the coarse-to-fine architecture that works, and a Hugging Face model shortlist scored against 4 GB of VRAM |
 | `docs/NEXT_SESSION.md` | what to do next, in order |
 | `docs/WORK_BRIEF.md` | the standing multi-part brief |

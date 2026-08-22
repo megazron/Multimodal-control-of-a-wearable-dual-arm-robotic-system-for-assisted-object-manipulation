@@ -237,27 +237,67 @@ def plan(depth_m, K, cam_pose, arm, scorer=None, home=None, want=None,
             "grasp: %s" % (arm, checks["pregrasp"]["why"],
                            checks["grasp"]["why"]))
 
-    # ---- 6 THE WHOLE PATH, not the endpoints
+    # ---- 6 THE WHOLE PATH, and PLAN one when the straight line is unsafe
+    #
+    # The straight line is tried first because most moves on this rig are
+    # fine and planning a clear move turns 60 ms into seconds. When it is
+    # NOT fine the old behaviour was to stop -- `safe_motion.check_path` was
+    # written to CATCH a sweep through the wearer, and catching it means the
+    # run ends. Now the planner is asked to go round, and the result is
+    # re-checked with the SAME checker that rejected the straight line, so a
+    # plan cannot be accepted by the thing that produced it.
     import safe_motion as SM
+    from srl_perception import joint_planner as JP
+    lo, hi, cont = scorer.lim[arm]
+    checker = JP.Checker(
+        lambda q: scorer.clearance_parts(arm, q)["moving_chain_m"],
+        lo, hi, cont)
     legs = [("home -> pregrasp", home, checks["pregrasp"]["q"]),
             ("pregrasp -> grasp", checks["pregrasp"]["q"],
              checks["grasp"]["q"])]
     path = []
     for label, a, b in legs:
-        trace = []
         ok, why, worst, n = SM.check_path(scorer, arm, np.array(a),
-                                          np.array(b), trace=trace)
-        path.append({"leg": label, "ok": bool(ok), "why": why,
-                     "worst_m": worst, "samples": n})
-        if verbose:
-            print("  %-18s %s over %d samples -- %s"
-                  % (label, "OK " if ok else "NO ", n, why))
+                                          np.array(b))
+        row = {"leg": label, "ok": bool(ok), "why": why, "worst_m": worst,
+               "samples": n, "planned": False, "waypoints": None}
         if not ok:
-            out["path"] = path
-            raise TS.SceneRefusal(
-                "the sweep %s is not safe: %s. The endpoints were both "
-                "clear; the MIDDLE is not, which is the case endpoint "
-                "checking misses." % (label, why))
+            if verbose:
+                print("  %-18s straight line REFUSED (%s) -- planning round"
+                      % (label, why))
+            try:
+                wps, info = JP.plan(np.array(a), np.array(b), checker,
+                                    seed=5, max_iter=4000)
+            except JP.PlanRefusal as e:
+                out["path"] = path + [row]
+                raise TS.SceneRefusal(
+                    "the sweep %s is not safe and no way round was found. "
+                    "Straight line: %s. Planner: %s" % (label, why, e))
+            # RE-CHECK EVERY LEG with the checker that rejected the straight
+            # line. A planner that marks its own homework is a planner.
+            bad = [(i, SM.check_path(scorer, arm, np.array(x), np.array(y)))
+                   for i, (x, y) in enumerate(zip(wps[:-1], wps[1:]))]
+            failed = [(i, r) for i, r in bad if not r[0]]
+            if failed:
+                out["path"] = path + [row]
+                raise TS.SceneRefusal(
+                    "the planner returned a path whose leg %d does NOT pass "
+                    "the same check that rejected the straight line: %s. "
+                    "Refusing rather than trusting the planner about its own "
+                    "output." % (failed[0][0], failed[0][1][1]))
+            row.update(ok=True, planned=True,
+                       why="%s; re-checked on %d legs" % (info["method"],
+                                                          len(bad)),
+                       worst_m=min(r[2] for _i, r in bad),
+                       samples=sum(r[3] for _i, r in bad),
+                       waypoints=[list(map(float, w)) for w in wps])
+            if verbose:
+                print("  %-18s PLANNED round: %s, %d waypoints, worst "
+                      "clearance %.4f m"
+                      % (label, info["method"], len(wps), row["worst_m"]))
+        elif verbose:
+            print("  %-18s OK  over %d samples -- %s" % (label, n, why))
+        path.append(row)
     out["path"] = path
     return out
 

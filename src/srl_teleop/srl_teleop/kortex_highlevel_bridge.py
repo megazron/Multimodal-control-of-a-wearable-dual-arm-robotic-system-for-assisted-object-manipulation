@@ -84,6 +84,7 @@ from std_msgs.msg import Bool, Float64MultiArray, String
 from std_srvs.srv import Trigger
 from trajectory_msgs.msg import JointTrajectory
 
+from srl_teleop import arm_telemetry as at
 from srl_teleop.kortex_convention import (
     kortex_deg_to_ros_rad, pose_delta_rad)
 
@@ -276,6 +277,18 @@ class KortexHighLevelBridge(Node):
         # WITHOUT inferring it from joint feedback -- which goes flat rather
         # than absent and is therefore useless as a liveness signal.
         self.session_pub = self.create_publisher(String, "/real/session_state", 10)
+        # EVERYTHING THE ARM KNOWS, ON A TOPIC. Published as JSON on a
+        # String rather than a custom message so nothing has to be rebuilt
+        # to read it, and so it can be logged and replayed as text.
+        self.tel_pub = self.create_publisher(String, "/real/telemetry_%s"
+                                             % self.arm, 10)
+        self._tel = None
+        self._tel_last = 0.0
+        # A free-space wrench baseline, when one has been recorded. Without
+        # it `in_contact` compares against a fixed gate and SAYS the gate is
+        # uncalibrated -- the tool wrench carries the arm's own gravity model
+        # and the payload, so its zero is not zero and depends on pose.
+        self._contact_baseline = None
         self.create_timer(0.5, self._publish_session_state)
         # PER ARM, for the same reason the halt is. `arm:=both` runs two of
         # these nodes and a service name is a 1:1 rendezvous: two registrations
@@ -348,6 +361,22 @@ class KortexHighLevelBridge(Node):
         info.connection_inactivity_timeout = 2000
         self._ss.CreateSession(info)
         self.base = BaseClient.BaseClient(self._rt)
+        # THE FEEDBACK CLIENT. Same router, same session, same round-trip
+        # budget -- and it returns torque, current, temperature, the tool
+        # wrench and the fault banks instead of seven angles.
+        self._cyclic = None
+        self._cyclic_warned = False
+        try:
+            import kortex_api.autogen.client_stubs.BaseCyclicClientRpc \
+                as _BC
+            self._cyclic = _BC.BaseCyclicClient(self._rt)
+            self.get_logger().info(
+                "cyclic FEEDBACK client up -- reading torque, current, "
+                "temperature, the tool wrench and the fault banks")
+        except Exception as exc:                              # noqa: BLE001
+            self.get_logger().warn(
+                "no BaseCyclic feedback client (%s); this arm will report "
+                "joint angles only" % exc)
 
         # PUT THE ARM IN HIGH-LEVEL SERVOING, DO NOT ASSUME IT IS THERE.
         #
@@ -399,7 +428,43 @@ class KortexHighLevelBridge(Node):
                 "arm is NOT servoing-ready (%s); motion may be refused" % state)
 
     def _read_angles_rad(self):
-        """Kortex degrees -> ROS radians, via the one conversion module."""
+        """Kortex degrees -> ROS radians, and EVERYTHING ELSE THE ARM KNOWS.
+
+        This used to call `GetMeasuredJointAngles()`, which returns seven
+        numbers. `BaseCyclic.RefreshFeedback()` costs the SAME ONE ROUND TRIP
+        and returns, per actuator, position, velocity, torque, motor current,
+        voltage and temperature -- and at the base, the arm's own estimate of
+        the external wrench at the tool, the IMU, and the fault banks.
+
+        Seven numbers was the entire sensory input this project has ever had
+        from real hardware, and it is most of why simulation works and the
+        arm does not. In simulation there is no friction, no gravity sag, no
+        contact and no thermal derating; on the arm there are all four and
+        nothing could see any of them. A system that cannot tell its gripper
+        has hit something keeps pushing.
+
+        HARD CONSTRAINT 4 IS UNTOUCHED. This is the high-level API's
+        feedback call, not the cyclic WRITE path that is unusable over WSL.
+        Nothing about how commands are sent has changed.
+
+        Falls back to the old call if the cyclic client is unavailable, and
+        SAYS SO once rather than silently reading less.
+        """
+        if self._cyclic is not None:
+            try:
+                fb = self._cyclic.RefreshFeedback()
+                tel = at.from_feedback(fb, kortex_deg_to_ros_rad)
+                tel.t = time.monotonic()
+                self._tel = tel
+                return list(tel.position)
+            except Exception as exc:                          # noqa: BLE001
+                if not self._cyclic_warned:
+                    self._cyclic_warned = True
+                    self.get_logger().warn(
+                        "RefreshFeedback failed (%s); falling back to "
+                        "GetMeasuredJointAngles, which returns joint angles "
+                        "ONLY -- no torque, no wrench, no temperature." % exc)
+                self._cyclic = None
         fb = self.base.GetMeasuredJointAngles()
         deg = [0.0] * NJ
         for ja in fb.joint_angles:
@@ -575,6 +640,30 @@ class KortexHighLevelBridge(Node):
             js.name = list(self.names)
             js.position = list(actual)
             self.js_pub.publish(js)
+
+            # EVERYTHING ELSE THE ARM REPORTED, at the same rate. Rate-limited
+            # to 10 Hz because it is a JSON string and the control loop runs
+            # at 18-20: this is for a human and a log, not for a servo.
+            tel = self._tel
+            if tel is not None and (time.monotonic() - self._tel_last) > 0.1:
+                self._tel_last = time.monotonic()
+                d = tel.as_dict()
+                fault, why_f = tel.faulted()
+                heat, why_h = tel.overheating()
+                touch, why_t = tel.in_contact(self._contact_baseline)
+                d.update(arm=self.arm, faulted=fault, fault_why=why_f,
+                         heat=heat, heat_why=why_h,
+                         in_contact=touch, contact_why=why_t,
+                         baseline=(None if self._contact_baseline is None
+                                   else self._contact_baseline.as_dict()))
+                self.tel_pub.publish(String(data=json.dumps(d)))
+                # A FAULT OR AN OVERHEAT IS NOT A LOG LINE, it is the reason
+                # the arm has stopped following. Say it where it will be read.
+                if fault:
+                    self.get_logger().error(why_f,
+                                            throttle_duration_sec=5.0)
+                elif heat != "ok":
+                    self.get_logger().warn(why_h, throttle_duration_sec=30.0)
 
             with self._lock:
                 target = list(self._target) if self._target else None

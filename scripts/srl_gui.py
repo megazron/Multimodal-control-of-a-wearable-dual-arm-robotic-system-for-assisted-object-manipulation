@@ -1504,10 +1504,23 @@ class Gui(QMainWindow):
                 "Ctrl-C -- SIGINT, so the session closes cleanly.")))
 
     def on_real_status(self):
+        """Ping both arms and look for their sessions -- OFF the Qt thread.
+
+        This ran `go()` directly on the Qt thread through `_real_guard`, and
+        `go()` makes two `ping -c 1 -W 1` calls and two `pgrep` calls. With
+        both arms unreachable that is two full second-long timeouts plus
+        process spawns, during which the window is FROZEN -- including the
+        e-stop, which is on the same panel.
+        
+        Found by the button audit's own slow-press check (5 s budget), which
+        had never fired before because the machine was usually idle enough
+        to squeak under it. A control that freezes the window only when the
+        machine is busy is worse than one that always does: it works in
+        testing and stops working on a lab day.
+        """
         def go():
-            names = ("left", "right")
             bits = []
-            for a in names:
+            for a in ("left", "right"):
                 ip = {"left": "192.168.1.10", "right": "192.168.1.9"}[a]
                 up = subprocess.run(["ping", "-c", "1", "-W", "1", ip],
                                     stdout=subprocess.DEVNULL,
@@ -1518,9 +1531,26 @@ class Gui(QMainWindow):
                 bits.append("%s: net %s, session %s"
                             % (a.upper(), "UP" if up else "DOWN",
                                "up" if sess else "down"))
-            self.real_head.setText("   |   ".join(bits))
+            self._arm_status_text = "   |   ".join(bits)
             self._real_say("arm status refreshed")
-        self._real_guard("status", go)
+
+        self.real_head.setText("checking both arms (up to 2 s)...")
+        self._arm_status_text = None
+        self.bus.submit(go, label="arm status")
+        QTimer.singleShot(300, self._arm_status_render)
+
+    def _arm_status_render(self, tries=30):
+        txt = getattr(self, "_arm_status_text", None)
+        if txt is None:
+            if tries > 0:
+                QTimer.singleShot(300,
+                                  lambda: self._arm_status_render(tries - 1))
+            else:
+                self.real_head.setText("the arm status check did not finish "
+                                       "-- see the event log")
+            return
+        self.real_head.setText(txt)
+        self._arm_status_text = None
 
     def _vision_panel(self):
         """SAY WHAT YOU WANT PICKED UP. Available in EVERY mode, not just VR.

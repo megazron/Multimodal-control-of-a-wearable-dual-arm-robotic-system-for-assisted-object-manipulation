@@ -87,6 +87,7 @@ import subprocess
 import sys
 import threading
 import time
+from datetime import datetime
 
 import rclpy
 from rclpy.node import Node
@@ -134,7 +135,8 @@ from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox,  # noqa: E402
                              QGridLayout,
                              QGroupBox, QHBoxLayout, QLabel, QMainWindow,
                              QPushButton, QScrollArea, QSizePolicy, QSlider,
-                             QSplitter, QTabWidget, QTextEdit,
+                             QSpinBox,
+                             QSplitter, QTabBar, QTabWidget, QTextEdit,
                              QLineEdit,
                              QVBoxLayout, QWidget)
 
@@ -216,6 +218,8 @@ class Bus(Node):
         self._d = {}
         self._q = []
         self.log = []
+        # PERSISTENT PUBLISHERS, keyed by (topic, type). See publish_once.
+        self._pubs = {}
         # Divergence trackers. Two Sides per arm; see divergence.py for why
         # arrival and CHANGE are tracked separately.
         self.sim = {a: dv.Side("sim/%s" % a) for a in ARMS}
@@ -261,8 +265,27 @@ class Bus(Node):
         self.create_timer(5.0, self._read_lag_trip)
 
     # ---------------------------------------------------------- subscribe
+    def _prime_estop_publisher(self):
+        """Create the /estop publisher at START-UP, not at the first press.
+
+        Even with a cached publisher, the FIRST press would still be the one
+        that pays for discovery -- and that press is the e-stop. Creating it
+        here means DDS has matched long before anybody needs it.
+
+        Nothing is published. A publisher that exists is not a stop.
+        """
+        from std_msgs.msg import Bool as _Bool
+        from rclpy.qos import (DurabilityPolicy, HistoryPolicy, QoSProfile,
+                               ReliabilityPolicy)
+        qos = QoSProfile(depth=1, history=HistoryPolicy.KEEP_LAST,
+                         reliability=ReliabilityPolicy.RELIABLE,
+                         durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self._pubs[("/estop", "Bool")] = self.create_publisher(
+            _Bool, "/estop", qos)
+
     def _sub(self):
         from rclpy.qos import qos_profile_sensor_data
+        self._prime_estop_publisher()
         for a in ARMS:
             self.create_subscription(
                 String, "/master_capability_%s" % a,
@@ -704,10 +727,52 @@ class Bus(Node):
                 self.note("action failed: %r" % (e,), bad=True)
 
     def publish_once(self, msg_type, topic, value):
-        p = self.create_publisher(msg_type, topic, 10)
+        """Publish one message on a PERSISTENT publisher.
+
+        THIS USED TO CREATE A PUBLISHER, PUBLISH, AND DROP IT on the same
+        three lines, and both halves of that are fragile:
+
+          * a brand-new DDS publisher has not finished discovery with the
+            subscribers that already exist, so its first message can be sent
+            to nobody;
+          * `p` then went out of scope and was garbage-collected, taking the
+            publisher with it before any late-completing match could be used.
+
+        Publishers are now cached per (topic, type) and live as long as this
+        node, and `/estop`'s is created at start-up rather than on the first
+        press -- see `_prime_estop_publisher`. Discovery happens once, when
+        the window opens, so the press that matters goes out on a publisher
+        that is already matched.
+
+        HONESTLY, ABOUT THE EVIDENCE. This was changed while chasing an audit
+        failure that read "e-stop reaches /estop: received []", and that
+        failure turned out to be the AUDIT's own subscriber, which was never
+        being spun -- a second `rclpy.spin` on the global executor raises in
+        its thread and nothing was watching. So there is no measurement here
+        of the old code dropping an e-stop. The change stands on the two
+        properties above, which are true of the code as written; it does not
+        stand on an observed failure, and this paragraph is here so nobody
+        later quotes one.
+
+        TRANSIENT_LOCAL with depth 1: a node that subscribes AFTER a stop was
+        commanded still learns the system is stopped. A transient-local
+        publisher is compatible with the volatile subscribers `estop_node`
+        and the guards already use, so nothing downstream changes.
+        """
+        key = (topic, msg_type.__name__)
+        pub = self._pubs.get(key)
+        if pub is None:
+            from rclpy.qos import (DurabilityPolicy, HistoryPolicy,
+                                   QoSProfile, ReliabilityPolicy)
+            qos = QoSProfile(depth=1,
+                             history=HistoryPolicy.KEEP_LAST,
+                             reliability=ReliabilityPolicy.RELIABLE,
+                             durability=DurabilityPolicy.TRANSIENT_LOCAL)
+            pub = self.create_publisher(msg_type, topic, qos)
+            self._pubs[key] = pub
         m = msg_type()
         m.data = value
-        p.publish(m)
+        pub.publish(m)
 
     def call_trigger(self, name):
         cli = self.create_client(Trigger, name)
@@ -869,7 +934,15 @@ class Gui(QMainWindow):
         # RViz covering the banner, controls, cameras, indicators AND the
         # divergence readout, i.e. every panel the GUI exists to show.
         self.split.setCollapsible(0, False)
-        self.split.setSizes([376, 620, 924])
+        # THE LEFT COLUMN IS MEASURED, NOT 376.
+        #
+        # 376 was a number that fitted the buttons at the font and DPI of the
+        # day it was chosen, and on this display it clips them. Ask the
+        # column what it needs instead; `_left_width()` takes the widest
+        # sizeHint in it and is the single source both here and after
+        # embedding, which is the other place the number was written out.
+        lw = self._left_width()
+        self.split.setSizes([lw, 620, max(420, 1920 - lw - 620)])
 
         outer.addLayout(self._bottom_bar())
         self.setCentralWidget(root)
@@ -879,7 +952,21 @@ class Gui(QMainWindow):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.refresh)
         self.timer.start(100)
+        # EVERY READOUT IS SELECTABLE. A QLabel is not, by default, and this
+        # window is almost entirely QLabels: the parse result, what the camera
+        # saw, the clearance numbers, the divergence rows, every refusal
+        # reason. None of it could be copied into a note, a message or a bug
+        # report -- it had to be retyped from the screen or screenshotted.
+        #
+        # Done here rather than at each construction site because there are
+        # ~200 of them and the next one added would be missed.
+        self._make_text_selectable()
         QTimer.singleShot(400, self.start_rviz)
+        # And again after RViz embeds, because the panels rebuilt around it.
+        QTimer.singleShot(3000, self._make_text_selectable)
+        # AFTER the first layout pass, when viewports are real. Before it,
+        # every width is a hint.
+        QTimer.singleShot(250, self._fit_left_column)
         # ALWAYS dump geometry, including with --no-rviz. The pixel proof
         # needs the panel rectangles and refuses to guess regions without
         # them; scheduling this only on the RViz paths meant the one case
@@ -899,6 +986,157 @@ class Gui(QMainWindow):
         self.stat_timer.start(2000)
 
     # ---------------------------------------------------------- left column
+
+    def clipped_pages(self):
+        """Every scroll page in the control column whose content does not
+        fit its viewport, as (name, viewport_px, needed_px).
+
+        Horizontal scrolling is OFF in that column, so a page wider than its
+        viewport is not scrollable -- it is CUT, silently, with the right-hand
+        end of every sentence and button label missing. Exposed as a method
+        rather than kept private so `verify_gui_buttons` can fail on it: a
+        layout defect that can only be seen by looking at a screenshot gets
+        looked at once.
+        """
+        out = []
+        col = getattr(self, "_left_col", None)
+        if col is None:
+            return out
+        for i, sa in enumerate(col.findChildren(QScrollArea)):
+            inner = sa.widget()
+            if inner is None:
+                continue
+            need = inner.minimumSizeHint().width()
+            vp = sa.viewport().width()
+            if need > vp:
+                out.append(("scroll page %d" % i, vp, need))
+        return out
+
+    def _fit_left_column(self, tries=6):
+        """Widen the control column until nothing in it is clipped.
+
+        MEASURED, NOT CALCULATED. Three attempts at a formula for this width
+        all missed -- by 20 px, then 25, then 4 -- because it depends on
+        frame widths, layout margins and a scrollbar that only appears when
+        needed, and each attempt modelled a different subset. Asking the
+        laid-out widget how much is missing and adding exactly that cannot be
+        off by a margin nobody thought of.
+
+        ONE ADJUSTMENT PER CALL, AND IT RE-ARMS ITSELF. It used to loop with
+        `QApplication.processEvents()` between passes, and that re-enters the
+        Qt event loop from inside a timer callback. Run 250 ms after RViz is
+        reparented, the re-entry broke the adoption: the container had the
+        foreign window, and the foreign window ended up at +0+0 at the corner
+        of the SCREEN instead of inside the panel -- so the COMMANDED view
+        was blank while the log said "embedded ... viewable". Verified from
+        the X tree: the GUI window had no child at all.
+
+        A QTimer instead. Same convergence, no re-entrancy, and the layout
+        has had a real event-loop pass to settle before the next measurement.
+        """
+        short = max((n - v for _, v, n in self.clipped_pages()), default=0)
+        if short <= 0 or tries <= 0:
+            return True
+        sizes = self.split.sizes()
+        if len(sizes) < 3:
+            return False
+        new_left = min(620, sizes[0] + short + 2)
+        if new_left <= sizes[0]:
+            return False                # at the ceiling; report, do not loop
+        rest = sizes[1] + sizes[2] - (new_left - sizes[0])
+        self.split.setSizes([new_left, sizes[1], max(300, rest - sizes[1])])
+        QTimer.singleShot(60, lambda: self._fit_left_column(tries - 1))
+        return False
+
+    def focus_instruct(self):
+        """Put the keyboard in the instruction box, and prove it went there.
+
+        `activateWindow()` asks the window manager for the input focus, which
+        matters when an embedded RViz currently holds it; `setFocus()` then
+        places it on the line edit inside this window. Both are needed -- the
+        second alone moves Qt's idea of focus while X keeps sending keys
+        elsewhere.
+        """
+        e = getattr(self, "inst_edit", None)
+        if e is None:
+            return False
+        self.activateWindow()
+        self.raise_()
+        e.setFocus(Qt.OtherFocusReason)
+        got = QApplication.focusWidget() is e
+        if not got:
+            self.bus.note("could not put the keyboard in the instruction "
+                          "box; click it once. If an embedded RViz has the "
+                          "focus, clicking this window's title bar takes it "
+                          "back.", bad=True)
+        return got
+
+    def _make_text_selectable(self):
+        """Let the operator select and copy any text in the window.
+
+        `Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard` on every
+        QLabel. The keyboard flag is what makes Ctrl+A / Ctrl+C work once a
+        label has focus; the mouse flag is what lets a drag select.
+
+        NOT applied to QLabels that are acting as image sinks -- the camera
+        views -- because giving those a text cursor makes them look
+        interactive when there is nothing to select.
+        """
+        n = 0
+        for lab in self.findChildren(QLabel):
+            if lab.pixmap() is not None:
+                continue
+            lab.setTextInteractionFlags(Qt.TextSelectableByMouse
+                                        | Qt.TextSelectableByKeyboard)
+            n += 1
+        return n
+
+    def _left_width(self):
+        """How wide the control column has to be for nothing to be clipped.
+
+        ONE SOURCE. The width was written out twice -- in the constructor and
+        again after RViz embeds, which is the moment the splitter is
+        re-asserted -- so a fix in one place was silently undone by the
+        other. The comment above the second one even says so.
+
+        Measured from the widgets: the largest of the column's own minimum,
+        its layout's minimum, and every direct child's size hint. Bounded, so
+        one runaway label cannot eat the RViz panel.
+        """
+        col = getattr(self, "_left_col", None)
+        if col is None:
+            return 376
+        need = 0
+        # ASK QT, DO NOT RE-DERIVE. Each activity tab is a QScrollArea with
+        # horizontal scrolling OFF, so anything wider than its viewport is
+        # silently cut with no way to reach it. The authoritative number is
+        # the one Qt already computes: the inner widget's minimumSizeHint,
+        # plus the vertical scrollbar that eats into the viewport, plus the
+        # frame.
+        #
+        # Measured offscreen on 2026-08-22, which is how the previous two
+        # attempts were found wanting: the RUN page's inner widget needs
+        # 378 px and its viewport was 358. Twenty pixels, and they were the
+        # right-hand end of every sentence in the panel.
+        #
+        # Measuring BUTTONS instead (attempt two) gave 323 and clamped to the
+        # old 376, because the widest thing in the page is a layout of
+        # several widgets, not one button. Measuring the widget SIZE HINT
+        # (attempt one) gave a huge number, because a word-wrapped label
+        # reports its unwrapped width.
+        for sa in col.findChildren(QScrollArea):
+            inner = sa.widget()
+            if inner is None:
+                continue
+            bar = sa.verticalScrollBar().sizeHint().width()
+            need = max(need, inner.minimumSizeHint().width() + bar
+                       + 2 * sa.frameWidth())
+        m = col.contentsMargins()
+        need += m.left() + m.right()
+        # Clamped: the floor is the width that was there before, and the
+        # ceiling stops one runaway label eating the RViz panel.
+        return int(max(376, min(need, 620)))
+
     def _left_column(self):
         # ONE SCROLL LEVEL, NOT TWO. The column was a QScrollArea holding
         # everything; the three activity tabs inside it scroll on their own,
@@ -908,7 +1146,20 @@ class Gui(QMainWindow):
         # RIGHT g", "PRECISION ... SP".
         host = QWidget()
         host.setMinimumWidth(362)
-        host.setMaximumWidth(392)
+        self._left_col = host
+        # NO HARD MAXIMUM. This was `setMaximumWidth(392)`, which capped the
+        # column below what its own content needs (378 px of content in a
+        # 374 px viewport, measured offscreen 2026-08-22) and made every
+        # attempt to widen it through the splitter a no-op -- the splitter
+        # said 428 and the viewport stayed at 374. Everything in the column
+        # was then cut at the right-hand edge: sentences lost their last
+        # words, "HALT BOTH ARMS" rendered as "HALT BOTH ARM".
+        #
+        # The ceiling that the cap was protecting -- the RViz panel must not
+        # be squeezed out -- is enforced where it belongs, in `_left_width`
+        # and `_fit_left_column`, both of which stop at 620 and neither of
+        # which can be defeated by a widget asking for more.
+        host.setMaximumWidth(620)
         col = QVBoxLayout(host)
         col.setContentsMargins(0, 0, 0, 0)
 
@@ -976,10 +1227,17 @@ class Gui(QMainWindow):
         run = QWidget()
         rv = QVBoxLayout(run)
         rv.setContentsMargins(2, 4, 2, 2)
-        # THE ONE BUTTON GOES FIRST, above everything. It is the only control
-        # a VR session needs, and burying it under the mode and task grids
-        # would mean the thing you press every time is the thing you scroll
-        # to find.
+        # MODES FIRST, THEN THE ONE BUTTON.
+        #
+        # `START VR TELEOP` used to be first on the argument that it is the
+        # only control a VR session needs. True, and it made the window look
+        # like a VR-only tool: everything else was below the fold, and the
+        # first question anybody asked of it was "where is autonomy". The
+        # mode panel is four rows and answers that before anything is
+        # scrolled; the VR button is immediately under it and has lost
+        # nothing.
+        rv.addWidget(self._modes_panel())
+        rv.addWidget(self._experiments_panel())
         rv.addWidget(self._vr_panel())
         rv.addWidget(self._real_panel())
         rv.addWidget(self._vision_panel())
@@ -1017,6 +1275,18 @@ class Gui(QMainWindow):
 
     @staticmethod
     def _scroll(widget):
+        """A vertical scroll area. Horizontal scrolling is OFF on purpose.
+
+        DO NOT set a minimum width from `widget.sizeHint()`. A word-wrapped
+        QLabel reports its FULL UNWRAPPED width as its size hint, so that
+        minimum stops every label in the column from wrapping and cuts them
+        instead -- tried on 2026-08-22 and visibly worse than the problem it
+        was aimed at. `setWidgetResizable(True)` already makes the content
+        follow the viewport, which is what makes wrapping work.
+
+        The widgets that genuinely cannot fit are the ones that cannot wrap:
+        buttons. Those are handled by `_left_width()`, which measures them.
+        """
         sa = QScrollArea()
         sa.setWidgetResizable(True)
         sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -1140,8 +1410,29 @@ class Gui(QMainWindow):
             self._real_say("%s FAILED: %r" % (label, e), bad=True)
 
     def _svc(self, name, typ="std_srvs/srv/Trigger"):
-        self._run_raw("service %s" % name,
-                      ["ros2", "service", "call", name, typ, "{}"])
+        """Call a Trigger service IN PROCESS, and report what happened.
+
+        THIS USED TO SHELL OUT to `ros2 service call`, and that is how the
+        biggest, reddest button in this window came to lie.
+        `ros2 service call` on a service that does not exist **does not
+        exit** -- it waits for the service, for ever. Measured 2026-08-22: 12
+        seconds and still running. `_run_raw`'s 2.5 s check looks at the
+        return code, sees `None` because the process is alive, and therefore
+        says NOTHING.
+
+        So pressing `E-STOP -- HALT BOTH ARMS` with no stack up launched a
+        process that hung, and the panel said "E-STOP SENT -- latched until
+        reset" in red. Nothing anywhere contradicted it. The same applied to
+        every other service button: HOME BOTH ARMS, stop real arms, reset
+        e-stop.
+
+        `bus.call_trigger` is the path that was already correct and already
+        used by the bottom-bar reset: it checks `service_is_ready()` first --
+        never `wait_for_service`, which is the 4 s e-stop stall -- refuses by
+        name when the service is absent, and reports the real response.
+        """
+        self.bus.submit(lambda: self.bus.call_trigger(name),
+                        label="calling %s" % name)
 
     def on_real_start(self):
         self._real_guard("start real arms", lambda: (
@@ -1175,9 +1466,29 @@ class Gui(QMainWindow):
                 "not present and the 'working alone' box is not ticked.")))
 
     def on_real_estop(self):
+        """Halt both arms. PUBLISH first, then call the service.
+
+        `/estop` is BOTH a topic and a service -- `estop_node` creates a Bool
+        subscription and a Trigger service of the same name, and so do
+        `mount_guard_node`, `participant_safety_node` and `fault_injector` on
+        the topic side. The TOPIC is the robust path: a publish reaches every
+        subscriber that exists and costs nothing when none do, whereas the
+        service exists only while `estop_node` is up.
+
+        This button used to call the service ONLY, through a shell-out that
+        hung silently when the service was absent, and then reported "E-STOP
+        SENT" regardless. It now does the thing that works first, and says
+        what it actually did rather than what it intended.
+        """
+        def go():
+            self.bus.publish_once(Bool, "/estop", True)
+            self.bus.note("E-STOP published to /estop")
+            self.bus.call_trigger("/estop")
         self._real_guard("e-stop", lambda: (
-            self._svc("/estop"),
-            self._real_say("E-STOP SENT -- latched until reset", bad=True)))
+            self.bus.submit(go, label="E-STOP"),
+            self._real_say("E-STOP published to /estop. Watch the event log "
+                           "for the service result; the arms are latched "
+                           "until reset.", bad=True)))
 
     def on_real_estop_reset(self):
         self._real_guard("reset", lambda: (
@@ -1228,6 +1539,31 @@ class Gui(QMainWindow):
         g = QGroupBox("Vision: say what to pick up")
         g.setFont(helvetica(11, True))
         v = QVBoxLayout(g)
+
+        # WHAT IS ON THE TABLE, before naming anything.
+        #
+        # Until 2026-08-22 this panel could only answer "where is the thing I
+        # named". Asked what was on the surface at all, the system had no
+        # answer -- so a wrong name produced a move to somewhere plausible
+        # and empty, which is what "it just moves here and there" looks like
+        # from the outside.
+        b = QPushButton("WHAT IS ON THE TABLE?")
+        b.setFont(helvetica(10, True))
+        b.setMinimumHeight(28)
+        b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        b.setToolTip(
+            "Segments the support surface from the wrist camera's depth, "
+            "then every cluster standing on it, then a plane-constrained "
+            "grasp for each -- and reports the ones it CANNOT pick up with "
+            "the reason. Needs no camera calibration: the wrist camera's "
+            "pose is forward kinematics.")
+        b.clicked.connect(self.on_what_is_on_the_table)
+        v.addWidget(b)
+        self.table_lbl = QLabel("not looked yet")
+        self.table_lbl.setWordWrap(True)
+        self.table_lbl.setFont(mono(8))
+        self.table_lbl.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.table_lbl)
 
         row = QHBoxLayout()
         self.vis_prompt = QLineEdit()
@@ -1435,6 +1771,540 @@ class Gui(QMainWindow):
         except Exception as e:                                # noqa: BLE001
             return False, "reachability check unavailable: %r" % e
 
+
+    # =================================================================
+    # OPERATE -- every way the arms can be driven, in one place
+    # =================================================================
+    #
+    # WHY THIS PANEL EXISTS. Until 2026-08-22 the RUN tab opened on
+    # `START VR TELEOP` and the mode launchers were the FIFTH group down,
+    # under the VR panel, the real-arm panel, the vision panel and the
+    # running controls. Everything was reachable and nothing was visible:
+    # asked what the window could do, the honest answer from looking at it
+    # was "VR teleoperation". Shared autonomy and full autonomy were behind
+    # a scroll, and full autonomy's prompt -- the whole point of mode 06 --
+    # was a tab in a different column.
+    #
+    # The rule here is the one `docs/NEXT_SESSION_2026_08_22.md` asks for:
+    # ONE PANEL PER MODE, each saying the same four things -- what it will
+    # command, what it refuses and why, where it is live, and how to stop it.
+    # Nothing below is a new capability. Every button runs a Spec that
+    # already existed in `gui_launch_specs`; what changed is that you can
+    # see them.
+    # (key, title, [stack specs, in order], what it is, the caveat)
+    #
+    # THE SECOND FIELD IS A SEQUENCE, and that is the whole point of this
+    # rewrite. A mode is not one launch: VR is the sim stack AND the VR
+    # transport on top of it, and "with the real arms" is any of those
+    # followed by the cascade. Those were four separate buttons in a grid
+    # five panels down, in an order the operator had to know.
+    MODE_ROWS = [
+        ("teleop", "1  MASTER TELEOP", ["sim"],
+         "The instrumented arm drives the robot. Mode 01.",
+         "Needs the Teensy. 7 of 14 master channels were INCOHERENT at the "
+         "last channel check, so this is the mode most likely to refuse."),
+        ("vr", "2  VR / DESK TELEOP", ["sim", "vr"],
+         "Controllers as 6-DOF motion capture. Mode 02. Nobody wears the "
+         "headset -- it stands on a shelf as the tracking reference.",
+         "START VR TELEOP below does the same thing with all twelve "
+         "bring-up steps checked, and is the better button for a session."),
+        ("shared", "3  SHARED AUTONOMY", ["autonomy"],
+         "Perception, grasp generation and the arbiter, on top of teleop. "
+         "Modes 03 and 04.",
+         "Starts a stack. Refuses if one is already running -- HARD "
+         "CONSTRAINT 3."),
+        ("full", "4  FULL AUTONOMY", ["autonomy"],
+         "Mode 06. Say it in a sentence; the parser shows you what it "
+         "understood and what the camera saw BEFORE anything moves.",
+         "Same stack as shared autonomy. Use TYPE WHAT YOU WANT to drive "
+         "it; nothing is commanded until you press CONFIRM there."),
+    ]
+
+    # What "+ REAL" adds, after the stack is up.
+    REAL_STEP = {"real": ("SIM + REAL", "real",
+                          "Cascades to the physical arms. Opens one Kortex "
+                          "session per arm and refuses unless homing "
+                          "succeeds."),
+                 "mock": ("SIM + MOCK", "real_mock",
+                          "The identical sequence against "
+                          "mock_real.launch.py. Nothing physical moves. "
+                          "Rehearse here first.")}
+
+    def _modes_panel(self):
+        g = QGroupBox("OPERATE  --  how the arms are driven")
+        g.setFont(helvetica(11, True))
+        v = QVBoxLayout(g)
+        v.setSpacing(3)
+
+        intro = QLabel(
+            "Pick a mode, then whether it drives the SIMULATION only or "
+            "cascades to the REAL arms. They are not layers you stack: one "
+            "row at a time.")
+        intro.setWordWrap(True)
+        intro.setStyleSheet("color:%s" % C_MUTED)
+        intro.setFont(helvetica(9))
+        v.addWidget(intro)
+
+        specs = {sp.key: sp for sp in self._ensure_specs()}
+        self.mode_btn = {}
+        self.mode_note = {}
+        for key, label, chain, what, caveat in self.MODE_ROWS:
+            head = QLabel(label)
+            head.setFont(helvetica(12, True))
+            head.setAlignment(Qt.AlignCenter)
+            v.addWidget(head)
+
+            note = QLabel(what)
+            note.setWordWrap(True)
+            note.setFont(helvetica(9))
+            note.setStyleSheet("color:%s" % C_TEXT)
+            v.addWidget(note)
+
+            row = QHBoxLayout()
+            row.setSpacing(4)
+            for tag, btxt, extra in (
+                    ("sim", "SIM ONLY", None),
+                    ("mock", self.REAL_STEP["mock"][0],
+                     self.REAL_STEP["mock"][1]),
+                    ("real", self.REAL_STEP["real"][0],
+                     self.REAL_STEP["real"][1])):
+                seq = list(chain) + ([extra] if extra else [])
+                b = QPushButton(btxt)
+                b.setFont(helvetica(9, True))
+                b.setMinimumHeight(26)
+                b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+                # A BUTTON MUST LOOK PRESSABLE. On this dark theme a bare
+                # QPushButton renders as flat text and is indistinguishable
+                # from the labels around it -- which is half the reason the
+                # window read as "VR only": the other modes were there and
+                # did not look like controls. Real is warned in the bad
+                # colour, because it is the one that moves metal.
+                edge, txt, hover = ((C_BAD, C_BAD, C_BAD) if tag == "real"
+                                    else (LINE, C_TEXT, C_OK))
+                b.setStyleSheet(
+                    "QPushButton{border:1px solid %s;border-radius:3px;"
+                    "padding:3px;color:%s}"
+                    "QPushButton:hover{border:1px solid %s}"
+                    "QPushButton:disabled{border:1px solid %s;color:%s}"
+                    % (edge, txt, hover, LINE, C_MUTED))
+                missing = [k for k in seq if k not in specs]
+                if missing:
+                    # A ROW WITH NO SPEC IS A DEAD BUTTON. Say so ON it.
+                    b.setEnabled(False)
+                    b.setToolTip("no launch spec: %s" % ", ".join(missing))
+                    b.setText(btxt + " (no spec)")
+                else:
+                    b.setToolTip(
+                        "Launches, in order: %s.%s"
+                        % (" then ".join(specs[k].label for k in seq),
+                           ("\n\n" + self.REAL_STEP[tag][2])
+                           if tag in self.REAL_STEP else ""))
+                    b.clicked.connect(
+                        lambda _, s_=seq, n_="%s / %s" % (label, btxt):
+                        self.start_mode(s_, n_))
+                row.addWidget(b)
+                self.mode_btn["%s_%s" % (key, tag)] = b
+            v.addLayout(row)
+
+            sub = QLabel(caveat)
+            sub.setWordWrap(True)
+            sub.setFont(helvetica(8))
+            sub.setStyleSheet("color:%s" % C_MUTED)
+            v.addWidget(sub)
+
+            if key == "full":
+                b = QPushButton("TYPE WHAT YOU WANT  ->  Instruct")
+                b.setFont(helvetica(10, True))
+                b.setMinimumHeight(28)
+                b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+                b.setToolTip("Switches the middle column to the Instruct "
+                             "panel and puts the keyboard in the box. "
+                             "Nothing is commanded until CONFIRM.")
+                b.clicked.connect(self.on_show_instruct)
+                v.addWidget(b)
+                self.mode_btn["__instruct__"] = b
+
+        live = QLabel("live mode: --")
+        live.setFont(helvetica(9, True))
+        live.setStyleSheet("color:%s" % C_MUTED)
+        self.mode_live_lbl = live
+        v.addWidget(live)
+
+        self.mode_seq_lbl = QLabel("")
+        self.mode_seq_lbl.setWordWrap(True)
+        self.mode_seq_lbl.setFont(helvetica(9))
+        self.mode_seq_lbl.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.mode_seq_lbl)
+
+        stop = QPushButton("STOP everything this window launched")
+        stop.setFont(helvetica(10, True))
+        stop.clicked.connect(self.on_stop_jobs)
+        v.addWidget(stop)
+        return g
+
+    # ------------------------------------------------- the mode sequencer
+    def start_mode(self, seq, name, _i=0):
+        """Launch a chain of specs, WAITING for the stack between them.
+
+        `real` and `vr` both carry `needs_stack=True`, so firing them at the
+        same moment as the stack they need is a refusal every time -- which
+        is what a single button that "starts everything" would have done.
+        This launches step 1, waits for the stack to actually appear, then
+        launches step 2, and SAYS which step it is on.
+
+        It gives up loudly. A sequence that stalls silently is worse than a
+        refusal, because the operator has no idea which half is missing.
+        """
+        specs = {sp.key: sp for sp in self._ensure_specs()}
+        if _i == 0:
+            self._seq_deadline = time.monotonic() + 90.0
+            self._seq_name = name
+        if _i >= len(seq):
+            self._seq_say("%s: all %d step(s) launched." % (name, len(seq)))
+            return
+        key = seq[_i]
+        sp = specs.get(key)
+        if sp is None:
+            self._seq_say("%s: no launch spec %r -- stopping here."
+                          % (name, key), bad=True)
+            return
+        # Wait for the stack when this step needs one and there is not one.
+        if sp.needs_stack and _stack_pids() <= 0:
+            if time.monotonic() > getattr(self, "_seq_deadline", 0):
+                self._seq_say(
+                    "%s: step %d of %d (%s) needs a running stack and none "
+                    "appeared in 90 s. Nothing further was launched -- look "
+                    "at .scratch/launch_%s.log for why the stack did not "
+                    "come up."
+                    % (name, _i + 1, len(seq), sp.label, seq[0]), bad=True)
+                return
+            self._seq_say("%s: waiting for the stack before step %d of %d "
+                          "(%s)..." % (name, _i + 1, len(seq), sp.label))
+            QTimer.singleShot(1500,
+                              lambda: self.start_mode(seq, name, _i))
+            return
+        self._seq_say("%s: step %d of %d -- %s"
+                      % (name, _i + 1, len(seq), sp.label))
+        self.on_launch(sp)
+        QTimer.singleShot(2000, lambda: self.start_mode(seq, name, _i + 1))
+
+    def _seq_say(self, text, bad=False):
+        lbl = getattr(self, "mode_seq_lbl", None)
+        if lbl is not None:
+            lbl.setText(text)
+            lbl.setStyleSheet("color:%s" % (C_BAD if bad else C_MUTED))
+        self.bus.note(text, bad=bad)
+
+
+    # =================================================================
+    # EXPERIMENTS -- name it, run it, and keep everything it produced
+    # =================================================================
+    #
+    # WHY. Running a trial meant a terminal, `run_experiment.sh`, and knowing
+    # that `--participant`, `--session`, `--trial-index` and `--taskset`
+    # exist. The GUI had task buttons that hard-coded PILOT and --scripted
+    # and nothing else, so every recorded run came out under the same name
+    # and the trial index was always 0. Two runs of the same task were
+    # indistinguishable after the fact.
+    #
+    # Everything here has a DEFAULT that is the sane thing, so the panel can
+    # be used without filling anything in -- but the fields exist, so a real
+    # session can be named and a trial number can advance.
+    TASK_CHOICES = [
+        ("m1", "T1 pick and place"),
+        ("m1s2", "T1 stage 2, both arms"),
+        ("m0", "T0 target reaching"),
+        ("m2", "T2 coordinated carry"),
+        ("m3", "T3 circuit box + multimeter"),
+        ("a", "A positioning"),
+        ("b", "B coordinated carry"),
+        ("c", "C dual pursuit"),
+        ("d1", "Dance: flow"),
+        ("d2", "Dance: pulse"),
+        ("d3", "Dance: play"),
+    ]
+    MODE_CHOICES = ["06_full_autonomy", "01_master_teleop", "02_vr_teleop",
+                    "03_shared_autonomy", "04_vr_shared"]
+
+    def _experiments_panel(self):
+        g = QGroupBox("EXPERIMENTS  --  run a trial and keep the data")
+        g.setFont(helvetica(11, True))
+        v = QVBoxLayout(g)
+        v.setSpacing(3)
+
+        intro = QLabel(
+            "Every field has a working default. Press RUN TRIAL and it runs "
+            "T1 under full autonomy as PILOT. Fill in what you need.")
+        intro.setWordWrap(True)
+        intro.setFont(helvetica(9))
+        intro.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(intro)
+
+        form = QGridLayout()
+        form.setHorizontalSpacing(6)
+        form.setVerticalSpacing(3)
+
+        def _row(r, label, w, tip):
+            lab = QLabel(label)
+            lab.setFont(helvetica(9))
+            lab.setStyleSheet("color:%s" % C_MUTED)
+            w.setToolTip(tip)
+            form.addWidget(lab, r, 0)
+            form.addWidget(w, r, 1)
+
+        self.exp_task = QComboBox()
+        for k, lab in self.TASK_CHOICES:
+            self.exp_task.addItem("%s  --  %s" % (k, lab), k)
+        # WHAT THE NEXT RUN WILL BE RECORDED AS, said out loud. Changing the
+        # task or the mode changes the identity of everything that follows,
+        # and a silent change is how two different runs end up looking like
+        # repeats of one.
+        self.exp_task.currentIndexChanged.connect(
+            lambda _: self.log("experiments: task -> %s"
+                               % self.exp_task.currentData()))
+        _row(0, "task", self.exp_task,
+             "Which task to run. m1 is T1 pick and place, the one with the "
+             "most recorded evidence behind it.")
+
+        self.exp_mode = QComboBox()
+        for m in self.MODE_CHOICES:
+            self.exp_mode.addItem(m, m)
+        self.exp_mode.currentIndexChanged.connect(
+            lambda _: self.log("experiments: mode -> %s"
+                               % self.exp_mode.currentData()))
+        _row(1, "mode", self.exp_mode,
+             "The control mode the trial is recorded under. T1 and T1S2 run "
+             "under 06_full_autonomy only -- they command their own approach "
+             "orientation, so a run under another mode measures a different "
+             "geometry under that mode's name.")
+
+        self.exp_participant = QLineEdit("PILOT")
+        _row(2, "participant", self.exp_participant,
+             "Goes into the manifest. write_manifest() REFUSES a name, "
+             "email, date of birth, address or phone -- anonymity is "
+             "enforced in code, not by convention. Use a code.")
+
+        self.exp_session = QLineEdit("")
+        self.exp_session.setPlaceholderText("blank = a timestamp")
+        _row(3, "session", self.exp_session,
+             "Groups trials together. Left blank the runner stamps the time, "
+             "which is what you want unless you are resuming.")
+
+        self.exp_trial = QSpinBox()
+        self.exp_trial.setRange(0, 999)
+        self.exp_trial.setValue(1)
+        self.exp_trial.valueChanged.connect(
+            lambda v: self.log("experiments: trial number -> %d" % v))
+        _row(4, "trial no.", self.exp_trial,
+             "--trial-index. It was always 0 from this window, so repeated "
+             "runs of one task overwrote each other's identity.")
+
+        self.exp_seed = QLineEdit("")
+        self.exp_seed.setPlaceholderText("blank = the task's own default")
+        _row(5, "seed", self.exp_seed,
+             "Stage-2 layouts are drawn from this. Seed 3 gives a 3/1 split; "
+             "seed 0 gives 2/2 and is indistinguishable from stage 1.")
+        v.addLayout(form)
+
+        opts = QHBoxLayout()
+        self.exp_scripted = QCheckBox("scripted")
+        self.exp_scripted.setChecked(True)
+        self.exp_scripted.setToolTip(
+            "No human operator: the runner drives the waypoints itself. This "
+            "is what every recorded verification clip used. Uncheck only if "
+            "somebody is actually on the master arm or the controllers.")
+        self.exp_dry = QCheckBox("dry run")
+        self.exp_dry.setToolTip(
+            "Plan and check everything, command nothing. Always press this "
+            "first on a task you have not run today.")
+        for w in (self.exp_scripted, self.exp_dry):
+            w.setFont(helvetica(9))
+            # A TOGGLE THAT CHANGES WHAT THE NEXT RUN DOES AND SAYS NOTHING
+            # is the shape this whole window is written against. `dry run`
+            # in particular decides whether the arms move.
+            w.stateChanged.connect(
+                lambda st, x=w: self.log(
+                    "experiments: %s is now %s"
+                    % (x.text(), "ON" if st else "off")))
+            opts.addWidget(w)
+        v.addLayout(opts)
+
+        rec = QHBoxLayout()
+        self.exp_rec_csv = QCheckBox("CSV")
+        self.exp_rec_csv.setChecked(True)
+        self.exp_rec_csv.setToolTip(
+            "full_state_recorder: master pose, commanded pose, joint states, "
+            "clutch, FSR and buttons, one row per tick.")
+        self.exp_rec_video = QCheckBox("video")
+        self.exp_rec_video.setToolTip(
+            "record_rviz.py on a virtual display. x11grab of THIS desktop "
+            "records black -- XWayland pixels never reach the X root window "
+            "-- so the recorder runs RViz on Xvfb instead. It is slow; leave "
+            "it off unless the clip is the point.")
+        for w in (self.exp_rec_csv, self.exp_rec_video):
+            w.setFont(helvetica(9))
+            w.stateChanged.connect(
+                lambda st, x=w: self.log(
+                    "experiments: recording %s is now %s"
+                    % (x.text(), "ON" if st else "off")))
+            rec.addWidget(w)
+        v.addLayout(rec)
+
+        for text, fn, tip in (
+            ("RUN TRIAL", self.on_run_trial,
+             "One trial with the settings above. The trial number advances "
+             "afterwards so the next press is a different trial."),
+            ("RUN FULL EXPERIMENT  (all modes)", self.on_run_experiment,
+             "The same task under every mode it is allowed to run in, one "
+             "after another, sharing one session name. This is the "
+             "comparison the study is about."),
+        ):
+            b = QPushButton(text)
+            b.setFont(helvetica(10, True))
+            b.setMinimumHeight(28)
+            b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+            b.setToolTip(tip)
+            b.clicked.connect(fn)
+            v.addWidget(b)
+            self.buttons.setdefault("exp_" + text.split()[1].lower(), b)
+
+        self.exp_status = QLabel("nothing run from this panel yet")
+        self.exp_status.setWordWrap(True)
+        self.exp_status.setFont(helvetica(9))
+        self.exp_status.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.exp_status)
+
+        b = QPushButton("open the recordings folder")
+        b.setFont(helvetica(9))
+        b.setToolTip("Where every trial's manifest, CSV, plots and clips "
+                     "land: recordings/sessions/<session>/")
+        b.clicked.connect(self.on_open_recordings)
+        v.addWidget(b)
+        return g
+
+    # ------------------------------------------------------ experiment run
+    def _exp_session(self):
+        s = self.exp_session.text().strip()
+        return s or datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    def _exp_argv(self, mode=None):
+        task = self.exp_task.currentData()
+        mode = mode or self.exp_mode.currentData()
+        taskset = ("msc" if task.startswith("m")
+                   else "demo" if task.startswith("d") else "clip")
+        argv = [os.path.join(_WS, "scripts/run_experiment.sh"), task,
+                "--mode", mode, "--taskset", taskset,
+                "--participant", self.exp_participant.text().strip()
+                or "PILOT",
+                "--session", self._exp_session(),
+                "--trial-index", str(self.exp_trial.value())]
+        if self.exp_scripted.isChecked():
+            argv.append("--scripted")
+        if self.exp_dry.isChecked():
+            argv.append("--dry-run")
+        seed = self.exp_seed.text().strip()
+        if seed:
+            argv += ["--seed", seed]
+        return ["bash"] + argv
+
+    def on_run_trial(self):
+        """One trial, and the recorders that go with it."""
+        argv = self._exp_argv()
+        if self.exp_rec_csv.isChecked():
+            self._run_raw("full_state_recorder",
+                          ["ros2", "run", "srl_teleop", "full_state_recorder"])
+        if self.exp_rec_video.isChecked():
+            self._run_raw("record_rviz",
+                          ["python3", os.path.join(_WS,
+                                                   "scripts/record_rviz.py"),
+                           "--task", self.exp_task.currentData()])
+        self._run_raw("trial %s" % self.exp_task.currentData(), argv)
+        self.exp_status.setText(
+            "trial %d of task %s under %s, session %s -- output in "
+            ".scratch/launch_trial_%s.log and recordings/sessions/%s/"
+            % (self.exp_trial.value(), self.exp_task.currentData(),
+               self.exp_mode.currentData(), self._exp_session(),
+               self.exp_task.currentData(), self._exp_session()))
+        self.exp_status.setStyleSheet("color:%s" % C_TEXT)
+        # ADVANCE THE TRIAL NUMBER. Leaving it means the next press records a
+        # second trial under the first one's identity, which is exactly the
+        # defect this panel exists to fix.
+        self.exp_trial.setValue(self.exp_trial.value() + 1)
+
+    def on_run_experiment(self):
+        """The same task under every mode it is ALLOWED to run in.
+
+        T1 and T1S2 are locked to 06 by the task itself -- they command their
+        own approach orientation rather than the pinned anchor every teleop
+        mode sends, so a run under another mode measures a different geometry
+        under that mode's name. The dispatcher refuses those, and this must
+        not queue a run it knows will be refused.
+        """
+        task = self.exp_task.currentData()
+        locked = {"m1": ["06_full_autonomy"], "m1s2": ["06_full_autonomy"]}
+        modes = locked.get(task, list(self.MODE_CHOICES))
+        sess = self._exp_session()
+        self.exp_session.setText(sess)          # pin it across the whole run
+        self._exp_queue = [(m, self._exp_argv(m)) for m in modes]
+        self.exp_status.setText(
+            "%s under %d mode(s): %s -- session %s"
+            % (task, len(modes), ", ".join(modes), sess))
+        self.exp_status.setStyleSheet("color:%s" % C_TEXT)
+        self._exp_next()
+
+    def _exp_next(self):
+        q = getattr(self, "_exp_queue", [])
+        if not q:
+            self.exp_status.setText(
+                "%s -- every mode launched. Watch the event log; each run "
+                "writes .scratch/launch_trial_*.log."
+                % self.exp_status.text().split(" -- ")[0])
+            return
+        mode, argv = q.pop(0)
+        self._run_raw("trial %s %s" % (self.exp_task.currentData(), mode),
+                      argv)
+        self.bus.note("experiment: launched %s under %s"
+                      % (self.exp_task.currentData(), mode))
+        # SPACED, not simultaneous. Two runs against one move_group is HARD
+        # CONSTRAINT 3 one level down -- a verifier that overlapped a sweep
+        # read 18 of 171 where two clean runs read 0.
+        QTimer.singleShot(8000, self._exp_next)
+
+    def on_open_recordings(self):
+        d = os.path.join(_WS, "recordings/sessions")
+        os.makedirs(d, exist_ok=True)
+        for argv in (["xdg-open", d], ["explorer.exe", d]):
+            try:
+                subprocess.Popen(argv, stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
+                self.bus.note("opened %s" % d)
+                return
+            except Exception:                                 # noqa: BLE001
+                continue
+        self.bus.note("could not open a file browser. The path is %s" % d,
+                      bad=True)
+
+    def on_show_instruct(self):
+        """Bring the full-autonomy prompt to the front.
+
+        It is in the middle column's tab strip, which is the right place for
+        it -- it needs the width -- and the wrong place to DISCOVER it from.
+        """
+        tabs = getattr(self, "mid_tabs", None)
+        idx = getattr(self, "instruct_tab_index", None)
+        if tabs is None or idx is None:
+            self.bus.note("the Instruct panel is not built in this window",
+                          bad=True)
+            return
+        tabs.setCurrentIndex(idx)
+        # TAKE THE KEYBOARD BACK, explicitly. Opening the panel that exists to
+        # be typed into and leaving the focus wherever it was -- possibly on
+        # the embedded RViz, which is a separate X client -- is the difference
+        # between "type what you want" and a box that ignores you.
+        self.focus_instruct()
+        self.bus.note("Instruct panel: type what you want the arms to do. "
+                      "Nothing moves until CONFIRM.")
+
     def _controls(self):
         """WHAT YOU TOUCH WHILE SOMETHING IS RUNNING, and nothing else.
 
@@ -1458,6 +2328,55 @@ class Gui(QMainWindow):
             r.addWidget(b)
         v.addLayout(r)
         return g
+
+    def on_what_is_on_the_table(self):
+        """Ask the wrist camera what is on the surface in front of it.
+
+        Runs the SAME code path `scripts/pick_from_table.py` runs, so the
+        window and the script cannot disagree about what is out there.
+        """
+        def go():
+            try:
+                import numpy as _np
+                sys.path.insert(0, os.path.join(_WS, "scripts"))
+                import pick_from_table as PFT
+                from srl_perception import table_scene as _TS
+            except Exception as e:                            # noqa: BLE001
+                self._table_say("cannot import the scene analyser: %r" % (e,),
+                                bad=True)
+                return
+            snap = self.bus._snapshot() if hasattr(self.bus, "_snapshot") \
+                else {}
+            depth = (snap or {}).get("gripper_depth")
+            K = (snap or {}).get("gripper_K")
+            pose = (snap or {}).get("gripper_cam_pose")
+            if depth is None or K is None or pose is None:
+                # THE HONEST ANSWER. A panel that invents a table when no
+                # camera is attached is the defect this whole window exists
+                # against.
+                self._table_say(
+                    "no wrist RGB-D frame has arrived, so there is nothing "
+                    "to analyse. This needs the camera up and the arm's "
+                    "camera_link pose in TF. Nothing was assumed.",
+                    bad=True)
+                return
+            try:
+                pts, uv = PFT.cloud_in_robot_frame(depth, K, pose,
+                                                   with_pixels=True)
+                sc = _TS.analyse(pts, pixel_uv=uv)
+                self._table_say(_TS.describe(sc))
+            except _TS.SceneRefusal as e:
+                self._table_say("REFUSED: %s" % e, bad=True)
+
+        self._table_say("looking...")
+        self.bus.submit(go, label="what is on the table")
+
+    def _table_say(self, text, bad=False):
+        lbl = getattr(self, "table_lbl", None)
+        if lbl is not None:
+            lbl.setText(text)
+            lbl.setStyleSheet("color:%s" % (C_BAD if bad else C_TEXT))
+        self.bus.note("table: %s" % text.replace("\n", " | ")[:160], bad=bad)
 
     def _setup_controls(self):
         """Set once, before a run. Deliberately NOT beside the running ones."""
@@ -2355,7 +3274,99 @@ class Gui(QMainWindow):
         g.setFont(helvetica(11, True))
         v = QVBoxLayout(g)
         self._spec_group(v, "diag", "Diagnostics")
+
+        # DEPENDENCIES. Not "is numpy installed" -- every environment has
+        # numpy -- but "do these modules still import TOGETHER in the venv
+        # the calibration scripts run in". On 2026-08-22 installing lerobot
+        # into .venv_vision pulled numpy>=2, broke the system scipy that
+        # .venv_vision borrows, and took check_all.py from 4 of 4 passing to
+        # 2 of 4. The pip warning scrolled past and the only way to find out
+        # was to run the gate.
+        lab = QLabel("Dependencies")
+        lab.setFont(helvetica(10, True))
+        v.addWidget(lab)
+        b = QPushButton("CHECK DEPENDENCIES")
+        b.setFont(helvetica(9, True))
+        b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        b.setToolTip("Imports each environment's modules together in one "
+                     "interpreter, checks the command-line tools are on "
+                     "PATH, and checks every srl_* package is SYMLINK "
+                     "installed -- a copy install means .py edits do not "
+                     "take effect and it looks like a stale process.")
+        b.clicked.connect(self.on_check_dependencies)
+        v.addWidget(b)
+        self.dep_lbl = QLabel("not checked yet")
+        self.dep_lbl.setWordWrap(True)
+        self.dep_lbl.setFont(mono(8))
+        self.dep_lbl.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.dep_lbl)
         return g
+
+    def on_check_dependencies(self):
+        """Run it OFF the Qt thread -- it spawns four interpreters."""
+        self.dep_lbl.setText("checking four environments; this takes a few "
+                             "seconds...")
+        self.dep_lbl.setStyleSheet("color:%s" % C_MUTED)
+
+        def go():
+            try:
+                from srl_teleop import dependency_check as dc
+                rep = dc.report()
+            except Exception as e:                            # noqa: BLE001
+                self._dep_rows = None
+                self.bus.note("dependency check FAILED to run: %r" % (e,),
+                              bad=True)
+                return
+            self._dep_rows = rep
+            bad = [r for g_ in ("environments", "tools", "packages")
+                   for r in rep[g_] if r["state"] != "ok"]
+            self.bus.note(
+                "dependencies: %s"
+                % ("all four environments import cleanly, every tool is on "
+                   "PATH, every srl_* package is symlink-installed"
+                   if not bad else
+                   "; ".join("%s: %s" % (r["env"], r["detail"][:60])
+                             for r in bad)),
+                bad=bool([r for r in bad if r["state"] == "bad"]))
+
+        self.bus.submit(go, label="dependency check")
+        QTimer.singleShot(1200, self._dep_render)
+
+    def _dep_render(self, tries=40):
+        rep = getattr(self, "_dep_rows", None)
+        if rep is None:
+            if tries > 0:
+                QTimer.singleShot(500,
+                                  lambda: self._dep_render(tries - 1))
+                return
+            self.dep_lbl.setText("the dependency check did not finish -- see "
+                                 "the event log")
+            self.dep_lbl.setStyleSheet("color:%s" % C_BAD)
+            return
+        lines = []
+        worst = "ok"
+        for grp in ("environments", "tools", "packages"):
+            for r in rep[grp]:
+                if r["state"] == "ok":
+                    continue
+                worst = "bad" if r["state"] == "bad" else worst
+                lines.append("%s  %s -- %s%s"
+                             % (r["state"].upper(), r["env"],
+                                r["detail"][:70],
+                                ("\n      fix: " + r["fix"][:70])
+                                if r["fix"] else ""))
+        if not lines:
+            n = sum(len(rep[g_]) for g_ in
+                    ("environments", "tools", "packages"))
+            self.dep_lbl.setText(
+                "all %d checks pass: 4 environments import cleanly, 6 tools "
+                "on PATH, 6 srl_* packages symlink-installed" % n)
+            self.dep_lbl.setStyleSheet("color:%s" % C_OK)
+        else:
+            self.dep_lbl.setText("\n".join(lines))
+            self.dep_lbl.setStyleSheet(
+                "color:%s" % (C_BAD if worst == "bad" else C_WARN))
+        self._dep_rows = None
 
     # --------------------------------------------------------- right column
     def _schematic_column(self):
@@ -2531,7 +3542,16 @@ class Gui(QMainWindow):
             on_recalibrate=self.on_scene_recalibrate)
         self.wearer_panel.set_advice_sink(lambda t: self.log("wearer: " + t))
         tabs.addTab(self._scroll(self.wearer_panel), "Wearer")
-        tabs.addTab(self._instruct_tab(), "Instruct")
+        self.mid_tabs = tabs
+        self.instruct_tab_index = tabs.addTab(self._instruct_tab(),
+                                              "Instruct")
+        # Reaching the panel ANY way -- the OPERATE button or clicking the tab
+        # -- must put the keyboard in the box. Otherwise the two routes to the
+        # same panel behave differently, and the one people actually use is
+        # the tab.
+        tabs.currentChanged.connect(
+            lambda i: self.focus_instruct()
+            if i == self.instruct_tab_index else None)
         tabs.addTab(self.eventlog, "Event log")
 
         v.addWidget(tabs, 0)
@@ -3167,6 +4187,7 @@ class Gui(QMainWindow):
         self.arm_view = av.ArmView(dict(bg=C_BG, line=LINE, muted=C_MUTED,
                                         accent=C_OK, bad=C_BAD,
                                         unknown=C_UNKNOWN))
+        self.arm_view.setMouseTracking(False)
         bl.addWidget(self.arm_view, 1)
         row = QHBoxLayout()
         self.view_pick = QComboBox()
@@ -3177,6 +4198,21 @@ class Gui(QMainWindow):
         self.view_pick.currentTextChanged.connect(
             lambda t: self.log("actual view: %s" % t))
         row.addWidget(self.view_pick, 1)
+        # A VIEW THAT CAN BE DRAGGED NEEDS A WAY BACK. One stray drag would
+        # otherwise leave the panel at an angle nobody chose, and "it looks
+        # wrong" is not a bug report anybody can act on.
+        b = QPushButton("reset 3-D view")
+        b.setFont(helvetica(9))
+        b.setToolTip("Back to the shipped isometric angles (yaw 35, pitch "
+                     "22). Drag inside the panel to orbit; the axis-aligned "
+                     "FRONT / SIDE / TOP views do not orbit, because being "
+                     "able to read a coordinate off them is the point.")
+        b.clicked.connect(lambda: (
+            self.arm_view.reset_view(),
+            self.log("actual view: back to the shipped 3-D angles "
+                     "(yaw %.0f, pitch %.0f)"
+                     % (av.DEFAULT_YAW_DEG, av.DEFAULT_PITCH_DEG))))
+        row.addWidget(b)
         bl.addLayout(row)
         return box
 
@@ -3313,6 +4349,42 @@ class Gui(QMainWindow):
             self.bus.note("RViz could not start: %r" % (e,), bad=True)
             return None
 
+
+    def _rviz_log(self, key):
+        """Where THIS RViz's stdout and stderr go.
+
+        NOT /dev/null, which is where they went until 2026-08-22 and which
+        is how an RViz that started and immediately died presented as an
+        empty panel with no reason anywhere. Measured that day: the process
+        was a zombie, the panel said nothing, and reproducing the failure by
+        hand was the only way to see the message -- which is precisely the
+        log-hunting this window exists to abolish.
+        """
+        path = os.path.join(_scratch(), "rviz_%s.log" % key)
+        try:
+            return path, open(path, "wb")
+        except OSError:
+            return None, subprocess.DEVNULL
+
+    def _rviz_died(self, key):
+        """(exitcode, tail) if this panel's RViz is gone, else (None, '')."""
+        for k, p in self.rviz:
+            if k != key:
+                continue
+            rc = p.poll()
+            if rc is None:
+                return None, ""
+            tail = ""
+            path = os.path.join(_scratch(), "rviz_%s.log" % key)
+            try:
+                with open(path, "r", errors="replace") as f:
+                    lines = [ln.rstrip() for ln in f if ln.strip()]
+                tail = "\n".join(lines[-6:])
+            except OSError:
+                pass
+            return rc, tail
+        return None, ""
+
     def _start_rviz(self):
         """Start RViz. NOT EMBEDDED BY DEFAULT, and that is a measurement.
 
@@ -3364,10 +4436,11 @@ class Gui(QMainWindow):
         if not embed:
             key = list(self.viz_msg.keys())[0]
             cfg = self._rviz_config(key)
+            logpath, sink = self._rviz_log(key)
             try:
                 p = subprocess.Popen(["rviz2", "-d", cfg],
-                                     stdout=subprocess.DEVNULL,
-                                     stderr=subprocess.DEVNULL)
+                                     stdout=sink, stderr=subprocess.STDOUT,
+                                     preexec_fn=_die_with_parent)
                 self.rviz.append((key, p))
             except FileNotFoundError:
                 self.viz_msg[key].setText("rviz2 not on PATH")
@@ -3401,9 +4474,10 @@ class Gui(QMainWindow):
         # generated config. Remapping to /real/tf -- which the brief names and
         # which does not exist -- would leave this panel permanently empty.
         argv = ["rviz2", "-d", cfg]
+        logpath, sink = self._rviz_log(key)
         try:
-            p = subprocess.Popen(argv, stdout=subprocess.DEVNULL,
-                                 stderr=subprocess.DEVNULL)
+            p = subprocess.Popen(argv, stdout=sink, stderr=subprocess.STDOUT,
+                                 preexec_fn=_die_with_parent)
         except FileNotFoundError:
             self.viz_msg[key].setText("rviz2 not on PATH")
             self._pending.pop(0)
@@ -3420,20 +4494,81 @@ class Gui(QMainWindow):
         self._tries += 1
         new = self._rviz_windows() - self._before
         if not new:
-            if self._tries > 30:
-                # Fall back with a REASON rather than an empty panel. An empty
-                # panel is indistinguishable from a working one showing
-                # nothing, which is the failure this GUI exists to prevent.
+            # ASK WHETHER IT IS STILL ALIVE BEFORE BLAMING X11.
+            #
+            # This branch used to say "RViz did not present an X window in
+            # 45 s -- embedding needs an X11 session" whatever had happened.
+            # On 2026-08-22 the process had exited within a second on a
+            # working XWayland display, so the message was false, specific
+            # and confident, and it sent the reader to the display stack
+            # instead of to the two lines RViz had printed. Those lines were
+            # going to /dev/null; now they go to a file and land here.
+            rc, tail = self._rviz_died(key)
+            if rc is not None:
                 self.viz_msg[key].setText(
-                    "RViz did not present an X window in 45 s.\n"
-                    "Embedding needs an X11 (or XWayland) session.\n"
+                    "RViz STARTED AND EXITED (code %d) after %.1f s.\n"
+                    "It is not an embedding problem -- the process is gone.\n"
+                    "%s\n\nFull output: %s"
+                    % (rc, self._tries * 1.5,
+                       tail or "(it printed nothing)",
+                       os.path.join(_scratch(), "rviz_%s.log" % key)))
+                self.viz_msg[key].setStyleSheet("color:%s" % C_BAD)
+                self.bus.note("RViz for %s exited with code %d; see %s"
+                              % (key, rc,
+                                 os.path.join(_scratch(), "rviz_%s.log" % key)),
+                              bad=True)
+                self._pending.pop(0)
+                QTimer.singleShot(300, self._launch_next_rviz)
+                return
+            if self._tries > 30:
+                # Still running after 45 s and still no window: now it really
+                # is the display.
+                self.viz_msg[key].setText(
+                    "RViz is RUNNING but has not presented an X window in "
+                    "45 s.\nEmbedding needs an X11 (or XWayland) session.\n"
                     "Run rviz2 separately; every indicator here still works.")
                 self._pending.pop(0)
                 QTimer.singleShot(300, self._launch_next_rviz)
                 return
             QTimer.singleShot(1500, self._try_embed)
             return
-        wid = sorted(new)[0]
+        # THE LARGEST candidate, not the lowest id. Lowest-id picked the
+        # selection-owner helper for months. Largest is the viewport, and
+        # `_rviz_windows` has already thrown out everything without an rviz2
+        # WM_CLASS or smaller than 200x200.
+        sized = []
+        for w_ in new:
+            g = self._window_geometry(w_)
+            if g:
+                sized.append((g[0] * g[1], w_, g))
+        if not sized:
+            QTimer.singleShot(1500, self._try_embed)
+            return
+        sized.sort(reverse=True)
+        area, wid, geom = sized[0]
+        # AND WAIT FOR IT TO STOP CHANGING SIZE. RViz lays its docks out
+        # after the window exists, so a window caught mid-construction is
+        # the wrong size and reparenting it then gives a panel that never
+        # fills. Two consecutive polls at the same size is enough.
+        last = getattr(self, "_embed_last_geom", {}).get(wid)
+        self._embed_last_geom = getattr(self, "_embed_last_geom", {})
+        self._embed_last_geom[wid] = (geom[0], geom[1])
+        if last != (geom[0], geom[1]):
+            QTimer.singleShot(1500, self._try_embed)
+            return
+        # AND CHECK IT, because the last version of this code could not tell
+        # a viewport from a 549x819 invisible helper and reported success.
+        if not geom[2] or geom[0] < 200 or geom[1] < 200:
+            self.viz_msg[key].setText(
+                "RViz's window is %dx%d and %s -- that is not something to "
+                "draw in.\nRefusing to embed it: an embedded invisible "
+                "window looks exactly\nlike a working panel showing nothing."
+                % (geom[0], geom[1],
+                   "viewable" if geom[2] else "NOT viewable"))
+            self.viz_msg[key].setStyleSheet("color:%s" % C_BAD)
+            self._pending.pop(0)
+            QTimer.singleShot(300, self._launch_next_rviz)
+            return
         foreign = QWindow.fromWinId(wid)
         container = QWidget.createWindowContainer(foreign, self.viz_host[key])
         # IGNORED SIZE POLICY IS LOAD-BEARING, not tidying. The container
@@ -3444,6 +4579,18 @@ class Gui(QMainWindow):
         # not from a return code).
         container.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
         container.setMinimumSize(160, 120)
+        # THE CONTAINER MUST NOT TAKE THE KEYBOARD.
+        #
+        # A reparented foreign window is a real X client. By default the
+        # container is in the focus chain, and once RViz holds the X input
+        # focus every key the operator presses goes to RViz -- so the Instruct
+        # box, which is the entire interface to full autonomy, silently
+        # accepts nothing. The window looks alive and typing does nothing.
+        #
+        # NoFocus keeps the container out of the tab order and stops it
+        # claiming focus on click; RViz still receives mouse events, which is
+        # all it needs for orbit and zoom.
+        container.setFocusPolicy(Qt.NoFocus)
         self.viz_msg[key].hide()
         self.viz_host[key].layout().addWidget(container)
         # KEEP THE FOREIGN WINDOW THE SIZE OF ITS CONTAINER, ACTIVELY.
@@ -3460,15 +4607,25 @@ class Gui(QMainWindow):
         # only evidence either way was a screenshot -- which on this host
         # records black, so on the display the operator actually uses there
         # was no evidence at all.
-        self.bus.note("embedded RViz into the %s panel (X window 0x%x)"
-                      % (key.upper(), wid))
+        self.bus.note("embedded RViz into the %s panel (X window 0x%x, "
+                      "%dx%d, viewable) -- chosen from %d candidate(s) by "
+                      "area, having discarded every window without an rviz2 "
+                      "WM_CLASS"
+                      % (key.upper(), wid, geom[0], geom[1], len(sized)))
         self._pending.pop(0)
         # Re-assert the split AFTER embedding, because the container is what
         # disturbed it.
         # SAME NUMBERS AS THE CONSTRUCTOR. These were the OLD split (336 /
         # 1090), so embedding silently undid the widening that stopped the
         # left column slicing its own button labels in half.
-        self.split.setSizes([376, 620, max(420, self.width() - 996)])
+        lw = self._left_width()
+        self.split.setSizes([lw, 620, max(420, self.width() - lw - 620)])
+        # Embedding re-asserts the splitter, which is exactly how the last
+        # widening was silently undone. Re-fit after it -- but LATER, not
+        # 250 ms later. The foreign window has only just been adopted and
+        # resizing the splitter while that is settling is what put RViz at
+        # the corner of the screen instead of in the panel.
+        QTimer.singleShot(2500, self._fit_left_column)
         QTimer.singleShot(600, self._launch_next_rviz)
         QTimer.singleShot(1500, self._dump_geometry)
 
@@ -3617,19 +4774,90 @@ class Gui(QMainWindow):
 
     @staticmethod
     def _rviz_windows():
+        """RViz's REAL top-level windows. Not everything with 'rviz' in it.
+
+        THE DEFECT THIS REPLACES, measured 2026-08-22 on WSLg. This matched
+        any line of `xwininfo -root -tree` containing "rviz", and rviz2
+        creates several X windows besides the one it draws in:
+
+            0x600106 "....rviz - RViz": ("rviz2" "rviz2")  1600x1000   <- real
+            0x600004 "Qt Selection Owner for rviz2": ()     549x819    <- not
+            0x600008 "rviz2": ()                            1x1        <- not
+            0xa00004 (has no name): ()                    1568x914     <- child
+
+        The caller then took `sorted(new)[0]`, the LOWEST id, which is the
+        selection owner. So the GUI reparented an invisible helper window
+        into the commanded panel, the geometry dump measured the container
+        and read 1005..1554 exactly as designed, every check passed, and the
+        panel showed nothing while the real RViz sat in its own window on
+        top of the GUI. CLAUDE.md recorded embedding as working on the
+        strength of it.
+
+        That is this repository's own listed failure mode -- "feature present
+        but does nothing", and "everything matches: substring matching" -- in
+        the one place where the evidence is a picture nobody was looking at.
+
+        Three filters, and a window must pass all three:
+          * a WM_CLASS of rviz2. The helpers have none, which is the
+            cleanest single discriminator.
+          * a title that is not one of Qt's internal ones.
+          * a size worth drawing in. A 1x1 window is not a viewport.
+        """
         try:
             o = subprocess.run(["xwininfo", "-root", "-tree"],
-                               capture_output=True, text=True, timeout=6).stdout
+                               capture_output=True, text=True,
+                               timeout=6).stdout
         except Exception:                                     # noqa: BLE001
             return set()
         ids = set()
+        # 0x600106 "title": ("rviz2" "rviz2")  1600x1000+38+59  +135+45
+        pat = re.compile(
+            r'(0x[0-9a-f]+)\s+(?:"(?P<title>[^"]*)"|\(has no name\))'
+            r'\s*:\s*\((?P<cls>[^)]*)\)'
+            r'(?:\s+(?P<w>\d+)x(?P<h>\d+))?')
         for line in o.splitlines():
-            if "RViz" in line or "rviz" in line:
-                m = re.search(r"(0x[0-9a-f]+)", line)
-                if m:
-                    ids.add(int(m.group(1), 16))
+            m = pat.search(line)
+            if not m:
+                continue
+            cls = (m.group("cls") or "").lower()
+            if "rviz" not in cls:
+                continue                       # helpers carry no WM_CLASS
+            title = m.group("title") or ""
+            if title.startswith("Qt Selection Owner"):
+                continue
+            # THE MAIN WINDOW, BY TITLE. rviz2 titles its main window
+            # "<config path> - RViz"; the transient windows it makes while
+            # starting up do not. Measured 2026-08-22: embedding whatever
+            # appeared first at 1.5 s caught a 400x287 startup window, and
+            # RViz then built its real 1600x1000 one as a SEPARATE toplevel
+            # -- so the panel held a stub and the real view sat outside.
+            if not title.endswith("- RViz"):
+                continue
+            w = int(m.group("w") or 0)
+            h = int(m.group("h") or 0)
+            if w < 200 or h < 200:
+                continue                       # 1x1 stubs are not viewports
+            ids.add(int(m.group(1), 16))
         return ids
 
+    def _window_geometry(self, wid):
+        """(w, h, mapped) for one X window, or None. Used to CHECK what was
+        embedded rather than to assume it."""
+        try:
+            o = subprocess.run(["xwininfo", "-id", hex(wid)],
+                               capture_output=True, text=True,
+                               timeout=6).stdout
+        except Exception:                                     # noqa: BLE001
+            return None
+        w = re.search(r"Width:\s+(\d+)", o)
+        h = re.search(r"Height:\s+(\d+)", o)
+        m = re.search(r"Map State:\s+(\S+)", o)
+        if not (w and h):
+            return None
+        return (int(w.group(1)), int(h.group(1)),
+                (m.group(1) if m else "") == "IsViewable")
+
+    # ------------------------------------------------------------- actions
     # ------------------------------------------------------------- actions
     def on_estop(self):
         self.bus.submit(lambda: (self.bus.publish_once(Bool, "/estop", True),
@@ -4012,6 +5240,23 @@ class Gui(QMainWindow):
             self.ind["mode"].set(driving[0], C_TEXT, "from live publishers")
         else:
             self.ind["mode"].set("--", C_UNKNOWN, "no source is publishing")
+        # THE SAME FACT, BESIDE THE BUTTONS THAT START IT. Read from live
+        # publishers, never from which button was last pressed: "I launched
+        # it" and "it is driving the arm" are different, and the gap between
+        # them is where a run goes wrong.
+        lbl = getattr(self, "mode_live_lbl", None)
+        if lbl is not None:
+            if len(driving) > 1:
+                lbl.setText("live mode: CONFLICT -- %s all claim the arm"
+                            % "+".join(driving))
+                lbl.setStyleSheet("color:%s" % C_BAD)
+            elif driving:
+                lbl.setText("live mode: %s  (from live publishers)"
+                            % driving[0])
+                lbl.setStyleSheet("color:%s" % C_OK)
+            else:
+                lbl.setText("live mode: nothing is driving the arms")
+                lbl.setStyleSheet("color:%s" % C_MUTED)
         au = val("autonomy")
         if au is None:
             self.ind["autonomy"].set("--", C_UNKNOWN, "no autonomy node")
@@ -4338,11 +5583,23 @@ class Gui(QMainWindow):
                 "background:#111;border:1px solid #999")
 
     def closeEvent(self, ev):
+        # TERMINATE, THEN CHECK, THEN KILL. `terminate()` alone is a request:
+        # it returned immediately, nothing waited, and an RViz busy rendering
+        # could outlive the window that asked it to stop.
         for _, p in self.rviz:
             try:
                 p.terminate()
             except Exception:                                 # noqa: BLE001
                 pass
+        deadline = time.time() + 3.0
+        for _, p in self.rviz:
+            try:
+                p.wait(timeout=max(0.05, deadline - time.time()))
+            except Exception:                                 # noqa: BLE001
+                try:
+                    p.kill()
+                except Exception:                             # noqa: BLE001
+                    pass
         self.on_stop_jobs()
         ev.accept()
 
@@ -4350,6 +5607,30 @@ class Gui(QMainWindow):
 # ===========================================================================
 #  helpers
 # ===========================================================================
+def _die_with_parent():
+    """Ask the kernel to SIGTERM this child when its parent dies.
+
+    `closeEvent` already terminates the RViz children, and that covers
+    exactly one exit path: the operator closing the window. Every other way
+    the GUI ends -- a crash inside a Qt slot, a SIGKILL, the terminal going
+    away -- leaves rviz2 running, holding a window and ~200 MB, and the next
+    `start_gui.sh` then opens beside the corpse of the last one. Measured
+    2026-08-22: three orphaned rviz2 processes after three restarts, and the
+    GUI's own RSS readout counts them.
+
+    PR_SET_PDEATHSIG is the only mechanism that survives SIGKILL of the
+    parent, because the kernel does it rather than the parent. Failure to set
+    it is not fatal: it means the old behaviour, not a dead GUI.
+    """
+    try:
+        import ctypes
+        import signal as _sig
+        ctypes.CDLL("libc.so.6", use_errno=True).prctl(
+            1, _sig.SIGTERM, 0, 0, 0)          # 1 == PR_SET_PDEATHSIG
+    except Exception:                                         # noqa: BLE001
+        pass
+
+
 def _scratch():
     """The scratch directory, CREATED. It was only read.
 

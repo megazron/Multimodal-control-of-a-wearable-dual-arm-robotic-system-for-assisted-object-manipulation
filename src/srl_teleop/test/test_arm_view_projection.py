@@ -31,9 +31,16 @@ import srl_arm_view as V   # noqa: E402
 RECT = (0, 0, 400, 300)
 
 
+FRONT = "FRONT  (facing the wearer)"
+
+
 def test_front_view_puts_world_plus_x_on_the_left():
+    """NAMES ITS VIEW. This used to rely on the default being FRONT, and the
+    default is now the 3-D orbit -- so the test silently changed subject
+    when the default moved. A test that does not name what it is testing
+    fails for a reason that has nothing to do with the property."""
     right, left = (0.5, 0.0, 1.0), (-0.5, 0.0, 1.0)
-    (rx, _), (lx, _) = V.project([right, left], rect=RECT,
+    (rx, _), (lx, _) = V.project([right, left], view=FRONT, rect=RECT,
                                  bounds=(-1.0, 1.0, 0.3, 1.9))
     assert rx < lx, "world +x must draw to the LEFT when facing the wearer"
 
@@ -42,10 +49,62 @@ def test_one_scale_for_both_axes():
     """A square in the world stays a square on the screen."""
     b = (-1.0, 1.0, 0.3, 1.9)
     pts = [(-0.2, 0, 1.0), (0.2, 0, 1.0), (0.2, 0, 1.4), (-0.2, 0, 1.4)]
-    (ax, ay), (bx, by), (cx, cy), _ = V.project(pts, rect=RECT, bounds=b)
+    (ax, ay), (bx, by), (cx, cy), _ = V.project(pts, view=FRONT, rect=RECT,
+                                                bounds=b)
     width = abs(bx - ax)
     height = abs(cy - by)
     assert abs(width - height) < 1e-6, (width, height)
+
+
+# ------------------------------------------------------------- the 3-D view
+def test_the_default_view_is_the_3d_one():
+    assert V.DEFAULT_VIEW == V.VIEW_3D
+
+
+def test_yaw_zero_pitch_zero_is_the_front_slice():
+    """A known answer. With no rotation the 3-D view must reduce to looking
+    down -y: screen-horizontal is world x, screen-vertical is world z."""
+    pts = [(0.3, 0.0, 1.2), (-0.3, 0.0, 1.2), (0.3, 0.0, 1.6)]
+    got = V.project(pts, view=V.VIEW_3D, rect=RECT,
+                    bounds=(-1.0, 1.0, 0.3, 1.9), yaw_deg=0.0, pitch_deg=0.0)
+    (ax, ay), (bx, by), (cx, cy) = got
+    assert ax > bx, "world +x must be to the RIGHT with no flip in 3-D"
+    assert cy < ay, "world +z must be UP on screen"
+    assert abs(ax - cx) < 1e-9, "x unchanged means screen-x unchanged"
+
+
+def test_yaw_actually_rotates_the_scene():
+    """Two points differing only in world y must separate horizontally once
+    the scene is yawed -- in the FRONT slice they overlap exactly, which is
+    the whole reason the 3-D view exists."""
+    near, far = (0.0, -0.4, 1.2), (0.0, 0.4, 1.2)
+    b = (-1.3, 1.3, 0.45, 2.05)
+    flat = V.project([near, far], view=FRONT, rect=RECT, bounds=b)
+    assert abs(flat[0][0] - flat[1][0]) < 1e-9, (
+        "the FRONT slice is supposed to throw depth away")
+    turned = V.project([near, far], view=V.VIEW_3D, rect=RECT, bounds=b,
+                       yaw_deg=45.0, pitch_deg=0.0)
+    assert abs(turned[0][0] - turned[1][0]) > 10.0, (
+        "yawing 45 degrees did not separate two points that differ only in "
+        "depth, so the view is not rotating")
+
+
+def test_depth_is_returned_so_far_things_can_be_drawn_first():
+    """`_rotate3` keeps depth in slot 1. Without it the far arm paints over
+    the near one and the picture is wrong in the one way a 3-D view is
+    supposed to fix."""
+    near = V._rotate3((0.0, -0.5, 1.2), 0.0, 0.0)
+    far = V._rotate3((0.0, 0.5, 1.2), 0.0, 0.0)
+    assert near[1] < far[1]
+
+
+def test_the_3d_window_is_wide_enough_for_a_rotated_arm():
+    """Rotating pushes points outside the axis-aligned window. A window that
+    clips the arm is worse than one with slack."""
+    lo_h, hi_h, lo_v, hi_v = V.world_bounds(V.VIEW_3D)
+    fh, fhi, fv, fvi = V.world_bounds(FRONT)
+    assert hi_h >= fhi and lo_h <= fh
+    assert hi_v >= fvi and lo_v <= fv
 
 
 def test_bounds_fix_the_window_so_a_still_arm_stays_still():

@@ -121,12 +121,26 @@ def densify(q0, q1, step=MAX_JOINT_STEP_RAD):
     return np.array([q0 + d * t for t in np.linspace(0.0, 1.0, n)])
 
 
-def check_path(scorer, arm, q0, q1, floor=FLOOR_M, step=MAX_JOINT_STEP_RAD):
+def check_path(scorer, arm, q0, q1, floor=FLOOR_M, step=MAX_JOINT_STEP_RAD,
+               trace=None):
     """(ok, reason, worst_clearance, n_samples) for the WHOLE sweep.
 
     Uses the MOVING chain. The whole-chain number is dominated by the
     immobile mount stub -- on this rig it reads a constant 0.2202 m for every
     pose ever tried, which is the mount cap and binds nothing.
+
+    `trace`, when a list is passed, is filled with one entry per sample --
+    {"ee": [x, y, z], "clearance_m": c, "part": name} -- and the walk then
+    evaluates EVERY sample instead of stopping at the first breach. The
+    verdict is unchanged: `reason` still names the FIRST failure, exactly as
+    it does without a trace.
+
+    It exists so the path can be DRAWN. Defect 2 of 2026-08-21 -- a pick that
+    cleared three poses at 0.4 m and swept through the wearer between them --
+    survived because nobody could see the middle of a motion, and a checker
+    that reports one number cannot be shown on a screen. `rviz_master`'s
+    `/viz/path` colours one point per sample by that sample's own clearance,
+    which needs all of them, including the ones after the breach.
     """
     P = densify(q0, q1, step)
     lo, hi, cont = scorer.lim[arm]
@@ -140,25 +154,48 @@ def check_path(scorer, arm, q0, q1, floor=FLOOR_M, step=MAX_JOINT_STEP_RAD):
     hard = np.array([not c for c in cont], bool)
     worst = float("inf")
     worst_at = None
+    verdict = None                 # the FIRST failure, whatever comes after
+    import solve_home_pose as _SHP
+    ee_idx = _SHP.IDX["end_effector_link"]
     for i, q in enumerate(P):
         if np.any(q[hard] < lo[hard] - 1e-6) or \
                 np.any(q[hard] > hi[hard] + 1e-6):
             bad = int(np.argmax((q[hard] < lo[hard] - 1e-6)
                                 | (q[hard] > hi[hard] + 1e-6)))
             names = [j for j in range(7) if hard[j]]
-            return False, ("joint_%d past its limit at step %d/%d"
-                           % (names[bad] + 1, i + 1, len(P))), worst, len(P)
-        c = scorer.clearance_parts(arm, q)["moving_chain_m"]
+            reason = ("joint_%d past its limit at step %d/%d"
+                      % (names[bad] + 1, i + 1, len(P)))
+            if trace is None:
+                return False, reason, worst, len(P)
+            # A pose outside the search box cannot be scored for clearance,
+            # so the trace stops here too and says why rather than leaving a
+            # gap a viewer would read as "clear".
+            verdict = verdict or (False, reason)
+            break
+        parts = scorer.clearance_parts(arm, q)
+        c = parts["moving_chain_m"]
+        if trace is not None:
+            trace.append({
+                "ee": [float(v) for v in scorer.cf[arm](q)[ee_idx][:3, 3]],
+                "clearance_m": (float(c) if np.isfinite(c) else None),
+                "part": parts.get("moving_chain_to")})
         if not np.isfinite(c):
-            return False, ("clearance is not finite at step %d/%d -- the "
-                           "guard could not measure" % (i + 1, len(P))), \
-                   worst, len(P)
+            reason = ("clearance is not finite at step %d/%d -- the guard "
+                      "could not measure" % (i + 1, len(P)))
+            if trace is None:
+                return False, reason, worst, len(P)
+            verdict = verdict or (False, reason)
+            continue
         if c < worst:
             worst, worst_at = c, i
         if c < floor:
-            return False, ("wearer clearance %.4f m at step %d/%d, under the "
-                           "%.3f m floor" % (c, i + 1, len(P), floor)), \
-                   worst, len(P)
+            reason = ("wearer clearance %.4f m at step %d/%d, under the "
+                      "%.3f m floor" % (c, i + 1, len(P), floor))
+            if trace is None:
+                return False, reason, worst, len(P)
+            verdict = verdict or (False, reason)
+    if verdict is not None:
+        return verdict[0], verdict[1], worst, len(P)
     return True, ("clear: worst %.4f m at step %d/%d"
                   % (worst, (worst_at or 0) + 1, len(P))), worst, len(P)
 
@@ -507,6 +544,48 @@ def self_test(verbose=True):
               "breaches -> refused over %d samples  OK"
               % (sc.clearance_parts("left", qh)["moving_chain_m"],
                  found[0], found[2]))
+
+    # THE TRACE, which is what `rviz_master` draws. Three properties, and
+    # each is a way the drawing could lie about the motion:
+    #
+    #   * it must cover EVERY sample, not stop at the breach -- a path drawn
+    #     up to the first refusal and no further shows a green stub and
+    #     hides where the arm was actually going;
+    #   * the verdict with a trace must be the SAME verdict as without one,
+    #     naming the same first failure. A debug flag that changes the
+    #     answer is worse than no debug flag;
+    #   * the trace's own minimum must agree with the reported worst, or the
+    #     picture and the number are about different paths.
+    tr = []
+    ok2, why2, worst2, ns2 = check_path(sc, "left", qh, qbad, floor=FLOOR_M,
+                                        trace=tr)
+    assert ok2 == ok and why2 == why, (
+        "passing a trace CHANGED the verdict: %r/%r without, %r/%r with"
+        % (ok, why, ok2, why2))
+    assert len(tr) == ns2, (
+        "the trace stopped at %d of %d samples. It must run to the end: the "
+        "defect this drawing exists for lived after the first breach."
+        % (len(tr), ns2))
+    got = min(e["clearance_m"] for e in tr if e["clearance_m"] is not None)
+    assert abs(got - worst2) < 1e-9, (
+        "the trace's minimum is %.6f m and the reported worst is %.6f m -- "
+        "the picture and the number are about different paths"
+        % (got, worst2))
+    assert any(e["clearance_m"] < FLOOR_M for e in tr
+               if e["clearance_m"] is not None), \
+        "the trace of a REFUSED path contains no sample under the floor"
+    assert all(len(e["ee"]) == 3 and e["part"] for e in tr), \
+        "a trace entry has no end-effector point or does not name the part"
+    # and a CLEAR path must trace clear, so the check above is not passing
+    # merely because every trace contains a breach
+    tr2 = []
+    ok3, _, _, ns3 = check_path(sc, "left", qh, qh, floor=FLOOR_M, trace=tr2)
+    assert ok3 and len(tr2) == ns3 and all(
+        e["clearance_m"] >= FLOOR_M for e in tr2), \
+        "a stationary path did not trace clear"
+    if verbose:
+        print("trace covers %d of %d samples, min %.4f m matches the "
+              "reported worst, verdict unchanged  OK" % (len(tr), ns2, got))
 
     if verbose:
         print("safe_motion self-test PASSED")

@@ -57,13 +57,44 @@ VIEWS = {
     "SIDE  (from the wearer's left)": ("y", "z", False),
     "TOP  (from above)": ("x", "y", True),
 }
-DEFAULT_VIEW = "FRONT  (facing the wearer)"
+# THE 3-D VIEW. The three above are axis-aligned orthographic slices, which
+# is the right thing for reading a coordinate off the screen and the wrong
+# thing for seeing whether an arm is in front of or behind the wearer -- in
+# FRONT, depth is exactly the axis that is thrown away.
+#
+# This one rotates the world by (yaw, pitch) first and then projects, so it
+# is a real 3-D view that can be dragged around. It is still ORTHOGRAPHIC:
+# a perspective divide would make the near arm bigger than the far one, and
+# this panel exists to be compared against the sim beside it.
+VIEW_3D = "3-D  (drag to orbit)"
+VIEWS[VIEW_3D] = ("x", "z", True)      # axes unused; kept so lookups work
+DEFAULT_VIEW = VIEW_3D
+DEFAULT_YAW_DEG = 35.0
+DEFAULT_PITCH_DEG = 22.0
 
 _AXIS = {"x": 0, "y": 1, "z": 2}
 
 
+def _rotate3(p, yaw_deg, pitch_deg):
+    """World (x, y, z) -> view-space (right, depth, up).
+
+    Yaw turns the scene about the vertical axis; pitch tips it towards the
+    viewer. The returned tuple keeps DEPTH in slot 1 so a caller that wants
+    to draw far things first can sort on it -- which `paintEvent` does, so
+    the far arm does not paint over the near one.
+    """
+    import math as _m
+    cy, sy = _m.cos(_m.radians(yaw_deg)), _m.sin(_m.radians(yaw_deg))
+    cp, sp = _m.cos(_m.radians(pitch_deg)), _m.sin(_m.radians(pitch_deg))
+    x, y, z = float(p[0]), float(p[1]), float(p[2])
+    rx = x * cy + y * sy               # screen right
+    ry = -x * sy + y * cy              # depth, into the screen
+    rz = z                             # up, before the tilt
+    return (rx, ry * cp - rz * sp, ry * sp + rz * cp)
+
+
 def project(points, view=DEFAULT_VIEW, rect=(0, 0, 400, 300), pad=18,
-            bounds=None):
+            bounds=None, yaw_deg=None, pitch_deg=None):
     """Orthographic projection of world points into a pixel rectangle.
 
     `points` is an iterable of (x, y, z). Returns [(px, py)] with y already
@@ -71,13 +102,26 @@ def project(points, view=DEFAULT_VIEW, rect=(0, 0, 400, 300), pad=18,
     skeleton does not rescale every frame -- a view that re-fits itself makes
     a moving arm look still and a still arm look moving.
 
+    Under `VIEW_3D` the points are rotated by (`yaw_deg`, `pitch_deg`) first
+    and the projection is then orthographic onto the rotated frame. Both
+    default to the shipped isometric angles.
+
     Pure arithmetic on purpose: it is the one part of this panel whose answer
     can be known in advance, so it is the part with a test.
     """
+    yaw_deg = DEFAULT_YAW_DEG if yaw_deg is None else yaw_deg
+    pitch_deg = DEFAULT_PITCH_DEG if pitch_deg is None else pitch_deg
     h_ax, v_ax, flip_h = VIEWS.get(view, VIEWS[DEFAULT_VIEW])
     hi, vi = _AXIS[h_ax], _AXIS[v_ax]
     x0, y0, w, h = rect
     pts = list(points)
+    if view == VIEW_3D:
+        # Rotate about world z (yaw), then tilt (pitch), then take the
+        # screen-horizontal and screen-vertical components. Written out
+        # rather than delegated so this file keeps its no-numpy, no-Qt
+        # property and stays testable with constructed answers.
+        pts = [_rotate3(p, yaw_deg, pitch_deg) for p in pts]
+        hi, vi, flip_h = 0, 2, False
     if bounds is None:
         if not pts:
             return []
@@ -121,6 +165,12 @@ def world_bounds(view=DEFAULT_VIEW):
       * the shipped home, which spans z 1.25-1.64.
     So |x| <= 0.90 and z in 0.75..1.85, with margin on both.
     """
+    if view == VIEW_3D:
+        # Rotating puts points outside the axis-aligned window, and a window
+        # that clips the arm is worse than one with slack. The diagonal of
+        # the x/y extent is the worst case for the horizontal axis, and the
+        # tilt mixes z into it for the vertical.
+        return (-1.30, 1.30, 0.45, 2.05)
     return (-0.90, 0.90, 0.75, 1.85)
 
 
@@ -201,6 +251,11 @@ class ArmView(QWidget):                                       # pragma: no cover
     """
 
     def __init__(self, colours, parent=None):
+        # Orbit state for VIEW_3D. Set before the base constructor runs any
+        # paint, because paintEvent reads them.
+        self.yaw = DEFAULT_YAW_DEG
+        self.pitch = DEFAULT_PITCH_DEG
+        self._drag = None
         super().__init__(parent)
         self.c = colours                     # dict of the GUI's palette
         self.real = {a: Skeleton(a) for a in ARMS}
@@ -212,6 +267,33 @@ class ArmView(QWidget):                                       # pragma: no cover
 
     def set_pose(self, real, sim, note, state):
         self.real, self.sim, self.note, self.state = real, sim, note, state
+        self.update()
+
+    def mousePressEvent(self, ev):                        # pragma: no cover
+        self._drag = (ev.x(), ev.y())
+
+    def mouseMoveEvent(self, ev):                         # pragma: no cover
+        """Drag to orbit. Only in the 3-D view -- dragging an axis-aligned
+        slice would silently turn it into something else, and the whole point
+        of FRONT is that you can read a coordinate off it."""
+        if self.view != VIEW_3D or getattr(self, "_drag", None) is None:
+            return
+        x0, y0 = self._drag
+        self.yaw = (self.yaw + (ev.x() - x0) * 0.5) % 360.0
+        # Pitch is CLAMPED. Past +/-89 the up vector flips and the scene
+        # turns upside down mid-drag, which reads as a glitch rather than a
+        # rotation.
+        self.pitch = max(-89.0, min(89.0, self.pitch - (ev.y() - y0) * 0.5))
+        self._drag = (ev.x(), ev.y())
+        self.update()
+
+    def mouseReleaseEvent(self, ev):                      # pragma: no cover
+        self._drag = None
+
+    def reset_view(self):
+        """Back to the shipped angles. A view that can be dragged needs a way
+        back, or one stray drag leaves the panel permanently odd."""
+        self.yaw, self.pitch = DEFAULT_YAW_DEG, DEFAULT_PITCH_DEG
         self.update()
 
     def set_view(self, name):
@@ -227,6 +309,11 @@ class ArmView(QWidget):                                       # pragma: no cover
         rect = (0, 18, w, h - 46)
         b = world_bounds(self.view)
         bounds = self._bounds_for(b)
+        # ONE PLACE that knows the orbit, so a call site cannot forget it and
+        # draw a rotated skeleton on an unrotated grid.
+        self._prj = lambda pts, r=rect: project(
+            pts, self.view, r, bounds=bounds,
+            yaw_deg=self.yaw, pitch_deg=self.pitch)
 
         self._grid(p, rect, bounds)
 
@@ -247,8 +334,7 @@ class ArmView(QWidget):                                       # pragma: no cover
                 # say it is and the arms sit the other way round. "left arm"
                 # is a fact about the frame and is true either way; "the
                 # wearer's right" would be a claim this panel cannot support.
-                xy = project(self.real[a].points, self.view, rect,
-                             bounds=bounds)
+                xy = self._prj(self.real[a].points)
                 p.setPen(QPen(QColor(self.c["muted"])))
                 f0 = p.font()
                 f0.setPointSize(8)
@@ -316,20 +402,20 @@ class ArmView(QWidget):                                       # pragma: no cover
         i = 0
         while lo_h + i * step <= hi_h + 1e-9:
             hv = lo_h + i * step
-            a = project([self._pt(hv, lo_v)], self.view, rect, bounds=bounds)
-            b = project([self._pt(hv, hi_v)], self.view, rect, bounds=bounds)
+            a = self._prj([self._pt(hv, lo_v)])
+            b = self._prj([self._pt(hv, hi_v)])
             p.drawLine(int(a[0][0]), int(a[0][1]), int(b[0][0]), int(b[0][1]))
             i += 1
         i = 0
         while lo_v + i * step <= hi_v + 1e-9:
             vv = lo_v + i * step
-            a = project([self._pt(lo_h, vv)], self.view, rect, bounds=bounds)
-            b = project([self._pt(hi_h, vv)], self.view, rect, bounds=bounds)
+            a = self._prj([self._pt(lo_h, vv)])
+            b = self._prj([self._pt(hi_h, vv)])
             p.drawLine(int(a[0][0]), int(a[0][1]), int(b[0][0]), int(b[0][1]))
             i += 1
 
     def _chain(self, p, pts, rect, bounds, colour, width, dashed=False):
-        xy = project(pts, self.view, rect, bounds=bounds)
+        xy = self._prj(pts)
         pen = QPen(colour)
         pen.setWidth(width)
         if dashed:

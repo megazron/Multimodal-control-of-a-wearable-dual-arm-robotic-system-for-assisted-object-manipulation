@@ -112,7 +112,19 @@ def _boot_time():
 
 
 def grant(who="unknown", reason="", ttl_s=TTL_S):
-    """Take the bypass, now, and write it down. Returns the record."""
+    """Take the bypass, now, and write it down. Returns the record.
+
+    AN AUTOMATED GRANT IS MARKED AS ONE. This is the log that says a human
+    chose to work without an observer, and `verify_gui_buttons.py` presses
+    that checkbox on every run -- 34 entries appeared in it on 2026-08-22,
+    indistinguishable from real decisions by a real person.
+    A safety record that cannot tell a test from a decision is a safety
+    record nobody can read.
+
+    `SRL_AUDIT` is set by the audit, so the mark cannot be forgotten at a
+    call site.
+    """
+    audit = bool(os.environ.get("SRL_AUDIT"))
     rec = {
         "granted_at": time.time(),
         "granted_at_iso": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
@@ -123,6 +135,10 @@ def grant(who="unknown", reason="", ttl_s=TTL_S):
         "host": _safe(socket.gethostname),
         "pid": os.getpid(),
     }
+    if audit:
+        rec["automated"] = True
+        rec["reason"] = ("AUTOMATED TEST -- verify_gui_buttons pressed this "
+                         "checkbox; no person decided anything")
     with open(state_path(), "w") as fh:
         json.dump(rec, fh, indent=2)
     # THE AUDIT LINE IS WRITTEN EVEN IF THE STATE FILE FAILED TO LAND. The

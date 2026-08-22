@@ -39,6 +39,7 @@ the original bug lived in.
 import os
 import subprocess
 import sys
+import threading
 import time
 
 WS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -123,6 +124,11 @@ def level1_dispatch():
 def level2_click():
     print("\n-- LEVEL 2: construct the GUI offscreen and press every button")
     os.environ["QT_QPA_PLATFORM"] = "offscreen"
+    # MARK EVERYTHING THIS AUDIT DOES AS AUTOMATED. It presses the
+    # "I am working alone" checkbox, and that writes to the observer-bypass
+    # log -- the record of a human choosing to work without an observer.
+    # Thirty-four indistinguishable entries appeared there on 2026-08-22.
+    os.environ["SRL_AUDIT"] = "1"
     import rclpy
     import threading
     import srl_gui
@@ -239,6 +245,7 @@ def level2_click():
         repaired.append("teensy_repoint"),
         (True, "would restart the master arm reader"))[1]
 
+    from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QApplication, QPushButton, QCheckBox, QSlider
 
     rclpy.init()
@@ -261,6 +268,46 @@ def level2_click():
     # no rows in it and reported a pass. This is the same defect as the modal
     # dialog that hid five buttons for months: the audit walking a window that
     # is not finished.
+    # ---- NOTHING IN THE CONTROL COLUMN MAY BE CUT OFF.
+    #
+    # Horizontal scrolling is off in that column, so a page wider than its
+    # viewport is not scrollable -- it is silently truncated, and what goes
+    # missing is the right-hand end of every button label and every sentence.
+    # It shipped that way: "E-STOP -- HALT BOTH ARMS" rendered as "HALT BOTH
+    # ARM", and a `setMaximumWidth(392)` on the column meant no amount of
+    # widening the splitter could ever help.
+    #
+    # This audit pressed all 203 buttons and passed throughout, because a
+    # button whose label is cut is still a button that clicks. Checking the
+    # PIXELS is the only way to see it, and this is the cheap version of
+    # that: ask each scroll page whether its content fits.
+    g._fit_left_column()
+    app.processEvents()
+    clipped = g.clipped_pages()
+    check("2", "no control-column page is cut off", not clipped,
+          "; ".join("%s: viewport %d px, content needs %d"
+                    % (n, v, w) for n, v, w in clipped)
+          or "all pages fit; column %d px" % g.split.sizes()[0])
+
+    # ---- AND EVERY MODE HAS A WAY IN.
+    #
+    # The RUN tab opened on START VR TELEOP with the mode launchers five
+    # panels below it, so the honest answer to "what can this window do" was
+    # "VR teleoperation". Shared autonomy and full autonomy were behind a
+    # scroll and full autonomy's prompt was a tab in another column.
+    rows = getattr(g, "mode_btn", {})
+    want = {"%s_%s" % (m, t)
+            for m in ("teleop", "vr", "shared", "full")
+            for t in ("sim", "mock", "real")} | {"__instruct__"}
+    check("2", "every mode offers SIM, SIM+MOCK and SIM+REAL",
+          set(rows) >= want,
+          "missing: %s" % ", ".join(sorted(want - set(rows)))
+          if set(rows) < want else "%d buttons" % len(rows))
+    check("2", "full autonomy has a prompt reachable from RUN",
+          "__instruct__" in rows and rows["__instruct__"].isEnabled()
+          and getattr(g, "instruct_tab_index", None) is not None,
+          "the Instruct panel is what drives mode 06 from a sentence")
+
     g.on_doctor_check()
     checks = g.doctor_wait(45)
     check("2", "connection panel rendered its checks", len(checks) >= 7,
@@ -315,6 +362,249 @@ def level2_click():
         check("2", "click: %s" % label, after > before,
               "%d log entr%s" % (after - before,
                                  "y" if after - before == 1 else "ies"))
+
+    # ================================================================
+    # EVERY PRESS LEFT A TRACE. THAT IS NOT THE SAME AS WORKING.
+    # ================================================================
+    #
+    # The check above passes when a click adds a log line. It catches a
+    # disconnected signal, which is what it was written for, and it passed
+    # 203/203 while `E-STOP -- HALT BOTH ARMS` did nothing at all: it shelled
+    # out to `ros2 service call /estop`, which on an absent service does not
+    # exit but WAITS FOR EVER, so the 2.5 s return-code check saw None and
+    # said nothing, and the panel printed "E-STOP SENT -- latched until
+    # reset" in red. A log line appeared. The arms were never told.
+    #
+    # So the buttons whose effect is observable in this process get their
+    # EFFECT checked, not their noise.
+    print("\n-- LEVEL 2b: buttons with an observable effect must have it")
+
+    from rclpy.node import Node as _Node
+    from std_msgs.msg import Bool as _Bool
+    # THE SPY NEEDS ITS OWN EXECUTOR.
+    #
+    # `rclpy.spin(node)` uses the GLOBAL default executor, and `bus` is
+    # already being spun on it. A second `rclpy.spin` in another thread
+    # raises "Executor is already spinning" inside that thread, where nothing
+    # is watching -- so the subscription never fires and every check below
+    # reads "received []".
+    #
+    # That happened, and it read exactly like the defect it was written to
+    # catch: an e-stop that logs and does not publish. The publisher was
+    # matched, the GUI logged "E-STOP published", and the message was
+    # delivered to a callback nobody was pumping. CLAUDE.md's standing rule,
+    # in the audit itself -- a surprising failure is evidence about the
+    # INSTRUMENT until the instrument has been cleared.
+    from rclpy.executors import SingleThreadedExecutor as _Exec
+    spy = _Node("gui_audit_spy")
+    seen = []
+    spy.create_subscription(_Bool, "/estop", lambda m: seen.append(m.data), 10)
+    _spy_exec = _Exec()
+    _spy_exec.add_node(spy)
+    threading.Thread(target=_spy_exec.spin, daemon=True).start()
+
+    def _settle(n=30):
+        for _ in range(n):
+            app.processEvents()
+            time.sleep(0.05)
+
+    # WAIT FOR THE MATCH, AND ASSERT IT. A brand-new subscriber has not
+    # finished DDS discovery with an existing publisher, so clicking
+    # immediately tests nothing and fails for a reason that has nothing to do
+    # with the button. Worse, without this assertion the check could pass
+    # trivially once the timing changed, having never observed anything.
+    _estop_pub = bus._pubs.get(("/estop", "Bool"))
+    _matched = False
+    for _ in range(100):
+        if _estop_pub is not None and _estop_pub.get_subscription_count() >= 1:
+            _matched = True
+            break
+        _settle(2)
+    check("2b", "the audit's own /estop subscriber matched the GUI", _matched,
+          "%d subscriber(s) seen by the GUI's publisher. Without a match the "
+          "e-stop checks below would test nothing."
+          % (_estop_pub.get_subscription_count() if _estop_pub else -1))
+
+    by_text = {b.text().strip(): b for b in g.findChildren(QPushButton)
+               if b.text().strip()}
+
+    # 1 -- EVERY e-stop button must put True on /estop. Both of them: the
+    #      bottom-bar one always did, the real-arm one never did.
+    estops = [k for k in by_text if k.startswith("E-STOP")]
+    check("2b", "there is more than one e-stop button", len(estops) >= 2,
+          ", ".join(estops))
+    for k in estops:
+        seen.clear()
+        by_text[k].click()
+        _settle()
+        check("2b", "e-stop reaches /estop: %s" % k, seen == [True],
+              "received %r -- a stop button that logs and does not publish "
+              "is the worst defect this window can have" % (seen,))
+
+    # 2 -- NO BUTTON MAY SHELL OUT TO `ros2 service call`. It hangs for ever
+    #      on an absent service, so the caller can never learn it failed.
+    gui_src = open(os.path.join(WS, "scripts/srl_gui.py")).read()
+    check("2b", "nothing shells out to `ros2 service call`",
+          '"service", "call"' not in gui_src
+          and "'service', 'call'" not in gui_src,
+          "use bus.call_trigger, which checks service_is_ready first and "
+          "reports the real result")
+
+    # 3 -- WITH NO STACK UP, a service button must SAY the service is absent.
+    #      This is the difference between "it did not work" and "it worked".
+    for k in ("2.  HOME BOTH ARMS", "reset e-stop", "stop real arms"):
+        b = by_text.get(k)
+        if b is None:
+            check("2b", "service button present: %s" % k, False, "missing")
+            continue
+        n0 = len(bus.log)
+        b.click()
+        _settle()
+        said = [str(x) for x in list(bus.log)[n0:]]
+        check("2b", "says the service is absent: %s" % k,
+              any("not present" in x for x in said),
+              "; ".join(x[:60] for x in said[-2:]) or "SAID NOTHING")
+
+    # 4 -- FULL AUTONOMY must actually bring the prompt to the front.
+    b = getattr(g, "mode_btn", {}).get("__instruct__")
+    if b is None:
+        check("2b", "the full-autonomy prompt has a button", False,
+              "no mode_btn['__instruct__']")
+    else:
+        g.mid_tabs.setCurrentIndex(0)
+        app.processEvents()
+        b.click()
+        _settle(6)
+        check("2b", "FULL AUTONOMY switches to the Instruct panel",
+              g.mid_tabs.currentIndex() == g.instruct_tab_index,
+              "tab %d, Instruct is %d"
+              % (g.mid_tabs.currentIndex(), g.instruct_tab_index))
+
+    # 4b -- THE FULL-AUTONOMY PROMPT MUST GATE ON LOOK.
+    #
+    # Mode 06 picks its destination from the colour the CAMERA sees, so a
+    # sentence typed before anything has looked has nothing to plan against.
+    # The failure to avoid is a parse that succeeds on stale or absent
+    # detections and then commands an arm. So: SEND must echo the sentence,
+    # refuse by NAMING LOOK, and leave CONFIRM disabled -- for a sentence the
+    # grammar understands and for one it does not.
+    #
+    # WHAT THIS CANNOT CHECK, and it is most of the interesting part: whether
+    # the parse is RIGHT. That needs LOOK to succeed, which needs the
+    # perception stack. `scripts/sweep_t1_instructions.py` scores 75
+    # phrasings and is where that lives.
+    if hasattr(g, "inst_edit"):
+        inst_btns = {b.text().strip(): b
+                     for b in g.mid_tabs.widget(g.instruct_tab_index)
+                     .findChildren(QPushButton) if b.text().strip()}
+        for sentence in ("put the red cube on the red pad",
+                         "wibble the frobnicator"):
+            g.inst_edit.setText(sentence)
+            app.processEvents()
+            n0 = len(bus.log)
+            inst_btns["SEND"].click()
+            _settle()
+            said = " | ".join(str(x) for x in list(bus.log)[n0:])
+            check("2b", "instruct echoes and gates on LOOK: %r"
+                  % sentence[:22],
+                  sentence in said and "LOOK" in said,
+                  said[:100] or "SAID NOTHING")
+        check("2b", "CONFIRM stays disabled until something is planned",
+              not inst_btns["CONFIRM AND RUN"].isEnabled(),
+              "a confirm that is live with no plan commands an arm from "
+              "nothing")
+    else:
+        check("2b", "the instruct prompt exists", False,
+              "no inst_edit -- mode 06 has no way in")
+
+    # 4c -- THE EXPERIMENTS PANEL BUILDS A COMMAND THE DISPATCHER ACCEPTS.
+    #
+    # Defaults alone must produce a runnable trial: the panel's whole claim
+    # is that you can press RUN TRIAL without filling anything in.
+    if hasattr(g, "_exp_argv"):
+        argv = g._exp_argv()
+        check("2b", "experiments panel builds a complete command",
+              argv[0] == "bash" and "--participant" in argv
+              and "--session" in argv and "--trial-index" in argv,
+              " ".join(argv[-8:]))
+        # ...and the dispatcher must actually take it. --dry-run so nothing
+        # moves; a panel that composes an argv nobody accepts is the "exits
+        # 2 and looks like it launched" defect with extra fields.
+        try:
+            pr = subprocess.run(argv + ["--dry-run"], capture_output=True,
+                                text=True, timeout=180)
+            ok_run = pr.returncode == 0
+            tail = ((pr.stdout or pr.stderr or "").strip().splitlines()
+                    or [""])[-1][:70]
+        except Exception as e:                            # noqa: BLE001
+            ok_run, tail = False, repr(e)
+        check("2b", "the dispatcher accepts the panel's own defaults",
+              ok_run, tail)
+        # the trial number must ADVANCE, or two runs share one identity
+        before = g.exp_trial.value()
+        g.exp_dry.setChecked(True)
+        g.on_run_trial()
+        _settle(10)
+        check("2b", "RUN TRIAL advances the trial number",
+              g.exp_trial.value() == before + 1,
+              "%d -> %d" % (before, g.exp_trial.value()))
+    else:
+        check("2b", "the experiments panel exists", False, "no _exp_argv")
+
+    # 4d -- THE 3-D VIEW IS THE DEFAULT AND CAN BE RESET.
+    if hasattr(g, "arm_view"):
+        import srl_arm_view as _av
+        check("2b", "the ACTUAL panel offers a 3-D view",
+              _av.VIEW_3D in [g.view_pick.itemText(i)
+                              for i in range(g.view_pick.count())]
+              and g.view_pick.currentText() == _av.VIEW_3D,
+              "current: %s" % g.view_pick.currentText())
+        g.arm_view.yaw, g.arm_view.pitch = 123.0, -45.0
+        g.arm_view.reset_view()
+        check("2b", "reset 3-D view returns the shipped angles",
+              (g.arm_view.yaw, g.arm_view.pitch)
+              == (_av.DEFAULT_YAW_DEG, _av.DEFAULT_PITCH_DEG),
+              "yaw %.1f pitch %.1f" % (g.arm_view.yaw, g.arm_view.pitch))
+
+    # 4e -- EVERY READOUT IS SELECTABLE, so it can be copied.
+    from PyQt5.QtWidgets import QLabel as _QLabel
+    labs = [x for x in g.findChildren(_QLabel) if x.pixmap() is None]
+    unsel = [x for x in labs
+             if not (x.textInteractionFlags() & Qt.TextSelectableByMouse)]
+    check("2b", "every text readout can be selected and copied",
+          not unsel, "%d labels, %d not selectable" % (len(labs), len(unsel)))
+
+    # 4f -- THE INSTRUCTION BOX TAKES THE KEYBOARD.
+    #
+    # It is a QLineEdit that was never read-only and never disabled, and it
+    # still could not be typed into: the embedded RViz is a separate X client
+    # and once it holds the input focus every keystroke goes to it.
+    if hasattr(g, "inst_edit"):
+        g.mid_tabs.setCurrentIndex(0)
+        app.processEvents()
+        g.on_show_instruct()
+        _settle(6)
+        check("2b", "opening Instruct puts the keyboard in the box",
+              app.focusWidget() is g.inst_edit,
+              "focus is on %r" % type(app.focusWidget()).__name__)
+        from PyQt5.QtTest import QTest
+        g.inst_edit.clear()
+        QTest.keyClicks(g.inst_edit, "pick up the blue one")
+        _settle(4)
+        check("2b", "the instruction box accepts typing",
+              g.inst_edit.text() == "pick up the blue one",
+              repr(g.inst_edit.text()))
+
+    # 5 -- HIDDEN BUTTONS ARE NOT OPERATOR-REACHABLE, and counting them as
+    #      passes inflates the audit. Report the split so the number means
+    #      something, and require every hidden one to be unlabelled -- a
+    #      hidden button WITH a label is a control somebody meant to show.
+    hid = [b for b in g.findChildren(QPushButton) if b.isHidden()]
+    hid_lab = [b.text().strip() for b in hid if b.text().strip()]
+    check("2b", "no LABELLED button is hidden from the operator",
+          not hid_lab,
+          "%d hidden, all unlabelled (per-row fix buttons)" % len(hid)
+          if not hid_lab else "hidden but labelled: %s" % ", ".join(hid_lab))
 
     # Sliders and the checkbox are controls too, and they were never clicked
     # by anything before.
@@ -530,6 +820,61 @@ def level2_click():
     # The self-test itself is the negative-control-of-negative-controls.
     check("2", "indicator self-test passes", g.on_self_test(),
           g.selftest_lbl.text()[:70])
+
+    # ================================================================
+    # LEVEL 2c: PRESSING THINGS MUST NOT BREAK THE WINDOW
+    # ================================================================
+    #
+    # Every button has now been pressed, most of them in an order no operator
+    # would use. The window has to still BE a working window: the layout not
+    # cut, the tabs still switchable, the e-stop still connected, the
+    # instruction box still typable.
+    #
+    # A control that works on a fresh window and stops working after somebody
+    # explored the panel is a glitch, and a press-everything audit is exactly
+    # the thing positioned to catch it -- which this one never did, because
+    # it checked each press in isolation and never asked afterwards.
+    print("\n-- LEVEL 2c: after pressing everything, is the window still sane")
+
+    g._fit_left_column()
+    _settle(6)
+    check("2c", "layout still fits after every button was pressed",
+          not g.clipped_pages(),
+          "; ".join("%s: %d/%d" % (n, v, w) for n, v, w in g.clipped_pages())
+          or "column %d px" % g.split.sizes()[0])
+
+    n_tabs_ok = True
+    for i in range(g.mid_tabs.count()):
+        g.mid_tabs.setCurrentIndex(i)
+        app.processEvents()
+        n_tabs_ok &= (g.mid_tabs.currentIndex() == i)
+    check("2c", "every middle tab still switches", n_tabs_ok,
+          "%d tabs" % g.mid_tabs.count())
+    for i in range(g.act_tabs.count()):
+        g.act_tabs.setCurrentIndex(i)
+        app.processEvents()
+    check("2c", "every activity tab still switches",
+          g.act_tabs.currentIndex() == g.act_tabs.count() - 1,
+          "%d tabs" % g.act_tabs.count())
+
+    seen.clear()
+    by_text["E-STOP"].click()
+    _settle()
+    check("2c", "the e-stop still reaches /estop after everything else",
+          seen == [True], "received %r" % (seen,))
+
+    if hasattr(g, "inst_edit"):
+        g.on_show_instruct()
+        _settle(6)
+        from PyQt5.QtTest import QTest as _QT
+        g.inst_edit.clear()
+        _QT.keyClicks(g.inst_edit, "still typable")
+        _settle(4)
+        check("2c", "the instruction box still takes typing",
+              g.inst_edit.text() == "still typable", repr(g.inst_edit.text()))
+
+    check("2c", "no button raised during the sweep", n_err == 0,
+          "%d raised" % n_err)
 
     srl_gui.Gui.on_launch = real_launch
     g.close()

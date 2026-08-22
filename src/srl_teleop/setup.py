@@ -46,6 +46,10 @@ setup(
             'capability_node = srl_teleop.capability_node:main',
             'camera_vr_publisher = srl_teleop.camera_vr_publisher:main',
             'gui = srl_teleop.gui_shim:main',
+            # The RViz master: three states, the floor as geometry, the whole
+            # path, liveness and the measured envelope. Markers only -- it has
+            # no publisher on any command topic.
+            'rviz_master = srl_teleop.rviz_master_node:main',
             # --- following ---
             'ik_follower_node = srl_teleop.ik_follower_node:main',
             'fsr_gripper_node = srl_teleop.fsr_gripper_node:main',

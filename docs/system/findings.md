@@ -6452,3 +6452,202 @@ every homing tick. That is correct for a bench-mounted rig with an empty
 harness and wrong the instant anybody stands in the arms' volume. It was left
 set after the situation changed. **No real-arm run has ever happened with a
 wearer in the model.**
+
+---
+
+# 2026-08-23 — the teleoperation motion generator, and five instrument bugs on the way to it
+
+Instrument: `scripts/measure_teleop_motion.py`.
+Module: `srl_teleop/motion_generator.py` (pure, self-tested, no ROS).
+Baseline: `recordings/baselines/teleop_motion.json`.
+Tests: `src/srl_teleop/test/test_motion_generator.py` (36).
+
+## 1. THE DIAGNOSIS, REPRODUCED BEFORE IT WAS ACTED ON
+
+`ik_follower_node.clamp_towards()` was the entire motion generation for
+teleoperation. It takes the IK solution and walks toward it, clamping **each
+joint independently** to `max_step_rad` per control cycle. The previous
+session recorded the consequence and this one reproduced it to the decimal
+place before changing anything, which is the point: a baseline you cannot
+reproduce is not a baseline.
+
+Case: the left arm's shipped home + `[0.50 -0.30 0.10 0.25 -0.05 0.15 0.02]`,
+50 Hz, `max_step_rad` 0.35.
+
+```
+same-cycle EE deviation from a synchronised move:  max 135.3 mm, mean 45.1 mm
+per-joint arrival spread:                          1 cycle of 2
+```
+
+Three separable faults, and only the first was named before:
+
+| | |
+| --- | --- |
+| **not synchronised** | a joint needing 0.10 rad arrives in one cycle, one needing 0.50 takes two, so the joints sit at different fractions of their own travel at every instant and the hand leaves the straight line the IK solution implies |
+| **not continuous** | from rest the first cycle commands a whole `max_step`. Its implied acceleration step is **1343x** the jerk-limited one |
+| **it never read the joint limits** | `max_step_rad` / dt is 17.5 rad/s against the 1.3963 and 1.2218 rad/s in `src/srl_moveit_config/config/joint_limits.yaml` — **12.53x**, and the limits DIFFER per joint, which a single `max_step` cannot express |
+
+## 2. THE METRIC IN THE DIAGNOSIS MIXES TWO THINGS, AND IT MATTERS
+
+"Where the hand is at cycle k against where it would be if every joint were
+at fraction k/N" conflates *leaving the path* with *not being at k/N along
+it*. A jerk-limited generator is DELIBERATELY not at k/N — that is what a
+velocity profile is — so scoring one on that metric charges it for the
+feature. Ruckig reads 69.8 mm on it, and the number means nothing.
+
+So the reported figure is **off-path**: the distance from each commanded hand
+position to the CURVE the straight joint-space line traces,
+parameterisation-free. Both are in the baseline file; only off-path is
+comparable.
+
+| left arm, 50 Hz | off-path max | same-cycle max | peak joint speed | arrives |
+| --- | --- | --- | --- | --- |
+| `clamp_towards` (as shipped) | **51.3 mm** | 135.3 mm | **12.53x limit** | 2 cycles |
+| **ruckig (now the default)** | **0.0 mm** | 69.8 mm | **1.00x** | 1 cycle |
+| synchronised clamp (fallback) | 0.0 mm | 22.7 mm | 1.00x | 1 cycle |
+
+51.3 mm of unrequested Cartesian path on a rig whose grasp capture gate is
+30 mm. Right arm: 39.2 mm → 0.0 mm.
+
+**And it is not a tuning value.** Swept against its own step size, the
+excursion does not tend to zero — it settles:
+
+```
+max_step 0.35 rad ->  2 cycles,  51.3 mm off the path
+max_step 0.20 rad ->  3 cycles,  34.4 mm
+max_step 0.10 rad ->  5 cycles,  68.0 mm
+max_step 0.01 rad -> 50 cycles,  68.0 mm
+```
+
+Each row is a genuinely different path (densifying at 0.02 rad changes none
+of these figures, which was checked rather than assumed). The
+desynchronisation is proportional, so it survives any step size. It is the
+shape of the algorithm.
+
+## 3. WHAT WAS BUILT
+
+[Ruckig](https://github.com/pantor/ruckig) — time-optimal, jerk-limited,
+per-DoF limits, MIT, 19.8 us mean for 7 DoF, and it takes a non-zero TARGET
+velocity, which is what a streaming teleop target actually is
+([paper](https://arxiv.org/pdf/2105.04830)). Installed into the SYSTEM user
+site, deliberately, because the followers run in the system interpreter:
+
+```
+pip install --user --no-deps --break-system-packages ruckig
+```
+
+It has **no dependencies at all** — one compiled `.so` — so it cannot repeat
+the `.venv_vision` numpy incident. `python3 -m srl_teleop.dependency_check`
+read 0 problems before and after, and
+`scripts/real_calibration/check_all.py` still reads 4 of 4.
+
+`srl_teleop/motion_generator.py` is pure: no ROS, no robot, no display, like
+`orientation_policy` and `joint_planner`. `ik_follower_node` and
+`measure_teleop_motion.py` consult the same module, so the measurement
+describes the code the robot runs.
+
+**`Synchronization.Phase`, not `Time`.** Both make every joint ARRIVE
+together; only phase synchronisation keeps them on the straight line BETWEEN
+the endpoints, and that line is the whole point. Measured on this case:
+phase 0.02 mm of path deviation, time 9.5 mm, clamp 51.3 mm.
+
+**The velocity limits are the robot's own; the acceleration and jerk limits
+are ASSUMED and say so.** `joint_limits.yaml` declares
+`has_acceleration_limits: false` and `max_acceleration: 0` for all fourteen
+joints, so there is nothing to read. They are derived from two named ramps —
+"reach the velocity limit in 0.25 s", "reach that acceleration in 0.10 s" —
+and `Limits.provenance` reads `ASSUMED` for as long as that is true. A test
+writes a yaml that DOES declare one and requires the label to follow the
+file, so the honesty is a fact rather than a hardcoded string. The assumption
+is bounded: acceleration and jerk shape HOW the velocity limit is approached
+and can never exceed it.
+
+**The fallback is synchronised too, and it names itself.** Without ruckig the
+generator does not quietly become `clamp_towards` again: `SynchronisedClamp`
+scales the WHOLE joint vector by one factor, so the path stays on the line
+and every joint still arrives together, with the per-joint velocity limits
+enforced by that same factor. It is not jerk-limited and it says so —
+`backend` reads `synchronised-clamp`, `/ik_status_<arm>[15]` reads 1 rather
+than 2, and the GUI's STATUS tab shows it in amber.
+
+## 4. FIVE THINGS THAT WERE WRONG IN MY OWN WORK, EACH CAUGHT BY A CHECK
+
+Recorded because four of the five would have passed a test suite.
+
+### 4a. Re-planning every cycle destroys phase synchronisation
+
+The first version called Ruckig's `calculate()` every control cycle. That
+re-plans from a mid-profile state, and a re-plan cannot reproduce the
+phase-synchronised profile it is halfway through: the joints' fractions of
+travel spread to 0.07 at cycle 10 and re-converged, leaving the commanded
+path **0.0264 rad** off the straight line. Riding one trajectory through
+`update()` gives **8.9e-17 rad**. Every other check passed either way;
+the self-test's "is the path the straight line" check is the only thing that
+saw it.
+
+### 4b. And what forced the re-plan was floating-point noise
+
+Even after switching to `update()` it still re-planned on all 36 cycles.
+`update()` recomputes only when its input changed — and the target was
+recomputed each cycle as `pos + wrap_pi(target - pos)`, which is not
+bit-identical to `target`. The goal moved by ~1e-17 every cycle, Ruckig
+compares by value, and every cycle looked like a new target. The fold is now
+cached while the incoming target is unchanged.
+
+### 4c. The fallback claimed to be jerk-limited by reporting zeros
+
+`SynchronisedClamp` returned an acceleration of `[0.0] * 7` because it does
+not model one. The continuity check reads that field, so the fallback passed
+it — by fabricating the quantity being checked. It reports its real implied
+acceleration now (**62.5x** the jerk-limited step), and a test requires it to
+be over 10x: this backend must never be able to claim smoothness.
+
+### 4d. The off-path metric had a 0.05 mm floor and reported it as behaviour
+
+The reference curve was 4001 points over a 0.4 m path — a 0.1 mm grid — so
+the nearest-sample distance bottomed out at half a grid step and the
+phase-synchronised generator, which is on the line to 2e-16 rad, measured
+0.0509 mm off it. The instrument's resolution read as the robot's behaviour.
+The nearest sample is now refined by bisection on the real FK and the same
+path reads 9.4e-09 mm.
+
+### 4e. The arrival-cycle test used an absolute tolerance on a per-joint quantity
+
+A phase-synchronised move reported arrivals of `[36, 36, 35, 36, 35, 36, 35]`
+under a 1e-6 rad gate: every joint was at the same FRACTION throughout, but
+the ones moving 0.02 rad were inside 1e-6 of the end a cycle before the one
+moving 0.50 rad. The travels span 25x, so an absolute gate measures the
+instrument's scale. It is relative to each joint's own travel now, and this
+does NOT loosen the control — the per-joint clamp lands on its targets
+exactly, so its arrivals are unchanged by any tolerance.
+
+## 5. `CONTINUOUS_IDX` HAD SIX DEFINITIONS
+
+Found by the "one source" test written for this change.
+`motion_generator`, `ik_follower_node`, `sim_to_real_bridge`,
+`sim_to_real_gap`, `real_homing_node`, `mock_real_stack` and
+`kortex_highlevel_bridge` each declared `CONTINUOUS_IDX = (0, 2, 4, 6)`.
+
+They agreed, which is luck rather than design. "Which joints are
+`type="continuous"` and can therefore wind up" is a fact about the URDF, and
+seven copies of it is the same shape as two home poses: the day one is edited
+the others describe a different robot. One source now, in
+`motion_generator`, with a test that walks the package's ASTs and requires
+exactly one assignment.
+
+## 6. WHAT THIS DOES NOT CLAIM
+
+* **Nothing here ran on a real arm.** Every figure is offline FK against the
+  URDF, through `srl_fk`, whose own control (compiled FK against the URDF
+  walker) is run before any measurement is reported.
+* **The acceleration and jerk limits have never been measured.** They are
+  assumed, labelled, and parameterised as ramp times.
+* **The `time_from_start` change is untested on hardware.** With the
+  generator the published point is one cycle ahead and is timed as one cycle,
+  because telling the controller to take longer than a cycle makes it
+  interpolate part of the way before the next point replaces it. The legacy
+  path's `travel / max_vel` stretch is kept for `motion_generator:=legacy`.
+* **The arming ramp changed shape.** It used to stretch `time_from_start`;
+  under the generator it LOWERS the velocity limit instead, which also makes
+  the ramp jerk-limited. Same intent, different mechanism, unmeasured on an
+  arm.

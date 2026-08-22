@@ -40,7 +40,7 @@ shoulder mount actually threatens).
 | --- | --- | --- |
 | **[cuRobo](https://github.com/nvlabs/curobo)** | CUDA motion generation: collision-free IK at >9000 queries/s, trajectory optimisation, motion generation in ~53 ms average, 62× faster than prior trajectory optimisation; paths in ~20 ms on an RTX 4090 | **The strongest thing in this space, and it does not fit.** It uses ~2.5 GB VRAM at batch 1024 and ~4.5 GB at 2048, measured on a 48 GB card. We have 4 GB *total*, shared. It also wants a CUDA PyTorch stack where this project runs CPU torch on purpose. **Right answer on a bigger machine. Revisit if the GPU changes.** |
 | **[Isaac Lab](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/installation/requirements.html)** | GPU sim + RL training, sim2real | **No.** Minimum spec is an RTX 3070 with **8 GB**; current docs list an RTX 4080 with **16 GB** as minimum, 48 GB ideal. GPUs without RT cores are unsupported. We have 4 GB. Even setting VRAM aside, it answers a question we do not have: we are not training policies, we have no corpus, and the ethics block on human data is upstream of all of it. |
-| **[Ruckig](https://github.com/pantor/ruckig)** | Time-optimal, **jerk-limited** online trajectory generation. Type V; 100% robustness over a billion trajectories; **19.8 µs mean for 7 DoF**; C++17, no dependencies, MIT | **Adopt for the streaming path.** It is tiny, CPU, and it replaces `clamp_towards` — a naive per-cycle step clamp — with jerk-limited motion. This is the direct answer to "the way the arms move is quite uncertain". Wheel available for cp312. **Not yet wired; next.** |
+| **[Ruckig](https://github.com/pantor/ruckig)** | Time-optimal, **jerk-limited** online trajectory generation. Type V; 100% robustness over a billion trajectories; **19.8 µs mean for 7 DoF**; C++17, no dependencies, MIT | **ADOPTED 2026-08-23 and it is the default in every mode.** `srl_teleop/motion_generator.py`; it replaces `clamp_towards`. Measured: the hand's excursion off the commanded path went **51.3 mm → 0.0 mm** on the left arm and 39.2 → 0.0 on the right, all seven joints arrive on the SAME cycle instead of spread over two, and peak joint speed went from **12.53x** the limit in `joint_limits.yaml` to 1.00x. See §"THE STREAMING PATH" below. |
 | **MoveIt 2 + OMPL** | RRTConnect and friends, already installed | **Already available and unused.** Better tested than anything we would write and it knows more constraint types. Its problem here is the collision model, not the planner: its checking is the SRDF's, and the SRDF is blind to the pairs the safety case turns on. Usable for *free-space* moves; not trustworthy as the wearer guard. |
 | **MoveIt Servo** | Real-time Cartesian/joint jogging with collision slowdown | **The right shape for teleop** and worth evaluating against the current follower. It brings singularity handling and collision-proximity slowdown, both of which we do by hand or not at all. |
 | **Octomap / MoveIt occupancy monitor** | Depth camera → voxels → FCL collision | **The idea is right and we should not use the implementation.** MoveIt's octomap is well known for voxels that do not clear, making plans fail for ever against obstacles that are gone. We build a per-frame `VoxelWorld` instead and deliberately do not carry occupancy between frames. |
@@ -141,11 +141,52 @@ not the cyclic *write* path that is unusable over WSL.
 
 ---
 
+## THE STREAMING PATH — DONE 2026-08-23
+
+Full account: `docs/system/findings.md`, 2026-08-23.
+Instrument: `scripts/measure_teleop_motion.py` (validated against `srl_fk`'s
+own control and four constructed known answers before it reports anything).
+Baseline: `recordings/baselines/teleop_motion.json`.
+
+`clamp_towards` had three separable faults, and only the first had a name:
+
+| | |
+| --- | --- |
+| **not synchronised** | each joint clamped INDEPENDENTLY, so the joints sit at different fractions of their own travel and the hand leaves the line the IK solution implies — **51.3 mm**, against a 30 mm grasp capture gate |
+| **not continuous** | from rest the first cycle commands a whole `max_step`; its implied acceleration step is **1343x** the jerk-limited one |
+| **it never read `joint_limits.yaml`** | `max_step_rad` / dt is 17.5 rad/s against 1.3963 / 1.2218 rad/s — **12.53x** — and the limits differ per joint, which one `max_step` cannot express |
+
+The excursion is not a tuning value: swept against `max_step` it settles at
+68.0 mm rather than tending to zero, because the desynchronisation is
+proportional.
+
+Three decisions worth carrying forward:
+
+* **`Synchronization.Phase`, not `Time`.** Both make every joint ARRIVE
+  together; only phase keeps them on the straight line BETWEEN the endpoints.
+  Phase 0.02 mm, time 9.5 mm, clamp 51.3 mm.
+* **Ride ONE trajectory; do not `calculate()` every cycle.** A re-plan from a
+  mid-profile state cannot reproduce the profile it is halfway through —
+  measured at 0.0264 rad off the line against 8.9e-17 riding one.
+* **The velocity limits are the robot's; the acceleration and jerk limits are
+  ASSUMED and labelled.** `joint_limits.yaml` declares
+  `has_acceleration_limits: false` for all fourteen joints, so there is
+  nothing to read. They are two named ramp times, and a test requires the
+  label to follow the file if it ever declares one.
+
+**Installed in the system user site, on purpose** — the followers run in the
+system interpreter, and ruckig has no dependencies at all:
+`pip install --user --no-deps --break-system-packages ruckig`. It cannot
+repeat the `.venv_vision` numpy incident, and `dependency_check` now carries
+a row for it.
+
+Still unmeasured: everything about it on a real arm, the acceleration and
+jerk limits themselves, and the `time_from_start` change (the point is now
+one cycle ahead and is timed as one cycle).
+
 ## THE ORDER TO DO THE REST IN
 
-1. **Wire Ruckig into the follower**, replacing `clamp_towards`. Jerk-limited
-   motion is the direct answer to uncertain-looking movement, it is 19.8 µs,
-   and it costs nothing.
+1. ~~**Wire Ruckig into the follower**~~ — **DONE 2026-08-23**, above.
 2. **Record a free-space wrench baseline on each arm** — one minute of motion
    — and turn contact detection on. Until then the gate is a guess and says so.
 3. **Use contact to stop the push.** The grasp pipeline should abort on

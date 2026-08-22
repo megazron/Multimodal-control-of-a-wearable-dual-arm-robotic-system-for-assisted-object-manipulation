@@ -144,6 +144,50 @@ Full write-up: `docs/system/21_what_makes_the_workspace_small.md`.
 
 ---
 
+## HOW THE ARMS MOVE, AND WHAT CHANGED
+
+**SET UP tab → `How the arms move (next launch)`.**
+
+Since 2026-08-23 the follower generates motion with **Ruckig**: time-optimal,
+jerk-limited, and synchronised across all seven joints. Before that it was a
+per-joint step clamp, and the difference is not subtle.
+
+| left arm, realistic slew, 50 Hz | before | now |
+| --- | --- | --- |
+| how far the HAND leaves the path it was asked for | **51.3 mm** | **0.0 mm** |
+| joints arrive over | 2 cycles | 1 cycle |
+| peak joint speed against `joint_limits.yaml` | **12.5x the limit** | 1.00x |
+
+The 30 mm figure to compare that first row against is the grasp capture gate.
+The excursion is not a tuning value: made the step size 35x smaller and it
+*settles* at 68 mm rather than going away, because the joints are at
+different fractions of their own travel however small the step is.
+
+**Which one is running is on the STATUS tab, under `Motion`** — read from the
+follower's own status topic, not from which item is selected. `ruckig` in
+green, `sync clamp` or `LEGACY` in amber.
+
+The chooser applies to the **next launch**, not to a running follower: every
+parameter in `ik_follower_node` except `motion_enabled` is read once at
+startup. The panel says so, and pressing `measure what it does to the hand`
+runs the whole comparison offline, with no stack up, in a few seconds.
+
+To reproduce a recording made before 2026-08-23, choose
+`legacy clamp_towards` — or:
+```
+bash scripts/run_teleop.sh motion_generator:=legacy
+```
+
+**One caveat, stated plainly.** The velocity limits are the robot's own, read
+from `src/srl_moveit_config/config/joint_limits.yaml`. The acceleration and
+jerk limits are **assumed** — that file declares none for any of the fourteen
+joints — and are set as two ramp times (`accel_ramp_s`, `jerk_ramp_s`). They
+change how smoothly the velocity limit is approached and can never exceed it.
+
+Full write-up: `docs/system/24_motion_planning.md`.
+
+---
+
 ## WHAT IS ON THE TABLE
 
 **RUN tab → Vision → `WHAT IS ON THE TABLE?`**, or:

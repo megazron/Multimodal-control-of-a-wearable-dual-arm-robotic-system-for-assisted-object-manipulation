@@ -1,9 +1,9 @@
 {
  "mode": "06_full_autonomy",
- "task": "t0",
- "scenario": "D3_three_targets",
- "grab_t0": 1787437485.4132743,
- "grab_t1": 1787437501.9189708,
+ "task": "t2",
+ "scenario": "S2_full_lift",
+ "grab_t0": 1787440178.3884265,
+ "grab_t1": 1787440197.9542122,
  "card_hold_s": 6.0,
  "look_s": 0.0,
  "instruction": null,

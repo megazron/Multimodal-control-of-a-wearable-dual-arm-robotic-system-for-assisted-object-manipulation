@@ -80,9 +80,19 @@ def _offset(CS, task, arm):
 
 
 def _t1_truth(T1, arm):
+    """T1's own approach, at the opening a 40 mm cube needs.
+
+    `PAD_MID_EE` is the WIDE-OPEN hand and this used it. The Robotiq's fingers
+    swing on a four-bar, so the pad sits 0.09833 m from the wrist open and
+    0.10976 m closed on a 40 mm cube; `t1_task.ee_for` and
+    `clip_scene._pad_offset` both moved onto the 40 mm value on 2026-08-23,
+    and a truth function left on the open one would have failed them for
+    agreeing with each other.
+    """
     import grasp_frames as GF
-    return np.asarray(GF.q_matrix(T1.APPROACH[arm]) @ np.asarray(GF.PAD_MID_EE),
-                      dtype=float)
+    return np.asarray(
+        GF.q_matrix(T1.APPROACH[arm]) @ np.asarray(
+            GF.pad_mid_ee_for(T1.CUBE_M * 1000.0, arm)), dtype=float)
 
 
 @pytest.mark.parametrize("task", ["t1", "t1s2"])
@@ -97,33 +107,32 @@ def test_both_stages_use_t1s_own_approach(CS, T1, task, arm):
 
 
 @pytest.mark.parametrize("arm", ["left", "right"])
-def test_the_anchor_would_have_been_wrong_by_77_to_92_mm(CS, T1, arm):
+def test_the_anchor_would_have_been_wrong_by_82_to_98_mm(CS, T1, arm):
     """The error this guard prevents, stated as a number.
 
     If this ever reads ~0 the two orientations have converged and the guard is
     no longer load-bearing -- which is worth knowing, because the guard would
     then be silently untested.
 
-    IT WAS 99.1 / 83.3 mm UNTIL 2026-08-23, and it moved for a reason that is
-    not this guard: `clip_tasks.PAD_OFFSET_BY_ARM` stopped being a
-    hand-recorded world vector 13.45 mm too long and became
-    `grasp_frames.PAD_MID_EE` rotated by the anchor. The anchor and T1's
-    approach are still 77-92 mm apart, which is what this test is about; the
-    change is that both sides of the subtraction are now the same length.
+    IT WAS 99.1 / 83.3 mm UNTIL 2026-08-23, and it moved twice that day for
+    reasons that are not this guard: `clip_tasks.PAD_OFFSET_BY_ARM` stopped
+    being a hand-recorded world vector and became `PAD_MID_EE` rotated by the
+    anchor, and T1's own offset moved to the opening a 40 mm cube needs. The
+    anchor and T1's approach are still 82-98 mm apart, which is what this test
+    is about.
     """
     import clip_tasks as CT
     anchor = np.asarray(CT.PAD_OFFSET_BY_ARM[arm], dtype=float)
     err_mm = float(np.linalg.norm(anchor - _t1_truth(T1, arm))) * 1000.0
-    want = {"left": 92.1, "right": 77.0}[arm]
+    want = {"left": 97.9, "right": 82.2}[arm]
     assert abs(err_mm - want) < 1.0, (
         "expected the anchor to sit ~%.1f mm from T1's approach on the %s "
         "arm, got %.1f mm" % (want, arm, err_mm))
     legacy = np.asarray(CT.LEGACY_PAD_OFFSET_BY_ARM[arm], dtype=float)
     was_mm = float(np.linalg.norm(legacy - _t1_truth(T1, arm))) * 1000.0
-    assert abs(was_mm - {"left": 99.1, "right": 83.3}[arm]) < 1.0, (
-        "the pre-2026-08-23 figure was %.1f mm and is quoted in "
-        "docs/system/findings.md; it now computes as %.1f"
-        % ({"left": 99.1, "right": 83.3}[arm], was_mm))
+    assert abs(was_mm - {"left": 103.7, "right": 86.9}[arm]) < 1.0, (
+        "the legacy world offset now sits %.1f mm from T1's approach; it was "
+        "103.7 / 86.9 when this was measured" % was_mm)
     assert err_mm > 30.0, (
         "the anchor is now inside the 30 mm capture gate, so this guard no "
         "longer protects anything and the test above is not exercising it")

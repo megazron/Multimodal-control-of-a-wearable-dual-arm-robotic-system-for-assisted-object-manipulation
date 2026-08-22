@@ -1403,13 +1403,25 @@ class Scene(Node):
         leave them inside the gate -- and filed the clip "2 OBJECT(S) NEVER
         MOVED". Nothing was wrong with the arm. The instrument was measuring
         stage 2 at an orientation stage 2 does not command.
+
+        AND AT THE OPENING THE OBJECT NEEDS, NOT AT THE OPEN HAND. This used
+        `grasp_frames.PAD_MID_EE`, which is the pad midpoint with the fingers
+        WIDE OPEN -- the Robotiq's fingers swing on a four-bar, so that
+        distance is 0.09833 m open and 0.10976 m closed on a 40 mm cube.
+        `t1_task.ee_for` moved onto the 40 mm value on 2026-08-23 and this did
+        not, so the picture and the path disagreed by 11.43 mm for exactly one
+        recording: `06_full_autonomy/t1` came back "1 OBJECT(S) NEVER MOVED:
+        cube_2" on a run whose runner exited 0 and whose gripper closed. That
+        is the third time this one function has produced that sentence -- 49
+        mm, then 111.8 mm, now 11.43 -- and every time the arm was fine and the
+        scene was drawing the object somewhere the hand was not.
         """
         if self.task in ("t1", "t1s2"):
             import t1_task as _T1
             import grasp_frames as _GF
             return [float(v) for v in
                     _GF.q_matrix(_T1.APPROACH[arm]) @ _np.asarray(
-                        _GF.PAD_MID_EE)]
+                        _GF.pad_mid_ee_for(_T1.CUBE_M * 1000.0, arm))]
         off = CT.PAD_OFFSET_BY_ARM.get(arm)
         if off is not None:
             return list(off)

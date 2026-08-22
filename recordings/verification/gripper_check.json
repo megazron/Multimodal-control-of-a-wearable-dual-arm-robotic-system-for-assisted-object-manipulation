@@ -458,8 +458,8 @@
     "closed_on_object": true,
     "released": true,
     "joint_ok": true,
-    "spread_open": 181948.0,
-    "spread_shut": 14489.0,
+    "spread_open": 181949.0,
+    "spread_shut": 11367.0,
     "pixel_ok": true,
     "grasp_task": true
   },
@@ -475,7 +475,7 @@
     "released": true,
     "joint_ok": true,
     "spread_open": 183740.0,
-    "spread_shut": 18172.0,
+    "spread_shut": 14967.0,
     "pixel_ok": true,
     "grasp_task": true
   },

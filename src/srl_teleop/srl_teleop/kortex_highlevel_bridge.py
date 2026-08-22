@@ -105,7 +105,12 @@ except ImportError:
         "needs.\n")
     raise
 
-CONTINUOUS_IDX = (0, 2, 4, 6)
+# ONE SOURCE, since 2026-08-23. This tuple -- which joints are
+# type="continuous" and can therefore wind up -- had SIX identical
+# definitions across this package. They agreed, which is luck rather
+# than design: it is the same shape as two home poses, and the day one
+# of them is edited the others describe a different robot.
+from srl_teleop.motion_generator import CONTINUOUS_IDX     # noqa: E402,F401
 NJ = 7
 
 

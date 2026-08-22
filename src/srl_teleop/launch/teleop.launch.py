@@ -147,6 +147,11 @@ def generate_launch_description():
         DeclareLaunchArgument("real_max_vel_rad_s", default_value="0.15"),
         DeclareLaunchArgument("real_max_step_rad", default_value="0.05"),
         DeclareLaunchArgument("lag_trip_rad", default_value="0.5"),
+        # HOW THE JOINTS GET TO THE IK SOLUTION. `ruckig` is jerk-limited,
+        # synchronised and reads joint_limits.yaml; `legacy` is the per-joint
+        # clamp_towards shipped before 2026-08-23 and exists to reproduce an
+        # older recording. See srl_teleop/motion_generator.py.
+        DeclareLaunchArgument("motion_generator", default_value="ruckig"),
     ]
 
     moveit = IncludeLaunchDescription(
@@ -178,7 +183,9 @@ def generate_launch_description():
         Node(package="srl_teleop", executable="ik_follower_node",
              name=f"ik_follower_{side}", output="screen", emulate_tty=True,
              parameters=[{"arm": side,
-                          "real_robot": LaunchConfiguration("real_robot")}],
+                          "real_robot": LaunchConfiguration("real_robot"),
+                          "motion_generator":
+                              LaunchConfiguration("motion_generator")}],
              condition=_arm_enabled(side))
         for side in ("left", "right")
     ]

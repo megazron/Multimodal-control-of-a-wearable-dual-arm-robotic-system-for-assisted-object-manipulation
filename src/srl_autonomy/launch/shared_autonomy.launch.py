@@ -29,12 +29,18 @@ def generate_launch_description():
         DeclareLaunchArgument("p_threshold", default_value="0.60"),
         DeclareLaunchArgument("distance_threshold_m", default_value="0.25"),
         DeclareLaunchArgument("servo_time_s", default_value="0.5"),
+        # Forwarded to the followers, so this stack can be launched with the
+        # pre-2026-08-23 motion generator to reproduce an older recording.
+        DeclareLaunchArgument("motion_generator", default_value="ruckig"),
     ]
     teleop = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution(
             [FindPackageShare("srl_teleop"), "launch", "teleop.launch.py"])),
         condition=IfCondition(LaunchConfiguration("teleop")),
-        launch_arguments={"gate": "false"}.items())
+        launch_arguments={
+            "gate": "false",
+            "motion_generator": LaunchConfiguration("motion_generator"),
+        }.items())
     percep = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution(
             [FindPackageShare("srl_perception"), "launch", "perception.launch.py"])),

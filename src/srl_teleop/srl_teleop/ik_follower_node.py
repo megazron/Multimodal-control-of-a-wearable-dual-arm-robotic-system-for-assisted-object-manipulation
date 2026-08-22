@@ -61,7 +61,12 @@ TWO_PI = 2.0 * math.pi
 # gen3_macro.xacro: joint_1, joint_3, joint_5, joint_7. Only these can
 # wind up -- 2/4/6 are revolute and hard-limited well inside one turn,
 # so wrapping them would be meaningless at best and wrong at worst.
-CONTINUOUS_IDX = (0, 2, 4, 6)
+#
+# IMPORTED, NOT DECLARED. `motion_generator` needs the same list and owns it,
+# because it is the module that can be tested without ROS. Two copies of
+# "which joints can wind up" is the same class of defect as two home poses,
+# and `test_motion_generator` asserts there is exactly one literal.
+from srl_teleop.motion_generator import CONTINUOUS_IDX     # noqa: E402
 
 # Joints perturbed when searching the Gen3's redundant DOF. joint_3 is the
 # upper-arm roll: turning it swings the ELBOW around the shoulder-wrist axis
@@ -217,6 +222,49 @@ class IKFollowerNode(Node):
         # before 2026-08-22.
         self.declare_parameter("orientation_policy", "cone")
         self.declare_parameter("orientation_cone_deg", 15.0)
+        # HOW THE JOINTS GET FROM WHERE THEY ARE TO THE IK SOLUTION.
+        #
+        # `ruckig` (default) is srl_teleop.motion_generator: time-optimal,
+        # jerk-limited, synchronised across all seven joints, and the FIRST
+        # thing in this project ever to read
+        # src/srl_moveit_config/config/joint_limits.yaml.
+        #
+        # `legacy` is clamp_towards, kept so a recording made before
+        # 2026-08-23 can be reproduced, exactly as `orientation_policy:=exact`
+        # reproduces one made before 2026-08-22. It is not a fallback and
+        # nothing selects it automatically.
+        #
+        # `clamp` is the generator's own synchronised fallback: one scale
+        # factor for the whole joint vector. Synchronised and
+        # velocity-limited, NOT jerk-limited, and it says so.
+        #
+        # Measured on the left arm's shipped home + [0.50 -0.30 0.10 0.25
+        # -0.05 0.15 0.02] at 50 Hz -- recordings/baselines/teleop_motion.json,
+        # instrument scripts/measure_teleop_motion.py:
+        #
+        #                        off the path   arrives     peak joint speed
+        #     legacy (clamp)         51.3 mm    2 cycles     12.53x the limit
+        #     ruckig                  0.0 mm    1 cycle       1.00x
+        #
+        # "Off the path" is how far the HAND strays from the curve the
+        # straight joint-space line traces -- the excursion nobody asked for,
+        # against a 30 mm grasp capture gate. 12.53x is `max_step_rad` / dt
+        # against joint_limits.yaml, which nothing in this repository had ever
+        # read.
+        self.declare_parameter("motion_generator", "ruckig")
+        # The two ASSUMED limits, named as ramps so the assumption is
+        # arguable. joint_limits.yaml declares has_acceleration_limits: false
+        # for all fourteen joints, so there is no acceleration to read; these
+        # say "reach the velocity limit in this long" and "reach that
+        # acceleration in this long". They shape HOW the velocity limit is
+        # approached and can never exceed it.
+        self.declare_parameter("accel_ramp_s", 0.25)
+        self.declare_parameter("jerk_ramp_s", 0.10)
+        # The generator integrates ITS OWN output, not /joint_states, so that
+        # the controller's tracking error does not end up inside the jerk
+        # limit. This is how far the two may drift before it snaps back to
+        # reality and stops. Every resync is logged.
+        self.declare_parameter("generator_resync_rad", 0.35)
         # real_robot mode -- see CLAUDE.md. Slower, stricter, opt-in motion.
         self.declare_parameter("real_robot", False)
         # time_from_start = unwrapped_delta / max_vel, floored at min_time.
@@ -337,6 +385,56 @@ class IKFollowerNode(Node):
         self.sim_max_step = self.max_step
         self.sim_max_vel = self.max_vel          # remembered, restored on exit
         self.cascade_active = False
+
+        # ---- THE MOTION GENERATOR ----------------------------------------
+        # Built here and not earlier: it takes the EFFECTIVE velocity cap,
+        # which real_robot mode has just lowered to 0.10 rad/s and which the
+        # cascade lowers again while the bridge is live. Building it before
+        # those would have given it the sim cap and silently discarded the
+        # safety clamp -- the exact bug this file already had once with
+        # max_vel, recorded in the comment forty lines above.
+        from srl_teleop import motion_generator as _mg
+        self._mg = _mg
+        want = str(self.get_parameter("motion_generator").value)
+        self.gen_resync_rad = float(
+            self.get_parameter("generator_resync_rad").value)
+        self.gen_dt_nominal = 1.0 / max(self.cascade_rate, 1e-6)
+        self.gen_last_t = None
+        self.gen_resyncs = 0
+        self.gen_incomplete = 0
+        self._gen_cap = self.max_vel
+        self.gen = None
+        if want == "legacy":
+            # REFUSING TO PRETEND. legacy is clamp_towards, and clamp_towards
+            # is not synchronised, not jerk-limited, and 12.53x over the
+            # velocity limits in joint_limits.yaml. It exists to reproduce a
+            # recording and it announces itself every time.
+            self.get_logger().warn(
+                "[MOTION] motion_generator:=legacy -- per-joint clamp_towards, "
+                "as shipped before 2026-08-23. NOT synchronised, NOT "
+                "jerk-limited, and max_step %.2f rad at %.0f Hz is %.1f rad/s "
+                "against a %.4f rad/s joint limit. Use this only to reproduce "
+                "an older recording."
+                % (self.max_step, self.cascade_rate,
+                   self.max_step * self.cascade_rate,
+                   min(_mg.limits_for(self.arm).velocity)))
+        else:
+            try:
+                self.gen = _mg.MotionGenerator(
+                    self.arm, backend=want,
+                    accel_ramp_s=float(self.get_parameter("accel_ramp_s").value),
+                    jerk_ramp_s=float(self.get_parameter("jerk_ramp_s").value),
+                    velocity_cap_rad_s=self.max_vel)
+            except _mg.MotionError as e:
+                # REFUSE, DO NOT COERCE -- the same rule the orientation
+                # policy follows. A follower that was asked for jerk-limited
+                # motion and quietly gave a step clamp is a follower whose
+                # logs and whose arm disagree.
+                raise SystemExit("motion generator refused: %s" % e)
+            self.get_logger().info(
+                "[MOTION] %s. %s" % (self.gen.backend, self.gen.limits.describe()))
+            if self.gen.backend != "ruckig":
+                self.get_logger().warn("[MOTION] %s" % self.gen._reason)
         # WHICH ARM THE CLEARANCE FIGURE IS ABOUT: "sim", "real" or "none".
         # Published in /ik_status so it cannot be lost between here and a
         # reader, and logged on every change.
@@ -467,6 +565,10 @@ class IKFollowerNode(Node):
              "force-accepted after flip_reject_limit consecutive rejections"),
             ("no_joint_state", "no /joint_states yet, cannot seed IK",
              "arrives when the controllers come up"),
+            ("motion_generator",
+             "the motion generator refused the IK solution it was handed",
+             "the message names the input; a non-finite or wrong-length "
+             "solution is a fault upstream in /compute_ik, not here"),
         ):
             self.blocks.register(nm, what, rec)
 
@@ -529,11 +631,55 @@ class IKFollowerNode(Node):
         self.max_step = (min(self.sim_max_step,
                              self.cascade_vel / max(self.cascade_rate, 1e-6))
                          if new else self.sim_max_step)
+        # AND THE GENERATOR'S OWN VELOCITY LIMITS. Lowering max_step alone
+        # would cap the legacy path and leave the generator running at the
+        # sim cap -- the cascade would then be a limit on one of two code
+        # paths, which is worse than none because the log still says it
+        # applied. `scaled_velocity` can only ever LOWER.
+        if self.gen is not None:
+            self._gen_cap = self.max_vel
+            self.gen.limits = self._mg.limits_for(
+                self.arm,
+                accel_ramp_s=float(self.get_parameter("accel_ramp_s").value),
+                jerk_ramp_s=float(self.get_parameter("jerk_ramp_s").value),
+                velocity_cap_rad_s=self.max_vel)
         self.get_logger().warn(
             "CASCADE %s -- sim max_vel now %.3f rad/s, max_step now "
             "%.4f rad/cycle (= %.3f rad/s at %.0f Hz)"
             % ("ACTIVE" if new else "OFF", self.max_vel, self.max_step,
                self.max_step * self.cascade_rate, self.cascade_rate))
+
+    def _refuse(self):
+        """A command was generated and is NOT being published. Stop cleanly."""
+        if self.gen is not None:
+            self.gen.resync(self.current_raw())
+
+    def _apply_ramp(self):
+        """During the arming ramp, LOWER the generator's velocity limits.
+
+        Only ever downwards, and only while the ramp is running; when it ends
+        the limits go back to the effective cap, which is itself already the
+        lower of joint_limits.yaml, max_vel, real_robot and the cascade.
+        """
+        if self.gen is None or self.ramp_s <= 0.0:
+            return
+        if self.enabled_at is None:
+            self.enabled_at = self.get_clock().now()
+        el = (self.get_clock().now() - self.enabled_at).nanoseconds / 1e9
+        cap = (self.max_vel * self.ramp_frac if el < self.ramp_s
+               else self.max_vel)
+        if abs(cap - self._gen_cap) < 1e-9:
+            return
+        self._gen_cap = cap
+        self.gen.limits = self._mg.limits_for(
+            self.arm,
+            accel_ramp_s=float(self.get_parameter("accel_ramp_s").value),
+            jerk_ramp_s=float(self.get_parameter("jerk_ramp_s").value),
+            velocity_cap_rad_s=cap)
+        self.get_logger().info(
+            "[MOTION] velocity cap now %.3f rad/s (%s)"
+            % (cap, "arming ramp" if el < self.ramp_s else "ramp over"),
+            throttle_duration_sec=2.0)
 
     def current_raw(self):
         """Current joint positions, unwrapped, in joint_names order."""
@@ -544,6 +690,18 @@ class IKFollowerNode(Node):
             if name in self.current_joint_positions:
                 self.current_joint_positions[name] = pos
                 self.joint_state_seen = True
+        # THE GENERATOR FOLLOWS THE ARM UNTIL TRACKING STARTS.
+        #
+        # It integrates its own output, so before the first commanded cycle it
+        # has no idea where the arm is -- and the startup unwind publishes
+        # trajectories through a different path entirely, so the arm can move
+        # a long way before tracking is enabled. Without this the first
+        # tracked cycle would see a huge divergence and open with a resync
+        # WARNING that is not a fault, which is the fastest way to teach an
+        # operator to ignore a warning.
+        if (self.gen is not None and self.joint_state_seen
+                and not self.tracking_enabled):
+            self.gen.resync(self.current_raw())
 
     def publish_status(self):
         # The e-stop blocker is maintained HERE, on a timer, not only in
@@ -595,7 +753,23 @@ class IKFollowerNode(Node):
                      # 0 forever and say so.
                      float(self.ori_relaxed),
                      float(self.ori_last_tilt_deg),
-                     float(self.ori_worst_tilt_deg)])
+                     float(self.ori_worst_tilt_deg),
+                     # [15] WHICH MOTION GENERATOR IS ACTUALLY RUNNING:
+                     # 2 ruckig, 1 the synchronised fallback, 0 legacy
+                     # clamp_towards. Published rather than inferred from the
+                     # parameter, because `motion_generator:=ruckig` with the
+                     # package missing is refused but `:=auto` is not, and the
+                     # difference between jerk-limited and merely synchronised
+                     # is not visible from the outside.
+                     # [16] resyncs and [17] cycles that ended still
+                     # travelling -- a generator permanently behind its target
+                     # is the streaming case, and one that is permanently
+                     # resyncing is fighting the controller.
+                     {"ruckig": 2.0}.get(
+                         getattr(self.gen, "backend", None),
+                         1.0 if self.gen is not None else 0.0),
+                     float(self.gen_resyncs),
+                     float(self.gen_incomplete)])
         self.status_pub.publish(m)
 
     def log_stats(self):
@@ -616,6 +790,12 @@ class IKFollowerNode(Node):
             f"(direct {self.direct_count} / slewed {self.slew_count}) / "
             f"rejected {self.reject_count} as redundancy flips "
             f"(max_step {self.max_step:.2f} rad).")
+        if self.gen is not None:
+            self.get_logger().info(
+                "[MOTION] %s, %d re-plan(s), %d phase / %d time synchronised, "
+                "%d resync(s), cap %.3f rad/s."
+                % (self.gen.backend, self.gen.replans, self.gen.phase_steps,
+                   self.gen.time_steps, self.gen_resyncs, self._gen_cap))
         self.success_count = 0
         self.fail_count = 0
         self.reject_count = 0
@@ -1101,7 +1281,6 @@ class IKFollowerNode(Node):
         target_moved = d_m > self.pose_db_m or d_rad > self.pose_db_rad
 
         if abs(steps[worst]) <= self.max_step:
-            commanded = positions
             self.direct_count += 1; self.tot["direct"] += 1
             self.consec_flip_rejects = 0
         else:
@@ -1140,35 +1319,109 @@ class IKFollowerNode(Node):
                     f"[GUARD] accepting a flip after {self.consec_flip_rejects} "
                     f"consecutive rejections -- the solver is not coming back. "
                     f"Slewing to it; expect a slow re-orientation.")
-            commanded = clamp_towards(positions, current_wrapped, self.max_step)
             self.slew_count += 1; self.tot["slewed"] += 1
             self.consec_flip_rejects = 0
             self.get_logger().info(
                 f"[GUARD] slewing: {self.joint_names[worst]} wants "
-                f"{steps[worst]:+.3f} rad, committing "
-                f"{max(-self.max_step, min(self.max_step, steps[worst])):+.3f}.",
+                f"{steps[worst]:+.3f} rad.",
                 throttle_duration_sec=2.0)
 
         self.last_solution = positions
         self.last_target_acted = target
+
+        # ---- MOTION GENERATION -------------------------------------------
+        # The branch above decides WHETHER this solution is acted on. This
+        # decides HOW the joints get there, and it is the same call in both
+        # branches on purpose. It used to be two: a solution inside max_step
+        # was published RAW -- a 0.35 rad jump in one 20 ms cycle, 17.5 rad/s
+        # against a 1.2218 rad/s joint limit -- and only a solution outside it
+        # went through clamp_towards. So the "no guard needed" path was the
+        # faster one.
+        gen_step = None
+        if self.gen is not None:
+            dt = self.gen_dt_nominal
+            now = time.monotonic()
+            if self.gen_last_t is not None:
+                # MEASURED, not assumed. This loop is driven by /compute_ik
+                # responses, so its period is whatever the solver and the
+                # network give it. Bounded either side: a dt of 0 is a
+                # division by zero and a dt of 3 s (a stall, a breakpoint, a
+                # swapped-out process) would authorise a 3-second lunge.
+                dt = min(0.2, max(1e-3, now - self.gen_last_t))
+            self.gen_last_t = now
+            # THE ARM IS WHERE THE ARM IS. The generator integrates its own
+            # output so the controller's tracking error stays out of the jerk
+            # limit, but "its own output" drifts from reality whenever a
+            # command did not get through -- a blocked cycle, an e-stop park,
+            # a homing node moving the arm underneath us. Snap back, stop, and
+            # say so.
+            div = self.gen.divergence(current)
+            if div > self.gen_resync_rad:
+                self.gen.resync(current)
+                self.gen_resyncs += 1
+                self.get_logger().warn(
+                    "[MOTION] resynced: the generator was %.3f rad from the "
+                    "measured arm (limit %.2f). Velocity reset to zero; the "
+                    "next move ramps from rest."
+                    % (div, self.gen_resync_rad),
+                    throttle_duration_sec=2.0)
+            try:
+                gen_step = self.gen.step(positions, dt)
+            except self._mg.MotionError as e:
+                # An input the generator will not accept is a fault upstream,
+                # not a reason to move. Hold, and name it.
+                self.blocks.block("motion_generator", str(e))
+                return
+            self.blocks.clear("motion_generator")
+            commanded = gen_step.position
+            if not gen_step.complete:
+                self.gen_incomplete += 1
+        else:
+            commanded = clamp_towards(positions, current_wrapped, self.max_step)
 
         # Timing from the ACTUAL COMMANDED distance, measured from the
         # controller's true unwrapped position -- a clamped step must still
         # execute at bounded speed, not be crammed into the old full-travel
         # time.
         travel = max(abs(t - c) for t, c in zip(commanded, current))
-        # RAMP: for the first ramp_s after arming, run at ramp_frac of the
-        # velocity cap. time_from_start is STRETCHED (not clamped), so the
-        # trajectory is genuinely slower rather than merely truncated.
-        vel = self.max_vel
-        if self.ramp_s > 0.0:
-            if self.enabled_at is None:
-                self.enabled_at = self.get_clock().now()
-            el = (self.get_clock().now() - self.enabled_at).nanoseconds / 1e9
-            if el < self.ramp_s:
-                vel = self.max_vel * self.ramp_frac
-        time_from_start = max(travel / vel, self.min_time)
-        positions = commanded
+        if gen_step is not None:
+            # THE POINT IS ONE CYCLE AHEAD, SO SAY ONE CYCLE.
+            #
+            # The legacy timing below stretches time_from_start to
+            # travel/max_vel, because a clamped step was a JUMP and the
+            # controller had to be told to take its time over it. The
+            # generator has already shaped the motion: this point is exactly
+            # where the arm should be dt from now, and telling the controller
+            # to take longer than dt makes it interpolate only part of the way
+            # before the next point replaces it -- the arm would then track a
+            # fraction of the profile and lag without bound.
+            #
+            # Floored at 5 ms so a pathologically fast cycle cannot ask the
+            # controller for a duration it cannot represent.
+            #
+            # THE ARMING RAMP STILL APPLIES, and it is applied where it
+            # belongs -- to the velocity LIMIT, not to a duration. Stretching
+            # time_from_start was the only lever the old path had; the
+            # generator has real limits, so `ramp_frac` lowers them and the
+            # profile itself comes out slower. That also makes the ramp
+            # jerk-limited, which the stretched-duration version never was.
+            time_from_start = max(dt, 0.005)
+            positions = commanded
+            self._apply_ramp()
+        else:
+            # RAMP: for the first ramp_s after arming, run at ramp_frac of the
+            # velocity cap. time_from_start is STRETCHED (not clamped), so the
+            # trajectory is genuinely slower rather than merely truncated.
+            vel = self.max_vel
+            if self.ramp_s > 0.0:
+                if self.enabled_at is None:
+                    self.enabled_at = self.get_clock().now()
+                el = ((self.get_clock().now() - self.enabled_at).nanoseconds
+                      / 1e9)
+                if el < self.ramp_s:
+                    vel = self.max_vel * self.ramp_frac
+            time_from_start = max(travel / vel, self.min_time)
+            positions = commanded
 
         # HARD FLOOR. Never let a command through while the arm is already
         # inside the safety margin of the wearer. Holding position is always
@@ -1180,6 +1433,14 @@ class IKFollowerNode(Node):
             self.blocks.block("clearance_floor",
                               "%.1f cm from %s, floor %.0f cm"
                               % (clear * 100, part, self.min_clear * 100))
+            # THE GENERATOR MUST NOT BELIEVE THE ARM WENT THERE. It has
+            # already advanced its own state one cycle toward a command that
+            # is not being published; leaving it there means it keeps
+            # integrating ahead of an arm that is standing still, and the next
+            # cycle that IS allowed through starts from a fiction. Snapping to
+            # the measured state with zero velocity is also the right physical
+            # answer to a refusal: stop.
+            self._refuse()
             return
         self.blocks.clear("clearance_floor")
 
@@ -1203,6 +1464,7 @@ class IKFollowerNode(Node):
         unknown = [n for n in self.blocks.expired_names if n != "state_unknown"]
         if unknown:
             self.blocks.block("state_unknown", "expired: %s" % ",".join(unknown))
+            self._refuse()
             return
         self.blocks.clear("state_unknown")
 

@@ -188,6 +188,38 @@ Full write-up: `docs/system/24_motion_planning.md`.
 
 ---
 
+## HOW ACCURATE IS THE GRASP, AND WHAT MOVED
+
+**Every figure here is against the 30 mm capture gate a grasp has to hit.**
+`python3 scripts/measure_control_budget.py` prints the whole budget and
+refuses to report if its own controls fail.
+
+| | before 2026-08-23 | now |
+| --- | --- | --- |
+| the hand's excursion off the commanded path | 51.3 mm | **0.0 mm** |
+| declared vs measured pad offset (T0, T2, T3) | 13.45 mm | **0.05 mm** |
+| shell bias, on the live pick path | 10.5 mm | **0.0 mm** with a support height |
+| T1's grasp, built at the wrong gripper opening | 11.43 mm | **0.00 mm** |
+| **RSS of the measured terms** | 18.64 mm | **12.91 mm** |
+| **worst case, if they all add** | 33.39 mm | **19.99 mm** |
+
+**The pad midpoint is not a constant.** The Robotiq's fingers swing on a
+four-bar linkage, so the distance from the wrist to the finger pads depends on
+how open the hand is: 0.09833 m wide open, 0.10976 m closed on a 40 mm cube.
+Quoting one without the other is what put T1's grasp 11.43 mm out.
+`python3 scripts/measure_pad_mid_ee.py --by-width` prints the table; it runs
+offline and needs no stack.
+
+**Two things are still open and are worth knowing before you read a number:**
+
+* T1's exact grasp pose is refused by T1's own table, so the follower tilts
+  the tool axis 5 deg to reach it. That is inside the cone it is allowed and
+  it costs **9.58 mm** of the 30 mm gate.
+* `camera_link` against the physical camera module has **never been
+  measured**. It is the largest unknown left, and it needs the hardware.
+
+---
+
 ## WHAT IS ON THE TABLE
 
 **RUN tab → Vision → `WHAT IS ON THE TABLE?`**, or:

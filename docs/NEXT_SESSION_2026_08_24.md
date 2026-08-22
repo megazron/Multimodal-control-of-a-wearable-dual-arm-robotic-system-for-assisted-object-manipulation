@@ -88,6 +88,46 @@ Nothing in this work ran on a real arm. In the order it is likely to bite:
    to cap `max_step` only. Verify the real arm is actually slower, not just
    told it is.
 
+## 3b. THE ACCURACY PASS, AND THE RECORDING PIPELINE IT UNBLOCKED
+
+Full account: `docs/system/findings.md`, 2026-08-23 (later).
+
+    RSS of the measured terms   18.64 mm -> 12.91 mm
+    WORST CASE (they add)       33.39 mm -> 19.99 mm   against a 30 mm gate
+
+**The pad midpoint is a curve, not a constant.** The Robotiq's fingers swing
+on a four-bar, so the wrist-to-pad distance depends on the opening: 0.09833 m
+wide open, 0.10976 on a 40 mm cube, 0.11179 on a 20 mm one. Both numbers this
+repository has argued about are points on it. T1's grasp was built on the
+open-hand value, 11.43 mm short. `pad_mid_ee_for(width_mm)` is the table and
+`srl_fk` can place the fingers offline now.
+
+**Staging went to a sixth copy of the home pose** —
+`recordings/baselines/presentation_pose.json`, written before home became the
+presentation pose, 3.06 rad away on joint_4. `require_home()` refused every
+run, so **the recording sweep had been unable to record a single cell since
+that check was added**. Staging goes to `config/home_positions_*.txt` now.
+
+**Six verifiers were asking a question the robot does not ask** — the home
+wrist instead of the anchor (42.9 deg apart), and `exact` instead of the
+follower's 15 deg cone. T1 stage 1 went 32 IK failures to 0 without anything
+about the robot changing.
+
+### WHAT IS STILL OPEN FROM IT
+
+1. **T1's exact grasp pose is refused by T1's own table.** It solves 10/10
+   with no furniture. The follower's cone supplies 5.0 deg, costing 9.58 mm of
+   the 30 mm gate. Either move T1's table or accept and record the tilt.
+2. **Dance d2 and d3 have 68 unreachable waypoints** at the anchor with the
+   cone (d1 is clean). `verify_dance_paths` refuses to certify them for
+   filming, correctly.
+3. **`camera_link` vs the physical module is UNMEASURED** and is now the
+   largest unknown in the budget. There is no CAD of the Kinova gripper here.
+4. **~18 other scripts still read `ee_quat()` and call it the anchor.** Two
+   were fixed; the rest produce figures at a wrist no task commands. Sweeping
+   them is a session on its own and every number they have produced since the
+   home changed is suspect until then.
+
 ## 4. WHAT TO DO NEXT, IN ORDER
 
 Unchanged from `docs/system/24_motion_planning.md` except that item 1 is done:

@@ -1,0 +1,90 @@
+{
+ "source_csv": "recordings/teleop_20260731_133310.csv",
+ "channel_baseline": "recordings/baselines/channels_20260806.json",
+ "exported": [
+  {
+   "channel": "l_j1",
+   "column": "left_j1",
+   "verdict": "INTERMITTENT"
+  },
+  {
+   "channel": "l_j7",
+   "column": "left_j7",
+   "verdict": "ALIVE"
+  },
+  {
+   "channel": "r_j1",
+   "column": "right_j1",
+   "verdict": "ALIVE"
+  },
+  {
+   "channel": "r_j2",
+   "column": "right_j2",
+   "verdict": "ALIVE"
+  },
+  {
+   "channel": "r_j4",
+   "column": "right_j4",
+   "verdict": "ALIVE"
+  },
+  {
+   "channel": "r_j6",
+   "column": "right_j6",
+   "verdict": "ALIVE"
+  }
+ ],
+ "refused": [
+  {
+   "channel": "l_j2",
+   "verdict": "INCOHERENT",
+   "why": "5% of updates jump >60 deg",
+   "policy": "default"
+  },
+  {
+   "channel": "l_j3",
+   "verdict": "INCOHERENT",
+   "why": "8% of updates jump >60 deg",
+   "policy": "default"
+  },
+  {
+   "channel": "l_j4",
+   "verdict": "INCOHERENT",
+   "why": "6% of updates jump >60 deg",
+   "policy": "default"
+  },
+  {
+   "channel": "l_j5",
+   "verdict": "INCOHERENT",
+   "why": "12% of updates jump >60 deg",
+   "policy": "default"
+  },
+  {
+   "channel": "l_j6",
+   "verdict": "INCOHERENT",
+   "why": "8% of updates jump >60 deg",
+   "policy": "default"
+  },
+  {
+   "channel": "r_j3",
+   "verdict": "INCOHERENT",
+   "why": "14% of updates jump >60 deg",
+   "policy": "default"
+  },
+  {
+   "channel": "r_j5",
+   "verdict": "DEAD",
+   "why": "range 0.0 deg, 0 updates",
+   "policy": "always"
+  },
+  {
+   "channel": "r_j7",
+   "verdict": "DEAD",
+   "why": "range 0.0 deg, 0 updates",
+   "policy": "always"
+  }
+ ],
+ "caveats": [
+  "l_j1 is INTERMITTENT: 2.2% dropouts"
+ ],
+ "HONEST_NOTE": "These are MASTER-ARM potentiometer channels on an instrumented mannequin, not robot joint encoders. Even the ALIVE ones are a leader device, and 7 of 14 were not coherent when this was recorded. This dataset is a FORMAT demonstration and a pipeline test. It is not a demonstration corpus and no policy trained on it means anything."
+}

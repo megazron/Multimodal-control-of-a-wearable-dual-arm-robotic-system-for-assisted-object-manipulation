@@ -113,6 +113,14 @@ archive/recordings/**/*.xvfb
 # in this repository uses. It is rebuilt by scripts/run_wearer_tracker.sh,
 # which prints the two pip lines and why their ORDER matters.
 .venv_pose/
+# .venv_lerobot holds huggingface lerobot, which requires numpy>=2.0 and
+# torch 2.11+cu130. It is SEPARATE from .venv_vision on purpose: installing
+# lerobot there upgraded numpy to 2.2.6, broke the system scipy that
+# scripts/real_calibration/ depends on, and took check_all.py from 4 of 4
+# passing to 2 of 4. Rebuild with `python3 -m venv .venv_lerobot &&
+# .venv_lerobot/bin/pip install "lerobot[dataset]"`; do not commit it and do
+# not install lerobot into any other environment. See docs/system/20_lerobot.md
+.venv_lerobot/
 
 # The pose model bundles: ~23 MB of binary that is fetched, not authored.
 # scripts/run_wearer_tracker.sh prints the one curl line.

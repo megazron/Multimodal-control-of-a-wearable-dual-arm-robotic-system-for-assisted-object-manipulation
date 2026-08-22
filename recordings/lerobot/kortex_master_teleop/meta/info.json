@@ -1,0 +1,101 @@
+{
+    "codebase_version": "v3.0",
+    "fps": 48,
+    "features": {
+        "observation.state": {
+            "dtype": "float32",
+            "shape": [
+                6
+            ],
+            "names": [
+                "l_j1",
+                "l_j7",
+                "r_j1",
+                "r_j2",
+                "r_j4",
+                "r_j6"
+            ]
+        },
+        "action": {
+            "dtype": "float32",
+            "shape": [
+                14
+            ],
+            "names": [
+                "left_cmd_x",
+                "left_cmd_y",
+                "left_cmd_z",
+                "left_cmd_qx",
+                "left_cmd_qy",
+                "left_cmd_qz",
+                "left_cmd_qw",
+                "right_cmd_x",
+                "right_cmd_y",
+                "right_cmd_z",
+                "right_cmd_qx",
+                "right_cmd_qy",
+                "right_cmd_qz",
+                "right_cmd_qw"
+            ]
+        },
+        "observation.environment_state": {
+            "dtype": "float32",
+            "shape": [
+                4
+            ],
+            "names": [
+                "left_clutch",
+                "right_clutch",
+                "fsr1",
+                "fsr2"
+            ]
+        },
+        "timestamp": {
+            "dtype": "float32",
+            "shape": [
+                1
+            ],
+            "names": null
+        },
+        "frame_index": {
+            "dtype": "int64",
+            "shape": [
+                1
+            ],
+            "names": null
+        },
+        "episode_index": {
+            "dtype": "int64",
+            "shape": [
+                1
+            ],
+            "names": null
+        },
+        "index": {
+            "dtype": "int64",
+            "shape": [
+                1
+            ],
+            "names": null
+        },
+        "task_index": {
+            "dtype": "int64",
+            "shape": [
+                1
+            ],
+            "names": null
+        }
+    },
+    "total_episodes": 23,
+    "total_frames": 20440,
+    "total_tasks": 23,
+    "chunks_size": 1000,
+    "data_files_size_in_mb": 100,
+    "video_files_size_in_mb": 200,
+    "data_path": "data/chunk-{chunk_index:03d}/file-{file_index:03d}.parquet",
+    "video_path": null,
+    "robot_type": "srl_kortex_gen3_dual",
+    "splits": {
+        "train": "0:23"
+    }
+}

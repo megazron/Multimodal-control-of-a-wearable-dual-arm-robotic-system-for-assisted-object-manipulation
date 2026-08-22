@@ -1,3 +1,11 @@
+> **SUPERSEDED for the state of play — read `docs/NEXT_SESSION_2026_08_23.md`
+> first.** THE FOUR THINGS TO BUILD below are still the right plan and are
+> still where the detail lives; three of the four were advanced on
+> 2026-08-22 and the next page says how far, with the numbers. In
+> particular: the workspace question is answered (the pinned wrist, worth a
+> factor of seven at the work point), the sim-to-real gap is measured and
+> 84-86% of it is modelled, and the RViz master exists.
+
 # NEXT SESSION — 2026-08-22
 
 ## THE ONE-PARAGRAPH VERSION

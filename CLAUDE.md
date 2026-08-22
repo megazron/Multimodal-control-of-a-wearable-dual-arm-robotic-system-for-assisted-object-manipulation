@@ -138,6 +138,12 @@ Re-measure rather than trust this table; each row names its command.
 | wearer clearance | **the region and every T1 coordinate are now checked against the 150 mm floor GEOMETRICALLY.** `avoid_collisions` cannot see it — the SRDF excludes the pairs that matter — and the previous layout spent 70 of 143 waypoints inside it at 0 IK failures | `scripts/measure_clearance_region.py` |
 | **the observe pose** | **re-solved 2026-08-18 for the geometry that exists.** The old one was solved for the OLD MOUNT and the OLD cubes, and the camera looks along the tool axis, so those joints pointed it elsewhere. Now 12 points in frame — both stages' six cube columns and six pad slots — clearance 0.2202, straight transit 0.2130. **The first solve was wrong in a way the COUNT HID**: 0.335 m near, 1.17 m far, and a pad fragment passed the size gate while a real cube was rejected. Range floor 0.62 fixed it; the staged look now checks WHERE each detection is | `scripts/solve_observe_pose.py`, `scripts/stage_observe_and_detect.py` |
 | what limits the workspace | forward and outboard: the **pinned wrist**. Inboard: **the wearer**. Down: the **table**. No direction is bound by a joint limit | `docs/TASK_SPEC.md` §2A |
+| **what the pinned wrist COSTS** | **a factor of seven at the point where the work happens, and it was never sized.** Mean reach over the direction walk, 0.15 m wearer floor enforced under every policy: from the HOME EE, pinned 0.460 m against free 0.549 (+89 mm); **from the WORK POINT (0.4, 0.175, 1.12), pinned 0.065 m with 11 of 12 walks WEARER-bound, against cone45 0.440 and free 0.450 (+385 mm) with 4**. The mechanism is not the wearer: a fixed 6-DOF pose on a 7-DOF arm spends the whole redundancy, and the redundancy is the joint that moves the elbow out of the person while the hand stays put. **Freeing the ROLL is worth +0 mm** and is refused by name. `orientation_policy` defaults to `exact`, so nothing changes until a mode opts in; HARD CONSTRAINT 1 untouched | `scripts/measure_orientation_cost.py`, `docs/system/21_what_makes_the_workspace_small.md` |
+| **the sim-to-real difference, measured** | **every joint parks 0.305 deg short of its target, on the side it came from** -- 211 of 252 recorded per-joint errors at +/-0.25-0.30 deg with the sign a coin flip, which is a BOUND and not a spread. That is 7.2 mm RMS at the end effector on a 100 mm move, both arms. Pushing the recorded joint errors through the Jacobian reproduces the Cartesian error to **90%, r=0.923** -- so it is a CONSTANT terminal offset, not a gain, and the two are indistinguishable at 100 mm but differ 5x at 20 mm. ONE parameter per arm, removing **74% / 76% held out on an AXIS it was never fitted on**, where a Cartesian 3x3 scores 93.5 mm. **The data already existed in `arm_directional_calibration.json` and nothing read it.** Compensation is "overshoot each joint by EPS in the direction of travel" -- no matrix, no basis, no step length | `scripts/measure_sim_to_real_gap.py`, `srl_teleop/sim_to_real_gap.py` |
+| **the "speed sweep" was not one** | I reported the error as speed-independent across a 5x range. **`vmax_rad_s` was read once at bridge start-up and 7 of 36 runs moved FASTER than the limit they were commanded with** -- `kortex_highlevel_bridge` records this in its own source and I asserted the opposite. The three speeds are three REPLICATES of one condition; **how the error varies with speed has never been measured**. A control asserts the sweep still looks inert, so a genuine sweep makes it fail and the stale sentences get rewritten | `test_the_arm_stops_short_and_the_bridge_knows.py` |
+| **the bridge deadband was 3.3x the error it caused** | 1.0 deg, inside which the proportional term is off by design, against a measured 0.305 deg park. Now **0.10 deg**, plus an opt-in `terminal_overshoot` that applies EPS at the setpoint and REFUSES to run "on" with a zero overshoot. **Neither has been tried on hardware**; both are live parameters and four runs settle which wins | `kortex_highlevel_bridge.py` |
+| **the RViz master** | **three states, not two.** COMMANDED, ACTUAL and **PLANNED-BUT-REFUSED with its reason string, which cannot be drawn without one**; the wearer inflated by the floor from the body the guard is ENFORCING, with the nearest segment coloured and LABELLED with the part; the densified path one point per sample, worst called out by index; liveness per arm; the envelope as three volumes. `ros2 run srl_teleop rviz_master`. Pure marker builder, 32 checks, no display needed. `/viz/path` IS fed: `safe_motion.check_path(..., trace=[])` now records one entry per densified sample and keeps going PAST the first breach, because the half after the breach is where the arm was going -- 47 of 47 samples, verdict byte-identical with and without the trace. `/viz/envelope` and `/viz/refused_in` are built and tested but not yet fed | `srl_teleop/rviz_master.py`, `rviz_master_node.py` |
+| **LeRobot** | **the FORMAT is worth having and has been taken; the policies are blocked three ways.** 23 episodes / 20 440 frames of the real teleop recording exported as a `LeRobotDataset`, with the 8 channels the newest baseline calls INCOHERENT or DEAD dropped and named in the dataset's own metadata. Policies: no corpus (ethics), 4 GB VRAM, and a policy learns AROUND an unmeasured extrinsic rather than fixing it. **`.venv_lerobot` is separate on purpose** -- installing it into `.venv_vision` took `real_calibration/check_all.py` from 4/4 to 2/4 | `scripts/lerobot_export.py`, `docs/system/20_lerobot.md` |
 | grasp pose | **the wrist-to-pad offset is 0.09833 m along the tool axis, MEASURED from FK.** `clip_tasks.PAD_OFFSET_BY_ARM` is 13.45 mm longer and is deliberately unchanged: T0, T2 and T3 declare their coordinates through it and the scene draws through it, so task and picture agree — but in those three the declared coordinate is 13.45 mm from where the object is drawn and grasped | `recordings/baselines/pad_mid_ee.json` |
 | **the wrist every sweep measured at** | **it was the HOME wrist, not the anchor the task sends — 32.26 deg apart on T1's arm.** `measure_what_binds.Rig` read the live EE orientation off TF at construction; `run_abc.send()` writes `WORKSPACE_ORIENT`. EVERY reachability sweep in the repo solves through `Rig`. Now `anchor="workspace"` by default. T1's stage-1 layout survives the fix (0 failures, N=10, twice); `centre_on_surface.json`'s 22 hits do not | `docs/system/findings.md`, 2026-08-17 (later still) |
 | **two surface heights, 150 mm apart** | **`BENCH_TOP` 1.10 positioned every object, `TABLE_TOP` 0.950 was the only geometry, and nothing compared them.** One owner now: `work_surface.WORK_PLANE_M` 1.100 / `DECLARED_M` 0.980 / `DECLARED_NEAR_Y` 0.100 / `FLOAT_GAP_M` 0.120. Surface raised 30 mm, gap 150 → 120 mm | `test_one_work_surface_height.py` |
@@ -229,6 +235,35 @@ with no gravity compensation on someone who did not choose the motion.
 
 ---
 
+## THE GUI RULE, ADDED 2026-08-22 AT THE OPERATOR'S REQUEST
+
+**The window is the interface. Every capability reaches it, and every change
+is checked in it.**
+
+1. **If you add or change a capability, it gets a control in the GUI in the
+   same change.** A feature reachable only from a terminal does not exist for
+   the person running the session. `docs/HOW_TO_RUN.md` is the contract: two
+   commands, and everything else is in the window.
+2. **Run `python3 scripts/verify_gui_buttons.py` before you claim anything
+   works.** 257 checks. It presses every button, and since 2026-08-22 it also
+   checks what the presses DID -- the e-stop must reach `/estop`, service
+   buttons with no stack must say so, the experiment panel's own defaults
+   must produce a command the dispatcher accepts.
+3. **And LOOK at it.** Launch it and screenshot the window
+   (`ffmpeg -f x11grab -window_id <id> -i :0 -frames:v 1 out.png`; a grab of
+   the X ROOT records black on WSLg). Three defects lived for weeks behind a
+   passing audit: RViz embedding an invisible window, a control column capped
+   below its own content, and every mode button below the fold. None of them
+   is visible from a return code.
+4. **A press must leave a trace, and a control that changes what the next run
+   does must SAY so.** That is the audit's own rule and it is why every new
+   toggle, drop-down and spin box in this window logs its new value.
+5. **After pressing everything, the window must still work.** Level 2c
+   re-checks the layout, the tabs, the e-stop and the instruction box at the
+   end of the sweep. A control that works on a fresh window and stops working
+   after somebody explored the panel is a glitch, and the audit is the only
+   thing positioned to catch it.
+
 ## THE STANDING RULE
 
 **Before reporting a bad measurement, validate the measuring tool against
@@ -301,6 +336,11 @@ seems not to apply, suspect a stale PROCESS, not a stale install.
 | `docs/system/16_scene_camera_wearer_tracking.md` | **DESIGN ONLY.** A scene camera that measures the WEARER instead of assuming a mannequin: what tracks the body, how it reaches the clearance check without fighting the planning scene, and the rule that it may only ever make the wearer BIGGER. ~7 sessions |
 | `docs/system/17_vr_passthrough_and_camera_feed.md` | **DESIGN ONLY.** Seeing the environment from inside the headset: Quest passthrough (one client line, no latency, works borrowed) against streaming a camera in (35-145 ms). Both are ADDITIONS -- the shipped setup needs nobody to wear it. ~1 and ~3 sessions |
 | `docs/system/18_dynamic_degradation.md` | **DESIGN ONLY.** Every mode keeps working when a source is missing: the ladder per capability, what is lost at each rung, and the three capabilities that must REFUSE rather than descend. ~7.5 sessions, of which the first 1.5 only make existing behaviour visible |
+| `docs/system/20_lerobot.md` | **LeRobot, assessed against what this project needs.** What was exported and how, the channel gate that drops DEAD columns rather than exporting a repeated value as data, and the three independent reasons a learned policy is not the next thing |
+| `docs/system/21_what_makes_the_workspace_small.md` | **WHY THE ARMS BARELY MOVE, sized.** The pinned wrist per direction per policy, the reconciliation of two baselines that walked from different points, why freeing the roll is worth nothing, and what is still not measured |
+| `docs/NEXT_SESSION_2026_08_23.md` | **the current resume point.** What 2026-08-22 measured and what it changed about the plan |
+| `docs/HOW_TO_RUN.md` | **START HERE TO OPERATE IT.** One page: the two commands, every mode and where its button is, full autonomy end to end, how much the arms can move and why, what to run before hardware, and a symptom table |
+| `docs/system/22_grasping.md` | **detection and grasping.** What is built, the two defects fixed on 2026-08-22 (a wearer floor that could never fire, refusals that asserted instead of measuring), what is actually broken in order, the coarse-to-fine architecture that works, and a Hugging Face model shortlist scored against 4 GB of VRAM |
 | `docs/NEXT_SESSION.md` | what to do next, in order |
 | `docs/WORK_BRIEF.md` | the standing multi-part brief |
 | `docs/research/` | literature, hypotheses, protocol, ethics, the grasping and approach-geometry findings |

@@ -260,8 +260,14 @@ class TableObject:
         # Its top is observed. The centre height is therefore the midpoint of
         # those two, which needs no second view and no symmetry assumption
         # about the horizontal axes.
+        # THROUGH THE SHARED FUNCTION, not a second copy of the arithmetic.
+        # `grasp_pipeline` needs the same correction on the live pick path and
+        # did not have it; giving it its own would be the same defect this
+        # module's own comment above warns about, one level up.
+        from srl_perception.rgbd_grasp import shell_corrected_centre
+        self.centre, _top = shell_corrected_centre(
+            self.points, plane.normal * plane.offset, self.up)
         self.centre_height_m = self.top_m / 2.0
-        self.centre = fc + self.up * self.centre_height_m
         self.visible_centroid = self.points.mean(axis=0)
         self.shell_bias_m = float(np.linalg.norm(self.centre
                                                  - self.visible_centroid))

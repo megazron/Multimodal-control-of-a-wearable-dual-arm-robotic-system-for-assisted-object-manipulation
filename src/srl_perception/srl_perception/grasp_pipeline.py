@@ -56,8 +56,14 @@ def mask_for(det, shape):
 
 def plan_grasp(bgr, depth_m, prompt, cam_p, cam_R, colour_K, depth_K,
                detector=None, near_m=None, far_m=None, standoff_m=0.12,
-               approach_hint=None):
-    """Full plan for the best match to `prompt`, in the ROBOT frame."""
+               approach_hint=None, support_z_m=None):
+    """Full plan for the best match to `prompt`, in the ROBOT frame.
+
+    `support_z_m` is the height of the surface the object is RESTING ON, in
+    the robot frame. Give it and the shell bias is removed; leave it None and
+    the returned plan says so in `shell_correction` rather than quietly
+    reporting a biased centre. See the block where it is applied.
+    """
     det = detector or PromptDetector(backend="auto", near_m=near_m, far_m=far_m)
     hits = det.detect(bgr, prompt, depth_m=depth_m, K=colour_K,
                       depth_K=depth_K)
@@ -128,6 +134,52 @@ def plan_grasp(bgr, depth_m, prompt, cam_p, cam_R, colour_K, depth_K,
             "false positive or the camera pose is wrong." % z,
             dict(centre=[float(v) for v in gr["centre"]],
                  detection=best.as_dict()))
+    # ---- THE SHELL BIAS, AND WHY THIS BLOCK EXISTS -------------------
+    #
+    # A depth camera returns the FRONT surface only, so the centroid of the
+    # returned cloud sits towards the camera and, for an object standing on a
+    # table, BELOW the true centre. `srl_perception/table_scene.py` has
+    # corrected for that since 2026-08-21 and `scripts/measure_control_budget`
+    # carries it at **10.5 mm against a 30 mm capture gate** -- and THIS
+    # function, which is the one `find_object.py` and the recording path
+    # actually plan grasps with, never had the correction. Two readers of the
+    # same scene, one corrected and one not.
+    #
+    # It is applied here rather than in `grasp_from_cloud` because the support
+    # plane is a fact about the ROBOT frame, and the cloud only reaches that
+    # frame at `to_robot_frame` above.
+    #
+    # NO PLANE, NO SILENT CORRECTION. Without `support_z_m` the centre is the
+    # shell's and the plan says so, because a pick path that quietly reports a
+    # biased centre is worse than one that reports a known bias.
+    if support_z_m is None:
+        gr["shell_correction"] = ("none -- no support_z_m given, so the "
+                                  "centre is the visible shell's and carries "
+                                  "the bias (10.5 mm in the error budget)")
+        gr["shell_bias_mm"] = None
+    else:
+        pts_robot = (np.asarray(cam_R, float) @ np.asarray(pts).T).T \
+            + np.asarray(cam_p, float)
+        before = np.asarray(gr["centre"], float)
+        corrected, top = RG.shell_corrected_centre(
+            pts_robot, [0.0, 0.0, float(support_z_m)], [0.0, 0.0, 1.0])
+        if top <= 0.0:
+            # The object is BELOW the plane it is said to rest on, so one of
+            # the two is wrong. Refuse rather than "correct" it to nonsense.
+            raise PlanFailure(
+                "support",
+                "the object's highest point is %.1f mm BELOW the support "
+                "surface at z = %.3f m, so either the detection or the "
+                "surface height is wrong" % (-top * 1000, support_z_m),
+                dict(centre=[float(v) for v in before],
+                     support_z_m=float(support_z_m)))
+        gr["centre"] = corrected
+        gr["shell_bias_mm"] = round(
+            float(np.linalg.norm(corrected - before)) * 1000.0, 2)
+        gr["shell_correction"] = ("support plane at z = %.3f m; the object is "
+                                  "%.1f mm tall and its centre moved %.1f mm"
+                                  % (support_z_m, top * 1000,
+                                     gr["shell_bias_mm"]))
     gr["pregrasp"] = RG.pregrasp(gr, standoff_m)
     gr["detection"] = best.as_dict()
     gr["n_points"] = int(len(pts))

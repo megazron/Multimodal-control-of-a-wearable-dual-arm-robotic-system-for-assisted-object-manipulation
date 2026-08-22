@@ -147,38 +147,80 @@ TRANSIT_Z = 0.10
 
 # Wrist -> finger-pad offset along the tool axis, in world, at the anchor
 # orientation. `orientation_mode` is `fixed` so this is constant for a run.
-# Measured from TF: the tips sit +0.098 m along the tool axis, 0.1194 m away.
-PAD_OFFSET = [-0.0171, 0.0946, 0.0572]
+# The LEFT arm's offset, kept as a module-level name because the legacy A/B/C
+# coordinates default to it. Derived from the same one source below; it is
+# assigned after PAD_OFFSET_BY_ARM is built.
+PAD_OFFSET = None
 
-# ONE PAD OFFSET PER ARM, AND PAD_OFFSET ABOVE IS THE LEFT ARM'S.
+# ONE PAD OFFSET PER ARM, AND IT IS DERIVED, NOT RECORDED.
 #
-# Measured off TF at the home pose, which IS the pinned anchor -- the only
-# orientation a task path ever holds, because the follower pins it:
+# WHAT IT IS. The wrist-to-pad vector in WORLD coordinates, per arm, at the
+# pinned anchor -- which is the only orientation these tasks ever command,
+# because `run_abc.send()` writes `master_calibration.WORKSPACE_ORIENT` into
+# every waypoint. `ee_for` subtracts it, so declaring where an OBJECT is gives
+# the wrist pose that puts the pads on it.
 #
-#     left   (-0.0171, +0.0945, +0.0572)     identical to PAD_OFFSET
-#     right  (+0.0289, +0.0995, +0.0421)     48.3 mm away from it
+# WHY IT IS DERIVED AS OF 2026-08-23, AND WHAT IT COST NOT TO BE.
 #
-# The arms are parked asymmetrically -- CLAUDE.md records
-# |v_R - M v_L| = 1.3837 m, proven independent of the mount -- so their
-# wrist-to-pad vectors differ, and this repository has already paid for that
-# once: T3's left-arm multimeter was drawn 49 mm from where the left hand
-# closes, and the fix went in on the SCENE side only (`pad_off_by_arm`). The
-# TASK side kept one number, and T1 has since moved to the right arm.
+# It used to be two hand-recorded world vectors of magnitude 0.1118 m, sampled
+# off TF at the home pose. `grasp_frames.PAD_MID_EE` is the same quantity in
+# the END EFFECTOR frame, measured on 2026-08-18 by `/compute_fk` on the two
+# finger-tip links -- 0.09833 m, both arms agreeing to 0.000 mm. The recorded
+# world vectors were **13.45 mm (left) / 13.51 mm (right) LONGER** than that
+# measurement, purely along the tool axis.
 #
-# WHY IT DID NOT SHOW UP AS A BROKEN GRASP. The scene drew each item at
-# ee_for(obj) + the arm's OWN measured offset, so the pads and the drawn
-# object coincided exactly and every grasp worked. What was wrong was quieter:
-# the object appeared 48 mm from the coordinates the task declares and the
-# layout was verified at, so the workspace marking, the placement error and
-# every distance quoted against a declared position described a scene that was
-# not the one on screen.
+# The consequence was not a broken grasp, which is why it survived: the scene
+# DRAWS each object at `ee_for(obj) + this same offset`, so the drawn object
+# and the declared coordinate coincided and every picture looked right. What
+# was wrong is where the FINGERS went. The pads sit at
+# `wrist + R(anchor) . PAD_MID_EE`, so with a 13.45 mm-too-long offset they
+# landed **13.45 mm SHORT of the declared object**, on every object of T0, T2
+# and T3, identically -- the signature of a constant rather than of a path.
+# It was the single largest term in `scripts/measure_control_budget.py`'s
+# error budget, against a 30 mm grasp capture gate.
 #
-# THE OFFSET IS AT THE ANCHOR, NOT AT WHATEVER POSE THE ARM IS IN. Sampling it
-# live is what the presentation pose broke: staging rotates the wrist, the
-# right arm's tool-axis offset moves 80.1 mm, and a scene sampled while staged
-# is drawn 80 mm out. A constant taken at the anchor cannot be moved by
-# anything that happens before capture.
-PAD_OFFSET_BY_ARM = {
+# T1 has been correct since 2026-08-18 because it declares its own approach
+# and goes through `grasp_frames.wrist_for`, i.e. through the measurement.
+#
+# DERIVING IT KEEPS TASK AND PICTURE IN AGREEMENT. Both sides use this one
+# constant, so the object is still drawn exactly at its declared coordinate;
+# what moves is the commanded WRIST, 13.45 mm along the tool axis toward the
+# object. Every T0/T2/T3 pose was re-verified after the change -- reachability
+# at N=10 over the densified path, the 0.15 m wearer floor, and the finger
+# tips against the table -- and `recordings/baselines/pad_offset_change.json`
+# records the before and after.
+#
+# THE TWO ARMS DIFFER BY 48.3 mm AND THAT IS ENTIRELY THEIR ANCHORS. Rotated
+# into each arm's own end-effector frame the two vectors are identical to
+# 0.0002 mm, because they are now the SAME constant rotated twice. The
+# hardware is symmetric; only the parked orientations differ.
+def _pad_offset_by_arm():
+    """`grasp_frames.PAD_MID_EE` rotated into world by each arm's anchor."""
+    import numpy as _np
+    import grasp_frames as _gf
+    from srl_teleop.master_calibration import WORKSPACE_ORIENT as _W
+    out = {}
+    for _arm in ("left", "right"):
+        _q = _np.asarray(_W[_arm], float)
+        # NORMALISED ON THE WAY IN. WORKSPACE_ORIENT is not stored unit
+        # (norms 0.99995844 and 1.00000561), so a rotation built from it is
+        # not orthonormal -- the same defect `orientation_policy` found and
+        # fixed on its own side. The stored constant is NOT rewritten;
+        # HARD CONSTRAINT 1 is untouched.
+        _q = _q / _np.linalg.norm(_q)
+        out[_arm] = [round(float(v), 6)
+                     for v in _gf.q_matrix(_q) @ _np.asarray(_gf.PAD_MID_EE)]
+    return out
+
+
+PAD_OFFSET_BY_ARM = _pad_offset_by_arm()
+PAD_OFFSET = PAD_OFFSET_BY_ARM["left"]
+
+# The legacy hand-recorded vectors, kept so the change is auditable and so
+# `recordings/baselines/pad_offset_change.json` can be reproduced. Read by the
+# test that asserts the size and direction of what was corrected. NOT used to
+# command anything.
+LEGACY_PAD_OFFSET_BY_ARM = {
     "left": [-0.0171, 0.0945, 0.0572],
     "right": [0.0289, 0.0995, 0.0421],
 }

@@ -83,8 +83,20 @@ def main():
                          "to within 2 -- range separates them on a property "
                          "that has nothing to do with colour.")
     ap.add_argument("--standoff-m", type=float, default=0.12)
+    # THE SURFACE THE OBJECT IS STANDING ON, in the robot frame. Defaults to
+    # `work_surface.table_top()` -- the one owner of that height -- because a
+    # pick on this rig is a pick off a surface. `--no-support` asks for the
+    # uncorrected shell centre and the plan then SAYS it is uncorrected.
+    ap.add_argument("--support-z-m", type=float, default=None,
+                    help="height of the surface the object rests on; "
+                         "defaults to work_surface.table_top()")
+    ap.add_argument("--no-support", action="store_true",
+                    help="do NOT correct the shell bias; the plan says so")
     ap.add_argument("--json", default=None)
     a = ap.parse_args()
+    if a.support_z_m is None and not a.no_support:
+        from srl_experiments import work_surface as WSF
+        a.support_z_m = WSF.table_top()
 
     import numpy as np
     from srl_perception import srl_cameras as CAMS
@@ -135,9 +147,19 @@ def main():
           % (bgr.shape[1], bgr.shape[0], depth.shape[1], depth.shape[0],
              100.0 * np.count_nonzero(depth) / depth.size))
     try:
+        # THE SURFACE THE OBJECT IS RESTING ON, so the shell bias comes out.
+        #
+        # A depth camera sees the FRONT of an object, and the centroid of a
+        # front surface is not the centre of a solid -- 10.5 mm in
+        # `scripts/measure_control_budget.py`, against a 30 mm capture gate.
+        # The object's BOTTOM is known for free when it is standing on a
+        # surface, and this is where that fact enters the pick path. Passing
+        # None here was the state until 2026-08-23 and the plan then says so
+        # rather than reporting a biased centre as if it were a measurement.
         plan = plan_grasp(bgr, depth, a.prompt, cam_p, cam_R,
                           CAMS.KINOVA_COLOR_K, CAMS.KINOVA_DEPTH_K,
-                          detector=det, standoff_m=a.standoff_m)
+                          detector=det, standoff_m=a.standoff_m,
+                          support_z_m=a.support_z_m)
     except PlanFailure as pf:
         print("\nREFUSED at the %s stage" % pf.stage)
         print("   %s" % pf.reason)
@@ -145,6 +167,7 @@ def main():
     c = plan["centre"]
     print("\nFOUND  %s   via %s" % (plan["detection"]["label"], plan["backend"]))
     print("   position   x=%+.4f  y=%+.4f  z=%+.4f  m" % (c[0], c[1], c[2]))
+    print("   shell      %s" % plan.get("shell_correction", "not reported"))
     print("   range      %.3f m from the camera" % plan["detection"]["depth_m"])
     print("   grasp      %.0f mm across, %d depth points"
           % (plan["width_m"] * 1000, plan["n_points"]))

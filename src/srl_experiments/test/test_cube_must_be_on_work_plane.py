@@ -277,3 +277,79 @@ def test_the_window_is_below_the_layout_pitch():
     assert M.CUBE_M < pitch, (
         "the cubes are %.3f m apart and one cube is %.3f m wide; the duplicate "
         "rule would merge adjacent cubes." % (pitch, M.CUBE_M))
+
+
+# ===========================================================================
+#  AND NOW THE PLANE IS USED, NOT JUST GATED ON
+# ===========================================================================
+# The gate above establishes that a detection is a cube RESTING ON the work
+# plane. A 40 mm cube resting on a plane has its centre at T1_Z exactly, by
+# construction, with no camera in the arithmetic -- while the deprojected z is
+# the same quantity measured through a depth pixel, an intrinsic, a TF lookup
+# and a half-a-cube ray correction `deproject` documents as approximate on an
+# oblique face. Using the measured one where an exact one exists is pure added
+# error: 1.3 to 3.0 mm standalone, up to 9 mm inside a sweep.
+#
+# THE ORDER IS THE SAFETY. Snap AFTER the gate, never before, so a cube that
+# is not on the plane is still rejected and named rather than quietly moved
+# onto it. These tests hold that ordering in place.
+
+def _snap_block_source():
+    import inspect
+    import vision_grasp as _vg
+    return inspect.getsource(_vg)
+
+
+def test_the_snap_happens_after_the_gate_and_not_before():
+    """Source order, because the whole safety of the block is where it sits.
+
+    A snap placed before the gate would move every stray fragment onto the
+    plane and the gate would then accept all of them -- turning the check that
+    caught 8-and-9-cube refusals into one that cannot fire.
+    """
+    src = _snap_block_source()
+    gate = src.index("rejected_off_work_plane")
+    snap = src.index("z_before_plane_snap_m")
+    assert gate < snap, (
+        "the plane snap runs BEFORE the off-plane rejection, so every "
+        "fragment would be moved onto the plane and then accepted")
+
+
+def test_the_snap_records_what_it_moved():
+    """A correction nobody can see is a correction nobody can check."""
+    src = _snap_block_source()
+    for key in ("z_before_plane_snap_m", "z_snapped_by_mm",
+                "plane_snap_worst_mm"):
+        assert key in src, "the snap does not report %s" % key
+
+
+def test_the_snap_leaves_x_and_y_alone():
+    """The plane constrains height and says nothing about where on it the
+    cube stands. Moving x or y would be inventing a measurement."""
+    src = _snap_block_source()
+    i = src.index("z_before_plane_snap_m")
+    block = src[i:i + 900]
+    assert 'float(d["world"][0]), float(d["world"][1])' in block, (
+        "the snap no longer passes x and y through untouched")
+
+
+def test_the_snap_is_arithmetic_with_a_known_answer():
+    """The quantity itself, on constructed numbers: a cube measured anywhere
+    inside the window ends up at exactly T1_Z, and the correction it reports
+    is the distance it moved."""
+    for dz in (-0.009, -0.003, 0.0, 0.0013, 0.0092):
+        measured = M.T1_Z + dz
+        snapped = M.T1_Z
+        reported_mm = round((M.T1_Z - measured) * 1000.0, 2)
+        assert _accepts(measured), "the window must admit %.4f first" % measured
+        assert snapped == pytest.approx(M.T1_Z, abs=1e-12)
+        assert reported_mm == pytest.approx(-dz * 1000.0, abs=0.01)
+
+
+def test_the_plane_snap_cannot_rescue_a_rejected_detection():
+    """The control. A pad fragment 160 mm low is still rejected -- the snap
+    never sees it -- so this file's original finding still holds."""
+    for z in MEASURED_PAD_FRAGMENTS:
+        assert not _accepts(z), (
+            "z = %.4f is a pad fragment and must be rejected BEFORE anything "
+            "snaps it onto the plane" % z)

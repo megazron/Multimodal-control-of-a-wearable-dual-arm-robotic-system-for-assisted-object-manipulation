@@ -453,6 +453,41 @@ def observe_and_detect(arm, node=None, settle_s=6.0, expect=None,
         dets = on_plane
         t["rejected_off_work_plane"] = len(off_plane)
         # ==============================================================
+        # AND NOW USE THE PLANE, DO NOT JUST GATE ON IT
+        # ==============================================================
+        # The gate above has already established that this detection is a cube
+        # RESTING ON the work plane. A 40 mm cube resting on a plane has its
+        # centre at `T1_Z` -- exactly, by construction, with no camera in the
+        # arithmetic. The deprojected z is the same quantity measured through
+        # a depth pixel, an intrinsic, a TF lookup and a half-a-cube ray
+        # correction that `deproject` itself documents as approximate on an
+        # oblique face.
+        #
+        # So the measured z was being used where an exactly known one was
+        # available, and the difference is pure error: measured on the staged
+        # look, the accepted cubes land 1.3 to 3.0 mm off the plane on a clean
+        # stack and up to 9 mm inside a sweep.
+        #
+        # THE SNAP HAPPENS AFTER THE GATE, NEVER BEFORE. A cube that is not on
+        # the plane is REJECTED and named; it is not quietly moved onto it.
+        # That ordering is the whole safety of this block, and
+        # `test_the_plane_snap_cannot_rescue_a_rejected_detection` is what
+        # holds it in place. x and y are untouched: the plane says nothing
+        # about them.
+        for d in dets:
+            d["z_before_plane_snap_m"] = round(float(d["world"][2]), 5)
+            d["z_snapped_by_mm"] = round(
+                (M.T1_Z - float(d["world"][2])) * 1000.0, 2)
+            d["world"] = [float(d["world"][0]), float(d["world"][1]),
+                          float(M.T1_Z)]
+        if dets:
+            t["plane_snap_worst_mm"] = max(abs(d["z_snapped_by_mm"])
+                                           for d in dets)
+            t["plane_snap_note"] = (
+                "z set to the work plane (%.4f m) for %d detection(s) that "
+                "PASSED the plane gate; worst correction %.2f mm. x and y are "
+                "the camera's." % (M.T1_Z, len(dets), t["plane_snap_worst_mm"]))
+        # ==============================================================
         # A DETECTION STANDING ON A MAT, AT THE MAT'S OWN HEIGHT, IS THE MAT
         # ==============================================================
         # The pads are the cubes' own colours -- deliberately, so that "each

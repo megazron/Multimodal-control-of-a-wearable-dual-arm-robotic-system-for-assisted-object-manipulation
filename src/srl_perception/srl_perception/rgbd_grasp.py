@@ -127,6 +127,42 @@ def min_width_frame(pts, long_ax, n_ang=180):
     return close_ax, mid_ax, width, mid_ext
 
 
+def shell_corrected_centre(pts, support_point, up):
+    """The centre of a solid seen from ONE side, given what it rests on.
+
+    ONE SOURCE. `table_scene.Obj` and `grasp_pipeline.plan_grasp` both need
+    this and it must not be written twice: a shell correction that disagrees
+    with itself between the scene reader and the pick path is two robots
+    wearing one name.
+
+    WHY IT IS NEEDED. A depth camera returns the FRONT surface only, so the
+    centroid of the returned cloud is the centroid of a shell -- pulled
+    towards the camera and, for an object standing on a table, BELOW the true
+    centre. Measured at 20 mm on constructed data on 2026-08-21 and carried in
+    `scripts/measure_control_budget.py` at 10.5 mm, against a 30 mm capture
+    gate.
+
+    WHY THE PLANE FIXES IT WITHOUT A SECOND VIEW. The object is RESTING on the
+    plane, so its bottom is the plane -- known, not inferred. Its top is
+    observed. The centre along the plane normal is the midpoint of those two,
+    which needs no symmetry assumption about the horizontal axes and no second
+    camera.
+
+    `support_point` is any point on the support plane; `up` is the plane
+    normal. Returns (centre, height_m). The horizontal position is the
+    FOOTPRINT centroid -- the cloud projected onto the plane -- not the raw
+    centroid, for the same reason: a shell's raw centroid is biased along the
+    line of sight and the footprint's is not.
+    """
+    pts = np.asarray(pts, float)
+    up = np.asarray(up, float)
+    up = up / np.linalg.norm(up)
+    h = (pts - np.asarray(support_point, float)) @ up
+    top = float(h.max())
+    foot = pts - np.outer(h, up)
+    return foot.mean(axis=0) + up * (top / 2.0), top
+
+
 def grasp_from_cloud(pts, approach_hint=None, view_axis=None):
     """A parallel-jaw grasp for this cloud, in the cloud's own frame.
 

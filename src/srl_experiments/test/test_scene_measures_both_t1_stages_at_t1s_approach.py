@@ -97,20 +97,33 @@ def test_both_stages_use_t1s_own_approach(CS, T1, task, arm):
 
 
 @pytest.mark.parametrize("arm", ["left", "right"])
-def test_the_anchor_would_have_been_wrong_by_83_to_99_mm(CS, T1, arm):
+def test_the_anchor_would_have_been_wrong_by_77_to_92_mm(CS, T1, arm):
     """The error this guard prevents, stated as a number.
 
     If this ever reads ~0 the two orientations have converged and the guard is
     no longer load-bearing -- which is worth knowing, because the guard would
     then be silently untested.
+
+    IT WAS 99.1 / 83.3 mm UNTIL 2026-08-23, and it moved for a reason that is
+    not this guard: `clip_tasks.PAD_OFFSET_BY_ARM` stopped being a
+    hand-recorded world vector 13.45 mm too long and became
+    `grasp_frames.PAD_MID_EE` rotated by the anchor. The anchor and T1's
+    approach are still 77-92 mm apart, which is what this test is about; the
+    change is that both sides of the subtraction are now the same length.
     """
     import clip_tasks as CT
     anchor = np.asarray(CT.PAD_OFFSET_BY_ARM[arm], dtype=float)
     err_mm = float(np.linalg.norm(anchor - _t1_truth(T1, arm))) * 1000.0
-    want = {"left": 99.1, "right": 83.3}[arm]
+    want = {"left": 92.1, "right": 77.0}[arm]
     assert abs(err_mm - want) < 1.0, (
         "expected the anchor to sit ~%.1f mm from T1's approach on the %s "
         "arm, got %.1f mm" % (want, arm, err_mm))
+    legacy = np.asarray(CT.LEGACY_PAD_OFFSET_BY_ARM[arm], dtype=float)
+    was_mm = float(np.linalg.norm(legacy - _t1_truth(T1, arm))) * 1000.0
+    assert abs(was_mm - {"left": 99.1, "right": 83.3}[arm]) < 1.0, (
+        "the pre-2026-08-23 figure was %.1f mm and is quoted in "
+        "docs/system/findings.md; it now computes as %.1f"
+        % ({"left": 99.1, "right": 83.3}[arm], was_mm))
     assert err_mm > 30.0, (
         "the anchor is now inside the 30 mm capture gate, so this guard no "
         "longer protects anything and the test above is not exercising it")

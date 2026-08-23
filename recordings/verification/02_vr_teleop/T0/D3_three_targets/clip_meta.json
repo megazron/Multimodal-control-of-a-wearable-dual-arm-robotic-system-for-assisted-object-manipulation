@@ -1,0 +1,13 @@
+{
+ "mode": "02_vr_teleop",
+ "task": "t0",
+ "scenario": "D3_three_targets",
+ "grab_t0": 1787452632.1158733,
+ "grab_t1": 1787452681.2309365,
+ "card_hold_s": 6.0,
+ "look_s": 0.0,
+ "instruction": null,
+ "seed": 3,
+ "ok": true,
+ "msg": "run exited 0"
+}

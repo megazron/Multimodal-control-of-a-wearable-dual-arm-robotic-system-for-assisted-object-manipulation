@@ -1,0 +1,13 @@
+{
+ "mode": "06_full_autonomy",
+ "task": "t3",
+ "scenario": "S1_measure_cycle",
+ "grab_t0": 1787447253.5140526,
+ "grab_t1": 1787447271.548836,
+ "card_hold_s": 6.0,
+ "look_s": 0.0,
+ "instruction": null,
+ "seed": 3,
+ "ok": true,
+ "msg": "run exited 0"
+}

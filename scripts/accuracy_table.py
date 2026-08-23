@@ -65,12 +65,32 @@ def targets_for(task):
     """
     try:
         import msc_clip_tasks as MCT
+        import t1_task as T1M
     except Exception:
         return {}
     if task in ("t1",):
-        # cubes 0,2 -> plane 0; cubes 1,3 -> plane 1
-        return {"cube_%d" % i: MCT.T1_PLANES[0 if i % 2 == 0 else 1]
-                for i in range(len(MCT.T1_CUBES))}
+        # WHICH PAD EACH CUBE GOES TO IS `t1_task.T1_PAIR`, AND THIS HAD ITS
+        # OWN COPY OF IT.
+        #
+        # It read `plane[0 if i % 2 == 0 else 1]` -- cubes 0,2 to the first
+        # pad and 1,3 to the second. That was true of a single-arm T1 with an
+        # alternating row. T1 became TWO-ARMED on 2026-08-16: the pads
+        # straddle the centreline at +/-0.290, each cube is picked by the arm
+        # on its OWN side, and neither arm can cross -- 0 of 10 IK solutions
+        # at every cross-side slot. `T1_PAIR` is {0:0, 1:0, 2:1, 3:1}.
+        #
+        # So this scored cube_1 and cube_2 against the pad on the WRONG SIDE,
+        # 0.58 m away. Measured on the 2026-08-23 re-record: **319.7 mm mean
+        # placement error with 264 mm of variance**, on clips whose own scene
+        # log says "placed 56 mm from target". The robot put every cube on the
+        # pad of its own colour; the table was measuring the distance to the
+        # other one.
+        #
+        # The file's own header says the numbers must be re-derivable from
+        # committed data. A copy of a task fact is not a derivation.
+        return {"cube_%d" % i: MCT.T1_PLANES[T1M.T1_PAIR[i]]
+                for i in range(len(MCT.T1_CUBES))
+                if i in T1M.T1_PAIR}
     return {}
 
 
@@ -190,13 +210,41 @@ def self_test():
                         {"item": "tiny", "width_mm": 10}])
     chk("smallest counts grasped only", cell_metrics(mixed)["smallest"], 40.0)
 
+    # THE CUBE -> PAD MAPPING COMES FROM THE TASK, NOT FROM THIS FILE.
+    #
+    # It carried `plane[i % 2]` -- a single-arm alternating row -- while T1
+    # has been two-armed since 2026-08-16, with the pads straddling the
+    # centreline at +/-0.290 and neither arm able to cross it. So cube_1 and
+    # cube_2 were scored against the pad 0.58 m away, and the 2026-08-23
+    # re-record reported **319.7 mm** of placement error with 264 mm of
+    # variance on clips whose own scene log says "placed 56 mm from target".
+    # The robot put every cube on the pad of its own colour; the table was
+    # measuring the distance to the other one.
+    #
+    # A CHECK THAT CANNOT FAIL IS NOT A CHECK, so this requires the old map to
+    # have been WRONG as well as the new one to be right. If they ever agree,
+    # the second assertion fires and says the control has gone inert.
+    try:
+        import msc_clip_tasks as _MCT
+        import t1_task as _T1M
+        tg = targets_for("t1")
+        chk("cube->pad is the task's own T1_PAIR",
+            all(list(tg["cube_%d" % i]) == list(_MCT.T1_PLANES[_T1M.T1_PAIR[i]])
+                for i in _T1M.T1_PAIR), True)
+        legacy = {"cube_%d" % i: _MCT.T1_PLANES[0 if i % 2 == 0 else 1]
+                  for i in _T1M.T1_PAIR}
+        chk("the pre-2026-08-23 map really was different",
+            sum(1 for k in tg if list(tg[k]) != list(legacy[k])), 2)
+    except Exception as _e:                                    # noqa: BLE001
+        bad.append("cube->pad map: %r" % (_e,))
+
     if bad:
         print("INSTRUMENT SELF-TEST FAILED:")
         for b in bad:
             print("   " + b)
         return 1
     print("instrument self-test passed (%d known answers, including two that "
-          "must FAIL on bad input)" % 5)
+          "must FAIL on bad input)" % 7)
     return 0
 
 

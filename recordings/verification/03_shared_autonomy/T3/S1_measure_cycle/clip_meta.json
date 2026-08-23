@@ -1,0 +1,13 @@
+{
+ "mode": "03_shared_autonomy",
+ "task": "t3",
+ "scenario": "S1_measure_cycle",
+ "grab_t0": 1787451942.5403929,
+ "grab_t1": 1787451961.564666,
+ "card_hold_s": 6.0,
+ "look_s": 0.0,
+ "instruction": null,
+ "seed": 3,
+ "ok": true,
+ "msg": "run exited 0"
+}

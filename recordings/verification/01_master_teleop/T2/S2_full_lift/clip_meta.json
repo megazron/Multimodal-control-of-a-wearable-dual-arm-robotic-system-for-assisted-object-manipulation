@@ -1,0 +1,13 @@
+{
+ "mode": "01_master_teleop",
+ "task": "t2",
+ "scenario": "S2_full_lift",
+ "grab_t0": 1787457939.2080579,
+ "grab_t1": 1787457950.6778107,
+ "card_hold_s": 6.0,
+ "look_s": 0.0,
+ "instruction": null,
+ "seed": 3,
+ "ok": true,
+ "msg": "run exited 0"
+}

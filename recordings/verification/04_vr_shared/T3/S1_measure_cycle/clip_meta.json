@@ -1,0 +1,13 @@
+{
+ "mode": "04_vr_shared",
+ "task": "t3",
+ "scenario": "S1_measure_cycle",
+ "grab_t0": 1787456217.5408645,
+ "grab_t1": 1787456236.5153573,
+ "card_hold_s": 6.0,
+ "look_s": 0.0,
+ "instruction": null,
+ "seed": 3,
+ "ok": true,
+ "msg": "run exited 0"
+}

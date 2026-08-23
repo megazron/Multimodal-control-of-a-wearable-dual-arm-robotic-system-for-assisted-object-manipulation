@@ -43,6 +43,13 @@ FFMPEG = os.path.expanduser("~/.local/bin/ffmpeg")
 TMP = "/tmp/claude-1000/-home-gausms-kortex-ws/3732aa29-5a7e-4c8e-b77e-379233bdc9c9/scratchpad/grip"
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# THE TASK SPECS, so `_task_releases` can read a task's own grip schedule
+# instead of this file remembering which tasks do not release.
+_WS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+for _p in (os.path.join(_WS, "src/srl_experiments/experiments/abc"),
+           os.path.join(_WS, "src/srl_teleop")):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 from verify_rviz_clips import duration                          # noqa: E402
 
 OPEN_MAX = 0.10          # below this the hand is open
@@ -94,6 +101,50 @@ def gripper_silhouette(img):
     h, _, _ = img.shape
     band = img[int(0.25 * h):int(0.80 * h), :, :]
     return float((band.max(axis=2) < 28).sum())
+
+
+# Legacy keys from the archived bimanual set. Kept because this script is
+# still pointed at old recording trees, and their schedules are not in
+# `msc_clip_tasks` to be read.
+_LEGACY_NO_RELEASE = ("t6",)
+
+
+def _task_releases(task):
+    """Does this task's GRIP SCHEDULE ever open again after closing?
+
+    Read off the task spec, so "this task does not release" is the task
+    saying so rather than this file remembering.
+
+    IT REFUSES RATHER THAN GUESSING WHEN IT CANNOT READ THE SPEC. The first
+    version wrapped the import in a bare `except` returning True -- the
+    "conservative" answer, which keeps the check on. It ran, the import
+    failed because `msc_clip_tasks` was not on the path, and every task came
+    back "releases" including the one this was written for: T2 stayed in
+    FINGERS DID NOT CYCLE while the helper reported the right answer whenever
+    it was called from anywhere else. A fallback that turns a wiring failure
+    into a plausible default is the exact defect this repository keeps
+    finding, and writing one INTO a fix for that defect is worth recording.
+    """
+    if task in _LEGACY_NO_RELEASE:
+        return False
+    import msc_clip_tasks as _MCT
+    from srl_teleop.gripper_state import CMD_OPEN_RAD, OPEN_RAD
+    spec = _MCT.TASKS.get(task)
+    if not spec or not spec.get("grip"):
+        # A task with no schedule here is a task from another set; requiring a
+        # release is the conservative reading and it is REACHED rather than
+        # fallen into.
+        return True
+    sched = spec["grip"](12)
+    seqs = list(sched.values()) if isinstance(sched, dict) else [sched]
+    for seq in seqs:
+        closed = False
+        for v in seq:
+            if v > OPEN_RAD:
+                closed = True
+            elif closed and v <= CMD_OPEN_RAD:
+                return True
+    return False
 
 
 def main():
@@ -176,7 +227,21 @@ def main():
                 seen_closed = True
             elif seen_closed and v < OPEN_MAX:
                 rel = True
-        joint_ok = opened and on_obj and (rel or task in ("t3", "t6"))
+        # A TASK WHOSE SCHEDULE NEVER OPENS AGAIN CANNOT RELEASE, AND THAT IS
+        # NOT A DEFECT.
+        #
+        # This was `rel or task in ("t3", "t6")` -- a hardcoded pair, which is
+        # a second description of a fact the task already states. T2's whole
+        # definition is "both grippers are already closed on the tray and STAY
+        # closed: the task is the carry, not the grasp", and its schedule is a
+        # constant `grip_for(30)` on every waypoint. Requiring a release from
+        # it reports a carry task as a broken grasp for ever.
+        #
+        # Read from the schedule instead. On the current set that exempts t2
+        # and nothing else -- t3 releases and passes on its own, so the
+        # hardcoded name was doing no work -- and a task added tomorrow gets
+        # the right answer without anyone remembering to edit a tuple.
+        joint_ok = opened and on_obj and (rel or not _task_releases(task))
 
         # ---- independent pixel measurement
         gv = os.path.join(d, "rviz_gripper.mp4")
@@ -234,9 +299,14 @@ def main():
     if bad:
         print("\n  FINGERS DID NOT CYCLE:")
         for r in bad:
+            # `x or -1` TURNS A REAL 0.0 INTO -1.00, and 0.0 is the OPEN
+            # hand -- the commonest reading there is. Every failure line
+            # printed "-1.00.." for a gripper whose trace started wide open,
+            # so "no data" and "opened fully" were the same sentence.
             print("    %s/%s/%s  %.2f..%.2f open=%s close=%s release=%s"
                   % (r["task"], r["scenario"], r["condition"],
-                     r["grip_min"] or -1, r["grip_max"] or -1,
+                     -1 if r["grip_min"] is None else r["grip_min"],
+                     -1 if r["grip_max"] is None else r["grip_max"],
                      r["opened"], r["closed_on_object"], r["released"]))
     json.dump(rows, open(os.path.join(OUT, "gripper_check.json"), "w"),
               indent=2)

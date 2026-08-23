@@ -1361,7 +1361,41 @@ def main(argv=None):
                         pads = (None if here is None else
                                 [here[i] + _off[i] for i in range(3)])
                         obj = pend_obj[arm] or grip_obj
-                        if (pads is not None and obj is not None
+                        # NOTHING TO ARRIVE AT MEANS NOTHING TO WAIT FOR.
+                        #
+                        # The gate below holds a commanded grip change until
+                        # the PADS REACH THE OBJECT, which is right for a pick:
+                        # closing early drives the hand shut in mid-air. But a
+                        # task that declares no object -- `grip_obj=None` --
+                        # can never satisfy it, so the change stayed pending
+                        # for the whole run and the hand never closed.
+                        #
+                        # T2 IS THAT TASK AND HAS BEEN FOR ITS WHOLE LIFE. Its
+                        # spec says "both grippers are already closed on the
+                        # tray and STAY closed: the task is the carry, not the
+                        # grasp", it schedules `grip_for(30)` on every
+                        # waypoint, and it sets `grip_obj=None` because there
+                        # is no object to arrive at. Measured on the
+                        # 2026-08-23 re-record, all five modes: the grip trace
+                        # reads 0.000 rad for every one of 620-1219 samples on
+                        # BOTH arms. CLAUDE.md records the consequence --
+                        # "T2-1 'held by BOTH grippers' is false and has been
+                        # for the life of the task" -- and the cause was this
+                        # gate, not the tray and not the arms.
+                        #
+                        # So the gate applies only where it has something to
+                        # measure. `late[arm]` is untouched for those tasks,
+                        # because a grip that was never waiting cannot be late.
+                        if obj is None:
+                            print("[progress] %s arm %s (no object declared, "
+                                  "so nothing to arrive at)"
+                                  % (arm, "CLOSED" if pend[arm] else "OPENED"),
+                                  flush=True)
+                            held_grip[arm] = pend[arm]
+                            pend[arm] = None
+                            pend_obj[arm] = None
+                            grip_wait[arm] = time.time()
+                        elif (pads is not None and obj is not None
                                 and math.dist(pads, obj) <= ARRIVE_TOL_M):
                             # SAY WHICH OBJECT, AS IT HAPPENS.
                             #

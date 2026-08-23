@@ -1,0 +1,13 @@
+{
+ "mode": "01_master_teleop",
+ "task": "t3",
+ "scenario": "S1_measure_cycle",
+ "grab_t0": 1787450263.0375228,
+ "grab_t1": 1787450280.97891,
+ "card_hold_s": 6.0,
+ "look_s": 0.0,
+ "instruction": null,
+ "seed": 3,
+ "ok": true,
+ "msg": "run exited 0"
+}

@@ -1,0 +1,13 @@
+{
+ "mode": "02_vr_teleop",
+ "task": "t2",
+ "scenario": "S2_full_lift",
+ "grab_t0": 1787459200.4297159,
+ "grab_t1": 1787459244.5048428,
+ "card_hold_s": 6.0,
+ "look_s": 0.0,
+ "instruction": null,
+ "seed": 3,
+ "ok": true,
+ "msg": "run exited 0"
+}

@@ -1,0 +1,13 @@
+{
+ "mode": "03_shared_autonomy",
+ "task": "t2",
+ "scenario": "S2_full_lift",
+ "grab_t0": 1787458516.5528605,
+ "grab_t1": 1787458527.9823883,
+ "card_hold_s": 6.0,
+ "look_s": 0.0,
+ "instruction": null,
+ "seed": 3,
+ "ok": true,
+ "msg": "run exited 0"
+}

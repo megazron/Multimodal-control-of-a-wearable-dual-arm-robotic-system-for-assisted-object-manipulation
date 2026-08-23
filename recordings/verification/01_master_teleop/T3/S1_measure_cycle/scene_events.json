@@ -2,12 +2,12 @@
   "task": "t3",
   "events": [
     {
-      "t": 49.16,
-      "wall": 1786914030.5378978,
+      "t": 50.25,
+      "wall": 1787450267.6462398,
       "ev": "GRASPED",
       "item": "circuit_box",
       "arm": "right",
-      "knuckle": 0.3005,
+      "knuckle": 0.3073,
       "needed": 0.2965,
       "at": [
         -0.54,
@@ -16,12 +16,12 @@
       ]
     },
     {
-      "t": 49.52,
-      "wall": 1786914030.8989573,
+      "t": 51.56,
+      "wall": 1787450268.947651,
       "ev": "GRASPED",
       "item": "multimeter",
       "arm": "left",
-      "knuckle": 0.484,
+      "knuckle": 0.4713,
       "needed": 0.4659,
       "at": [
         0.34,
@@ -30,29 +30,29 @@
       ]
     },
     {
-      "t": 54.13,
-      "wall": 1786914035.501757,
+      "t": 56.25,
+      "wall": 1787450273.6428494,
       "ev": "RELEASED",
       "item": "multimeter",
       "arm": "left",
-      "carried_m": 0.1604,
+      "carried_m": 0.1609,
       "at": [
-        0.34,
-        0.19,
-        1.1225
+        0.3379,
+        0.2014,
+        1.1294
       ]
     },
     {
-      "t": 54.43,
-      "wall": 1786914035.8031766,
+      "t": 56.85,
+      "wall": 1787450274.2458906,
       "ev": "RELEASED",
       "item": "circuit_box",
       "arm": "right",
-      "carried_m": 0.1604,
+      "carried_m": 0.1839,
       "at": [
-        -0.54,
-        0.17,
-        1.125
+        -0.5365,
+        0.182,
+        1.1301
       ]
     }
   ],
@@ -61,15 +61,15 @@
       "item": "circuit_box",
       "arm": "right",
       "width_mm": 50,
-      "carried_m": 0.1604,
+      "carried_m": 0.1839,
       "final": [
-        -0.54,
-        0.17,
-        1.125
+        -0.5365,
+        0.182,
+        1.1301
       ],
       "still_held": false,
       "min_pad_obj_m": 0.0,
-      "min_pad_obj_knuckle": 0.3291,
+      "min_pad_obj_knuckle": 0.3294,
       "min_pad_obj_closed_m": 0.0,
       "grasp_near_m": 0.03
     },
@@ -77,15 +77,15 @@
       "item": "multimeter",
       "arm": "left",
       "width_mm": 30,
-      "carried_m": 0.1604,
+      "carried_m": 0.1609,
       "final": [
-        0.34,
-        0.19,
-        1.1225
+        0.3379,
+        0.2014,
+        1.1294
       ],
       "still_held": false,
       "min_pad_obj_m": 0.0,
-      "min_pad_obj_knuckle": 0.5147,
+      "min_pad_obj_knuckle": 0.5128,
       "min_pad_obj_closed_m": 0.0,
       "grasp_near_m": 0.03
     }
@@ -100,36 +100,36 @@
     "table"
   ],
   "ee_samples": {
-    "left": 610,
-    "right": 610
+    "left": 635,
+    "right": 635
   },
   "ee_metric_caveat": "ee_travel_m is a sum of |dp| over TICKS and ee_net_m is anchored on the first pose this node saw, so both depend on the observation window. Compare only against runs with a comparable ee_samples, and see findings.md 2026-08-15 finding 3.",
   "ee_travel_m": {
-    "left": 1.4821,
-    "right": 0.9946
+    "left": 0.751,
+    "right": 0.6475
   },
   "ee_net_m": {
-    "left": 0.211,
-    "right": 0.3677
+    "left": 0.4657,
+    "right": 0.3118
   },
-  "t0_wall": 1786913981.3757038,
+  "t0_wall": 1787450217.391452,
   "carry_series": [],
   "carry_summary": null,
   "pad_off": [
-    0.0289,
-    0.0995,
-    0.0421
+    0.025439,
+    0.087484,
+    0.03699
   ],
   "pad_off_by_arm": {
-    "left": [
-      -0.0171,
-      0.0945,
-      0.0572
-    ],
     "right": [
-      0.0289,
-      0.0995,
-      0.0421
+      0.025439,
+      0.087484,
+      0.03699
+    ],
+    "left": [
+      -0.015013,
+      0.083148,
+      0.050297
     ]
   }
 }

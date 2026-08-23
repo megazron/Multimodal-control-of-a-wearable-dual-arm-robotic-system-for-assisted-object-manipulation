@@ -77,27 +77,54 @@
     "opened_on": "presentation",
     "quad": true,
     "scenario": "D3_three_targets",
+    "started_from_home": {
+      "after_approach": {
+        "at": "at waypoint 0 (after the approach)",
+        "per_arm": {
+          "left": 1.1994,
+          "right": 1.2484
+        },
+        "worst_rad": 1.2484
+      },
+      "allow_unhomed": false,
+      "at_home": true,
+      "measured_at": "before approach-the-start",
+      "mode": "01_master_teleop",
+      "per_arm": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "task": "m0",
+      "tol_rad": 0.05,
+      "trail": [
+        {
+          "at": "after require_home",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "before approach-the-start",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "at waypoint 0 (after the approach)",
+          "per_arm": {
+            "left": 1.1994,
+            "right": 1.2484
+          },
+          "worst_rad": 1.2484
+        }
+      ],
+      "worst_rad": 0.0
+    },
     "task": "t0"
-  },
-  "01_master_teleop/t2/S2_full_lift": {
-    "dir": "recordings/verification/01_master_teleop/T2/S2_full_lift",
-    "files": [
-      "rviz_back.mp4",
-      "rviz_front.mp4",
-      "rviz_gripper.mp4",
-      "rviz_iso.mp4",
-      "rviz_left.mp4",
-      "rviz_quad.mp4",
-      "rviz_right.mp4",
-      "rviz_top.mp4"
-    ],
-    "mode": "01_master_teleop",
-    "msg": "run exited 0",
-    "ok": true,
-    "opened_on": "presentation",
-    "quad": true,
-    "scenario": "S2_full_lift",
-    "task": "t2"
   },
   "01_master_teleop/t3/S1_measure_cycle": {
     "dir": "recordings/verification/01_master_teleop/T3/S1_measure_cycle",
@@ -117,6 +144,53 @@
     "opened_on": "presentation",
     "quad": true,
     "scenario": "S1_measure_cycle",
+    "started_from_home": {
+      "after_approach": {
+        "at": "at waypoint 0 (after the approach)",
+        "per_arm": {
+          "left": 1.0483,
+          "right": 0.6659
+        },
+        "worst_rad": 1.0483
+      },
+      "allow_unhomed": false,
+      "at_home": true,
+      "measured_at": "before approach-the-start",
+      "mode": "01_master_teleop",
+      "per_arm": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "task": "m3",
+      "tol_rad": 0.05,
+      "trail": [
+        {
+          "at": "after require_home",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "before approach-the-start",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "at waypoint 0 (after the approach)",
+          "per_arm": {
+            "left": 1.0483,
+            "right": 0.6659
+          },
+          "worst_rad": 1.0483
+        }
+      ],
+      "worst_rad": 0.0
+    },
     "task": "t3"
   },
   "02_vr_teleop/d1/D1_flow": {
@@ -177,27 +251,54 @@
     "opened_on": "presentation",
     "quad": true,
     "scenario": "D3_three_targets",
+    "started_from_home": {
+      "after_approach": {
+        "at": "at waypoint 0 (after the approach)",
+        "per_arm": {
+          "left": 1.197,
+          "right": 1.2421
+        },
+        "worst_rad": 1.2421
+      },
+      "allow_unhomed": false,
+      "at_home": true,
+      "measured_at": "before approach-the-start",
+      "mode": "02_vr_teleop",
+      "per_arm": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "task": "m0",
+      "tol_rad": 0.05,
+      "trail": [
+        {
+          "at": "after require_home",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "before approach-the-start",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "at waypoint 0 (after the approach)",
+          "per_arm": {
+            "left": 1.197,
+            "right": 1.2421
+          },
+          "worst_rad": 1.2421
+        }
+      ],
+      "worst_rad": 0.0
+    },
     "task": "t0"
-  },
-  "02_vr_teleop/t2/S2_full_lift": {
-    "dir": "recordings/verification/02_vr_teleop/T2/S2_full_lift",
-    "files": [
-      "rviz_back.mp4",
-      "rviz_front.mp4",
-      "rviz_gripper.mp4",
-      "rviz_iso.mp4",
-      "rviz_left.mp4",
-      "rviz_quad.mp4",
-      "rviz_right.mp4",
-      "rviz_top.mp4"
-    ],
-    "mode": "02_vr_teleop",
-    "msg": "run exited 0",
-    "ok": true,
-    "opened_on": "presentation",
-    "quad": true,
-    "scenario": "S2_full_lift",
-    "task": "t2"
   },
   "02_vr_teleop/t3/S1_measure_cycle": {
     "dir": "recordings/verification/02_vr_teleop/T3/S1_measure_cycle",
@@ -217,6 +318,53 @@
     "opened_on": "presentation",
     "quad": true,
     "scenario": "S1_measure_cycle",
+    "started_from_home": {
+      "after_approach": {
+        "at": "at waypoint 0 (after the approach)",
+        "per_arm": {
+          "left": 0.931,
+          "right": 0.6629
+        },
+        "worst_rad": 0.931
+      },
+      "allow_unhomed": false,
+      "at_home": true,
+      "measured_at": "before approach-the-start",
+      "mode": "02_vr_teleop",
+      "per_arm": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "task": "m3",
+      "tol_rad": 0.05,
+      "trail": [
+        {
+          "at": "after require_home",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "before approach-the-start",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "at waypoint 0 (after the approach)",
+          "per_arm": {
+            "left": 0.931,
+            "right": 0.6629
+          },
+          "worst_rad": 0.931
+        }
+      ],
+      "worst_rad": 0.0
+    },
     "task": "t3"
   },
   "03_shared_autonomy/d1/D1_flow": {
@@ -277,27 +425,54 @@
     "opened_on": "presentation",
     "quad": true,
     "scenario": "D3_three_targets",
+    "started_from_home": {
+      "after_approach": {
+        "at": "at waypoint 0 (after the approach)",
+        "per_arm": {
+          "left": 1.1995,
+          "right": 1.2482
+        },
+        "worst_rad": 1.2482
+      },
+      "allow_unhomed": false,
+      "at_home": true,
+      "measured_at": "before approach-the-start",
+      "mode": "03_shared_autonomy",
+      "per_arm": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "task": "m0",
+      "tol_rad": 0.05,
+      "trail": [
+        {
+          "at": "after require_home",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "before approach-the-start",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "at waypoint 0 (after the approach)",
+          "per_arm": {
+            "left": 1.1995,
+            "right": 1.2482
+          },
+          "worst_rad": 1.2482
+        }
+      ],
+      "worst_rad": 0.0
+    },
     "task": "t0"
-  },
-  "03_shared_autonomy/t2/S2_full_lift": {
-    "dir": "recordings/verification/03_shared_autonomy/T2/S2_full_lift",
-    "files": [
-      "rviz_back.mp4",
-      "rviz_front.mp4",
-      "rviz_gripper.mp4",
-      "rviz_iso.mp4",
-      "rviz_left.mp4",
-      "rviz_quad.mp4",
-      "rviz_right.mp4",
-      "rviz_top.mp4"
-    ],
-    "mode": "03_shared_autonomy",
-    "msg": "run exited 0",
-    "ok": true,
-    "opened_on": "presentation",
-    "quad": true,
-    "scenario": "S2_full_lift",
-    "task": "t2"
   },
   "03_shared_autonomy/t3/S1_measure_cycle": {
     "dir": "recordings/verification/03_shared_autonomy/T3/S1_measure_cycle",
@@ -317,6 +492,53 @@
     "opened_on": "presentation",
     "quad": true,
     "scenario": "S1_measure_cycle",
+    "started_from_home": {
+      "after_approach": {
+        "at": "at waypoint 0 (after the approach)",
+        "per_arm": {
+          "left": 1.0689,
+          "right": 0.6658
+        },
+        "worst_rad": 1.0689
+      },
+      "allow_unhomed": false,
+      "at_home": true,
+      "measured_at": "before approach-the-start",
+      "mode": "03_shared_autonomy",
+      "per_arm": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "task": "m3",
+      "tol_rad": 0.05,
+      "trail": [
+        {
+          "at": "after require_home",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "before approach-the-start",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "at waypoint 0 (after the approach)",
+          "per_arm": {
+            "left": 1.0689,
+            "right": 0.6658
+          },
+          "worst_rad": 1.0689
+        }
+      ],
+      "worst_rad": 0.0
+    },
     "task": "t3"
   },
   "04_vr_shared/d1/D1_flow": {
@@ -377,27 +599,54 @@
     "opened_on": "presentation",
     "quad": true,
     "scenario": "D3_three_targets",
+    "started_from_home": {
+      "after_approach": {
+        "at": "at waypoint 0 (after the approach)",
+        "per_arm": {
+          "left": 1.1997,
+          "right": 1.2484
+        },
+        "worst_rad": 1.2484
+      },
+      "allow_unhomed": false,
+      "at_home": true,
+      "measured_at": "before approach-the-start",
+      "mode": "04_vr_shared",
+      "per_arm": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "task": "m0",
+      "tol_rad": 0.05,
+      "trail": [
+        {
+          "at": "after require_home",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "before approach-the-start",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "at waypoint 0 (after the approach)",
+          "per_arm": {
+            "left": 1.1997,
+            "right": 1.2484
+          },
+          "worst_rad": 1.2484
+        }
+      ],
+      "worst_rad": 0.0
+    },
     "task": "t0"
-  },
-  "04_vr_shared/t2/S2_full_lift": {
-    "dir": "recordings/verification/04_vr_shared/T2/S2_full_lift",
-    "files": [
-      "rviz_back.mp4",
-      "rviz_front.mp4",
-      "rviz_gripper.mp4",
-      "rviz_iso.mp4",
-      "rviz_left.mp4",
-      "rviz_quad.mp4",
-      "rviz_right.mp4",
-      "rviz_top.mp4"
-    ],
-    "mode": "04_vr_shared",
-    "msg": "run exited 0",
-    "ok": true,
-    "opened_on": "presentation",
-    "quad": true,
-    "scenario": "S2_full_lift",
-    "task": "t2"
   },
   "04_vr_shared/t3/S1_measure_cycle": {
     "dir": "recordings/verification/04_vr_shared/T3/S1_measure_cycle",
@@ -417,6 +666,53 @@
     "opened_on": "presentation",
     "quad": true,
     "scenario": "S1_measure_cycle",
+    "started_from_home": {
+      "after_approach": {
+        "at": "at waypoint 0 (after the approach)",
+        "per_arm": {
+          "left": 1.0563,
+          "right": 0.6658
+        },
+        "worst_rad": 1.0563
+      },
+      "allow_unhomed": false,
+      "at_home": true,
+      "measured_at": "before approach-the-start",
+      "mode": "04_vr_shared",
+      "per_arm": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "task": "m3",
+      "tol_rad": 0.05,
+      "trail": [
+        {
+          "at": "after require_home",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "before approach-the-start",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "at waypoint 0 (after the approach)",
+          "per_arm": {
+            "left": 1.0563,
+            "right": 0.6658
+          },
+          "worst_rad": 1.0563
+        }
+      ],
+      "worst_rad": 0.0
+    },
     "task": "t3"
   },
   "06_full_autonomy/d1/D1_flow": {
@@ -526,8 +822,8 @@
     },
     "task": "t0"
   },
-  "06_full_autonomy/t2/S2_full_lift": {
-    "dir": "recordings/verification/06_full_autonomy/T2/S2_full_lift",
+  "06_full_autonomy/t1/S1_both_arms_centre": {
+    "dir": "recordings/verification/06_full_autonomy/T1/S1_both_arms_centre",
     "files": [
       "rviz_back.mp4",
       "rviz_front.mp4",
@@ -543,15 +839,15 @@
     "ok": true,
     "opened_on": "presentation",
     "quad": true,
-    "scenario": "S2_full_lift",
+    "scenario": "S1_both_arms_centre",
     "started_from_home": {
       "after_approach": {
         "at": "at waypoint 0 (after the approach)",
         "per_arm": {
-          "left": 0.699,
-          "right": 0.7855
+          "left": 0.5105,
+          "right": 0.7162
         },
-        "worst_rad": 0.7855
+        "worst_rad": 0.7162
       },
       "allow_unhomed": false,
       "at_home": true,
@@ -561,7 +857,7 @@
         "left": 0.0,
         "right": 0.0
       },
-      "task": "m2",
+      "task": "m1",
       "tol_rad": 0.05,
       "trail": [
         {
@@ -583,15 +879,82 @@
         {
           "at": "at waypoint 0 (after the approach)",
           "per_arm": {
-            "left": 0.699,
-            "right": 0.7855
+            "left": 0.5105,
+            "right": 0.7162
           },
-          "worst_rad": 0.7855
+          "worst_rad": 0.7162
         }
       ],
       "worst_rad": 0.0
     },
-    "task": "t2"
+    "task": "t1"
+  },
+  "06_full_autonomy/t1s2/S2_both_arms_random": {
+    "dir": "recordings/verification/06_full_autonomy/T1S2/S2_both_arms_random",
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "mode": "06_full_autonomy",
+    "msg": "run exited 0",
+    "ok": true,
+    "opened_on": "presentation",
+    "quad": true,
+    "scenario": "S2_both_arms_random",
+    "started_from_home": {
+      "after_approach": {
+        "at": "at waypoint 0 (after the approach)",
+        "per_arm": {
+          "left": 0.5004,
+          "right": 0.7162
+        },
+        "worst_rad": 0.7162
+      },
+      "allow_unhomed": false,
+      "at_home": true,
+      "measured_at": "before approach-the-start",
+      "mode": "06_full_autonomy",
+      "per_arm": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "task": "m1s2",
+      "tol_rad": 0.05,
+      "trail": [
+        {
+          "at": "after require_home",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "before approach-the-start",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "at waypoint 0 (after the approach)",
+          "per_arm": {
+            "left": 0.5004,
+            "right": 0.7162
+          },
+          "worst_rad": 0.7162
+        }
+      ],
+      "worst_rad": 0.0
+    },
+    "task": "t1s2"
   },
   "06_full_autonomy/t3/S1_measure_cycle": {
     "dir": "recordings/verification/06_full_autonomy/T3/S1_measure_cycle",
@@ -611,6 +974,388 @@
     "opened_on": "presentation",
     "quad": true,
     "scenario": "S1_measure_cycle",
+    "started_from_home": {
+      "after_approach": {
+        "at": "at waypoint 0 (after the approach)",
+        "per_arm": {
+          "left": 1.0692,
+          "right": 0.6659
+        },
+        "worst_rad": 1.0692
+      },
+      "allow_unhomed": false,
+      "at_home": true,
+      "measured_at": "before approach-the-start",
+      "mode": "06_full_autonomy",
+      "per_arm": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "task": "m3",
+      "tol_rad": 0.05,
+      "trail": [
+        {
+          "at": "after require_home",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "before approach-the-start",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "at waypoint 0 (after the approach)",
+          "per_arm": {
+            "left": 1.0692,
+            "right": 0.6659
+          },
+          "worst_rad": 1.0692
+        }
+      ],
+      "worst_rad": 0.0
+    },
     "task": "t3"
+  },
+  "06_full_autonomy/t2/S2_full_lift": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "06_full_autonomy",
+    "task": "t2",
+    "scenario": "S2_full_lift",
+    "quad": true,
+    "opened_on": "presentation",
+    "started_from_home": {
+      "task": "m2",
+      "mode": "06_full_autonomy",
+      "tol_rad": 0.05,
+      "per_arm": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "worst_rad": 0.0,
+      "at_home": true,
+      "measured_at": "before approach-the-start",
+      "after_approach": {
+        "at": "at waypoint 0 (after the approach)",
+        "per_arm": {
+          "left": 0.6901,
+          "right": 0.8271
+        },
+        "worst_rad": 0.8271
+      },
+      "trail": [
+        {
+          "at": "after require_home",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "before approach-the-start",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "at waypoint 0 (after the approach)",
+          "per_arm": {
+            "left": 0.6901,
+            "right": 0.8271
+          },
+          "worst_rad": 0.8271
+        }
+      ],
+      "allow_unhomed": false
+    },
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/06_full_autonomy/T2/S2_full_lift"
+  },
+  "01_master_teleop/t2/S2_full_lift": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "01_master_teleop",
+    "task": "t2",
+    "scenario": "S2_full_lift",
+    "quad": true,
+    "opened_on": "presentation",
+    "started_from_home": {
+      "task": "m2",
+      "mode": "01_master_teleop",
+      "tol_rad": 0.05,
+      "per_arm": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "worst_rad": 0.0,
+      "at_home": true,
+      "measured_at": "before approach-the-start",
+      "after_approach": {
+        "at": "at waypoint 0 (after the approach)",
+        "per_arm": {
+          "left": 0.6916,
+          "right": 0.785
+        },
+        "worst_rad": 0.785
+      },
+      "trail": [
+        {
+          "at": "after require_home",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "before approach-the-start",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "at waypoint 0 (after the approach)",
+          "per_arm": {
+            "left": 0.6916,
+            "right": 0.785
+          },
+          "worst_rad": 0.785
+        }
+      ],
+      "allow_unhomed": false
+    },
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/01_master_teleop/T2/S2_full_lift"
+  },
+  "03_shared_autonomy/t2/S2_full_lift": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "03_shared_autonomy",
+    "task": "t2",
+    "scenario": "S2_full_lift",
+    "quad": true,
+    "opened_on": "presentation",
+    "started_from_home": {
+      "task": "m2",
+      "mode": "03_shared_autonomy",
+      "tol_rad": 0.05,
+      "per_arm": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "worst_rad": 0.0,
+      "at_home": true,
+      "measured_at": "before approach-the-start",
+      "after_approach": {
+        "at": "at waypoint 0 (after the approach)",
+        "per_arm": {
+          "left": 0.6971,
+          "right": 0.7839
+        },
+        "worst_rad": 0.7839
+      },
+      "trail": [
+        {
+          "at": "after require_home",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "before approach-the-start",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "at waypoint 0 (after the approach)",
+          "per_arm": {
+            "left": 0.6971,
+            "right": 0.7839
+          },
+          "worst_rad": 0.7839
+        }
+      ],
+      "allow_unhomed": false
+    },
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/03_shared_autonomy/T2/S2_full_lift"
+  },
+  "02_vr_teleop/t2/S2_full_lift": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "02_vr_teleop",
+    "task": "t2",
+    "scenario": "S2_full_lift",
+    "quad": true,
+    "opened_on": "presentation",
+    "started_from_home": {
+      "task": "m2",
+      "mode": "02_vr_teleop",
+      "tol_rad": 0.05,
+      "per_arm": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "worst_rad": 0.0,
+      "at_home": true,
+      "measured_at": "before approach-the-start",
+      "after_approach": {
+        "at": "at waypoint 0 (after the approach)",
+        "per_arm": {
+          "left": 0.7041,
+          "right": 0.9989
+        },
+        "worst_rad": 0.9989
+      },
+      "trail": [
+        {
+          "at": "after require_home",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "before approach-the-start",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "at waypoint 0 (after the approach)",
+          "per_arm": {
+            "left": 0.7041,
+            "right": 0.9989
+          },
+          "worst_rad": 0.9989
+        }
+      ],
+      "allow_unhomed": false
+    },
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/02_vr_teleop/T2/S2_full_lift"
+  },
+  "04_vr_shared/t2/S2_full_lift": {
+    "ok": true,
+    "msg": "run exited 0",
+    "mode": "04_vr_shared",
+    "task": "t2",
+    "scenario": "S2_full_lift",
+    "quad": true,
+    "opened_on": "presentation",
+    "started_from_home": {
+      "task": "m2",
+      "mode": "04_vr_shared",
+      "tol_rad": 0.05,
+      "per_arm": {
+        "left": 0.0,
+        "right": 0.0
+      },
+      "worst_rad": 0.0,
+      "at_home": true,
+      "measured_at": "before approach-the-start",
+      "after_approach": {
+        "at": "at waypoint 0 (after the approach)",
+        "per_arm": {
+          "left": 0.6825,
+          "right": 0.7936
+        },
+        "worst_rad": 0.7936
+      },
+      "trail": [
+        {
+          "at": "after require_home",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "before approach-the-start",
+          "per_arm": {
+            "left": 0.0,
+            "right": 0.0
+          },
+          "worst_rad": 0.0
+        },
+        {
+          "at": "at waypoint 0 (after the approach)",
+          "per_arm": {
+            "left": 0.6825,
+            "right": 0.7936
+          },
+          "worst_rad": 0.7936
+        }
+      ],
+      "allow_unhomed": false
+    },
+    "files": [
+      "rviz_back.mp4",
+      "rviz_front.mp4",
+      "rviz_gripper.mp4",
+      "rviz_iso.mp4",
+      "rviz_left.mp4",
+      "rviz_quad.mp4",
+      "rviz_right.mp4",
+      "rviz_top.mp4"
+    ],
+    "dir": "recordings/verification/04_vr_shared/T2/S2_full_lift"
   }
 }

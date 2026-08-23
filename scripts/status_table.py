@@ -221,6 +221,22 @@ def planned():
     return {(key[k], m) for k, v in MS.PLAN.items() for m in v[0]}
 
 
+def _task_runs_here(task, mode):
+    """Does this task declare it runs under `mode`? () means "any".
+
+    Through `record_abc_sweep._task_modes`, which reads the task spec, so this
+    table and the recorder cannot disagree about what the set is meant to
+    contain -- and they did: the sweep skipped T1 under four modes by the
+    task's own declaration while this file called each skip a REAL GAP.
+    """
+    try:
+        from record_abc_sweep import _task_modes
+    except Exception:                                          # noqa: BLE001
+        return True
+    declared = _task_modes("msc", task)
+    return (not declared) or mode in declared
+
+
 def main():
     clip_report = {}
     b, c, d = built(), clips(clip_report), data()
@@ -249,7 +265,21 @@ def main():
             # CLIPS are a verification artefact and are filmed for EVERY
             # mode; DATA follows the plan. So a missing clip is always a gap,
             # while missing data is a gap only inside the plan.
-            cell = ("C" if has_clip else "c")
+            #
+            # EXCEPT WHERE THE TASK DECLARES ITS OWN MODES, and T1 and T1S2 do:
+            # they run under 06_full_autonomy only -- T1 carries its own
+            # approach and is driven from a typed sentence, and the sweep
+            # prints "SKIP (t1 runs under 06_full_autonomy only)". This table
+            # was calling the other four modes REAL GAPS, so a set that is
+            # complete by the task's own declaration reported four defects.
+            # That is CLAUDE.md's "a gap that is not a gap" row exactly: a
+            # by-design absence rendered identically to a missing clip.
+            #
+            # Read off the TASK SPEC through the same helper the sweep uses,
+            # not listed here. A list in this file would be a second
+            # description of the same fact.
+            cell = ("C" if has_clip else
+                    ("-" if not _task_runs_here(k, m) else "c"))
             cell += ("D" if got else ("d" if in_plan else "-"))
             row += " %-13s" % cell
         print(row)
@@ -259,8 +289,14 @@ def main():
     sys.path.insert(0, os.path.join(WS, "src", "srl_experiments"))
     from srl_experiments.by_design import Expectation
     all_cells = [(t, m) for t, _ in TASKS for m in MODES]
-    clip_exp = Expectation(all_cells, label="the clip sweep",
-                           reason="clips are filmed for EVERY mode")
+    # EVERY MODE THE TASK DECLARES IT RUNS UNDER, which is not every mode.
+    # T1 and T1S2 run under 06 only; expecting a clip of them in the other
+    # four made a complete set report four defects.
+    expected_cells = {(k, m) for (k, m) in all_cells
+                      if _task_runs_here(k, m)}
+    clip_exp = Expectation(expected_cells, label="the clip sweep",
+                           reason="clips are filmed for every mode a task "
+                                  "declares it runs under")
     data_exp = Expectation(pl or set(), label="the session plan")
     gaps_c = clip_exp.gaps(c)
     gaps_d = data_exp.gaps(d)

@@ -1,0 +1,13 @@
+{
+ "mode": "01_master_teleop",
+ "task": "t0",
+ "scenario": "D3_three_targets",
+ "grab_t0": 1787447892.1027007,
+ "grab_t1": 1787447908.5822747,
+ "card_hold_s": 6.0,
+ "look_s": 0.0,
+ "instruction": null,
+ "seed": 3,
+ "ok": true,
+ "msg": "run exited 0"
+}

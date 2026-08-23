@@ -6835,3 +6835,87 @@ red with a result from a different stage. One file per stage now.
   1.88 mm with `terminal_overshoot` on, and it stays off: it and the
   `deadband_deg` 1.0 → 0.10 change are two corrections for one error and
   neither has been tried on hardware.
+
+## 7. THE RE-RECORD, AND THE FOUR THINGS IT FOUND THAT NOTHING ELSE COULD
+
+The whole verification set was re-recorded on 2026-08-23 against the fixed
+geometry -- 17 cells, eight camera angles each. The old set is in
+`archive/recordings/verification_20260823_pre_accuracy_pass`.
+
+**The recording is what caught my own regression.** Moving T1's grasp onto the
+gripper-opening-aware pad offset changed the TASK side and not the SCENE side,
+so `clip_scene` drew T1's cubes 11.43 mm from where the hand was told to
+close. The clip came back `1 OBJECT(S) NEVER MOVED: cube_2` on a run whose
+runner exited 0, whose four cubes were all detected at the right coordinates,
+and whose gripper closed. Nothing downstream could tell, because the scene is
+also what SCORES the grasp -- it measures the pads against the object IT drew,
+so a consistent-but-wrong pair scores perfectly and moving one side scores a
+miss. That disagreement has now produced that sentence three times (49 mm,
+111.8 mm, 11.43 mm) and is asserted directly per task and per arm, with a
+control that feeds the check the old offset and requires it to fail.
+
+**T2's grippers have never closed, and the tray was not why.** CLAUDE.md
+records "T2-1 'held by BOTH grippers' is false and has been for the life of
+the task" and attributes it to the elastic tray hiding it. The tray was made
+rigid on 2026-08-16 and the fresh clips still read **0.000 rad for every one
+of 620-1219 samples on both arms, in all five modes**. The cause is a gate:
+`run_abc` holds a commanded grip until the pads REACH THE OBJECT, which is
+right for a pick and unsatisfiable for a task that declares `grip_obj=None` --
+and T2 declares that, because its own spec says the grippers start closed on
+the tray and stay closed. The change stayed pending for the whole run, every
+run. A grip change with no object is applied on the spot now, and the arrival
+gate stays for tasks that do declare one. Re-recorded: **0.0000 -> 0.5176 rad
+on both arms in all five modes**, and 0.5176 is exactly the `grip_for(30)` the
+schedule asks for. `verify_gripper_motion` goes 8 of 12 to **12 of 12**.
+
+**Three instruments were reporting defects that did not exist.**
+
+  * `accuracy_table` mapped cubes to pads with `i % 2` -- a single-arm
+    alternating row -- while T1 has been two-armed since 2026-08-16 with the
+    pads straddling the centreline. Cubes 1 and 2 were scored against the pad
+    **0.58 m away**: placement read **319.7 mm with 264 mm of variance** on
+    clips whose own scene log says "placed 56 mm from target". Read from
+    `T1_PAIR` now: **56.3 mm, variance 0.59 mm**.
+  * `status_table` called T1 under four modes a REAL GAP. T1 and T1S2 declare
+    they run under `06_full_autonomy` only and the recorder honours it,
+    printing `SKIP (t1 runs under 06 only)`. A by-design absence rendered
+    identically to a missing clip, which is CLAUDE.md's own row. It reads the
+    task's declaration through the same helper the recorder uses.
+  * `verify_gripper_motion` required a RELEASE from every grasp task, with a
+    hardcoded `task in ("t3", "t6")` exemption. T2's whole definition is that
+    it never releases. Derived from the task's own schedule now -- which
+    exempts t2 and nothing else, because t3 releases and the hardcoded name
+    was doing no work.
+
+**And a fallback I wrote into that last fix did exactly what this page keeps
+describing.** `_task_releases` wrapped its import in a bare `except` returning
+the conservative answer. The import failed -- `msc_clip_tasks` was not on the
+path -- so every task came back "releases", including the one the helper was
+written for, while the same function returned the right answer whenever it was
+called from anywhere else. A fallback that turns a wiring failure into a
+plausible default, written into a fix for that same defect. It raises now.
+
+### WHAT THE FRESH SET MEASURES
+
+    grasp success, all five modes        100%
+    positioning error at closure         0.000 mm
+    T1 placement                         56.3 mm   (var 0.59 mm)
+    verify_rviz_clips                    33 of 33
+    verify_gripper_motion                12 of 12
+    status_table REAL GAPS               NONE
+
+`verify_object_attachment` reports NOT IMPLEMENTED for the 17 MSc clips and
+says so rather than counting them N/A -- it has no pixel rule for this task
+set. That is a stated gap, not a pass.
+
+### STILL OPEN AFTER THE RE-RECORD
+
+  * one of the five T2 clips (03_shared_autonomy) closes to **0.793 rad**,
+    past the 0.74 free-air bound, with the gripper silhouette unchanged
+    between its open and shut frames -- the fingers closed on nothing. The
+    other four close to 0.5176 on the tray.
+  * T1's exact grasp is still refused by T1's own table; the follower supplies
+    5.0 deg of tilt, costing 9.58 mm of the 30 mm gate.
+  * dance d2 and d3 still have 68 unreachable waypoints and are deliberately
+    NOT re-recorded -- filming a routine the verifier will not certify is how
+    a clip of the robot stalling gets filed as a demonstration.

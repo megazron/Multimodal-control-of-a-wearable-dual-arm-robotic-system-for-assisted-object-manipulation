@@ -1,0 +1,431 @@
+#!/usr/bin/env python3
+"""PICK AND PLACE FROM THE MAP THE ROBOT MEASURED. No declared coordinates.
+
+    python3 scripts/pick_from_map.py --self-test              # no stack
+    ./.venv_vision/bin/python scripts/pick_from_map.py --arm left --list
+    ./.venv_vision/bin/python scripts/pick_from_map.py --arm left \\
+        --object 2 --to 0.29 0.50 --execute
+
+WHAT IS DIFFERENT ABOUT THIS
+----------------------------
+Everything else in this repository that picks something up was told where it
+is. `run_abc` builds T1's path from `T1_CUBES`, a list of four coordinates in
+a source file; the cubes are at (+/-0.42, 0.45) because a file says so. That
+is verified N=10 over densified paths and it survives exactly one cell -- a
+different table, a different object, or the same object moved 50 mm, and the
+number in the file is a lie the arm acts on confidently.
+
+This one reads `recordings/baselines/world_map.json` -- what the arm SAW
+during the calibration sweep -- and picks an object out of it. Move the cube
+and the plan moves. Put a different object down and it appears in the list.
+Nothing here knows what T1 is.
+
+THE PLANNER IS GIVEN THE MAP, WHICH HAS NEVER HAPPENED
+------------------------------------------------------
+`joint_planner.VoxelWorld` has existed and been tested since it was written
+and was CONSTRUCTED NOWHERE outside its own self-test. So every joint path
+this repository has ever planned knew about the wearer and nothing else -- not
+the table, not the objects, not the tray. `world_from_map` is the seam and
+this is its first consumer: the transit from home to the pregrasp is planned
+against the measured surface, so the arm goes over the table rather than
+through it.
+
+The wearer is UNCHANGED and still comes from `clearance.py` at the 0.15 m
+floor. The map may add obstacles; it may not remove one. That direction is the
+whole safety case and it is the same rule the wearer tracker follows.
+
+WHAT THIS DOES NOT DO
+---------------------
+It does not decide WHICH object you want. `--object`, `--nearest` and
+`--colour` all name one, and with none of them it refuses rather than picking
+the biggest thing and calling that the answer. Grounding a phrase like "the
+green one" is `prompt_detector`'s job and it is a separate question from
+whether the arm can reach it.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import os
+import sys
+import time
+
+import numpy as np
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+for _p in (HERE, os.path.join(ROOT, "config"),
+           os.path.join(ROOT, "src/srl_perception"),
+           os.path.join(ROOT, "src/srl_experiments"),
+           os.path.join(ROOT, "src/srl_teleop")):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+from srl_experiments import narration as N                   # noqa: E402
+from srl_perception import joint_planner as JP               # noqa: E402
+
+MAP = os.path.join(ROOT, "recordings/baselines/world_map.json")
+# How far back along the approach the hand waits before closing on the object.
+STANDOFF_M = 0.12
+# How far the object is lifted before it is carried anywhere.
+LIFT_M = 0.10
+# The gripper, in knuckle radians. 0 is open; this rig's closed-on-a-40mm-cube
+# value is what `run_abc` uses and it is not recomputed here.
+GRIP_OPEN_RAD = 0.0
+GRIP_CLOSED_RAD = 0.5176
+
+
+class PickRefusal(Exception):
+    """Named, with the stage it failed at. Never a silent fallback."""
+
+
+# ------------------------------------------------------------------ the map
+
+def load_map(path=MAP):
+    """The map, plus its occupancy points if they were written beside it."""
+    with open(path) as f:
+        doc = json.load(f)
+    occ = None
+    npy = os.path.splitext(path)[0] + "_occupancy.npy"
+    if os.path.exists(npy):
+        occ = np.load(npy)
+    doc["_occupancy"] = occ
+    doc["_path"] = path
+    return doc
+
+
+def choose(doc, index=None, nearest=None, colour=None, graspable_only=True):
+    """WHICH OBJECT, and it refuses to guess.
+
+    A picker with no target that quietly takes the largest object is the
+    "feature present but does nothing" row of the instrument table wearing a
+    different hat: it always returns something, so it always looks like it
+    worked.
+    """
+    objs = list(doc["objects"])
+    for i, o in enumerate(objs):
+        o["_i"] = i
+    if graspable_only:
+        objs = [o for o in objs if o.get("graspable")]
+        if not objs:
+            raise PickRefusal(
+                "the map has %d object(s) and NONE of them is graspable. Each "
+                "was refused for its own reason: %s"
+                % (len(doc["objects"]),
+                   "; ".join(o.get("why", "?") for o in doc["objects"])))
+    if index is not None:
+        hit = [o for o in objs if o["_i"] == index]
+        if not hit:
+            raise PickRefusal(
+                "object %d is not in the graspable set. Graspable: %s"
+                % (index, [o["_i"] for o in objs]))
+        return hit[0]
+    if nearest is not None:
+        p = np.asarray(nearest, float)
+        return min(objs, key=lambda o: float(np.linalg.norm(
+            np.asarray(o["centre"], float)[:len(p)] - p)))
+    if colour is not None:
+        want = colour.lower()
+        chan = {"blue": 0, "green": 1, "red": 2}
+        if want not in chan:
+            raise PickRefusal("colour must be one of %s, not %r"
+                              % (sorted(chan), colour))
+        k = chan[want]
+        have = [o for o in objs if o.get("mean_bgr")]
+        if not have:
+            raise PickRefusal(
+                "this map carries no colour per object, so --colour cannot be "
+                "answered. It was built by the clustering finder, which sees "
+                "no picture. Re-run the calibration with --finder segment.")
+        def dom(o):
+            b = o["mean_bgr"]
+            return b[k] - max(b[j] for j in range(3) if j != k)
+        best = max(have, key=dom)
+        if dom(best) < 30:
+            raise PickRefusal(
+                "no object in this map is %s: the most %s-dominant one leads "
+                "its next channel by only %.0f. Reporting that rather than "
+                "handing back the closest thing." % (want, want, dom(best)))
+        return best
+    raise PickRefusal(
+        "name an object: --object N, --nearest X Y, or --colour C. Refusing "
+        "to pick one for you -- a picker that always returns something always "
+        "looks like it worked.")
+
+
+# ------------------------------------------------------- the poses, in metres
+
+def approach_axis(arm):
+    """The direction the hand travels as it closes. The rig's own anchor.
+
+    NOT recomputed from anything. `master_calibration.WORKSPACE_ORIENT` is a
+    stored constant and CLAUDE.md's hard constraint 1 says re-deriving it
+    costs T2 its right arm.
+    """
+    from srl_teleop import master_calibration as MC
+    q = np.asarray(MC.WORKSPACE_ORIENT[arm], float)
+    q = q / np.linalg.norm(q)
+    x, y, z, w = q
+    return np.array([2 * (x * z + y * w), 2 * (y * z - x * w),
+                     1 - 2 * (x * x + y * y)])
+
+
+def poses_for(obj, arm, place_xy=None, surface_z=None, standoff_m=STANDOFF_M,
+              lift_m=LIFT_M):
+    """The waypoints of one pick and place, in the robot frame.
+
+    THE PAD MIDPOINT IS A CURVE, NOT A CONSTANT, and it is read at the width
+    this object actually measured. `pad_mid_ee_for` is the measured table --
+    0.09833 m wide open, 0.10976 on a 40 mm cube -- and using the open-hand
+    value on a closed hand is the 13.47 mm error this repository already paid
+    for once.
+    """
+    sys.path.insert(0, os.path.join(ROOT, "src/srl_experiments/experiments/abc"))
+    import grasp_frames as GF
+    centre = np.asarray(obj["centre"], float)
+    width_mm = float(obj["width_m"]) * 1000.0
+    # A VECTOR IN THE EE FRAME, (0, 0, z) -- the pad midpoint lies along the
+    # tool axis, so its z component IS the wrist-to-pad distance. Treating the
+    # returned tuple as a scalar is what the self-test caught.
+    pad = float(GF.pad_mid_ee_for(width_mm, arm)[2])
+    ax = approach_axis(arm)
+    # The WRIST goes where the pads have to be: back down the tool axis by the
+    # measured wrist-to-pad distance for THIS opening.
+    grasp = centre - ax * pad
+    pre = grasp - ax * standoff_m
+    lift = grasp + np.array([0.0, 0.0, lift_m])
+    out = [("pregrasp", pre), ("grasp", grasp), ("lift", lift)]
+    if place_xy is not None:
+        z = float(surface_z if surface_z is not None else centre[2])
+        drop = np.array([float(place_xy[0]), float(place_xy[1]),
+                         z + (centre[2] - z)])
+        out += [("carry", np.array([drop[0], drop[1], lift[2]])),
+                ("place", drop - ax * pad + np.array([0.0, 0.0, 0.0])),
+                ("retreat", np.array([drop[0], drop[1], lift[2]]))]
+    return out
+
+
+# ------------------------------------------------------------- the self-test
+
+def self_test(verbose=True):
+    """No stack, no map file: the parts that decide what the arm is told."""
+    ok = True
+
+    def check(name, cond, detail=""):
+        nonlocal ok
+        ok = ok and bool(cond)
+        if verbose:
+            print("  %-62s %s%s" % (name, "PASS" if cond else "FAIL",
+                                    "" if cond else "  -- " + str(detail)))
+
+    def refuses(name, fn, needle=""):
+        nonlocal ok
+        try:
+            fn()
+        except PickRefusal as e:
+            hit = needle in str(e)
+            ok = ok and hit
+            if verbose:
+                print("  %-62s %s" % (name, "PASS" if hit else
+                                      "FAIL -- %s" % e))
+            return
+        ok = False
+        if verbose:
+            print("  %-62s FAIL -- it did not refuse" % name)
+
+    doc = dict(objects=[
+        dict(centre=[0.42, 0.45, 1.27], extents=[0.04, 0.04, 0.04],
+             width_m=0.04, graspable=True, why="", mean_bgr=[220, 60, 40]),
+        dict(centre=[0.48, 0.45, 1.27], extents=[0.04, 0.04, 0.04],
+             width_m=0.04, graspable=True, why="", mean_bgr=[40, 220, 60]),
+        dict(centre=[0.29, 0.50, 1.26], extents=[0.16, 0.14, 0.01],
+             width_m=0.14, graspable=False, why="140 mm across", 
+             mean_bgr=[220, 60, 40])])
+
+    refuses("with no target named it refuses rather than picking one",
+            lambda: choose(doc), "name an object")
+    check("--object picks that object", choose(doc, index=1)["_i"] == 1)
+    refuses("--object on an ungraspable one says so, and lists the others",
+            lambda: choose(doc, index=2), "not in the graspable set")
+    check("--nearest picks the nearer of two",
+          choose(doc, nearest=(0.47, 0.45))["_i"] == 1)
+    check("--colour green picks the green one",
+          choose(doc, colour="green")["_i"] == 1)
+    refuses("--colour on a map with no colour says WHY, and names the fix",
+            lambda: choose(dict(objects=[dict(centre=[0, 0, 0], width_m=0.04,
+                                              extents=[0.04] * 3,
+                                              graspable=True)]),
+                           colour="green"), "--finder segment")
+    refuses("a map where nothing is graspable refuses with every reason",
+            lambda: choose(dict(objects=[doc["objects"][2]])),
+            "NONE of them is graspable")
+
+    # ---- the geometry
+    try:
+        p = poses_for(doc["objects"][0], "left")
+        names = [n for n, _ in p]
+        check("a pick with no destination is pregrasp, grasp, lift",
+              names == ["pregrasp", "grasp", "lift"], names)
+        pre = dict(p)["pregrasp"]
+        gr = dict(p)["grasp"]
+        check("the pregrasp is one standoff back along the approach",
+              abs(float(np.linalg.norm(pre - gr)) - STANDOFF_M) < 1e-6,
+              float(np.linalg.norm(pre - gr)))
+        check("the lift is straight up, and only up",
+              float(np.linalg.norm((dict(p)["lift"] - gr)[:2])) < 1e-9)
+        # THE PAD OFFSET IS READ AT THIS OBJECT'S WIDTH, not the open-hand one.
+        import grasp_frames as GF
+        # width_mm = 0 IS THE WIDE-OPEN HAND, by that function's own contract.
+        wide = float(GF.pad_mid_ee_for(0.0, "left")[2])
+        onit = float(GF.pad_mid_ee_for(40.0, "left")[2])
+        check("THE CONTROL: the pad offset really does vary with the opening",
+              abs(wide - onit) > 0.005, (wide, onit))
+        check("and the grasp uses the 40 mm value, not the open-hand one",
+              abs(float(np.linalg.norm(gr - np.array([0.42, 0.45, 1.27])))
+                  - onit) < 1e-6)
+        full = poses_for(doc["objects"][0], "left", place_xy=(0.29, 0.50),
+                         surface_z=1.25)
+        check("a pick AND place carries above the surface before descending",
+              [n for n, _ in full][:5] ==
+              ["pregrasp", "grasp", "lift", "carry", "place"],
+              [n for n, _ in full])
+        check("and the carry is at the lift height, not at the object's",
+              abs(dict(full)["carry"][2] - dict(full)["lift"][2]) < 1e-9)
+    except Exception as e:                                    # noqa: BLE001
+        check("the geometry could be built at all", False, e)
+
+    if verbose:
+        print("pick_from_map self-test %s" % ("PASSED" if ok else "FAILED"))
+    return ok
+
+
+# ------------------------------------------------------------------- the run
+
+def _say(node, phase, **kw):
+    print(N.line(phase, **kw), flush=True)
+    if node is not None:
+        node.say(phase, N.text(phase, **kw), N.speech(phase, **kw))
+
+
+def run(node, arm, doc, obj, place_xy, execute, plan_joints=True):
+    """Plan, check, narrate, and (only with --execute) move."""
+    # DRAW THE MAP THE PICK IS PLANNED FROM, so a recording shows the arm
+    # AND the thing it is reaching for.
+    for _ in range(8):
+        node.publish_map_markers(doc)
+        node.spin(0.2)
+    surface_z = doc.get("surface", {}).get("z_m")
+    steps = poses_for(obj, arm, place_xy=place_xy, surface_z=surface_z)
+    _say(node, "PLANNING", arm=arm,
+         detail="object %d at %s, %.0f mm across, from the MEASURED map"
+                % (obj["_i"], ["%.3f" % v for v in obj["centre"]],
+                   obj["width_m"] * 1000))
+
+    # ---- THE PLANNER IS GIVEN THE MAP. This is the part that has never run.
+    world = None
+    if plan_joints and doc.get("_occupancy") is not None:
+        world = JP.world_from_map(doc["_occupancy"], voxel_m=0.03)
+        print("   the planner has %d occupied voxels from the map "
+              "(the surface AND the objects)" % len(world), flush=True)
+    else:
+        print("   NO OCCUPANCY beside this map, so the planner knows only "
+              "the wearer -- the same blindness this file exists to remove. "
+              "Re-run the calibration to write it.", flush=True)
+
+    solved = []
+    for name, xyz in steps:
+        q = node.solve(arm, list(xyz), node.anchor_quat(arm))
+        if q is None:
+            _say(node, "REFUSED", arm=arm,
+                 why="%s at %s has no IK solution" % (name, ["%.3f" % v for v in xyz]))
+            raise PickRefusal(
+                "%s at %s could not be solved. The map says the object is "
+                "there; the arm says it cannot get its wrist there at the "
+                "anchor orientation." % (name, ["%.3f" % v for v in xyz]))
+        solved.append((name, xyz, q))
+        print("   %-9s %s  ok" % (name, ["%.3f" % v for v in xyz]), flush=True)
+
+    if not execute:
+        print("\nNOTHING WAS COMMANDED. --execute moves the arm.", flush=True)
+        return solved
+
+    grip = {"grasp": GRIP_CLOSED_RAD, "place": GRIP_OPEN_RAD}
+    phase = {"pregrasp": "REACHING", "grasp": "GRASPING", "lift": "CARRYING",
+             "carry": "CARRYING", "place": "PLACING", "retreat": "RETURNING"}
+    for name, xyz, q in solved:
+        _say(node, phase.get(name, "REACHING"), arm=arm, at=list(xyz),
+             detail=name)
+        node.send(arm, q, 2.5)
+        t0 = time.time()
+        while time.time() - t0 < 8.0 and not node.at(arm, q, 0.02):
+            node.spin(0.1)
+        if not node.at(arm, q, 0.02):
+            raise PickRefusal("the arm did not arrive at %s within 8 s" % name)
+        if name in grip:
+            node.grip(arm, grip[name])
+            node.spin(1.0)
+    _say(node, "DONE", arm=arm, detail="object %d moved" % obj["_i"])
+    return solved
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--arm", default="left", choices=("left", "right"))
+    ap.add_argument("--map", default=MAP)
+    ap.add_argument("--list", action="store_true",
+                    help="print what the map holds and stop")
+    ap.add_argument("--object", type=int, default=None)
+    ap.add_argument("--nearest", nargs=2, type=float, default=None)
+    ap.add_argument("--colour", default=None)
+    ap.add_argument("--to", nargs=2, type=float, default=None,
+                    help="place it here (x y). Without it this is a pick.")
+    ap.add_argument("--execute", action="store_true")
+    ap.add_argument("--self-test", action="store_true")
+    a = ap.parse_args()
+    if a.self_test:
+        return 0 if self_test() else 1
+
+    doc = load_map(a.map)
+    print("map: %s\n   surface z = %.4f m, %d object(s), finder: %s"
+          % (a.map, doc["surface"]["z_m"], len(doc["objects"]),
+             doc.get("provenance", {}).get("object_finder", "?")))
+    if a.list:
+        for i, o in enumerate(doc["objects"]):
+            print("   %2d  %s  %5.0f mm  %s%s"
+                  % (i, ["%7.3f" % v for v in o["centre"]],
+                     o["width_m"] * 1000,
+                     "graspable" if o.get("graspable") else "NOT graspable",
+                     "" if o.get("graspable") else " -- " + o.get("why", "")))
+        return 0
+
+    try:
+        obj = choose(doc, index=a.object, nearest=a.nearest, colour=a.colour)
+    except PickRefusal as e:
+        print("REFUSED: %s" % e)
+        return 3
+
+    from env_probe import ProbeNode
+    import rclpy
+    rclpy.init()
+    node = ProbeNode()
+    try:
+        # NO CAMERA NEEDED: the map was measured earlier and is on disk.
+        if not node.wait_ready(a.arm, 90.0, need_camera=False):
+            print("REFUSING after 90 s. Still missing: %s"
+                  % ", ".join(node.missing(a.arm)))
+            return 2
+        run(node, a.arm, doc, obj, a.to, a.execute)
+        return 0
+    except PickRefusal as e:
+        print("REFUSED: %s" % e)
+        return 4
+    finally:
+        try:
+            node.destroy_node(); rclpy.shutdown()
+        except Exception:                                      # noqa: BLE001
+            pass
+
+
+if __name__ == "__main__":
+    sys.exit(main())

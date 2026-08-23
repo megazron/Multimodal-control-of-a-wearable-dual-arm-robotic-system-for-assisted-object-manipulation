@@ -47,7 +47,81 @@ bash scripts/start_gui.sh          # RUN tab, top panel: MAP THE ENVIRONMENT
 module and its self-test checks that by AST, not by grepping — the first
 version grepped its own source and found the words it was searching for.
 
-## MEASURED
+## THE WRIST HOLDS STILL, AND THE SWEEP IS A VOLUME (2026-08-23, later)
+
+The operator's words: *"the gripper and the whole joints move everywhere
+without the gripper being stable"*, and *"imagine how a 3D printer works. it
+has only 1 plane to calibrate but our robot is in 3 space, it should map all
+the sides with all the lengths"*.
+
+Both were right, and the first was the important one.
+
+**The wrist was re-aimed at every cell.** `look_at_quat` pointed the tool axis
+AT each grid point, so the orientation changed between neighbours 90 mm apart:
+the arm swung continuously, and no two views were taken from the same
+attitude — which means a residual wrist error was a *different* error in every
+frame and could never cancel or be measured.
+
+A printer's probe does not re-aim. It holds one attitude and **translates**.
+So does this: one wrist direction per PASS, and the camera grid is the work
+grid rigidly translated back along that fixed ray, so consecutive cells differ
+by a pure translation. Several passes at different yaws give the sides.
+
+**And it is not a plane.** A printer probes a bed, where the only unknown is
+z. This arm works in a volume where objects have sides, and a side is
+invisible from a single elevation. The sweep is 2 layers × 3 yaws × 24 cells
+× 2 arms = **144 cells, 13.4 m of travel**.
+
+**Stationary is not the same as arrived.** `at()` asks whether the joints are
+near the commanded pose; a joint can sit 0.02 rad away and still be moving
+through it, and a frame captured then is smeared across two poses while every
+statistic downstream reports fine. `is_still` watches for 400 ms and requires
+no joint to move more than **0.0015 rad** — a tenth of the arrival tolerance.
+Capture is refused otherwise. **0 refusals** on the full run.
+
+**Both arms, one map.** The two arms cannot cross the centreline, so a one-arm
+map is missing exactly the half its own arm can never reach — and that half is
+not empty, it is *unmeasured*. All six objects are now seen by **both** arms.
+
+### Coverage, honestly split
+
+| | |
+| --- | --- |
+| cells planned | 144 |
+| reachable at their pass's attitude | **70** |
+| outside the arm's envelope | 74 |
+| photographed | **68 of 70 — 97%** |
+
+The 74 are a fact about the ROBOT, not a scan failure, and they used to be
+discovered by *driving there*: a seeded IK search with six restarts, then a
+six-second wait for an arrival that never came, 74 times. That is most of the
+twenty minutes the first full run took, and the report then read "48%
+coverage" as though the scan had failed. IK is solved before anything moves
+now and the two numbers are separate.
+
+### Both arms, against the renderer's own geometry
+
+| truth | measured | width |
+| --- | --- | --- |
+| surface 1.2500 | **1.2476** (−2.4 mm, tilt 0.23°) | |
+| cube_0 (0.420, 0.450) | **(0.420, 0.450)** | 41 mm / 40 |
+| cube_1 (0.480, 0.450) | **(0.480, 0.450)** | 41 mm / 40 |
+| cube_2 (−0.420, 0.450) | **(−0.420, 0.450)** | 41 mm / 40 |
+| cube_3 (−0.480, 0.450) | **(−0.480, 0.449)** | 41 mm / 40 |
+
+All four exact in x and y. The residual is z, where only the top and near
+faces are seen, and the pads, whose masks catch some table.
+
+### An object needs evidence
+
+The first two-arm run returned **14 objects where 6 exist**: the six carrying
+110 000–500 000 points from 46–66 viewpoints, the other eight carrying 25–77
+points from one or two. Four orders of magnitude apart, and `pick_from_map`
+would have planned a grasp on either. Under 200 points or fewer than 2 views
+is filed as `weak` — kept and named in the map, never deleted, because a scene
+where *everything* is weak is worth seeing.
+
+## MEASURED (first working version, one arm)
 
 Scored against the geometry `mock_rgbd_camera` was itself given, left arm,
 objects on its own side of the centreline:
@@ -106,3 +180,17 @@ segmenter.
   wrong ones, and `pick_from_map` refuses to choose an object for you.
 * **Nothing is wired into the modes or the clip sweep yet.** The GUI panel,
   the two scripts and the recorder are the whole surface.
+* **74 of 144 planned cells are outside the arms' envelope.** Raising that
+  means either a different attitude per cell — which gives up the stable
+  wrist — or a smaller planned volume. Neither is obviously right and neither
+  is measured.
+* **`calibrate.mp4` carries no map**, correctly: during the sweep the robot
+  does not yet know what is there. Drawing the map as it accumulates would be
+  a better film and is not done.
+* **THE SCENE CAMERA CANNOT CONTRIBUTE TO THE MAP AT ALL**, and this is not a
+  wiring gap. `scene_camera_node` publishes `image_raw` and `camera_info` and
+  **no depth** — it is a monocular colour camera. A single colour image gives
+  a direction to an object, never a distance, so it cannot place a point in
+  metres. It could label objects the wrist cameras already measured, by
+  projecting them into its frame; it cannot measure geometry. And no camera
+  has ever been attached to this host regardless.

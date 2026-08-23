@@ -6919,3 +6919,121 @@ set. That is a stated gap, not a pass.
   * dance d2 and d3 still have 68 unreachable waypoints and are deliberately
     NOT re-recorded -- filming a routine the verifier will not certify is how
     a clip of the robot stalling gets filed as a demonstration.
+
+---
+
+# 2026-08-23 (later still) — the robot runs on declared coordinates, and the planner has never known the table exists
+
+The operator watched the re-recorded clips and said the arm "does not scan the
+area properly in a straight line, it moves in random directions", and asked
+for the thing a 3-D printer does: probe each point in order, before doing
+anything. Then, more importantly:
+
+> the real robot can have a different table, different objects and stuff. even
+> in teleoperation there is no proper planning of the robot, i am unable to
+> properly teleoperate. our calibration should be for every mode. first the
+> robot calibrates the whole environment with all the sources of information.
+> then generates 3d space and maps the locations of everything it sees. then
+> the path or grasping algorithms adapt to it.
+
+That is the correct diagnosis and it is bigger than the thing that prompted
+it. My first response argued that T0's scatter is the study instrument and
+should not be made orderly -- true, and beside the point.
+
+## 1. WHAT THE ARM IS ACTUALLY DOING IN THAT CLIP
+
+T0's three targets per arm are DIRECTION PROBES, drawn with 5 mm of jitter
+from a seed around three fixed centres:
+
+    FRONT_UP     z = 1.62
+    FRONT_OUT    z = 1.27
+    FRONT_DOWN   z = 0.98
+
+So the arm sweeps 640 mm of height between consecutive targets and its x
+wanders 0.242 -> 0.276 -> 0.316. It genuinely does jump up, out and down. The
+scatter is the Fitts/reach instrument and removing it would destroy the
+measurement -- but **nothing in this repository has ever specified an ORDER
+for looking at the world**, so there was no orderly scan to compare it with.
+
+## 2. THE CENTRAL DEFECT, NAMED
+
+Almost everything here runs on DECLARED COORDINATES. T1's cubes are at
+(+/-0.42, 0.45) because a file says so; the table is at 1.250 because a file
+says so; the pads are at (+/-0.29, 0.50) because a file says so. Every one of
+them verified at N=10 over densified paths — and none of it survives a real
+cell with a different table at a different height and different objects on it.
+
+The parts that could SENSE instead all exist, and none of them are composed:
+
+| part | what it does | who uses it |
+| --- | --- | --- |
+| `table_scene.analyse` | plane + objects + grasps, from ONE view | `pick_from_table`, to PRINT A DESCRIPTION |
+| `joint_planner.VoxelWorld` | lets the planner avoid what is not the wearer | **nothing outside its own self-test** |
+| `grasp_pipeline.plan_grasp` | a grasp from a cloud, one prompt, no memory | `find_object` |
+| `work_surface.set_measured()` | the surface height, from depth | **nothing** |
+
+**`VoxelWorld` being constructed nowhere is the "no proper planning"
+complaint, exactly.** The planner's only collision check was the WEARER. The
+table, the objects, the frame — everything else in the room — was invisible to
+it, so a path that routed around the person swept straight through the bench.
+The module's own docstring says this is the gap it fills, and it was never
+plugged in.
+
+## 3. WHAT WAS BUILT
+
+Three pure modules — no ROS, no camera, no robot — so the geometry is testable
+offline, and one seam.
+
+**`srl_perception/calibration_sweep.py`** — where to look from, and in what
+order. Boustrophedon: straight rows, alternating direction, every cell once,
+and every step exactly one cell in one axis. Measured by its own self-test on
+the 5x4 grid at 0.06 m:
+
+    typewriter    1.702 m of travel, 3 returns of 0.24 m
+    serpentine    1.140 m, 0 returns        33% less motion, same coverage
+
+The typewriter order is built and measured rather than described, because a
+claim that one order is better needs the other to exist. The probe presses
+5 mm BELOW the surface estimate rather than down to it — a probe that stops at
+the estimate can only ever confirm it.
+
+**`srl_perception/world_model.py`** — many views, one map. The support height
+is MEASURED (this is the number `work_surface.set_measured()` was written to
+receive). Two views of one object fuse to one object; two objects stay two.
+Every field carries provenance, a one-view map says its objects' far sides are
+inferred, and it REFUSES rather than guessing: no views, too few points, no
+plane in the cloud.
+
+**`srl_experiments/narration.py`** — 15 phases, one vocabulary for the screen,
+the log and the speech. The `[progress]` line keeps the exact shape the GUI's
+Instruct tab already parses, so adding narration cannot break the one consumer
+that worked.
+
+**`joint_planner.world_from_map()`** — the seam. A point on the mapped table
+is now an obstacle and one above it is not, both asserted.
+
+## 4. TWO THINGS I GOT WRONG BUILDING IT
+
+**A docstring quoting numbers I had not measured.** The first draft of
+`calibration_sweep` claimed "3.12 m vs 1.68 m, 46% less". The measured figures
+are 1.702 and 1.140, 33%. Written before the check was run, which is the thing
+this page exists to stop; corrected in place with the mistake left visible.
+
+**Speech built by deleting words from writing.** `speech()` regex-stripped the
+coordinate out of the finished sentence and left the preposition behind, so
+the robot said *"Left arm: reaching at."* The spoken form is not the written
+form with bits removed: a clause now knows whether it can be spoken, and
+dropping it takes its preposition with it.
+
+## 5. WHAT IS NOT DONE, AND WHAT IS NOT CLAIMED
+
+* **Not wired in.** The calibration stage does not yet run first in every
+  mode, the GUI has no live phase banner, and nothing is muxed into the clips.
+* **NO CAMERA HAS EVER BEEN ATTACHED TO THIS HOST.** Every cloud these modules
+  have seen is constructed or from the mock RGB-D. The fusion, the refusals
+  and the geometry are real and tested; "the robot has seen the room" is not,
+  and `Map.provenance` lists the sources that actually contributed rather than
+  the ones that could have.
+* **There is no audio device.** `/dev/snd` holds only `timer`. Piper can
+  synthesise the narration to a file — which is how it would reach a clip —
+  and nothing can be played aloud on this machine.

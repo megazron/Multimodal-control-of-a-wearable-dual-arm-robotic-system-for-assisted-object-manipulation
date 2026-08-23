@@ -170,6 +170,27 @@ class VoxelWorld:
         return None
 
 
+def world_from_map(m, voxel_m=0.03, ignore_within_m=0.0, origin=None):
+    """A `VoxelWorld` from a `world_model.Map`. THE SEAM THAT NEVER EXISTED.
+
+    `VoxelWorld` has been built and tested since it was written and is
+    constructed NOWHERE outside its own self-test, so the planner has never
+    known that the table, the objects or anything else in the room is there.
+    It avoided the wearer and swept through everything else. This is the two
+    lines that connect what the robot SAW to what the planner AVOIDS.
+
+    The points are the map's own occupancy -- the fused support surface AND
+    the objects, in the robot frame. Nothing is filtered out here: deciding
+    what the planner may not see would be this function guessing at somebody
+    else's safety margin, and `ignore_within_m` around the gripper's own
+    origin is the mechanism that already exists for the one case that needs
+    it (the wrist camera seeing its own fingers).
+    """
+    pts = m.occupancy() if hasattr(m, "occupancy") else m
+    return VoxelWorld(pts, voxel_m=voxel_m,
+                      ignore_within_m=ignore_within_m, origin=origin)
+
+
 class Checker:
     """Is this configuration, and this edge, safe.
 

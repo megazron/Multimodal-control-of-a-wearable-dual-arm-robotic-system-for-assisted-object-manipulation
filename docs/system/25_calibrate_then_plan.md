@@ -139,6 +139,38 @@ The pick planned from that map solved all six waypoints and ran end to end,
 with **561 occupied voxels handed to the planner** — the first time
 `world_from_map` has ever had a caller.
 
+## THE SWEPT VOLUME IS A MEASUREMENT TOO (2026-08-23, later still)
+
+The box swept up to this point — x 0.30–0.58, y 0.30–0.52 — was **written
+down**, and 74 of the 144 cells planned inside it came back "outside the
+arm's envelope". The obvious reading is that the arms are small. The real
+reading is that a guessed box sat badly inside a much larger one.
+
+`scripts/measure_reachable_volume.py` solves IK at the shipped attitude over a
+deliberately over-wide grid — 924 poses per arm, nothing commanded:
+
+| | left | right |
+| --- | --- | --- |
+| reachable at SOME facing+layer | x 0.10–0.75, y 0.15–0.65, **146 of 154** | x −0.75–−0.10, y 0.15–0.65, **146 of 154** |
+| reachable at EVERY facing+layer | 4 cells | 4 cells |
+
+So each arm can observe **almost the whole probed area** from *some*
+attitude, and almost none of it from *all* of them. The sweep is bound to the
+first, and the per-cell evidence at the edges is thinner — which is why the
+map carries `seen_by` per object and an evidence rule.
+
+**THE INBOARD BOUND IS NOT TAKEN FROM THIS MEASUREMENT.** IK calls x = 0.10
+reachable, and IK is not the wearer check — hard constraint 11: the SRDF
+excludes the 44 proximal pairs a shoulder mount actually threatens, so a pose
+MoveIt calls valid can have the tube inside the person. The inboard bounds are
+the columns this project has measured geometrically, **0.325 left and 0.450
+right**, and the asymmetry is real. Widened outboard and forward, where the
+wearer is not; left alone inboard, where they are.
+
+Swept volume now: **x 0.325–0.750 (left), −0.750–−0.450 (right), y
+0.15–0.65**, two layers, three facings. On the recorded run: 324 cells
+planned, **117 reachable, 115 photographed — 98%**, 0 stillness refusals.
+
 ## THE VIEWING ANGLE IS A MEASUREMENT, NOT A GUESS
 
 `scripts/measure_view_geometry.py`, on the live stack, walking every cell:
@@ -180,13 +212,12 @@ segmenter.
   wrong ones, and `pick_from_map` refuses to choose an object for you.
 * **Nothing is wired into the modes or the clip sweep yet.** The GUI panel,
   the two scripts and the recorder are the whole surface.
-* **74 of 144 planned cells are outside the arms' envelope.** Raising that
-  means either a different attitude per cell — which gives up the stable
-  wrist — or a smaller planned volume. Neither is obviously right and neither
-  is measured.
-* **`calibrate.mp4` carries no map**, correctly: during the sweep the robot
-  does not yet know what is there. Drawing the map as it accumulates would be
-  a better film and is not done.
+* **The swept box is a rectangle and the reachable set is not**, so a large
+  minority of planned cells fall outside it. That is now reported as what it
+  is rather than as a coverage failure, and the sweep costs almost nothing for
+  them — IK is solved before anything moves. Planning from the measured
+  reachable SET rather than its bounding box would close the gap, and
+  `measure_reachable_volume` stores only the boxes, not the cell sets.
 * **THE SCENE CAMERA CANNOT CONTRIBUTE TO THE MAP AT ALL**, and this is not a
   wiring gap. `scene_camera_node` publishes `image_raw` and `camera_info` and
   **no depth** — it is a monocular colour camera. A single colour image gives

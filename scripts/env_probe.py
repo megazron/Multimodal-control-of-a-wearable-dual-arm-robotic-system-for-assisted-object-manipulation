@@ -196,6 +196,47 @@ class ProbeNode(Node):
                                  t=time.time()))
         self.say_pub.publish(m)
 
+    def publish_progress_cloud(self, points, voxel_m=0.02, ns="sweep_progress",
+                               max_points=20000):
+        """THE MAP AS IT ACCUMULATES, drawn one capture at a time.
+
+        The sweep clip was an empty room for twenty minutes and then a map
+        appeared at the end. That is honest -- during the sweep the robot does
+        not yet know what is there -- but it makes the most informative part
+        of the run invisible: an operator cannot see WHICH parts of the space
+        have been measured and which are still blank, which is exactly the
+        question a coverage figure answers after the fact and nobody can
+        answer during.
+
+        Voxelised before publishing, because a million points is not a
+        marker, and capped so a long sweep cannot slow the window down.
+        """
+        pts = np.asarray(points, float).reshape(-1, 3)
+        if not len(pts):
+            return 0
+        key = np.floor(pts / voxel_m).astype(np.int64)
+        _, keep = np.unique(key, axis=0, return_index=True)
+        pts = pts[np.sort(keep)]
+        if len(pts) > max_points:
+            pts = pts[:: int(np.ceil(len(pts) / max_points))]
+        m = Marker()
+        m.header.frame_id = "world"
+        m.header.stamp = self.get_clock().now().to_msg()
+        m.ns = ns
+        m.id = 0
+        m.type = Marker.POINTS
+        m.action = Marker.ADD
+        m.pose.orientation.w = 1.0
+        m.scale.x = m.scale.y = float(voxel_m) * 0.8
+        m.color.r, m.color.g, m.color.b, m.color.a = 0.35, 0.75, 1.0, 0.55
+        from geometry_msgs.msg import Point
+        m.points = [Point(x=float(x), y=float(y), z=float(z))
+                    for x, y, z in pts]
+        arr = MarkerArray()
+        arr.markers.append(m)
+        self.marker_pub.publish(arr)
+        return len(pts)
+
     def publish_map_markers(self, doc, ns="world_map"):
         """The measured surface and every mapped object, as RViz markers.
 

@@ -81,9 +81,31 @@ OUT = os.path.join(ROOT, "recordings/baselines/world_map.json")
 # wearer side, so it is the space this arm can look at rather than the space
 # some task happens to use. Overridable from the command line, because the
 # next cell is a different size.
+# MEASURED, 2026-08-23, by `scripts/measure_reachable_volume.py`, which
+# solves IK at the shipped attitude over a deliberately over-wide grid:
+#
+#   reachable at SOME facing+layer   x 0.10 .. 0.75,  y 0.15 .. 0.65
+#                                    146 of 154 probed cells, both arms
+#   reachable at EVERY facing+layer  4 cells, in the inboard-near corner
+#
+# The box swept before this was x 0.30..0.58, y 0.30..0.52 -- WRITTEN DOWN,
+# and a small fraction of what the arms can actually observe. That is why 74
+# of 144 planned cells came back "outside the envelope": not because the arms
+# are small, but because the guessed box sat badly inside a much larger one.
+#
+# THE INBOARD BOUND IS NOT FROM THAT MEASUREMENT AND MUST NOT BE.
+# IK reports x = 0.10 as reachable and IK IS NOT THE WEARER CHECK -- CLAUDE.md
+# hard constraint 11: the SRDF excludes the 44 proximal pairs a shoulder mount
+# actually threatens, so a pose MoveIt calls valid can have the tube inside
+# the person. The innermost columns this project has measured GEOMETRICALLY
+# are 0.325 (left) and 0.450 (right), and those are the inboard bounds here.
+# The asymmetry is real and documented; it is not a typo.
+#
+# So: widened outboard and forward, where the wearer is not, and left alone
+# inboard, where they are.
 BOUNDS = {
-    "left":  dict(x=(0.30, 0.58), y=(0.30, 0.52)),
-    "right": dict(x=(-0.58, -0.30), y=(0.30, 0.52)),
+    "left":  dict(x=(0.325, 0.750), y=(0.15, 0.65)),
+    "right": dict(x=(-0.750, -0.450), y=(0.15, 0.65)),
 }
 # Where the surface is EXPECTED, only so the sweep has a height to hover at.
 # It is a starting guess and the map REPLACES it -- the whole point is that
@@ -209,7 +231,7 @@ class Calibrator:
 
 def sweep_arm(node, arm, bounds, surface_z, step_m, order, layers_m,
               facings_deg, elev_deg, max_cells=None, dump_frames=None,
-              finder="segment", require_still=True):
+              finder="segment", require_still=True, progress_cloud=None):
     """One arm, every pass, every layer. Returns (views, report).
 
     THE WRIST HOLDS ONE ATTITUDE FOR A WHOLE PASS AND ONLY TRANSLATES.
@@ -310,6 +332,13 @@ def sweep_arm(node, arm, bounds, surface_z, step_m, order, layers_m,
                 continue
             views.append(v)
             print("      %d points" % v.n, flush=True)
+            # DRAW WHAT HAS BEEN MEASURED SO FAR. See
+            # `env_probe.publish_progress_cloud`: without this the sweep clip
+            # is an empty room until the very end, and which part of the space
+            # is still blank is the one thing a watcher cannot see.
+            if progress_cloud is not None:
+                progress_cloud.append(v.points)
+                node.publish_progress_cloud(np.vstack(progress_cloud))
             if dump_frames:
                 os.makedirs(dump_frames, exist_ok=True)
                 np.savez(os.path.join(dump_frames, "%s.npz" % v.source),
@@ -344,11 +373,15 @@ def run(node, arms, bounds_by_arm, surface_z, step_m, order, layers_m,
     which arm saw what and an object seen by both is seen by both.
     """
     all_views, reports = [], []
+    # ONE ACCUMULATING CLOUD ACROSS BOTH ARMS, so the second arm's sweep adds
+    # to the first's picture instead of starting from an empty room again.
+    progress = []
     for arm in arms:
         views, rep = sweep_arm(node, arm, bounds_by_arm[arm], surface_z,
                                step_m, order, layers_m, facings_deg, elev_deg,
                                max_cells=max_cells, dump_frames=dump_frames,
-                               finder=finder, require_still=require_still)
+                               finder=finder, require_still=require_still,
+                               progress_cloud=progress)
         all_views.extend(views)
         reports.append(rep)
         if rep["cells_missed"]:
@@ -492,7 +525,11 @@ def main():
                          "arm's -- and the two arms cannot cross the "
                          "centreline, so a one-arm map is missing exactly the "
                          "half its arm can never reach.")
-    ap.add_argument("--step-m", type=float, default=0.07)
+    ap.add_argument("--step-m", type=float, default=0.13,
+                    help="cell pitch. Coarser than it was, because the swept "
+                         "volume is now the MEASURED reachable one rather "
+                         "than a small box inside it, and the sweep has to "
+                         "stay a thing an operator will actually wait for.")
     ap.add_argument("--hover-m", type=float, default=CSW.DEFAULT_HOVER_M)
     ap.add_argument("--surface-z", type=float, default=GUESS_SURFACE_Z,
                     help="where the surface is EXPECTED, only to hover at. "

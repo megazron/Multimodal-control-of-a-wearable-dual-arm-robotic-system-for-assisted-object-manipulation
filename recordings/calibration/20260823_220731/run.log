@@ -1,0 +1,398 @@
+[progress] both arm: starting up calibrating the environment before anything is planned
+[progress] left arm: calibrating: looking at the workspace 180 cells in 3 pass(es) of 2 layer(s), serpentine order, 18.66 m of travel -- the wrist holds one attitude per pass
+[progress] left arm: calibrating: looking at the workspace pass 1 of 3, wrist fixed at -25 deg yaw / 38.9 deg down, 60 cells
+[progress] left arm: reaching cell 1 of 180 at (0.593, -0.108, 1.550)
+      the segmenter refused: the segmenter returned no regions for this frame
+[progress] left arm: reaching cell 2 of 180 at (0.699, -0.108, 1.550)
+      4 region(s) on the surface
+      7644 points
+[progress] left arm: reaching cell 3 of 180 at (0.805, -0.108, 1.550)
+      6 region(s) on the surface
+      7644 points
+[progress] left arm: reaching cell 4 of 180 at (0.912, -0.108, 1.550)
+      6 region(s) on the surface
+      7644 points
+[progress] left arm: reaching cell 5 of 180 at (1.018, -0.108, 1.550)
+      4 region(s) on the surface
+      7644 points
+[progress] left arm: reaching cell 6 of 180 at (1.018, -0.008, 1.550)
+      2 region(s) on the surface
+      7644 points
+[progress] left arm: reaching cell 7 of 180 at (0.912, -0.008, 1.550)
+      2 region(s) on the surface
+      10897 points
+[progress] left arm: reaching cell 8 of 180 at (0.805, -0.008, 1.550)
+      3 region(s) on the surface
+      10899 points
+[progress] left arm: reaching cell 9 of 180 at (0.699, -0.008, 1.550)
+      5 region(s) on the surface
+      10899 points
+[progress] left arm: reaching cell 10 of 180 at (0.593, -0.008, 1.550)
+      6 region(s) on the surface
+      10899 points
+[progress] left arm: reaching cell 11 of 180 at (0.593, 0.092, 1.550)
+      6 region(s) on the surface
+      10899 points
+[progress] left arm: reaching cell 12 of 180 at (0.699, 0.092, 1.550)
+      5 region(s) on the surface
+      15524 points
+[progress] left arm: reaching cell 13 of 180 at (0.805, 0.092, 1.550)
+      9 region(s) on the surface
+      15524 points
+[progress] left arm: reaching cell 14 of 180 at (0.912, 0.092, 1.550)
+      5 region(s) on the surface
+      15524 points
+[progress] left arm: reaching cell 15 of 180 at (1.018, 0.092, 1.550)
+      4 region(s) on the surface
+      15524 points
+[progress] left arm: reaching cell 16 of 180 at (1.018, 0.192, 1.550)
+      2 region(s) on the surface
+      15524 points
+[progress] left arm: reaching cell 17 of 180 at (0.912, 0.192, 1.550)
+      5 region(s) on the surface
+      20650 points
+[progress] left arm: reaching cell 18 of 180 at (0.805, 0.192, 1.550)
+      9 region(s) on the surface
+      20650 points
+[progress] left arm: reaching cell 19 of 180 at (0.699, 0.192, 1.550)
+      5 region(s) on the surface
+      20650 points
+[progress] left arm: reaching cell 20 of 180 at (0.593, 0.192, 1.550)
+      7 region(s) on the surface
+      20650 points
+[progress] left arm: reaching cell 21 of 180 at (0.593, 0.292, 1.550)
+      6 region(s) on the surface
+      20650 points
+[progress] left arm: reaching cell 22 of 180 at (0.699, 0.292, 1.550)
+      4 region(s) on the surface
+      23967 points
+[progress] left arm: reaching cell 23 of 180 at (0.805, 0.292, 1.550)
+      6 region(s) on the surface
+      23967 points
+[progress] left arm: reaching cell 24 of 180 at (0.912, 0.292, 1.550)
+      4 region(s) on the surface
+      23967 points
+[progress] left arm: reaching cell 28 of 180 at (0.805, 0.392, 1.550)
+      3 region(s) on the surface
+      23967 points
+[progress] left arm: reaching cell 29 of 180 at (0.699, 0.392, 1.550)
+      3 region(s) on the surface
+      23729 points
+[progress] left arm: reaching cell 30 of 180 at (0.593, 0.392, 1.550)
+      5 region(s) on the surface
+      23729 points
+[progress] left arm: reaching cell 31 of 180 at (0.700, 0.289, 1.670)
+      1 region(s) on the surface
+      23729 points
+[progress] left arm: reaching cell 32 of 180 at (0.806, 0.289, 1.670)
+      3 region(s) on the surface
+      20003 points
+[progress] left arm: reaching cell 38 of 180 at (0.912, 0.189, 1.670)
+      5 region(s) on the surface
+      20003 points
+[progress] left arm: reaching cell 39 of 180 at (0.806, 0.189, 1.670)
+      6 region(s) on the surface
+      19291 points
+[progress] left arm: reaching cell 40 of 180 at (0.700, 0.189, 1.670)
+      7 region(s) on the surface
+      19291 points
+[progress] left arm: reaching cell 41 of 180 at (0.700, 0.089, 1.670)
+      6 region(s) on the surface
+      19291 points
+[progress] left arm: reaching cell 42 of 180 at (0.806, 0.089, 1.670)
+      8 region(s) on the surface
+      16904 points
+[progress] left arm: reaching cell 43 of 180 at (0.912, 0.089, 1.670)
+      8 region(s) on the surface
+      16904 points
+[progress] left arm: reaching cell 44 of 180 at (1.019, 0.089, 1.670)
+      5 region(s) on the surface
+      16904 points
+[progress] left arm: reaching cell 47 of 180 at (1.019, -0.011, 1.670)
+      4 region(s) on the surface
+      16904 points
+[progress] left arm: reaching cell 48 of 180 at (0.912, -0.011, 1.670)
+      6 region(s) on the surface
+      13464 points
+[progress] left arm: reaching cell 49 of 180 at (0.806, -0.011, 1.670)
+      6 region(s) on the surface
+      13464 points
+[progress] left arm: reaching cell 50 of 180 at (0.700, -0.011, 1.670)
+      7 region(s) on the surface
+      13464 points
+[progress] left arm: reaching cell 51 of 180 at (0.700, -0.111, 1.670)
+      9 region(s) on the surface
+      13464 points
+[progress] left arm: reaching cell 52 of 180 at (0.806, -0.111, 1.670)
+      6 region(s) on the surface
+      10304 points
+[progress] left arm: reaching cell 53 of 180 at (0.912, -0.111, 1.670)
+      7 region(s) on the surface
+      10304 points
+[progress] left arm: reaching cell 54 of 180 at (1.019, -0.111, 1.670)
+      5 region(s) on the surface
+      10304 points
+[progress] left arm: reaching cell 57 of 180 at (1.019, -0.211, 1.670)
+      6 region(s) on the surface
+      10303 points
+[progress] left arm: reaching cell 58 of 180 at (0.912, -0.211, 1.670)
+      4 region(s) on the surface
+      7901 points
+[progress] left arm: reaching cell 59 of 180 at (0.806, -0.211, 1.670)
+      8 region(s) on the surface
+      7901 points
+[progress] left arm: reaching cell 60 of 180 at (0.700, -0.211, 1.670)
+      7 region(s) on the surface
+      7901 points
+[progress] left arm: calibrating: looking at the workspace pass 2 of 3, wrist fixed at +0 deg yaw / 38.9 deg down, 60 cells
+[progress] left arm: reaching cell 61 of 180 at (0.677, 0.030, 1.550)
+      7 region(s) on the surface
+      7901 points
+[progress] left arm: reaching cell 62 of 180 at (0.783, 0.030, 1.550)
+      2 region(s) on the surface
+      5355 points
+[progress] left arm: reaching cell 63 of 180 at (0.889, 0.030, 1.550)
+      4 region(s) on the surface
+      5356 points
+[progress] left arm: reaching cell 64 of 180 at (0.995, 0.030, 1.550)
+      4 region(s) on the surface
+      5356 points
+[progress] left arm: reaching cell 67 of 180 at (0.995, 0.130, 1.550)
+      3 region(s) on the surface
+      5356 points
+[progress] left arm: reaching cell 68 of 180 at (0.889, 0.130, 1.550)
+      2 region(s) on the surface
+      8971 points
+[progress] left arm: reaching cell 69 of 180 at (0.783, 0.130, 1.550)
+      3 region(s) on the surface
+      8971 points
+[progress] left arm: reaching cell 70 of 180 at (0.677, 0.130, 1.550)
+      5 region(s) on the surface
+      8971 points
+[progress] left arm: reaching cell 71 of 180 at (0.677, 0.230, 1.550)
+      7 region(s) on the surface
+      8971 points
+[progress] left arm: reaching cell 72 of 180 at (0.783, 0.230, 1.550)
+      6 region(s) on the surface
+      13945 points
+[progress] left arm: reaching cell 73 of 180 at (0.889, 0.230, 1.550)
+      5 region(s) on the surface
+      13945 points
+[progress] left arm: reaching cell 79 of 180 at (0.783, 0.330, 1.550)
+      3 region(s) on the surface
+      13945 points
+[progress] left arm: reaching cell 80 of 180 at (0.677, 0.330, 1.550)
+      5 region(s) on the surface
+      18445 points
+[progress] left arm: reaching cell 110 of 180 at (0.817, 0.181, 1.670)
+      7 region(s) on the surface
+      18446 points
+[progress] left arm: reaching cell 111 of 180 at (0.817, 0.081, 1.670)
+      7 region(s) on the surface
+      12975 points
+[progress] left arm: reaching cell 112 of 180 at (0.924, 0.081, 1.670)
+      7 region(s) on the surface
+      9684 points
+[progress] left arm: reaching cell 119 of 180 at (0.924, -0.019, 1.670)
+      8 region(s) on the surface
+      9685 points
+[progress] left arm: reaching cell 120 of 180 at (0.817, -0.019, 1.670)
+      7 region(s) on the surface
+      6583 points
+[progress] left arm: calibrating: looking at the workspace pass 3 of 3, wrist fixed at +25 deg yaw / 38.9 deg down, 60 cells
+[progress] left arm: reaching cell 121 of 180 at (0.695, 0.189, 1.550)
+      7 region(s) on the surface
+      6583 points
+[progress] left arm: reaching cell 122 of 180 at (0.801, 0.189, 1.550)
+      3 region(s) on the surface
+      2020 points
+[progress] left arm: reaching cell 130 of 180 at (0.695, 0.289, 1.550)
+      3 region(s) on the surface
+      2020 points
+   left arm: 112 of 180 cell(s) contributed nothing
+      111  outside this arm's envelope at this attitude
+        1  no usable frame from this pose
+[progress] right arm: calibrating: looking at the workspace 144 cells in 3 pass(es) of 2 layer(s), serpentine order, 14.16 m of travel -- the wrist holds one attitude per pass
+[progress] right arm: calibrating: looking at the workspace pass 1 of 3, wrist fixed at -25 deg yaw / 38.9 deg down, 48 cells
+[progress] right arm: reaching cell 4 of 144 at (-0.820, 0.189, 1.550)
+      0 region(s) on the surface
+      16857 points
+[progress] right arm: calibrating: looking at the workspace pass 2 of 3, wrist fixed at +0 deg yaw / 38.9 deg down, 48 cells
+[progress] right arm: reaching cell 50 of 144 at (-1.002, 0.030, 1.550)
+      2 region(s) on the surface
+      2020 points
+[progress] right arm: reaching cell 51 of 144 at (-0.902, 0.030, 1.550)
+      4 region(s) on the surface
+      5355 points
+[progress] right arm: reaching cell 52 of 144 at (-0.802, 0.030, 1.550)
+      8 region(s) on the surface
+      5356 points
+[progress] right arm: reaching cell 53 of 144 at (-0.802, 0.130, 1.550)
+      5 region(s) on the surface
+      8971 points
+[progress] right arm: reaching cell 54 of 144 at (-0.902, 0.130, 1.550)
+      5 region(s) on the surface
+      8971 points
+[progress] right arm: reaching cell 55 of 144 at (-1.002, 0.130, 1.550)
+      3 region(s) on the surface
+      8971 points
+[progress] right arm: reaching cell 59 of 144 at (-0.902, 0.230, 1.550)
+      2 region(s) on the surface
+      8970 points
+[progress] right arm: reaching cell 60 of 144 at (-0.802, 0.230, 1.550)
+      3 region(s) on the surface
+      13945 points
+[progress] right arm: reaching cell 61 of 144 at (-0.802, 0.330, 1.550)
+      5 region(s) on the surface
+      13945 points
+[progress] right arm: reaching cell 92 of 144 at (-0.942, 0.081, 1.670)
+      5 region(s) on the surface
+      18445 points
+[progress] right arm: reaching cell 93 of 144 at (-0.942, -0.019, 1.670)
+      6 region(s) on the surface
+      9684 points
+[progress] right arm: calibrating: looking at the workspace pass 3 of 3, wrist fixed at +25 deg yaw / 38.9 deg down, 48 cells
+[progress] right arm: reaching cell 97 of 144 at (-1.018, -0.108, 1.550)
+      6 region(s) on the surface
+      6583 points
+[progress] right arm: reaching cell 98 of 144 at (-0.918, -0.108, 1.550)
+      2 region(s) on the surface
+      7644 points
+[progress] right arm: reaching cell 99 of 144 at (-0.818, -0.108, 1.550)
+      5 region(s) on the surface
+      7644 points
+[progress] right arm: reaching cell 100 of 144 at (-0.718, -0.108, 1.550)
+      6 region(s) on the surface
+      7643 points
+[progress] right arm: reaching cell 101 of 144 at (-0.718, -0.008, 1.550)
+      6 region(s) on the surface
+      7644 points
+[progress] right arm: reaching cell 102 of 144 at (-0.818, -0.008, 1.550)
+      8 region(s) on the surface
+      10899 points
+[progress] right arm: reaching cell 103 of 144 at (-0.918, -0.008, 1.550)
+      8 region(s) on the surface
+      10899 points
+[progress] right arm: reaching cell 104 of 144 at (-1.018, -0.008, 1.550)
+      3 region(s) on the surface
+      10899 points
+[progress] right arm: reaching cell 105 of 144 at (-1.018, 0.092, 1.550)
+      2 region(s) on the surface
+      10899 points
+[progress] right arm: reaching cell 106 of 144 at (-0.918, 0.092, 1.550)
+      2 region(s) on the surface
+      15524 points
+[progress] right arm: reaching cell 107 of 144 at (-0.818, 0.092, 1.550)
+      4 region(s) on the surface
+      15525 points
+[progress] right arm: reaching cell 108 of 144 at (-0.718, 0.092, 1.550)
+      6 region(s) on the surface
+      15524 points
+[progress] right arm: reaching cell 109 of 144 at (-0.718, 0.192, 1.550)
+      8 region(s) on the surface
+      15525 points
+[progress] right arm: reaching cell 110 of 144 at (-0.818, 0.192, 1.550)
+      8 region(s) on the surface
+      20650 points
+[progress] right arm: reaching cell 111 of 144 at (-0.918, 0.192, 1.550)
+      5 region(s) on the surface
+      20650 points
+[progress] right arm: reaching cell 112 of 144 at (-1.018, 0.192, 1.550)
+      7 region(s) on the surface
+      20650 points
+[progress] right arm: reaching cell 114 of 144 at (-0.918, 0.292, 1.550)
+      2 region(s) on the surface
+      20650 points
+[progress] right arm: reaching cell 115 of 144 at (-0.818, 0.292, 1.550)
+      6 region(s) on the surface
+      23968 points
+[progress] right arm: reaching cell 116 of 144 at (-0.718, 0.292, 1.550)
+      4 region(s) on the surface
+      23967 points
+[progress] right arm: reaching cell 117 of 144 at (-0.718, 0.392, 1.550)
+      5 region(s) on the surface
+      23967 points
+[progress] right arm: reaching cell 118 of 144 at (-0.818, 0.392, 1.550)
+      4 region(s) on the surface
+      23729 points
+[progress] right arm: reaching cell 124 of 144 at (-0.825, 0.289, 1.670)
+      3 region(s) on the surface
+      23729 points
+[progress] right arm: reaching cell 125 of 144 at (-0.825, 0.189, 1.670)
+      no usable camera pose for this frame: the camera publishes render_pose but none is within 0.020 s of this frame (nearest 0.094 s)
+[progress] right arm: reaching cell 126 of 144 at (-0.925, 0.189, 1.670)
+      6 region(s) on the surface
+      19687 points
+[progress] right arm: reaching cell 130 of 144 at (-1.025, 0.089, 1.670)
+      5 region(s) on the surface
+      19291 points
+[progress] right arm: reaching cell 131 of 144 at (-0.925, 0.089, 1.670)
+      4 region(s) on the surface
+      16904 points
+[progress] right arm: reaching cell 132 of 144 at (-0.825, 0.089, 1.670)
+      5 region(s) on the surface
+      16904 points
+[progress] right arm: reaching cell 133 of 144 at (-0.825, -0.011, 1.670)
+      8 region(s) on the surface
+      16904 points
+[progress] right arm: reaching cell 134 of 144 at (-0.925, -0.011, 1.670)
+      7 region(s) on the surface
+      13464 points
+[progress] right arm: reaching cell 135 of 144 at (-1.025, -0.011, 1.670)
+      5 region(s) on the surface
+      13464 points
+[progress] right arm: reaching cell 138 of 144 at (-1.025, -0.111, 1.670)
+      6 region(s) on the surface
+      13464 points
+[progress] right arm: reaching cell 139 of 144 at (-0.925, -0.111, 1.670)
+      9 region(s) on the surface
+      10303 points
+[progress] right arm: reaching cell 140 of 144 at (-0.825, -0.111, 1.670)
+      10 region(s) on the surface
+      10304 points
+[progress] right arm: reaching cell 141 of 144 at (-0.825, -0.211, 1.670)
+      7 region(s) on the surface
+      10304 points
+[progress] right arm: reaching cell 142 of 144 at (-0.925, -0.211, 1.670)
+      7 region(s) on the surface
+      7901 points
+[progress] right arm: reaching cell 143 of 144 at (-1.025, -0.211, 1.670)
+      7 region(s) on the surface
+      7901 points
+   right arm: 97 of 144 cell(s) contributed nothing
+       96  outside this arm's envelope at this attitude
+        1  no usable frame from this pose
+[progress] left+right arm: building the map fusing 115 view(s) from 2 arm(s)
+   support surface at z = 1.2448 m, tilted 0.46 deg, from 1151662 points
+   object 0 at (0.288, 0.500, 1.260), 141 mm across the jaws, NOT graspable -- 141 mm across its narrowest axis and the jaws close on 85 mm
+   object 1 at (-0.249, 0.609, 1.260), 219 mm across the jaws, NOT graspable -- 219 mm across its narrowest axis and the jaws close on 85 mm
+   object 2 at (0.480, 0.450, 1.280), 41 mm across the jaws, graspable
+   object 3 at (0.420, 0.450, 1.281), 41 mm across the jaws, graspable
+   object 4 at (-0.480, 0.449, 1.279), 41 mm across the jaws, graspable
+   object 5 at (-0.420, 0.450, 1.281), 41 mm across the jaws, graspable
+   object 6 at (0.106, 0.549, 1.250), 231 mm across the jaws, NOT graspable -- 231 mm across its narrowest axis and the jaws close on 85 mm
+   object 7 at (-0.079, 0.469, 1.250), 79 mm across the jaws, graspable
+   built from 115 views: left_p1_c02, left_p1_c03, left_p1_c04, left_p1_c05, left_p1_c06, left_p1_c07, left_p1_c08, left_p1_c09, left_p1_c10, left_p1_c11, left_p1_c12, left_p1_c13, left_p1_c14, left_p1_c15, left_p1_c16, left_p1_c17, left_p1_c18, left_p1_c19, left_p1_c20, left_p1_c21, left_p1_c22, left_p1_c23, left_p1_c24, left_p1_c28, left_p1_c29, left_p1_c30, left_p1_c31, left_p1_c32, left_p1_c38, left_p1_c39, left_p1_c40, left_p1_c41, left_p1_c42, left_p1_c43, left_p1_c44, left_p1_c47, left_p1_c48, left_p1_c49, left_p1_c50, left_p1_c51, left_p1_c52, left_p1_c53, left_p1_c54, left_p1_c57, left_p1_c58, left_p1_c59, left_p1_c60, left_p2_c61, left_p2_c62, left_p2_c63, left_p2_c64, left_p2_c67, left_p2_c68, left_p2_c69, left_p2_c70, left_p2_c71, left_p2_c72, left_p2_c73, left_p2_c79, left_p2_c80, left_p2_c110, left_p2_c111, left_p2_c112, left_p2_c119, left_p2_c120, left_p3_c121, left_p3_c122, left_p3_c130, right_p1_c04, right_p2_c50, right_p2_c51, right_p2_c52, right_p2_c53, right_p2_c54, right_p2_c55, right_p2_c59, right_p2_c60, right_p2_c61, right_p2_c92, right_p2_c93, right_p3_c97, right_p3_c98, right_p3_c99, right_p3_c100, right_p3_c101, right_p3_c102, right_p3_c103, right_p3_c104, right_p3_c105, right_p3_c106, right_p3_c107, right_p3_c108, right_p3_c109, right_p3_c110, right_p3_c111, right_p3_c112, right_p3_c114, right_p3_c115, right_p3_c116, right_p3_c117, right_p3_c118, right_p3_c124, right_p3_c126, right_p3_c130, right_p3_c131, right_p3_c132, right_p3_c133, right_p3_c134, right_p3_c135, right_p3_c138, right_p3_c139, right_p3_c140, right_p3_c141, right_p3_c142, right_p3_c143
+   heights holding 5%% or more of the points:
+      z 1.245 m   1225972 points   78.5%
+      z 1.255 m    146006 points    9.3%
+[progress] left+right arm: finished surface measured at 1.2448 m, 8 object(s) found, 115 of 117 REACHABLE cells contributed (98%)
+-> /home/gausms/kortex_ws/recordings/calibration/20260823_220731/world_map.json
+-> /home/gausms/kortex_ws/recordings/calibration/20260823_220731/world_map_occupancy.npy   (1561488 points, for the planner)
+map: /home/gausms/kortex_ws/recordings/calibration/20260823_220731/world_map.json
+   surface z = 1.2448 m, 8 object(s), finder: segment_lift: instances cut from each PICTURE by FastSAM and lifted through the depth
+[progress] left arm: planning a path object 2 at ['0.480', '0.450', '1.280'], 41 mm across, from the MEASURED map
+   the planner has 1007 occupied voxels from the map (the surface AND the objects)
+   pregrasp  ['0.515', '0.255', '1.163']  ok
+   grasp     ['0.497', '0.357', '1.224']  ok
+   lift      ['0.497', '0.357', '1.324']  ok
+   carry     ['0.290', '0.500', '1.324']  ok
+   place     ['0.307', '0.407', '1.224']  ok
+   retreat   ['0.290', '0.500', '1.324']  ok
+[progress] left arm: reaching at (0.515, 0.255, 1.163) pregrasp
+[progress] left arm: closing on the object at (0.497, 0.357, 1.224) grasp
+[progress] left arm: carrying at (0.497, 0.357, 1.324) lift
+[progress] left arm: carrying at (0.290, 0.500, 1.324) carry
+[progress] left arm: placing at (0.307, 0.407, 1.224) place
+[progress] left arm: returning home at (0.290, 0.500, 1.324) retreat
+[progress] left arm: finished object 2 moved

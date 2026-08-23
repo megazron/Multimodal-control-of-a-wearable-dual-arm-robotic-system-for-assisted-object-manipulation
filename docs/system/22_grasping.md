@@ -234,3 +234,126 @@ python3 scripts/verify_vision_drives_grasp.py --vision <staged detections>
 ```
 
 Everything else: `docs/HOW_TO_RUN.md`.
+
+---
+
+# 2026-08-23: OBJECT IDENTITY COMES FROM THE PICTURE NOW
+
+Written after the calibration stage was run live four times and produced a
+wrong map each time, for four different reasons. Three of the four were mine
+and are worth more than the fix.
+
+## WHAT THE STAGE WAS DOING, AND WHY IT COULD NOT WORK
+
+`calibrate_environment.py` sweeps the arm over the workspace, deprojects the
+depth at each cell, fuses the views, and reports what is on the table. It found
+objects the way this repository always has: fit a support plane to the fused
+cloud, then cluster the points above it by Euclidean distance
+(`table_scene.objects_on_plane`, `cluster_m = 0.020`).
+
+Run against the T1 scene it reported
+
+```
+object 0 at (-0.356, 0.471, 1.272), 140 mm across the jaws, NOT graspable
+```
+
+where **two 40 mm cubes** are. T1's cubes sit on a 60 mm pitch, so the gap
+between two adjacent faces is **exactly 20 mm**, which is the cluster distance.
+Two cubes 20 mm apart are one cluster. The map then refused an object that does
+not exist, with a confident reason naming the gripper.
+
+**No cluster distance fixes this.** Tighten it and the same cube splits into
+several objects once the depth noise exceeds the threshold; loosen it and more
+things merge. The parameter has no good value because the question is wrong.
+
+## WHAT THE FIELD ACTUALLY DOES
+
+The unseen-object-instance-segmentation line of work — and the geometric
+half of the recent VLM grasping systems — does the opposite: **cut instances
+out of the IMAGE, then lift each mask through the depth**. The instance
+boundary comes from appearance, where it is easy, and depth is used only to
+place the instance in metres, where it is reliable.
+
+* Adapting SAM for unseen object instance segmentation —
+  <https://arxiv.org/html/2409.15481v1>
+* ZISVFM, zero-shot instance segmentation in indoor robotic environments —
+  <https://arxiv.org/pdf/2502.03266>
+* CLASP, whose "dual-pathway hierarchical perception" decouples semantic
+  intent from geometric grounding for exactly this reason —
+  <https://arxiv.org/abs/2604.11320>
+* HiFi-CS, open-vocabulary visual grounding for grasping —
+  <https://arxiv.org/html/2409.10419v1>
+
+**And LeRobot has no perception stage at all.** Its loop is teleoperate →
+record → train → deploy; ACT, π₀ and SmolVLA consume raw camera video and emit
+actions. There is nothing there to copy for "where is the cube in metres",
+which is consistent with what `20_lerobot.md` already concluded about the
+format being worth taking and the policies not.
+
+## WHAT IS BUILT
+
+`srl_perception/segment_lift.py`. FastSAM-s cuts every region out of the
+frame; each mask is lifted through that frame's depth into the robot frame;
+the result is one instance with its own points, centre, extents and width.
+The weights were already in this repository — `prompt_detector` has used them
+since 2026-08-21 — and it runs on the CPU, which is what this host has.
+
+**APPEARANCE IS NOT ENOUGH EITHER, AND THE SCENE PROVES IT.** A blue cube
+stands on a blue pad and a green cube on a green pad. Same colour, touching,
+no edge — the segmenter returns ONE region and is right to.
+`mock_rgbd_camera` says so in its own source: the depth step is the only thing
+that separates a cube from the same-coloured pad it stands on. So each mask is
+also split by height, and the two cues fail in opposite directions:
+
+| cue | separates | cannot separate |
+| --- | --- | --- |
+| appearance (the mask) | two cubes 20 mm apart, side by side | a cube from the pad it stands on |
+| height (the layers) | a cube from its pad | two cubes at the same height |
+
+## THREE DEFECTS THAT WERE MINE, AND HOW EACH SHOWED
+
+**1. The camera pose came off TF, so every cube was replicated once per view.**
+`env_probe.camera_pose` used `lookup_transform(..., Time())` — the LATEST
+transform, which is where the camera is *now*, not where it was when the frame
+was taken. The map came back with **13 objects for a 6-object scene**, at
+x = 0.334, 0.396, 0.419, 0.487, 0.521, 0.576 for two cubes at 0.420 and 0.480,
+and two runs of the same command gave different maps. Each copy was displaced
+by about **one cell of the sweep**, which is the signature.
+
+`mock_rgbd_camera` publishes `/<arm>_camera/render_pose`, stamped identically
+to the frame, **specifically so this cannot happen**, with a comment recording
+that the same mistake once cost all four T1 grasps. I made it anyway.
+`frame_pose` now takes the pose whose stamp matches the frame and REFUSES when
+a render_pose publisher exists and none matches. The map records which was used.
+
+**2. `_measure` used PCA, and a square has no principal axis.** Both
+horizontal directions of a cube have identical variance, so SVD returns the
+diagonal: a 40 mm cube measured **53 mm**, which is 40·√2. Against an 85 mm jaw
+that would have refused every 60 mm object in the scene. The quantity a
+parallel jaw cares about is the **minimum width** — rotating calipers — and it
+is now swept at 0.25°, whose worst error on a square is 0.17 mm.
+
+**Caught by the self-test before it ever ran live**, which is the only reason
+it is a paragraph here and not a week.
+
+**3. The merge rule could not be a distance.** Two views of one 160 mm pad put
+its centre 60 mm apart — each saw a different part — so at a 20 mm merge
+distance ONE pad came back as FOUR objects. Widen it and the two cubes merge
+again. There is no distance that is right for both, because the right answer
+scales with the object. It is an OVERLAP test now, and it needed two goes:
+plain box-intersection merged a cube into the pad it stands on, because a cube
+on a pad intersects it in every axis by the letter of the test. Each axis must
+overlap by a real fraction of the smaller object's extent.
+
+## AND THE ROOT CAUSE WAS NOT PERCEPTION AT ALL
+
+With all of that fixed the map still had holes, so I saved a frame and
+**looked at it**. The camera sat 200 mm above the surface and 400 mm outboard:
+a **25° grazing angle**. The table is a thin white wedge across the frame, 72%
+of the picture is background, and 28% of the depth is valid. No detector
+recovers a 40 mm cube from that. The viewing geometry was measured properly
+afterwards rather than guessed — see `scripts/measure_view_geometry.py`.
+
+**Three of the four failures produced a confident, precise, wrong number**, and
+the one that produced an obviously wrong number was the easiest to fix. That is
+the standing rule's own point, and this is its eighteenth entry.

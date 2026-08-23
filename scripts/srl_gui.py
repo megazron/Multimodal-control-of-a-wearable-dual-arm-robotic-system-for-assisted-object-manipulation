@@ -346,7 +346,16 @@ class Bus(Node):
                      ("/trial_state", "trial"),
                      # Part 6: the go/no-go verdict and the live session.
                      ("/session/ready", "ready"),
-                     ("/session/state", "sess")):
+                     ("/session/state", "sess"),
+                     # THE ROBOT'S OWN VOICE. `calibrate_environment` and
+                     # `pick_from_map` publish one JSON sentence per phase --
+                     # "calibrating", "reaching cell 7 of 12", "grasping" --
+                     # and the operator asked to be told what it is doing
+                     # rather than watch an arm move for reasons nobody can
+                     # see. Same topic the log carries, so the window and the
+                     # terminal cannot disagree.
+                     ("/robot_say", "say"),
+                     ("/world_map", "worldmap")):
             self.create_subscription(String, t,
                                      lambda m, k=k: self._set(k, m.data), 10)
         self.create_subscription(
@@ -1271,6 +1280,12 @@ class Gui(QMainWindow):
         # mode panel is four rows and answers that before anything is
         # scrolled; the VR button is immediately under it and has lost
         # nothing.
+        # MAP FIRST, because that is the order of the work: measure what is
+        # on the table, then plan against it. It also has to be ABOVE THE
+        # FOLD -- this window has already had one defect where every mode
+        # button was below it and the first question anybody asked was where
+        # they had gone. Screenshotted after moving, not assumed.
+        rv.addWidget(self._map_panel())
         rv.addWidget(self._modes_panel())
         rv.addWidget(self._experiments_panel())
         rv.addWidget(self._vr_panel())
@@ -2400,6 +2415,166 @@ class Gui(QMainWindow):
             r.addWidget(b)
         v.addLayout(r)
         return g
+
+    def _map_panel(self):
+        """MAP THE ENVIRONMENT FIRST, then plan against what was measured.
+
+        THE GUI RULE, and the capability it exposes is the one the operator
+        actually asked for: the arm should work out what is on the table
+        rather than be told, and it should say what it is doing while it does
+        it. Both live here -- the sweep is started from this button, the
+        phase banner is the arm's own voice off `/robot_say`, and the object
+        list is the map the pick is planned from.
+        """
+        g = QGroupBox("MAP THE ENVIRONMENT  --  measure first, then plan")
+        g.setFont(helvetica(11, True))
+        v = QVBoxLayout(g)
+
+        # THE BANNER. One line, large, always the current phase.
+        self.say_lbl = QLabel("idle")
+        self.say_lbl.setFont(helvetica(12, True))
+        self.say_lbl.setWordWrap(True)
+        self.say_lbl.setMinimumHeight(34)
+        self.say_lbl.setStyleSheet(
+            "color:%s;border:1px solid %s;padding:4px" % (C_OK, C_MUTED))
+        self.say_lbl.setToolTip(
+            "What the robot says it is doing, from /robot_say. Silence here "
+            "while the arm moves means the moving thing is not narrating -- "
+            "which is a fact about the run, not about this label.")
+        v.addWidget(self.say_lbl)
+
+        row = QHBoxLayout()
+        b = QPushButton("CALIBRATE THE ENVIRONMENT")
+        b.setFont(helvetica(10, True))
+        b.setMinimumHeight(28)
+        b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        b.setToolTip(
+            "Sweeps the arm over the workspace in straight serpentine rows, "
+            "segments each frame, lifts the masks through the depth, and "
+            "fuses one map: the support surface MEASURED, and every object "
+            "on it with its width and whether the jaws can close on it. "
+            "Takes a few minutes and narrates every cell.")
+        b.clicked.connect(self.on_calibrate_environment)
+        row.addWidget(b, 1)
+        self.map_arm = QComboBox()
+        self.map_arm.addItems(["left", "right"])
+        self.map_arm.currentTextChanged.connect(
+            lambda t: self.bus.note("map arm: %s" % t))
+        row.addWidget(self.map_arm)
+        v.addLayout(row)
+
+        row2 = QHBoxLayout()
+        b2 = QPushButton("SHOW THE MAP")
+        b2.setFont(helvetica(10))
+        b2.setToolTip("Reads recordings/baselines/world_map.json and lists "
+                      "what it holds. Moves nothing.")
+        b2.clicked.connect(self.on_show_map)
+        row2.addWidget(b2, 1)
+        b3 = QPushButton("PICK FROM THE MAP")
+        b3.setFont(helvetica(10, True))
+        b3.setStyleSheet("color:%s;border:1px solid %s" % (C_OK, C_OK))
+        b3.setToolTip(
+            "Plans a pick for the selected object using the MEASURED centre "
+            "and width -- no declared coordinates anywhere in the chain. "
+            "PLANS ONLY: it prints every waypoint and commands nothing "
+            "unless 'and move' is ticked.")
+        b3.clicked.connect(self.on_pick_from_map)
+        row2.addWidget(b3, 1)
+        v.addLayout(row2)
+
+        row3 = QHBoxLayout()
+        row3.addWidget(QLabel("object"))
+        self.map_obj = QSpinBox()
+        self.map_obj.setRange(0, 99)
+        self.map_obj.valueChanged.connect(
+            lambda i: self.bus.note("map object index: %d" % i))
+        row3.addWidget(self.map_obj)
+        self.map_move = QCheckBox("and move")
+        self.map_move.setToolTip(
+            "Unticked, PICK FROM THE MAP plans and prints. Ticked, it "
+            "commands the arm.")
+        self.map_move.stateChanged.connect(
+            lambda _s: self.bus.note(
+                "pick from map will %s"
+                % ("MOVE THE ARM" if self.map_move.isChecked()
+                   else "plan only")))
+        row3.addWidget(self.map_move)
+        row3.addStretch(1)
+        v.addLayout(row3)
+
+        self.map_lbl = QLabel("no map read yet")
+        self.map_lbl.setWordWrap(True)
+        self.map_lbl.setFont(mono(8))
+        self.map_lbl.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.map_lbl)
+        return g
+
+    def _map_say(self, text, bad=False):
+        self.map_lbl.setText(str(text))
+        self.map_lbl.setStyleSheet("color:%s" % (C_BAD if bad else C_MUTED))
+
+    def on_calibrate_environment(self):
+        """Start the sweep. It is a LAUNCH, not a call: it takes minutes."""
+        arm = self.map_arm.currentText()
+        py = os.path.join(_WS, ".venv_vision", "bin", "python")
+        if not os.path.exists(py):
+            # NAMED. The segmenter needs ultralytics, which lives in
+            # .venv_vision on this host and not in the ROS interpreter.
+            self._map_say(
+                "the vision interpreter %s is missing, so the segmenter "
+                "cannot run. Nothing was started." % py, bad=True)
+            return
+        argv = [py, "-u", os.path.join(_WS, "scripts",
+                                       "calibrate_environment.py"),
+                "--arm", arm]
+        self.bus.note("calibrating the environment (%s arm): %s"
+                      % (arm, " ".join(argv)))
+        self._map_say("sweeping the %s arm over the workspace. Watch the "
+                      "banner above." % arm)
+        self._spawn(gls.Spec("calibrate_env", "calibrate environment",
+                             "map", argv, needs_stack=True))
+
+    def on_show_map(self):
+        def go():
+            try:
+                sys.path.insert(0, os.path.join(_WS, "scripts"))
+                import pick_from_map as PFM
+                doc = PFM.load_map()
+            except Exception as e:                            # noqa: BLE001
+                self._map_say("no map to show: %r" % (e,), bad=True)
+                return
+            lines = ["surface z = %.4f m   %d object(s)   finder: %s"
+                     % (doc["surface"]["z_m"], len(doc["objects"]),
+                        doc.get("provenance", {})
+                        .get("object_finder", "?")[:40])]
+            for i, o in enumerate(doc["objects"]):
+                lines.append("%2d  %s  %5.0f mm  %s"
+                             % (i, " ".join("%7.3f" % v for v in o["centre"]),
+                                o["width_m"] * 1000,
+                                "graspable" if o.get("graspable")
+                                else "NOT: " + o.get("why", "")[:40]))
+            self.map_obj.setRange(0, max(0, len(doc["objects"]) - 1))
+            self._map_say("\n".join(lines))
+        self._map_say("reading the map...")
+        self.bus.submit(go, label="show the map")
+
+    def on_pick_from_map(self):
+        arm = self.map_arm.currentText()
+        idx = int(self.map_obj.value())
+        move = self.map_move.isChecked()
+        py = os.path.join(_WS, ".venv_vision", "bin", "python")
+        argv = [py if os.path.exists(py) else sys.executable, "-u",
+                os.path.join(_WS, "scripts", "pick_from_map.py"),
+                "--arm", arm, "--object", str(idx)]
+        if move:
+            argv.append("--execute")
+        # A CONTROL THAT CHANGES WHAT THE NEXT RUN DOES MUST SAY SO.
+        self.bus.note("pick from map: object %d, %s arm, %s"
+                      % (idx, arm, "MOVING THE ARM" if move else "plan only"))
+        self._map_say("planning a pick for object %d%s"
+                      % (idx, " and MOVING" if move else " (plan only)"))
+        self._spawn(gls.Spec("pick_from_map", "pick from map", "map", argv,
+                             needs_stack=True))
 
     def on_what_is_on_the_table(self):
         """Ask the wrist camera what is on the surface in front of it.
@@ -5678,6 +5853,7 @@ class Gui(QMainWindow):
         self._refresh_actual(s)
         self._refresh_divergence(s)
         self._refresh_cameras(s)
+        self._refresh_say(s)
 
         # ---- banner. A narration override wins: the tutorial recorder drives
         # the banner as its caption track, and refresh() runs at 10 Hz, so
@@ -5769,6 +5945,40 @@ class Gui(QMainWindow):
                     win.resize(max(1, cont.width()), max(1, cont.height()))
             except Exception:                                 # noqa: BLE001
                 self.embedded.pop(key, None)
+
+    def _refresh_say(self, s):
+        """The robot's own sentence, live, in the window.
+
+        AND IT SAYS WHEN IT HAS GONE QUIET. A banner that keeps showing the
+        last thing it heard looks identical to one watching a live run, which
+        is the "data fresh but never changes" row of the instrument table. The
+        publisher stamps every message, so staleness is measurable rather than
+        assumed.
+        """
+        if not hasattr(self, "say_lbl"):
+            return
+        raw = (s or {}).get("say")
+        if not raw:
+            self.say_lbl.setText("idle -- nothing is narrating")
+            self.say_lbl.setStyleSheet(
+                "color:%s;border:1px solid %s;padding:4px" % (C_MUTED, C_MUTED))
+            return
+        try:
+            d = json.loads(raw)
+        except Exception:                                     # noqa: BLE001
+            self.say_lbl.setText(str(raw)[:200])
+            return
+        age = time.time() - float(d.get("t", 0.0))
+        txt = str(d.get("text", ""))
+        if age > 20.0:
+            self.say_lbl.setText("%s   (%.0f s ago -- nothing since)"
+                                 % (txt, age))
+            self.say_lbl.setStyleSheet(
+                "color:%s;border:1px solid %s;padding:4px" % (C_MUTED, C_MUTED))
+        else:
+            self.say_lbl.setText(txt)
+            self.say_lbl.setStyleSheet(
+                "color:%s;border:1px solid %s;padding:4px" % (C_OK, C_OK))
 
     def _refresh_wearer(self, s):
         """Push the newest scene frame and wearer estimate into the panel.

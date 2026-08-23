@@ -60,6 +60,20 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /task_objects
       Value: true
+    # WHAT THE ROBOT MEASURED, as opposed to what a task file declared.
+    # Added 2026-08-23 with the calibration stage: without it a recording of
+    # a calibration sweep is two arms moving in an empty room.
+    - Class: rviz_default_plugins/MarkerArray
+      Name: WorldMap
+      Enabled: true
+      Namespaces: {}
+      Topic:
+        Depth: 20
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /world_map_markers
+      Value: true
   Global Options:
     Background Color: 45; 45; 48
     Fixed Frame: world

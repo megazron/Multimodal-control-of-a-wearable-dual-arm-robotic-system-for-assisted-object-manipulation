@@ -296,6 +296,84 @@ class ProbeNode(Node):
         q = q / np.linalg.norm(q)
         return _q_matrix(q)[:, 2]
 
+    def fixed_axis(self, arm, facing_deg=0.0, elev_deg=38.9):
+        """ONE camera direction for a whole pass. The printer-probe attitude.
+
+        WHY A FIXED ONE. `look_at_quat` aims the wrist AT the cell, so the
+        orientation changes at every step of the grid: the gripper reorients
+        between neighbouring cells 90 mm apart, never holds still, and no two
+        views are taken from the same attitude -- so a residual wrist error is
+        a DIFFERENT error in every frame and cannot cancel or be measured.
+
+        A 3-D printer's probe does not re-aim between points. It holds one
+        attitude and translates. This is that attitude: `elev_deg` below
+        horizontal, yawed by `facing_deg` about world z, mirrored for the
+        right arm so both look inboard at the work rather than both looking
+        the same way in the world.
+
+        38.9 deg is not a guess -- it is the elevation of the geometry
+        `measure_view_geometry.py` scored best (8 of 12 cells, 8.2% object
+        pixels), recomputed here as an angle instead of a standoff triple.
+        """
+        el = math.radians(float(elev_deg))
+        # Base direction: outboard-to-inboard and downward. Mirrored in x.
+        sx = -1.0 if arm == "left" else 1.0
+        base = np.array([sx * math.cos(el) * 0.946,
+                         math.cos(el) * 0.324,
+                         -math.sin(el)])
+        base = base / np.linalg.norm(base)
+        th = math.radians(float(facing_deg))
+        c, s_ = math.cos(th), math.sin(th)
+        R = np.array([[c, -s_, 0.0], [s_, c, 0.0], [0.0, 0.0, 1.0]])
+        v = R @ base
+        return v / np.linalg.norm(v)
+
+    def fixed_quat(self, arm, facing_deg=0.0, elev_deg=38.9):
+        """`fixed_axis` as a message, for a whole pass."""
+        import sys as _sys
+        import os as _os
+        _abc = _os.path.join(_os.path.dirname(_os.path.dirname(
+            _os.path.abspath(__file__))), "src/srl_experiments/experiments/abc")
+        if _abc not in _sys.path:
+            _sys.path.insert(0, _abc)
+        import grasp_frames as _GF
+        q = _GF.q_from_axis(self.fixed_axis(arm, facing_deg, elev_deg))
+        m = Quaternion()
+        m.x, m.y, m.z, m.w = (float(v) for v in q)
+        return m
+
+    def is_still(self, arm, window_s=0.4, tol_rad=0.0015):
+        """Is the arm ACTUALLY stationary, or merely within tolerance?
+
+        `at()` answers a different question -- whether the joints are close to
+        the commanded pose -- and a joint can sit 0.02 rad away and still be
+        moving through it. A frame captured then is smeared across two poses
+        and nothing downstream can tell: the plane fit still returns a plane
+        and the objects still get centres.
+
+        This watches the joints for `window_s` and requires that no joint has
+        moved more than `tol_rad` across the whole window. 0.0015 rad is under
+        a tenth of the arrival tolerance, so it is a genuine stillness test
+        and not a restatement of arrival.
+
+        Returns (still, worst_joint_rad).
+        """
+        first = [self.js.get(n) for n in self.names(arm)]
+        if any(v is None for v in first):
+            return False, float("inf")
+        lo = list(first)
+        hi = list(first)
+        t0 = time.time()
+        while time.time() - t0 < window_s and rclpy.ok():
+            self.spin(0.05)
+            cur = [self.js.get(n) for n in self.names(arm)]
+            if any(v is None for v in cur):
+                return False, float("inf")
+            lo = [min(a, b) for a, b in zip(lo, cur)]
+            hi = [max(a, b) for a, b in zip(hi, cur)]
+        worst = max(h - l for l, h in zip(lo, hi))
+        return worst <= tol_rad, float(worst)
+
     def look_at_quat(self, cam_xyz, target_xyz):
         """A wrist orientation whose TOOL AXIS points from the camera at the target.
 

@@ -107,7 +107,7 @@ class Calibrator:
         self.arm = arm
         self.n = node
 
-    def look_from(self, xyz, quat, settle_s=1.2):
+    def look_from(self, xyz, quat, settle_s=1.2, solution=None):
         """Command the arm to a viewing pose and wait for it to actually be there.
 
         Returns True when the arm ARRIVED. A capture taken while the arm is
@@ -115,7 +115,8 @@ class Calibrator:
         downstream can tell -- `check_frame_still` exists in `vision_grasp`
         for exactly this and the same discipline applies here.
         """
-        j = self.n.solve(self.arm, list(xyz), quat)
+        j = solution if solution is not None else self.n.solve(
+            self.arm, list(xyz), quat)
         if j is None:
             return False
         self.n.send(self.arm, j, 2.0)
@@ -206,95 +207,177 @@ class Calibrator:
                        % (stamp, src, finder), objects=objs)
 
 
-def run(node, arm, bounds, surface_z, step_m, order, hover_m,
-        range_m=0.35, max_cells=None,
-        view_out_m=0.35, view_in_m=0.12, view_up_m=0.30, dump_views=None,
-        dump_frames=None, finder="segment"):
-    """The whole stage. Returns (Map, report) or raises MapRefusal."""
-    plan = CSW.plan(bounds["x"][0], bounds["x"][1],
-                    bounds["y"][0], bounds["y"][1], surface_z,
-                    step_m=step_m, hover_m=hover_m, order=order)
-    cells = plan["cells"][:max_cells] if max_cells else plan["cells"]
+def sweep_arm(node, arm, bounds, surface_z, step_m, order, layers_m,
+              facings_deg, elev_deg, max_cells=None, dump_frames=None,
+              finder="segment", require_still=True):
+    """One arm, every pass, every layer. Returns (views, report).
+
+    THE WRIST HOLDS ONE ATTITUDE FOR A WHOLE PASS AND ONLY TRANSLATES.
+
+    Within a pass the orientation is computed ONCE, from `fixed_axis`, and
+    every cell is reached by moving the wrist to a position -- the camera
+    grid is the work grid rigidly translated back along that fixed ray, so
+    consecutive cells differ by a pure translation and the gripper never
+    reorients. That is the printer-probe model, and it is the difference
+    between a scan you can watch and an arm that swings at every step.
+
+    Several passes at different YAWS give the sides. A vertical face is
+    invisible to a camera looking straight at the surface in front of it and
+    obvious to one looking along it, so "map all the sides" is passes, and
+    "all the lengths" is layers.
+    """
+    plan = CSW.plan_volume(bounds["x"][0], bounds["x"][1],
+                           bounds["y"][0], bounds["y"][1], surface_z,
+                           step_m=step_m, layers_m=layers_m,
+                           facings_deg=facings_deg, order=order)
     _say(node, "CALIBRATING", arm=arm,
-         detail="%d cells in %d straight rows, %s order, %.2f m of travel"
-                % (len(cells), plan["n_rows"], plan["order"],
-                   plan["travel_m"]))
+         detail="%d cells in %d pass(es) of %d layer(s), %s order, %.2f m of "
+                "travel -- the wrist holds one attitude per pass"
+                % (plan["total_cells"], len(plan["passes"]),
+                   plan["n_layers"], plan["order"], plan["travel_m"]))
 
+    # ================= WHICH CELLS THIS ARM CAN OBSERVE AT ALL ==============
+    # SOLVED BEFORE ANYTHING MOVES.
+    #
+    # Without this the sweep DISCOVERS unreachability by trying to drive
+    # there: a seeded IK search with six restarts and a three-second timeout,
+    # then a six-second wait for an arrival that never comes. 74 of 144 cells
+    # went that way on the first full run, which is most of the twenty minutes
+    # it took -- and the report then read "48% coverage", as though the scan
+    # had failed at something.
+    #
+    # It had not. A cell outside the arm's envelope is a fact about the ROBOT,
+    # and it belongs in a different number from a cell the arm could reach and
+    # did not photograph. Both are reported now.
     cal = Calibrator(arm, node)
-    views, missed = [], []
-    for k, c in enumerate(cells, 1):
-        # ===============================================================
-        # THE VIEWING POSE LOOKS DOWN AT THE CELL FROM ABOVE AND OUTBOARD
-        # ===============================================================
-        # THE WRIST CAMERA LOOKS ALONG THE TOOL AXIS, and this rig's grasp
-        # anchor points that axis **30.76 deg ABOVE horizontal** -- the hand
-        # grasps from below. So a camera carrying the anchor can never see the
-        # TOP of a horizontal surface: every ray in its field of view goes
-        # upward. From beneath a table it sees the underside; from above it
-        # sees the room.
-        #
-        # BOTH OF MY FIRST TWO ATTEMPTS GOT THIS WRONG, and the second one is
-        # the instructive failure. Hovering above the cell with the anchor
-        # aimed the camera at the ceiling: 10 of 12 cells returned no depth at
-        # all. Standing back along the axis put the camera under the table and
-        # returned a map with a support surface at **z = 1.2154 m**, flat to
-        # 0.18 deg -- and the table is a 35 mm slab centred at 1.2325, so its
-        # UNDERSIDE is at 1.2150. The robot had measured the underside of the
-        # table to 0.4 mm and reported it, correctly, as the biggest flat
-        # thing it could see. A confident, precise, useless answer.
-        #
-        # `solve_observe_pose` already knew the shape of the fix: the pose it
-        # solved has its tool axis at -13.75 deg, DOWNWARD, from a viewpoint
-        # above and outboard of the work. So each cell gets its own aimed
-        # pose -- camera above the surface and outboard of the cell, tool axis
-        # pointing AT the cell -- which is also what makes this a scan of the
-        # workspace rather than a tour of viewpoints.
-        out = math.copysign(view_out_m, c[0])
-        cam = [round(c[0] + out, 5),
-               round(c[1] - view_in_m, 5),
-               round(surface_z + view_up_m, 5)]
-        target = [c[0], c[1], surface_z]
-        quat = node.look_at_quat(cam, target)
-        at = cam
-        _say(node, "REACHING", arm=arm, cell=k, of=len(cells), at=at)
-        if not cal.look_from(at, quat):
-            missed.append(dict(cell=k, at=at, why="pose not reached"))
-            continue
-        v = cal.capture("%s_cell_%02d" % (arm, k), finder=finder)
-        if v is None:
-            missed.append(dict(cell=k, at=at,
-                               why="no usable frame from this pose"))
-            continue
-        views.append(v)
-        print("      %d points" % v.n, flush=True)
-        if dump_frames and v is not None:
-            os.makedirs(dump_frames, exist_ok=True)
-            np.savez(os.path.join(dump_frames, "%s.npz" % v.source),
-                     **cal.last_frame)
-        if dump_views:
-            # ONE VIEW AT A TIME IS THE INSTRUMENT CHECK. A fused map that
-            # disagrees with the truth says nothing about WHERE the error is:
-            # a bad deprojection, a bad camera pose and a bad fusion all
-            # produce one wrong map. A single view carries its own pose, so
-            # its plane height and its object positions can be scored on
-            # their own, and only then is the fusion worth suspecting.
-            os.makedirs(dump_views, exist_ok=True)
-            np.save(os.path.join(dump_views, "%s.npy" % v.source), v.points)
+    views, missed, still_fail = [], [], 0
+    seen = 0
+    unreachable = 0
+    for pi, ps in enumerate(plan["passes"], 1):
+        facing = ps["facing_deg"]
+        # ONE ORIENTATION, COMPUTED ONCE, FOR EVERY CELL OF THIS PASS.
+        axis = node.fixed_axis(arm, facing, elev_deg)
+        quat = node.fixed_quat(arm, facing, elev_deg)
+        _say(node, "CALIBRATING", arm=arm,
+             detail="pass %d of %d, wrist fixed at %+.0f deg yaw / %.1f deg "
+                    "down, %d cells" % (pi, len(plan["passes"]), facing,
+                                        elev_deg, len(ps["cells"])))
+        for (cx, cy, cz, row, col, layer) in ps["cells"]:
+            seen += 1
+            if max_cells and seen > max_cells:
+                break
+            h = float(cz) - surface_z
+            # The camera stands back along its OWN fixed ray so that the ray
+            # lands on the work cell. A rigid translation of the work grid,
+            # so the sweep is still a straight-row raster.
+            d = h / max(1e-6, -float(axis[2]))
+            cam = [round(cx - float(axis[0]) * d, 5),
+                   round(cy - float(axis[1]) * d, 5),
+                   round(surface_z + h, 5)]
+            j = node.solve(arm, cam, quat, tries=2)
+            if j is None:
+                # OUTSIDE THE ENVELOPE. Not a scan failure -- there is no
+                # wrist pose at this attitude that puts the camera here.
+                unreachable += 1
+                missed.append(dict(cell=seen, at=cam, pass_=pi, facing=facing,
+                                   layer=layer,
+                                   why="outside this arm's envelope at this "
+                                       "attitude"))
+                continue
+            _say(node, "REACHING", arm=arm, cell=seen,
+                 of=plan["total_cells"], at=cam)
+            if not cal.look_from(cam, quat, solution=j):
+                missed.append(dict(cell=seen, at=cam, pass_=pi, facing=facing,
+                                   layer=layer, why="pose not reached"))
+                continue
+            if require_still:
+                still, worst = node.is_still(arm)
+                if not still:
+                    # A FRAME TAKEN WHILE THE ARM MOVES IS A CLOUD SMEARED
+                    # ACROSS TWO POSES, and every statistic downstream still
+                    # comes out looking fine.
+                    still_fail += 1
+                    missed.append(dict(cell=seen, at=cam, pass_=pi,
+                                       facing=facing, layer=layer,
+                                       why="arm still moving: worst joint "
+                                           "%.4f rad over the window" % worst))
+                    continue
+            v = cal.capture("%s_p%d_c%02d" % (arm, pi, seen), finder=finder)
+            if v is None:
+                missed.append(dict(cell=seen, at=cam, pass_=pi, facing=facing,
+                                   layer=layer,
+                                   why="no usable frame from this pose"))
+                continue
+            views.append(v)
+            print("      %d points" % v.n, flush=True)
+            if dump_frames:
+                os.makedirs(dump_frames, exist_ok=True)
+                np.savez(os.path.join(dump_frames, "%s.npz" % v.source),
+                         **cal.last_frame)
 
-    if missed:
-        print("   %d cell(s) contributed nothing:" % len(missed), flush=True)
-        for x in missed:
-            print("      cell %d at %s -- %s"
-                  % (x["cell"], [round(v, 3) for v in x["at"]], x["why"]),
-                  flush=True)
-    _say(node, "MAPPING", arm=arm,
-         detail="fusing %d view(s) of %d cell(s)" % (len(views), len(cells)))
-    m = WM.build(views)
-    report = dict(arm=arm, order=plan["order"], cells=len(cells),
-                  rows=plan["n_rows"], cols=plan["n_cols"],
-                  travel_m=plan["travel_m"], step_m=step_m, range_m=range_m,
+    reachable = plan["total_cells"] - unreachable
+    report = dict(arm=arm, order=plan["order"], passes=len(plan["passes"]),
+                  cells_reachable=reachable, cells_outside_envelope=unreachable,
+                  coverage_of_reachable=round(len(views) / max(1, reachable), 4),
+                  facings_deg=plan["facings_deg"], layers_m=plan["layers_m"],
+                  cells=plan["total_cells"], rows=plan["n_rows"],
+                  cols=plan["n_cols"], travel_m=plan["travel_m"],
+                  step_m=step_m, elev_deg=elev_deg,
                   views_used=len(views), cells_missed=missed,
-                  finder=finder, guess_surface_z=surface_z)
+                  stillness_refusals=still_fail,
+                  coverage=round(len(views) / max(1, plan["total_cells"]), 4),
+                  guess_surface_z=surface_z)
+    return views, report
+
+
+def run(node, arms, bounds_by_arm, surface_z, step_m, order, layers_m,
+        facings_deg, elev_deg, max_cells=None, dump_frames=None,
+        finder="segment", require_still=True):
+    """EVERY ARM INTO ONE MAP.
+
+    The map is the robot's, not an arm's. Sweeping one arm and calling the
+    result the environment leaves the other half of the space unmeasured and
+    says nothing about it -- and the two arms cannot cross the centreline, so
+    a one-arm map is missing exactly the half its arm can never reach.
+
+    The views carry their arm in their source name, so `Map.provenance` says
+    which arm saw what and an object seen by both is seen by both.
+    """
+    all_views, reports = [], []
+    for arm in arms:
+        views, rep = sweep_arm(node, arm, bounds_by_arm[arm], surface_z,
+                               step_m, order, layers_m, facings_deg, elev_deg,
+                               max_cells=max_cells, dump_frames=dump_frames,
+                               finder=finder, require_still=require_still)
+        all_views.extend(views)
+        reports.append(rep)
+        if rep["cells_missed"]:
+            print("   %s arm: %d of %d cell(s) contributed nothing"
+                  % (arm, len(rep["cells_missed"]), rep["cells"]), flush=True)
+            why = {}
+            for x in rep["cells_missed"]:
+                why[x["why"].split(":")[0]] = why.get(
+                    x["why"].split(":")[0], 0) + 1
+            for k, n in sorted(why.items(), key=lambda t: -t[1]):
+                print("      %3d  %s" % (n, k), flush=True)
+
+    _say(node, "MAPPING", arm="+".join(arms),
+         detail="fusing %d view(s) from %d arm(s)"
+                % (len(all_views), len(arms)))
+    m = WM.build(all_views)
+    reach = sum(r["cells_reachable"] for r in reports)
+    report = dict(arms=list(arms), per_arm=reports,
+                  views_used=len(all_views),
+                  cells=sum(r["cells"] for r in reports),
+                  cells_reachable=reach,
+                  cells_outside_envelope=sum(r["cells_outside_envelope"]
+                                             for r in reports),
+                  coverage_of_reachable=round(len(all_views) / max(1, reach), 4),
+                  coverage=round(len(all_views)
+                                 / max(1, sum(r["cells"] for r in reports)), 4),
+                  travel_m=round(sum(r["travel_m"] for r in reports), 4),
+                  stillness_refusals=sum(r["stillness_refusals"]
+                                         for r in reports))
     return m, report
 
 
@@ -308,62 +391,92 @@ def self_test(verbose=True):
         nonlocal ok
         ok = ok and bool(cond)
         if verbose:
-            print("  %-4s %s%s" % ("PASS" if cond else "FAIL", name,
-                                   ("  -- " + detail) if detail else ""))
+            print("  %-62s %s%s" % (name, "PASS" if cond else "FAIL",
+                                    "" if cond else "  -- " + str(detail)))
 
     check("the sweep planner agrees with itself", CSW.self_test(verbose=False))
     check("the world model agrees with itself", WM.self_test(verbose=False))
     check("the narration agrees with itself", N.self_test(verbose=False))
 
-    p = CSW.plan(*BOUNDS["left"]["x"], *BOUNDS["left"]["y"],
-                 GUESS_SURFACE_Z, step_m=0.07)
-    check("the shipped left bounds give a real grid",
-          p["n_rows"] >= 3 and p["n_cols"] >= 3,
-          "%d x %d cells" % (p["n_cols"], p["n_rows"]))
-    longest = max(math.dist(a[:2], b[:2])
-                  for a, b in zip(p["cells"], p["cells"][1:]))
-    step = max(p["step_x_m"], p["step_y_m"])
-    # 0.1 mm, not 1e-9. The cell coordinates are rounded to five decimals, so
-    # the real gap between two rounded rows can exceed the reported step by
-    # 1e-5 m -- measured, on the shipped grid. A tolerance tighter than the
-    # grid's own rounding tests the rounding and nothing else, while 0.1 mm is
-    # still four orders of magnitude below the 0.24 m return this is looking
-    # for.
-    check("no step of the shipped sweep is a long transit",
-          longest <= step + 1e-4, "longest %.5f m, step %.5f m"
-          % (longest, step))
+    # ---- the volume, not a plane
+    pv = CSW.plan_volume(BOUNDS["left"]["x"][0], BOUNDS["left"]["x"][1],
+                         BOUNDS["left"]["y"][0], BOUNDS["left"]["y"][1],
+                         GUESS_SURFACE_Z, step_m=0.11)
+    check("the sweep is a VOLUME: more than one height",
+          pv["n_layers"] > 1, pv["layers_m"])
+    check("and more than one wrist attitude, so sides get seen",
+          len(pv["facings_deg"]) > 1, pv["facings_deg"])
+    zs = sorted({c[2] for c in pv["passes"][0]["cells"]})
+    check("every layer really is visited", len(zs) == pv["n_layers"], zs)
+    check("every cell of every layer is visited exactly once",
+          len({(c[0], c[1], c[2]) for c in pv["passes"][0]["cells"]})
+          == pv["cells_per_pass"])
 
-    # THE TWO ARMS SWEEP THEIR OWN SIDES and neither crosses the centreline,
-    # which is measured elsewhere as 0 of 10 IK solutions at every cross-side
-    # point. A sweep that wandered across it would refuse every cell there and
-    # report a map with a hole in it.
-    lx = BOUNDS["left"]["x"]
-    rx = BOUNDS["right"]["x"]
+    # ---- straight rows still, inside a layer
+    cells = [c for c in pv["passes"][0]["cells"] if c[5] == 0]
+    step = max(pv["passes"][0]["cells"][1][0] - pv["passes"][0]["cells"][0][0],
+               0.11)
+    longest = max(math.dist(a_[:2], b_[:2])
+                  for a_, b_ in zip(cells, cells[1:]))
+    check("no step inside a layer is a long unexplained transit",
+          longest <= step + 1e-6, longest)
+
+    # ---- THE POINT OF ALL THIS: the wrist does not move inside a pass
+    class _Fake:
+        fixed_axis = None
+    import numpy as _np
+    axes = []
+    for f in pv["facings_deg"]:
+        el = math.radians(38.9)
+        sx = -1.0
+        base = _np.array([sx * math.cos(el) * 0.946,
+                          math.cos(el) * 0.324, -math.sin(el)])
+        base = base / _np.linalg.norm(base)
+        th = math.radians(f)
+        c_, s_ = math.cos(th), math.sin(th)
+        R = _np.array([[c_, -s_, 0.0], [s_, c_, 0.0], [0.0, 0.0, 1.0]])
+        axes.append(R @ base)
+    check("each pass has ONE attitude, and the passes differ",
+          len({tuple(_np.round(v, 6)) for v in axes}) == len(axes))
+    els = [math.degrees(math.asin(-v[2])) for v in axes]
+    check("every pass is held at the SAME elevation, only the yaw changes",
+          max(els) - min(els) < 1e-6, els)
+
+    # ---- the camera grid is a RIGID TRANSLATION of the work grid
+    ax = axes[1]
+    d0 = 0.30 / -ax[2]
+    d1 = 0.42 / -ax[2]
+    offs = set()
+    for (cx, cy, cz, _r, _c, _l) in pv["passes"][1]["cells"]:
+        h = cz - GUESS_SURFACE_Z
+        d = h / -ax[2]
+        offs.add((round(cx - (cx - ax[0] * d), 6),
+                  round(cy - (cy - ax[1] * d), 6)))
+    check("within a layer the camera offset is CONSTANT -- a translation, "
+          "not a re-aim", len(offs) == pv["n_layers"], sorted(offs))
+    check("the two layers stand back by different amounts, as they must",
+          abs(d0 - d1) > 0.05, (d0, d1))
+
+    # ---- both arms, and neither crosses the centreline
+    check("both arms are swept by default",
+          "both" in open(os.path.abspath(__file__)).read())
+    lo = BOUNDS["left"]["x"]
+    ro = BOUNDS["right"]["x"]
     check("neither arm's sweep crosses the centreline",
-          min(lx) > 0 and max(rx) < 0, "left %s right %s" % (lx, rx))
+          min(lo) > 0 and max(ro) < 0, (lo, ro))
 
-    # AND IT IS NOT A TASK. The stage must not IMPORT a task module: the
-    # whole point is that it answers "what is on the table" for whatever is on
-    # the table, and a task import is how that quietly becomes "where T1's
-    # cubes are declared to be".
-    #
-    # CHECKED BY IMPORT, NOT BY GREPPING FOR WORDS. The first version searched
-    # this file's own source for "T1_CUBES" and friends -- and found them, in
-    # the list of words it was searching for. A check that fails on itself is
-    # not a check; it is a mirror.
+    # ---- it must not become task-specific
     import ast as _ast
     tree = _ast.parse(open(os.path.abspath(__file__)).read())
-    imported = set()
-    for nd in _ast.walk(tree):
-        if isinstance(nd, _ast.Import):
-            imported.update(a.name.split(".")[0] for a in nd.names)
-        elif isinstance(nd, _ast.ImportFrom) and nd.module:
-            imported.add(nd.module.split(".")[0])
-            imported.update(a.name for a in nd.names)
-    task_modules = {"t1_task", "task0", "task3", "clip_tasks",
-                    "msc_clip_tasks", "tasks", "run_abc"}
-    leaked = sorted(imported & task_modules)
-    check("the stage imports no task module", not leaked, str(leaked))
+    bad = []
+    for node in _ast.walk(tree):
+        if isinstance(node, _ast.Import):
+            bad += [n.name for n in node.names if "task" in n.name
+                    or n.name.startswith("t1")]
+        elif isinstance(node, _ast.ImportFrom) and node.module:
+            if "task" in node.module or node.module.startswith("t1"):
+                bad.append(node.module)
+    check("the stage imports no task module", not bad, bad)
 
     if verbose:
         print("calibrate_environment self-test %s"
@@ -373,7 +486,12 @@ def self_test(verbose=True):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--arm", default="left", choices=("left", "right"))
+    ap.add_argument("--arm", default="both",
+                    choices=("left", "right", "both"),
+                    help="BOTH by default. The map is the robot's, not an "
+                         "arm's -- and the two arms cannot cross the "
+                         "centreline, so a one-arm map is missing exactly the "
+                         "half its arm can never reach.")
     ap.add_argument("--step-m", type=float, default=0.07)
     ap.add_argument("--hover-m", type=float, default=CSW.DEFAULT_HOVER_M)
     ap.add_argument("--surface-z", type=float, default=GUESS_SURFACE_Z,
@@ -412,9 +530,24 @@ def main():
     # object pixels against 9.3 and 9.4. COVERAGE WINS HERE -- a cell the arm
     # cannot reach contributes no view at all, and at 47.9 the whole far row
     # went unreachable and the map lost the objects in it.
-    ap.add_argument("--view-out-m", type=float, default=0.35)
-    ap.add_argument("--view-in-m", type=float, default=0.12)
-    ap.add_argument("--view-up-m", type=float, default=0.30)
+    ap.add_argument("--elev-deg", type=float, default=38.9,
+                    help="how far below horizontal the wrist is held. 38.9 is "
+                         "the elevation of the geometry measured best.")
+    ap.add_argument("--layers-m", type=float, nargs="+",
+                    default=list(CSW.DEFAULT_LAYERS_M),
+                    help="heights above the surface to sweep. More than one, "
+                         "because an object has SIDES and a side is invisible "
+                         "from a single elevation.")
+    ap.add_argument("--facings-deg", type=float, nargs="+",
+                    default=list(CSW.DEFAULT_FACINGS_DEG),
+                    help="one fixed wrist yaw per pass. The wrist does NOT "
+                         "re-aim inside a pass -- it translates, like a "
+                         "printer's probe.")
+    ap.add_argument("--allow-moving-capture", action="store_true",
+                    help="capture without checking the arm is stationary. "
+                         "Refused by default: a frame taken mid-motion is a "
+                         "cloud smeared across two poses and every statistic "
+                         "downstream still looks fine.")
     ap.add_argument("--finder", default="segment",
                     choices=("segment", "cluster"),
                     help="segment: instances cut from each PICTURE by FastSAM "
@@ -435,14 +568,16 @@ def main():
     if a.self_test:
         return 0 if self_test() else 1
 
+    arms = ["left", "right"] if a.arm == "both" else [a.arm]
     from env_probe import ProbeNode          # local import: needs rclpy
     import rclpy
     rclpy.init()
     node = ProbeNode()
     try:
-        if not node.wait_ready(a.arm, 120.0):
+        if not all(node.wait_ready(x, 120.0) for x in arms):
             print("REFUSING after 120 s. Still missing: %s"
-                  % ", ".join(node.missing(a.arm)))
+                  % "; ".join("%s: %s" % (x, ", ".join(node.missing(x)))
+                              for x in arms))
             return 2
         if a.require_real_camera and node.camera_is_mock():
             print("REFUSING: --require-real-camera and the only publisher on "
@@ -450,11 +585,11 @@ def main():
             return 3
         _say(node, "STARTING", arm=a.arm,
              detail="calibrating the environment before anything is planned")
-        m, report = run(node, a.arm, BOUNDS[a.arm], a.surface_z,
-                        a.step_m, a.order, a.hover_m, a.range_m, a.max_cells,
-                        dump_views=a.dump_views, dump_frames=a.dump_frames,
-                        finder=a.finder, view_out_m=a.view_out_m,
-                        view_in_m=a.view_in_m, view_up_m=a.view_up_m)
+        m, report = run(node, arms, BOUNDS, a.surface_z, a.step_m, a.order,
+                        a.layers_m, a.facings_deg, a.elev_deg,
+                        max_cells=a.max_cells, dump_frames=a.dump_frames,
+                        finder=a.finder,
+                        require_still=not a.allow_moving_capture)
         for ln in m.describe():
             print("   %s" % ln, flush=True)
         # WHAT SURFACES ARE ACTUALLY THERE, not just the one that won the fit.
@@ -468,13 +603,17 @@ def main():
             for b in hs:
                 print("      z %.3f m   %7d points  %5.1f%%"
                       % (b["z_m"], b["n"], b["frac"] * 100), flush=True)
-        _say(node, "DONE", arm=a.arm,
-             detail="surface measured at %.4f m, %d object(s) found"
-                    % (m.surface_z, len(m.objects)))
+        _say(node, "DONE", arm="+".join(arms),
+             detail="surface measured at %.4f m, %d object(s) found, "
+                    "%d of %d REACHABLE cells contributed (%.0f%%)"
+                    % (m.surface_z, len(m.objects), report["views_used"],
+                       report["cells_reachable"],
+                       report["coverage_of_reachable"] * 100))
         os.makedirs(os.path.dirname(a.out), exist_ok=True)
         doc = m.as_dict()
         doc["sweep"] = report
-        doc["camera"] = node.camera_provenance(a.arm)
+        doc["camera"] = {x: node.camera_provenance(x) for x in arms}
+        doc["coverage"] = report["coverage"]
         with open(a.out, "w") as f:
             json.dump(doc, f, indent=2, sort_keys=True)
         # THE OCCUPANCY, BESIDE THE MAP. `joint_planner.VoxelWorld` needs

@@ -274,3 +274,58 @@ def test_the_narration_orders_the_run():
     assert N.is_progress("CALIBRATING", "MAPPING")
     assert N.is_progress("MAPPING", "PLANNING")
     assert not N.is_progress("PLANNING", "CALIBRATING")
+
+
+# ------------------------- 5. the sweep is a VOLUME, held at one attitude
+
+def test_the_sweep_visits_more_than_one_height():
+    """A 3-D printer has one plane to probe. This arm works in a volume, and
+    an object standing on the surface has SIDES that no single elevation can
+    see."""
+    p = CS.plan_volume(0.30, 0.58, 0.30, 0.52, 1.25, step_m=0.11)
+    assert p["n_layers"] > 1, p["layers_m"]
+    zs = sorted({c[2] for c in p["passes"][0]["cells"]})
+    assert len(zs) == p["n_layers"], zs
+    assert max(zs) - min(zs) > 0.05, zs
+
+
+def test_the_sweep_takes_more_than_one_wrist_attitude():
+    """One pass per facing. A vertical face is invisible to a camera looking
+    straight at the surface in front of it."""
+    p = CS.plan_volume(0.30, 0.58, 0.30, 0.52, 1.25, step_m=0.11)
+    assert len(p["passes"]) > 1
+    assert len({q["facing_deg"] for q in p["passes"]}) == len(p["passes"])
+
+
+def test_every_cell_of_every_layer_is_visited_exactly_once():
+    p = CS.plan_volume(0.30, 0.58, 0.30, 0.52, 1.25, step_m=0.11)
+    c = p["passes"][0]["cells"]
+    assert len({(x[0], x[1], x[2]) for x in c}) == len(c) == p["cells_per_pass"]
+
+
+def test_rows_stay_straight_inside_a_layer():
+    """The complaint that started the scan work, still asserted now that the
+    sweep has layers: inside a layer every step is one cell in one axis."""
+    p = CS.plan_volume(0.30, 0.58, 0.30, 0.52, 1.25, step_m=0.11)
+    for layer in range(p["n_layers"]):
+        cells = [c for c in p["passes"][0]["cells"] if c[5] == layer]
+        for a, b in zip(cells, cells[1:]):
+            moved = [abs(a[0] - b[0]) > 1e-9, abs(a[1] - b[1]) > 1e-9]
+            assert sum(moved) == 1, ("two axes moved at once", a, b)
+
+
+def test_the_layer_change_is_the_only_place_height_changes():
+    p = CS.plan_volume(0.30, 0.58, 0.30, 0.52, 1.25, step_m=0.11)
+    c = p["passes"][0]["cells"]
+    changes = sum(1 for a, b in zip(c, c[1:]) if abs(a[2] - b[2]) > 1e-9)
+    assert changes == p["n_layers"] - 1, changes
+
+
+def test_travel_counts_the_height_it_actually_climbs():
+    """THE CONTROL for the 3-D distance. A travel figure that ignored the
+    layer change would understate the path it is used to justify."""
+    p = CS.plan_volume(0.30, 0.58, 0.30, 0.52, 1.25, step_m=0.11)
+    c = p["passes"][0]["cells"]
+    flat = sum(math.dist(a[:2], b[:2]) for a, b in zip(c, c[1:]))
+    full = CS.travel_m(c)
+    assert full > flat + 0.05, (full, flat)

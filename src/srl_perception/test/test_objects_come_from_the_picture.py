@@ -259,3 +259,63 @@ def test_but_a_cube_on_a_pad_is_still_two_objects():
         [WM.View(np.vstack([pad.points, cube.points]), "one",
                  objects=[pad, cube])], _plane_at(1.250))
     assert len(objs) == 2, ("the cube was absorbed into its pad: %s" % (objs,))
+
+
+def test_a_view_of_bare_table_is_segmented_not_unsegmented():
+    """An empty object list is an ANSWER, not a missing one.
+
+    `View.objects` was set with `list(objects) if objects else None`, which
+    collapses "the segmenter ran and found nothing" into "no segmenter ran".
+    On the first two-arm sweep one cell of nine returned zero regions and
+    `build` refused the entire map for mixing two finders.
+    """
+    table = np.column_stack([
+        np.random.default_rng(0).uniform(0.2, 0.7, 4000),
+        np.random.default_rng(1).uniform(0.3, 0.6, 4000),
+        np.full(4000, 1.250)])
+    v = WM.View(table, "empty_cell", objects=[])
+    assert v.objects == [], v.objects
+    assert v.objects is not None, "an empty surface read as 'not segmented'"
+    # TWO views of the cube, because a single-view detection is now filed as
+    # weak on its own account -- see MIN_OBJECT_VIEWS. This test is about the
+    # EMPTY view not poisoning the finder, so the object has to be one the
+    # evidence rule would keep anyway.
+    a = _seg((0.420, 0.45, 1.270), (0.04, 0.04, 0.04), n=3000, seed=40)
+    m = WM.build([WM.View(np.vstack([table, a.points]), "seen", objects=[a]),
+                  WM.View(np.vstack([table, a.points]), "seen_again",
+                          objects=[a]),
+                  v])
+    assert "segment_lift" in m.provenance["object_finder"]
+    assert len(m.objects) == 1, m.objects
+
+
+def test_a_thirty_point_sliver_seen_once_is_not_an_object():
+    """The full two-arm sweep returned 14 objects where 6 exist. The six carry
+    110 000 to 500 000 points from 47 to 66 viewpoints; the other eight carry
+    25 to 77 points from one or two. Four orders of magnitude of evidence
+    separate them, and `pick_from_map` would have planned a grasp on either.
+    """
+    strong = _seg((0.420, 0.45, 1.270), (0.04, 0.04, 0.04), n=3000, seed=50)
+    sliver = _seg((0.60, 0.40, 1.262), (0.006, 0.03, 0.004), n=30, seed=51)
+    solid, weak = WM._split_weak(WM._fuse_segments(
+        [WM.View(strong.points, "a", objects=[strong]),
+         WM.View(strong.points, "b", objects=[strong]),
+         WM.View(sliver.points, "c", objects=[sliver])], _plane_at(1.250)))
+    assert len(solid) == 1, solid
+    assert len(weak) == 1, weak
+    assert weak[0].n_points < WM.MIN_OBJECT_POINTS
+
+
+def test_the_weak_ones_are_kept_and_named_not_deleted():
+    """Deleting them silently hides a real return. A map where EVERYTHING is
+    weak is a fact the operator needs."""
+    table = np.column_stack([
+        np.random.default_rng(0).uniform(0.2, 0.7, 4000),
+        np.random.default_rng(1).uniform(0.3, 0.6, 4000),
+        np.full(4000, 1.250)])
+    sliver = _seg((0.60, 0.40, 1.262), (0.006, 0.03, 0.004), n=30, seed=52)
+    m = WM.build([WM.View(np.vstack([table, sliver.points]), "only",
+                          objects=[sliver])])
+    assert m.objects == [], m.objects
+    assert len(m.provenance["weak_detections"]) == 1
+    assert "points" in m.provenance["weak_rule"]

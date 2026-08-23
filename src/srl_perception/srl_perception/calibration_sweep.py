@@ -64,6 +64,19 @@ import math
 
 # Defaults chosen so a sweep is a few dozen seconds rather than a few minutes.
 # They are ARGUMENTS everywhere; these are only what `--show` prints.
+# THE HEIGHTS THE SWEEP VISITS. A 3-D PRINTER HAS ONE PLANE TO PROBE AND THIS
+# ROBOT DOES NOT.
+#
+# The first version swept a single layer at one height, which measures a
+# tabletop and nothing above it -- an object standing 200 mm tall is seen only
+# from one elevation, so its sides are never in view and its top is a guess.
+# Layers give the fusion genuinely different viewpoints of the same object,
+# which is what fills in a side.
+DEFAULT_LAYERS_M = (0.30, 0.42)
+
+# HOW MANY FIXED ORIENTATIONS THE CAMERA IS CARRIED IN, one pass each.
+DEFAULT_FACINGS_DEG = (-25.0, 0.0, 25.0)
+
 DEFAULT_STEP_M = 0.06
 DEFAULT_HOVER_M = 0.12          # above the surface, where the camera sees
 DEFAULT_TOUCH_M = 0.005         # how far below the estimated surface to probe
@@ -113,13 +126,40 @@ def serpentine(xs, ys):
     return out
 
 
+def layered(xs, ys, zs, order="serpentine"):
+    """The 3-D sweep: one ordered layer per height, alternating direction.
+
+    WHY LAYERS AND NOT ONE PLANE. A printer probes a bed: one height, and the
+    only unknown is z. This arm works in a volume where objects have SIDES,
+    and a side is invisible from directly above it. Sweeping the same grid at
+    two heights gives the fusion two genuinely different lines of sight to
+    every object, which is what puts points on a vertical face.
+
+    The layer order alternates too, so the arm rises at the end of a layer
+    and carries straight on rather than flying back to the start -- the same
+    reason the rows alternate inside a layer.
+    """
+    out = []
+    for k, z in enumerate(zs):
+        cells = serpentine(xs, ys) if order == "serpentine" else typewriter(xs, ys)
+        if k % 2:
+            cells = list(reversed(cells))
+        for (cx, cy, row, col) in cells:
+            out.append((cx, cy, float(z), row, col, k))
+    return out
+
+
 def travel_m(cells):
     """Total in-plane distance walked visiting `cells` in the given order.
 
     The number the boustrophedon claim rests on, so it is computed rather
     than asserted -- see the module docstring's table.
     """
-    return sum(math.dist(cells[k][:2], cells[k + 1][:2])
+    # THE FULL 3-D DISTANCE when the cells carry a height, because a sweep
+    # that changes layer really does travel that way and a figure that
+    # ignored it would understate the path it is used to justify.
+    n = 3 if (cells and len(cells[0]) >= 6) else 2
+    return sum(math.dist(cells[k][:n], cells[k + 1][:n])
                for k in range(len(cells) - 1))
 
 
@@ -177,6 +217,50 @@ def plan(x0, x1, y0, y1, surface_z, step_m=DEFAULT_STEP_M,
                 travel_m=round(travel_m(cells), 4),
                 bounds=dict(x=[min(xs), max(xs)], y=[min(ys), max(ys)],
                             surface_z=surface_z))
+
+
+def plan_volume(x0, x1, y0, y1, surface_z, step_m=DEFAULT_STEP_M,
+                layers_m=DEFAULT_LAYERS_M, facings_deg=DEFAULT_FACINGS_DEG,
+                order="serpentine"):
+    """THE SWEEP AS A VOLUME, IN PASSES OF ONE FIXED WRIST ORIENTATION EACH.
+
+    THIS IS THE PRINTER-PROBE MODEL AND IT IS THE WHOLE POINT.
+
+    The first version aimed the wrist AT each cell, so the orientation changed
+    at every step of the grid and the arm reoriented between neighbouring
+    cells 90 mm apart. Watching it, the gripper swings continuously and never
+    holds still; every view is taken from a different attitude, so no two
+    views are comparable and a residual wrist error is a different error in
+    every frame.
+
+    A printer's probe does not re-aim. It holds ONE attitude and TRANSLATES.
+    So does this now: a pass fixes the wrist at one facing and walks the whole
+    volume with it, and the only thing that changes between cells is position.
+    Several passes at different facings give the sides.
+
+    `facings_deg` is a YAW offset applied to a single base attitude. Positive
+    turns the camera outboard, negative inboard, so a three-facing sweep sees
+    each object's near side, its outboard side and its inboard side without
+    the wrist ever moving inside a pass.
+
+    Returns a list of passes; each pass carries its facing and its cells.
+    """
+    xs, ys = grid(x0, x1, y0, y1, step_m)
+    zs = [round(surface_z + float(h), 5) for h in layers_m]
+    passes = []
+    for f in facings_deg:
+        cells = layered(xs, ys, zs, order=order)
+        passes.append(dict(facing_deg=float(f), cells=cells,
+                           travel_m=round(travel_m(cells), 4)))
+    return dict(order=order, n_cols=len(xs), n_rows=len(ys),
+                n_layers=len(zs), layers_m=[float(h) for h in layers_m],
+                facings_deg=[float(f) for f in facings_deg],
+                passes=passes,
+                cells_per_pass=len(passes[0]["cells"]) if passes else 0,
+                total_cells=sum(len(p["cells"]) for p in passes),
+                travel_m=round(sum(p["travel_m"] for p in passes), 4),
+                bounds=dict(x=[min(xs), max(xs)], y=[min(ys), max(ys)],
+                            z=[min(zs), max(zs)], surface_z=surface_z))
 
 
 # ------------------------------------------------------------- the self-test

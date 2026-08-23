@@ -2449,15 +2449,22 @@ class Gui(QMainWindow):
         b.setMinimumHeight(28)
         b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
         b.setToolTip(
-            "Sweeps the arm over the workspace in straight serpentine rows, "
-            "segments each frame, lifts the masks through the depth, and "
-            "fuses one map: the support surface MEASURED, and every object "
-            "on it with its width and whether the jaws can close on it. "
-            "Takes a few minutes and narrates every cell.")
+            "Sweeps the workspace as a VOLUME -- straight serpentine rows at "
+            "each of several heights, in passes that each hold ONE fixed "
+            "wrist attitude and only translate, like a 3D printer's probe. "
+            "Both arms by default. Every frame is segmented, the masks are "
+            "lifted through the depth, and the views fuse into one map: the "
+            "support surface MEASURED, and every object with its width and "
+            "whether the jaws can close on it. A capture is REFUSED unless "
+            "the arm is actually stationary. Narrates every cell.")
         b.clicked.connect(self.on_calibrate_environment)
         row.addWidget(b, 1)
         self.map_arm = QComboBox()
-        self.map_arm.addItems(["left", "right"])
+        # BOTH FIRST, and it is the default. The map is the robot's, not an
+        # arm's: the two arms cannot cross the centreline, so a one-arm map is
+        # missing exactly the half its own arm can never reach -- and that
+        # half is not empty, it is unmeasured.
+        self.map_arm.addItems(["both", "left", "right"])
         self.map_arm.currentTextChanged.connect(
             lambda t: self.bus.note("map arm: %s" % t))
         row.addWidget(self.map_arm)
@@ -2527,6 +2534,10 @@ class Gui(QMainWindow):
         argv = [py, "-u", os.path.join(_WS, "scripts",
                                        "calibrate_environment.py"),
                 "--arm", arm]
+        # A CONTROL THAT CHANGES WHAT THE NEXT RUN DOES MUST SAY SO, and this
+        # one changes how long the operator is going to be standing there.
+        self.bus.note("calibration sweep: %s arm(s), volume sweep, one fixed "
+                      "wrist attitude per pass" % arm)
         self.bus.note("calibrating the environment (%s arm): %s"
                       % (arm, " ".join(argv)))
         self._map_say("sweeping the %s arm over the workspace. Watch the "

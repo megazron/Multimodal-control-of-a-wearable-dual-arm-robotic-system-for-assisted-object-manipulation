@@ -119,7 +119,15 @@ class View:
         # fused pile because a mask belongs to the frame it was cut from: once
         # nine views are stacked, the only tool left is distance, and distance
         # is exactly what cannot separate two cubes with a 20 mm gap.
-        self.objects = list(objects) if objects else None
+        # `None` MEANS NOT SEGMENTED. `[]` MEANS SEGMENTED AND NOTHING THERE.
+        #
+        # These were collapsed with `if objects else None`, so a view of bare
+        # table -- a perfectly good, informative view -- was filed as "no
+        # segmenter ran". Measured on the first two-arm sweep: one cell of
+        # nine returned 0 regions, and `build` then refused the whole map for
+        # mixing two finders, having been handed 8 segmented views and 1
+        # supposedly unsegmented one. An empty surface is an ANSWER.
+        self.objects = None if objects is None else list(objects)
 
     @property
     def n(self):
@@ -347,6 +355,23 @@ def _overlaps(lo_a, hi_a, lo_b, hi_b, pad_m=MERGE_M, frac=0.5):
 # their faces -- and well above the depth noise, so a solid face never splits.
 SPLIT_GAP_M = 0.012
 
+# HOW MUCH EVIDENCE AN OBJECT NEEDS BEFORE IT IS ONE.
+#
+# The full two-arm sweep produced 14 objects where 6 exist. The six are solid
+# -- 110 000 to 500 000 points each, seen from 47 to 66 viewpoints. The other
+# eight are 25 to 77 points from one or two views: slivers at the feet of real
+# cubes, edge returns, a corner of the table caught at a bad angle.
+#
+# They are not wrong so much as UNSUPPORTED, and the difference between them
+# and a real object is four orders of magnitude of evidence. An object the
+# whole sweep saw once, with thirty points, is a detection this map should not
+# stake a grasp on -- and `pick_from_map` would happily plan one.
+#
+# Kept in the map under `weak`, because deleting them silently would hide a
+# real return, and a scene where EVERYTHING is weak is a fact worth seeing.
+MIN_OBJECT_POINTS = 200
+MIN_OBJECT_VIEWS = 2
+
 
 def _split_disconnected(pts, gap_m=SPLIT_GAP_M, min_points=25):
     """One point set -> the separated lumps it is actually made of.
@@ -545,6 +570,17 @@ def _fuse_segments(usable, plane):
     return out
 
 
+def _split_weak(objs):
+    """(solid, weak). Evidence, not geometry -- see MIN_OBJECT_POINTS."""
+    solid, weak = [], []
+    for o in objs:
+        if o.n_points >= MIN_OBJECT_POINTS and len(o.seen_by) >= MIN_OBJECT_VIEWS:
+            solid.append(o)
+        else:
+            weak.append(o)
+    return solid, weak
+
+
 def build(views, up=(0.0, 0.0, 1.0), **kw):
     """Many views -> one map. Refuses rather than guessing.
 
@@ -580,7 +616,7 @@ def build(views, up=(0.0, 0.0, 1.0), **kw):
     # NEVER mixed and the map says which ran, because they fail differently.
     segmented = [v for v in usable if v.objects is not None]
     if segmented and len(segmented) == len(usable):
-        objs = _fuse_segments(usable, plane)
+        objs, weak = _split_weak(_fuse_segments(usable, plane))
         prov_finder = "segment_lift: instances cut from each PICTURE by " \
                       "FastSAM and lifted through the depth"
         return Map(plane, objs, cloud,
@@ -588,6 +624,11 @@ def build(views, up=(0.0, 0.0, 1.0), **kw):
                         sources=[v.source for v in usable],
                         points_per_view=[v.n for v in usable],
                         objects_per_view=[len(v.objects) for v in usable],
+                        weak_detections=[o.as_dict() for o in weak],
+                        weak_rule=("under %d points or seen by fewer than %d "
+                                   "views. Kept, not deleted -- a scene where "
+                                   "everything is weak is worth seeing."
+                                   % (MIN_OBJECT_POINTS, MIN_OBJECT_VIEWS)),
                         discarded_views=[dict(source=v.source, n=v.n)
                                          for v in views
                                          if v.n < MIN_POINTS_PER_VIEW],

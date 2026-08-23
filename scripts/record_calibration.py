@@ -147,7 +147,8 @@ class Narration:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--arm", default="left", choices=("left", "right"))
+    ap.add_argument("--arm", default="both",
+                    choices=("left", "right", "both"))
     ap.add_argument("--object", type=int, default=None,
                     help="which mapped object to pick. Default: the "
                          "graspable one nearest the middle of the sweep.")
@@ -187,7 +188,8 @@ def main():
         print("### picking -- planned from the map that sweep just made",
               flush=True)
         argv = [py, "-u", os.path.join(HERE, "pick_from_map.py"),
-                "--arm", a.arm, "--map", os.path.join(out, "world_map.json"),
+                "--arm", ("left" if a.arm == "both" else a.arm),
+                "--map", os.path.join(out, "world_map.json"),
                 "--to", str(a.to[0]), str(a.to[1]), "--execute"]
         if a.object is None:
             argv += ["--nearest", "0.45", "0.45"]
@@ -217,6 +219,20 @@ def main():
         f.write("calibration and map-driven pick, %s\n\n" % stamp)
         f.write("calibration exit %s, pick exit %s\n" % (rc_cal, rc_pick))
         f.write("%d narration sentence(s) captured\n\n" % n)
+        mp = os.path.join(out, "world_map.json")
+        if os.path.exists(mp):
+            import json as _j
+            d = _j.load(open(mp))
+            sw = d.get("sweep", {})
+            f.write("arms swept        %s\n" % sw.get("arms"))
+            f.write("cells planned     %s   reachable %s   outside envelope %s\n"
+                    % (sw.get("cells"), sw.get("cells_reachable"),
+                       sw.get("cells_outside_envelope")))
+            f.write("views captured    %s  (%.0f%% of reachable)\n"
+                    % (sw.get("views_used"),
+                       100 * float(sw.get("coverage_of_reachable", 0))))
+            f.write("stillness refusals %s\n" % sw.get("stillness_refusals"))
+            f.write("surface measured  %.4f m\n\n" % d["surface"]["z_m"])
         for k, v in bright.items():
             f.write("%-14s mean pixel %.1f%s\n"
                     % (k, v, "   BLACK -- the capture failed" if v < 5

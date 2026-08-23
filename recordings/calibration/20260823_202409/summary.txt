@@ -1,0 +1,20 @@
+calibration and map-driven pick, 20260823_202409
+
+calibration exit 0, pick exit 0
+89 narration sentence(s) captured
+
+arms swept        ['left', 'right']
+cells planned     144   reachable 70   outside envelope 74
+views captured    67  (96% of reachable)
+stillness refusals 0
+surface measured  1.2474 m
+
+calibrate.mp4  mean pixel 66.3
+pick.mp4       mean pixel 66.8
+
+WHAT THIS IS AND IS NOT
+  The arm is SIMULATED. Nothing in this repository has ever driven a real
+  Kinova, and the depth the map was built from was RENDERED by
+  mock_rgbd_camera -- so this films the pipeline, not the room.
+  What IS real here: the sweep order, the deprojection, the segmentation, the
+  fusion, the plane fit, every refusal, and the IK the pick was solved with.

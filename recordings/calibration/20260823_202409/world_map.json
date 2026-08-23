@@ -27,31 +27,31 @@
       "topic": "/right_camera/depth/image_raw"
     }
   },
-  "coverage": 0.4722,
+  "coverage": 0.4653,
   "heights": [
     {
-      "frac": 0.7697,
-      "n": 847133,
+      "frac": 0.7712,
+      "n": 837086,
       "z_m": 1.245
     },
     {
-      "frac": 0.1121,
-      "n": 123368,
+      "frac": 0.1114,
+      "n": 120874,
       "z_m": 1.255
     }
   ],
-  "n_points": 1100591,
+  "n_points": 1085478,
   "objects": [
     {
       "centre": [
-        -0.32388,
+        -0.31928,
         0.49963,
         1.26009
       ],
       "extents": [
-        0.23115,
+        0.22196,
         0.14069,
-        0.02003
+        0.01147
       ],
       "graspable": false,
       "mean_bgr": [
@@ -59,7 +59,7 @@
         229.0,
         25.1
       ],
-      "n_points": 510404,
+      "n_points": 492651,
       "seen_by": [
         "left_p1_c02",
         "left_p1_c03",
@@ -92,6 +92,7 @@
         "left_p2_c33",
         "left_p2_c41",
         "left_p2_c47",
+        "left_p2_c48",
         "right_p2_c26",
         "right_p2_c27",
         "right_p2_c28",
@@ -121,11 +122,9 @@
         "right_p3_c65",
         "right_p3_c66",
         "right_p3_c67",
-        "right_p3_c68",
         "right_p3_c69",
         "right_p3_c70",
-        "right_p3_c71",
-        "right_p3_c72"
+        "right_p3_c71"
       ],
       "top_seen": true,
       "why": "141 mm across its narrowest axis and the jaws close on 85 mm",
@@ -135,12 +134,12 @@
       "centre": [
         0.32386,
         0.50834,
-        1.26008
+        1.26009
       ],
       "extents": [
         0.23048,
-        0.15845,
-        0.02044
+        0.15844,
+        0.02043
       ],
       "graspable": false,
       "mean_bgr": [
@@ -148,7 +147,7 @@
         76.1,
         25.1
       ],
-      "n_points": 491692,
+      "n_points": 488784,
       "seen_by": [
         "left_p1_c02",
         "left_p1_c03",
@@ -183,7 +182,7 @@
         "left_p2_c33",
         "left_p2_c41",
         "left_p2_c47",
-        "right_p2_c26",
+        "left_p2_c48",
         "right_p2_c27",
         "right_p2_c28",
         "right_p2_c29",
@@ -211,25 +210,23 @@
         "right_p3_c65",
         "right_p3_c66",
         "right_p3_c67",
-        "right_p3_c68",
         "right_p3_c69",
         "right_p3_c70",
-        "right_p3_c71",
-        "right_p3_c72"
+        "right_p3_c71"
       ],
       "top_seen": true,
       "why": "158 mm across its narrowest axis and the jaws close on 85 mm",
-      "width_m": 0.15845
+      "width_m": 0.15844
     },
     {
       "centre": [
         -0.47983,
-        0.44949,
-        1.28065
+        0.4495,
+        1.28073
       ],
       "extents": [
-        0.0419,
-        0.04074,
+        0.04177,
+        0.04066,
         0.03826
       ],
       "graspable": true,
@@ -238,7 +235,7 @@
         229.0,
         25.0
       ],
-      "n_points": 122164,
+      "n_points": 113642,
       "seen_by": [
         "left_p1_c02",
         "left_p1_c03",
@@ -252,6 +249,7 @@
         "left_p2_c25",
         "left_p2_c41",
         "left_p2_c47",
+        "left_p2_c48",
         "right_p2_c26",
         "right_p2_c27",
         "right_p2_c28",
@@ -281,91 +279,19 @@
         "right_p3_c65",
         "right_p3_c66",
         "right_p3_c67",
-        "right_p3_c68",
         "right_p3_c69",
         "right_p3_c70",
-        "right_p3_c71",
-        "right_p3_c72"
+        "right_p3_c71"
       ],
       "top_seen": true,
       "why": "",
-      "width_m": 0.04074
-    },
-    {
-      "centre": [
-        -0.41986,
-        0.44959,
-        1.28191
-      ],
-      "extents": [
-        0.04185,
-        0.04077,
-        0.03827
-      ],
-      "graspable": true,
-      "mean_bgr": [
-        51.0,
-        229.0,
-        25.0
-      ],
-      "n_points": 116427,
-      "seen_by": [
-        "left_p1_c02",
-        "left_p1_c03",
-        "left_p1_c09",
-        "left_p1_c18",
-        "left_p1_c19",
-        "left_p1_c20",
-        "left_p1_c22",
-        "left_p1_c23",
-        "left_p1_c24",
-        "left_p2_c25",
-        "left_p2_c41",
-        "left_p2_c47",
-        "right_p2_c26",
-        "right_p2_c27",
-        "right_p2_c28",
-        "right_p2_c29",
-        "right_p2_c30",
-        "right_p2_c31",
-        "right_p2_c36",
-        "right_p2_c44",
-        "right_p2_c45",
-        "right_p2_c46",
-        "right_p3_c49",
-        "right_p3_c50",
-        "right_p3_c51",
-        "right_p3_c52",
-        "right_p3_c53",
-        "right_p3_c54",
-        "right_p3_c55",
-        "right_p3_c56",
-        "right_p3_c57",
-        "right_p3_c58",
-        "right_p3_c59",
-        "right_p3_c60",
-        "right_p3_c61",
-        "right_p3_c62",
-        "right_p3_c63",
-        "right_p3_c64",
-        "right_p3_c65",
-        "right_p3_c66",
-        "right_p3_c67",
-        "right_p3_c68",
-        "right_p3_c69",
-        "right_p3_c70",
-        "right_p3_c71",
-        "right_p3_c72"
-      ],
-      "top_seen": true,
-      "why": "",
-      "width_m": 0.04077
+      "width_m": 0.04066
     },
     {
       "centre": [
         0.41986,
         0.44959,
-        1.28192
+        1.28201
       ],
       "extents": [
         0.04185,
@@ -378,7 +304,7 @@
         76.0,
         25.0
       ],
-      "n_points": 111472,
+      "n_points": 112073,
       "seen_by": [
         "left_p1_c02",
         "left_p1_c03",
@@ -413,6 +339,7 @@
         "left_p2_c33",
         "left_p2_c41",
         "left_p2_c47",
+        "left_p2_c48",
         "right_p2_c30",
         "right_p2_c44",
         "right_p2_c45",
@@ -423,11 +350,78 @@
         "right_p3_c54",
         "right_p3_c62",
         "right_p3_c67",
-        "right_p3_c68",
         "right_p3_c69",
         "right_p3_c70",
-        "right_p3_c71",
-        "right_p3_c72"
+        "right_p3_c71"
+      ],
+      "top_seen": true,
+      "why": "",
+      "width_m": 0.04077
+    },
+    {
+      "centre": [
+        -0.41986,
+        0.44959,
+        1.28186
+      ],
+      "extents": [
+        0.04185,
+        0.04077,
+        0.03827
+      ],
+      "graspable": true,
+      "mean_bgr": [
+        51.0,
+        229.0,
+        25.0
+      ],
+      "n_points": 111630,
+      "seen_by": [
+        "left_p1_c02",
+        "left_p1_c03",
+        "left_p1_c09",
+        "left_p1_c18",
+        "left_p1_c19",
+        "left_p1_c20",
+        "left_p1_c22",
+        "left_p1_c23",
+        "left_p1_c24",
+        "left_p2_c25",
+        "left_p2_c41",
+        "left_p2_c47",
+        "left_p2_c48",
+        "right_p2_c26",
+        "right_p2_c27",
+        "right_p2_c28",
+        "right_p2_c29",
+        "right_p2_c30",
+        "right_p2_c31",
+        "right_p2_c36",
+        "right_p2_c44",
+        "right_p2_c45",
+        "right_p2_c46",
+        "right_p3_c49",
+        "right_p3_c50",
+        "right_p3_c51",
+        "right_p3_c52",
+        "right_p3_c53",
+        "right_p3_c54",
+        "right_p3_c55",
+        "right_p3_c56",
+        "right_p3_c57",
+        "right_p3_c58",
+        "right_p3_c59",
+        "right_p3_c60",
+        "right_p3_c61",
+        "right_p3_c62",
+        "right_p3_c63",
+        "right_p3_c64",
+        "right_p3_c65",
+        "right_p3_c66",
+        "right_p3_c67",
+        "right_p3_c69",
+        "right_p3_c70",
+        "right_p3_c71"
       ],
       "top_seen": true,
       "why": "",
@@ -437,7 +431,7 @@
       "centre": [
         0.47984,
         0.44955,
-        1.28091
+        1.28097
       ],
       "extents": [
         0.04177,
@@ -450,7 +444,7 @@
         76.0,
         25.0
       ],
-      "n_points": 107596,
+      "n_points": 109231,
       "seen_by": [
         "left_p1_c02",
         "left_p1_c03",
@@ -485,6 +479,7 @@
         "left_p2_c33",
         "left_p2_c41",
         "left_p2_c47",
+        "left_p2_c48",
         "right_p2_c30",
         "right_p2_c44",
         "right_p2_c45",
@@ -495,11 +490,9 @@
         "right_p3_c54",
         "right_p3_c62",
         "right_p3_c67",
-        "right_p3_c68",
         "right_p3_c69",
         "right_p3_c70",
-        "right_p3_c71",
-        "right_p3_c72"
+        "right_p3_c71"
       ],
       "top_seen": true,
       "why": "",
@@ -507,22 +500,22 @@
     },
     {
       "centre": [
-        -0.09026,
+        -0.09002,
         0.49909,
-        1.25098
+        1.25095
       ],
       "extents": [
-        0.33502,
+        0.33548,
         0.13868,
-        0.01079
+        0.01107
       ],
       "graspable": false,
       "mean_bgr": [
-        225.2,
-        251.2,
-        221.4
+        226.3,
+        251.3,
+        222.6
       ],
-      "n_points": 3165,
+      "n_points": 3289,
       "seen_by": [
         "left_p2_c28",
         "left_p2_c30"
@@ -534,11 +527,11 @@
   ],
   "provenance": {
     "discarded_views": [],
-    "n_views": 68,
+    "n_views": 67,
     "object_finder": "segment_lift: instances cut from each PICTURE by FastSAM and lifted through the depth",
     "objects_per_view": [
       7,
-      7,
+      8,
       5,
       4,
       5,
@@ -547,7 +540,7 @@
       6,
       4,
       6,
-      6,
+      5,
       3,
       5,
       5,
@@ -570,17 +563,18 @@
       8,
       5,
       8,
+      6,
       0,
-      4,
+      3,
       5,
-      6,
-      10,
+      5,
+      11,
       8,
       6,
       5,
       5,
+      7,
       8,
-      6,
       6,
       5,
       7,
@@ -590,7 +584,7 @@
       6,
       6,
       5,
-      4,
+      3,
       5,
       6,
       6,
@@ -600,11 +594,9 @@
       5,
       7,
       7,
-      10,
       8,
       6,
-      8,
-      7
+      8
     ],
     "points_per_view": [
       13026,
@@ -613,66 +605,65 @@
       13025,
       18755,
       18755,
-      18755,
       18756,
-      23230,
+      18755,
+      23231,
       23231,
       23231,
       23231,
       18718,
       18717,
+      18718,
       18717,
-      18717,
       15623,
       15623,
       15623,
       15623,
-      11781,
+      11780,
       11781,
       11781,
       11781,
       11491,
       11491,
       11491,
-      11491,
-      16724,
+      11490,
+      16725,
       16725,
       16725,
       21110,
       14724,
+      11384,
       16857,
-      14441,
+      12023,
+      11490,
       11491,
-      11621,
       11491,
       16725,
       16725,
       16724,
       21109,
-      11384,
+      14724,
       11384,
       11384,
       13026,
-      13026,
+      13027,
       13026,
       13026,
       18755,
       18755,
       18756,
       18755,
-      23230,
       23231,
       23231,
       23231,
+      23231,
       18717,
       18717,
       18717,
       18717,
       15623,
       15623,
-      15623,
-      15623,
-      11781,
+      15736,
       11781,
       11781
     ],
@@ -711,6 +702,7 @@
       "left_p2_c33",
       "left_p2_c41",
       "left_p2_c47",
+      "left_p2_c48",
       "right_p2_c25",
       "right_p2_c26",
       "right_p2_c27",
@@ -741,11 +733,9 @@
       "right_p3_c65",
       "right_p3_c66",
       "right_p3_c67",
-      "right_p3_c68",
       "right_p3_c69",
       "right_p3_c70",
-      "right_p3_c71",
-      "right_p3_c72"
+      "right_p3_c71"
     ],
     "surface_z_m": "MEASURED from the fused cloud",
     "weak_detections": [
@@ -753,7 +743,7 @@
         "centre": [
           0.39946,
           0.46374,
-          1.27465
+          1.2746
         ],
         "extents": [
           0.01163,
@@ -766,7 +756,7 @@
           76.0,
           25.0
         ],
-        "n_points": 76,
+        "n_points": 77,
         "seen_by": [
           "right_p3_c62",
           "right_p3_c66"
@@ -774,120 +764,6 @@
         "top_seen": true,
         "why": "",
         "width_m": 0.00107
-      },
-      {
-        "centre": [
-          -0.33182,
-          0.44805,
-          1.26064
-        ],
-        "extents": [
-          0.03809,
-          6e-05,
-          0.0
-        ],
-        "graspable": true,
-        "mean_bgr": [
-          51.0,
-          229.0,
-          25.0
-        ],
-        "n_points": 49,
-        "seen_by": [
-          "right_p2_c29"
-        ],
-        "top_seen": true,
-        "why": "",
-        "width_m": 6e-05
-      },
-      {
-        "centre": [
-          -0.47273,
-          0.42996,
-          1.2567
-        ],
-        "extents": [
-          0.02955,
-          0.00687,
-          0.00783
-        ],
-        "graspable": true,
-        "mean_bgr": [
-          51.0,
-          229.0,
-          25.1
-        ],
-        "n_points": 42,
-        "seen_by": [
-          "left_p1_c02",
-          "left_p1_c03",
-          "left_p1_c04",
-          "left_p1_c05",
-          "left_p1_c06",
-          "left_p1_c07",
-          "left_p1_c08",
-          "left_p1_c09",
-          "left_p1_c10",
-          "left_p1_c11",
-          "left_p1_c12",
-          "left_p1_c14",
-          "left_p1_c15",
-          "left_p1_c16",
-          "left_p1_c17",
-          "left_p1_c18",
-          "left_p1_c19",
-          "left_p1_c20",
-          "left_p1_c21",
-          "left_p1_c22",
-          "left_p1_c23",
-          "left_p1_c24",
-          "left_p2_c25",
-          "left_p2_c26",
-          "left_p2_c27",
-          "left_p2_c28",
-          "left_p2_c31",
-          "left_p2_c32",
-          "left_p2_c33",
-          "left_p2_c41",
-          "left_p2_c47",
-          "right_p2_c26",
-          "right_p2_c27",
-          "right_p2_c28",
-          "right_p2_c29",
-          "right_p2_c30",
-          "right_p2_c31",
-          "right_p2_c36",
-          "right_p2_c44",
-          "right_p2_c45",
-          "right_p2_c46",
-          "right_p3_c49",
-          "right_p3_c50",
-          "right_p3_c51",
-          "right_p3_c52",
-          "right_p3_c53",
-          "right_p3_c54",
-          "right_p3_c55",
-          "right_p3_c56",
-          "right_p3_c57",
-          "right_p3_c58",
-          "right_p3_c59",
-          "right_p3_c60",
-          "right_p3_c61",
-          "right_p3_c62",
-          "right_p3_c63",
-          "right_p3_c64",
-          "right_p3_c65",
-          "right_p3_c66",
-          "right_p3_c67",
-          "right_p3_c68",
-          "right_p3_c69",
-          "right_p3_c70",
-          "right_p3_c71",
-          "right_p3_c72"
-        ],
-        "top_seen": true,
-        "why": "",
-        "width_m": 0.00687
       },
       {
         "centre": [
@@ -941,7 +817,7 @@
           "left_p2_c33",
           "left_p2_c41",
           "left_p2_c47",
-          "right_p2_c26",
+          "left_p2_c48",
           "right_p2_c27",
           "right_p2_c28",
           "right_p2_c29",
@@ -969,15 +845,63 @@
           "right_p3_c65",
           "right_p3_c66",
           "right_p3_c67",
-          "right_p3_c68",
           "right_p3_c69",
           "right_p3_c70",
-          "right_p3_c71",
-          "right_p3_c72"
+          "right_p3_c71"
         ],
         "top_seen": true,
         "why": "",
         "width_m": 0.00687
+      },
+      {
+        "centre": [
+          -0.33015,
+          0.44317,
+          1.26063
+        ],
+        "extents": [
+          0.02777,
+          5e-05,
+          0.0
+        ],
+        "graspable": true,
+        "mean_bgr": [
+          51.0,
+          229.0,
+          25.0
+        ],
+        "n_points": 36,
+        "seen_by": [
+          "right_p2_c29"
+        ],
+        "top_seen": true,
+        "why": "",
+        "width_m": 5e-05
+      },
+      {
+        "centre": [
+          -0.41118,
+          0.4873,
+          1.25019
+        ],
+        "extents": [
+          0.02232,
+          0.01136,
+          0.00031
+        ],
+        "graspable": true,
+        "mean_bgr": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "n_points": 35,
+        "seen_by": [
+          "left_p2_c26"
+        ],
+        "top_seen": false,
+        "why": "",
+        "width_m": 0.01136
       },
       {
         "centre": [
@@ -1003,19 +927,44 @@
         "top_seen": true,
         "why": "",
         "width_m": 0.0009
+      },
+      {
+        "centre": [
+          0.37804,
+          0.62549,
+          1.25007
+        ],
+        "extents": [
+          0.02249,
+          0.0052,
+          4e-05
+        ],
+        "graspable": true,
+        "mean_bgr": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "n_points": 25,
+        "seen_by": [
+          "right_p2_c29"
+        ],
+        "top_seen": false,
+        "why": "",
+        "width_m": 0.0052
       }
     ],
     "weak_rule": "under 200 points or seen by fewer than 2 views. Kept, not deleted -- a scene where everything is weak is worth seeing."
   },
   "surface": {
-    "inliers": 868989,
+    "inliers": 858745,
     "normal": [
-      -0.00028,
-      -0.00399,
+      -0.00023,
+      -0.00429,
       0.99999
     ],
-    "tilt_deg": 0.229,
-    "z_m": 1.2476
+    "tilt_deg": 0.246,
+    "z_m": 1.2474
   },
   "sweep": {
     "arms": [
@@ -1025,8 +974,8 @@
     "cells": 144,
     "cells_outside_envelope": 74,
     "cells_reachable": 70,
-    "coverage": 0.4722,
-    "coverage_of_reachable": 0.9714,
+    "coverage": 0.4653,
+    "coverage_of_reachable": 0.9571,
     "per_arm": [
       {
         "arm": "left",
@@ -1199,18 +1148,6 @@
             "layer": 1,
             "pass_": 2,
             "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              0.7924,
-              0.13135,
-              1.67
-            ],
-            "cell": 48,
-            "facing": 0.0,
-            "layer": 1,
-            "pass_": 2,
-            "why": "no usable frame from this pose"
           },
           {
             "at": [
@@ -1504,8 +1441,8 @@
         "cells_outside_envelope": 37,
         "cells_reachable": 35,
         "cols": 4,
-        "coverage": 0.4583,
-        "coverage_of_reachable": 0.9429,
+        "coverage": 0.4722,
+        "coverage_of_reachable": 0.9714,
         "elev_deg": 38.9,
         "facings_deg": [
           -25.0,
@@ -1523,7 +1460,7 @@
         "step_m": 0.11,
         "stillness_refusals": 0,
         "travel_m": 6.72,
-        "views_used": 33
+        "views_used": 34
       },
       {
         "arm": "right",
@@ -1972,13 +1909,37 @@
             "layer": 1,
             "pass_": 2,
             "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              -0.675,
+              0.04906,
+              1.67
+            ],
+            "cell": 68,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "no usable frame from this pose"
+          },
+          {
+            "at": [
+              -0.955,
+              -0.06094,
+              1.67
+            ],
+            "cell": 72,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "no usable frame from this pose"
           }
         ],
         "cells_outside_envelope": 37,
         "cells_reachable": 35,
         "cols": 4,
-        "coverage": 0.4861,
-        "coverage_of_reachable": 1.0,
+        "coverage": 0.4583,
+        "coverage_of_reachable": 0.9429,
         "elev_deg": 38.9,
         "facings_deg": [
           -25.0,
@@ -1996,11 +1957,11 @@
         "step_m": 0.11,
         "stillness_refusals": 0,
         "travel_m": 6.72,
-        "views_used": 35
+        "views_used": 33
       }
     ],
     "stillness_refusals": 0,
     "travel_m": 13.44,
-    "views_used": 68
+    "views_used": 67
   }
 }

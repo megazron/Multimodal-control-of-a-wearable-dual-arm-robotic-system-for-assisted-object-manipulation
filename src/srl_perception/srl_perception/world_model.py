@@ -68,11 +68,36 @@ from srl_perception import table_scene as TS
 # noise wearing the shape of evidence.
 MIN_POINTS_PER_VIEW = 60
 
-# Two object centres closer than this, seen from different views, are the same
-# object. It is the gripper's own usable width: things closer together than a
-# jaw span cannot be picked separately anyway, so merging them loses nothing a
-# caller could have acted on.
-MERGE_M = 0.06
+# The gripper's own span. Shared with `segment_lift` so one number decides
+# graspability wherever it is asked.
+JAW_M = 0.085
+
+# Two object centres closer than this are the SAME DETECTION seen twice, not
+# two objects. This is a dedup of near-coincident clusters across views and
+# nothing else.
+#
+# IT WAS 0.06 -- the gripper's usable jaw width -- ON THE ARGUMENT THAT THINGS
+# CLOSER TOGETHER THAN A JAW SPAN CANNOT BE PICKED SEPARATELY. That argument
+# is wrong twice over. Objects 60 mm apart can be picked separately, one after
+# the other; and the merge does not just refuse them, it FUSES THEM INTO ONE
+# OBJECT with the combined extent, which is then reported as too wide for the
+# jaws and refused with a confident reason.
+#
+# MEASURED, on the third live run of the calibration stage: T1's cubes sit
+# 60 mm apart, and the map came back with a "140 mm" object where two 40 mm
+# cubes are -- 100 mm of span plus one cube. The pick would have been refused
+# on an object that is not there. My own control for the merge rule used
+# objects 200 mm apart and could never have caught it.
+#
+# 20 mm is a dedup distance: two clusters whose centres are within a fifth of
+# a cube are one cube seen twice.
+MERGE_M = 0.02
+
+# How close two POINTS have to be to belong to the same object. Passed to
+# `table_scene.objects_on_plane`, whose default is 0.020 -- and T1's cubes are
+# 60 mm apart with 40 mm faces, so the GAP between them is exactly 20 mm and
+# the default joins them into one blob. Tighter, so a 20 mm gap separates.
+CLUSTER_M = 0.012
 
 
 class MapRefusal(Exception):
@@ -82,11 +107,19 @@ class MapRefusal(Exception):
 class View:
     """One look: points in the ROBOT frame, and where they came from."""
 
-    def __init__(self, points, source, pose=None, note=""):
+    def __init__(self, points, source, pose=None, note="", objects=None):
         self.points = np.asarray(points, float).reshape(-1, 3)
         self.source = str(source)
         self.pose = None if pose is None else [float(v) for v in pose]
         self.note = note
+        # THE INSTANCES THIS VIEW SAW, if a segmenter was run on it.
+        #
+        # Object identity comes from the PICTURE, one frame at a time -- see
+        # `segment_lift`. It is carried per view rather than recomputed on the
+        # fused pile because a mask belongs to the frame it was cut from: once
+        # nine views are stacked, the only tool left is distance, and distance
+        # is exactly what cannot separate two cubes with a 20 mm gap.
+        self.objects = list(objects) if objects else None
 
     @property
     def n(self):
@@ -100,11 +133,16 @@ class Obj:
     """One thing found on a surface, with where it was seen from."""
 
     def __init__(self, centre, extents, width_m, top_seen, n_points, seen_by,
-                 graspable, why=""):
+                 graspable, why="", mean_bgr=None):
         self.centre = [round(float(v), 5) for v in centre]
         self.extents = [round(float(v), 5) for v in extents]
         self.width_m = round(float(width_m), 5)
         self.top_seen = bool(top_seen)
+        # WHAT COLOUR IT IS, when a segmenter saw it. `None` from the
+        # clustering finder, which sees no picture -- and a consumer asking
+        # for a colour is then told WHY rather than handed a default.
+        self.mean_bgr = (None if mean_bgr is None
+                         else [round(float(v), 1) for v in mean_bgr])
         self.n_points = int(n_points)
         self.seen_by = list(seen_by)
         self.graspable = bool(graspable)
@@ -114,7 +152,8 @@ class Obj:
         return dict(centre=self.centre, extents=self.extents,
                     width_m=self.width_m, top_seen=self.top_seen,
                     n_points=self.n_points, seen_by=self.seen_by,
-                    graspable=self.graspable, why=self.why)
+                    graspable=self.graspable, why=self.why,
+                    mean_bgr=self.mean_bgr)
 
     def __repr__(self):
         return ("Obj(%s, %.0f mm wide, %s, seen by %d view(s))"
@@ -155,8 +194,42 @@ class Map:
         """
         return self.points
 
+    def height_histogram(self, bin_m=0.01, lo=None, hi=None):
+        """How many points at each height. WHAT SURFACES ARE ACTUALLY THERE.
+
+        The plane fit returns ONE surface -- the biggest -- and reports it
+        with a confident number. That is not enough to tell a table from the
+        shelf under it, or from a mixture of the two, and the first live run
+        of the calibration stage measured a support surface **36.6 mm below**
+        the table the mock renders, with no way to see why from the answer
+        alone. A histogram is the cheapest thing that distinguishes "the
+        table is lower than I thought" from "I fitted a plane across two
+        surfaces".
+        """
+        z = np.asarray(self.points, float)[:, 2]
+        if len(z) == 0:
+            return []
+        lo = float(z.min()) if lo is None else lo
+        hi = float(z.max()) if hi is None else hi
+        n = max(1, int(math.ceil((hi - lo) / bin_m)))
+        counts, edges = np.histogram(z, bins=n, range=(lo, lo + n * bin_m))
+        return [dict(z_m=round(float(edges[i]), 4), n=int(counts[i]))
+                for i in range(n) if counts[i]]
+
+    def surfaces(self, bin_m=0.01, min_frac=0.05):
+        """Every height that holds a substantial share of the points.
+
+        Reported alongside the fitted plane so a caller can SEE whether the
+        one it was given is the only candidate.
+        """
+        h = self.height_histogram(bin_m)
+        tot = sum(b["n"] for b in h) or 1
+        return [dict(b, frac=round(b["n"] / tot, 4))
+                for b in h if b["n"] / tot >= min_frac]
+
     def as_dict(self):
         return dict(
+            heights=self.surfaces(),
             surface=dict(z_m=self.surface_z,
                          normal=[round(float(v), 5) for v in self.plane.normal],
                          tilt_deg=round(float(self.plane.tilt_deg), 3),
@@ -217,6 +290,261 @@ def _merge(objs):
     return out
 
 
+def _overlaps(lo_a, hi_a, lo_b, hi_b, pad_m=MERGE_M, frac=0.5):
+    """Do two instances occupy the same space, in all three axes?
+
+    A FIXED CENTRE DISTANCE CANNOT DO THIS JOB and the live run showed why.
+    Two views of one 160 mm pad put its centre 60 mm apart -- each saw a
+    different part of it -- so at a 20 mm merge distance ONE pad came back as
+    FOUR objects. Widen the distance to fix that and two 40 mm cubes on a
+    60 mm pitch merge again, which is the defect this whole change is about.
+    There is no single distance that is right for both, because the right
+    answer scales with the object.
+
+    Overlap does scale. Two partial views of one pad overlap heavily; two
+    cubes 60 mm apart with 40 mm bodies do not touch.
+
+    ALL THREE AXES, INCLUDING THE VERTICAL, and that is not tidiness. A cube
+    STANDS ON a pad: their centres are ~30 mm apart horizontally-nothing, so
+    any horizontal-only test merges the cube into the pad it is sitting on and
+    the map loses the only object anybody wanted to pick up.
+
+    AND TOUCHING IS NOT OVERLAPPING. A plain box-intersection test still
+    merged the cube into the pad, because a cube standing on a pad is INSIDE
+    it in x and y and shares a face in z -- the boxes intersect in every axis
+    by the letter of the test. What separates them is that the shared part is
+    a face and not a volume: the cube occupies 10 to 50 mm above the pad's
+    top, the pad occupies 0 to 10, and those two ranges have nothing in
+    common. So each axis must overlap by a real FRACTION of the smaller
+    object's extent in that axis, not merely fail to be disjoint.
+
+    `pad_m` is the tolerance for depth noise on a thin axis.
+
+    THE GROUP'S BOX IS ITS SEED'S AND IT DOES NOT GROW. Expanding it to the
+    union of everything merged so far chains objects together transitively: a
+    partial view of a cube joins the cube, the box grows to cover both, and the
+    NEXT cube 60 mm away then overlaps the grown box and is swallowed. Two
+    cubes measured EXACTLY -- (0.420, 0.450) and (0.480, 0.450), 40.3 mm each
+    against a 40 mm truth -- came out of the fusion as one object at
+    (0.450, 0.450), their midpoint, where nothing is. Segs are compared
+    against the seed, which is the largest member because the list is sorted
+    by point count, and the seed is the best-observed instance in the group.
+    """
+    lo_a, hi_a = np.asarray(lo_a, float), np.asarray(hi_a, float)
+    lo_b, hi_b = np.asarray(lo_b, float), np.asarray(hi_b, float)
+    inter = np.minimum(hi_a, hi_b) - np.maximum(lo_a, lo_b)
+    smaller = np.minimum(hi_a - lo_a, hi_b - lo_b)
+    # Relative to the SMALLER object's own extent, with only a floor to keep a
+    # perfectly flat thing from dividing by nothing. Padding this by a fixed
+    # tolerance is what let a cube share a face with its pad and count as
+    # overlapping it.
+    need = frac * np.maximum(smaller, 1e-4)
+    return bool(np.all(inter >= need))
+
+
+# The largest gap that is NOT a gap between objects. Below the smallest real
+# separation in any scene this rig works with -- T1's cubes leave 20 mm between
+# their faces -- and well above the depth noise, so a solid face never splits.
+SPLIT_GAP_M = 0.012
+
+
+def _split_disconnected(pts, gap_m=SPLIT_GAP_M, min_points=25):
+    """One point set -> the separated lumps it is actually made of.
+
+    A LAST CONSISTENCY CHECK ON THE FUSION, and it is not a retreat to
+    clustering. Segmentation still decides what an object is, one frame at a
+    time. This asks a different and much weaker question of the RESULT: are
+    this object's own points in one connected piece?
+
+    IT WAS NEEDED. With everything else fixed, the map still reported one
+    object at (0.450, 0.450) with a LONG EXTENT OF 0.101 m -- two 40 mm cubes
+    on a 60 mm pitch, fused, sitting at their midpoint where nothing is. It
+    reads 41 mm across its narrowest axis, so it is reported as GRASPABLE, and
+    the arm would have closed on the gap between two cubes. `segment_lift`'s
+    own self-test predicted exactly this: a fused pair keeps the width of one.
+
+    The fusion glues them because in some views the segmenter returns the pair
+    as a single region -- legitimately, they are the same colour and adjacent
+    -- and that wide instance becomes the group's seed.
+
+    A threshold is unavoidable here, but it is not a tuning value: it has to
+    be smaller than the smallest gap between two things anyone would call
+    separate, and larger than the depth noise across one face. 12 mm sits
+    between 20 mm and about 2 mm with room either side.
+    """
+    pts = np.asarray(pts, float)
+    if len(pts) < 2 * min_points:
+        return [pts]
+    key = np.floor(pts / gap_m).astype(np.int64)
+    uniq, inv = np.unique(key, axis=0, return_inverse=True)
+    index = {tuple(k): i for i, k in enumerate(uniq)}
+    label = np.full(len(uniq), -1, np.int64)
+    nbr = [(a, b, c) for a in (-1, 0, 1) for b in (-1, 0, 1)
+           for c in (-1, 0, 1) if (a, b, c) != (0, 0, 0)]
+    n_lab = 0
+    for start in range(len(uniq)):
+        if label[start] >= 0:
+            continue
+        stack = [start]
+        label[start] = n_lab
+        while stack:
+            cur = uniq[stack.pop()]
+            for d in nbr:
+                j = index.get((cur[0] + d[0], cur[1] + d[1], cur[2] + d[2]))
+                if j is not None and label[j] < 0:
+                    label[j] = n_lab
+                    stack.append(j)
+        n_lab += 1
+    out = []
+    for k in range(n_lab):
+        sel = pts[label[inv] == k]
+        if len(sel) >= min_points:
+            out.append(sel)
+    return out or [pts]
+
+
+def _rejoin_vertical_slices(items, foot_ratio=1.45, gap_m=0.010):
+    """Put back together an object the height split cut in half.
+
+    WHAT MAKES THE SLICE. `segment_lift` separates a cube from the pad it
+    stands on by cutting the mask at the modal height plus a step. When ONE
+    mask covers a pad AND the cube on it, the mode is the pad's top face and
+    the cut lands part-way up the cube -- so the cube's lower band is filed
+    with the pad and comes out as its own object. The live map had four:
+    7 mm, 21 mm, 28 mm and 58 mm pieces standing exactly at the feet of real
+    cubes, all reported graspable.
+
+    HOW IT DIFFERS FROM A CUBE ON A PAD, which must NOT be rejoined. The two
+    cases look identical to a containment test -- both are one thing resting
+    on another, touching, one inside the other's footprint. What separates
+    them is the FOOTPRINT RATIO. A slice of a cube has the cube's own
+    footprint, because it is the same cube: 40 x 40 under 40 x 40. A cube on
+    a pad is 40 x 40 under 160 x 140, four times over.
+
+    So: touching vertically, and horizontal footprints within `foot_ratio` of
+    each other, is one object cut in two. Anything else is left alone.
+    """
+    items = sorted(items, key=lambda t: -len(t[1]))
+    used = [False] * len(items)
+    out = []
+    for i, (oi, pi) in enumerate(items):
+        if used[i]:
+            continue
+        pts = pi
+        lo = pts.min(axis=0)
+        hi = pts.max(axis=0)
+        for j in range(i + 1, len(items)):
+            if used[j]:
+                continue
+            oj, pj = items[j]
+            jlo, jhi = pj.min(axis=0), pj.max(axis=0)
+            # horizontal overlap, in both axes, by most of the smaller
+            inter = np.minimum(hi[:2], jhi[:2]) - np.maximum(lo[:2], jlo[:2])
+            small = np.minimum(hi[:2] - lo[:2], jhi[:2] - jlo[:2])
+            if not np.all(inter >= 0.6 * np.maximum(small, 1e-4)):
+                continue
+            # touching in z, one directly under the other
+            if min(hi[2], jhi[2]) < max(lo[2], jlo[2]) - gap_m:
+                continue
+            # THE DISCRIMINATOR: same footprint means same object.
+            a = float(np.prod(np.maximum(hi[:2] - lo[:2], 1e-4)))
+            b = float(np.prod(np.maximum(jhi[:2] - jlo[:2], 1e-4)))
+            if max(a, b) / min(a, b) > foot_ratio:
+                continue
+            used[j] = True
+            pts = np.vstack([pts, pj])
+            lo, hi = pts.min(axis=0), pts.max(axis=0)
+        out.append((oi, pts))
+    return out
+
+
+def _drop_contained(objs, frac=0.6):
+    """Remove objects that are just a PIECE of a bigger one.
+
+    The merge groups instances that overlap its seed; a fragment sitting
+    against the seed but not overlapping it -- the bottom band of a cube, say,
+    which is BELOW the body the seed measured -- forms its own group and
+    survives as an object. The live map reported ten where six exist.
+
+    Whole-object containment is a different question from the merge's, and it
+    is asked once, at the end, of the finished list. The bigger object wins
+    because it is the better-observed one. A cube standing on a pad is not
+    contained in it -- their height ranges are disjoint, which is the axis
+    this test has always turned on.
+    """
+    keep = []
+    for o in sorted(objs, key=lambda o: -o.n_points):
+        lo = np.array(o.centre) - np.array(o.extents) / 2.0
+        hi = np.array(o.centre) + np.array(o.extents) / 2.0
+        for b in keep:
+            blo = np.array(b.centre) - np.array(b.extents) / 2.0
+            bhi = np.array(b.centre) + np.array(b.extents) / 2.0
+            if _overlaps(lo, hi, blo, bhi, frac=frac):
+                break
+        else:
+            keep.append(o)
+    return keep
+
+
+def _fuse_segments(usable, plane):
+    """Per-view instances -> one object list. The merge is now honest.
+
+    Two Segs are the SAME OBJECT when the space they occupy OVERLAPS -- see
+    `_overlaps`. That is a real dedup question, did two views see one thing,
+    and it is asked of instances that were already separated in their own
+    pictures, so it is no longer doing the job clustering was failing at.
+    """
+    segs = []
+    for v in usable:
+        for o in (v.objects or []):
+            segs.append((v.source, o))
+    segs.sort(key=lambda t: -t[1].n_points)
+
+    groups = []
+    for src, o in segs:
+        for g in groups:
+            if _overlaps(o.lo, o.hi, g["lo"], g["hi"]):
+                g["members"].append((src, o))
+                break
+        else:
+            groups.append(dict(lo=np.asarray(o.lo, float),
+                               hi=np.asarray(o.hi, float),
+                               members=[(src, o)]))
+
+    from srl_perception.segment_lift import _measure
+    pieces = []
+    for g in groups:
+        mem = g["members"]
+        allpts = np.vstack([m[1].points for m in mem])
+        w = np.array([m[1].n_points for m in mem], float)
+        cols = np.array([m[1].mean_bgr for m in mem], float)
+        mean_bgr = list((cols * w[:, None]).sum(axis=0) / w.sum())
+        srcs = sorted({m[0] for m in mem})
+        for pts in _split_disconnected(allpts):
+            pieces.append(((srcs, mean_bgr), pts))
+
+    out = []
+    for (srcs, mean_bgr), pts in _rejoin_vertical_slices(pieces):
+        if True:
+            # RE-MEASURED ON THE UNION, so an object seen from two sides has
+            # its far face too. The centre still comes from the mid-extent,
+            # which is what stops a one-sided view biasing it toward the
+            # camera.
+            centre, extents, width = _measure(pts)
+            top_seen = float(plane.height(pts).max()) > 0.005
+            out.append(Obj(centre, extents, width, top_seen, len(pts),
+                           srcs,
+                           width <= JAW_M,
+                           "" if width <= JAW_M else
+                           ("%.0f mm across its narrowest axis and the jaws "
+                            "close on %.0f mm"
+                            % (width * 1000, JAW_M * 1000)),
+                           mean_bgr=mean_bgr))
+    out = _drop_contained(out)
+    out.sort(key=lambda o: (-o.n_points))
+    return out
+
+
 def build(views, up=(0.0, 0.0, 1.0), **kw):
     """Many views -> one map. Refuses rather than guessing.
 
@@ -236,11 +564,42 @@ def build(views, up=(0.0, 0.0, 1.0), **kw):
     cloud = np.vstack([v.points for v in usable])
     # WHICH VIEW EACH POINT CAME FROM, kept so an object can say what saw it.
     owner = np.concatenate([np.full(v.n, i) for i, v in enumerate(usable)])
+    kw.setdefault("cluster_m", CLUSTER_M)
     try:
         scene = TS.analyse(cloud, up=up, **kw)
     except TS.SceneRefusal as e:
         raise MapRefusal("the support surface could not be fitted: %s" % e)
     plane = scene["plane"]
+
+    # ============================================================
+    # WHERE THE OBJECTS COME FROM, and it is recorded in the map
+    # ============================================================
+    # If the views were segmented, their instances are fused. Otherwise the
+    # fused cloud is clustered, which is the old path and is kept because it
+    # is the only one that works with no model available -- but the two are
+    # NEVER mixed and the map says which ran, because they fail differently.
+    segmented = [v for v in usable if v.objects is not None]
+    if segmented and len(segmented) == len(usable):
+        objs = _fuse_segments(usable, plane)
+        prov_finder = "segment_lift: instances cut from each PICTURE by " \
+                      "FastSAM and lifted through the depth"
+        return Map(plane, objs, cloud,
+                   dict(n_views=len(usable),
+                        sources=[v.source for v in usable],
+                        points_per_view=[v.n for v in usable],
+                        objects_per_view=[len(v.objects) for v in usable],
+                        discarded_views=[dict(source=v.source, n=v.n)
+                                         for v in views
+                                         if v.n < MIN_POINTS_PER_VIEW],
+                        object_finder=prov_finder,
+                        surface_z_m="MEASURED from the fused cloud",
+                        single_view_caveat=(len(usable) == 1)))
+    if segmented:
+        raise MapRefusal(
+            "%d of %d views were segmented and the rest were not. A map that "
+            "mixed the two would have objects found two different ways with "
+            "one confidence written on all of them."
+            % (len(segmented), len(usable)))
 
     objs = []
     for row in scene["rows"]:
@@ -270,6 +629,9 @@ def build(views, up=(0.0, 0.0, 1.0), **kw):
                 points_per_view=[v.n for v in usable],
                 discarded_views=[dict(source=v.source, n=v.n)
                                  for v in views if v.n < MIN_POINTS_PER_VIEW],
+                object_finder=("table_scene: the fused cloud clustered at "
+                               "%.3f m. Two objects closer than that are ONE."
+                               % CLUSTER_M),
                 surface_z_m="MEASURED from the fused cloud",
                 single_view_caveat=(len(usable) == 1))
     return Map(plane, objs, cloud, prov)

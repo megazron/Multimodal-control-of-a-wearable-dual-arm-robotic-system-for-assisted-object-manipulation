@@ -145,6 +145,32 @@ def test_two_different_objects_stay_two():
     assert len(m.objects) == 2, m.objects
 
 
+def test_objects_at_the_separation_this_rig_actually_uses_stay_two():
+    """AND AT 60 mm, WHICH IS THE ONE THAT MATTERED.
+
+    The test above uses objects 200 mm apart and passed while the map was
+    fusing real ones. T1's cubes are 60 mm apart -- 40 mm wide with a 20 mm
+    gap -- and on the third live calibration run they came back as a single
+    "140 mm" object, which is 100 mm of span plus a cube. Two causes, both
+    mine: `MERGE_M` was 0.06, so a 60 mm separation was inside the dedup
+    distance; and `table_scene`'s default `cluster_m` is 0.020, exactly the
+    gap between two adjacent cube faces.
+
+    A pick planned off that map is refused on an object that does not exist.
+    """
+    m = WM.build([WM.View(np.vstack([
+        _table(),
+        _cube((0.40, 0.40, 0.93), size=0.04, seed=3),
+        _cube((0.46, 0.40, 0.93), size=0.04, seed=4)]), "scene")])
+    assert len(m.objects) == 2, (
+        "two cubes 60 mm apart came back as %d object(s): %s"
+        % (len(m.objects), m.objects))
+    for o in m.objects:
+        assert o.width_m < 0.07, (
+            "an object %.0f mm wide, where the cubes are 40 mm -- two have "
+            "been fused" % (o.width_m * 1000))
+
+
 def test_the_map_names_its_sources_and_flags_a_single_view():
     one = WM.build([WM.View(_table(), "wrist_left")])
     assert one.provenance["sources"] == ["wrist_left"]

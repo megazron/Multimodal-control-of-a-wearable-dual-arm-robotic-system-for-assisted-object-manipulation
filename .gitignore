@@ -135,3 +135,4 @@ models/mediapipe/
 # says plainly when it is absent rather than planning as though the table
 # were not there.
 recordings/baselines/*_occupancy.npy
+recordings/calibration/*/world_map_occupancy.npy

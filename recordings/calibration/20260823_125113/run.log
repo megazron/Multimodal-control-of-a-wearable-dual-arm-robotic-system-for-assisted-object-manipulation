@@ -1,0 +1,67 @@
+[progress] left arm: starting up calibrating the environment before anything is planned
+[progress] left arm: calibrating: looking at the workspace 12 cells in 3 straight rows, serpentine order, 1.06 m of travel
+[progress] left arm: reaching cell 1 of 12 at (0.650, 0.180, 1.550)
+      the segmenter refused: the segmenter returned no regions for this frame
+[progress] left arm: reaching cell 2 of 12 at (0.743, 0.180, 1.550)
+      8 region(s) on the surface
+      11491 points
+[progress] left arm: reaching cell 3 of 12 at (0.837, 0.180, 1.550)
+      6 region(s) on the surface
+      11492 points
+[progress] left arm: reaching cell 4 of 12 at (0.930, 0.180, 1.550)
+      5 region(s) on the surface
+      11491 points
+[progress] left arm: reaching cell 5 of 12 at (0.930, 0.290, 1.550)
+[progress] left arm: reaching cell 6 of 12 at (0.837, 0.290, 1.550)
+      3 region(s) on the surface
+      11491 points
+[progress] left arm: reaching cell 7 of 12 at (0.743, 0.290, 1.550)
+      5 region(s) on the surface
+      16758 points
+[progress] left arm: reaching cell 8 of 12 at (0.650, 0.290, 1.550)
+      6 region(s) on the surface
+      16757 points
+[progress] left arm: reaching cell 9 of 12 at (0.650, 0.400, 1.550)
+      8 region(s) on the surface
+      16757 points
+[progress] left arm: reaching cell 10 of 12 at (0.743, 0.400, 1.550)
+[progress] left arm: reaching cell 11 of 12 at (0.837, 0.400, 1.550)
+[progress] left arm: reaching cell 12 of 12 at (0.930, 0.400, 1.550)
+   5 cell(s) contributed nothing:
+      cell 1 at [0.65, 0.18, 1.55] -- no usable frame from this pose
+      cell 5 at [0.93, 0.29, 1.55] -- pose not reached
+      cell 10 at [0.743, 0.4, 1.55] -- pose not reached
+      cell 11 at [0.837, 0.4, 1.55] -- pose not reached
+      cell 12 at [0.93, 0.4, 1.55] -- pose not reached
+[progress] left arm: building the map fusing 7 view(s) of 12 cell(s)
+   support surface at z = 1.2540 m, tilted 0.31 deg, from 74171 points
+   object 0 at (0.290, 0.499, 1.260), 139 mm across the jaws, NOT graspable -- 139 mm across its narrowest axis and the jaws close on 85 mm
+   object 1 at (0.420, 0.450, 1.283), 41 mm across the jaws, graspable
+   object 2 at (0.480, 0.449, 1.282), 40 mm across the jaws, graspable
+   object 3 at (-0.289, 0.499, 1.260), 140 mm across the jaws, NOT graspable -- 140 mm across its narrowest axis and the jaws close on 85 mm
+   object 4 at (-0.403, 0.444, 1.259), 23 mm across the jaws, graspable
+   object 5 at (-0.400, 0.443, 1.269), 8 mm across the jaws, graspable
+   built from 7 views: left_cell_02, left_cell_03, left_cell_04, left_cell_06, left_cell_07, left_cell_08, left_cell_09
+   heights holding 5%% or more of the points:
+      z 1.245 m     70367 points   73.1%
+      z 1.255 m     13805 points   14.3%
+[progress] left arm: finished surface measured at 1.2540 m, 6 object(s) found
+-> /home/gausms/kortex_ws/recordings/calibration/20260823_125113/world_map.json
+-> /home/gausms/kortex_ws/recordings/calibration/20260823_125113/world_map_occupancy.npy   (96237 points, for the planner)
+map: /home/gausms/kortex_ws/recordings/calibration/20260823_125113/world_map.json
+   surface z = 1.2540 m, 6 object(s), finder: segment_lift: instances cut from each PICTURE by FastSAM and lifted through the depth
+[progress] left arm: planning a path object 1 at ['0.420', '0.450', '1.283'], 41 mm across, from the MEASURED map
+   the planner has 561 occupied voxels from the map (the surface AND the objects)
+   pregrasp  ['0.455', '0.255', '1.165']  ok
+   grasp     ['0.437', '0.357', '1.227']  ok
+   lift      ['0.437', '0.357', '1.327']  ok
+   carry     ['0.290', '0.500', '1.327']  ok
+   place     ['0.307', '0.407', '1.227']  ok
+   retreat   ['0.290', '0.500', '1.327']  ok
+[progress] left arm: reaching at (0.455, 0.255, 1.165) pregrasp
+[progress] left arm: closing on the object at (0.437, 0.357, 1.227) grasp
+[progress] left arm: carrying at (0.437, 0.357, 1.327) lift
+[progress] left arm: carrying at (0.290, 0.500, 1.327) carry
+[progress] left arm: placing at (0.307, 0.407, 1.227) place
+[progress] left arm: returning home at (0.290, 0.500, 1.327) retreat
+[progress] left arm: finished object 1 moved

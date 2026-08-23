@@ -108,26 +108,53 @@ def main():
     A("")
     A("| # | what it shows | file |")
     A("| --- | --- | --- |")
+    # ==================================================================
+    # THE SHORTLIST IS RESOLVED AGAINST DISK, AND IT USED NOT TO BE
+    # ==================================================================
+    # These five paths were written out by hand, against the A/B/C task set
+    # that was retired when the MSc tasks replaced it. Four of the five named
+    # files -- `06_full_autonomy/B/S1_bimanual`, `01_master_teleop/A/
+    # S1_single_arm`, `02_vr_teleop/B/S1_bimanual`, `06_full_autonomy/A/
+    # S1_single_arm` -- have not existed for weeks, in the one section of the
+    # one document whose entire job is to say WHICH FILE TO OPEN FIRST.
+    #
+    # This file's own header says it is generated so that it "cannot claim a
+    # clip that is not there". That was true of the table below and false of
+    # the shortlist above it.
+    #
+    # So each entry is a PREFERENCE ORDER now, and the first one that is
+    # actually on disk wins. An entry whose candidates are all missing says so
+    # in place, rather than printing a path that 404s in Explorer.
+    def _first_on_disk(*rels):
+        for r in rels:
+            if os.path.exists(os.path.join(WS, r)):
+                return "`%s`" % r
+        return "**not on disk** -- run `bash scripts/record_everything.sh`"
+
+    V = "recordings/verification"
     top = [
         ("The language sweep -- 40 phrasings, every outcome captioned. "
          "%s. The most complete evidence in the set, and the only mode that "
          "needs no operator."
          % (", ".join("%s %d" % (k, v) for k, v in sorted(lang_counts.items()))
             or "see the video"),
-         os.path.relpath(lang, WS) if os.path.exists(lang) else "(not built)"),
-        ("Full autonomy doing the bimanual hold-and-place, four views tiled.",
-         "recordings/verification/06_full_autonomy/B/S1_bimanual/rviz_quad.mp4"),
-        ("Master teleop, single-arm pick and place, front view with the "
-         "caption stating expected vs resulted.",
-         "recordings/verification/01_master_teleop/A/S1_single_arm/rviz_front.mp4"),
-        ("VR teleop driving the same bimanual task -- proof the Quest path "
-         "reaches the arms.",
-         "recordings/verification/02_vr_teleop/B/S1_bimanual/rviz_quad.mp4"),
-        ("The gripper view: tight on the fingers through a pick.",
-         "recordings/verification/06_full_autonomy/A/S1_single_arm/rviz_gripper.mp4"),
+         "`%s`" % os.path.relpath(lang, WS) if os.path.exists(lang)
+         else "**not built** -- run `scripts/record_language_sweep.py`"),
+        ("**Full autonomy picking and placing four cubes by colour, from a "
+         "typed sentence** -- four views tiled. The task the rest of the set "
+         "exists to support.",
+         _first_on_disk(V + "/06_full_autonomy/T1/S1_both_arms_centre/rviz_quad.mp4")),
+        ("The same task with the layout drawn from a seed, both arms at once.",
+         _first_on_disk(V + "/06_full_autonomy/T1S2/S2_both_arms_random/rviz_quad.mp4")),
+        ("Master teleop reaching three targets -- the baseline condition every "
+         "other mode is compared against.",
+         _first_on_disk(V + "/01_master_teleop/T0/D3_three_targets/rviz_front.mp4")),
+        ("**The gripper view**: tight on the fingers through a pick. This is "
+         "where a grasp is judged rather than asserted.",
+         _first_on_disk(V + "/06_full_autonomy/T1/S1_both_arms_centre/rviz_gripper.mp4")),
     ]
     for i, (what, f) in enumerate(top, 1):
-        A("| %d | %s | `%s` |" % (i, what, f))
+        A("| %d | %s | %s |" % (i, what, f))
     A("")
 
     A("## Opening them from Windows")

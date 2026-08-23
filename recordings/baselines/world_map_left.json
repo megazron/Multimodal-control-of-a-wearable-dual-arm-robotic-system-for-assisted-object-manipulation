@@ -1,0 +1,335 @@
+{
+  "camera": {
+    "camera_link_note": "the camera pose is forward kinematics, exact given the URDF, and the URDF's camera_link has never been checked against the physical module",
+    "camera_link_verified_against_hardware": false,
+    "caveat": "SYNTHETIC: the depth was rendered by mock_rgbd_camera, so this map tests the pipeline and not the room",
+    "is_mock": true,
+    "mock_publishers": [
+      "mock_rgbd_camera"
+    ],
+    "topic": "/left_camera/depth/image_raw"
+  },
+  "heights": [
+    {
+      "frac": 0.2254,
+      "n": 22244,
+      "z_m": 1.2401
+    },
+    {
+      "frac": 0.5357,
+      "n": 52871,
+      "z_m": 1.2501
+    },
+    {
+      "frac": 0.0848,
+      "n": 8369,
+      "z_m": 1.2601
+    }
+  ],
+  "n_points": 98696,
+  "objects": [
+    {
+      "centre": [
+        -0.35644,
+        0.47051,
+        1.2723
+      ],
+      "extents": [
+        0.3103,
+        0.1402,
+        0.04265
+      ],
+      "graspable": false,
+      "n_points": 495,
+      "seen_by": [
+        "left_cell_01",
+        "left_cell_02",
+        "left_cell_03",
+        "left_cell_04",
+        "left_cell_06",
+        "left_cell_07",
+        "left_cell_08",
+        "left_cell_09",
+        "left_cell_10"
+      ],
+      "top_seen": true,
+      "why": "object 4 is 140 mm across its short axis and the jaws close on 75 mm. The arm would discover this by colliding.",
+      "width_m": 0.1402
+    },
+    {
+      "centre": [
+        0.28806,
+        0.44387,
+        1.27098
+      ],
+      "extents": [
+        0.1,
+        0.03997,
+        0.04003
+      ],
+      "graspable": true,
+      "n_points": 624,
+      "seen_by": [
+        "left_cell_01",
+        "left_cell_02",
+        "left_cell_03",
+        "left_cell_04",
+        "left_cell_06",
+        "left_cell_07",
+        "left_cell_08",
+        "left_cell_09",
+        "left_cell_10"
+      ],
+      "top_seen": true,
+      "why": "",
+      "width_m": 0.03997
+    },
+    {
+      "centre": [
+        0.47263,
+        0.4409,
+        1.27167
+      ],
+      "extents": [
+        0.16593,
+        0.04409,
+        0.04143
+      ],
+      "graspable": true,
+      "n_points": 2736,
+      "seen_by": [
+        "left_cell_01",
+        "left_cell_02",
+        "left_cell_03",
+        "left_cell_04",
+        "left_cell_06",
+        "left_cell_07",
+        "left_cell_08",
+        "left_cell_09",
+        "left_cell_10"
+      ],
+      "top_seen": true,
+      "why": "",
+      "width_m": 0.04409
+    },
+    {
+      "centre": [
+        0.55279,
+        0.53477,
+        1.26938
+      ],
+      "extents": [
+        0.1001,
+        0.04019,
+        0.0373
+      ],
+      "graspable": true,
+      "n_points": 1514,
+      "seen_by": [
+        "left_cell_01",
+        "left_cell_02",
+        "left_cell_03",
+        "left_cell_04",
+        "left_cell_06",
+        "left_cell_07",
+        "left_cell_08",
+        "left_cell_09",
+        "left_cell_10"
+      ],
+      "top_seen": true,
+      "why": "",
+      "width_m": 0.04019
+    },
+    {
+      "centre": [
+        0.35956,
+        0.54723,
+        1.27164
+      ],
+      "extents": [
+        0.19045,
+        0.06718,
+        0.04185
+      ],
+      "graspable": true,
+      "n_points": 1917,
+      "seen_by": [
+        "left_cell_01",
+        "left_cell_02",
+        "left_cell_03",
+        "left_cell_04",
+        "left_cell_06",
+        "left_cell_07",
+        "left_cell_08",
+        "left_cell_09",
+        "left_cell_10"
+      ],
+      "top_seen": true,
+      "why": "",
+      "width_m": 0.06718
+    },
+    {
+      "centre": [
+        -0.49059,
+        0.55615,
+        1.2717
+      ],
+      "extents": [
+        0.03968,
+        0.03883,
+        0.04182
+      ],
+      "graspable": true,
+      "n_points": 89,
+      "seen_by": [
+        "left_cell_01",
+        "left_cell_02",
+        "left_cell_03",
+        "left_cell_04",
+        "left_cell_06",
+        "left_cell_07",
+        "left_cell_08",
+        "left_cell_09",
+        "left_cell_10"
+      ],
+      "top_seen": true,
+      "why": "",
+      "width_m": 0.03883
+    },
+    {
+      "centre": [
+        -0.60118,
+        0.44551,
+        1.27167
+      ],
+      "extents": [
+        0.10009,
+        0.03955,
+        0.04123
+      ],
+      "graspable": true,
+      "n_points": 64,
+      "seen_by": [
+        "left_cell_01",
+        "left_cell_02",
+        "left_cell_03",
+        "left_cell_04",
+        "left_cell_06",
+        "left_cell_07",
+        "left_cell_08",
+        "left_cell_09",
+        "left_cell_10"
+      ],
+      "top_seen": true,
+      "why": "",
+      "width_m": 0.03955
+    },
+    {
+      "centre": [
+        -0.56635,
+        0.53824,
+        1.27176
+      ],
+      "extents": [
+        0.07001,
+        0.05278,
+        0.04184
+      ],
+      "graspable": true,
+      "n_points": 65,
+      "seen_by": [
+        "left_cell_01",
+        "left_cell_02",
+        "left_cell_03",
+        "left_cell_04",
+        "left_cell_06",
+        "left_cell_07",
+        "left_cell_08",
+        "left_cell_09",
+        "left_cell_10"
+      ],
+      "top_seen": true,
+      "why": "",
+      "width_m": 0.05278
+    }
+  ],
+  "provenance": {
+    "discarded_views": [],
+    "n_views": 9,
+    "points_per_view": [
+      9167,
+      9167,
+      9306,
+      9430,
+      9205,
+      10290,
+      13847,
+      13844,
+      14440
+    ],
+    "single_view_caveat": false,
+    "sources": [
+      "left_cell_01",
+      "left_cell_02",
+      "left_cell_03",
+      "left_cell_04",
+      "left_cell_06",
+      "left_cell_07",
+      "left_cell_08",
+      "left_cell_09",
+      "left_cell_10"
+    ],
+    "surface_z_m": "MEASURED from the fused cloud"
+  },
+  "surface": {
+    "inliers": 72753,
+    "normal": [
+      0.00011,
+      0.00231,
+      1.0
+    ],
+    "tilt_deg": 0.133,
+    "z_m": 1.25202
+  },
+  "sweep": {
+    "arm": "left",
+    "cells": 12,
+    "cells_missed": [
+      {
+        "at": [
+          0.98,
+          0.27,
+          1.45
+        ],
+        "cell": 5,
+        "why": "pose not reached"
+      },
+      {
+        "at": [
+          0.88667,
+          0.38,
+          1.45
+        ],
+        "cell": 11,
+        "why": "pose not reached"
+      },
+      {
+        "at": [
+          0.98,
+          0.38,
+          1.45
+        ],
+        "cell": 12,
+        "why": "pose not reached"
+      }
+    ],
+    "cols": 4,
+    "guess_surface_z": 1.25,
+    "order": "serpentine",
+    "range_m": 0.35,
+    "rows": 3,
+    "step_m": 0.11,
+    "travel_m": 1.06,
+    "views_used": 9
+  }
+}

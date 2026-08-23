@@ -1,0 +1,24 @@
+    4.1 s  STARTING     left arm: starting up calibrating the environment before anything is planned
+    4.1 s  CALIBRATING  left arm: calibrating: looking at the workspace 12 cells in 3 straight rows, serpentine order, 1.06 m of travel
+    4.1 s  REACHING     left arm: reaching cell 1 of 12 at (0.650, 0.180, 1.550)
+   20.8 s  REACHING     left arm: reaching cell 2 of 12 at (0.743, 0.180, 1.550)
+   30.7 s  REACHING     left arm: reaching cell 3 of 12 at (0.837, 0.180, 1.550)
+   40.3 s  REACHING     left arm: reaching cell 4 of 12 at (0.930, 0.180, 1.550)
+   53.0 s  REACHING     left arm: reaching cell 5 of 12 at (0.930, 0.290, 1.550)
+   59.1 s  REACHING     left arm: reaching cell 6 of 12 at (0.837, 0.290, 1.550)
+   70.9 s  REACHING     left arm: reaching cell 7 of 12 at (0.743, 0.290, 1.550)
+   78.6 s  REACHING     left arm: reaching cell 8 of 12 at (0.650, 0.290, 1.550)
+   87.9 s  REACHING     left arm: reaching cell 9 of 12 at (0.650, 0.400, 1.550)
+  101.8 s  REACHING     left arm: reaching cell 10 of 12 at (0.743, 0.400, 1.550)
+  107.8 s  REACHING     left arm: reaching cell 11 of 12 at (0.837, 0.400, 1.550)
+  113.8 s  REACHING     left arm: reaching cell 12 of 12 at (0.930, 0.400, 1.550)
+  119.9 s  MAPPING      left arm: building the map fusing 7 view(s) of 12 cell(s)
+  127.5 s  DONE         left arm: finished surface measured at 1.2540 m, 6 object(s) found
+  134.0 s  PLANNING     left arm: planning a path object 1 at ['0.420', '0.450', '1.283'], 41 mm across, from the MEASURED map
+  145.3 s  REACHING     left arm: reaching at (0.455, 0.255, 1.165) pregrasp
+  147.8 s  GRASPING     left arm: closing on the object at (0.437, 0.357, 1.227) grasp
+  151.2 s  CARRYING     left arm: carrying at (0.437, 0.357, 1.327) lift
+  153.7 s  CARRYING     left arm: carrying at (0.290, 0.500, 1.327) carry
+  156.2 s  PLACING      left arm: placing at (0.307, 0.407, 1.227) place
+  159.7 s  RETURNING    left arm: returning home at (0.290, 0.500, 1.327) retreat
+  162.2 s  DONE         left arm: finished object 1 moved

@@ -1,0 +1,306 @@
+{
+  "camera": {
+    "camera_link_note": "the camera pose is forward kinematics, exact given the URDF, and the URDF's camera_link has never been checked against the physical module",
+    "camera_link_verified_against_hardware": false,
+    "caveat": "SYNTHETIC: the depth was rendered by mock_rgbd_camera, so this map tests the pipeline and not the room",
+    "is_mock": true,
+    "mock_publishers": [
+      "mock_rgbd_camera"
+    ],
+    "pose_source": "render_pose",
+    "pose_source_note": "render_pose: the camera pose travelled WITH each frame, so the deprojection used the pose the frame was taken from",
+    "topic": "/left_camera/depth/image_raw"
+  },
+  "heights": [
+    {
+      "frac": 0.7312,
+      "n": 70364,
+      "z_m": 1.2451
+    },
+    {
+      "frac": 0.1435,
+      "n": 13806,
+      "z_m": 1.2551
+    }
+  ],
+  "n_points": 96235,
+  "objects": [
+    {
+      "centre": [
+        0.29047,
+        0.49931,
+        1.26019
+      ],
+      "extents": [
+        0.16063,
+        0.13949,
+        0.00689
+      ],
+      "graspable": false,
+      "mean_bgr": [
+        229.0,
+        76.0,
+        25.0
+      ],
+      "n_points": 95015,
+      "seen_by": [
+        "left_cell_02",
+        "left_cell_03",
+        "left_cell_04",
+        "left_cell_06",
+        "left_cell_07",
+        "left_cell_08",
+        "left_cell_09"
+      ],
+      "top_seen": true,
+      "why": "139 mm across its narrowest axis and the jaws close on 85 mm",
+      "width_m": 0.13949
+    },
+    {
+      "centre": [
+        0.4204,
+        0.44966,
+        1.28278
+      ],
+      "extents": [
+        0.04074,
+        0.04054,
+        0.0369
+      ],
+      "graspable": true,
+      "mean_bgr": [
+        229.0,
+        76.0,
+        25.0
+      ],
+      "n_points": 27298,
+      "seen_by": [
+        "left_cell_02",
+        "left_cell_03",
+        "left_cell_04",
+        "left_cell_06",
+        "left_cell_07",
+        "left_cell_08",
+        "left_cell_09"
+      ],
+      "top_seen": true,
+      "why": "",
+      "width_m": 0.04054
+    },
+    {
+      "centre": [
+        0.48038,
+        0.44935,
+        1.28163
+      ],
+      "extents": [
+        0.04069,
+        0.04005,
+        0.03695
+      ],
+      "graspable": true,
+      "mean_bgr": [
+        229.0,
+        76.0,
+        25.0
+      ],
+      "n_points": 26867,
+      "seen_by": [
+        "left_cell_02",
+        "left_cell_03",
+        "left_cell_04",
+        "left_cell_06",
+        "left_cell_07",
+        "left_cell_08",
+        "left_cell_09"
+      ],
+      "top_seen": true,
+      "why": "",
+      "width_m": 0.04005
+    },
+    {
+      "centre": [
+        -0.28934,
+        0.49924,
+        1.25966
+      ],
+      "extents": [
+        0.1611,
+        0.13961,
+        0.00764
+      ],
+      "graspable": false,
+      "mean_bgr": [
+        51.0,
+        229.0,
+        25.0
+      ],
+      "n_points": 12534,
+      "seen_by": [
+        "left_cell_02",
+        "left_cell_03",
+        "left_cell_04",
+        "left_cell_07",
+        "left_cell_08",
+        "left_cell_09"
+      ],
+      "top_seen": true,
+      "why": "140 mm across its narrowest axis and the jaws close on 85 mm",
+      "width_m": 0.13961
+    },
+    {
+      "centre": [
+        -0.40346,
+        0.44359,
+        1.25929
+      ],
+      "extents": [
+        0.04777,
+        0.02252,
+        0.01688
+      ],
+      "graspable": true,
+      "mean_bgr": [
+        51.0,
+        229.0,
+        25.0
+      ],
+      "n_points": 300,
+      "seen_by": [
+        "left_cell_09"
+      ],
+      "top_seen": true,
+      "why": "",
+      "width_m": 0.02252
+    },
+    {
+      "centre": [
+        -0.39965,
+        0.44256,
+        1.26905
+      ],
+      "extents": [
+        0.0289,
+        0.00828,
+        0.00297
+      ],
+      "graspable": true,
+      "mean_bgr": [
+        51.0,
+        229.0,
+        25.0
+      ],
+      "n_points": 26,
+      "seen_by": [
+        "left_cell_09"
+      ],
+      "top_seen": true,
+      "why": "",
+      "width_m": 0.00828
+    }
+  ],
+  "provenance": {
+    "discarded_views": [],
+    "n_views": 7,
+    "object_finder": "segment_lift: instances cut from each PICTURE by FastSAM and lifted through the depth",
+    "objects_per_view": [
+      8,
+      6,
+      5,
+      3,
+      5,
+      6,
+      8
+    ],
+    "points_per_view": [
+      11491,
+      11491,
+      11491,
+      11491,
+      16757,
+      16757,
+      16757
+    ],
+    "single_view_caveat": false,
+    "sources": [
+      "left_cell_02",
+      "left_cell_03",
+      "left_cell_04",
+      "left_cell_06",
+      "left_cell_07",
+      "left_cell_08",
+      "left_cell_09"
+    ],
+    "surface_z_m": "MEASURED from the fused cloud"
+  },
+  "surface": {
+    "inliers": 80798,
+    "normal": [
+      0.00356,
+      0.01511,
+      0.99988
+    ],
+    "tilt_deg": 0.89,
+    "z_m": 1.26161
+  },
+  "sweep": {
+    "arm": "left",
+    "cells": 12,
+    "cells_missed": [
+      {
+        "at": [
+          0.65,
+          0.18,
+          1.55
+        ],
+        "cell": 1,
+        "why": "no usable frame from this pose"
+      },
+      {
+        "at": [
+          0.93,
+          0.29,
+          1.55
+        ],
+        "cell": 5,
+        "why": "pose not reached"
+      },
+      {
+        "at": [
+          0.74333,
+          0.4,
+          1.55
+        ],
+        "cell": 10,
+        "why": "pose not reached"
+      },
+      {
+        "at": [
+          0.83667,
+          0.4,
+          1.55
+        ],
+        "cell": 11,
+        "why": "pose not reached"
+      },
+      {
+        "at": [
+          0.93,
+          0.4,
+          1.55
+        ],
+        "cell": 12,
+        "why": "pose not reached"
+      }
+    ],
+    "cols": 4,
+    "finder": "segment",
+    "guess_surface_z": 1.25,
+    "order": "serpentine",
+    "range_m": 0.35,
+    "rows": 3,
+    "step_m": 0.11,
+    "travel_m": 1.06,
+    "views_used": 7
+  }
+}

@@ -76,16 +76,41 @@ GRIP_OPEN_RAD = 0.0
 GRIP_CLOSED_RAD = 0.5176
 
 
+def _ago(seconds):
+    s = float(seconds)
+    if s < 90:
+        return "%.0f s" % s
+    if s < 5400:
+        return "%.0f min" % (s / 60.0)
+    if s < 172800:
+        return "%.1f hours" % (s / 3600.0)
+    return "%.1f days" % (s / 86400.0)
+
+
 class PickRefusal(Exception):
     """Named, with the stage it failed at. Never a silent fallback."""
 
 
 # ------------------------------------------------------------------ the map
 
+# How old a map may be before EXECUTING off it is refused.
+#
+# There is no upper bound on how wrong a map can be -- somebody moves a cube
+# and it is wrong immediately -- so this is not a safety guarantee. It is a
+# guard against the one failure that costs something: driving the arm at a
+# coordinate measured in a different session, from a file that looks exactly
+# as authoritative as a fresh one.
+#
+# PLANNING off an old map is harmless and is only reported. MOVING off one is
+# refused unless said otherwise.
+STALE_MAP_S = 30 * 60
+
+
 def load_map(path=MAP):
     """The map, plus its occupancy points if they were written beside it."""
     with open(path) as f:
         doc = json.load(f)
+    doc["_age_s"] = time.time() - os.path.getmtime(path)
     occ = None
     npy = os.path.splitext(path)[0] + "_occupancy.npy"
     if os.path.exists(npy):
@@ -261,6 +286,16 @@ def self_test(verbose=True):
             lambda: choose(dict(objects=[doc["objects"][2]])),
             "NONE of them is graspable")
 
+    # ---- the staleness guard. A map is a fact about the SCENE, and the
+    # scene moves; the guard exists so that driving the arm at coordinates
+    # measured in a previous session has to be asked for.
+    check("a map's age is reported in units a person reads",
+          (_ago(45), _ago(600), _ago(7200), _ago(200000))
+          == ("45 s", "10 min", "2.0 hours", "2.3 days"),
+          (_ago(45), _ago(600), _ago(7200), _ago(200000)))
+    check("the stale-map threshold is a real one, not disabled",
+          60 <= STALE_MAP_S <= 24 * 3600, STALE_MAP_S)
+
     # ---- the geometry
     try:
         p = poses_for(doc["objects"][0], "left")
@@ -381,15 +416,29 @@ def main():
     ap.add_argument("--to", nargs=2, type=float, default=None,
                     help="place it here (x y). Without it this is a pick.")
     ap.add_argument("--execute", action="store_true")
+    ap.add_argument("--accept-stale-map", action="store_true",
+                    help="move even though the map is old. Planning off an "
+                         "old map is always allowed and only reported; this "
+                         "is for driving the arm off one.")
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args()
     if a.self_test:
         return 0 if self_test() else 1
 
     doc = load_map(a.map)
+    age = doc["_age_s"]
     print("map: %s\n   surface z = %.4f m, %d object(s), finder: %s"
           % (a.map, doc["surface"]["z_m"], len(doc["objects"]),
              doc.get("provenance", {}).get("object_finder", "?")))
+    print("   measured %s ago" % _ago(age))
+    if a.execute and age > STALE_MAP_S and not a.accept_stale_map:
+        # THE MAP IS A FACT ABOUT THE SCENE AND THE SCENE MOVES.
+        print("\nREFUSING to move: this map was measured %s ago, and nothing "
+              "here can tell whether anything has been touched since. A map "
+              "from a previous session looks exactly as authoritative as a "
+              "fresh one.\n  re-measure:  calibrate_environment.py --arm both"
+              "\n  or override: --accept-stale-map" % _ago(age))
+        return 5
     if a.list:
         for i, o in enumerate(doc["objects"]):
             print("   %2d  %s  %5.0f mm  %s%s"
@@ -413,7 +462,7 @@ def main():
         # NO CAMERA NEEDED: the map was measured earlier and is on disk.
         if not node.wait_ready(a.arm, 90.0, need_camera=False):
             print("REFUSING after 90 s. Still missing: %s"
-                  % ", ".join(node.missing(a.arm)))
+                  % ", ".join(node.missing(a.arm, need_camera=False)))
             return 2
         run(node, a.arm, doc, obj, a.to, a.execute)
         return 0

@@ -176,17 +176,25 @@ class ProbeNode(Node):
                 return True
         return False
 
-    def missing(self, arm):
-        """Which of the inputs has not arrived. For a refusal that helps."""
+    def missing(self, arm, need_camera=True):
+        """Which of the inputs THE CALLER NEEDED has not arrived.
+
+        It listed the camera topics unconditionally, so a job that reads a
+        stored map and needs no camera at all -- `pick_from_map` -- refused
+        with "depth on /left_camera" at the top of the list. That sends
+        somebody to plug in a camera when the problem is that no stack is
+        running, which is the whole point of naming what is missing.
+        """
         out = []
         if not self.ik.service_is_ready():
             out.append("/compute_ik")
         if not all(n in self.js for n in self.names(arm)):
             out.append("/joint_states for the %s arm" % arm)
-        for k, d in (("depth", self.depth), ("camera_info", self.info),
-                     ("colour", self.color)):
-            if arm not in d:
-                out.append("%s on /%s_camera" % (k, arm))
+        if need_camera:
+            for k, d in (("depth", self.depth), ("camera_info", self.info),
+                         ("colour", self.color)):
+                if arm not in d:
+                    out.append("%s on /%s_camera" % (k, arm))
         return out
 
     # ------------------------------------------------------------- the voice

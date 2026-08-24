@@ -24,6 +24,37 @@ Three pieces that could have sensed instead existed and were never composed:
 * `work_surface.set_measured()` exists so the surface height can come from
   depth, and CLAUDE.md records that nothing calls it.
 
+## IS THIS A ONE-TIME THING?
+
+Two things are calibrated here and they have different lifetimes. Bundling
+them into one command hid that, so it is worth stating plainly.
+
+| | what it is a fact about | when to redo it |
+| --- | --- | --- |
+| `reachable_cells.json` | the **ROBOT**: which camera poses the arm can reach | **once**, and it re-probes itself |
+| `world_map.json` | the **SCENE**: the surface and what is standing on it | **whenever the scene changes** |
+
+**Reachability is one time.** It is keyed on every bound, layer, facing,
+elevation and step, so moving the mount, changing home, editing the URDF or
+altering any sweep setting invalidates it automatically. `--reprobe` forces a
+fresh probe. Nothing about the objects on the table affects it.
+
+**The map is not.** Somebody moves a cube and it is wrong immediately. Today
+that means the full sweep again — 13 minutes with the cache warm — because
+there is **no incremental re-map**: `build()` fuses every view from scratch
+every time. That is fine for "new cell, new table" and much too slow for "I
+just put a different object down".
+
+**The surface sits in between.** If the table has not moved, the plane is
+stable across object changes, so a cheap re-look at one region would be enough
+to update the objects. That is the obvious next piece and it is not built.
+
+Until it is, `pick_from_map` reports the map's age on every run and **REFUSES
+TO MOVE off a map older than 30 minutes** (`--accept-stale-map` overrides).
+Planning off an old map is harmless and only reported; driving the arm at
+coordinates measured in a previous session is the failure that costs
+something, and a stale file looks exactly as authoritative as a fresh one.
+
 ## WHAT RUNS NOW
 
 ```

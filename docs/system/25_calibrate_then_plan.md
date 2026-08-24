@@ -319,3 +319,80 @@ segmenter.
   metres. It could label objects the wrist cameras already measured, by
   projecting them into its frame; it cannot measure geometry. And no camera
   has ever been attached to this host regardless.
+
+---
+
+# WHAT THE CALIBRATION IS WORTH, MEASURED
+
+Two questions the operator asked: how accurate is the pick and place after
+calibration, and how much does shared-autonomy teleoperation improve.
+
+## PICK AND PLACE: 11.3 mm mean, 4 of 4 inside the gate
+
+`accuracy_table.py` reports 100% grasp and 0.000 mm for every mode. Both are
+sound and neither answers this, because the arm is scored against **the
+coordinate it was given**. Hand it a coordinate 50 mm off the cube and it hits
+that to 0.000 mm and the table still says 100%.
+
+`measure_pick_accuracy.py` scores against where the object **really is** and
+follows the whole chain — true centre → belief → grasp pose → IK → **FK to the
+finger pads**, walking the Robotiq mimic chain at the opening the grasp is
+made at.
+
+| | belief err | **pad miss** | inside the 30 mm gate |
+| --- | --- | --- | --- |
+| MEASURED (calibrated) | 11.3 mm mean | **11.3 mm mean, 14.3 worst** | **4 of 4** |
+| DECLARED | 0.0 mm | 0.0 mm | 4 of 4 |
+
+**DECLARED reading 0.0 is not a result about the declared pipeline.** In
+simulation the declared coordinate *is* the truth — the renderer builds the
+scene from the same file. On a real table it is wrong by however far the
+object differs from the file, which is unbounded.
+
+Pad miss equals belief error on every row, which is the expected result: the
+grasp is built as `centre − axis·pad` and FK on an exact IK solution puts the
+pads back at `centre`. It says the grasp construction adds nothing of its own.
+`--inject-pad-error-mm 15` moves DECLARED 0.0 → 15.0 and MEASURED 11.3 → 26.0,
+so it can see the class of defect that cost this project 13.47 mm once.
+
+**On "all modes":** `run_abc` builds the waypoints with no mode argument, so
+this planning figure is one number for all five. What differs per mode is
+execution, which the clips measure.
+
+## SHARED AUTONOMY: the confidently-WRONG rate goes to zero
+
+`IntentEstimator` is a Bayesian posterior over which object the operator is
+reaching for. Its inputs are the object positions — that is the entire
+connection to calibration.
+
+In simulation the declared coordinates *are* the truth, so a declared and a
+calibrated estimator get identical inputs. So the declared error is **swept**:
+the estimator is given positions displaced by D mm from where the objects
+really are, and the operator reaches for a real one. The calibrated arm
+carries its **measured** 11.3 mm, not a hoped-for zero. 400 trials per cell.
+
+| table is off by | DECLARED correct | DECLARED **WRONG** | CALIBRATED correct | CALIBRATED **WRONG** |
+| --- | --- | --- | --- | --- |
+| 0 mm | 71.5% | 0.0% | 74.2% | 0.0% |
+| 20 mm | 72.8% | 0.5% | 73.5% | 0.0% |
+| 40 mm | 57.0% | **17.5%** | 72.5% | **0.0%** |
+| 60 mm | 53.2% | **35.0%** | 77.2% | **0.0%** |
+| 80 mm | 53.5% | **39.8%** | 72.8% | **0.0%** |
+| 120 mm | 50.2% | **47.5%** | 76.2% | **0.0%** |
+
+**WRONG is the number that matters.** Ambiguous means assistance declines to
+help and the operator drives; wrong means assistance confidently pulls them
+toward the wrong cube. Uncalibrated, that rises to **47.5%** as the table
+drifts from the file — at 60 mm, one cube pitch, the file is pointing at the
+neighbour. Calibrated it is **0.0% at every displacement**, because the
+positions track the objects regardless of what the file says.
+
+At 0 mm the two are the same question and the 2.7 point difference is sampling
+noise at 400 trials. **Today's simulation cannot show this gain**, which is
+why the sweep exists.
+
+The ~25% ambiguous floor is geometry, not calibration: reaching for the inner
+right cube puts the outer one **directly behind it** along the approach, so the
+direction points at both. Measured per target with exact positions —
+20/20, 20/20, 1/20, 15/20. An object with another behind it is hard, and the
+estimator is right to stay unsure rather than guess.

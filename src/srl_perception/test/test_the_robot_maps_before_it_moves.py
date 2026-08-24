@@ -329,3 +329,63 @@ def test_travel_counts_the_height_it_actually_climbs():
     flat = sum(math.dist(a[:2], b[:2]) for a, b in zip(c, c[1:]))
     full = CS.travel_m(c)
     assert full > flat + 0.05, (full, flat)
+
+
+# --------------------- 6. the sweep plans from what the arm can reach
+
+def test_a_measured_reachable_set_removes_the_cells_outside_it():
+    """The swept box is a rectangle and the reachable set is not.
+
+    Without this, a large minority of planned cells sit outside the arm and
+    "coverage of planned" becomes a number about the shape of my rectangle
+    rather than about the robot.
+    """
+    full = CS.plan_volume(0.325, 0.750, 0.15, 0.65, 1.25, step_m=0.13)
+    assert not full["planned_from_measurement"]
+    assert full["cells_dropped_as_unreachable"] == 0
+
+    # Only two cells solved, at one facing and one layer.
+    reach = {"%+.1f|%d" % (f, k): ([[0.325, 0.15], [0.4667, 0.15]]
+                                   if (f, k) == (0.0, 0) else [])
+             for f in full["facings_deg"] for k in range(full["n_layers"])}
+    cut = CS.plan_volume(0.325, 0.750, 0.15, 0.65, 1.25, step_m=0.13,
+                         reachable=reach)
+    assert cut["planned_from_measurement"]
+    assert cut["total_cells"] == 2, cut["total_cells"]
+    assert cut["cells_dropped_as_unreachable"] == full["total_cells"] - 2
+
+
+def test_an_absent_measurement_plans_everything():
+    """THE CONTROL. A filter that dropped cells when it had no measurement
+    would silently shrink the sweep to nothing on a fresh machine."""
+    p = CS.plan_volume(0.325, 0.750, 0.15, 0.65, 1.25, step_m=0.13,
+                       reachable=None)
+    assert p["total_cells"] > 0
+    assert p["cells_dropped_as_unreachable"] == 0
+
+
+def test_a_facing_with_no_recorded_answer_is_still_probed():
+    """An entry MISSING from the cache means "not asked", not "unreachable".
+    Conflating them would let one bad run permanently blind a whole pass."""
+    p = CS.plan_volume(0.325, 0.750, 0.15, 0.65, 1.25, step_m=0.13,
+                       reachable={"+0.0|0": []})
+    per_pass = [len(q["cells"]) for q in p["passes"]]
+    assert sum(per_pass) > 0, per_pass
+
+
+def test_the_settings_key_changes_when_the_geometry_does():
+    """Reachability is a fact about the arm AT A GEOMETRY. A cache that did
+    not key on the bounds would skip cells that became reachable when the
+    volume moved."""
+    base = CS.settings_key(0.325, 0.75, 0.15, 0.65, 1.25, 0.13,
+                           (0.30, 0.42), (-25.0, 0.0, 25.0), 38.9)
+    for changed in (
+            CS.settings_key(0.300, 0.75, 0.15, 0.65, 1.25, 0.13,
+                            (0.30, 0.42), (-25.0, 0.0, 25.0), 38.9),
+            CS.settings_key(0.325, 0.75, 0.15, 0.65, 1.25, 0.11,
+                            (0.30, 0.42), (-25.0, 0.0, 25.0), 38.9),
+            CS.settings_key(0.325, 0.75, 0.15, 0.65, 1.25, 0.13,
+                            (0.30, 0.50), (-25.0, 0.0, 25.0), 38.9),
+            CS.settings_key(0.325, 0.75, 0.15, 0.65, 1.25, 0.13,
+                            (0.30, 0.42), (-25.0, 0.0, 25.0), 45.0)):
+        assert changed != base

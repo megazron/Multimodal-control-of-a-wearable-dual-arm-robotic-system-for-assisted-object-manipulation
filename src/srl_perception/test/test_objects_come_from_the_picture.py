@@ -53,7 +53,17 @@ def _cube(centre, size=0.04, n=1500, seed=2):
 
 
 def _plane_at(z):
-    return TS.Plane(np.array([0.0, 0.0, 1.0]), -z, 4000, 4000)
+    """A horizontal support plane at height `z`.
+
+    THE SIGN WAS WRONG HERE FOR THE WHOLE FILE. `Plane.height` is
+    `p . n - offset`, so a plane at z carries offset = +z; this helper passed
+    -z, which reported every object as ~2.5 m above the surface. Nothing
+    failed, because none of the tests using it were sensitive to the magnitude
+    -- they only ever asked whether things were above the plane, and with a
+    2.5 m answer they always were. A helper that is wrong in a direction no
+    test can feel is worth more attention than one that breaks.
+    """
+    return TS.Plane(np.array([0.0, 0.0, 1.0]), float(z), 4000, 4000)
 
 
 # ------------------------------------------------- the module's own arithmetic
@@ -319,3 +329,70 @@ def test_the_weak_ones_are_kept_and_named_not_deleted():
     assert m.objects == [], m.objects
     assert len(m.provenance["weak_detections"]) == 1
     assert "points" in m.provenance["weak_rule"]
+
+
+# ------------------------------- the plane, and where its height is ASKED FOR
+
+def _slab_with_visible_edge(top_z=0.90, thick=0.035, n_top=8000, n_edge=2500):
+    """A tabletop AND the front edge face beneath it, which is what the sweep
+    actually sees at 38.9 degrees of elevation."""
+    r = np.random.default_rng(7)
+    top = np.column_stack([r.uniform(0.25, 0.55, n_top),
+                           r.uniform(0.35, 0.60, n_top),
+                           np.full(n_top, top_z)])
+    edge = np.column_stack([r.uniform(0.25, 0.55, n_edge),
+                            np.full(n_edge, 0.35),
+                            r.uniform(top_z - thick, top_z, n_edge)])
+    return np.vstack([top, edge]), top_z
+
+
+def test_the_surface_height_is_asked_for_where_the_surface_IS():
+    """THE LIVE MAP REPORTED THE SURFACE 5.2 mm LOW AND THE PLANE WAS RIGHT.
+
+    `surface_z` returned `offset / n_z` -- the plane's z-intercept at
+    x = y = 0. The fit comes out slightly tilted, so its intercept is not its
+    height anywhere a table exists, and on this rig the origin is inside the
+    WEARER, half a metre from the nearest tabletop.
+
+    I had already written a plane-refinement to correct that "bias" before
+    checking whether it was one. It was not.
+    """
+    pts, top_z = _slab_with_visible_edge()
+    m = WM.build([WM.View(pts, "slab")])
+    assert abs(m.surface_z - top_z) < 0.003, (m.surface_z, top_z)
+
+    intercept = m.plane.offset / abs(m.plane.normal[2])
+    at_table = m.plane_z_at(0.40, 0.475)
+    assert abs(at_table - top_z) < 0.003, at_table
+    # THE CONTROL: the intercept really is the misleading number, so this test
+    # is about something. If the fit came out perfectly level the two would
+    # agree and the whole point would be untestable.
+    assert m.plane.tilt_deg > 0.05, m.plane.tilt_deg
+
+
+def test_the_plane_itself_sits_on_the_tabletop_all_along():
+    """What was never wrong. The points of the top are ON the plane."""
+    pts, top_z = _slab_with_visible_edge()
+    m = WM.build([WM.View(pts, "slab")])
+    top = pts[np.abs(pts[:, 2] - top_z) < 1e-9]
+    assert abs(float(np.median(m.plane.height(top)))) < 0.002
+
+
+def test_a_tilted_plane_would_promote_the_tabletop_to_an_object():
+    """WHY THE TILT MATTERS, which is a different thing from the reporting.
+
+    A support plane tipped to catch the slab's edge face sits BELOW the top
+    over part of the table. The height gate is 4 mm, so the table clears its
+    own surface there -- and the live map duly reported two slabs of tabletop,
+    231 x 392 mm and 79 x 314 mm, as objects.
+    """
+    pts, top_z = _slab_with_visible_edge()
+    loose = TS.fit_support_plane(pts, tol_m=0.008)
+    tight = TS.fit_support_plane(pts, tol_m=0.004)
+    assert tight.tilt_deg < loose.tilt_deg, (tight.tilt_deg, loose.tilt_deg)
+    top = pts[np.abs(pts[:, 2] - top_z) < 1e-9]
+    # the loose fit lifts part of the tabletop over the gate; the tight one
+    # lifts far less of it
+    over_loose = float((loose.height(top) > SL.MIN_HEIGHT_M).mean())
+    over_tight = float((tight.height(top) > SL.MIN_HEIGHT_M).mean())
+    assert over_tight <= over_loose, (over_tight, over_loose)

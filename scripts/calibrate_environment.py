@@ -75,6 +75,10 @@ from srl_perception import calibration_sweep as CSW          # noqa: E402
 from srl_perception import world_model as WM                 # noqa: E402
 
 OUT = os.path.join(ROOT, "recordings/baselines/world_map.json")
+# WHAT THE ARM LEARNED IT CAN REACH, written by the sweep and read by the
+# next one. Not a separate 35-minute measurement: the sweep already solves IK
+# at every cell and used to throw the answer away.
+REACH = os.path.join(ROOT, "recordings/baselines/reachable_cells.json")
 
 # The volume to sweep, per arm, in the ROBOT frame. NOT a task's coordinates:
 # the outer bound is the arm's own measured reach and the inner bound is the
@@ -229,9 +233,50 @@ class Calibrator:
                        % (stamp, src, finder), objects=objs)
 
 
+def load_reach(arm, key, path=REACH):
+    """The cached reachable cells for THIS arm at THESE settings, or None.
+
+    Refuses a cache whose settings key differs, because reachability is a fact
+    about the arm at a geometry and every bound, layer, facing and elevation
+    changes it. A stale cache would silently skip cells that became reachable
+    when the volume moved.
+    """
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path) as f:
+            doc = json.load(f)
+    except Exception:                                          # noqa: BLE001
+        return None
+    e = doc.get(arm)
+    if not e or e.get("settings_key") != key:
+        return None
+    return e.get("cells")
+
+
+def save_reach(arm, key, cells, path=REACH):
+    """Record what solved, per facing and layer. Merged, never clobbered."""
+    doc = {}
+    if os.path.exists(path):
+        try:
+            with open(path) as f:
+                doc = json.load(f)
+        except Exception:                                      # noqa: BLE001
+            doc = {}
+    doc[arm] = dict(settings_key=key, cells=cells,
+                    note=("written by the sweep itself: these are the cells "
+                          "whose IK solved. Delete this file, or change any "
+                          "sweep setting, and every cell is probed again."))
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(doc, f, indent=2, sort_keys=True)
+    return path
+
+
 def sweep_arm(node, arm, bounds, surface_z, step_m, order, layers_m,
               facings_deg, elev_deg, max_cells=None, dump_frames=None,
-              finder="segment", require_still=True, progress_cloud=None):
+              finder="segment", require_still=True, progress_cloud=None,
+              use_cache=True):
     """One arm, every pass, every layer. Returns (views, report).
 
     THE WRIST HOLDS ONE ATTITUDE FOR A WHOLE PASS AND ONLY TRANSLATES.
@@ -248,10 +293,19 @@ def sweep_arm(node, arm, bounds, surface_z, step_m, order, layers_m,
     obvious to one looking along it, so "map all the sides" is passes, and
     "all the lengths" is layers.
     """
+    key = CSW.settings_key(bounds["x"][0], bounds["x"][1],
+                           bounds["y"][0], bounds["y"][1], surface_z, step_m,
+                           layers_m, facings_deg, elev_deg)
+    cached = load_reach(arm, key) if use_cache else None
     plan = CSW.plan_volume(bounds["x"][0], bounds["x"][1],
                            bounds["y"][0], bounds["y"][1], surface_z,
                            step_m=step_m, layers_m=layers_m,
-                           facings_deg=facings_deg, order=order)
+                           facings_deg=facings_deg, order=order,
+                           reachable=cached)
+    if cached is not None:
+        print("   planning from the MEASURED reachable set: %d cell(s) "
+              "dropped as outside this arm's envelope"
+              % plan["cells_dropped_as_unreachable"], flush=True)
     _say(node, "CALIBRATING", arm=arm,
          detail="%d cells in %d pass(es) of %d layer(s), %s order, %.2f m of "
                 "travel -- the wrist holds one attitude per pass"
@@ -275,6 +329,7 @@ def sweep_arm(node, arm, bounds, surface_z, step_m, order, layers_m,
     views, missed, still_fail = [], [], 0
     seen = 0
     unreachable = 0
+    solved_cells = {}
     for pi, ps in enumerate(plan["passes"], 1):
         facing = ps["facing_deg"]
         # ONE ORIENTATION, COMPUTED ONCE, FOR EVERY CELL OF THIS PASS.
@@ -297,6 +352,9 @@ def sweep_arm(node, arm, bounds, surface_z, step_m, order, layers_m,
                    round(cy - float(axis[1]) * d, 5),
                    round(surface_z + h, 5)]
             j = node.solve(arm, cam, quat, tries=2)
+            if j is not None:
+                solved_cells.setdefault("%+.1f|%d" % (facing, layer), []).append(
+                    [round(cx, 4), round(cy, 4)])
             if j is None:
                 # OUTSIDE THE ENVELOPE. Not a scan failure -- there is no
                 # wrist pose at this attitude that puts the camera here.
@@ -344,9 +402,20 @@ def sweep_arm(node, arm, bounds, surface_z, step_m, order, layers_m,
                 np.savez(os.path.join(dump_frames, "%s.npz" % v.source),
                          **cal.last_frame)
 
+    # WRITE WHAT WAS LEARNED, but only from a run that probed everything.
+    # A run planned FROM the cache has not tested the cells the cache excluded,
+    # so saving its answer would shrink the set a little further every time --
+    # a cache that eats itself.
+    if cached is None and not max_cells:
+        save_reach(arm, key, solved_cells)
+        print("   recorded %d reachable cell(s) for next time -> %s"
+              % (sum(len(v) for v in solved_cells.values()), REACH), flush=True)
+
     reachable = plan["total_cells"] - unreachable
     report = dict(arm=arm, order=plan["order"], passes=len(plan["passes"]),
                   cells_reachable=reachable, cells_outside_envelope=unreachable,
+                  planned_from_measurement=plan["planned_from_measurement"],
+                  cells_dropped_as_unreachable=plan["cells_dropped_as_unreachable"],
                   coverage_of_reachable=round(len(views) / max(1, reachable), 4),
                   facings_deg=plan["facings_deg"], layers_m=plan["layers_m"],
                   cells=plan["total_cells"], rows=plan["n_rows"],
@@ -361,7 +430,7 @@ def sweep_arm(node, arm, bounds, surface_z, step_m, order, layers_m,
 
 def run(node, arms, bounds_by_arm, surface_z, step_m, order, layers_m,
         facings_deg, elev_deg, max_cells=None, dump_frames=None,
-        finder="segment", require_still=True):
+        finder="segment", require_still=True, use_cache=True):
     """EVERY ARM INTO ONE MAP.
 
     The map is the robot's, not an arm's. Sweeping one arm and calling the
@@ -381,7 +450,7 @@ def run(node, arms, bounds_by_arm, surface_z, step_m, order, layers_m,
                                step_m, order, layers_m, facings_deg, elev_deg,
                                max_cells=max_cells, dump_frames=dump_frames,
                                finder=finder, require_still=require_still,
-                               progress_cloud=progress)
+                               progress_cloud=progress, use_cache=use_cache)
         all_views.extend(views)
         reports.append(rep)
         if rep["cells_missed"]:
@@ -580,6 +649,10 @@ def main():
                     help="one fixed wrist yaw per pass. The wrist does NOT "
                          "re-aim inside a pass -- it translates, like a "
                          "printer's probe.")
+    ap.add_argument("--reprobe", action="store_true",
+                    help="ignore the recorded reachable set and solve IK at "
+                         "every cell again. Use after anything that changes "
+                         "the arm's geometry.")
     ap.add_argument("--allow-moving-capture", action="store_true",
                     help="capture without checking the arm is stationary. "
                          "Refused by default: a frame taken mid-motion is a "
@@ -626,7 +699,8 @@ def main():
                         a.layers_m, a.facings_deg, a.elev_deg,
                         max_cells=a.max_cells, dump_frames=a.dump_frames,
                         finder=a.finder,
-                        require_still=not a.allow_moving_capture)
+                        require_still=not a.allow_moving_capture,
+                        use_cache=not a.reprobe)
         for ln in m.describe():
             print("   %s" % ln, flush=True)
         # WHAT SURFACES ARE ACTUALLY THERE, not just the one that won the fit.

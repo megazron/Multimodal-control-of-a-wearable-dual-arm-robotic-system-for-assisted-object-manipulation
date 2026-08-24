@@ -139,6 +139,71 @@ The pick planned from that map solved all six waypoints and ran end to end,
 with **561 occupied voxels handed to the planner** — the first time
 `world_from_map` has ever had a caller.
 
+## THE SURFACE WAS NEVER 5 mm LOW. I WAS ASKING ABOUT THE WRONG PLACE.
+
+The map reported the support surface at 1.2448 m against a table top of
+1.2500 — **5.2 mm low** — and 78% of all points below the true top. I wrote a
+plane-refinement to correct that bias before checking whether it was one.
+
+It was not. `Map.surface_z` returned `offset / n_z`: the plane's **z-intercept
+at x = y = 0**. A fitted support plane comes out slightly tilted, so its
+intercept is not its height anywhere a table exists — and on this rig the
+origin is *inside the wearer*, half a metre from the nearest tabletop.
+
+Measured on constructed geometry that reproduces the live case (a top at
+0.9000 with its 35 mm front edge face in view, which is what the sweep sees at
+38.9°):
+
+| tolerance | tilt | z at origin | z at the table | top median height |
+| --- | --- | --- | --- | --- |
+| 0.008 | 0.66° | 0.8934 | **0.8994** | +0.0004 |
+| 0.004 | 0.24° | 0.8977 | **0.8998** | +0.0002 |
+
+**The plane was right to under a millimetre the whole time.** `surface_z` now
+evaluates it at the centroid of the points lying on it, and `plane_z_at(x, y)`
+exists because a plane is not a number. Live: **1.2502 m against 1.2500 —
++0.2 mm.**
+
+The refinement I had written was deleted. A fix for a bias that does not exist
+later reads as evidence the bias existed.
+
+### The tilt, which is a different thing and did matter
+
+A support plane tipped to catch the slab's edge face sits *below* the tabletop
+over part of the table. The height gate is 4 mm, so the table clears its own
+surface there — and the map duly reported two slabs of tabletop, 231 × 392 mm
+and 79 × 314 mm, as objects. The plane tolerance is 4 mm now (0.66° → 0.24°),
+and those are gone.
+
+### The map, against the renderer's own geometry
+
+| measured | truth |
+| --- | --- |
+| surface 1.2502, tilt 0.09° | 1.2500 |
+| pad (0.290, 0.500) 141 × 162 × 9 | (0.290, 0.500) 140 × 160 × 10 |
+| pad (−0.290, 0.500) 141 × 163 × 10 | (−0.290, 0.500) 140 × 160 × 10 |
+| cube (0.420, 0.450) 41 × 42 × 39 | (0.420, 0.450) 40³ |
+| cube (0.480, 0.449) 41 × 42 × 39 | (0.480, 0.450) 40³ |
+| cube (−0.480, 0.450) 41 × 42 × 39 | (−0.480, 0.450) 40³ |
+| cube (−0.420, 0.450) 41 × 42 × 40 | (−0.420, 0.450) 40³ |
+
+Six objects, and the scene has six. Every one exact in x and y to a
+millimetre, every dimension within 3 mm.
+
+## THE SWEEP REMEMBERS WHAT IT CAN REACH
+
+The sweep already solved IK at every cell and threw the answer away. It writes
+it now — `recordings/baselines/reachable_cells.json`, keyed on every bound,
+layer, facing, elevation and step, because reachability is a fact about the
+arm AT A GEOMETRY and a cache that did not key on those would silently skip
+cells that became reachable when the volume moved.
+
+Second run: **101 of 210 cells dropped as outside the envelope before
+anything moved**, 13m15s against 20+, and the same map. A run planned *from*
+the cache does not re-save it — it has not tested the cells the cache
+excluded, and saving its answer would shrink the set a little further every
+time. `--reprobe` forces a full probe.
+
 ## THE SWEPT VOLUME IS A MEASUREMENT TOO (2026-08-23, later still)
 
 The box swept up to this point — x 0.30–0.58, y 0.30–0.52 — was **written
@@ -212,12 +277,10 @@ segmenter.
   wrong ones, and `pick_from_map` refuses to choose an object for you.
 * **Nothing is wired into the modes or the clip sweep yet.** The GUI panel,
   the two scripts and the recorder are the whole surface.
-* **The swept box is a rectangle and the reachable set is not**, so a large
-  minority of planned cells fall outside it. That is now reported as what it
-  is rather than as a coverage failure, and the sweep costs almost nothing for
-  them — IK is solved before anything moves. Planning from the measured
-  reachable SET rather than its bounding box would close the gap, and
-  `measure_reachable_volume` stores only the boxes, not the cell sets.
+* **The reachability cache is per-settings and IK is stochastic.** TRAC-IK
+  restarts randomly, so a cell that solved on the probing run may not solve on
+  the next — 35 of 109 planned cells on the cached run. The map came out the
+  same; the number is reported rather than hidden.
 * **THE SCENE CAMERA CANNOT CONTRIBUTE TO THE MAP AT ALL**, and this is not a
   wiring gap. `scene_camera_node` publishes `image_raw` and `camera_info` and
   **no depth** — it is a monocular colour camera. A single colour image gives

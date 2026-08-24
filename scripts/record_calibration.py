@@ -170,8 +170,13 @@ def main():
     print("### calibrating -- the arm sweeps the workspace", flush=True)
     cap = grab(os.path.join(out, "calibrate.mp4"))
     p = subprocess.Popen(
+        # NO --step-m HERE. It said 0.11 while `calibrate_environment`
+        # defaults to 0.13, so the recorder swept at a density the calibration
+        # stage does not use -- and, once reachability was cached, the cache
+        # key correctly missed and every recorded run re-probed the whole
+        # volume from scratch. One source for the sweep density.
         [py, "-u", os.path.join(HERE, "calibrate_environment.py"),
-         "--arm", a.arm, "--step-m", "0.11",
+         "--arm", a.arm,
          "--out", os.path.join(out, "world_map.json")],
         cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     log = []

@@ -179,15 +179,52 @@ class Map:
         self.points = points
         self.provenance = provenance
 
+    def plane_z_at(self, x, y):
+        """The support surface's height AT (x, y). A plane is not a number."""
+        n = self.plane.normal
+        return float((self.plane.offset - x * n[0] - y * n[1])
+                     / max(abs(n[2]), 1e-9))
+
     @property
     def surface_z(self):
         """Height of the support surface in the robot frame, MEASURED.
 
-        This is what `work_surface.set_measured()` was written to receive and
-        has never been given.
+        EVALUATED WHERE THE SURFACE IS, WHICH IS NOT THE ORIGIN.
+
+        This returned `offset / n_z` -- the plane's z-intercept at x = y = 0.
+        The support plane is fitted with a tolerance and comes out slightly
+        tilted, so its intercept is not its height anywhere the table exists;
+        on this rig x = y = 0 is inside the WEARER, half a metre from the
+        nearest tabletop.
+
+        MEASURED, on constructed geometry that reproduces the live case -- a
+        tabletop at 0.9000 with its 35 mm front edge face in view, which is
+        what the sweep sees at 38.9 degrees:
+
+            tolerance   tilt    z at origin   z at the table   top median
+            0.008      0.66 deg    0.8934        0.8994        +0.0004
+            0.004      0.24 deg    0.8977        0.8998        +0.0002
+
+        The plane was right to under a millimetre the whole time. The reported
+        number was 6.6 mm low because it was asked about a place with no table
+        in it. The live map's "-5.2 mm surface error" was this, and I had
+        already written a plane-refinement to correct a bias that did not
+        exist -- which is the standing rule exactly: a surprising measurement
+        is evidence about the INSTRUMENT until the instrument is cleared.
+
+        `work_surface.set_measured()` wants the height of the work surface, so
+        that is what this gives: the plane evaluated at the centroid of the
+        points lying on it.
         """
-        return round(float(self.plane.offset / max(abs(self.plane.normal[2]),
-                                                   1e-9)), 5)
+        pts = self.points
+        if len(pts):
+            h = self.plane.height(pts)
+            near = pts[np.abs(h) <= 0.01]
+            if len(near) >= 50:
+                c = near.mean(axis=0)
+                return round(self.plane_z_at(float(c[0]), float(c[1])), 5)
+        return round(float(self.plane.offset
+                           / max(abs(self.plane.normal[2]), 1e-9)), 5)
 
     def graspable(self):
         return [o for o in self.objects if o.graspable]
@@ -601,6 +638,16 @@ def build(views, up=(0.0, 0.0, 1.0), **kw):
     # WHICH VIEW EACH POINT CAME FROM, kept so an object can say what saw it.
     owner = np.concatenate([np.full(v.n, i) for i, v in enumerate(usable)])
     kw.setdefault("cluster_m", CLUSTER_M)
+    # A TIGHTER PLANE TOLERANCE, because the tilt is what does the damage.
+    #
+    # The table is a 35 mm slab and its front edge face is in view at the
+    # sweep's elevation. At the shipped 8 mm tolerance the fit tips 0.66 deg
+    # to catch the upper strip of that edge; at 4 mm it tips 0.24. A tilted
+    # support plane sits BELOW the tabletop over part of the table, and the
+    # height gate is 4 mm -- so the table clears its own surface there and the
+    # map reports slabs of tabletop as objects. Two of them, 231 x 392 mm and
+    # 79 x 314 mm, in the run that prompted this.
+    kw.setdefault("tol_m", 0.004)
     try:
         scene = TS.analyse(cloud, up=up, **kw)
     except TS.SceneRefusal as e:

@@ -219,9 +219,25 @@ def plan(x0, x1, y0, y1, surface_z, step_m=DEFAULT_STEP_M,
                             surface_z=surface_z))
 
 
+def settings_key(x0, x1, y0, y1, surface_z, step_m, layers_m, facings_deg,
+                 elev_deg):
+    """What a cached reachability answer is only valid FOR.
+
+    Reachability is a fact about the arm at a GEOMETRY, and every one of these
+    changes it. A cache that did not key on them would quietly skip cells that
+    became reachable when the volume moved -- the "results depend on run
+    order" row of the instrument table, with a file standing in for the order.
+    """
+    return "|".join(str(v) for v in (
+        round(x0, 4), round(x1, 4), round(y0, 4), round(y1, 4),
+        round(surface_z, 4), round(step_m, 4),
+        [round(float(h), 4) for h in layers_m],
+        [round(float(f), 4) for f in facings_deg], round(float(elev_deg), 4)))
+
+
 def plan_volume(x0, x1, y0, y1, surface_z, step_m=DEFAULT_STEP_M,
                 layers_m=DEFAULT_LAYERS_M, facings_deg=DEFAULT_FACINGS_DEG,
-                order="serpentine"):
+                order="serpentine", reachable=None):
     """THE SWEEP AS A VOLUME, IN PASSES OF ONE FIXED WRIST ORIENTATION EACH.
 
     THIS IS THE PRINTER-PROBE MODEL AND IT IS THE WHOLE POINT.
@@ -248,14 +264,37 @@ def plan_volume(x0, x1, y0, y1, surface_z, step_m=DEFAULT_STEP_M,
     xs, ys = grid(x0, x1, y0, y1, step_m)
     zs = [round(surface_z + float(h), 5) for h in layers_m]
     passes = []
+    dropped = 0
     for f in facings_deg:
         cells = layered(xs, ys, zs, order=order)
+        if reachable is not None:
+            # PLAN ONLY WHAT THE ARM CAN REACH.
+            #
+            # The swept box is a rectangle and the reachable set is not, so a
+            # large minority of cells inside the box are outside the arm. They
+            # cost little -- IK is solved before anything moves -- but they
+            # make "coverage of planned" a number about the shape of my
+            # rectangle rather than about the robot, and they put the arm
+            # through a pointless IK search at every one.
+            #
+            # `reachable` maps "facing|layer_index" to the (x, y) cells that
+            # solved last time at exactly these settings. Absent, every cell
+            # is planned and reachability is discovered as before.
+            keep = []
+            for c in cells:
+                key = "%+.1f|%d" % (float(f), c[5])
+                ok = reachable.get(key)
+                if ok is None or [round(c[0], 4), round(c[1], 4)] in ok:
+                    keep.append(c)
+            dropped += len(cells) - len(keep)
+            cells = keep
         passes.append(dict(facing_deg=float(f), cells=cells,
                            travel_m=round(travel_m(cells), 4)))
     return dict(order=order, n_cols=len(xs), n_rows=len(ys),
                 n_layers=len(zs), layers_m=[float(h) for h in layers_m],
                 facings_deg=[float(f) for f in facings_deg],
-                passes=passes,
+                passes=passes, planned_from_measurement=reachable is not None,
+                cells_dropped_as_unreachable=dropped,
                 cells_per_pass=len(passes[0]["cells"]) if passes else 0,
                 total_cells=sum(len(p["cells"]) for p in passes),
                 travel_m=round(sum(p["travel_m"] for p in passes), 4),

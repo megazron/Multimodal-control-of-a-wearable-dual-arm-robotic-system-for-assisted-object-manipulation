@@ -72,6 +72,14 @@ MIN_POINTS_PER_VIEW = 60
 # graspability wherever it is asked.
 JAW_M = 0.085
 
+# Resolution at which a view's FOOTPRINT on the work surface is recorded.
+# Coarse on purpose: this answers "which viewpoints see this patch of table",
+# not "where is the object", and a fine grid would make the cover problem
+# large without making the answer better.
+FOOTPRINT_M = 0.05
+# How far above and below the plane counts as the working band a view covers.
+FOOTPRINT_BAND_M = (-0.01, 0.25)
+
 # Two object centres closer than this are the SAME DETECTION seen twice, not
 # two objects. This is a dedup of near-coincident clusters across views and
 # nothing else.
@@ -107,7 +115,8 @@ class MapRefusal(Exception):
 class View:
     """One look: points in the ROBOT frame, and where they came from."""
 
-    def __init__(self, points, source, pose=None, note="", objects=None):
+    def __init__(self, points, source, pose=None, note="", objects=None,
+                 viewpoint=None):
         self.points = np.asarray(points, float).reshape(-1, 3)
         self.source = str(source)
         self.pose = None if pose is None else [float(v) for v in pose]
@@ -128,6 +137,13 @@ class View:
         # mixing two finders, having been handed 8 segmented views and 1
         # supposedly unsegmented one. An empty surface is an ANSWER.
         self.objects = None if objects is None else list(objects)
+        # WHERE THIS VIEW WAS TAKEN FROM, well enough to go back.
+        #
+        # A full sweep is minutes of arm motion, and most of it is spent
+        # covering surface that has not changed. Recording the viewpoint makes
+        # a view REPEATABLE, which is what turns "sweep everything again" into
+        # "go back to the four poses that see this corner".
+        self.viewpoint = dict(viewpoint) if viewpoint else None
 
     @property
     def n(self):
@@ -333,6 +349,69 @@ def _merge(objs):
         else:
             out.append(o)
     return out
+
+
+def footprint(points, plane, cell_m=FOOTPRINT_M, band=FOOTPRINT_BAND_M):
+    """Which patches of the work surface a view actually saw.
+
+    The set of (i, j) cells, at `cell_m`, containing points inside the working
+    band above the plane. This is a view's COVERAGE -- what re-measuring from
+    that viewpoint would refresh -- and it is what makes it possible to ask
+    for the few viewpoints that between them see the whole table.
+    """
+    pts = np.asarray(points, float).reshape(-1, 3)
+    if not len(pts):
+        return set()
+    h = plane.height(pts)
+    sel = pts[(h >= band[0]) & (h <= band[1])]
+    if not len(sel):
+        return set()
+    ij = np.floor(sel[:, :2] / cell_m).astype(np.int64)
+    return {(int(a), int(b)) for a, b in np.unique(ij, axis=0)}
+
+
+def observe_set(views, plane, cover_frac=0.98, cell_m=FOOTPRINT_M):
+    """The FEWEST viewpoints that between them see the surface the sweep saw.
+
+    WHY. A full sweep is 116 views and twenty-eight minutes, and almost all of
+    it re-measures table that has not moved. But the table is the thing that
+    does not move -- what changes is the objects on it, and a handful of well
+    chosen viewpoints already see every part of the surface those objects can
+    be on. Finding that handful turns "sweep the volume again" into "look from
+    six places".
+
+    Greedy set cover: repeatedly take the viewpoint adding the most
+    not-yet-covered surface, until `cover_frac` of the swept area is covered.
+    Greedy is not optimal and is within a log factor, which is not the
+    interesting property here -- the interesting one is that the answer is
+    MEASURED from views the arm actually reached, so every viewpoint in it is
+    known to be reachable and known to return points.
+    """
+    fps = []
+    for v in views:
+        if v.viewpoint is None:
+            continue
+        fp = footprint(v.points, plane, cell_m=cell_m)
+        if fp:
+            fps.append((v.source, v.viewpoint, fp))
+    if not fps:
+        return [], 0.0
+    total = set()
+    for _s, _vp, fp in fps:
+        total |= fp
+    want = int(math.ceil(cover_frac * len(total)))
+    covered, chosen = set(), []
+    remaining = list(fps)
+    while remaining and len(covered) < want:
+        remaining.sort(key=lambda t: -len(t[2] - covered))
+        src, vp, fp = remaining.pop(0)
+        gain = fp - covered
+        if not gain:
+            break
+        covered |= gain
+        chosen.append(dict(source=src, viewpoint=vp, cells=len(fp),
+                           new_cells=len(gain)))
+    return chosen, (len(covered) / max(1, len(total)))
 
 
 def _overlaps(lo_a, hi_a, lo_b, hi_b, pad_m=MERGE_M, frac=0.5):
@@ -664,6 +743,9 @@ def build(views, up=(0.0, 0.0, 1.0), **kw):
     segmented = [v for v in usable if v.objects is not None]
     if segmented and len(segmented) == len(usable):
         objs, weak = _split_weak(_fuse_segments(usable, plane))
+        # THE FEW VIEWPOINTS THAT SEE THE WHOLE SURFACE, learned from the
+        # sweep that just ran. `relook` uses these instead of sweeping.
+        obs, obs_cover = observe_set(usable, plane)
         prov_finder = "segment_lift: instances cut from each PICTURE by " \
                       "FastSAM and lifted through the depth"
         return Map(plane, objs, cloud,
@@ -671,6 +753,13 @@ def build(views, up=(0.0, 0.0, 1.0), **kw):
                         sources=[v.source for v in usable],
                         points_per_view=[v.n for v in usable],
                         objects_per_view=[len(v.objects) for v in usable],
+                        observe_set=obs,
+                        observe_set_cover=round(obs_cover, 4),
+                        observe_set_note=(
+                            "the fewest viewpoints covering %.0f%% of the "
+                            "surface this sweep saw. Every one was reached "
+                            "and returned points, so it is not a prediction."
+                            % (obs_cover * 100)),
                         weak_detections=[o.as_dict() for o in weak],
                         weak_rule=("under %d points or seen by fewer than %d "
                                    "views. Kept, not deleted -- a scene where "

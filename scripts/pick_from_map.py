@@ -181,12 +181,45 @@ def choose(doc, index=None, nearest=None, colour=None, graspable_only=True):
 
 # ------------------------------------------------------- the poses, in metres
 
+# Approach elevations tried, steepest first. +90 is straight DOWN onto the
+# object; the shipped anchor is about -31, which reaches in from BELOW.
+#
+# MEASURED on the mount that exists, at every object the calibration found
+# (`scripts/measure_grasp_approach_angles.py`):
+#
+#   +90 deg   0 of 5 yaws solve   -- straight down is still unreachable
+#   +70 deg   1 of 5              -- reachable, both arms, every object
+#   +60 deg   2 of 5
+#   ...
+#   -31 deg   2 of 5              -- the anchor, from below
+#
+# CLAUDE.md records "top-down on a surface: 0 of 840 cells". That was measured
+# on the OLD MOUNT, before the mounts moved 150 mm outboard and 15 degrees of
+# yaw, and it is still right about STRAIGHT DOWN. It is wrong about steeply
+# from above, which nobody had asked.
+APPROACH_ELEVATIONS_DEG = (85, 80, 75, 70, 65, 60, 50, 40, 30, 15, 0, -30.76)
+
+
+def axis_at(elev_deg, yaw_deg, arm):
+    """Unit approach direction. +90 points straight down at the object."""
+    el = math.radians(float(elev_deg))
+    sx = -1.0 if arm == "left" else 1.0
+    h = np.array([sx * math.cos(el), 0.0, -math.sin(el)])
+    th = math.radians(float(yaw_deg))
+    c, s = math.cos(th), math.sin(th)
+    R = np.array([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]])
+    v = R @ h
+    n = float(np.linalg.norm(v))
+    return v / n if n > 1e-9 else np.array([0.0, 0.0, -1.0])
+
+
 def approach_axis(arm):
-    """The direction the hand travels as it closes. The rig's own anchor.
+    """The rig's shipped anchor direction. Kept for callers that want it.
 
     NOT recomputed from anything. `master_calibration.WORKSPACE_ORIENT` is a
     stored constant and CLAUDE.md's hard constraint 1 says re-deriving it
-    costs T2 its right arm.
+    costs T2 its right arm. This is the -31 degree, from-BELOW approach, which
+    is why a grasp built on it looks like the hand coming up out of the table.
     """
     from srl_teleop import master_calibration as MC
     q = np.asarray(MC.WORKSPACE_ORIENT[arm], float)
@@ -197,7 +230,7 @@ def approach_axis(arm):
 
 
 def poses_for(obj, arm, place_xy=None, surface_z=None, standoff_m=STANDOFF_M,
-              lift_m=LIFT_M):
+              lift_m=LIFT_M, axis=None):
     """The waypoints of one pick and place, in the robot frame.
 
     THE PAD MIDPOINT IS A CURVE, NOT A CONSTANT, and it is read at the width
@@ -214,7 +247,7 @@ def poses_for(obj, arm, place_xy=None, surface_z=None, standoff_m=STANDOFF_M,
     # tool axis, so its z component IS the wrist-to-pad distance. Treating the
     # returned tuple as a scalar is what the self-test caught.
     pad = float(GF.pad_mid_ee_for(width_mm, arm)[2])
-    ax = approach_axis(arm)
+    ax = approach_axis(arm) if axis is None else np.asarray(axis, float)
     # The WRIST goes where the pads have to be: back down the tool axis by the
     # measured wrist-to-pad distance for THIS opening.
     grasp = centre - ax * pad
@@ -296,6 +329,33 @@ def self_test(verbose=True):
     check("the stale-map threshold is a real one, not disabled",
           60 <= STALE_MAP_S <= 24 * 3600, STALE_MAP_S)
 
+    # ---- the approach, which is now searched rather than assumed
+    check("straight down points the tool axis at the floor",
+          abs(axis_at(90, 0, "left")[2] + 1.0) < 1e-6, axis_at(90, 0, "left"))
+    check("the shipped anchor elevation points UPWARD -- in from below",
+          axis_at(-30.76, 0, "left")[2] > 0.4, axis_at(-30.76, 0, "left"))
+    check("the elevations are searched STEEPEST FIRST",
+          list(APPROACH_ELEVATIONS_DEG) == sorted(APPROACH_ELEVATIONS_DEG,
+                                                  reverse=True),
+          APPROACH_ELEVATIONS_DEG)
+    check("+70 deg is in the list, which is where the arm actually solves",
+          70 in APPROACH_ELEVATIONS_DEG, APPROACH_ELEVATIONS_DEG)
+    a70 = axis_at(70, 0, "left")
+    check("a +70 approach descends steeply", a70[2] < -0.9, a70)
+    # THE CONTROL: a search that always returned the same axis would pass
+    # every check above and grasp from below anyway.
+    check("different elevations really give different directions",
+          float(np.linalg.norm(axis_at(70, 0, "left")
+                               - axis_at(0, 0, "left"))) > 0.5)
+    g_top = poses_for(doc["objects"][0], "left", axis=axis_at(70, 0, "left"))
+    g_anc = poses_for(doc["objects"][0], "left")
+    check("grasping from above puts the WRIST ABOVE the object; the anchor "
+          "puts it below",
+          dict(g_top)["grasp"][2] > doc["objects"][0]["centre"][2]
+          > dict(g_anc)["grasp"][2],
+          (dict(g_top)["grasp"][2], doc["objects"][0]["centre"][2],
+           dict(g_anc)["grasp"][2]))
+
     # ---- the geometry
     try:
         p = poses_for(doc["objects"][0], "left")
@@ -351,11 +411,86 @@ def run(node, arm, doc, obj, place_xy, execute, plan_joints=True):
         node.publish_map_markers(doc)
         node.spin(0.2)
     surface_z = doc.get("surface", {}).get("z_m")
-    steps = poses_for(obj, arm, place_xy=place_xy, surface_z=surface_z)
     _say(node, "PLANNING", arm=arm,
          detail="object %d at %s, %.0f mm across, from the MEASURED map"
                 % (obj["_i"], ["%.3f" % v for v in obj["centre"]],
                    obj["width_m"] * 1000))
+
+    # ============ COME DOWN ONTO THE OBJECT, AS STEEPLY AS THE ARM ALLOWS ===
+    #
+    # The shipped anchor approaches at about -31 degrees -- from BELOW and
+    # behind -- so a grasp built on it drives the wrist up out of the table
+    # toward the object. It is what the arm was pinned to and it is not what
+    # anybody wants to watch.
+    #
+    # Straight down is genuinely unreachable, and CLAUDE.md's "0 of 840 cells"
+    # is right about that. But it was measured on the OLD MOUNT and it is
+    # wrong about STEEPLY from above: at +70 degrees every object the
+    # calibration found solves, on both arms.
+    #
+    # So the angle is not a constant. It is SEARCHED, steepest first, per
+    # object, against this object's own measured position and width -- which
+    # is the only way it can be right for a table and a layout nobody has seen
+    # yet. The angle actually used is reported, because "it grasped" and "it
+    # grasped from above" are different claims.
+    # THE PICK AND THE PLACE ARE SEARCHED SEPARATELY.
+    #
+    # My first version demanded ONE orientation solve every waypoint --
+    # pregrasp, grasp, lift, carry, place and retreat together. It found +15
+    # degrees: a grasp from the SIDE, when the same arm solves +70 for the
+    # grasp itself. The place pose over the pad was the binding constraint,
+    # and it was quietly dragging the grasp down with it.
+    #
+    # There is no reason they should share an angle. The hand comes down onto
+    # the object, closes, lifts, carries, and comes down onto the destination
+    # -- two descents, each as steep as its own end of the table allows.
+    def _search(names, want):
+        for e in APPROACH_ELEVATIONS_DEG:
+            for y in (0.0, -20.0, 20.0, -40.0, 40.0):
+                ax = axis_at(e, y, arm)
+                cand = dict(poses_for(obj, arm, place_xy=place_xy,
+                                      surface_z=surface_z, axis=ax))
+                q = node.solve_axis_quat(ax)
+                if all(node.solve(arm, list(cand[n]), q, tries=2) is not None
+                       for n in names if n in cand):
+                    return ax, e, y, cand
+        return None, None, None, None
+
+    pick_names = ["pregrasp", "grasp", "lift"]
+    ax_pick, e_pick, y_pick, cand = _search(pick_names, "pick")
+    if ax_pick is None:
+        _say(node, "REFUSED", arm=arm,
+             why="no approach from %+.0f to %+.0f deg reaches this object"
+                 % (APPROACH_ELEVATIONS_DEG[0], APPROACH_ELEVATIONS_DEG[-1]))
+        raise PickRefusal(
+            "object %d at %s cannot be reached from ANY of the swept approach "
+            "angles (%+.0f down to %+.0f). The map says it is there; the arm "
+            "says it cannot get a gripper to it."
+            % (obj["_i"], ["%.3f" % v for v in obj["centre"]],
+               APPROACH_ELEVATIONS_DEG[0], APPROACH_ELEVATIONS_DEG[-1]))
+
+    def _describe(e):
+        return ("from ABOVE" if e > 45 else
+                "from the side" if e > 5 else "from BELOW -- the old anchor")
+
+    print("   pick approach  %+.0f deg above horizontal, yaw %+.0f  (%s)"
+          % (e_pick, y_pick, _describe(e_pick)), flush=True)
+
+    steps = [(n, cand[n]) for n in pick_names]
+    axis_by_step = {n: ax_pick for n in pick_names}
+
+    if place_xy is not None:
+        place_names = ["carry", "place", "retreat"]
+        ax_pl, e_pl, y_pl, cand_pl = _search(place_names, "place")
+        if ax_pl is None:
+            raise PickRefusal(
+                "object %d can be picked (%+.0f deg) but the destination "
+                "%s cannot be reached from any swept angle."
+                % (obj["_i"], e_pick, ["%.3f" % v for v in place_xy]))
+        print("   place approach %+.0f deg above horizontal, yaw %+.0f  (%s)"
+              % (e_pl, y_pl, _describe(e_pl)), flush=True)
+        steps += [(n, cand_pl[n]) for n in place_names]
+        axis_by_step.update({n: ax_pl for n in place_names})
 
     # ---- THE PLANNER IS GIVEN THE MAP. This is the part that has never run.
     world = None
@@ -370,7 +505,7 @@ def run(node, arm, doc, obj, place_xy, execute, plan_joints=True):
 
     solved = []
     for name, xyz in steps:
-        q = node.solve(arm, list(xyz), node.anchor_quat(arm))
+        q = node.solve(arm, list(xyz), node.solve_axis_quat(axis_by_step[name]))
         if q is None:
             _say(node, "REFUSED", arm=arm,
                  why="%s at %s has no IK solution" % (name, ["%.3f" % v for v in xyz]))

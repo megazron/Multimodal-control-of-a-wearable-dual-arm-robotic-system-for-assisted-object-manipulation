@@ -132,6 +132,7 @@ class Calibrator:
     def __init__(self, arm, node):
         self.arm = arm
         self.n = node
+        self.viewpoint = None
 
     def look_from(self, xyz, quat, settle_s=1.2, solution=None):
         """Command the arm to a viewing pose and wait for it to actually be there.
@@ -153,6 +154,15 @@ class Calibrator:
                 self.n.spin(settle_s)
                 return True
         return False
+
+    def aim(self, arm, cam, quat, facing_deg, layer, elev_deg):
+        """Remember where this capture is being taken from, so it can be
+        repeated without re-deriving it from the sweep's arithmetic."""
+        self.viewpoint = dict(
+            arm=arm, cam=[float(v) for v in cam],
+            quat=[float(quat.x), float(quat.y), float(quat.z), float(quat.w)],
+            facing_deg=float(facing_deg), layer=int(layer),
+            elev_deg=float(elev_deg))
 
     def capture(self, source, finder="segment"):
         """One View -- points, and the INSTANCES cut out of this frame.
@@ -230,7 +240,8 @@ class Calibrator:
                 return None
             print("      %d region(s) on the surface" % len(objs), flush=True)
         return WM.View(pts, source, note="stamp %.3f, pose from %s, finder %s"
-                       % (stamp, src, finder), objects=objs)
+                       % (stamp, src, finder), objects=objs,
+                       viewpoint=self.viewpoint)
 
 
 def load_reach(arm, key, path=REACH):
@@ -364,6 +375,7 @@ def sweep_arm(node, arm, bounds, surface_z, step_m, order, layers_m,
                                    why="outside this arm's envelope at this "
                                        "attitude"))
                 continue
+            cal.aim(arm, cam, quat, facing, layer, elev_deg)
             _say(node, "REACHING", arm=arm, cell=seen,
                  of=plan["total_cells"], at=cam)
             if not cal.look_from(cam, quat, solution=j):

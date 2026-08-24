@@ -377,6 +377,22 @@ class ProbeNode(Node):
         v = R @ base
         return v / np.linalg.norm(v)
 
+    def solve_axis_quat(self, axis):
+        """A wrist orientation whose tool axis is `axis`, as a message."""
+        import sys as _sys
+        import os as _os
+        _abc = _os.path.join(_os.path.dirname(_os.path.dirname(
+            _os.path.abspath(__file__))), "src/srl_experiments/experiments/abc")
+        if _abc not in _sys.path:
+            _sys.path.insert(0, _abc)
+        import grasp_frames as _GF
+        v = np.asarray(axis, float)
+        v = v / max(float(np.linalg.norm(v)), 1e-9)
+        q = _GF.q_from_axis(v)
+        m = Quaternion()
+        m.x, m.y, m.z, m.w = (float(x) for x in q)
+        return m
+
     def fixed_quat(self, arm, facing_deg=0.0, elev_deg=38.9):
         """`fixed_axis` as a message, for a whole pass."""
         import sys as _sys

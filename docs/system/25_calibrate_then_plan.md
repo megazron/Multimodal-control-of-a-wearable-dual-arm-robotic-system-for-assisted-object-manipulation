@@ -542,3 +542,75 @@ the arm. It does not matter operationally, because going there is IK-reachable
 and not thereby safe — hard constraint 11 — and the swept bounds never go
 inboard of the columns measured geometrically. Recorded so nobody re-derives
 it: `recordings/baselines/reachable_rear.json`.
+
+---
+
+# ANY SHAPE, ANY COLOUR? TESTED.
+
+The operator asked. Both were reasoned about first — the plane fit is
+geometry-only and the segmenter cuts on edges rather than on particular
+colours — and reasoning is not measuring, so both were run.
+
+Two hooks were added to the mock for it: `SRL_SCENE_TABLE_RGB` recolours the
+table, `SRL_SCENE_EXTRA_BOX` adds solids so it need not be a rectangle.
+
+## Colour: no effect
+
+The table rendered **dark grey (0.30, 0.30, 0.34)** — close to the background
+the scene is drawn on, which is the hardest case, not a token change.
+
+| | measured | truth |
+| --- | --- | --- |
+| surface | **1.2503** | 1.2500 |
+| pad | (0.291, 0.499) | (0.290, 0.500) |
+| pad | (−0.289, 0.500) | (−0.290, 0.500) |
+| cube | (0.480, 0.449) 39 mm | (0.480, 0.450) 40 mm |
+| cube | (0.420, 0.450) 40 mm | (0.420, 0.450) 40 mm |
+
+Identical to the white table. Nothing in the mapping path reads colour to
+decide anything: `mean_bgr` is *recorded* per object so a caller can ask for
+"the green one", and that is all.
+
+## Shape: an L-shaped table works, and the missing corner refuses
+
+The usual bar plus a wing at x 0.30–0.90, y 0.13–0.43, with an orange cube
+standing **on the wing**.
+
+```
+table found: surface z = 1.2502, tilt 0.05 deg, y 0.069..0.650
+left arm will sweep x 0.325..0.850  y 0.069..0.650
+object 2 at (0.600, 0.280, 1.282), 41 mm across the jaws, graspable
+```
+
+The bounds **stretched forward to cover the wing**, and the cube on it came
+back at its exact position. Five objects, which is what is on that side.
+
+And the L's concave corner did the right thing:
+
+> *no support plane in this view … There is no support surface in this view —
+> refusing rather than grasping against a guess.*
+
+A viewpoint aimed where the table is not **refused rather than inventing a
+surface**. That is the shape showing up as an honest skip, not as bad data.
+
+## What the bounding box costs
+
+`find_table` takes the axis-aligned bounding box of the surface points, so a
+non-rectangular table has cells planned over its missing parts. Measured on
+this L:
+
+| | |
+| --- | --- |
+| swept box | 0.3050 m² |
+| table inside it | 0.2730 m² |
+| **actually table** | **90%** |
+| a round table inscribed in its box, for reference | 79% |
+
+The waste is bounded and it is not silent: a cell over nothing refuses by
+name. Planning from the measured surface CELLS rather than their bounding box
+would recover it, and is not done — the same improvement the reachable set
+already got.
+
+**Not tested:** a table with two surfaces at different heights (the plane fit
+takes the biggest and says nothing about the other), and a genuinely round or
+curved edge — the mock renders boxes.

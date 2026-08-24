@@ -203,6 +203,49 @@ class MockRGBD(Node):
         # they were and the rendered world moves -- which is exactly the real
         # situation the declared pipeline cannot survive, and the one a
         # simulation where "declared == truth" can otherwise never produce.
+        # RECOLOUR THE TABLE, to test whether anything downstream cares.
+        # `SRL_SCENE_TABLE_RGB="r,g,b"` in 0-1. The plane fit is geometry-only
+        # and the segmenter cuts on edges rather than on particular colours,
+        # so the map should not move at all -- which is a claim, and this is
+        # how it gets measured instead of asserted.
+        col = os.environ.get("SRL_SCENE_TABLE_RGB", "")
+        if col:
+            try:
+                rgb = tuple(float(v) for v in col.split(","))[:3]
+            except Exception:                                  # noqa: BLE001
+                self.get_logger().error(
+                    "SRL_SCENE_TABLE_RGB=%r is not 'r,g,b' -- NOT recolouring"
+                    % col)
+            else:
+                n = 0
+                for o in self.objects:
+                    if "table" in o.get("name", "") or "bench" in o.get("name", ""):
+                        o["rgb"] = rgb
+                        n += 1
+                self.get_logger().warn(
+                    "TABLE RECOLOURED to %s on %d solid(s), ON PURPOSE" % (rgb, n))
+
+        # ADD A SOLID, so the table need not be a rectangle.
+        # `SRL_SCENE_EXTRA_BOX="x,y,z,sx,sy,sz[,r,g,b]"`, repeatable with `;`.
+        # An L-shaped or round table is not a special case for a plane fit --
+        # it is a special case for the BOUNDS, which are a bounding box.
+        extra = os.environ.get("SRL_SCENE_EXTRA_BOX", "")
+        if extra:
+            for k, spec in enumerate(x for x in extra.split(";") if x.strip()):
+                try:
+                    v = [float(t) for t in spec.split(",")]
+                    rgb = tuple(v[6:9]) if len(v) >= 9 else (0.94, 0.94, 0.95)
+                    self.objects.append(dict(xyz=v[0:3], size=v[3:6],
+                                             rgb=rgb, name="extra_%d" % k))
+                except Exception:                              # noqa: BLE001
+                    self.get_logger().error(
+                        "SRL_SCENE_EXTRA_BOX segment %r is not "
+                        "'x,y,z,sx,sy,sz[,r,g,b]' -- NOT added" % spec)
+                else:
+                    self.get_logger().warn(
+                        "EXTRA SOLID added at %s size %s, ON PURPOSE"
+                        % (v[0:3], v[3:6]))
+
         sh = os.environ.get("SRL_SCENE_SHIFT_XY", "")
         if sh:
             try:

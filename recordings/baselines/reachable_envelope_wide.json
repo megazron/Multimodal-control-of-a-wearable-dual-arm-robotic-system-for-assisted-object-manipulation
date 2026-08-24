@@ -1,0 +1,78 @@
+{
+  "left": {
+    "all_facings": {
+      "n": 32,
+      "x": [
+        0.05,
+        0.55
+      ],
+      "y": [
+        -0.25,
+        0.25
+      ]
+    },
+    "any_facing": {
+      "n": 77,
+      "x": [
+        0.05,
+        0.85
+      ],
+      "y": [
+        -0.25,
+        0.65
+      ]
+    },
+    "configurations": 3,
+    "per_config": {
+      "+0/0.30": 50,
+      "+25/0.30": 32,
+      "-25/0.30": 77
+    },
+    "probed": 390
+  },
+  "note": "solved IK only; nothing was commanded. A cell reachable at one facing is seen from one direction only -- its sides are not.",
+  "right": {
+    "all_facings": {
+      "n": 32,
+      "x": [
+        -0.55,
+        -0.05
+      ],
+      "y": [
+        -0.25,
+        0.25
+      ]
+    },
+    "any_facing": {
+      "n": 77,
+      "x": [
+        -0.85,
+        -0.05
+      ],
+      "y": [
+        -0.25,
+        0.65
+      ]
+    },
+    "configurations": 3,
+    "per_config": {
+      "+0/0.30": 50,
+      "+25/0.30": 77,
+      "-25/0.30": 32
+    },
+    "probed": 390
+  },
+  "settings": {
+    "elev_deg": 38.9,
+    "facings_deg": [
+      -25.0,
+      0.0,
+      25.0
+    ],
+    "layers_m": [
+      0.3
+    ],
+    "step_m": 0.1,
+    "surface_z": 1.25
+  }
+}

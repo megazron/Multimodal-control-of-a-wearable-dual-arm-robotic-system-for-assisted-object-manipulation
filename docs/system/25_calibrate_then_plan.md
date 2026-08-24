@@ -396,3 +396,86 @@ right cube puts the outer one **directly behind it** along the approach, so the
 direction points at both. Measured per target with exact positions —
 20/20, 20/20, 1/20, 15/20. An object with another behind it is hard, and the
 estimator is right to stay unsure rather than guess.
+
+
+---
+
+# WILL IT ADAPT TO A TABLE ANYWHERE, OR ONLY TO THE ONE IN FRONT?
+
+The operator asked, and the answer was **only the one in front**. Worth
+separating what did adapt from what did not.
+
+**Adapted already:** the table's HEIGHT (measured, 1.2502 against a true
+1.2500), its SIZE, and every object's position, size and count.
+
+**Did not adapt:** the table's POSITION. `BOUNDS` was a constant — a box in
+front of the wearer, x 0.325..0.750, y 0.15..0.65 — the height guess was the
+constant 1.25, and the camera's base heading pointed forward. Put the table to
+one side and the sweep would quarter the empty air where the table used to be
+and report a confident map of nothing.
+
+## FIRST, WHERE CAN A TABLE PHYSICALLY BE?
+
+There is no point promising adaptation to positions the arm cannot reach. The
+earlier envelope measurement only ever asked about y 0.15..0.65, so the answer
+it gave was bounded by the question. Re-run wide (x 0.05..1.00, y −0.25..0.95):
+
+| | measured | note |
+| --- | --- | --- |
+| outboard | x to **0.85** | real: the probe asked to 1.00 and the arm stopped short |
+| forward | y to **0.65** | real: asked to 0.95 |
+| rearward | at least y = **−0.25** | **not established** — only asked to −0.25 |
+
+The arm can place its camera *behind the frontal plane*. That is IK-reachable
+and **not thereby safe**: hard constraint 11, `avoid_collisions` is not the
+wearer check. The auto bounds never go inboard of the columns measured
+geometrically (0.325 left, 0.450 right).
+
+## THE TABLE IS FOUND NOW, NOT ASSUMED
+
+`--auto-bounds` runs a coarse probe over the arms' whole measured envelope,
+fits the support plane, takes the extent of the points lying on it, and sets
+the sweep bounds from that — clipped to the envelope and to the wearer-safe
+columns. It **refuses** rather than falling back to the constant: a sweep of
+the wrong volume is worse than no sweep, because it produces a map.
+
+Measured, with the whole rendered scene shifted 250 mm outboard and 150 mm
+back while the task files stayed put:
+
+```
+table found: surface z = 1.2501 m, tilt 0.09 deg,
+             spanning x -0.596..1.062  y 0.219..0.650
+left arm will sweep x 0.325..0.850  y 0.219..0.650
+6 objects, all at their shifted positions
+```
+
+Both the fixed-box and the found-bounds versions located the moved objects at
+that displacement — the cameras see well beyond the swept box at 0.5 m
+standoff — but only the second **knew** where the table was.
+
+## AND A TABLE OUT OF REACH IS REFUSED
+
+Shifted 450 mm forward, past the measured forward limit:
+
+```
+stopping -- a surface was found at z = 1.2490 spanning y 0.819..1.327, and the
+arms can only reach y -0.25..0.65 (measured). The table is beyond the arms'
+reach -- move it, or move the wearer. Nothing was swept and no map was written.
+```
+
+**That case found a real bug.** Clipping the found extent to the envelope can
+empty the interval, and I guarded the x span and not the y: the table's true
+extent was y 0.819..1.327, clipping gave lo = 0.819 and hi = 0.65, and the
+sweep was cheerfully told to cover **"y 0.819..0.650"** — an inverted range.
+The "a check that cannot fail" rule, with one axis left out.
+
+## WHAT IS STILL NOT ADAPTIVE
+
+* **The rearward limit is unmeasured.** The probe only asked back to y = −0.25.
+* **A table BESIDE the wearer is untested.** The coarse probe spans the
+  envelope, so it should find one; nothing has demonstrated it.
+* **The camera heading is still a fixed forward-ish base direction** yawed by
+  the facings. A table at a very different bearing would be viewed obliquely.
+* **`SRL_SCENE_SHIFT_XY` is how the mock was made to disagree with the task
+  files** — without it, simulation cannot produce the case where declared
+  coordinates are wrong, which is the only case where any of this matters.

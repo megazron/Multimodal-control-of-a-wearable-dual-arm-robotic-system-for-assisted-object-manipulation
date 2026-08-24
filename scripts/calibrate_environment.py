@@ -72,6 +72,7 @@ for _p in (HERE, os.path.join(ROOT, "config"),
 
 from srl_experiments import narration as N                   # noqa: E402
 from srl_perception import calibration_sweep as CSW          # noqa: E402
+from srl_perception import table_scene as TS                 # noqa: E402
 from srl_perception import world_model as WM                 # noqa: E402
 
 OUT = os.path.join(ROOT, "recordings/baselines/world_map.json")
@@ -282,6 +283,145 @@ def save_reach(arm, key, cells, path=REACH):
     with open(path, "w") as f:
         json.dump(doc, f, indent=2, sort_keys=True)
     return path
+
+
+# THE ARMS' OWN ENVELOPE, MEASURED (`measure_reachable_volume.py`, wide run):
+# the camera can be placed anywhere in x 0.05..0.85 (magnitude), y -0.25..0.65,
+# at some facing. The forward and outboard limits are real -- the probe asked
+# out to y 0.95 and x 1.00 and the arm stopped short. The REARWARD limit is
+# not established: the probe only asked back to y = -0.25 and got it.
+#
+# Reaching behind the wearer is IK-reachable and NOT thereby safe: hard
+# constraint 11, `avoid_collisions` is not the wearer check. The auto bounds
+# below never go inboard of the columns measured geometrically.
+ENVELOPE = dict(x_max=0.85, y_min=-0.25, y_max=0.65)
+# The innermost columns measured GEOMETRICALLY against the wearer, per arm.
+INBOARD_LIMIT = {"left": 0.325, "right": -0.450}
+
+
+def find_table(node, arms, elev_deg, surface_guess, n=3, finder="cluster"):
+    """WHERE IS THE TABLE? Coarse probe first, then sweep what was found.
+
+    WHY THIS EXISTS. `BOUNDS` was a constant -- a box in FRONT of the wearer,
+    x 0.325..0.750, y 0.15..0.65 -- so the calibration adapted to any table
+    HEIGHT, any table SIZE and any arrangement of objects, and to exactly one
+    table POSITION. Put the table to one side and the sweep would quarter the
+    empty air where the table used to be and report a confident map of
+    nothing.
+
+    A handful of wide-angle views over the arms' whole measured envelope is
+    enough to find a support surface and its extent. That takes a couple of
+    minutes; the full sweep then covers the table that is actually there
+    instead of the one that was there when the constant was written.
+
+    Returns (surface_z, bounds_by_arm, report). Raises `WM.MapRefusal` if no
+    surface is found, rather than falling back to the constant -- a sweep of
+    the wrong volume is worse than no sweep, because it produces a map.
+    """
+    from geometry_msgs.msg import Quaternion   # noqa: F401
+    views, probed = [], []
+    for arm in arms:
+        cal = Calibrator(arm, node)
+        sx = 1.0 if arm == "left" else -1.0
+        xs = np.linspace(abs(INBOARD_LIMIT[arm]) + 0.05,
+                         ENVELOPE["x_max"] - 0.05, n) * sx
+        ys = np.linspace(ENVELOPE["y_min"] + 0.10,
+                         ENVELOPE["y_max"] - 0.05, n)
+        for f in (-25.0, 0.0, 25.0):
+            axis = node.fixed_axis(arm, f, elev_deg)
+            quat = node.fixed_quat(arm, f, elev_deg)
+            for x in xs:
+                for y in ys:
+                    d = 0.35 / max(1e-6, -float(axis[2]))
+                    cam = [round(float(x) - float(axis[0]) * d, 5),
+                           round(float(y) - float(axis[1]) * d, 5),
+                           round(surface_guess + 0.35, 5)]
+                    if node.solve(arm, cam, quat, tries=1) is None:
+                        continue
+                    cal.aim(arm, cam, quat, f, 0, elev_deg)
+                    if not cal.look_from(cam, quat):
+                        continue
+                    v = cal.capture("find_%s_%02d" % (arm, len(probed)),
+                                    finder=finder)
+                    probed.append(cam)
+                    if v is not None:
+                        views.append(v)
+                    break                      # one view per facing per column
+                if len(views) >= 2 * n:
+                    break
+    if not views:
+        raise WM.MapRefusal(
+            "the coarse probe reached %d viewpoint(s) and none returned a "
+            "usable frame, so there is no surface to sweep. Nothing was "
+            "assumed about where the table is." % len(probed))
+    cloud = np.vstack([v.points for v in views])
+    try:
+        plane = TS.fit_support_plane(cloud, tol_m=0.004)
+    except TS.SceneRefusal as e:
+        raise WM.MapRefusal(
+            "the coarse probe saw %d points and no support surface in them: "
+            "%s. Refusing to sweep a volume chosen by a constant."
+            % (len(cloud), e))
+    h = plane.height(cloud)
+    on = cloud[np.abs(h) <= 0.02]
+    if len(on) < 500:
+        raise WM.MapRefusal(
+            "only %d points lie on the fitted surface -- too few to say where "
+            "the table is." % len(on))
+    c = on.mean(axis=0)
+    z = float((plane.offset - c[0] * plane.normal[0]
+               - c[1] * plane.normal[1]) / abs(plane.normal[2]))
+    pad = 0.06
+    lo_x, hi_x = float(on[:, 0].min()) - pad, float(on[:, 0].max()) + pad
+    lo_y, hi_y = float(on[:, 1].min()) - pad, float(on[:, 1].max()) + pad
+    # CLIPPING TO THE ENVELOPE CAN EMPTY THE INTERVAL, AND I ONLY CHECKED X.
+    #
+    # Found by moving the table 450 mm forward, past the arm's measured
+    # forward limit of y = 0.65. The table's real extent was y 0.819..1.25;
+    # clipping gave lo = max(0.819, -0.25) = 0.819 and hi = min(1.25, 0.65) =
+    # 0.65 -- an INVERTED range -- and the sweep was cheerfully told to cover
+    # "y 0.819..0.650". The x span was guarded and the y span was not, which
+    # is the "a check that cannot fail" rule with one axis left out.
+    #
+    # An empty interval is not a small table. It means the table is outside
+    # what this arm can reach, and the only honest output is to say so.
+    lo_y_c = max(lo_y, ENVELOPE["y_min"])
+    hi_y_c = min(hi_y, ENVELOPE["y_max"])
+    if hi_y_c - lo_y_c < 0.05:
+        raise WM.MapRefusal(
+            "a surface was found at z = %.4f spanning y %.3f..%.3f, and the "
+            "arms can only reach y %.2f..%.2f (measured, "
+            "`reachable_envelope_wide.json`). The table is %s the arms' "
+            "reach -- move it, or move the wearer. Nothing was swept and no "
+            "map was written."
+            % (z, lo_y, hi_y, ENVELOPE["y_min"], ENVELOPE["y_max"],
+               "beyond" if lo_y > ENVELOPE["y_max"] else "behind"))
+    lo_y, hi_y = lo_y_c, hi_y_c
+    out = {}
+    for arm in arms:
+        if arm == "left":
+            x0 = max(lo_x, INBOARD_LIMIT["left"])
+            x1 = min(hi_x, ENVELOPE["x_max"])
+        else:
+            x0 = max(lo_x, -ENVELOPE["x_max"])
+            x1 = min(hi_x, INBOARD_LIMIT["right"])
+        if x1 - x0 < 0.05:
+            continue                          # no table on this arm's side
+        out[arm] = dict(x=(round(x0, 4), round(x1, 4)),
+                        y=(round(lo_y, 4), round(hi_y, 4)))
+    if not out:
+        raise WM.MapRefusal(
+            "a surface was found at z = %.4f spanning x %.3f..%.3f, and none "
+            "of it is inside either arm's reachable, wearer-safe column "
+            "(left from %.3f, right to %.3f). The table is out of reach."
+            % (z, lo_x, hi_x, INBOARD_LIMIT["left"], INBOARD_LIMIT["right"]))
+    rep = dict(views=len(views), probed=len(probed), points=len(cloud),
+               on_surface=len(on), surface_z=round(z, 5),
+               tilt_deg=round(plane.tilt_deg, 3),
+               extent_x=[round(lo_x, 4), round(hi_x, 4)],
+               extent_y=[round(lo_y, 4), round(hi_y, 4)],
+               bounds=out)
+    return z, out, rep
 
 
 def sweep_arm(node, arm, bounds, surface_z, step_m, order, layers_m,
@@ -661,6 +801,12 @@ def main():
                     help="one fixed wrist yaw per pass. The wrist does NOT "
                          "re-aim inside a pass -- it translates, like a "
                          "printer's probe.")
+    ap.add_argument("--auto-bounds", action="store_true",
+                    help="FIND THE TABLE FIRST, then sweep what was found, "
+                         "instead of sweeping a box written into this file. "
+                         "Costs a couple of minutes and is the difference "
+                         "between adapting to any table and adapting to any "
+                         "table THAT IS WHERE THE OLD ONE WAS.")
     ap.add_argument("--reprobe", action="store_true",
                     help="ignore the recorded reachable set and solve IK at "
                          "every cell again. Use after anything that changes "
@@ -707,7 +853,30 @@ def main():
             return 3
         _say(node, "STARTING", arm=a.arm,
              detail="calibrating the environment before anything is planned")
-        m, report = run(node, arms, BOUNDS, a.surface_z, a.step_m, a.order,
+        bounds, surf = BOUNDS, a.surface_z
+        found = None
+        if a.auto_bounds:
+            _say(node, "CALIBRATING", arm="+".join(arms),
+                 detail="finding the table before deciding where to sweep")
+            surf, bounds, found = find_table(node, arms, a.elev_deg,
+                                             a.surface_z)
+            print("   table found: surface z = %.4f m, tilt %.2f deg, "
+                  "spanning x %.3f..%.3f  y %.3f..%.3f  (%d points on it)"
+                  % (found["surface_z"], found["tilt_deg"],
+                     found["extent_x"][0], found["extent_x"][1],
+                     found["extent_y"][0], found["extent_y"][1],
+                     found["on_surface"]), flush=True)
+            for k, b in bounds.items():
+                print("   %-5s arm will sweep x %.3f..%.3f  y %.3f..%.3f"
+                      % (k, b["x"][0], b["x"][1], b["y"][0], b["y"][1]),
+                      flush=True)
+            missing = [x for x in arms if x not in bounds]
+            if missing:
+                print("   %s arm has no table in its reachable column and is "
+                      "SKIPPED -- not swept and not reported as empty"
+                      % ", ".join(missing), flush=True)
+                arms = [x for x in arms if x in bounds]
+        m, report = run(node, arms, bounds, surf, a.step_m, a.order,
                         a.layers_m, a.facings_deg, a.elev_deg,
                         max_cells=a.max_cells, dump_frames=a.dump_frames,
                         finder=a.finder,
@@ -737,6 +906,13 @@ def main():
         doc["sweep"] = report
         doc["camera"] = {x: node.camera_provenance(x) for x in arms}
         doc["coverage"] = report["coverage"]
+        doc["bounds"] = {k: dict(x=list(v["x"]), y=list(v["y"]))
+                         for k, v in bounds.items()}
+        doc["bounds_source"] = ("FOUND by a coarse probe before the sweep"
+                                if found else
+                                "the constant in calibrate_environment.py")
+        if found:
+            doc["table_found"] = found
         with open(a.out, "w") as f:
             json.dump(doc, f, indent=2, sort_keys=True)
         # THE OCCUPANCY, BESIDE THE MAP. `joint_planner.VoxelWorld` needs

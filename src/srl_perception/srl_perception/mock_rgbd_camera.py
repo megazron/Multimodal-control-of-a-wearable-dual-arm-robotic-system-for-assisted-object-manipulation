@@ -195,6 +195,29 @@ class MockRGBD(Node):
         self.tfb = Buffer()
         self.tfl = TransformListener(self.tfb, self)
         self.objects = self._scene()
+        # MOVE THE WHOLE SCENE, for testing whether anything downstream
+        # actually FINDS the table rather than assuming where it is.
+        #
+        # `SRL_SCENE_SHIFT_XY="dx,dy"` translates every rendered solid. The
+        # task files are untouched, so the DECLARED coordinates stay where
+        # they were and the rendered world moves -- which is exactly the real
+        # situation the declared pipeline cannot survive, and the one a
+        # simulation where "declared == truth" can otherwise never produce.
+        sh = os.environ.get("SRL_SCENE_SHIFT_XY", "")
+        if sh:
+            try:
+                dx, dy = (float(v) for v in sh.split(","))
+            except Exception:                              # noqa: BLE001
+                self.get_logger().error(
+                    "SRL_SCENE_SHIFT_XY=%r is not 'dx,dy' -- NOT shifting, "
+                    "rather than shifting by a number I invented" % sh)
+            else:
+                for o in self.objects:
+                    o["xyz"] = [o["xyz"][0] + dx, o["xyz"][1] + dy,
+                                o["xyz"][2]]
+                self.get_logger().warn(
+                    "SCENE SHIFTED by (%+.3f, %+.3f) m. The rendered world no "
+                    "longer matches the task files, ON PURPOSE." % (dx, dy))
         self.n_pub = 0
         self.no_tf = 0
         hz = float(self.get_parameter("rate_hz").value)

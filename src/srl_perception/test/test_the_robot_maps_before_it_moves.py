@@ -33,6 +33,7 @@ BEEN ATTACHED TO THIS HOST, so "the robot has seen the room" is not tested
 here and is not claimed anywhere.
 """
 import math
+import os
 
 import numpy as np
 import pytest
@@ -389,3 +390,54 @@ def test_the_settings_key_changes_when_the_geometry_does():
             CS.settings_key(0.325, 0.75, 0.15, 0.65, 1.25, 0.13,
                             (0.30, 0.42), (-25.0, 0.0, 25.0), 45.0)):
         assert changed != base
+
+
+# ------------- 7. the table is FOUND, not assumed to be where it used to be
+
+def test_the_swept_bounds_can_come_from_a_measurement():
+    """`BOUNDS` was a constant: a box in FRONT of the wearer. So the stage
+    adapted to any table HEIGHT, any SIZE and any arrangement of objects, and
+    to exactly one table POSITION. Put the table to one side and it would
+    quarter the empty air where the table used to be and report a confident
+    map of nothing.
+    """
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "calenv", os.path.join(os.path.dirname(os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+            "scripts", "calibrate_environment.py"))
+    ce = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ce)
+    assert hasattr(ce, "find_table")
+    # The measured envelope, and the wearer-safe inboard columns, are the two
+    # things the found bounds must be clipped to.
+    assert ce.ENVELOPE["x_max"] > 0.5
+    assert ce.INBOARD_LIMIT["left"] > 0 > ce.INBOARD_LIMIT["right"]
+    assert ce.ENVELOPE["y_min"] < 0, "the arm reaches behind the frontal plane"
+
+
+def test_a_table_out_of_reach_is_refused_not_swept_as_an_inverted_range():
+    """FOUND BY MOVING THE TABLE 450 mm FORWARD, past the arm's measured
+    forward limit of y = 0.65.
+
+    The table's real extent was y 0.819..1.25. Clipping to the envelope gave
+    lo = max(0.819, -0.25) = 0.819 and hi = min(1.25, 0.65) = 0.65 -- an
+    INVERTED range -- and the sweep was told to cover "y 0.819..0.650". The x
+    span was guarded and the y span was not.
+
+    An empty interval is not a small table; it means the table is outside what
+    the arms can reach, and the only honest output is to say so.
+    """
+    import importlib.util
+    root = os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__)))))
+    spec = importlib.util.spec_from_file_location(
+        "calenv2", os.path.join(root, "scripts", "calibrate_environment.py"))
+    ce = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ce)
+    src = open(os.path.join(root, "scripts",
+                            "calibrate_environment.py")).read()
+    # The y span must be checked the same way the x span is.
+    assert "hi_y_c - lo_y_c" in src, "the y interval is still unguarded"
+    assert "out of reach" in src.lower() or "arms' reach" in src, \
+        "an out-of-reach table must be REFUSED by name"

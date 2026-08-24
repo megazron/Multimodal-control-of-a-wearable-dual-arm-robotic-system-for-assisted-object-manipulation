@@ -103,6 +103,16 @@ def main():
     ap.add_argument("--facings-deg", type=float, nargs="+",
                     default=list(CSW.DEFAULT_FACINGS_DEG))
     ap.add_argument("--step-m", type=float, default=0.05)
+    ap.add_argument("--x-range", type=float, nargs=2, default=[0.10, 0.76],
+                    metavar=("MIN", "MAX"),
+                    help="OUTBOARD distance to probe, magnitude. Mirrored for "
+                         "the right arm.")
+    ap.add_argument("--y-range", type=float, nargs=2, default=[0.15, 0.66],
+                    metavar=("MIN", "MAX"),
+                    help="FORWARD distance to probe. Negative is behind the "
+                         "wearer. The shipped default only ever asked about "
+                         "0.15 to 0.65, so the envelope it reported was "
+                         "bounded by the question, not by the arm.")
     ap.add_argument("--out", default=OUT)
     a = ap.parse_args()
 
@@ -119,8 +129,8 @@ def main():
                 return 2
         # DELIBERATELY OVER-WIDE, so the answer is bounded by the ARM and not
         # by the range I chose to ask about.
-        span = np.arange(0.10, 0.76 + 1e-9, a.step_m)
-        ys = np.arange(0.15, 0.66 + 1e-9, a.step_m)
+        span = np.arange(a.x_range[0], a.x_range[1] + 1e-9, a.step_m)
+        ys = np.arange(a.y_range[0], a.y_range[1] + 1e-9, a.step_m)
         for arm in a.arms:
             xs = span if arm == "left" else -span
             print("=== %s arm: %d x %d cells x %d layer(s) x %d facing(s)"

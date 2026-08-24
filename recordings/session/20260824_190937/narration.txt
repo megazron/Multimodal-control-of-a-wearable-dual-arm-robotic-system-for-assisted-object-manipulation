@@ -1,0 +1,55 @@
+    4.2 s  STARTING     both arm: starting up calibrating the environment before anything is planned
+    4.2 s  CALIBRATING  left+right arm: calibrating: looking at the workspace finding the table before deciding where to sweep
+   94.5 s  CALIBRATING  left arm: calibrating: looking at the workspace 90 cells in 3 pass(es) of 2 layer(s), serpentine order, 11.50 m of travel -- the wrist holds one attitude per pass
+   94.5 s  CALIBRATING  left arm: calibrating: looking at the workspace pass 1 of 3, wrist fixed at -25 deg yaw / 38.9 deg down, 30 cells
+   95.5 s  REACHING     left arm: reaching cell 1 of 90 at (0.593, 0.111, 1.549)
+  100.2 s  REACHING     left arm: reaching cell 2 of 90 at (0.724, 0.111, 1.549)
+  114.6 s  REACHING     left arm: reaching cell 3 of 90 at (0.855, 0.111, 1.549)
+  123.9 s  REACHING     left arm: reaching cell 4 of 90 at (0.987, 0.111, 1.549)
+  135.8 s  REACHING     left arm: reaching cell 7 of 90 at (0.987, 0.252, 1.549)
+  143.4 s  REACHING     left arm: reaching cell 8 of 90 at (0.855, 0.252, 1.549)
+  151.1 s  REACHING     left arm: reaching cell 9 of 90 at (0.724, 0.252, 1.549)
+  158.7 s  REACHING     left arm: reaching cell 10 of 90 at (0.593, 0.252, 1.549)
+  167.9 s  REACHING     left arm: reaching cell 11 of 90 at (0.593, 0.392, 1.549)
+  176.0 s  REACHING     left arm: reaching cell 12 of 90 at (0.724, 0.392, 1.549)
+  196.1 s  REACHING     left arm: reaching cell 19 of 90 at (0.831, 0.289, 1.669)
+  205.5 s  REACHING     left arm: reaching cell 20 of 90 at (0.700, 0.289, 1.669)
+  213.4 s  REACHING     left arm: reaching cell 21 of 90 at (0.700, 0.149, 1.669)
+  221.6 s  REACHING     left arm: reaching cell 22 of 90 at (0.831, 0.149, 1.669)
+  230.4 s  REACHING     left arm: reaching cell 23 of 90 at (0.963, 0.149, 1.669)
+  246.1 s  REACHING     left arm: reaching cell 28 of 90 at (0.963, 0.008, 1.669)
+  253.7 s  REACHING     left arm: reaching cell 29 of 90 at (0.831, 0.008, 1.669)
+  261.3 s  REACHING     left arm: reaching cell 30 of 90 at (0.700, 0.008, 1.669)
+  269.0 s  CALIBRATING  left arm: calibrating: looking at the workspace pass 2 of 3, wrist fixed at +0 deg yaw / 38.9 deg down, 30 cells
+  270.0 s  REACHING     left arm: reaching cell 31 of 90 at (0.677, 0.248, 1.549)
+  278.9 s  REACHING     left arm: reaching cell 32 of 90 at (0.808, 0.248, 1.549)
+  287.3 s  REACHING     left arm: reaching cell 33 of 90 at (0.939, 0.248, 1.549)
+  308.4 s  REACHING     left arm: reaching cell 40 of 90 at (0.677, 0.389, 1.549)
+  354.6 s  REACHING     left arm: reaching cell 60 of 90 at (0.817, 0.200, 1.669)
+  362.6 s  CALIBRATING  left arm: calibrating: looking at the workspace pass 3 of 3, wrist fixed at +25 deg yaw / 38.9 deg down, 30 cells
+  422.9 s  CALIBRATING  right arm: calibrating: looking at the workspace 72 cells in 3 pass(es) of 2 layer(s), serpentine order, 9.07 m of travel -- the wrist holds one attitude per pass
+  422.9 s  CALIBRATING  right arm: calibrating: looking at the workspace pass 1 of 3, wrist fixed at -25 deg yaw / 38.9 deg down, 24 cells
+  471.0 s  CALIBRATING  right arm: calibrating: looking at the workspace pass 2 of 3, wrist fixed at +0 deg yaw / 38.9 deg down, 24 cells
+  476.1 s  REACHING     right arm: reaching cell 27 of 72 at (-0.932, 0.248, 1.549)
+  484.8 s  REACHING     right arm: reaching cell 28 of 72 at (-0.802, 0.248, 1.549)
+  531.8 s  CALIBRATING  right arm: calibrating: looking at the workspace pass 3 of 3, wrist fixed at +25 deg yaw / 38.9 deg down, 24 cells
+  532.8 s  REACHING     right arm: reaching cell 49 of 72 at (-1.108, 0.111, 1.549)
+  541.2 s  REACHING     right arm: reaching cell 50 of 72 at (-0.978, 0.111, 1.549)
+  549.7 s  REACHING     right arm: reaching cell 51 of 72 at (-0.848, 0.111, 1.549)
+  558.2 s  REACHING     right arm: reaching cell 52 of 72 at (-0.718, 0.111, 1.549)
+  566.6 s  REACHING     right arm: reaching cell 53 of 72 at (-0.718, 0.252, 1.549)
+  574.7 s  REACHING     right arm: reaching cell 54 of 72 at (-0.848, 0.252, 1.549)
+  584.2 s  REACHING     right arm: reaching cell 55 of 72 at (-0.978, 0.252, 1.549)
+  601.0 s  REACHING     right arm: reaching cell 60 of 72 at (-0.718, 0.392, 1.549)
+  609.7 s  REACHING     right arm: reaching cell 61 of 72 at (-0.825, 0.289, 1.669)
+  628.5 s  REACHING     right arm: reaching cell 67 of 72 at (-0.955, 0.149, 1.669)
+  637.5 s  REACHING     right arm: reaching cell 68 of 72 at (-0.825, 0.149, 1.669)
+  646.8 s  REACHING     right arm: reaching cell 69 of 72 at (-0.825, 0.008, 1.669)
+  655.5 s  REACHING     right arm: reaching cell 70 of 72 at (-0.955, 0.008, 1.669)
+  668.5 s  MAPPING      left+right arm: building the map fusing 37 view(s) from 2 arm(s)
+  681.8 s  DONE         left+right arm: finished surface measured at 1.2503 m, 6 object(s) found, 37 of 38 REACHABLE cells contributed (97%)
+  695.1 s  PLANNING     left arm: planning a path object 2 at ['0.480', '0.450', '1.282'], 41 mm across, from the MEASURED map
+  750.5 s  REACHING     left arm: reaching at (0.554, 0.387, 1.490) pregrasp
+  753.0 s  GRASPING     left arm: closing on the object at (0.515, 0.420, 1.381) grasp
+  756.3 s  CARRYING     left arm: carrying at (0.515, 0.420, 1.481) lift
+  758.8 s  DONE         left arm: finished object 2 moved

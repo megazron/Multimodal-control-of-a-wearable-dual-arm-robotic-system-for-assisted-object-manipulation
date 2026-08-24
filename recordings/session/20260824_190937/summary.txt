@@ -1,0 +1,39 @@
+a whole session, 20260824_190937
+
+full scan exit 0, reference exit 0, pick exit 0, quick check exit 0
+55 narration sentence(s), 765 s end to end
+
+arms swept        ['left', 'right']
+bounds from       FOUND by a coarse probe before the sweep
+table found at    z = 1.2485 m, tilt 0.54 deg
+                  x -0.840..0.942  y 0.369..0.650
+cells reachable   38 of 162, 37 photographed
+stillness refusals 0
+surface measured  1.2503 m
+objects           6
+    0  [  0.290   0.500   1.260]    140 mm  too wide
+    1  [ -0.290   0.500   1.260]    141 mm  too wide
+    2  [  0.480   0.450   1.282]     41 mm  graspable
+    3  [  0.420   0.450   1.282]     41 mm  graspable
+    4  [ -0.480   0.450   1.281]     41 mm  graspable
+    5  [ -0.420   0.450   1.282]     41 mm  graspable
+
+1_full_scan.mp4    mean pixel 66.3
+2_pick.mp4         mean pixel 71.5
+3_quick_check.mp4  mean pixel 71.3
+
+quick check       scene camera: 0 region(s) changed since the reference
+                  nothing had changed, so no arm motion was needed and the
+                  map was left alone. Expected here: the renderer draws a
+                  STATIC scene, so the pick does not move a rendered cube.
+
+pick              object 2, approached from ABOVE
+                  pregrasp z 1.490 -> grasp z 1.381, object at z 1.282
+                  the wrist descends 100 mm onto it
+
+WHAT THIS IS AND IS NOT
+  The arm is SIMULATED and the depth is RENDERED by mock_rgbd_camera. NO
+  CAMERA HAS EVER BEEN ATTACHED TO THIS HOST, so this films the pipeline and
+  not the room.
+  What IS real: the sweep order, the deprojection, the segmentation, the
+  fusion, the plane fit, the IK, the approach-angle search, and every refusal.

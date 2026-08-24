@@ -551,6 +551,13 @@ def main():
     ap.add_argument("--to", nargs=2, type=float, default=None,
                     help="place it here (x y). Without it this is a pick.")
     ap.add_argument("--execute", action="store_true")
+    ap.add_argument("--drive-real", action="store_true",
+                    help="publish where the REAL-ARM BRIDGE is listening "
+                         "(/real/...) instead of the simulated controller. "
+                         "Without it --execute moves the SIMULATION ONLY -- "
+                         "the bridge subscribes under /real and never sees a "
+                         "bare topic. The bridge still has its own arming "
+                         "gate and its own home refusal on top of this.")
     ap.add_argument("--accept-stale-map", action="store_true",
                     help="move even though the map is old. Planning off an "
                          "old map is always allowed and only reported; this "
@@ -592,7 +599,10 @@ def main():
     from env_probe import ProbeNode
     import rclpy
     rclpy.init()
-    node = ProbeNode()
+    node = ProbeNode(real_ns="/real" if a.drive_real else "")
+    print("   commands go to: %s"
+          % ("/real/... -- THE REAL ARM BRIDGE" if a.drive_real
+             else "the SIMULATED controller (use --drive-real for hardware)"))
     try:
         # NO CAMERA NEEDED: the map was measured earlier and is on disk.
         if not node.wait_ready(a.arm, 90.0, need_camera=False):

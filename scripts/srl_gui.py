@@ -404,11 +404,36 @@ class Bus(Node):
 
         self.cam = {a: cr.ChannelState() for a in ARMS}
         self.cam_img = {a: None for a in ARMS}
+        self.cam_topic = {a: None for a in ARMS}
+        # THE PANEL COULD NEVER HAVE SHOWN A FRAME.
+        #
+        # It subscribed to `/<arm>_wrist_camera/image_raw` and
+        # `/wrist_mounted_camera/<arm>/image`, and NOTHING IN THIS REPOSITORY
+        # PUBLISHES EITHER -- checked: no `create_publisher` anywhere uses
+        # those names. Every camera producer and consumer here uses
+        # `/<arm>_camera/color/image_raw`: the mock, `env_probe`, the
+        # calibration sweep, `verify_colour_vision`, `verify_scan_view`.
+        #
+        # So the operator's only view of the workspace has read "NO CAMERA --
+        # no frame has ever arrived" for the life of the panel, and it was
+        # telling the truth about a topic nobody was ever going to write to.
+        # A subscriber on a name no publisher uses is the "feature present but
+        # does nothing" row of the instrument table, in the one panel a remote
+        # operator depends on.
+        #
+        # The repo's own name goes FIRST. The two old ones are kept because no
+        # camera has ever been attached to this host and the real Kinova
+        # driver's topic is therefore unverified -- if it turns out to use one
+        # of them, this still works. Whichever one arrives is NAMED in the
+        # panel, so "there is a picture" and "the picture came from where I
+        # think" stay separate claims.
         for a in ARMS:
-            for topic in ("/%s_wrist_camera/image_raw" % a,
+            for topic in ("/%s_camera/color/image_raw" % a,
+                          "/%s_wrist_camera/image_raw" % a,
                           "/wrist_mounted_camera/%s/image" % a):
                 self.create_subscription(
-                    Image, topic, (lambda m, arm=a: self._on_image(arm, m)),
+                    Image, topic,
+                    (lambda m, arm=a, t=topic: self._on_image(arm, m, t)),
                     qos_profile_sensor_data)
 
     def _on_raw(self, key, data):
@@ -499,8 +524,11 @@ class Bus(Node):
                           msg.encoding)
         self.scene_img_t = time.monotonic()
 
-    def _on_image(self, arm, msg):
+    def _on_image(self, arm, msg, topic=None):
         self.cam[arm].on_frame(msg.width, msg.height, msg.encoding)
+        # WHICH topic it came from, so the panel can say. Three names are
+        # subscribed and only one of them is what this repository publishes.
+        self.cam_topic[arm] = topic
         # Keep the RAW buffer; convert on the GUI thread only when it will
         # actually be painted, so ROS-thread time is not spent on frames the
         # GUI is about to discard as stale.
@@ -519,6 +547,7 @@ class Bus(Node):
                         self.cam[a].show_image(), self.cam[a].hz())
                     for a in ARMS}
         s["cam_img"] = dict(self.cam_img)
+        s["cam_topic"] = dict(self.cam_topic)
         # The sim is "moving" if any sim joint changed recently. Passed to
         # compare() so a STILL real arm beside a STILL sim arm is not called
         # frozen -- a false FROZEN costs a glance, a missed one costs the
@@ -6262,6 +6291,14 @@ class Gui(QMainWindow):
             cap, st, show, hz = cams.get(a, ("no data", "absent", False, 0.0))
             col = {"live": C_OK, "stale": C_WARN, "dead": C_BAD,
                    "absent": C_UNKNOWN}.get(st, C_UNKNOWN)
+            # SAY WHICH TOPIC THE PICTURE CAME FROM. Three names are
+            # subscribed and only one is what this repository publishes; on a
+            # real Kinova it may be a fourth. "There is a picture" and "the
+            # picture came from where I think" are different claims and the
+            # panel should not merge them.
+            tname = (s.get("cam_topic") or {}).get(a)
+            if tname and st in ("live", "stale"):
+                cap = "%s   [%s]" % (cap, tname)
             self.cam_cap[a].setText(cap)
             self.cam_cap[a].setStyleSheet("color:%s" % col)
             if not show:

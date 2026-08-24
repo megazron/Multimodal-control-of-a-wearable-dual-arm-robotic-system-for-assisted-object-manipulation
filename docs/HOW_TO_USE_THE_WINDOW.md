@@ -147,6 +147,20 @@ It is meant to refuse. A refusal always says what is wrong.
 
 ---
 
+## The two camera panels at the top
+
+**Gripper cameras** — what each hand can see, live. Under each picture it says
+`live`, the frame rate, the size, and **which topic the picture came from**.
+That last part matters: three possible names are subscribed, because what a
+real Kinova wrist camera publishes has never been observed on this machine.
+Whichever one delivers is the one printed.
+
+If it says **NO CAMERA — no frame has ever arrived**, nothing is publishing.
+Start the cameras, or check the name in that caption against what your camera
+actually publishes.
+
+---
+
 ## What this system cannot do yet
 
 Said plainly, because a window that hides its limits is worse than one that
@@ -160,3 +174,8 @@ does not.
   vertical. Straight down does not reach.
 * **A table behind the wearer has never been measured.** The arms can put a
   camera back there, but whether that is safe has not been established.
+* **PICK IT UP moves the SIMULATED arm.** The real-arm bridge listens on a
+  different topic (`/real/...`), so nothing here has ever commanded hardware.
+  Driving the real arms needs `--drive-real` on the command line, and that
+  path is untested. See `docs/system/26_will_it_work_on_the_real_robot.md`,
+  which lists every blocker in the order it will bite.

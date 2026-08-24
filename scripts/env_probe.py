@@ -83,8 +83,23 @@ def _q_matrix(q):
 
 
 class ProbeNode(Node):
-    def __init__(self):
+    def __init__(self, real_ns=""):
         super().__init__("environment_calibrator")
+        # WHICH ROBOT THE TRAJECTORIES GO TO, AND IT IS THE SIM BY DEFAULT.
+        #
+        # `kortex_highlevel_bridge` subscribes under `/real` -- its `real_ns`
+        # parameter defaults to "/real" -- so a trajectory published to the
+        # bare `/<arm>_arm_controller/joint_trajectory` reaches the SIMULATED
+        # controller and nothing else. Everything in this file has therefore
+        # only ever driven the simulation, which is correct and was nowhere
+        # stated: "--execute" reads like it moves the robot.
+        #
+        # Passing `real_ns="/real"` puts the commands where the bridge is
+        # listening. It is not the default and never will be: these arms are
+        # bolted to a person's back, the bridge has its own arming gate and
+        # its own home refusal, and a tool that could drive them by accident
+        # is a tool that eventually does.
+        self.real_ns = (real_ns or "").rstrip("/")
         self.js = {}
         self.depth = {}
         self.color = {}
@@ -125,11 +140,13 @@ class ProbeNode(Node):
             self.create_subscription(
                 CameraInfo, t, lambda m: setattr(self, "scene_info", m), 5)
         self.pub = {a: self.create_publisher(
-            JointTrajectory, "/%s_arm_controller/joint_trajectory" % a, 5)
+            JointTrajectory,
+            "%s/%s_arm_controller/joint_trajectory" % (self.real_ns, a), 5)
             for a in ("left", "right")}
         self.grip_pub = {a: self.create_publisher(
-            JointTrajectory, "/%s_gripper_controller/joint_trajectory" % a, 10)
-            for a in ("left", "right")}
+            JointTrajectory,
+            "%s/%s_gripper_controller/joint_trajectory" % (self.real_ns, a),
+            10) for a in ("left", "right")}
         # THE ROBOT'S VOICE. One topic, JSON, so the GUI and anything else
         # read the same sentence the log carries.
         self.say_pub = self.create_publisher(String, "/robot_say", 10)

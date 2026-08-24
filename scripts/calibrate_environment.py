@@ -299,7 +299,8 @@ ENVELOPE = dict(x_max=0.85, y_min=-0.25, y_max=0.65)
 INBOARD_LIMIT = {"left": 0.325, "right": -0.450}
 
 
-def find_table(node, arms, elev_deg, surface_guess, n=3, finder="cluster"):
+def find_table(node, arms, elev_deg, surface_guess, n=3, finder="cluster",
+               probe_heights_m=(0.35, 0.60)):
     """WHERE IS THE TABLE? Coarse probe first, then sweep what was found.
 
     WHY THIS EXISTS. `BOUNDS` was a constant -- a box in FRONT of the wearer,
@@ -332,11 +333,23 @@ def find_table(node, arms, elev_deg, surface_guess, n=3, finder="cluster"):
             quat = node.fixed_quat(arm, f, elev_deg)
             for x in xs:
                 for y in ys:
-                    d = 0.35 / max(1e-6, -float(axis[2]))
-                    cam = [round(float(x) - float(axis[0]) * d, 5),
-                           round(float(y) - float(axis[1]) * d, 5),
-                           round(surface_guess + 0.35, 5)]
-                    if node.solve(arm, cam, quat, tries=1) is None:
+                    cam = None
+                    # SEVERAL CAMERA HEIGHTS, because the guess is a guess.
+                    # `--surface-z` only says where to STAND; a table 300 mm
+                    # lower is still inside the depth range and the field of
+                    # view, but only if the camera got high enough to look
+                    # down at it. Probing one height makes the guess load
+                    # bearing, which is the thing this whole stage is for
+                    # removing.
+                    for hz in probe_heights_m:
+                        d = hz / max(1e-6, -float(axis[2]))
+                        c = [round(float(x) - float(axis[0]) * d, 5),
+                             round(float(y) - float(axis[1]) * d, 5),
+                             round(surface_guess + hz, 5)]
+                        if node.solve(arm, c, quat, tries=1) is not None:
+                            cam = c
+                            break
+                    if cam is None:
                         continue
                     cal.aim(arm, cam, quat, f, 0, elev_deg)
                     if not cal.look_from(cam, quat):

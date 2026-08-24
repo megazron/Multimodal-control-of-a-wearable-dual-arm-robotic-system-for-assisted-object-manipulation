@@ -985,7 +985,29 @@ class Gui(QMainWindow):
         # sizeHint in it and is the single source both here and after
         # embedding, which is the other place the number was written out.
         lw = self._left_width()
+        # AND MAKE IT STICK. `setSizes` is a REQUEST -- the splitter is free
+        # to squeeze a pane down to its widget's minimum, and this one's
+        # minimum was 362. Measured offscreen: `_left_width()` returned 414,
+        # `setSizes` was given 414, and the splitter settled on 392. Every
+        # button label was then cut at the right-hand edge, which is the
+        # defect this method was written to remove and did not.
+        #
+        # Raising the column's own minimum to the measured width is the only
+        # thing the splitter cannot overrule. The 620 ceiling still applies.
+        self._left_col.setMinimumWidth(min(lw, 620))
         self.split.setSizes([lw, 620, max(420, 1920 - lw - 620)])
+        # AND SOMETHING HAS TO START IT.
+        #
+        # `_fit_left_column` widens the column until `clipped_pages()` is
+        # empty, re-arming itself with a timer between passes. It was called
+        # from EXACTLY ONE PLACE: its own re-arm. Nothing ever kicked the
+        # chain off, so the whole mechanism -- written, commented at length,
+        # and correct -- had never run in the live window, and the column sat
+        # at whatever the splitter first handed it.
+        #
+        # 400 ms, so the layout has settled and the fonts are real before the
+        # first measurement. It stops on its own when nothing is clipped.
+        QTimer.singleShot(400, self._fit_left_column)
 
         outer.addLayout(self._bottom_bar())
         self.setCentralWidget(root)
@@ -1049,7 +1071,27 @@ class Gui(QMainWindow):
             inner = sa.widget()
             if inner is None:
                 continue
+            # THE BUTTONS, NOT JUST THE PAGE'S MINIMUM.
+            #
+            # `minimumSizeHint()` on a QPushButton is smaller than the width
+            # its own text needs -- Qt will elide rather than demand room --
+            # so a page whose buttons are all being cut in half reported that
+            # it fitted. `_fit_left_column` then had nothing to widen for and
+            # stopped, which is why the column sat at 392 px against a
+            # measured requirement of 414 and every label lost its right-hand
+            # end: "SIM + REAL" as a red sliver, "REMEMBER VIEW" as "R".
+            #
+            # A button's `sizeHint()` IS its text width, and unlike a
+            # word-wrapped QLabel's it is not an unwrapped-paragraph number,
+            # which is what made an earlier attempt at this useless.
             need = inner.minimumSizeHint().width()
+            for lay in inner.findChildren(QHBoxLayout):
+                w = sum(lay.itemAt(k).widget().sizeHint().width()
+                        for k in range(lay.count())
+                        if lay.itemAt(k).widget() is not None)
+                need = max(need, w + lay.spacing() * max(0, lay.count() - 1))
+            for b in inner.findChildren(QPushButton):
+                need = max(need, b.sizeHint().width())
             vp = sa.viewport().width()
             if need > vp:
                 out.append(("scroll page %d" % i, vp, need))
@@ -1172,8 +1214,29 @@ class Gui(QMainWindow):
             if inner is None:
                 continue
             bar = sa.verticalScrollBar().sizeHint().width()
-            need = max(need, inner.minimumSizeHint().width() + bar
-                       + 2 * sa.frameWidth())
+            pad = bar + 2 * sa.frameWidth()
+            need = max(need, inner.minimumSizeHint().width() + pad)
+            # AND THE BUTTONS THEMSELVES, BY THEIR sizeHint.
+            #
+            # `minimumSizeHint()` on a QPushButton is smaller than the width
+            # its own text needs -- Qt is willing to elide -- so a page full
+            # of buttons reported a minimum that clipped every one of them.
+            # Measured from a screenshot after switching the buttons to a
+            # Preferred policy: the column grew about 25 px and "SIM + REAL"
+            # was still a red sliver.
+            #
+            # A button's `sizeHint()` IS its text width, and unlike a
+            # word-wrapped QLabel's it is not an unwrapped-paragraph number,
+            # which is what made attempt one useless. Rows of side-by-side
+            # buttons are handled by asking the row's layout, not the button.
+            for lay in inner.findChildren(QHBoxLayout):
+                w = sum(lay.itemAt(i).widget().sizeHint().width()
+                        for i in range(lay.count())
+                        if lay.itemAt(i).widget() is not None)
+                w += lay.spacing() * max(0, lay.count() - 1)
+                need = max(need, w + pad + 24)
+            for b in inner.findChildren(QPushButton):
+                need = max(need, b.sizeHint().width() + pad + 24)
         m = col.contentsMargins()
         need += m.left() + m.right()
         # Clamped: the floor is the width that was there before, and the
@@ -1211,7 +1274,7 @@ class Gui(QMainWindow):
         # arms are on somebody else's back. Placed last it fell below the fold
         # on a 950 px display, which for the single most important panel is a
         # real defect rather than a cosmetic one.
-        campanel = QGroupBox("Wrist cameras (subscribed, never opened)")
+        campanel = QGroupBox("Gripper cameras  --  what each hand sees")
         campanel.setFont(helvetica(11, True))
         cl = QHBoxLayout(campanel)
         self.cam_lbl, self.cam_cap = {}, {}
@@ -1623,7 +1686,7 @@ class Gui(QMainWindow):
         reader to assume the open-vocabulary model was running when it was
         not.
         """
-        g = QGroupBox("Vision: say what to pick up")
+        g = QGroupBox("SAY WHAT TO PICK UP")
         g.setFont(helvetica(11, True))
         v = QVBoxLayout(g)
 
@@ -1634,16 +1697,27 @@ class Gui(QMainWindow):
         # answer -- so a wrong name produced a move to somewhere plausible
         # and empty, which is what "it just moves here and there" looks like
         # from the outside.
-        b = QPushButton("WHAT IS ON THE TABLE?")
+        b = QPushButton("QUICK LOOK   (one camera frame)")
         b.setFont(helvetica(10, True))
         b.setMinimumHeight(28)
-        b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        # PREFERRED, NOT IGNORED, AND THAT IS WHAT WAS CLIPPING THE LABELS.
+        #
+        # `_left_width()` sizes the control column from `minimumSizeHint()`,
+        # and a button whose horizontal policy is `Ignored` reports almost
+        # nothing for that -- so no button label ever pushed the column wide
+        # enough to show itself. Measured from a screenshot: "SIM + REAL"
+        # rendered as a red sliver, "REMEMBER VIEW" as "R", "3. PICK IT UP"
+        # as "3. PIC". The column was asking Qt how wide it needed to be and
+        # Qt was answering about widgets that had been told not to care.
+        #
+        # `Preferred` makes the hint reflect the text. The 620 px ceiling in
+        # `_left_width` still stops one long label eating the RViz panel.
+        b.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         b.setToolTip(
-            "Segments the support surface from the wrist camera's depth, "
-            "then every cluster standing on it, then a plane-constrained "
-            "grasp for each -- and reports the ones it CANNOT pick up with "
-            "the reason. Needs no camera calibration: the wrist camera's "
-            "pose is forward kinematics.")
+            "A single glance from where the gripper is now -- no arm movement, "
+            "no full scan. Tells you what is in front of that one camera "
+            "and which of it could be picked up. For a proper answer over "
+            "the whole table, use FULL SCAN.")
         b.clicked.connect(self.on_what_is_on_the_table)
         v.addWidget(b)
         self.table_lbl = QLabel("not looked yet")
@@ -1674,9 +1748,9 @@ class Gui(QMainWindow):
         self.vis_cam = QComboBox()
         self.vis_cam.addItems(["gripper (RGB-D)", "scene (colour only)"])
         self.vis_cam.setToolTip(
-            "The gripper camera has DEPTH, so it gives a position. The scene "
-            "camera is colour only -- it can say what it sees and where in "
-            "the image, but not how far away, so it cannot produce a grasp.")
+            "The gripper camera can judge DISTANCE, so it can tell the arm "
+            "where to go. The fixed room camera only sees colour -- it can "
+            "tell you something is there and roughly where in the picture, but not how far away, so it cannot be used to grab something.")
         self.vis_cam.currentTextChanged.connect(
             lambda t: self.bus.note("vision camera: %s" % t))
         row2.addWidget(self.vis_cam, 1)
@@ -1959,7 +2033,7 @@ class Gui(QMainWindow):
                 b = QPushButton(btxt)
                 b.setFont(helvetica(9, True))
                 b.setMinimumHeight(26)
-                b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+                b.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
                 # A BUTTON MUST LOOK PRESSABLE. On this dark theme a bare
                 # QPushButton renders as flat text and is indistinguishable
                 # from the labels around it -- which is half the reason the
@@ -2003,7 +2077,7 @@ class Gui(QMainWindow):
                 b = QPushButton("TYPE WHAT YOU WANT  ->  Instruct")
                 b.setFont(helvetica(10, True))
                 b.setMinimumHeight(28)
-                b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+                b.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
                 b.setToolTip("Switches the middle column to the Instruct "
                              "panel and puts the keyboard in the box. "
                              "Nothing is commanded until CONFIRM.")
@@ -2249,7 +2323,7 @@ class Gui(QMainWindow):
             b = QPushButton(text)
             b.setFont(helvetica(10, True))
             b.setMinimumHeight(28)
-            b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+            b.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
             b.setToolTip(tip)
             b.clicked.connect(fn)
             v.addWidget(b)
@@ -2400,7 +2474,7 @@ class Gui(QMainWindow):
         once at the start of a session, and a control you use once does not
         belong beside the one you reach for when the gripper will not let go.
         """
-        g = QGroupBox("While it is running")
+        g = QGroupBox("Controls for while it runs")
         g.setFont(helvetica(11, True))
         v = QVBoxLayout(g)
 
@@ -2426,7 +2500,7 @@ class Gui(QMainWindow):
         phase banner is the arm's own voice off `/robot_say`, and the object
         list is the map the pick is planned from.
         """
-        g = QGroupBox("MAP THE ENVIRONMENT  --  measure first, then plan")
+        g = QGroupBox("LOOK AT THE TABLE  --  what is really there")
         g.setFont(helvetica(11, True))
         v = QVBoxLayout(g)
 
@@ -2444,19 +2518,20 @@ class Gui(QMainWindow):
         v.addWidget(self.say_lbl)
 
         row = QHBoxLayout()
-        b = QPushButton("CALIBRATE THE ENVIRONMENT")
+        b = QPushButton("1.  FULL SCAN   (once per table)")
         b.setFont(helvetica(10, True))
         b.setMinimumHeight(28)
-        b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        b.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         b.setToolTip(
-            "Sweeps the workspace as a VOLUME -- straight serpentine rows at "
-            "each of several heights, in passes that each hold ONE fixed "
-            "wrist attitude and only translate, like a 3D printer's probe. "
-            "Both arms by default. Every frame is segmented, the masks are "
-            "lifted through the depth, and the views fuse into one map: the "
-            "support surface MEASURED, and every object with its width and "
-            "whether the jaws can close on it. A capture is REFUSED unless "
-            "the arm is actually stationary. Narrates every cell.")
+            "The robot looks over the whole table and works out what is on it.\n\n"
+            "It first finds the table itself -- wherever it is, whatever "
+            "height -- then walks over it in straight rows at two heights "
+            "and from three angles, holding the wrist still at each stop "
+            "like a 3D printer touching off. It photographs each object, "
+            "works out how wide it is, and says which ones the gripper can "
+            "actually close on.\n\n"
+            "Takes several minutes. You only need it ONCE for a given "
+            "table -- after that use QUICK CHECK.")
         b.clicked.connect(self.on_calibrate_environment)
         row.addWidget(b, 1)
         self.map_arm = QComboBox()
@@ -2473,43 +2548,45 @@ class Gui(QMainWindow):
         # THE FAST PATH. The full sweep is minutes and is a once-per-table
         # thing; this is the one an operator presses between picks.
         rowr = QHBoxLayout()
-        br = QPushButton("WHAT CHANGED?  (fast re-look)")
+        br = QPushButton("2.  QUICK CHECK   (what moved)")
         br.setFont(helvetica(10, True))
         br.setMinimumHeight(28)
-        br.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        br.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        br.setMinimumWidth(0)
         br.setToolTip(
-            "Asks the SCENE camera what moved since the reference -- no arm "
-            "motion at all -- then sends the arms only to the viewpoints that "
-            "see those patches. Keeps the surface the full sweep measured. "
-            "About 30 seconds against 18 minutes. Needs a full calibration "
-            "and a stored reference first.")
+            "Spots what has changed and only re-checks that.\n\n"
+            "The fixed camera above the table compares the scene with the "
+            "picture it remembered, which takes no arm movement at all. The "
+            "arms then visit only the few positions that can see the parts "
+            "that changed.\n\n"
+            "About 30 seconds, against 18 minutes for a full scan. Needs a "
+            "FULL SCAN and a REMEMBER THIS VIEW first.")
         br.clicked.connect(self.on_relook)
         rowr.addWidget(br, 2)
-        bref = QPushButton("SET REFERENCE")
+        bref = QPushButton("REMEMBER VIEW")
         bref.setFont(helvetica(10))
         bref.setToolTip(
-            "Stores the scene camera's current frame as the 'before' picture. "
-            "Press it when the table is as you want it; everything after is "
-            "measured as a change from this.")
+            "Takes a picture of the table as it is now and keeps it.\n\n"
+            "Press this when the table is set up how you want it. From then on, QUICK CHECK compares against this picture to see what has moved.")
         bref.clicked.connect(self.on_set_reference)
         rowr.addWidget(bref, 1)
         v.addLayout(rowr)
 
         row2 = QHBoxLayout()
-        b2 = QPushButton("SHOW THE MAP")
+        b2 = QPushButton("LIST WHAT IT FOUND")
         b2.setFont(helvetica(10))
-        b2.setToolTip("Reads recordings/baselines/world_map.json and lists "
-                      "what it holds. Moves nothing.")
+        b2.setToolTip("Shows everything the robot currently believes is on the table, "
+                      "with sizes, and which ones it can pick up. Moves nothing.")
         b2.clicked.connect(self.on_show_map)
         row2.addWidget(b2, 1)
-        b3 = QPushButton("PICK FROM THE MAP")
+        b3 = QPushButton("3.  PICK IT UP")
         b3.setFont(helvetica(10, True))
         b3.setStyleSheet("color:%s;border:1px solid %s" % (C_OK, C_OK))
         b3.setToolTip(
-            "Plans a pick for the selected object using the MEASURED centre "
-            "and width -- no declared coordinates anywhere in the chain. "
-            "PLANS ONLY: it prints every waypoint and commands nothing "
-            "unless 'and move' is ticked.")
+            "Picks up the object you chose, coming DOWN onto it from above "
+            "as steeply as the arm can manage.\n\n"
+            "It uses where the robot SAW the object, not a position typed "
+            "into a file. Nothing moves unless you tick 'really move the arm' -- otherwise it just shows you the plan.")
         b3.clicked.connect(self.on_pick_from_map)
         row2.addWidget(b3, 1)
         v.addLayout(row2)
@@ -2521,10 +2598,10 @@ class Gui(QMainWindow):
         self.map_obj.valueChanged.connect(
             lambda i: self.bus.note("map object index: %d" % i))
         row3.addWidget(self.map_obj)
-        self.map_move = QCheckBox("and move")
+        self.map_move = QCheckBox("really move the arm")
         self.map_move.setToolTip(
-            "Unticked, PICK FROM THE MAP plans and prints. Ticked, it "
-            "commands the arm.")
+            "Leave this OFF to see what the robot would do without it doing "
+            "anything. Turn it ON and the arm really moves.")
         self.map_move.stateChanged.connect(
             lambda _s: self.bus.note(
                 "pick from map will %s"
@@ -2686,7 +2763,7 @@ class Gui(QMainWindow):
 
     def _setup_controls(self):
         """Set once, before a run. Deliberately NOT beside the running ones."""
-        g = QGroupBox("Set once, before a run")
+        g = QGroupBox("Settings you change once, before starting")
         g.setFont(helvetica(11, True))
         v = QVBoxLayout(g)
 
@@ -2747,7 +2824,7 @@ class Gui(QMainWindow):
     # nothing. The STATUS tab reads what is ACTUALLY running, from the
     # follower's own status topic, never from which item is selected here.
     def _motion_panel(self):
-        g = QGroupBox("How the arms move (next launch)")
+        g = QGroupBox("How smoothly the arms move  (next start)")
         g.setFont(helvetica(11, True))
         v = QVBoxLayout(g)
 
@@ -3666,7 +3743,7 @@ class Gui(QMainWindow):
             b = QPushButton(sp.label)
             b.setFont(helvetica(9))
             b.setMinimumWidth(0)
-            b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+            b.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
             if sp.enabled:
                 b.setToolTip(sp.note)
                 b.clicked.connect(lambda _, x=sp: self.on_launch(x))
@@ -3694,7 +3771,7 @@ class Gui(QMainWindow):
         with no button is the same defect as a button with no manifest entry
         and is harder to see.
         """
-        g = QGroupBox("Start a mode, run a task")
+        g = QGroupBox("Start the robot doing something")
         g.setFont(helvetica(11, True))
         v = QVBoxLayout(g)
         for group, title in (("mode", "Modes"), ("task", "Tasks"),
@@ -3706,7 +3783,7 @@ class Gui(QMainWindow):
         return g
 
     def _diag_launchers(self):
-        g = QGroupBox("Checks and repairs")
+        g = QGroupBox("Something is wrong?  Checks and fixes")
         g.setFont(helvetica(11, True))
         v = QVBoxLayout(g)
         self._spec_group(v, "diag", "Diagnostics")
@@ -3723,7 +3800,7 @@ class Gui(QMainWindow):
         v.addWidget(lab)
         b2 = QPushButton("HOW GOOD IS THE SYSTEM?")
         b2.setFont(helvetica(9, True))
-        b2.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        b2.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         b2.setToolTip(
             "The control budget: where the hand ends up against the 30 mm "
             "grasp gate, how far the wearer moves before the guard hears "
@@ -3740,7 +3817,7 @@ class Gui(QMainWindow):
 
         b = QPushButton("CHECK DEPENDENCIES")
         b.setFont(helvetica(9, True))
-        b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        b.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         b.setToolTip("Imports each environment's modules together in one "
                      "interpreter, checks the command-line tools are on "
                      "PATH, and checks every srl_* package is SYMLINK "
@@ -4719,7 +4796,7 @@ class Gui(QMainWindow):
         return box
 
     def _divergence_panel(self):
-        g = QGroupBox("Divergence: commanded vs actual")
+        g = QGroupBox("How far the real arms are from where they were told")
         g.setFont(helvetica(11, True))
         grid = QGridLayout(g)
         self.div_head = QLabel()

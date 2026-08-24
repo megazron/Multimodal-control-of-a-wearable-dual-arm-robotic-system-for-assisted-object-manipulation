@@ -206,18 +206,25 @@ class MockRGBD(Node):
         sh = os.environ.get("SRL_SCENE_SHIFT_XY", "")
         if sh:
             try:
-                dx, dy = (float(v) for v in sh.split(","))
+                parts = [float(v) for v in sh.split(",")]
+                # dz TOO, because "any height" cannot be tested by moving a
+                # table sideways. Two values stay valid so nothing that used
+                # the older form breaks.
+                dx, dy = parts[0], parts[1]
+                dz = parts[2] if len(parts) > 2 else 0.0
             except Exception:                              # noqa: BLE001
                 self.get_logger().error(
-                    "SRL_SCENE_SHIFT_XY=%r is not 'dx,dy' -- NOT shifting, "
-                    "rather than shifting by a number I invented" % sh)
+                    "SRL_SCENE_SHIFT_XY=%r is not 'dx,dy' or 'dx,dy,dz' -- "
+                    "NOT shifting, rather than shifting by a number I "
+                    "invented" % sh)
             else:
                 for o in self.objects:
                     o["xyz"] = [o["xyz"][0] + dx, o["xyz"][1] + dy,
-                                o["xyz"][2]]
+                                o["xyz"][2] + dz]
                 self.get_logger().warn(
-                    "SCENE SHIFTED by (%+.3f, %+.3f) m. The rendered world no "
-                    "longer matches the task files, ON PURPOSE." % (dx, dy))
+                    "SCENE SHIFTED by (%+.3f, %+.3f, %+.3f) m. The rendered "
+                    "world no longer matches the task files, ON PURPOSE."
+                    % (dx, dy, dz))
         self.n_pub = 0
         self.no_tf = 0
         hz = float(self.get_parameter("rate_hz").value)

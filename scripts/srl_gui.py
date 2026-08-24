@@ -1047,6 +1047,8 @@ class Gui(QMainWindow):
         # the wrong number.
         QTimer.singleShot(400, self._fit_left_column)
         QTimer.singleShot(2500, lambda: self._fit_left_column(12))
+        # ...and the second pass is SKIPPED ONCE RVIZ HAS EMBEDDED. See
+        # `_fit_left_column`.
 
         outer.addLayout(self._bottom_bar())
         self.setCentralWidget(root)
@@ -1158,6 +1160,25 @@ class Gui(QMainWindow):
         A QTimer instead. Same convergence, no re-entrancy, and the layout
         has had a real event-loop pass to settle before the next measurement.
         """
+        # NEVER RESIZE THE SPLITTER AFTER RVIZ HAS BEEN ADOPTED.
+        #
+        # RViz is a FOREIGN X WINDOW reparented into a container. This file
+        # already records that touching the layout 250 ms after the reparent
+        # broke the adoption -- the container held the window and the window
+        # ended up at the corner of the SCREEN, so the COMMANDED view was
+        # blank while the log said "embedded ... viewable".
+        #
+        # I added a second widening pass at 2500 ms without testing the
+        # embedded case: every screenshot I took was on an Xvfb with no
+        # window manager, where RViz is NOT embedded and there is nothing to
+        # disturb. The operator runs with a window manager, where it is. That
+        # is the one configuration the change had never been seen in, and it
+        # is the one that matters.
+        #
+        # The widening still happens -- it runs before the adoption, which is
+        # 3 s in -- and stops touching the splitter the moment RViz is in it.
+        if getattr(self, "embedded", None):
+            return True
         short = max((n - v for _, v, n in self.clipped_pages()), default=0)
         if short <= 0 or tries <= 0:
             return True

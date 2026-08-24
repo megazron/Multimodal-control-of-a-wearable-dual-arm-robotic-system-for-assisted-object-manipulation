@@ -118,6 +118,44 @@ The three buttons on each row are how far the command goes:
 
 ---
 
+## If the window does not appear
+
+Almost always one of two things, and neither is a crash.
+
+**"An operations window is already open (pid NNNN)."** One is running. Use it,
+or close it first:
+
+```
+pkill -f srl_gui.py
+bash scripts/start_gui.sh
+```
+
+**It opens, and the connection panel says `shm=bad, daemon=bad`.** Left-over
+shared memory from a previous run. Stop everything, clear it with nothing
+running, then start again:
+
+```
+pkill -f 'srl_gui.py|rviz2|move_group|ros2_control|ik_follower'
+sleep 5
+rm -f /dev/shm/fastrtps_* /dev/shm/sem.fastrtps_*
+sleep 5
+bash scripts/start_gui.sh
+```
+
+Clear shared memory only with **nothing running** — deleting it under a live
+process breaks that process's connections and every topic afterwards goes
+quiet while still appearing in the list.
+
+**To check the window really is up** rather than guessing, ask X:
+
+```
+DISPLAY=:0 xwininfo -root -tree | grep "SRL operations"
+```
+
+A healthy window reports `1920x1060` and `Map State: IsViewable`.
+
+---
+
 ## If something goes wrong
 
 **E-STOP** — bottom left, always visible, always works. Press it.

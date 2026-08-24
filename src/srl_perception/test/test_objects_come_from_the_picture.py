@@ -474,3 +474,55 @@ def test_and_a_redundant_viewpoint_is_still_dropped():
     chosen, _ = WM.observe_set(vs, plane, objects=objs)
     assert len(chosen) == 1, ("four identical viewpoints should collapse to "
                               "one, got %d" % len(chosen))
+
+
+def test_a_long_thin_sliver_seen_by_many_views_is_not_an_object():
+    """A TOTAL POINT COUNT DOES NOT SEPARATE THESE.
+
+    On the table-beside-the-wearer run the map carried three extras at the
+    edges of the pads -- 99 x 33 mm at 6 mm tall, 46 x 19, 39 x 5 -- each seen
+    by sixteen to eighteen viewpoints. Their totals (226-447) clear the
+    200-point floor, and they are nothing: points PER VIEW were 13, 16 and 28
+    against 754 to 18 083 for the six real objects.
+
+    A viewpoint that genuinely sees an object returns hundreds of points from
+    it. One that catches its edge returns a handful.
+    """
+    class _O:
+        def __init__(self, n, views, w=0.040):
+            self.n_points, self.width_m = n, w
+            self.seen_by = ["v%d" % i for i in range(views)]
+    # WIDTHS AS MEASURED, so this test exercises the points-per-view rule and
+    # not the size floor: the fragments were 33, 19 and 5 mm across, all above
+    # the 5 mm sensor floor, so only the per-view rule can reject them.
+    real = [_O(12071, 16), _O(11101, 2), _O(108497, 6)]
+    frag = [_O(447, 16, 0.033), _O(296, 18, 0.019), _O(226, 18, 0.005)]
+    solid, weak = WM._split_weak(real + frag, n_views=18)
+    assert len(solid) == 3, [o.n_points for o in solid]
+    assert len(weak) == 3, [o.n_points for o in weak]
+    # THE CONTROL: the fragments DO clear the total-points floor, so the
+    # per-view rule is doing work the old rule could not.
+    assert all(o.n_points >= WM.MIN_OBJECT_POINTS for o in frag)
+
+
+def test_a_one_millimetre_object_is_not_a_small_object():
+    """The last spurious detection on the table-beside run was 1 mm across.
+
+    At the sweep's working range one camera pixel subtends about 2.1 mm, so an
+    extent under two pixels is below what the sensor can resolve -- it is a
+    line of points where two surfaces meet, not a measurement of a thing.
+    """
+    class _O:
+        def __init__(self, n, views, w):
+            self.n_points, self.width_m = n, w
+            self.seen_by = ["v%d" % i for i in range(views)]
+    real = _O(11000, 4, 0.040)
+    hair = _O(11000, 4, 0.001)          # plenty of points, no width
+    solid, weak = WM._split_weak([real, hair], n_views=4)
+    assert len(solid) == 1 and solid[0].width_m == 0.040
+    assert len(weak) == 1
+    # THE CONTROL: a genuinely thin object stays. The rule is a sensor floor,
+    # not a dislike of thin things.
+    thin = _O(11000, 4, 0.008)
+    solid2, _ = WM._split_weak([thin], n_views=4)
+    assert len(solid2) == 1, "an 8 mm object should survive"

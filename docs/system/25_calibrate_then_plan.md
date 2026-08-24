@@ -479,3 +479,66 @@ The "a check that cannot fail" rule, with one axis left out.
 * **`SRL_SCENE_SHIFT_XY` is how the mock was made to disagree with the task
   files** — without it, simulation cannot produce the case where declared
   coordinates are wrong, which is the only case where any of this matters.
+
+
+---
+
+# A TABLE BESIDE THE WEARER, AND THE LAST OF THE SPURIOUS OBJECTS
+
+## Beside, and 300 mm lower
+
+The untested case, tested. The whole rendered scene shifted (+0.35, −0.35,
+**−0.30**) with the task files untouched, so the table is at the wearer's
+SIDE, close in, at a different height, and every declared coordinate is wrong.
+`SRL_SCENE_SHIFT_XY` grew a third component for this — "any height" cannot be
+tested by moving a table sideways — and the coarse probe looks from two camera
+heights so `--surface-z` is no longer load bearing.
+
+```
+table found: surface z = 0.9503 m, tilt 0.03 deg,
+             spanning x -0.758..0.995  y 0.019..0.540
+left  arm will sweep x  0.325..0.850  y 0.019..0.540
+right arm will sweep x -0.758..-0.450 y 0.019..0.540
+```
+
+| truth (after the shift) | measured |
+| --- | --- |
+| surface 0.9500 | **0.9503** |
+| pad (0.640, 0.150) | **(0.640, 0.150)** |
+| pad (0.060, 0.150) | **(0.060, 0.150)** |
+| cubes at 0.770 / 0.830 / −0.070 / −0.130, y 0.100 | **all four exact** |
+
+19 of 19 reachable cells, **six objects and the scene has six**.
+
+## The spurious detections are gone, and it took two rules
+
+The first run of that scene carried three extras at the pads' edges. Both
+rules are physical, not tuned:
+
+**Points per view.** A total count does not separate a real object from a long
+thin sliver, because a sliver seen by eighteen viewpoints accumulates a
+respectable total out of nothing. Measured:
+
+| | points per view |
+| --- | --- |
+| the six real objects | **754 – 18 083** |
+| the three fragments | **13, 16, 28** |
+
+Seven times clear at the worst. A viewpoint that genuinely sees an object
+returns hundreds of points from it; one that catches its edge returns a
+handful.
+
+**A size floor.** That rule left one survivor, **1 mm across** — which is not
+a small object, it is a line of points where two surfaces meet. At the sweep's
+working range one camera pixel subtends about 2.1 mm, so an extent under two
+pixels is below what the sensor can resolve. The floor is 5 mm and a genuinely
+thin object clears it.
+
+## How far behind the wearer the arms reach
+
+Asked out to y = −0.70 and got −0.70: the left arm can place a camera **0.7 m
+behind the frontal plane**, and the limit is *still* the question rather than
+the arm. It does not matter operationally, because going there is IK-reachable
+and not thereby safe — hard constraint 11 — and the swept bounds never go
+inboard of the columns measured geometrically. Recorded so nobody re-derives
+it: `recordings/baselines/reachable_rear.json`.

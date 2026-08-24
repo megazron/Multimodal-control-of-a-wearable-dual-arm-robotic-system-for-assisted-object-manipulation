@@ -1007,7 +1007,17 @@ class Gui(QMainWindow):
         #
         # 400 ms, so the layout has settled and the fonts are real before the
         # first measurement. It stops on its own when nothing is clipped.
+        # TWICE, AND THE SECOND ONE IS NOT BELT-AND-BRACES.
+        #
+        # Measured in the live window: at 400 ms the pages report a shortfall
+        # of a few pixels, the loop satisfies it, converges and stops -- and
+        # by 1.5 s the same page reports needing 524 px against a 380 px
+        # viewport, because the tabs, the fonts and the embedded panel are
+        # still settling. A convergence test that runs before the thing it
+        # measures has finished changing will always converge, and always on
+        # the wrong number.
         QTimer.singleShot(400, self._fit_left_column)
+        QTimer.singleShot(2500, lambda: self._fit_left_column(12))
 
         outer.addLayout(self._bottom_bar())
         self.setCentralWidget(root)
@@ -1128,6 +1138,20 @@ class Gui(QMainWindow):
         new_left = min(620, sizes[0] + short + 2)
         if new_left <= sizes[0]:
             return False                # at the ceiling; report, do not loop
+        # RAISE THE COLUMN'S OWN MINIMUM, NOT JUST THE SPLITTER'S REQUEST.
+        #
+        # `setSizes` is a request the splitter may refuse: it will not shrink
+        # a pane below its widget's minimum, and it is free to shrink THIS one
+        # down to its minimum to satisfy the others. The minimum was set once,
+        # in the constructor, from `_left_width()` -- and measured offscreen,
+        # that call returns 392 DURING CONSTRUCTION and 414 once the layout
+        # has settled and the fonts are real. So the floor was fixed at a
+        # pre-layout guess and the splitter sat on it for the life of the
+        # window, whatever this method asked for afterwards.
+        #
+        # Raising it here, where the measurement is real, is the thing the
+        # splitter cannot overrule. The 620 ceiling still protects RViz.
+        self._left_col.setMinimumWidth(min(new_left, 620))
         rest = sizes[1] + sizes[2] - (new_left - sizes[0])
         self.split.setSizes([new_left, sizes[1], max(300, rest - sizes[1])])
         QTimer.singleShot(60, lambda: self._fit_left_column(tries - 1))
@@ -2539,7 +2563,10 @@ class Gui(QMainWindow):
         # arm's: the two arms cannot cross the centreline, so a one-arm map is
         # missing exactly the half its own arm can never reach -- and that
         # half is not empty, it is unmeasured.
-        self.map_arm.addItems(["both", "left", "right"])
+        self.map_arm.addItems(["both arms", "left arm", "right arm"])
+        # WIDE ENOUGH FOR ITS OWN LONGEST ENTRY. It rendered as "bot".
+        self.map_arm.setMinimumContentsLength(9)
+        self.map_arm.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.map_arm.currentTextChanged.connect(
             lambda t: self.bus.note("map arm: %s" % t))
         row.addWidget(self.map_arm)
@@ -2624,7 +2651,7 @@ class Gui(QMainWindow):
 
     def on_calibrate_environment(self):
         """Start the sweep. It is a LAUNCH, not a call: it takes minutes."""
-        arm = self.map_arm.currentText()
+        arm = self.map_arm.currentText().split()[0]   # "both arms" -> "both"
         py = os.path.join(_WS, ".venv_vision", "bin", "python")
         if not os.path.exists(py):
             # NAMED. The segmenter needs ultralytics, which lives in
@@ -2695,7 +2722,23 @@ class Gui(QMainWindow):
         self.bus.submit(go, label="show the map")
 
     def on_pick_from_map(self):
-        arm = self.map_arm.currentText()
+        arm = self.map_arm.currentText().split()[0]
+        if arm == "both":
+            # A PICK IS ONE ARM'S JOB. "both" is a scanning choice, not a
+            # grasping one, and silently picking the left would be a guess.
+            #
+            # AND IT GOES IN THE LOG. The audit caught this: a press that only
+            # repaints a label leaves no trace, and "a press must leave a
+            # trace" is this window's own rule -- an operator who pressed a
+            # button and saw nothing happen needs the event log to tell them
+            # whether it did anything at all.
+            self.bus.note("pick from map REFUSED: 'both arms' is a scanning "
+                          "choice, not a grasping one -- choose left or right",
+                          bad=True)
+            self._map_say("choose LEFT ARM or RIGHT ARM to pick with -- "
+                          "'both arms' is for scanning, not for grabbing.",
+                          bad=True)
+            return
         idx = int(self.map_obj.value())
         move = self.map_move.isChecked()
         py = os.path.join(_WS, ".venv_vision", "bin", "python")

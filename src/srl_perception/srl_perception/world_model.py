@@ -532,6 +532,34 @@ SPLIT_GAP_M = 0.012
 MIN_OBJECT_POINTS = 200
 MIN_OBJECT_VIEWS = 2
 
+# AND HOW MUCH EACH VIEWPOINT THAT SAW IT ACTUALLY CONTRIBUTED.
+#
+# A total point count alone does not separate a real object from a long thin
+# sliver at the edge of a pad, because a sliver seen by eighteen viewpoints
+# accumulates a respectable total out of nothing. Measured on the table-beside
+# -the-wearer run, points PER VIEW:
+#
+#     the six real objects     754 to 18 083
+#     the three fragments       13, 16, 28
+#
+# Seven times clear at the worst, and the reason is physical: a viewpoint that
+# genuinely sees an object returns hundreds of points from it, and one that
+# catches its edge returns a handful. An object that sixteen viewpoints each
+# gave twenty points to is an artefact of where those views overlap.
+MIN_POINTS_PER_VIEW = 100
+
+# AND A FLOOR ON PHYSICAL SIZE, because a 1 mm object is not a small object.
+#
+# The points-per-view rule took the table-beside run from three spurious
+# detections to one, and the survivor was **1 mm across** -- which is not a
+# thing, it is a line of points where two surfaces meet.
+#
+# 5 mm is not a taste: at the sweep's working range one camera pixel subtends
+# about 2.1 mm, so an extent under two pixels is below what the sensor can
+# resolve and cannot be a measurement of anything. Real thin objects -- a card
+# edge, a pen -- are above it.
+MIN_OBJECT_WIDTH_M = 0.005
+
 
 def _split_disconnected(pts, gap_m=SPLIT_GAP_M, min_points=25):
     """One point set -> the separated lumps it is actually made of.
@@ -757,7 +785,10 @@ def _split_weak(objs, n_views=None):
     need = MIN_OBJECT_VIEWS if n_views is None else views_needed(n_views)
     solid, weak = [], []
     for o in objs:
-        if o.n_points >= MIN_OBJECT_POINTS and len(o.seen_by) >= need:
+        per_view = o.n_points / max(1, len(o.seen_by))
+        if (o.n_points >= MIN_OBJECT_POINTS and len(o.seen_by) >= need
+                and per_view >= MIN_POINTS_PER_VIEW
+                and o.width_m >= MIN_OBJECT_WIDTH_M):
             solid.append(o)
         else:
             weak.append(o)

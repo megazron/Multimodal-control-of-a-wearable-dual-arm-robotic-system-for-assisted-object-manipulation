@@ -110,6 +110,20 @@ class ProbeNode(Node):
                 PoseStamped, base + "/render_pose",
                 lambda m, a=arm: self.render_pose.setdefault(a, []).append(m),
                 20)
+        # THE SCENE CAMERA. Monocular colour, no depth -- `scene_camera_node`
+        # publishes /scene_camera/image_raw, and the mock stand-in publishes
+        # /scene_camera/color/image_raw, so both are taken and which one
+        # arrived is reported. It is used to notice CHANGE, never to measure.
+        self.scene_img = None
+        self.scene_info = None
+        self.scene_topic = None
+        for t in ("/scene_camera/image_raw", "/scene_camera/color/image_raw"):
+            self.create_subscription(
+                Image, t, lambda m, t=t: self._on_scene(t, m), 5)
+        for t in ("/scene_camera/camera_info",
+                  "/scene_camera/color/camera_info"):
+            self.create_subscription(
+                CameraInfo, t, lambda m: setattr(self, "scene_info", m), 5)
         self.pub = {a: self.create_publisher(
             JointTrajectory, "/%s_arm_controller/joint_trajectory" % a, 5)
             for a in ("left", "right")}
@@ -147,6 +161,10 @@ class ProbeNode(Node):
 
     def _on_depth(self, arm, m):
         self.depth[arm] = m
+
+    def _on_scene(self, topic, m):
+        self.scene_img = m
+        self.scene_topic = topic
 
     def spin(self, secs):
         t = time.time()
@@ -657,6 +675,58 @@ class ProbeNode(Node):
                    if c.encoding == "rgb8" else img.copy())
             return dm, bgr, K, stamp
         return None, None, None, 0.0
+
+    def scene_frame(self, max_wait_s=5.0):
+        """(bgr, K, pose) from the fixed scene camera, or (None, why, None).
+
+        NO DEPTH IS READ even where a stand-in publishes some. A real
+        `scene_camera_node` has none, and a pipeline validated against depth
+        the real camera cannot produce would be validated against nothing.
+        """
+        import cv2
+        end = time.time() + max_wait_s
+        while time.time() < end and rclpy.ok():
+            self.spin(0.05)
+            if self.scene_img is not None and self.scene_info is not None:
+                break
+        if self.scene_img is None:
+            return None, ("no scene camera. Nothing is publishing "
+                          "/scene_camera/image_raw. `scene_camera_node` "
+                          "refuses rather than republishing when no device "
+                          "is attached, and no camera has ever been attached "
+                          "to this host."), None
+        if self.scene_info is None:
+            return None, "the scene camera publishes no camera_info", None
+        m = self.scene_img
+        buf = np.frombuffer(bytes(m.data), dtype=np.uint8)
+        if buf.size != m.height * m.width * 3:
+            return None, ("the scene frame is %d bytes for %dx%d, which is "
+                          "not rgb8/bgr8" % (buf.size, m.width, m.height)), None
+        img = buf.reshape(m.height, m.width, 3)
+        bgr = (cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+               if m.encoding == "rgb8" else img.copy())
+        i = self.scene_info
+        K = [i.k[0], i.k[4], i.k[2], i.k[5]]
+        frame = m.header.frame_id or "scene_camera_optical_frame"
+        pose = None
+        for f in (frame, "scene_camera_optical_frame", "scene_camera_link"):
+            try:
+                t = self.buf.lookup_transform("world", f, rclpy.time.Time())
+            except Exception:                                  # noqa: BLE001
+                continue
+            M = np.eye(4)
+            r = t.transform.rotation
+            M[:3, :3] = _q_matrix([r.x, r.y, r.z, r.w])
+            M[0, 3] = t.transform.translation.x
+            M[1, 3] = t.transform.translation.y
+            M[2, 3] = t.transform.translation.z
+            pose = M
+            break
+        if pose is None:
+            return None, ("no TF from world to the scene camera's frame "
+                          "(%s). Its rays cannot be put on the table without "
+                          "knowing where it is." % frame), None
+        return bgr, K, pose
 
     def camera_pose(self, arm):
         """4x4 of the camera's OPTICAL frame in `world`, from TF.

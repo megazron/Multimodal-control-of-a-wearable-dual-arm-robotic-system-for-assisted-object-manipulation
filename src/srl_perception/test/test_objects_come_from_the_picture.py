@@ -396,3 +396,27 @@ def test_a_tilted_plane_would_promote_the_tabletop_to_an_object():
     over_loose = float((loose.height(top) > SL.MIN_HEIGHT_M).mean())
     over_tight = float((tight.height(top) > SL.MIN_HEIGHT_M).mean())
     assert over_tight <= over_loose, (over_tight, over_loose)
+
+
+def test_the_evidence_rule_scales_with_how_many_views_were_taken():
+    """A RE-LOOK VISITS THREE VIEWPOINTS ON PURPOSE.
+
+    `MIN_OBJECT_VIEWS = 2` is right for a 73-view sweep, where a single
+    sighting really is a sliver. Applied to a three-view re-look it demoted
+    every rearranged object and reported all six GONE -- a fast re-measure
+    that concludes the table is empty, which is worse than none because it
+    looks like an answer.
+    """
+    assert WM.views_needed(1) == 1
+    assert WM.views_needed(2) == 1
+    assert WM.views_needed(3) == WM.MIN_OBJECT_VIEWS
+    assert WM.views_needed(73) == WM.MIN_OBJECT_VIEWS
+
+    a = _seg((0.420, 0.45, 1.270), (0.04, 0.04, 0.04), n=3000, seed=60)
+    one = [WM.View(a.points, "only", objects=[a])]
+    solid, weak = WM._split_weak(WM._fuse_segments(one, _plane_at(1.250)),
+                                 len(one))
+    assert len(solid) == 1, "a single-view re-look found nothing"
+    # THE CONTROL: on a big sweep the same single sighting is still weak.
+    solid2, weak2 = WM._split_weak(WM._fuse_segments(one, _plane_at(1.250)), 73)
+    assert len(solid2) == 0 and len(weak2) == 1

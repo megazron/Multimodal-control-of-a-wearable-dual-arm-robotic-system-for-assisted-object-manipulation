@@ -2470,6 +2470,31 @@ class Gui(QMainWindow):
         row.addWidget(self.map_arm)
         v.addLayout(row)
 
+        # THE FAST PATH. The full sweep is minutes and is a once-per-table
+        # thing; this is the one an operator presses between picks.
+        rowr = QHBoxLayout()
+        br = QPushButton("WHAT CHANGED?  (fast re-look)")
+        br.setFont(helvetica(10, True))
+        br.setMinimumHeight(28)
+        br.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        br.setToolTip(
+            "Asks the SCENE camera what moved since the reference -- no arm "
+            "motion at all -- then sends the arms only to the viewpoints that "
+            "see those patches. Keeps the surface the full sweep measured. "
+            "About 30 seconds against 18 minutes. Needs a full calibration "
+            "and a stored reference first.")
+        br.clicked.connect(self.on_relook)
+        rowr.addWidget(br, 2)
+        bref = QPushButton("SET REFERENCE")
+        bref.setFont(helvetica(10))
+        bref.setToolTip(
+            "Stores the scene camera's current frame as the 'before' picture. "
+            "Press it when the table is as you want it; everything after is "
+            "measured as a change from this.")
+        bref.clicked.connect(self.on_set_reference)
+        rowr.addWidget(bref, 1)
+        v.addLayout(rowr)
+
         row2 = QHBoxLayout()
         b2 = QPushButton("SHOW THE MAP")
         b2.setFont(helvetica(10))
@@ -2544,6 +2569,29 @@ class Gui(QMainWindow):
                       "banner above." % arm)
         self._spawn(gls.Spec("calibrate_env", "calibrate environment",
                              "map", argv, needs_stack=True))
+
+    def on_relook(self):
+        """Re-measure only what the scene camera says changed."""
+        py = os.path.join(_WS, ".venv_vision", "bin", "python")
+        argv = [py if os.path.exists(py) else sys.executable, "-u",
+                os.path.join(_WS, "scripts", "relook.py"), "--changed-only"]
+        self.bus.note("fast re-look: scene camera picks the regions, arms "
+                      "visit only the viewpoints that see them")
+        self._map_say("asking the scene camera what changed...")
+        self._spawn(gls.Spec("relook", "fast re-look", "map", argv,
+                             needs_stack=True))
+
+    def on_set_reference(self):
+        """Store the scene camera's current frame as the 'before' picture."""
+        py = os.path.join(_WS, ".venv_vision", "bin", "python")
+        argv = [py if os.path.exists(py) else sys.executable, "-u",
+                os.path.join(_WS, "scripts", "relook.py"), "--save-reference"]
+        self.bus.note("storing the scene camera reference frame")
+        self._map_say("storing the scene camera's current view as the "
+                      "reference. Everything after is measured as a change "
+                      "from this.")
+        self._spawn(gls.Spec("scene_ref", "set scene reference", "map", argv,
+                             needs_stack=True))
 
     def on_show_map(self):
         def go():

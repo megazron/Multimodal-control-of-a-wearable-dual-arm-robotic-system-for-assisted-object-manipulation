@@ -686,11 +686,34 @@ def _fuse_segments(usable, plane):
     return out
 
 
-def _split_weak(objs):
+def views_needed(n_views):
+    """How many sightings an object needs, given how many were TAKEN.
+
+    THE THRESHOLD CANNOT BE A CONSTANT AND I HAD IT AS ONE.
+
+    `MIN_OBJECT_VIEWS = 2` is right for a full sweep, where 73 views see every
+    object dozens of times and a single sighting really is a sliver. It is
+    nonsense for a re-look, which visits THREE viewpoints on purpose -- there,
+    an object seen once may have been seen by every view that could see it.
+
+    Measured, and it emptied the map: the first re-look found the rearranged
+    objects, demoted every one of them to `weak` for having too few sightings,
+    and reported all six objects GONE. A fast re-measure that concludes the
+    table is empty is worse than no re-measure at all, because it looks like
+    an answer.
+
+    So the requirement is relative to the opportunity: with one or two views,
+    one sighting is all there is to have.
+    """
+    return 1 if int(n_views) <= 2 else MIN_OBJECT_VIEWS
+
+
+def _split_weak(objs, n_views=None):
     """(solid, weak). Evidence, not geometry -- see MIN_OBJECT_POINTS."""
+    need = MIN_OBJECT_VIEWS if n_views is None else views_needed(n_views)
     solid, weak = [], []
     for o in objs:
-        if o.n_points >= MIN_OBJECT_POINTS and len(o.seen_by) >= MIN_OBJECT_VIEWS:
+        if o.n_points >= MIN_OBJECT_POINTS and len(o.seen_by) >= need:
             solid.append(o)
         else:
             weak.append(o)
@@ -742,7 +765,7 @@ def build(views, up=(0.0, 0.0, 1.0), **kw):
     # NEVER mixed and the map says which ran, because they fail differently.
     segmented = [v for v in usable if v.objects is not None]
     if segmented and len(segmented) == len(usable):
-        objs, weak = _split_weak(_fuse_segments(usable, plane))
+        objs, weak = _split_weak(_fuse_segments(usable, plane), len(usable))
         # THE FEW VIEWPOINTS THAT SEE THE WHOLE SURFACE, learned from the
         # sweep that just ran. `relook` uses these instead of sweeping.
         obs, obs_cover = observe_set(usable, plane)

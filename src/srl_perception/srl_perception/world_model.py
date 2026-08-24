@@ -370,7 +370,8 @@ def footprint(points, plane, cell_m=FOOTPRINT_M, band=FOOTPRINT_BAND_M):
     return {(int(a), int(b)) for a, b in np.unique(ij, axis=0)}
 
 
-def observe_set(views, plane, cover_frac=0.98, cell_m=FOOTPRINT_M):
+def observe_set(views, plane, cover_frac=0.98, cell_m=FOOTPRINT_M,
+                objects=None, near_m=0.06):
     """The FEWEST viewpoints that between them see the surface the sweep saw.
 
     WHY. A full sweep is 116 views and twenty-eight minutes, and almost all of
@@ -411,6 +412,49 @@ def observe_set(views, plane, cover_frac=0.98, cell_m=FOOTPRINT_M):
         covered |= gain
         chosen.append(dict(source=src, viewpoint=vp, cells=len(fp),
                            new_cells=len(gain)))
+    # =============== SURFACE COVERAGE IS NOT DETECTION COVERAGE ============
+    #
+    # The greedy cover above answers "which viewpoints see every patch of
+    # table". That is NOT the same as "which viewpoints can find every object
+    # on it", and the difference is not academic: the first observe set
+    # covered 99% of the surface from three viewpoints and the re-look that
+    # used it came back with FIVE objects where the scene has six. A viewpoint
+    # can contribute points to a patch -- enough to cover it -- while seeing
+    # an object there too obliquely, too far, or too occluded to segment.
+    #
+    # A short list that silently loses an object is worse than no short list.
+    # So every object the full sweep found must be DETECTED by at least one
+    # chosen viewpoint, and if it is not, the view that did detect it is added.
+    if objects:
+        by_src = {}
+        for v in views:
+            for o in (v.objects or []):
+                by_src.setdefault(v.source, []).append(np.asarray(o.centre,
+                                                                  float))
+        picked = {c["source"] for c in chosen}
+        for obj in objects:
+            c = np.asarray(obj.centre, float)
+            if any(any(float(np.linalg.norm(d - c)) <= near_m
+                       for d in by_src.get(s, [])) for s in picked):
+                continue
+            best_src, best_d = None, 1e9
+            for s, dets in by_src.items():
+                for d in dets:
+                    dd = float(np.linalg.norm(d - c))
+                    if dd < best_d:
+                        best_src, best_d = s, dd
+            if best_src is None or best_d > near_m:
+                continue
+            for src, vp, fp in fps:
+                if src == best_src:
+                    chosen.append(dict(source=src, viewpoint=vp, cells=len(fp),
+                                       new_cells=0, reason="detects an object "
+                                       "no other chosen viewpoint does",
+                                       footprint=sorted([int(i), int(j)]
+                                                        for (i, j) in fp)))
+                    picked.add(src)
+                    covered |= fp
+                    break
     return chosen, (len(covered) / max(1, len(total)))
 
 
@@ -768,7 +812,7 @@ def build(views, up=(0.0, 0.0, 1.0), **kw):
         objs, weak = _split_weak(_fuse_segments(usable, plane), len(usable))
         # THE FEW VIEWPOINTS THAT SEE THE WHOLE SURFACE, learned from the
         # sweep that just ran. `relook` uses these instead of sweeping.
-        obs, obs_cover = observe_set(usable, plane)
+        obs, obs_cover = observe_set(usable, plane, objects=objs)
         prov_finder = "segment_lift: instances cut from each PICTURE by " \
                       "FastSAM and lifted through the depth"
         return Map(plane, objs, cloud,

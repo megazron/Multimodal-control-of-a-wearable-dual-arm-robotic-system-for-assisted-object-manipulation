@@ -1,0 +1,159 @@
+{
+  "capture_gate_mm": 30.0,
+  "map": "/home/gausms/kortex_ws/recordings/baselines/world_map.json",
+  "note": "pad miss is the distance from the finger-pad midpoint, by FK on the IK solution, to the object's TRUE centre. The same waypoints are commanded under every mode, so this planning figure is not per-mode; execution is, and the clips measure that.",
+  "rows": [
+    {
+      "approach_elev_deg": 70.0,
+      "arm": "left",
+      "belief": [
+        0.41983,
+        0.4497,
+        1.28328
+      ],
+      "belief_err_mm": 13.28,
+      "object": "cube_0",
+      "pad_miss_mm": 13.27,
+      "pipeline": "MEASURED",
+      "truth": [
+        0.42,
+        0.45,
+        1.27
+      ],
+      "why": ""
+    },
+    {
+      "approach_elev_deg": 75.0,
+      "arm": "left",
+      "belief": [
+        0.42,
+        0.45,
+        1.27
+      ],
+      "belief_err_mm": 0.0,
+      "object": "cube_0",
+      "pad_miss_mm": 0.0,
+      "pipeline": "DECLARED",
+      "truth": [
+        0.42,
+        0.45,
+        1.27
+      ],
+      "why": ""
+    },
+    {
+      "approach_elev_deg": 75.0,
+      "arm": "left",
+      "belief": [
+        0.48037,
+        0.44927,
+        1.27934
+      ],
+      "belief_err_mm": 9.38,
+      "object": "cube_1",
+      "pad_miss_mm": 9.37,
+      "pipeline": "MEASURED",
+      "truth": [
+        0.48,
+        0.45,
+        1.27
+      ],
+      "why": ""
+    },
+    {
+      "approach_elev_deg": 75.0,
+      "arm": "left",
+      "belief": [
+        0.48,
+        0.45,
+        1.27
+      ],
+      "belief_err_mm": 0.0,
+      "object": "cube_1",
+      "pad_miss_mm": 0.01,
+      "pipeline": "DECLARED",
+      "truth": [
+        0.48,
+        0.45,
+        1.27
+      ],
+      "why": ""
+    },
+    {
+      "approach_elev_deg": 70.0,
+      "arm": "right",
+      "belief": [
+        -0.41976,
+        0.44939,
+        1.28431
+      ],
+      "belief_err_mm": 14.33,
+      "object": "cube_2",
+      "pad_miss_mm": 14.32,
+      "pipeline": "MEASURED",
+      "truth": [
+        -0.42,
+        0.45,
+        1.27
+      ],
+      "why": ""
+    },
+    {
+      "approach_elev_deg": 75.0,
+      "arm": "right",
+      "belief": [
+        -0.42,
+        0.45,
+        1.27
+      ],
+      "belief_err_mm": 0.0,
+      "object": "cube_2",
+      "pad_miss_mm": 0.01,
+      "pipeline": "DECLARED",
+      "truth": [
+        -0.42,
+        0.45,
+        1.27
+      ],
+      "why": ""
+    },
+    {
+      "approach_elev_deg": 75.0,
+      "arm": "right",
+      "belief": [
+        -0.47973,
+        0.44957,
+        1.27809
+      ],
+      "belief_err_mm": 8.11,
+      "object": "cube_3",
+      "pad_miss_mm": 8.1,
+      "pipeline": "MEASURED",
+      "truth": [
+        -0.48,
+        0.45,
+        1.27
+      ],
+      "why": ""
+    },
+    {
+      "approach_elev_deg": 75.0,
+      "arm": "right",
+      "belief": [
+        -0.48,
+        0.45,
+        1.27
+      ],
+      "belief_err_mm": 0.0,
+      "object": "cube_3",
+      "pad_miss_mm": 0.0,
+      "pipeline": "DECLARED",
+      "truth": [
+        -0.48,
+        0.45,
+        1.27
+      ],
+      "why": ""
+    }
+  ]
+}

@@ -420,3 +420,57 @@ def test_the_evidence_rule_scales_with_how_many_views_were_taken():
     # THE CONTROL: on a big sweep the same single sighting is still weak.
     solid2, weak2 = WM._split_weak(WM._fuse_segments(one, _plane_at(1.250)), 73)
     assert len(solid2) == 0 and len(weak2) == 1
+
+
+def test_the_observe_set_can_re_find_every_object_not_just_the_surface():
+    """SURFACE COVERAGE IS NOT DETECTION COVERAGE.
+
+    The first observe set covered 99% of the table from three viewpoints, and
+    the re-look that used it came back with FIVE objects where the scene has
+    six. A viewpoint can contribute points to a patch -- enough to cover it --
+    while seeing an object there too obliquely to segment. A short list that
+    silently loses an object is worse than no short list.
+    """
+    plane = _plane_at(0.90)
+    wide = _seg((0.40, 0.40, 0.93), (0.04, 0.04, 0.04), n=2000, seed=70)
+    lone = _seg((0.65, 0.40, 0.93), (0.04, 0.04, 0.04), n=2000, seed=71)
+    # A broad view covering the whole table but detecting only the near cube.
+    broad_pts = np.vstack([
+        np.column_stack([np.random.default_rng(1).uniform(0.30, 0.70, 6000),
+                         np.random.default_rng(2).uniform(0.35, 0.45, 6000),
+                         np.full(6000, 0.90)]), wide.points])
+    v_broad = WM.View(broad_pts, "broad", objects=[wide],
+                      viewpoint=dict(arm="left", cam=[0.5, 0.2, 1.4],
+                                     quat=[0, 0, 0, 1], facing_deg=0.0,
+                                     layer=0, elev_deg=38.9))
+    # A narrow view that is the ONLY one detecting the far cube.
+    v_narrow = WM.View(lone.points, "narrow", objects=[lone],
+                       viewpoint=dict(arm="left", cam=[0.8, 0.2, 1.4],
+                                      quat=[0, 0, 0, 1], facing_deg=0.0,
+                                      layer=0, elev_deg=38.9))
+    objs = WM._fuse_segments([v_broad, v_narrow], plane)
+    chosen, cover = WM.observe_set([v_broad, v_narrow], plane, objects=objs)
+    srcs = {c["source"] for c in chosen}
+    assert "narrow" in srcs, (
+        "the viewpoint that is the ONLY one able to find the far cube was "
+        "dropped: %s" % srcs)
+    assert any(c.get("reason", "").startswith("detects") for c in chosen)
+
+
+def test_and_a_redundant_viewpoint_is_still_dropped():
+    """THE CONTROL. A rule that kept every viewpoint would pass the test above
+    and would not be a short list at all."""
+    plane = _plane_at(0.90)
+    a = _seg((0.40, 0.40, 0.93), (0.04, 0.04, 0.04), n=2000, seed=72)
+    pts = np.vstack([
+        np.column_stack([np.random.default_rng(3).uniform(0.30, 0.50, 5000),
+                         np.random.default_rng(4).uniform(0.35, 0.45, 5000),
+                         np.full(5000, 0.90)]), a.points])
+    vs = [WM.View(pts, "v%d" % i, objects=[a],
+                  viewpoint=dict(arm="left", cam=[0.5, 0.2, 1.4],
+                                 quat=[0, 0, 0, 1], facing_deg=0.0,
+                                 layer=0, elev_deg=38.9)) for i in range(4)]
+    objs = WM._fuse_segments(vs, plane)
+    chosen, _ = WM.observe_set(vs, plane, objects=objs)
+    assert len(chosen) == 1, ("four identical viewpoints should collapse to "
+                              "one, got %d" % len(chosen))

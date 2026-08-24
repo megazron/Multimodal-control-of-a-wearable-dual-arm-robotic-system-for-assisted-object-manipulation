@@ -6659,6 +6659,25 @@ def main(argv=None):
     app.setStyleSheet(STYLE)
     g = Gui(bus, args)
     g.show()
+    # PUT IT IN FRONT, AND SAY WHERE IT IS.
+    #
+    # `show()` maps the window; it does not promise the window manager will
+    # put it where you are looking. Launched from a terminal it can come up
+    # BEHIND that terminal, and the only evidence the operator has is a log
+    # that says everything succeeded -- which reads exactly like "the window
+    # is not loading".
+    #
+    # Raising costs nothing and removes the most likely reason somebody sees
+    # no window. The printed line is the other half: if it says the window is
+    # open and there is still nothing on screen, that is a different problem
+    # and the operator now knows which one.
+    g.raise_()
+    g.activateWindow()
+    print("\nThe operations window is open. If you cannot see it, it is "
+          "behind another window -- look in your taskbar for\n"
+          "  \"SRL operations -- commanded | actual\"\n"
+          "RViz takes about 3 more seconds to appear inside it.\n",
+          flush=True)
 
     if args.self_test_exit:
         rc = {"v": 1}

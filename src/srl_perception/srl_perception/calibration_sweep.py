@@ -237,7 +237,8 @@ def settings_key(x0, x1, y0, y1, surface_z, step_m, layers_m, facings_deg,
 
 def plan_volume(x0, x1, y0, y1, surface_z, step_m=DEFAULT_STEP_M,
                 layers_m=DEFAULT_LAYERS_M, facings_deg=DEFAULT_FACINGS_DEG,
-                order="serpentine", reachable=None):
+                order="serpentine", reachable=None, footprint=None,
+                footprint_cell_m=0.05, footprint_pad=1):
     """THE SWEEP AS A VOLUME, IN PASSES OF ONE FIXED WRIST ORIENTATION EACH.
 
     THIS IS THE PRINTER-PROBE MODEL AND IT IS THE WHOLE POINT.
@@ -265,6 +266,33 @@ def plan_volume(x0, x1, y0, y1, surface_z, step_m=DEFAULT_STEP_M,
     zs = [round(surface_z + float(h), 5) for h in layers_m]
     passes = []
     dropped = 0
+    off_table = 0
+
+    def _on_table(cx, cy):
+        """Is this cell over the surface that was actually FOUND?
+
+        THE BOUNDS ARE A RECTANGLE AND A TABLE NEED NOT BE. `find_table` takes
+        the axis-aligned box of the surface points, so an L-shaped table has
+        cells planned over its missing corner and a round one over all four.
+        Measured on an L: 90% of the swept area was table. A round table
+        inscribed in its box is 79% by arithmetic.
+
+        Those cells are not harmful -- a viewpoint aimed at nothing refuses by
+        name -- but they are arm time spent on somewhere there is no table,
+        and the sweep is the slow part of the whole system.
+
+        The footprint is the set of coarse cells that carried surface points,
+        dilated by `footprint_pad` cells so an edge is not lost to the grid.
+        """
+        if footprint is None:
+            return True
+        i = int(math.floor(cx / footprint_cell_m))
+        j = int(math.floor(cy / footprint_cell_m))
+        for di in range(-footprint_pad, footprint_pad + 1):
+            for dj in range(-footprint_pad, footprint_pad + 1):
+                if (i + di, j + dj) in footprint:
+                    return True
+        return False
     for f in facings_deg:
         cells = layered(xs, ys, zs, order=order)
         if reachable is not None:
@@ -288,6 +316,10 @@ def plan_volume(x0, x1, y0, y1, surface_z, step_m=DEFAULT_STEP_M,
                     keep.append(c)
             dropped += len(cells) - len(keep)
             cells = keep
+        if footprint is not None:
+            keep = [c for c in cells if _on_table(c[0], c[1])]
+            off_table += len(cells) - len(keep)
+            cells = keep
         passes.append(dict(facing_deg=float(f), cells=cells,
                            travel_m=round(travel_m(cells), 4)))
     return dict(order=order, n_cols=len(xs), n_rows=len(ys),
@@ -295,6 +327,8 @@ def plan_volume(x0, x1, y0, y1, surface_z, step_m=DEFAULT_STEP_M,
                 facings_deg=[float(f) for f in facings_deg],
                 passes=passes, planned_from_measurement=reachable is not None,
                 cells_dropped_as_unreachable=dropped,
+                cells_dropped_off_table=off_table,
+                planned_from_footprint=footprint is not None,
                 cells_per_pass=len(passes[0]["cells"]) if passes else 0,
                 total_cells=sum(len(p["cells"]) for p in passes),
                 travel_m=round(sum(p["travel_m"] for p in passes), 4),

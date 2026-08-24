@@ -32,7 +32,17 @@ set -u
 existing="$(pgrep -f "python3? .*scripts/srl_gui\.py" 2>/dev/null | grep -v "^$$\$" || true)"
 if [ -n "$existing" ] && [ "${1:-}" != "--anyway" ]; then
   echo "An operations window is already open (pid $(echo "$existing" | tr '\n' ' '))."
-  echo "Use that one, or close it first. Pass --anyway to open a second."
+  echo
+  echo "IT IS ALMOST CERTAINLY BEHIND ANOTHER WINDOW. Look in your taskbar"
+  echo "for  \"SRL operations -- commanded | actual\"  before assuming it"
+  echo "failed to start -- a refusal here looks exactly like a window that"
+  echo "will not load, and this message used to give you only a pid."
+  echo
+  echo "To close it and start a fresh one:"
+  echo "    pkill -f srl_gui[.]py ; sleep 3 ; bash scripts/start_gui.sh"
+  echo
+  echo "Or pass --anyway to open a second (NOT advised -- two windows means"
+  echo "two stacks, which HARD CONSTRAINT 3 exists to prevent)."
   exit 1
 fi
 [ "${1:-}" = "--anyway" ] && shift || true

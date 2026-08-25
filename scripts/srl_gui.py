@@ -163,7 +163,8 @@ MOTION_NOTES = [
 ]
 
 from PyQt5.QtCore import Qt, QTimer                          # noqa: E402
-from PyQt5.QtGui import (QColor, QFont, QImage, QPalette,    # noqa: E402
+from PyQt5.QtGui import (QColor, QFont, QGuiApplication,   # noqa: E402
+                         QImage, QPalette,
                          QPixmap, QWindow)
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox,  # noqa: E402
                              QGridLayout,
@@ -188,6 +189,37 @@ from srl_hud import (ReadyPanel, ACCENT, BAD, BG, LINE, MUTED, PANEL, TEXT,   # 
                      Strip, mono, sans)
 import srl_arm_view as av                                    # noqa: E402
 import srl_wearer_panel as swp                               # noqa: E402
+
+# THE WINDOW MUST FIT THE SCREEN IT IS ON. 1920x1060 was a GUESS, hard-coded,
+# and on a 1920-wide display it put the window's right edge at 1926 -- six
+# pixels past the glass, plus the frame. The window rendered perfectly the
+# whole time (captured at 3.0 ms/frame, every panel drawn); it was simply
+# never composited onto the desktop, and WSLg gave the operator a taskbar
+# icon that did nothing when clicked. `x11grab` names the same fault out
+# loud: BadMatch, which is what X says about a window that is not wholly
+# on-screen.
+#
+# Kept as a pure function of four numbers so it can be checked against a
+# known answer without a display -- the screen it must fit is exactly the
+# thing a headless test does not have.
+WINDOW_MARGIN_PX = 40
+WINDOW_MIN = (960, 600)
+
+
+def fit_to_screen(avail_w, avail_h, want_w=1920, want_h=1060,
+                  margin_px=WINDOW_MARGIN_PX):
+    """Largest (w, h) no bigger than `want` that leaves `margin_px` of screen.
+
+    Never returns something larger than the available area, and never
+    smaller than WINDOW_MIN -- a window clamped to nothing is not a fix.
+    A non-positive or unknown screen falls back to the wanted size, because
+    guessing small on a screen we cannot measure hides the whole left column.
+    """
+    if not avail_w or not avail_h or avail_w <= 0 or avail_h <= 0:
+        return int(want_w), int(want_h)
+    w = min(int(want_w), max(WINDOW_MIN[0], int(avail_w) - margin_px))
+    h = min(int(want_h), max(WINDOW_MIN[1], int(avail_h) - margin_px))
+    return w, h
 
 C_BG = BG
 C_TEXT = TEXT
@@ -1052,7 +1084,19 @@ class Gui(QMainWindow):
 
         outer.addLayout(self._bottom_bar())
         self.setCentralWidget(root)
-        self.resize(1920, 1060)
+        # MEASURED, not assumed. See `fit_to_screen`.
+        _scr = QGuiApplication.primaryScreen()
+        _av = _scr.availableGeometry() if _scr is not None else None
+        if _av is not None:
+            _w, _h = fit_to_screen(_av.width(), _av.height())
+            self.resize(_w, _h)
+            # And put it somewhere wholly inside that area. Centring on the
+            # AVAILABLE rect (not the screen rect) keeps it clear of the
+            # taskbar, which is the strip WSLg is least willing to overlap.
+            self.move(_av.left() + max(0, (_av.width() - _w) // 2),
+                      _av.top() + max(0, (_av.height() - _h) // 2))
+        else:
+            self.resize(1920, 1060)
 
         self._ft = []
         self.timer = QTimer(self)
@@ -6673,8 +6717,30 @@ def main(argv=None):
     # and the operator now knows which one.
     g.raise_()
     g.activateWindow()
-    print("\nThe operations window is open. If you cannot see it, it is "
-          "behind another window -- look in your taskbar for\n"
+    # AND SAY WHETHER IT IS ACTUALLY ON THE SCREEN.
+    #
+    # "behind another window" was the only explanation this line offered, and
+    # it was the wrong one: a window sized past the edge of the display is
+    # rendered perfectly by Qt, reported IsViewable by X, and never composited
+    # onto the desktop by WSLg -- the operator gets a taskbar icon that does
+    # nothing when clicked. That cost a session to find, with a screenshot,
+    # because nothing printed the one number that would have named it.
+    _geo = g.frameGeometry()
+    _scr = QGuiApplication.primaryScreen()
+    _av = _scr.availableGeometry() if _scr is not None else None
+    print("\nThe operations window is open, at %d x %d." % (_geo.width(),
+                                                           _geo.height()),
+          flush=True)
+    if _av is not None and not _av.contains(_geo):
+        print("  WARNING: it does NOT fit inside your screen's usable area\n"
+              "  (%d x %d at %d,%d). A window past the edge can be drawn\n"
+              "  correctly and still never appear -- on WSLg you get a\n"
+              "  taskbar icon that will not open. Report this; it is a bug\n"
+              "  in the window, not in your machine."
+              % (_av.width(), _av.height(), _av.left(), _av.top()),
+              flush=True)
+    print("If you cannot see it, it is behind another window -- look in your\n"
+          "taskbar for\n"
           "  \"SRL operations -- commanded | actual\"\n"
           "RViz takes about 3 more seconds to appear inside it.\n",
           flush=True)

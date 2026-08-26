@@ -1,0 +1,285 @@
+\chapter{When the instrument is the fault}
+\label{ch:instrument}
+
+Twenty-five times during this project a measurement was wrong and the system
+was not. This chapter reports them as a body of evidence rather than as a
+defect list, because the pattern across them is the most transferable outcome
+of the work.
+
+Most engineering write-ups treat measurement as transparent: the apparatus
+reports, and the report is the finding. That assumption failed here often
+enough to be worth quantifying. In every case the wrong reading was
+\emph{plausible}. None announced itself. Several would have entered this
+thesis as results had a second check not contradicted them, and two would have
+removed findings that are now central to it.
+
+\section{The rule}
+
+\begin{quote}
+\textbf{A surprising failure is evidence about the instrument until the
+instrument has been cleared.}
+\end{quote}
+
+Four corollaries, each learned from a specific case below.
+
+\begin{enumerate}
+  \item Every analysis script gets a \textbf{known-answer test}: an input whose
+    answer is known independently, checked before the script's output is
+    believed.
+  \item Prefer \textbf{real recorded data} whose properties were established
+    separately.
+  \item Use synthetic data only where the ground truth is \textbf{constructed}
+    (arithmetic, geometry), never where it is \textbf{rendered} (images,
+    physics). Two points \SI{300}{\milli\metre} apart really are that far
+    apart; a rendered image is only as good as the renderer.
+  \item A result that \textbf{contradicts an earlier measurement} is an
+    instrument check, not a finding, until the two are reconciled.
+\end{enumerate}
+
+\section{The cases}
+
+\Cref{tab:instr} lists the sixteen recorded during the interface work and
+\cref{tab:instr2} the nine recorded afterwards, during the perception, motion
+generation and hardware work. The split is itself informative: the rate did not
+fall as the project matured, because each new capability brought a new
+instrument with it, and the later cases are on the whole more expensive than
+the earlier ones.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Every occasion on which a measurement was wrong and the system was
+  not. \emph{Caught by} is the thing that actually revealed it, not the thing
+  that should have.}
+  \label{tab:instr}
+  \footnotesize
+  \begin{tabular}{@{}p{32mm}p{45mm}p{45mm}@{}}
+    \toprule
+    Looked like & Actually was & Caught by \\
+    \midrule
+    Noise floor exactly zero on all 14 channels
+      & The recorder sampled a \SIrange{14.7}{17}{\hertz} sensor at
+        \SI{50}{\hertz}, so \SIrange{82}{88}{\percent} of adjacent rows were
+        identical
+      & The figure being \emph{too} clean; over distinct updates the real
+        floor is \SIrange{0.2}{5.4}{\degree} \\
+    Isotropy swinging by a factor of two between runs
+      & The statistic, not the measurement: min-over-directions is maximally
+        sensitive to one tail failure
+      & Repeating to $N=10$, where the inter-quartile range is
+        \SI{0.000}{\metre} \\
+    Object detection at \SIrange{0}{4}{\percent}
+      & The renderer: flat-shaded primitives are outside the detector's
+        training distribution
+      & The same model scoring \numrange{0.89}{0.91} on a real photograph \\
+    A carry path failing 0 of 19 placements
+      & The path template carried toward the wearer, the one direction leaving
+        the feasible band
+      & Contradiction with an earlier result showing 19 working grip pairs \\
+    An {AprilTag} renderer detecting nothing
+      & A mirrored tag: {OpenCV}'s camera has $+y$ down, reversing the winding
+      & A vertical flip of the same crop decoding immediately \\
+    A flat \SI{22}{\degree} pose error
+      & The ground-truth rotation applied in the wrong frame; the two forms
+        \emph{commute} about $x$ and $y$
+      & Testing a general in-plane axis: \SI{21.79}{\degree} against
+        \SI{1.06}{\degree} \\
+    2--3 processes surviving a clean shutdown
+      & The check grepped bare names and matched its own command line
+      & Matching installed executable paths, which a command line cannot
+        contain \\
+    A terminal GUI launching correctly
+      & The test built the one environment where the bug cannot occur, and
+        checked only for captions
+      & Running the real entry point and asserting on exit status \\
+    \midrule
+    The gripper model wrong by \SI{52}{\milli\metre}
+      & The measurement took the gap between link \emph{origins}, which sit
+        behind the pad faces
+      & The vendor's published \SI{85}{\milli\metre} stroke: corrected, it
+        lands at \SI{84.84}{\milli\metre} \\
+    A wrist rotation of \SI{0}{\degree}, twice
+      & First reading the anchor after the arm had moved onto the grasp pose;
+        then reading it when a \emph{previous run} had left it there
+      & Contradiction with an independently known \SI{169.7}{\degree} \\
+    A known-answer check passing
+      & It parsed zero rows, and \texttt{all()} over an empty collection is
+        true
+      & The output table being empty while the check said pass \\
+    A health classifier missing an injected fault
+      & The injected fault was a \SI{30}{\degree} \emph{circular} jump,
+        correctly below the \SI{60}{\degree} threshold
+      & Asking why only one of two injected faults was detected \\
+    {RViz} failing to render inside a {Qt} container
+      & The capture fired after the probe window had closed
+      & Re-capturing during the window's lifetime \\
+    A scene fingerprint reporting every object vanished
+      & The sweep began before discovery matched the detector and received
+        \emph{zero} messages
+      & Running it twice on an unchanged scene \\
+    A boundary probe reporting a wall that was not there
+      & The test commanded an orientation unreachable at 0 of 6 points on that
+        line
+      & Instrumenting the node's own probe trace \\
+    Nine sling clips with no object
+      & Two faults at once: a stale \SI{350}{\milli\metre} length making the
+        sling geometrically impossible, then floors calibrated at the wrong
+        image scale
+      & Looking at a frame, and the overlay reading \texttt{sag=0mm} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \caption[Instrument faults, later phases]{The nine further cases, recorded
+  during the perception, motion generation and hardware work. Four of them
+  produced a \emph{passing} result on a broken system, which is the more
+  dangerous direction.}
+  \label{tab:instr2}
+  \footnotesize
+  \begin{tabular}{@{}p{32mm}p{45mm}p{45mm}@{}}
+    \toprule
+    Looked like & Actually was & Caught by \\
+    \midrule
+    Every declared coordinate of a task unreachable
+      & Every reachability sweep in the project solved at the \emph{home}
+        wrist while the task layer commands a stored anchor,
+        \SI{42.9}{\degree} away
+      & A known-good pick reading 10 of 10 at the anchor and 0 of 10 at the
+        home wrist \\
+    A working surface \SI{5.2}{\milli\metre} below where it was placed
+      & The reported height was the fitted plane's intercept \emph{at the
+        origin}, a point inside the wearer, rather than its height over the
+        working area
+      & Contradiction with the declared surface height, which is exact by
+        construction \\
+    \SI{367.0}{\milli\metre} of clearance
+      & The arm was physically against the mannequin. The model samples link
+        \emph{origins}, so it cannot see the arm between joints, and it
+        returns the same constant for a clear pose
+      & Looking at the arm \\
+    An arm reporting the saved pose to \SI{0.144}{\degree}
+      & A leftover node republishing a frozen snapshot with fresh timestamps
+        after its own input had died
+      & The agreement being \emph{too} exact; distinct source stamps then
+        settled it \\
+    A test suite reporting a failing test named \texttt{=}
+      & The style checker echoes the source lines it objects to, and one file
+        contained the token \texttt{FAILED} inside a string literal, which the
+        gate's pattern matched
+      & Reading the name of the failing test \\
+    A scene rendering correctly at \SI{18}{\percent} ink coverage
+      & The scene was empty. The wearer alone occupies \SI{18}{\percent} of
+        the frame; a populated scene reads \SIrange{46}{50}{\percent}
+      & Looking at the image \\
+    One task's geometry verified under another task's name
+      & A conditional expression with the same operand on both branches, so
+        the check read the first task's objects whichever task it was asked
+        about
+      & Reading the expression \\
+    A jerk-limited generator \SI{0.0509}{\milli\metre} off its own path
+      & The reference curve was sampled on a \SI{0.1}{\milli\metre} grid, so
+        nearest-sample distance could not go below half a grid step
+      & The generator being on the line to \SI{2e-16}{\radian} by construction \\
+    An arm stalled \SI{360.076}{\degree} from its target
+      & Three joints are continuous, so \SI{-179.05}{\degree} and
+        \SI{181.02}{\degree} are the same configuration. The move had
+        completed
+      & The commanded and achieved poses being physically identical \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Four mechanisms}
+
+Sorted by mechanism rather than by symptom, the twenty-five fall into four
+groups. None is specific to robotics.
+
+\paragraph{Absence read as a value.} A known-answer check that passed on zero
+parsed rows; a scene sweep that received no messages and concluded every
+object had gone; a noise floor of zero produced by a recorder outrunning its
+sensor. In each case code conflated \emph{no data} with \emph{a measurement of
+zero}. This is the most dangerous group, because absence is silent by
+definition and the resulting value is usually the most reassuring one
+available.
+
+\paragraph{The harness constructs the condition it tests.} A GUI test that
+allocated the terminal in which the bug cannot occur; a detection rate taken
+through a renderer the detector was never trained on; a fault injected at
+\SI{30}{\degree} against a \SI{60}{\degree} threshold. A test written from the
+same understanding as the code inherits that understanding's errors.
+
+\paragraph{State left over from a previous run.} An anchor read while the arms
+were still parked where the last run left them; a reachability sweep taken
+with the arms \SIrange{155}{166}{\degree} from home; a boundary probe firing
+from the previous run's end point. Scripts are written as though they begin
+from nothing, and they do not.
+
+\paragraph{Order of operations inside the measurement.} Reading a reference
+after perturbing it, and screenshotting after the window closed. Both are easy
+to do and invisible in the output afterwards.
+
+\section{What actually caught them}
+
+The defence that worked was not care. It was \textbf{redundancy}: having an
+independently known quantity to check against.
+
+\begin{table}[htbp]
+  \centering
+  \caption{What revealed each of the twenty-five.}
+  \label{tab:caught}
+  \begin{tabular}{@{}lr@{}}
+    \toprule
+    Revealed by & Cases \\
+    \midrule
+    An independently known quantity contradicting the reading & \textbf{14} \\
+    Inspection of the code or the method & 5 \\
+    Looking at the raw artefact, usually an image & 6 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Fourteen of twenty-five were caught because something else already had an
+answer: a vendor's published stroke, a published detection score, an earlier
+incompatible result, an arithmetic prediction, a declared quantity that is
+exact by construction. Only five were caught by inspection, and those were the
+shallowest.
+
+This has a direct design consequence, and it is the recommendation this
+chapter exists to make. \textbf{Build the cross-check in rather than trying
+harder.} A measurement with no independent reference is not merely
+unvalidated; it is structurally unable to be validated, and no amount of
+diligence changes that. Where a project cannot obtain a second reference for a
+quantity, the honest response is to mark it unverified rather than to raise
+confidence in the single measurement.
+
+\section{Consequences for this thesis}
+
+Every quantitative claim in this document carries a maturity label and a
+traceable measurement, and the audit records for each whether its instrument
+was validated. Of thirty-four figures audited, fifteen are validated against an
+independently known answer, fifteen are arithmetic or graph inspection with no
+instrument to mis-calibrate, three are unverified and are not reported as
+results, and one is structurally undefined in the available environment.
+
+Two practices in the later chapters follow directly from this chapter and are
+worth naming, because both were adopted after a case above rather than in
+advance. 	extbf{A check is required to be capable of failing on a
+deliberately broken input}: the on-surface geometry check, for instance, takes
+an injection argument that displaces the scene, and one instrument then
+returns three different verdicts about one scene, including a pass. And
+	extbf{a refusal is required to name what it refused on}, which is what
+exposed a wearer-tracking gate that had never executed while its enclosing
+test reported seven of seven.
+
+One capability was \textbf{cut rather than shipped} on this basis. A
+boundary-warning node produced a correct \SI{88}{\milli\metre} lead in three of
+five runs and a false alarm in the other two, and the cause survived
+elimination of every candidate mechanism. A warning that is wrong teaches the
+operator to ignore it, which spends the credibility on which every other alarm
+in the system depends. Suppressing the symptom without knowing the cause was
+available and was refused.
+
+\todo{CONFIRM: whether this chapter belongs in the main body or as an
+appendix. It is a methods contribution rather than a result, and its length is
+justified only if the examiner reads it as such.}

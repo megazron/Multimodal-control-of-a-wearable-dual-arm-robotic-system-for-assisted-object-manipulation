@@ -1,11 +1,15 @@
 %% =====================================================================
-%%  MSc Individual Project -- Imperial College London
-%%  Compile with XeLaTeX (Menu > Compiler > XeLaTeX on Overleaf).
-%%  Run twice for cross-references, three times if the contents move.
+%%  MSc Individual Project, Imperial College London
+%%  Compile with XeLaTeX.  On Overleaf: Menu > Compiler > XeLaTeX.
+%%      xelatex main && bibtex main && xelatex main && xelatex main
 %% =====================================================================
 \documentclass[a4paper, twoside, 11pt]{report}
 
+%% Language. inputenc is deliberately absent: XeLaTeX reads UTF-8 natively
+%% and utf8x conflicts with fontspec.
 \usepackage[english]{babel}
+
+%% Page size and margins, as specified by the department template.
 \usepackage[a4paper, top=2.54cm, bottom=2.54cm, left=1.91cm, right=1.91cm,
             marginparwidth=1.75cm]{geometry}
 
@@ -20,45 +24,60 @@
 \usepackage{subcaption}
 \usepackage{float}
 \usepackage{xcolor}
+\usepackage{listings}
 \usepackage{tikz}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
 \usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc,
-                shapes.geometric,shapes.misc,decorations.pathreplacing}
+                shapes.geometric,shapes.misc,decorations.pathreplacing,
+                decorations.pathmorphing}
+\usepackage{rotating}   %% wide data-path diagrams go on landscape pages
 \usepackage{setspace}
 \usepackage{fontspec}
 \usepackage{titlesec}
+\usepackage[colorinlistoftodos]{todonotes}
+%% Notes go inline. The template's marginparwidth is narrower than the note
+%% text, so margin notes ran off the page edge and were unreadable.
+\presetkeys{todonotes}{inline}{}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
 \usepackage[capitalise,nameinlink]{cleveref}
 
-\sisetup{detect-all, range-units = single, per-mode = symbol,
-         separate-uncertainty = true}
+%% siunitx: every physical quantity goes through \SI or \num, never a bare
+%% number.
+\sisetup{
+  detect-all,
+  range-units = single,
+  separate-uncertainty = true,
+  per-mode = symbol,
+}
 
 \graphicspath{{figures/}}
 
-%% ---------------------------------------------------------------------
-%%  Font. Times New Roman where it exists, otherwise the metric-compatible
-%%  TeX Gyre Termes that ships with every TeX distribution.
-%% ---------------------------------------------------------------------
-\IfFontExistsTF{Times New Roman}{\setmainfont{Times New Roman}}{%
-  \IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{%
-    \setmainfont{texgyretermes}[Extension = .otf,
-      UprightFont = *-regular, BoldFont = *-bold,
-      ItalicFont = *-italic, BoldItalicFont = *-bolditalic]}}
+%% Implementation provenance. Every claim about the implementation names the
+%% file it is implemented in, so a reader can check it.
+%% Repository paths are long and unbreakable in typewriter type, which
+%% produces overfull lines in captions and narrow columns. Underscores are
+%% given a zero-width break opportunity so a path can wrap.
+\DeclareRobustCommand{\repo}[1]{{\small\ttfamily
+  \def\_{\char`\_\hspace{0pt}}\def\slash{/\hspace{0pt}}#1}}
+\DeclareRobustCommand{\file}[1]{\repo{#1}}
 
-\titleformat{\chapter}[display]
-  {\centering\huge\bfseries}{Chapter \thechapter}{1ex}{}
+%% ---------------------------------------------------------------------------
+%% RESERVED SPACE. An image that does not exist yet is drawn as a marked box
+%% rather than omitted, so a missing figure is visible in the compiled
+%% document instead of silently absent. #1 is the height, #2 what the image
+%% must show.
+%% ---------------------------------------------------------------------------
+\newcommand{\imgplaceholder}[2]{%
+  \begin{tikzpicture}
+    \node[draw, dashed, thick, red!60!black, fill=red!3,
+          minimum height=#1, text width=0.86\linewidth, align=center,
+          inner sep=10pt] (ph) {%
+      {\bfseries\color{red!60!black} PLACEHOLDER: IMAGE REQUIRED}\\[4pt]
+      \small\color{black}#2};
+  \end{tikzpicture}}
 
-\setstretch{1.15}
-\setlength{\parskip}{3pt}
-\setlength{\parindent}{12pt}
-
-%% ---------------------------------------------------------------------
-%%  Space reserved for a picture that has still to be taken. The box is
-%%  drawn in the compiled document so a missing figure is obvious rather
-%%  than silently absent. Delete the command and insert \includegraphics
-%%  when the image exists.
-%% ---------------------------------------------------------------------
+%% Screenshots of the simulator, the operating window or a live view.
 \newcommand{\screenshot}[2]{%
   \begin{tikzpicture}
     \node[draw, dashed, thick, blue!45!black, fill=blue!3,
@@ -68,69 +87,115 @@
       \small\color{black}#2};
   \end{tikzpicture}}
 
-\newcommand{\photo}[2]{%
-  \begin{tikzpicture}
-    \node[draw, dashed, thick, black!55, fill=black!3,
-          minimum height=#1, text width=0.86\linewidth, align=center,
-          inner sep=10pt]{%
-      {\bfseries\color{black!55} SPACE RESERVED FOR A PHOTOGRAPH}\\[5pt]
-      \small\color{black}#2};
-  \end{tikzpicture}}
-
-%% A figure to be reproduced from published work once permission is granted.
-\newcommand{\reproduced}[2]{%
+%% A figure reproduced from another publication. Permission is required
+%% before submission, so the requirement travels with the box.
+\newcommand{\reprodplaceholder}[2]{%
   \begin{tikzpicture}
     \node[draw, dashed, thick, orange!70!black, fill=orange!4,
           minimum height=#1, text width=0.86\linewidth, align=center,
-          inner sep=10pt]{%
-      {\bfseries\color{orange!70!black} SPACE RESERVED: FIGURE FROM PUBLISHED WORK}\\[5pt]
+          inner sep=10pt] {%
+      {\bfseries\color{orange!70!black} PLACEHOLDER: REPRODUCED FIGURE}\\[4pt]
       \small\color{black}#2\\[4pt]
-      {\footnotesize\itshape Written permission from the copyright holder is
-      required before this is reproduced.}};
+      {\footnotesize\itshape Reproduction requires written permission from the
+      copyright holder. Not yet obtained.}};
   \end{tikzpicture}}
 
-%% Names of files in the project repository, so a claim can be checked.
-\newcommand{\file}[1]{\texttt{\small #1}}
-
-%% ---------------------------------------------------------------------
-%%  One drawing vocabulary for every flow chart in the thesis, so the
-%%  diagrams can be read against each other. Shape carries the kind of
-%%  stage; colour carries whether the stage can stop the arm.
-%% ---------------------------------------------------------------------
+%% ---------------------------------------------------------------------------
+%% FLOWCHART STYLES. One vocabulary for every data-path and control-flow
+%% diagram, so the diagrams can be compared stage by stage: the shape carries
+%% the kind of stage and the colour carries whether it can stop the arm.
+%% ---------------------------------------------------------------------------
 \tikzset{
-  sense/.style   = {draw, rounded corners=2pt, fill=blue!8,
-                    minimum height=8mm, text width=30mm, align=center,
-                    font=\scriptsize},
-  stage/.style    = {draw, fill=black!5, minimum height=8mm,
-                    text width=30mm, align=center, font=\scriptsize},
-  guard/.style   = {draw, thick, draw=red!60!black, fill=red!8,
-                    minimum height=8mm, text width=30mm, align=center,
-                    font=\scriptsize},
-  choice/.style  = {draw, diamond, aspect=2.3, fill=yellow!14,
-                    inner sep=1pt, text width=24mm, align=center,
-                    font=\scriptsize},
-  motor/.style   = {draw, thick, draw=green!45!black, fill=green!10,
-                    minimum height=8mm, text width=30mm, align=center,
-                    font=\scriptsize},
-  absent/.style  = {draw, dashed, draw=orange!70!black, fill=orange!8,
-                    minimum height=8mm, text width=30mm, align=center,
-                    font=\scriptsize},
-  person/.style  = {draw, rounded corners=3pt, fill=violet!8,
-                    minimum height=8mm, text width=30mm, align=center,
-                    font=\scriptsize},
-  go/.style      = {-{Latex[length=2mm]}, thick},
-  halt/.style    = {-{Latex[length=2mm]}, thick, red!65!black, dashed},
-  tag/.style     = {font=\tiny\itshape, inner sep=1.5pt, align=center},
-  stoptag/.style = {font=\tiny\itshape, red!65!black, inner sep=1.5pt,
-                    align=center},
+  sensor/.style   = {draw, rounded corners=2pt, fill=blue!8,
+                     minimum height=7mm, text width=27mm, align=center,
+                     font=\scriptsize},
+  proc/.style     = {draw, fill=gray!8, minimum height=7mm,
+                     text width=27mm, align=center, font=\scriptsize},
+  safety/.style   = {draw, thick, fill=red!10, draw=red!60!black,
+                     minimum height=7mm, text width=27mm, align=center,
+                     font=\scriptsize},
+  decision/.style = {draw, diamond, aspect=2.2, fill=yellow!12,
+                     inner sep=1pt, text width=22mm, align=center,
+                     font=\scriptsize},
+  actuator/.style = {draw, thick, fill=green!10, draw=green!45!black,
+                     minimum height=7mm, text width=27mm, align=center,
+                     font=\scriptsize},
+  stub/.style     = {draw, dashed, fill=orange!10, draw=orange!70!black,
+                     minimum height=7mm, text width=27mm, align=center,
+                     font=\scriptsize},
+  person/.style   = {draw, rounded corners=3pt, fill=violet!8,
+                     minimum height=7mm, text width=27mm, align=center,
+                     font=\scriptsize},
+  flow/.style     = {-{Latex[length=2mm]}, thick},
+  fail/.style     = {-{Latex[length=2mm]}, thick, red!65!black, dashed},
+  %% align= is required on these two: without it the node is in LR mode and a
+  %% line break inside the label is an error rather than a break.
+  lbl/.style      = {font=\tiny\itshape, inner sep=1pt, align=center},
+  faillbl/.style  = {font=\tiny\itshape, red!65!black, inner sep=1pt,
+                     align=center},
+  %% Aliases used by the chapters added after the 2026-08-09 draft.
+  stage/.style    = {proc},
+  sense/.style    = {sensor},
+  guard/.style    = {safety},
+  choice/.style   = {decision},
+  motor/.style    = {actuator},
+  absent/.style   = {stub},
+  go/.style       = {flow},
+  halt/.style     = {fail},
+  tag/.style      = {lbl},
+  stoptag/.style  = {faillbl},
 }
 
-\title{Driving a Pair of Worn Robot Arms: Interface Design, Safety, and
-What the Machine Can and Cannot Reach}
+%% Short listings only; full source belongs in the appendix.
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue!60!black},
+  commentstyle=\color{green!40!black},
+  showstringspaces=false,
+}
+
+\titleformat{\chapter}[display]
+  {\centering\huge\bfseries}
+  {Chapter \thechapter}
+  {1ex}
+  {}
+
+\setstretch{1.15}
+\setlength{\parskip}{3pt}
+\setlength{\parindent}{12pt}
+\emergencystretch=2em
+\hbadness=6000
+
+%% FONT. Times New Roman where present; TeX Gyre Termes, which is
+%% metric-compatible, otherwise. The stock template hard-codes Times New
+%% Roman, which is absent on most Linux machines, so the document failed to
+%% build anywhere else.
+\IfFontExistsTF{Times New Roman}{
+  \setmainfont{Times New Roman}
+}{
+  \IfFontExistsTF{TeX Gyre Termes}{
+    \setmainfont{TeX Gyre Termes}
+  }{
+    \setmainfont{texgyretermes}[
+      Extension = .otf,
+      UprightFont = *-regular,
+      BoldFont = *-bold,
+      ItalicFont = *-italic,
+      BoldItalicFont = *-bolditalic]
+  }
+}
+
+\title{Multimodal Teleoperation of a Wearable Dual-Arm Supernumerary Robotic
+System: Master Interface Design, Safety Architecture, and a Workspace
+Characterisation}
 \author{Gaus Sayyad}
+% Supervisor and co-supervisor are set in title/title.tex
 
 \begin{document}
-
 \input{title/title.tex}
 
 \input{chapters/00_frontmatter.tex}
@@ -141,16 +206,19 @@ What the Machine Can and Cannot Reach}
 
 \input{chapters/01_introduction.tex}
 \input{chapters/02_background.tex}
-\input{chapters/03_system.tex}
-\input{chapters/04_master.tex}
-\input{chapters/05_safety.tex}
+\input{chapters/03_master.tex}
+\input{chapters/04_development.tex}
+\input{chapters/05_system.tex}
 \input{chapters/06_perception.tex}
-\input{chapters/07_study_design.tex}
-\input{chapters/08_system_results.tex}
-\input{chapters/09_participant_results.tex}
-\input{chapters/10_discussion.tex}
-\input{chapters/11_conclusion.tex}
-\input{chapters/12_appendix.tex}
+\input{chapters/07_motion.tex}
+\input{chapters/08_instrument.tex}
+\input{chapters/09_results.tex}
+\input{chapters/10_workspace.tex}
+\input{chapters/11_study.tex}
+\input{chapters/12_participant_results.tex}
+\input{chapters/13_discussion.tex}
+\input{chapters/14_conclusion.tex}
+\input{chapters/15_appendix.tex}
 
 \bibliographystyle{plain}
 \bibliography{bibs/references}

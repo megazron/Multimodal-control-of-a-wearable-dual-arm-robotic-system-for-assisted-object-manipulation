@@ -1,0 +1,647 @@
+\chapter{Results}
+\label{ch:results}
+
+Every result is labelled with the strength of evidence behind it. Three levels
+are used and the distinction is not cosmetic: \emph{measured on recorded
+hardware data} means the numbers come from the physical master; \emph{verified
+in simulation} means they come from the simulated platform with mock hardware;
+\emph{implemented} means the code exists and runs but the quantity was not
+measured. Nothing in this chapter was validated on a physical Kinova arm.
+
+\section{Channel health}
+\label{sec:channelhealth}
+
+\emph{Measured on recorded hardware data, 2026-08-06.}
+
+Six of fourteen channels met the alive criterion.
+
+\begin{table}[htbp]
+  \centering
+  \caption[Per-channel verdicts]{Per-channel verdicts, computed over distinct
+  sensor updates rather than over transmitted rows. Baseline stored at
+  \repo{recordings/baselines/} \repo{channels\_20260806.json}.}
+  \label{tab:channelhealth}
+  \begin{tabular}{@{}llll@{}}
+    \toprule
+    \multicolumn{2}{@{}l}{Left arm} & \multicolumn{2}{l@{}}{Right arm} \\
+    \cmidrule(r){1-2}\cmidrule(l){3-4}
+    Channel & Verdict & Channel & Verdict \\
+    \midrule
+    j1 & intermittent, \SI{2.2}{\percent} dropouts & j1 & alive, \SI{195}{\degree} \\
+    j2 & \textbf{incoherent}, \SI{5}{\percent}     & j2 & alive, \SI{261}{\degree} \\
+    j3 & \textbf{incoherent}, \SI{8}{\percent}     & j3 & \textbf{incoherent}, \SI{14}{\percent} \\
+    j4 & \textbf{incoherent}, \SI{6}{\percent}     & j4 & alive, \SI{291}{\degree} \\
+    j5 & \textbf{incoherent}, \SI{12}{\percent}    & j5 & dead \\
+    j6 & \textbf{incoherent}, \SI{8}{\percent}     & j6 & alive, \SI{250}{\degree} \\
+    j7 & alive, \SI{26}{\degree}                   & j7 & dead \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Two entries reverse conclusions that had stood for weeks, and both reversals
+come from computing statistics over distinct updates rather than over
+transmitted rows.
+
+Left j7 is the cleanest channel on that arm, with no dropouts and no
+implausible jumps. It had been recorded as railed and dead. The evidence for
+that verdict was a spread of exactly zero over forty consecutive samples,
+which is what an oversampled sensor produces regardless of its health. Its
+range is only \SI{26}{\degree}, so it is mechanically restricted, but it
+tracks.
+
+Five of the seven left channels are incoherent, which is worse than had been
+recorded. These channels were previously assessed by range, and range calls
+them healthy: they return values spanning a wide interval. What they do not
+return is a trajectory.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\linewidth]{channels.pdf}
+  \caption[Channel health]{Every channel on both quantities that decide its
+  verdict, with the thresholds marked and the verdict carried in the bar
+  colour. The upper panel is the discriminating one: a channel above the five
+  per cent line is returning values that are present, fresh and not a
+  trajectory. Regenerated from
+  \repo{recordings/baselines/channels\_20260806.json} by
+  \repo{figures/make\_figures.py}.}
+  \label{fig:channelhealth}
+\end{figure}
+
+\subsection{Progressive degradation between two dates}
+
+\emph{Measured on recorded hardware data, two captures.}
+
+The two dated captures show the failure population growing rather than
+static, which is the empirical support for the premise in \cref{ch:intro} that
+channel loss is an operating condition. \Cref{fig:chandegr} gives the
+comparison.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\linewidth]{channel_degradation.pdf}
+  \caption[Progressive channel degradation]{Channel verdicts across two dated
+  captures. The population of failed channels grows.}
+  \label{fig:chandegr}
+\end{figure}
+
+\section{What the degradation architecture costs}
+
+\emph{Measured on recorded hardware data, \num{20430} frames.}
+
+\Cref{fig:degradation} gave the ladder. The figures are commanded tip error
+against the four-potentiometer reference, charged to reach magnitude only,
+because direction comes from the inertial sensor and scoring raw seven-joint
+forward-kinematic error would charge each reduction for a direction error the
+pipeline does not incur.
+
+Dropping the upper-arm roll costs \SI{41.6}{\milli\metre} on the left arm and
+\SI{4.5}{\milli\metre} on the right. Dropping the shoulder bend alone costs
+less than dropping the upper-arm roll and elbow together, at
+\SI{29.2}{\milli\metre} against \SI{66.1}{\milli\metre}. A second inertial
+sensor supplying the elbow reaches \SI{63.8}{\milli\metre} on a single
+potentiometer, comparable to retaining two.
+
+\subsection{Which channels a repair should target}
+
+\emph{Measured on recorded hardware data.}
+
+Regressing the true four-potentiometer reach on every channel that still
+passes the coherence test, plus the inertial sensor, identifies the repair
+precisely.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Reach observability from the surviving channels.}
+  \label{tab:reachobs}
+  \begin{tabular}{@{}llll@{}}
+    \toprule
+    Arm & Live predictors & $R^2$ & Residual RMS \\
+    \midrule
+    Left  & j1, j7, inertial            & \num{0.133} & \SI{51}{\milli\metre} \\
+    Right & j1, j2, j4, j6, inertial    & \num{0.986} & \SI{9.1}{\milli\metre} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The left arm retains no reach observable at all: the residual is
+\SI{93}{\percent} of the true spread. This is expected mechanically rather
+than surprising. Reach is set by shoulder flexion and the elbow; j1 and j7 are
+rolls about the arm's own axis and carry no radial information; and one wrist
+inertial sensor cannot observe the elbow. The right arm needs no help.
+
+That names the repair as exactly two channels, left j2 and left j4, and
+predicts that repairing any others will not restore reach.
+
+\subsection{What the incoherent channels inject}
+
+\emph{Measured on recorded hardware data, replayed.}
+
+Replaying the recorded incoherent traces with every coherent channel and the
+accelerometer pinned to its median simulates a perfectly steady hand on
+perfect wiring, so every millimetre of output comes from the broken channels
+alone.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Commanded end-effector motion contributed by the incoherent
+  channels alone, with the operator's input held constant.}
+  \label{tab:vibration}
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    Arm & Degraded mode off & Degraded mode on \\
+    \midrule
+    Left  & \SI{54.527}{\milli\metre} standard deviation & \SI{0.000}{\milli\metre} \\
+    Right & \SI{0.014}{\milli\metre} & \SI{0.000}{\milli\metre} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The on column is zero by construction, since freezing a channel removes its
+contribution. The off column is the measurement: \SI{54.5}{\milli\metre} of
+commanded motion that the operator did not ask for, on an arm whose whole
+master reach is \SI{272}{\milli\metre}.
+
+\subsection{The pipeline manufactures no motion of its own}
+
+\emph{Verified in simulation, against a synthetic serial device.}
+
+Read alone, the previous result does not separate the channels from the
+software. A synthetic serial device streaming frames in the exact wire format
+at a known constant input closes that gap. With the master idle for
+\SI{60}{\second} and one stack running, commanded end-effector standard
+deviation was \SI{0.0000}{\milli\metre} on both arms, with a worst simulated
+joint excursion of \SI{0.0051}{\degree}.
+
+The two results are complementary. The synthetic device shows the pipeline is
+clean; the replay shows what the physical channels inject through it.
+
+\section{Command mapping}
+
+\subsection{Axis correctness}
+
+\emph{Measured on recorded hardware data, and verified in simulation.}
+
+Regressing commanded pose against the master's physical spherical position
+over all sweep segments, at \num{6443} samples with $R^2 = \num{0.999}$,
+returned a gain matrix of $\mathrm{diag}(+1, -1, -1)$ against the intended
+identity. The pipeline was faithfully implementing an axis map that was wrong:
+raising the master drove the arm down and moving it forward drove the arm
+back.
+
+The correction is not a free choice of sign. In spherical form the elevation
+convention already carries the vertical sign, so any axis map with a negative
+vertical entry double-negates it, and no such map can produce correct
+behaviour. After correction, raising the master by \SI{30}{\degree} moves the
+arm up.
+
+\subsection{The lateral axis remains wrong, and the axis map cannot fix it}
+
+\emph{Measured on recorded hardware data.}
+
+Up and down and fore and aft track correctly on both arms. Lateral does not.
+
+Fitting the best rotation from measured sweep directions to intended
+directions leaves a residual of \SI{54.8}{\degree} RMS on the left arm and
+\SI{54.7}{\degree} on the right. A rotation-invariant test explains why no
+rotation will help: intended left-right and forward-back are
+\SI{90}{\degree} apart, and measured they are \SI{137.7}{\degree} apart. A
+rotation preserves angles, so no rotation and no axis permutation maps one
+triad onto the other. The measured directions are not an orthogonal triad.
+
+The mechanism is a lever arm, and identifying it correctly took two attempts.
+Joint one is the first joint and its axis is fixed in the mount, so it does
+not tilt as the arm raises. What changes is the offset of the tip from that
+axis: rolling joint one with a straight arm moves the tip by exactly zero, and
+produces lateral motion only once a downstream bend offsets the tip. Azimuth
+per degree of joint one therefore scales with how bent the arm is, so azimuth
+and elevation are not independent, which is precisely what the spherical model
+assumes.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/lateral.tex}
+  \caption[The lateral constraint]{Two master motions intended to be
+  orthogonal arrive \SI{137.7}{\degree} apart at the commanded end effector.
+  The test is independent of any axis labelling, which is what makes this a
+  geometric limitation rather than a calibration error.}
+  \label{fig:lateral}
+\end{figure}
+
+Replacing azimuth with the forward-kinematic horizontal angle was measured and
+made things worse, from \SI{12.6}{\degree} to \SI{33.3}{\degree} mean
+reversal error on the left arm. Gyroscope-derived azimuth halves the residual
+on the left arm, from \SI{25.6}{\degree} to \SI{13.5}{\degree}, and is
+implemented but not enabled: the right sensor drifts at
+\SI{44}{\degree\per\minute} while stationary, and three directions from one
+segment each does not establish a triad.
+
+\subsection{Indexing}
+
+\emph{Verified in simulation, against the synthetic serial device.}
+
+Ten index cycles gave a re-engagement jump of \SI{0.29}{\milli\metre} mean and
+\SI{0.35}{\milli\metre} maximum, drift while disengaged of
+\SI{0.000}{\milli\metre}, and total travel of \SI{338.8}{\milli\metre} over
+six cycles with the second half still advancing. The reachable set is bounded
+by the robot, not by the master's range.
+
+The first run of this measurement showed four consecutive cycles of zero
+travel, which was a real defect rather than a measurement artefact: the radial
+fallback had integrated to its clamp, so further wrist deflection did nothing
+and said nothing. The clamp now warns by name. This is the silent-blocking
+class exactly, and the fix is not to remove the clamp but to make reaching it
+audible.
+
+\section{Safety}
+
+\subsection{Fault injection}
+
+\emph{Verified in simulation, fourteen injected faults.}
+
+All fourteen were handled: channel dropout, board disconnect, board
+reconnection, emergency stop during motion, wrong-object latching, ambiguous
+target flicker, stale object, detection failure, logging failure, identifying
+data in a manifest, non-monotonic clock, session loss, zero camera detections,
+and network dropout.
+
+Two of these took several attempts and the reasons are transferable. The
+dead-man did not trip on ten seconds of total master silence, which was
+diagnosed at the time as a broken dead-man and was not. The master republishes
+stale data at full rate, so the topic never went silent; the mechanism was
+keyed on the wrong quantity. And the emergency stop's named block did not
+appear in the aggregated view precisely when the dead-man fired, because the
+follower set that blocker only inside its pose callback, which stops being
+called at the moment the master goes quiet.
+
+\subsection{Dead-man timing}
+
+\emph{Verified in simulation.}
+
+Against a deadline of \SI{1.00}{\second}:
+
+\begin{table}[htbp]
+  \centering
+  \caption{Dead-man behaviour by failure mode.}
+  \label{tab:deadman}
+  \begin{tabular}{@{}ll@{}}
+    \toprule
+    Case & Result \\
+    \midrule
+    Healthy master, fresh timestamps, 243 frames & no trip \\
+    \textbf{Degraded: publishing at full rate, frozen source timestamp}
+      & \textbf{trip at \SIrange{0.94}{0.99}{\second}} \\
+    Clean unplug, topic silent & trip at \SI{0.97}{\second} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The middle row is the one that could not have passed before the correction,
+and it is the failure mode that actually occurs.
+
+\subsection{An emergency stop that was four seconds late}
+
+\emph{Verified in simulation.}
+
+Detection was always on time. The halt was not. The trip handler called the
+real-driver shutdown first, which waited on two services that do not exist on
+a simulated stack, so both timed out in full inside the node's own timer.
+Measured: decision at \SI{0.97}{\second}, trip logged at
+\SI{4.98}{\second}. The arms were parked four seconds after the decision to
+park them, and the log line that would have revealed this was itself behind
+the block.
+
+The fix parks first, using only local publishes, and makes the driver path
+non-blocking.
+
+\section{Grasping}
+
+\emph{Verified in simulation.}
+
+The grasp sequence executes a pre-grasp standoff with the wrist pre-aligned, a
+straight approach along the approach vector, closure to the object's width,
+retreat along the same vector, transit, and release at the placement. Every
+candidate is validated at the standoff, at the grasp, and at every point of
+the approach between them before it is offered.
+
+Two defects were found in the recorded gripper trace rather than by
+inspection, and neither was visible in the source.
+
+Two components were writing the gripper on the same cycle. The recorded
+knuckle angle sawed through the lift phase, from \num{0.42} to \num{0.18} to
+\num{0.24}, and reached \num{0.05}, fully open, at the start of transit: the
+object was grasped, dropped, and re-grasped in mid-air when the second
+component's schedule crossed its own threshold. After giving the gripper a
+single owner, the lift phase holds \num{0.424} with minimum equal to maximum
+over eighteen samples, and there is exactly one release, at the placement.
+
+The object marker attached on a band rather than on the object's width, so a
+\SI{40}{\milli\metre} block requiring a knuckle angle of \num{0.424} attached
+at \num{0.157}, with the fingers still visibly open. Attachment now requires
+\num{0.90} of the width-specific target and occurs at \num{0.399}.
+
+\subsection{Top-down grasping has a lateral boundary}
+
+\emph{Verified in simulation.}
+
+Top-down grasp candidates fail entirely at $|x| = \SI{0.25}{\metre}$, at zero
+of nine, and succeed entirely at $|x| = \SI{0.30}{\metre}$, at nine of nine.
+The failure persists with collision checking disabled, so it is wrist
+orientation infeasibility and not obstruction. Every pick point in the task
+set is placed beyond that boundary as a result.
+
+\section{The wrist cannot be aligned under teleoperation}
+
+\emph{Verified in simulation, and a limitation rather than a result.}
+
+The default orientation mode pins the commanded wrist to the anchor captured
+at the home pose. For the task-set block at $(0.32, 0.35, 1.15)$, the
+top-down grasp requires a rotation of \SI{169.7}{\degree} from that anchor,
+which is very nearly a reversal.
+
+There is no channel to command it. The master's wrist is unmeasurable, with
+left j7 restricted to \SI{26}{\degree} and j6 incoherent, and right j3, j5 and
+j7 dead or incoherent, which is why the mode defaults to pinned. Orientation
+assist, which exists to supply it, is a stub because the solver plugin ignores
+orientation constraints.
+
+The recorded grasp sequences work because the recorder calls the
+inverse-kinematics service directly with the grasp orientation, bypassing the
+teleoperation orientation lock. They demonstrate that the \emph{robot} can
+execute an aligned grasp. They do not demonstrate that an \emph{operator} can
+command one, and the three recorded conditions differ only in trajectory
+smoothing, so they do not distinguish this either.
+
+This is the one place where autonomy earns a categorical rather than a
+quantitative advantage over direct teleoperation on this platform, and it
+should be claimed exactly that narrowly.
+
+\section{Task-set verification}
+
+\emph{Verified in simulation, ten repeats over densified paths.}
+
+Every coordinate of the five-task set was verified at ten repeats over paths
+densified to \SI{20}{\milli\metre}, with both arms confirmed at
+\SI{0.0000}{\radian} from the home pose before any sample was taken. Zero
+failures.
+
+The home assertion earned its place. An earlier run of the same script with
+the arms parked \SI{0.87}{\radian} and \SI{0.59}{\radian} from home reported
+zero failures as well, and was measuring a different question under the same
+name. With the arms genuinely at home, ten of twenty-five coupled waypoints
+failed, which is what forced the coupled-object respecification in
+\cref{ch:workspace}.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Five-task verification. Both arms verified at home; ten repeats per
+  pose; short-circuit on first failure.}
+  \label{tab:final5}
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    Task & Coverage & Result \\
+    \midrule
+    Positioning       & 3 targets per arm                    & 3/3, 3/3 \\
+    Pick and place    & 3 picks per arm, approach and place  & 3/3, 3/3 \\
+    Rigid carry       & 3 paths, 25 densified waypoints      & all verified \\
+    Compliant carry   & as rigid carry                       & all verified \\
+    Dual pursuit      & 26-direction shell per arm           & 26/26, 26/26 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The result reproduces. Re-running the verification returned a result identical
+to the previous run, field for field. That is the first reachability figure in
+this project to reproduce across runs rather than be re-asserted, and it
+reproduces because the respecification moved every coupled waypoint off the
+feasibility boundary.
+
+\section{Performance figures}
+
+\emph{Verified in simulation. Every latency below is control-path latency and
+is a lower bound on end-to-end latency, since it excludes the operator, the
+display and the physical arm.}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Measured rates and latencies. All against mock hardware.}
+  \label{tab:perf}
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    Quantity & Value & Note \\
+    \midrule
+    Master frame rate       & \SI{100}{\hertz} & firmware loop \\
+    Distinct sensor updates & \SIrange{14.7}{17}{\hertz} & see \cref{ch:master} \\
+    VR packet rate          & \SI{68.5}{\hertz} & 822 packets over \SI{12.0}{\second} \\
+    VR round trip           & \SI{8.66}{\milli\second} median, \SI{16.5}{\milli\second} p95
+                            & client-timed, one clock \\
+    Voice stop to \texttt{/estop} & \SI{2}{\milli\second} & \\
+    Console frame time      & \SI{0.01}{\milli\second} median, \SI{4.85}{\milli\second} max
+                            & against a \SI{33}{\milli\second} budget \\
+    Kortex high-level loop  & \SIrange{18.4}{18.7}{\hertz} & two round trips per cycle \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The Kortex figure is the one that constrains the architecture. The cyclic
+control path is designed for a \SI{1}{\kilo\hertz} loop on a dedicated link,
+and over the virtualised network layer on this machine each cyclic write is a
+round trip costing about \SI{10}{\milli\second}. At \SI{100}{\hertz} the write
+alone consumes the entire cycle budget, the controller manager overruns
+permanently, and no command reaches the arm while feedback continues to arrive
+perfectly. The symptom is an arm that appears dead while serving live
+telemetry. The system therefore uses the high-level velocity interface, which
+holds a commanded motion between sends and so does not require kilohertz
+updates.
+
+\begin{figure}[htbp]
+  \centering
+  \imgplaceholder{45mm}{Screenshot of the operations console under load,
+  showing the pipeline view with one stage marked as the root cause and
+  downstream stages marked as consequences, the per-channel staleness panel,
+  and the blocking summary. Must be captured with a fault present so the
+  first-out annunciation is visible.}
+  \caption[Operations console]{The console during a fault. Screenshot required
+  before submission.}
+  \label{fig:console}
+\end{figure}
+
+
+\section{Motion generation}
+
+\emph{Measured offline against the platform's own forward kinematics.}
+
+The per-joint step limiter that constituted the entire motion generation for
+teleoperation leaves the commanded end effector \SI{51.3}{\milli\metre} off
+the path its own solver solution implies on the left arm, and
+\SI{39.2}{\milli\metre} on the right, against a grasp capture gate of
+\SI{30}{\milli\metre}. It commands peak joint speeds of \num{12.53} times the
+manufacturer's declared limit, because it had never read the limits file. Both
+figures fall to zero and to \num{1.00} respectively under the jerk-limited,
+phase-synchronised generator that replaced it. \Cref{ch:motion} gives the
+diagnosis, the metric that had to be corrected before the comparison meant
+anything, and the five defects found in the replacement.
+
+\section{The environment as measured rather than declared}
+
+\emph{Verified against the simulated scene and against mock depth.}
+
+The calibrate-then-plan stage of \cref{ch:perception} recovers six objects
+from a full sweep with every centre within \SI{1}{\milli\metre} in both
+horizontal axes and every extent within \SI{3}{\milli\metre}, and measures the
+support height to \SI{1.25026}{\metre} against a declared
+\SI{1.250}{\metre}. Coverage is \SI{98.65}{\percent} of the cells the arm can
+reach, with no stillness refusals, in thirteen minutes.
+
+Two properties matter more than the accuracy. The map is the first structure
+in this project that a motion planner has consulted: before it, the planner's
+only collision object was the wearer, so a path that routed correctly around a
+person swept straight through the bench. And the map carries the time it was
+made, and the pick stage refuses to move from a map older than thirty minutes,
+because a stale record is indistinguishable from a fresh one by inspection and
+the failure it produces is the arm driving confidently at coordinates measured
+in a previous session.
+
+\section{Instruction handling}
+
+\emph{Measured on constructed scenes; grounding rather than detection.}
+
+Seventy-five phrasings of the pick-and-place instruction, scored against the
+grammar as committed six days earlier, give 34 correct against 21, 14
+clarifying questions against 14, 27 refusals against 37, and
+\textbf{misunderstandings of zero against three}
+(\cref{tab:phrasings}). All ten clarifying questions that carry a scored reply
+resolve to the correct plan, in twelve replies, and are reported on their own
+line rather than counted as correct: a grammar that asks about everything must
+not be able to resemble one that understands everything.
+
+The evaluation scene is arithmetic rather than rendered, so its ground truth
+is constructed, which is the condition \cref{ch:instrument} places on
+synthetic data. \textbf{Whether the camera can identify four objects at
+working distance is a different measurement and remains unmeasured on
+hardware.}
+
+\section{The recorded demonstration set}
+
+\emph{Verified in simulation, seventeen cells, eight camera angles each.}
+
+The task set was re-recorded against the corrected geometry after the accuracy
+work. Grasp success is \SI{100}{\percent} across all five modes, positioning
+error at closure is \SI{0.000}{\milli\metre}, placement error on the
+pick-and-place task is \SI{56.3}{\milli\metre} with a variance of
+\SI{0.59}{\milli\metre}, and gripper motion is verified in twelve of twelve
+cells against eight of twelve before.
+
+Three of those figures had previously been reported wrongly, by three separate
+instruments, and the corrections are in \cref{ch:instrument}. The placement
+error in particular had read \SI{319.7}{\milli\metre} with
+\SI{264}{\milli\metre} of variance, because the analysis paired objects with
+gripper pads by alternating index, which is a single-arm assumption, and
+therefore scored two objects against the pad \SI{0.58}{\metre} away.
+
+\section{The first hardware session}
+\label{sec:hardware}
+
+\emph{Measured on a physical arm. This is the only section of this thesis
+whose measurements come from a moving Kinova arm, and none of them is a
+performance result.}
+
+A single arm was driven from its own wrist camera for the first time. The
+grasp geometry was never the difficulty; the session went almost entirely to
+instruments that produced confident wrong answers, seven of which are recorded
+in \cref{ch:instrument}. Three findings survive as results.
+
+\paragraph{The camera-to-wrist transform is wrong by roughly
+\SI{8.5}{\degree}, and the error rotates with the wrist.} The table cannot
+move, so the surface normal measured from any arm pose must be the same
+vector. Measured from four poses it read \SI{9.74}{\degree},
+\SI{15.42}{\degree}, \SI{16.26}{\degree} and \SI{18.14}{\degree} from world
+vertical, a worst pairwise disagreement of \SI{8.45}{\degree}. That is
+\SI{34}{\milli\metre} of position error at \SI{0.23}{\metre} and
+\SI{59}{\milli\metre} at \SI{0.40}{\metre}. It is the term
+\cref{fig:budget} marks as unmeasured, and it is the reason no open-loop
+grasp planned through that transform landed inside the capture gate.
+
+\paragraph{The depth sensor itself is excellent and was never the problem.}
+The support plane fits at \SI{94.8}{\percent} inliers with
+\SI{0.46}{\milli\metre} residual, and a \SI{40}{\milli\metre} calibration cube
+measures $39.2 \times 38.9 \times \SI{40.9}{\milli\metre}$. Only the transform
+out of the camera frame is in error, which is what makes closed-loop servoing
+in the camera's own frame the correct response: a closed loop converges
+through a wrong extrinsic and an open loop cannot.
+
+\paragraph{The middleware is a first-class hazard on this host.} Two transport
+faults cost more of the session than any robotics problem. The default
+communication domain's shared memory was in a state where no \emph{new}
+process could join it while every already-running node continued normally: a
+minimal publisher and subscriber delivered zero of three messages on that
+domain and three of three on another. And an unset middleware implementation
+variable caused the client library to discover nothing at all while the
+process graph was plainly visible to other tools. Both present as an
+unresponsive robot.
+
+\Cref{ch:discussion} treats what this session implies for the readiness of the
+platform, and \cref{ch:conclusion} places the calibration of that transform
+second in the order of work.
+
+\section{Verification, in totals}
+
+\begin{table}[htbp]
+  \centering
+  \caption[Verification totals]{What is checked automatically, at the date of
+  writing. The two counts that exercise the system as an operator would are
+  the window audit and the fault injections.}
+  \label{tab:verification}
+  \begin{tabular}{@{}lr@{}}
+    \toprule
+    Measure & Count \\
+    \midrule
+    Automated tests passing & \num{1322} \\
+    Test modules & 114 \\
+    Checks made on the operating window & 257 \\
+    Faults injected and handled & 14 of 14 \\
+    Recorded demonstration cells & 17, at 8 camera angles each \\
+    Analysis and verification programs & 233 \\
+    Stored measurement records & 195 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{What is not measured}
+
+The following are implemented and unmeasured, and none should be read as
+working.
+
+\begin{itemize}
+  \item \textbf{Anything derived from a force reading.} The mock hardware
+    returns identically zero for every force, so payload compensation,
+    interaction force and grip force at the slave are \emph{structurally
+    undefined} rather than merely unmeasured. Comparing tracking with and
+    without a payload configured returned a difference of exactly
+    \SI{0}{\metre}, which is a property of the mock and not evidence.
+  \item \textbf{Object detection rate at working distance.} The models fit in
+    the available video memory at \SI{2012}{\mebi\byte} of \SI{4096}{\mebi\byte},
+    but the synthetic renderer used to measure detection produces images
+    outside the detector's training distribution. The same detector scores
+    \numrange{0.89}{0.91} on a real photograph and zero on the synthetic task
+    objects, so the measurement characterises the renderer. The detection gate
+    is neither passed nor failed.
+  \item \textbf{Grasp success against a physical object.} The autonomous
+    modes execute end to end in simulation; on hardware the sequence servos
+    but no grasp has yet closed inside the capture gate, for the transform
+    reason in \cref{sec:hardware}.
+  \item \textbf{End-to-end latency including the arm.} Every latency reported
+    above is control-path latency within one host and is a lower bound.
+  \item \textbf{How the terminal joint error varies with commanded speed.}
+    Reported previously as measured and retracted in \cref{ch:motion}: the
+    three speeds were three replicates of one condition.
+  \item \textbf{Speech recognition against a human speaker.} The host exposes
+    no audio input device, so every voice figure in this project was produced
+    from synthesised speech and characterises the grammar rather than the
+    recogniser.
+  \item \textbf{Two arms driven simultaneously on hardware.} Measured at
+    \SIrange{8.1}{12.2}{\hertz} with send latency spiking to
+    \SI{519}{\milli\second} against \SI{21.0}{\hertz} for one arm, which is
+    past the bridge's own watchdog, so the joints stop while still being
+    commanded. The per-arm rate limit that follows from this is a hypothesis
+    derived from the latency and has not been tested.
+\end{itemize}

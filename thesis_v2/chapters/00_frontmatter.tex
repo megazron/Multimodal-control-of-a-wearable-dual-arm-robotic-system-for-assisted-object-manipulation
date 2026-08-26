@@ -1,128 +1,122 @@
+% The title page carries [CONFIRM] items rather than \todo{} markers because
+% todonotes places a float and floats are lost inside a titlepage.
+\todo[inline]{CONFIRM: title with Dr.\ Zhang. Option~2 of three was accepted
+pending supervisor confirmation; the alternatives and their trade-offs are in
+the divergence analysis.}
+\todo[inline]{CONFIRM: word limit and submission format. This draft is
+approximately \num{29000} body words. If a 12{,}000--15{,}000 limit is
+confirmed, the intended reduction is structural rather than editorial: move
+\cref{ch:master} (master arm hardware and firmware), \cref{ch:development}
+(development history) and \cref{ch:instrument} (the instrument chapter) to
+appendices, which removes roughly \num{5500} words from the body while keeping
+them examinable, and compress \cref{ch:results} by moving the per-measurement
+detail into the evidence index of \cref{app:evidence}.}
+\todo[inline]{FIGURE: Imperial College logo. Overleaf converts EPS
+automatically, so restoring the \texttt{includegraphics} line in
+\repo{title/title.tex} should be sufficient there; locally it needs
+\texttt{epstopdf title/logo.eps} and ghostscript.}
+
 \begin{abstract}
-This project is about a pair of robot arms that a person wears on their back,
-and about the problem of letting somebody else drive them safely.
+The base of a supernumerary robotic limb is a person. It sways, it is soft and
+irreplaceable, and it cannot be told to hold still. This thesis reports a
+teleoperation system for two seven-degree-of-freedom arms carried on a worn
+backpack frame and commanded by a second person, together with what measuring
+that system revealed about what it can and cannot do.
 
-The arms are two seven-jointed Kinova Gen3 manipulators on a backpack frame.
-One person wears them. A second person, standing across the room, drives them.
-That split is deliberate, and it changes the problem: the wearer cannot see
-what the driver intends, cannot feel the controls, and did not choose the
-motion happening beside their head. Everything in this thesis follows from
-treating the wearer as a second participant rather than as part of the
-apparatus.
+Two design premises shaped the work. The first is that commanding fourteen
+joints through a body-worn master is a usability problem rather than a wiring
+one, so position is taken from three or four well-conditioned channels,
+orientation from an inertial sensor, and the remainder is supplied by autonomy
+or left uncommanded. The second is that a master routing fourteen analog
+channels through rotating joints will lose channels as connectors fatigue, so
+losing them has to be survivable. Channel health is therefore classified per
+channel, frame validation is scoped to the channels the active mode consumes,
+and each channel can be disabled at run time with its cost published rather
+than inferred. When no well-conditioned channel remains, the system reports
+position unavailable instead of extrapolating one.
 
-Three ways of driving the arms were built and compared. The first is a
-mannequin arm fitted with sensors, which the driver moves by hand. The second
-uses a pair of hand controllers borrowed from a virtual reality headset, held
-as motion trackers rather than worn. The third takes a sentence typed or
-spoken in ordinary English and works out the rest. Around all three sits a
-safety layer whose job is to keep the metal a fixed distance away from the
-person carrying it.
+Position is decomposed so that each component comes from whichever sensor
+observes it most directly: elevation from the gravity vector, azimuth from a
+single shoulder joint, and radius from a forward-kinematic magnitude that
+tolerates a dead roll channel. Measured against \num{20430} recorded frames,
+the reduction from four sensed joints to one costs \SI{63.8}{\milli\metre} of
+commanded tip error. Six of fourteen channels met the health criterion, and
+classifying them correctly reversed two verdicts that had stood for weeks,
+both of which came from computing statistics across transmitted rows rather
+than distinct sensor updates. Replaying the failing channels with the
+operator's input held constant showed them injecting \SI{54.5}{\milli\metre}
+of commanded motion nobody asked for, against a master reach of
+\SI{272}{\milli\metre}.
 
-Three findings shaped the outcome. The first is that the mannequin arm loses
-sensor channels as its wiring flexes, so the software was built to keep
-working with fewer of them, to say which ones it no longer trusts, and to
-refuse rather than guess when too few remain. Seven of fourteen channels
-currently fail the health test, and replaying the failing ones with the
-driver's hand held still shows them injecting \SI{54.5}{\milli\metre} of
-movement that nobody asked for.
+Vertical and fore-and-aft command track correctly on both arms. Lateral does
+not, and a rotation-invariant test settles why: directions intended to be
+\SI{90}{\degree} apart measure \SI{137.7}{\degree} apart, so the commanded
+directions are not an orthogonal triad and no axis mapping can make them one.
+Fourteen of fourteen injected faults were handled, two of them only after
+correcting which observable a safety mechanism was keyed on.
 
-The second is a limit of the machine rather than of the software. With the
-arms mounted where they are, there is no point in front of the wearer's chest
-that both arms can reach, and the innermost useful working column sits
-\SI{325}{\milli\metre} to one side of the body centre line. That result was
-reached four separate ways, including with the wearer's own arms deleted from
-the model, and it rules out any task that needs the two hands to meet. A mount
-change that would improve it is measured and costed, and deliberately not
-applied.
+Characterising the workspace produced a negative result with a quantified
+mechanical remedy. Under the as-built mount the two arms share no reachable
+cell of a sixty-three-cell frontal grid, separated by a \SI{0.25}{\metre} dead
+band, which blocks inter-arm handover for geometric reasons that no control or
+planning change can address. Searching for a working position in front of the
+wearer's own chest returns nothing at any table height or distance, and
+deleting the wearer's arms from the model moves the boundary by no more than
+\SI{75}{\milli\metre}, which identifies the torso rather than the limbs as the
+constraint. A buildable mount modification raising the shared count to
+twenty-two of sixty-three is quantified and deliberately not applied, because
+applying it invalidates the home pose and every clearance figure derived from
+it.
 
-The third concerns measurement itself. Over six weeks, a surprising result
-turned out to be a fault in the measuring tool rather than in the robot on
-seventeen separate occasions. The habit that came out of this, of clearing the
-instrument before believing a bad number, is described in its own chapter with
-the cases that produced it.
+Three capabilities were added after the interface was characterised and are
+reported here for the first time. Motion generation was moved from a
+per-joint step limit to a jerk-limited, phase-synchronised generator, which
+removed \SI{51.3}{\milli\metre} of unrequested Cartesian excursion and brought
+peak commanded joint speed from \num{12.53} times the manufacturer's declared
+limit to \num{1.00}. A perception stage was added that measures the working
+surface and the objects on it rather than being told their coordinates,
+recovering six objects with every centre within \SI{1}{\milli\metre} and every
+dimension within \SI{3}{\milli\metre}, and the resulting map is the first
+thing in this project that a motion planner has ever consulted. And a
+positioning error budget was assembled from the individual contributions,
+giving a worst case of \SI{33.4}{\milli\metre} against a
+\SI{30}{\milli\metre} capture requirement, with the largest remaining term
+being a camera mounting transform that has never been measured.
 
-No result here has been validated on a moving physical arm carrying a load,
-and no human data has been collected. The study protocol, the tasks, the
-measures and the analysis are complete and are reported in full;
-\cref{ch:participant} is deliberately left empty, with its tables and figures
-in place, so it can be filled the moment ethical approval and a working
-master arm allow the sessions to run.
+No result in this thesis was validated on a physical arm carrying a load, and
+no participant data has been collected. What stands between the system and the
+two-person study it was designed around is enumerated in priority order, and
+the first item is two soldered joints.
 \end{abstract}
 
 \renewcommand{\abstractname}{Acknowledgements}
 \begin{abstract}
-I thank my supervisor, Dr.\ Dandan Zhang, for steering this project toward
-what could be measured rather than what could be asserted. Several of the
-results here exist only because a number was questioned before it was written
-down.
+I thank my supervisor, Dr.\ Dandan Zhang, for the direction of this project
+and for consistently pushing the work toward what could be measured rather
+than what could be claimed. Much of what is useful in this thesis exists
+because a result was questioned before it was written down.
 
-I thank my co-supervisor, Dr.\ Etienne Burdet, for the reframing that gave the
-project its shape. Treating the wearer and the driver as two people with
-separate interests, rather than as one role, is the reason the safety and
-workspace chapters look the way they do.
+I thank my co-supervisor, Dr.\ Etienne Burdet, for the framing that changed
+the shape of the project. Treating the wearer and the operator as two people
+with different stakes, rather than as one role, is what turned a control
+problem into a question worth asking, and it is the reason the workspace and
+safety chapters exist in the form they do.
 
-I am grateful to the Human Robotics Group for access to the platform, and to
-everyone who kept two arms and a backpack frame running.
+I am grateful to the Human Robotics Group for access to the Dr.\ Octopus
+platform, and to everyone who kept two Kinova arms and a backpack frame
+available and working.
+\todo{CONFIRM: name the technical staff, laboratory members and fellow
+students who gave practical help, and anyone who lent equipment or time on the
+platform. Only the two supervisors and the group are named here, because those
+are the only contributions on record; the rest must be added by hand before
+submission.}
 
-\vspace{2mm}
-\noindent\fbox{\parbox{0.95\linewidth}{\small\itshape
-To be completed before submission: name the technical staff, laboratory
-members and fellow students who gave practical help, and anyone who lent
-equipment or time on the platform. Only the two supervisors and the group are
-named above because those are the contributions on record.}}
+This project spent a great deal of its time discovering that the instrument
+was wrong rather than the system. I am thankful to everyone who responded to a
+surprising number with scepticism instead of enthusiasm, which is the only
+reason several of them are not in this document as findings.
+
+Finally, I thank my family and friends for their support over the course of
+the year.
+\todo{CONFIRM: personalise the closing paragraph.}
 \end{abstract}
-
-\chapter*{A note on the words used}
-\addcontentsline{toc}{chapter}{A note on the words used}
-
-This thesis is written to be read by somebody who does not work on robots. A
-small number of technical words cannot be avoided without making the sentences
-longer than the ideas in them, so they are defined here once and then used
-plainly.
-
-\begin{table}[H]
-  \centering
-  \small
-  \caption[Words used in this thesis]{The technical vocabulary used in this
-  thesis, in the sense meant here.}
-  \label{tab:words}
-  \begin{tabular}{@{}p{0.26\linewidth}p{0.68\linewidth}@{}}
-    \toprule
-    \textbf{Word} & \textbf{What it means here} \\
-    \midrule
-    Wearer & The person carrying the arms on their back. A participant, not
-      equipment. \\
-    Driver, or operator & The person commanding the arms. A different person
-      from the wearer. \\
-    Master arm & The mannequin arm fitted with sensors that the driver moves
-      by hand. The robot copies it. \\
-    Joint & One place where the arm bends or twists. Each robot arm has seven,
-      plus a gripper. \\
-    End effector & The point between the gripper's two finger pads, which is
-      where the arm actually touches things. \\
-    Pose & A position and an orientation together. Where the hand is, and
-      which way it is pointing. \\
-    Inverse kinematics & Working out the seven joint angles that put the hand
-      at a wanted pose. There is usually more than one answer. \\
-    Reachable & A pose the arm can adopt without hitting anything and without
-      running out of joint travel. \\
-    Clearance & The shortest distance from any moving part of the arm to any
-      part of the wearer's body. \\
-    Clearance floor & The smallest clearance the system will allow, set to
-      \SI{150}{\milli\metre}. \\
-    Simulation & A model of the arms and the wearer running on a computer,
-      used to test motion before any metal moves. \\
-    Node & One running program in the software. The system is built from about
-      forty of them, each doing one job. \\
-    Trial & One attempt at one task by one pair of people, under one way of
-      driving. \\
-    Dyad & One wearer and one driver, working together. The unit of analysis
-      in the study. \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Two conventions are used throughout. Where a number is quoted, the program
-that produced it is named, so it can be recomputed. Where a quantity has never
-been measured, the text says so rather than offering an estimate, because a
-figure with a guess inside it hides the thing that ought to be measured next.

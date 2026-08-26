@@ -25,10 +25,20 @@ Tianheng Cheng, Lin Song, Yixiao Ge, Wenyu Liu, Xinggang Wang, and Ying Shan.
 \newblock {YOLO-World}: Real-time open-vocabulary object detection.
 \newblock In {\em Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)}, 2024.
 
+\bibitem{dewolde2024impedance}
+S.~de~Wolde, J.~Kober, and R.~Babuska.
+\newblock Current-based impedance control for interacting with mobile manipulators.
+\newblock {\em arXiv preprint arXiv:2403.13079}, 2024.
+
 \bibitem{dragan2013policyblending}
 Anca~D. Dragan and Siddhartha~S. Srinivasa.
 \newblock A policy-blending formalism for shared control.
 \newblock {\em The International Journal of Robotics Research}, 32(7):790--805, 2013.
+
+\bibitem{fischler1981ransac}
+Martin~A. Fischler and Robert~C. Bolles.
+\newblock Random sample consensus: A paradigm for model fitting with applications to image analysis and automated cartography.
+\newblock {\em Communications of the ACM}, 24(6):381--395, 1981.
 
 \bibitem{fitts1954information}
 Paul~M. Fitts.
@@ -51,6 +61,20 @@ Sandra~G. Hart and Lowell~E. Staveland.
 \newblock \url{https://www.imperial.ac.uk/a-z-research/human-robotics/dr-octopus-/}.
 \newblock Accessed April 2026.
 
+\bibitem{isa101}
+International Society of Automation.
+\newblock {\em {ANSI/ISA-101.01-2015}: Human Machine Interfaces for Process Automation Systems}, 2015.
+
+\bibitem{invensense2013mpu6050}
+InvenSense Inc.
+\newblock {\em {MPU-6000} and {MPU-6050} Product Specification, Revision 3.4}, 2013.
+\newblock Document PS-MPU-6000A-00.
+
+\bibitem{invensense2013mpuregmap}
+InvenSense Inc.
+\newblock {\em {MPU-6000} and {MPU-6050} Register Map and Descriptions, Revision 4.2}, 2013.
+\newblock Document RM-MPU-6000A-00.
+
 \bibitem{javdani2015hindsight}
 Shervin Javdani, Siddhartha~S. Srinivasa, and J.~Andrew Bagnell.
 \newblock Shared autonomy via hindsight optimization.
@@ -64,6 +88,11 @@ Kinova Robotics.
 James~J. Kuffner and Steven~M. LaValle.
 \newblock {RRT-Connect}: An efficient approach to single-query path planning.
 \newblock {\em Proceedings of the IEEE International Conference on Robotics and Automation (ICRA)}, pages 995--1001, 2000.
+
+\bibitem{lee2019sea}
+C.~Lee, S.~Kwak, and J.~Kwak.
+\newblock Development, analysis, and control of series elastic actuator for a wearable robotic leg.
+\newblock {\em Frontiers in Neurorobotics}, 13:17, 2019.
 
 \bibitem{longo2008embodiment}
 Matthew~R. Longo, Friederike Sch{\"u}{\"u}r, Marjolein P.~M. Kammers, Manos Tsakiris, and Patrick Haggard.
@@ -84,6 +113,12 @@ Steven Macenski, Tully Foote, Brian Gerkey, Chris Lalancette, and William Woodal
 C.~Moon and J.~Kim.
 \newblock Assessing the physical impact of supernumerary limbs on a human subject: A simulation study.
 \newblock In {\em Proc. 46th Annual International Conference of the IEEE Engineering in Medicine and Biology Society (EMBC)}, pages 1--4. IEEE, 2024.
+
+\bibitem{isaaclab}
+{NVIDIA}.
+\newblock Isaac lab documentation: Impedance control and motion generators.
+\newblock \url{https://isaac-sim.github.io/IsaacLab}, 2026.
+\newblock Accessed April 2026.
 
 \bibitem{parietti2013dynamic}
 Federico Parietti and H.~Harry Asada.
@@ -121,10 +156,20 @@ MHD~Yamen Saraiji, Tomoya Sasaki, Reo Matsumura, Kouta Minamizawa, and Masahiko 
 \newblock Fusion: full body surrogacy for collaborative communication.
 \newblock In {\em ACM SIGGRAPH 2018 Emerging Technologies}, pages 1--2. ACM, 2018.
 
+\bibitem{todorov2012mujoco}
+Emanuel Todorov, Tom Erez, and Yuval Tassa.
+\newblock {MuJoCo}: A physics engine for model-based control.
+\newblock In {\em Proc. IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, pages 5026--5033. IEEE, 2012.
+
 \bibitem{tong2021srlreview}
 Yuchen Tong and Jianbin Liu.
 \newblock Review of research and development of supernumerary robotic limbs.
 \newblock {\em IEEE/CAA Journal of Automatica Sinica}, 2021.
+
+\bibitem{toubar2022sea}
+H.~Toubar, G.~Goldsmith, S.~A. Tafrishi, M.~Innala, and V.~Bergstromer.
+\newblock Design, modeling, and control of a series elastic actuator with discretely adjustable stiffness.
+\newblock {\em Mechanism and Machine Theory}, 170:104720, 2022.
 
 \bibitem{yang2021srlreview}
 Bo~Yang, Jian Huang, Xu~Chen, Caihua Xiong, and Yasuhisa Hasegawa.

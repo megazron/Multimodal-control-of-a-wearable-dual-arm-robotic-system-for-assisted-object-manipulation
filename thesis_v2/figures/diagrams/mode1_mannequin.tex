@@ -1,0 +1,57 @@
+% MODE 1 -- DIRECT TELEOPERATION FROM THE MANNEQUIN MASTER.
+% Explicit coordinates rather than relative placement: the four mode diagrams
+% share a grid so they can be compared stage by stage across pages.
+% Red = a stage that can stop the arm. Dashed red = a failure exit.
+\begin{tikzpicture}[x=34mm, y=13mm]
+
+% ---- row 0: sensing
+\node[sensor] (pots)   at (0, 3.0) {14 potentiometers\\12-bit ADC};
+\node[sensor] (imu)    at (0, 1.7) {2 MPU-6050\\accel $+$ gyro};
+\node[sensor] (btn)    at (0, 0.4) {2 buttons\\2 FSRs};
+
+\node[proc]   (teensy) at (1, 1.7) {Teensy 4.1\\EMA, clamp,\\frame @ \SI{100}{\hertz}};
+\node[proc]   (serial) at (2, 1.7) {USB serial\\exclusive \texttt{flock}};
+\node[proc]   (chan)   at (2, 3.3) {channel manager\\per-channel verdict};
+\node[proc]   (degr)   at (3, 3.3) {degraded mode\\freeze incoherent,\\j7 radial fallback};
+
+\node[safety] (valid)  at (3, 1.7) {frame validation\\mode-scoped};
+\node[proc, text width=30mm] (sph) at (4, 1.7)
+      {spherical form\\az $\leftarrow$ j1, el $\leftarrow$ IMU,\\reach $\leftarrow$ FK};
+\node[proc]   (clutch) at (4, 0.1) {clutch\\quasi-static gate,\\anchor re-latch};
+\node[proc]   (scale)  at (5, 1.7) {scale $+$ anchor\\$p_0 + s\,(d - d_{\mathrm{ref}})$};
+\node[safety] (estop)  at (5, 3.3) {e-stop\\dead-man on the\\\emph{source} timestamp};
+
+\node[safety] (ik)     at (6, 1.7) {collision-aware IK\\redundancy re-seed};
+\node[safety] (clear)  at (6, 0.1) {clearance floor\\\SI{0.12}{\metre} to wearer};
+\node[safety] (guard)  at (7, 0.1) {step guard\\slew, never discard};
+\node[actuator](traj)  at (7, 1.7) {joint trajectory\\controller};
+\node[actuator](arm)   at (7, 3.3) {Kinova Gen3\\high-level velocity};
+
+\draw[flow] (pots) -- (teensy);
+\draw[flow] (imu)  -- (teensy);
+\draw[flow] (btn)  -- (teensy);
+\draw[flow] (teensy) -- (serial);
+\draw[flow] (serial) -- (chan);
+\draw[flow] (chan)   -- (degr);
+\draw[flow] (serial) -- (valid);
+\draw[flow] (degr)   -- (valid);
+\draw[flow] (valid)  -- (sph);
+\draw[flow] (clutch) -- (sph);
+\draw[flow] (sph)    -- (scale);
+\draw[flow] (scale)  -- (ik);
+\draw[flow] (ik)     -- (traj);
+\draw[flow] (traj)   -- (arm);
+\draw[flow] (clear)  -- (ik);
+\draw[flow] (clear)  -- (guard);
+\draw[flow] (guard)  -- (traj);
+\draw[flow] (estop)  -- (scale);
+
+\draw[fail] (valid.north west) -- node[faillbl, left, pos=0.5] {invalid:\\hold last} (chan.south);
+\draw[fail] (ik.south) -- node[faillbl, right] {no IK: hold} (clear.north);
+\draw[fail] (estop.east) -- node[faillbl, above, pos=0.4] {latched: park} (arm.west);
+
+\node[font=\scriptsize\itshape, anchor=west] at (0, -1.1)
+  {blue = sensing \quad grey = processing \quad
+   \textcolor{red!60!black}{red = can stop the arm} \quad
+   \textcolor{green!45!black}{green = commands motion}};
+\end{tikzpicture}

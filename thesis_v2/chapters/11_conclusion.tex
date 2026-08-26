@@ -1,0 +1,73 @@
+\chapter{Conclusion}
+\label{ch:conclusion}
+
+\section{What was done}
+
+A complete system was built for driving two worn robot arms and keeping the
+person carrying them safe. It has three input routes: a sensed mannequin arm,
+a pair of hand controllers used as motion trackers, and ordinary English typed
+or spoken. It has a safety layer built on measured distance to the wearer
+rather than on collision flags, tested by breaking things rather than by
+reading code. It has a perception system that measures the working area
+instead of being told about it, and a planner that knows the table is there.
+All of it is reachable from one window, and all of it is checked by 1\,322
+automated tests and by a program that presses every button in that window.
+
+\section{Against the aims}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Aims and outcomes]{The six aims from \cref{ch:intro}, and what
+  became of each.}
+  \label{tab:aims}
+  \begin{tabular}{@{}p{0.42\linewidth}p{0.50\linewidth}@{}}
+    \toprule
+    \textbf{Aim} & \textbf{Outcome} \\
+    \midrule
+    Build and characterise the master arm & Done. Six of fourteen channels
+      meet the health criterion, and the failing ones are quantified rather
+      than described \\
+    A mapping that degrades predictably & Done, and measured: one step down
+      the ladder costs \SI{63.8}{\milli\metre} of accuracy, and the bottom
+      rung is a refusal \\
+    A safety layer suited to a worn machine & Built and validated by
+      injection, 14 of 14. One defect remains open and is named in
+      \cref{ch:discussion} \\
+    Characterise the reachable workspace & Done, and the result is negative:
+      the two arms share no reachable point in front of the wearer \\
+    Add two further ways of driving & Done. Both reach the arms through the
+      same safety path, verified by test \\
+    Identify what must be fixed before a study & Done, in priority order. The
+      first item is a soldering repair \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{What was not done}
+
+No participant has used the system, and no result has been validated on a
+moving physical arm under load. The two-person study is designed, its
+protocol is written, its analysis is coded and its ethics application is
+drafted, and none of it has been submitted, because submitting a study whose
+baseline condition depends on broken sensors would be dishonest.
+
+The two-arm tasks in the study cannot currently be performed, for two separate
+measured reasons: the arms share no workspace, and the object presents more
+width than the gripper opens. Both are reported rather than worked around.
+
+\section{What should happen next}
+
+The ordering in \cref{ch:discussion} matters more than any individual item.
+Repair the master. Measure where the camera is. Fix the clearance check so it
+measures the whole arm rather than the centres of its joints. Put the
+perception delay into the safety margin so that the margin means what it
+claims. Then move the mounts and re-measure. Only then run people.
+
+\section{Closing}
+
+The most useful thing this project produced is probably not the system. It is
+the discipline of not believing a surprising number until the instrument that
+produced it has been cleared, and the record of seventeen occasions on which
+that discipline was the difference between a finding and a mistake. The robot
+will be rebuilt. The habit transfers.

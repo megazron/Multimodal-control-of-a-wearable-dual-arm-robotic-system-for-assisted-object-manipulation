@@ -1,0 +1,33 @@
+% What happens in one two-hour session.
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize]
+
+  \foreach \i/\t/\lbl/\who in {
+      0/{0:00}/{Consent, separately}/{both, in different rooms},
+      1/{0:20}/{Fit the harness, check the fit}/{wearer},
+      2/{0:35}/{Familiarisation, no task}/{driver},
+      3/{0:50}/{Prove the emergency stop}/{all three present},
+      4/{1:00}/{Block 1: one condition, all tasks}/{both},
+      5/{1:20}/{Rest, questionnaires, exertion rating}/{both},
+      6/{1:30}/{Block 2}/{both},
+      7/{1:50}/{Rest and questionnaires}/{both},
+      8/{2:00}/{Block 3, debrief}/{both}}
+  {
+    \pgfmathsetmacro{\y}{-\i*9}
+    \node[anchor=east, font=\scriptsize\ttfamily] at (0,\y) {\t};
+    \ifnum\i=3
+      \node[guard, anchor=west, text width=54mm, minimum height=6mm] at (4,\y) {\lbl};
+    \else
+      \ifnum\i=5 \node[person, anchor=west, text width=54mm, minimum height=6mm] at (4,\y) {\lbl};
+      \else \ifnum\i=7 \node[person, anchor=west, text width=54mm, minimum height=6mm] at (4,\y) {\lbl};
+      \else \node[stage, anchor=west, text width=54mm, minimum height=6mm] at (4,\y) {\lbl};
+      \fi \fi
+    \fi
+    \node[anchor=west, font=\tiny\itshape, text width=34mm] at (62,\y) {\who};
+  }
+
+  \draw[decorate, decoration={brace, amplitude=4pt}] (100,-36) -- (100,-72)
+        node[midway, right=5pt, font=\tiny\itshape, text width=26mm]
+        {The wearer carries the load for no more than twenty minutes at a
+         time, with a rest between blocks};
+
+\end{tikzpicture}

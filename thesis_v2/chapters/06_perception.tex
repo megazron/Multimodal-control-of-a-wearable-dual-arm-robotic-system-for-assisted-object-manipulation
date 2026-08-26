@@ -1,0 +1,207 @@
+\chapter{Seeing, and deciding}
+\label{ch:perception}
+
+\section{The problem with written-down coordinates}
+
+For most of this project the robot was told where things were. The blocks sat
+at particular coordinates because a file said so, and the table was at a
+particular height because a file said so. Every one of those numbers was
+checked, repeatedly, along the whole path the arm would take.
+
+None of it survives a different table. Or a different object. Or the same
+object moved by five centimetres. The number in the file becomes a statement
+the arm acts on with complete confidence, and there is nothing anywhere in the
+system to disagree with it.
+
+The parts needed to measure instead already existed and had never been
+connected to each other. One module could find a flat surface and the things
+standing on it, and was being used to print a description. Another could hold a
+map of the space so the planner could avoid things that are not the wearer, and
+had never been built outside its own self-test, which means no path this
+project ever planned knew that the table was there. A third existed so the
+surface height could come from the camera, and nothing called it.
+
+\Cref{fig:perception} is what replaced that.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/perception.tex}
+  \caption[Measure, then plan]{Measuring the working area and planning against
+  what was measured. The sweep is deliberately shaped like a printer's bed
+  probe: hold one wrist direction and move in straight lines, rather than
+  re-aiming the camera at every point.}
+  \label{fig:perception}
+\end{figure}
+
+\section{Looking like a printer, not like a person}
+
+The first version of the sweep pointed the camera at each grid point in turn.
+That seems sensible and it is wrong. Re-aiming means the wrist is at a
+different angle in every frame, so any small error in where the camera sits
+relative to the wrist becomes a \emph{different} error in every frame, and can
+never cancel out or be measured.
+
+A three-dimensional printer's height probe does not re-aim. It holds one
+attitude and moves. The sweep does the same: one wrist direction per pass,
+with the camera positions being the work positions shifted back along a fixed
+line, so neighbouring views differ by a pure sideways move. Several passes at
+different angles give the sides of objects, which a single viewpoint cannot
+see. The full sweep is two heights, three angles, twenty-four positions and
+two arms.
+
+One more distinction turned out to matter. Being stationary is not the same as
+having arrived. A joint can sit a small distance from where it was sent and
+still be moving through that position, and a picture taken then is smeared
+across two poses while every number downstream looks perfectly healthy. The
+sweep now waits until no joint has moved by more than a tenth of the arrival
+tolerance for four hundred milliseconds.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Accuracy of the measured map]{What the map contains after a full
+  sweep, against the scene it was measuring. Objects are cut out of the
+  picture and lifted through the depth image rather than being clustered from
+  the point cloud.}
+  \label{tab:map}
+  \begin{tabular}{@{}p{0.5\linewidth}p{0.42\linewidth}@{}}
+    \toprule
+    \textbf{Quantity} & \textbf{Measured} \\
+    \midrule
+    Surface height & \SI{1.2503}{\metre} against a true \SI{1.250}{\metre} \\
+    Surface tilt & \SI{0.036}{\degree} \\
+    Objects found & 6 of 6 \\
+    Object centres & every one within \SI{1}{\milli\metre} in both horizontal
+      directions \\
+    Object sizes & every dimension within \SI{3}{\milli\metre} \\
+    Viewpoints reached & 74 of 74 that the arm can reach \\
+    Time & \SI{13}{\minute} \SI{15}{\second} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \screenshot{62mm}{The measured map drawn over the real scene: the fitted
+  surface, the six recovered objects with their outlines, and the arm at one
+  of the sweep viewpoints. A second panel showing the same map handed to the
+  planner, with the table drawn as an obstacle, would make the hand-over
+  visible.}
+  \caption[The measured map]{The result of a sweep. Everything the planner
+  knows about the room comes from this, and it carries the time it was made so
+  that a stale map can be refused rather than trusted.}
+  \label{fig:map}
+\end{figure}
+
+\section{Finding a particular object}
+
+Detection uses an open-vocabulary detector that takes a phrase rather than a
+fixed list of classes~\cite{cheng2024yoloworld}, with a fast segmentation
+model to get the outline~\cite{zhao2023fastsam} and a plain colour-and-depth
+filter as a fallback when neither model is loaded. Which of the three produced
+a given detection is reported with the detection, so a result can never
+quietly imply that the good one was running.
+
+Two practical points are worth recording. Colour alone does not separate the
+target from the laboratory: the green block and the teal robots on the far
+bench differ by two units of hue, which is inside the noise. They are also
+\SI{2.8}{\metre} away while the rig works within \SI{1.6}{\metre}, so distance
+separates them cleanly and colour cannot. And the grasp itself is computed
+geometrically from the shape of the depth points rather than learned, because
+a two-fingered gripper closing on a rigid object is a solved problem, a
+learned model would need graphics memory this machine does not have, and a
+geometric method can explain why it refused.
+
+That last property earns its place. Every refusal names a cause: no depth
+data, wider than the gripper's \SI{85}{\milli\metre} opening, too few points to
+fit a shape.
+
+\begin{figure}[htbp]
+  \centering
+  \screenshot{55mm}{The detection view during a run: the camera image with the
+  detected object outlined, the phrase that was searched for, the confidence,
+  which detector produced it, and the computed grasp drawn as the two finger
+  positions. Include one frame where a detection was refused, with the reason
+  displayed.}
+  \caption[Detection and grasp]{What the driver is shown before the arm moves.
+  The refusal case is the one worth including: a system that cannot show why
+  it declined is one an operator will learn to override.}
+  \label{fig:detect}
+\end{figure}
+
+\section{Planning around things that are not the wearer}
+
+For teleoperation there is no planner, and that is correct: the driver's hand
+is the plan. For the autonomous mode there is a goal, and a planner was
+written for it.
+
+It searches in joint space rather than in the space the hand moves through,
+because the thing that has to be avoided is the distance from the whole arm to
+the wearer, not from the hand~\cite{kuffner2000rrtconnect}. It checks the same
+clearance the safety layer enforces, rather than the simulator's collision
+settings, for the reasons given in \cref{ch:safety}. It checks every
+intermediate point along each candidate move at the same spacing the follower
+uses, because a planner that checks only the ends of its moves has the same
+defect it exists to remove. And it tries a straight line first, since most
+moves are fine and planning a clear move turns sixty milliseconds into
+several seconds.
+
+Why this was needed can be stated in one measurement. A pick whose starting
+pose and grasping pose are both individually clear, executed as a straight line
+in joint space, passes within \SI{146}{\milli\metre} of the wearer at step
+twenty-nine of sixty-four. The path checker catches it, and catching it means
+the run stops.
+
+\section{Taking an instruction in English}
+
+The third way of driving takes a sentence. The parser is a grammar, not a
+language model, and the reasons are given in \cref{ch:system}.
+
+The important design decision is what happens when a sentence is ambiguous.
+Asked to \emph{put the blue block on the blue mat} when there are two blue
+blocks, the system asks which one rather than choosing. Nearest, leftmost and
+first-detected are all defensible and all guesses, and this arm is bolted to a
+person. Asked to \emph{put the blue ones on the blue mat}, it does not ask,
+because the plural settles it. The difference lives in the words rather than
+in a rule about how many things happen to match.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Instruction handling]{Seventy-five phrasings of the same task, run
+  through the current grammar and through the version in use six days earlier.
+  The two columns differ by the code and by nothing else: the older grammar
+  was checked out of version control and run in its own interpreter.}
+  \label{tab:phrasings}
+  \begin{tabular}{@{}lcc@{}}
+    \toprule
+    \textbf{Outcome} & \textbf{Earlier grammar} & \textbf{Current} \\
+    \midrule
+    Understood correctly & 21 & \textbf{34} \\
+    Asked a clarifying question & 14 & 14 \\
+    Refused & 37 & 27 \\
+    \textbf{Misunderstood} & \textbf{3} & \textbf{0} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The bottom row is the one that matters. A refusal wastes the driver's time; a
+misunderstanding moves the arm. All three misunderstandings in the earlier
+version were compound instructions of the form \emph{put the blue ones on the
+blue mat and the green ones on the green mat}, where the grammar planned the
+first half, dropped the second in silence, moved two objects of four, and
+reported success.
+
+\begin{figure}[htbp]
+  \centering
+  \screenshot{68mm}{The instruction panel: the text box with a sentence typed
+  in, what the parser understood shown underneath it, the objects the camera
+  found with their colours and confidence, the plan in plain words, and the
+  confirm button. Take a second shot of the panel asking a clarifying
+  question, with the driver's short reply in the box.}
+  \caption[Giving an instruction]{The instruction panel. Nothing moves until
+  the driver has seen what was understood and confirmed it, and the sentence
+  is passed to the runner exactly as typed so the record of what was asked
+  cannot drift from what was done.}
+  \label{fig:instruct}
+\end{figure}

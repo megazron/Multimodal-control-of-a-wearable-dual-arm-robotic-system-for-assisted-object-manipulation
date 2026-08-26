@@ -1,0 +1,44 @@
+% Four tasks by three conditions, within each pair of participants.
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize]
+
+  \foreach \j/\cond in {0/{C1 direct\\ teleoperation},
+                        1/{C2 assisted\\ teleoperation},
+                        2/{C3 spoken or typed\\ goal}}
+    { \pgfmathsetmacro{\y}{-\j*14}
+      \node[sense, text width=26mm, minimum height=11mm] at (-2,\y) {\cond}; }
+
+  \foreach \i/\task/\note in {
+      0/{T1 reaching}/{six targets, no grasping},
+      1/{T2 pick and place}/{four blocks to matching mats},
+      2/{T3 two-arm carry}/{one object, both grippers},
+      3/{T4 hand to wearer}/{the robot serves the person carrying it}}
+    { \pgfmathsetmacro{\x}{28 + \i*27}
+      \node[stage, text width=24mm, minimum height=11mm] at (\x,14) {\textbf{\task}\\ \note}; }
+
+  \foreach \j in {0,1,2}{
+    \foreach \i in {0,1,2,3}{
+      \pgfmathsetmacro{\x}{28 + \i*27}
+      \pgfmathsetmacro{\y}{-\j*14}
+      \pgfmathtruncatemacro{\blocked}{ ( \i==1 && \j<2 ) || ( \i==2 ) ? 1 : 0 }
+      \ifnum\blocked=1
+        \node[absent, text width=24mm, minimum height=11mm] at (\x,\y) {not
+              currently possible};
+      \else
+        \node[stage, text width=24mm, minimum height=11mm, fill=green!6] at (\x,\y)
+             {3 trials\\ per dyad};
+      \fi } }
+
+  \node[tag, text width=118mm, align=left] at (55,-50)
+    {Orange cells are not a design choice. Grasping under direct teleoperation
+     is not achievable on this platform, and the two-arm carry needs a grip
+     wider than the hand opens. Both are measured results reported in
+     \cref{ch:results}, and both are stated here so that the empty cells in
+     \cref{ch:participant} are not read as missing data.};
+
+  \node[tag, text width=118mm, align=left] at (55,-62)
+    {Sixteen pairs of participants. Every pair sees every available cell.
+     Condition order is balanced across pairs so that no condition is
+     systematically first or last, and so that each condition follows every
+     other equally often.};
+
+\end{tikzpicture}

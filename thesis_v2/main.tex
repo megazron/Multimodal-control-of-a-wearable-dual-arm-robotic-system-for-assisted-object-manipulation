@@ -1,0 +1,158 @@
+%% =====================================================================
+%%  MSc Individual Project -- Imperial College London
+%%  Compile with XeLaTeX (Menu > Compiler > XeLaTeX on Overleaf).
+%%  Run twice for cross-references, three times if the contents move.
+%% =====================================================================
+\documentclass[a4paper, twoside, 11pt]{report}
+
+\usepackage[english]{babel}
+\usepackage[a4paper, top=2.54cm, bottom=2.54cm, left=1.91cm, right=1.91cm,
+            marginparwidth=1.75cm]{geometry}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{siunitx}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc,
+                shapes.geometric,shapes.misc,decorations.pathreplacing}
+\usepackage{setspace}
+\usepackage{fontspec}
+\usepackage{titlesec}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage[capitalise,nameinlink]{cleveref}
+
+\sisetup{detect-all, range-units = single, per-mode = symbol,
+         separate-uncertainty = true}
+
+\graphicspath{{figures/}}
+
+%% ---------------------------------------------------------------------
+%%  Font. Times New Roman where it exists, otherwise the metric-compatible
+%%  TeX Gyre Termes that ships with every TeX distribution.
+%% ---------------------------------------------------------------------
+\IfFontExistsTF{Times New Roman}{\setmainfont{Times New Roman}}{%
+  \IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{%
+    \setmainfont{texgyretermes}[Extension = .otf,
+      UprightFont = *-regular, BoldFont = *-bold,
+      ItalicFont = *-italic, BoldItalicFont = *-bolditalic]}}
+
+\titleformat{\chapter}[display]
+  {\centering\huge\bfseries}{Chapter \thechapter}{1ex}{}
+
+\setstretch{1.15}
+\setlength{\parskip}{3pt}
+\setlength{\parindent}{12pt}
+
+%% ---------------------------------------------------------------------
+%%  Space reserved for a picture that has still to be taken. The box is
+%%  drawn in the compiled document so a missing figure is obvious rather
+%%  than silently absent. Delete the command and insert \includegraphics
+%%  when the image exists.
+%% ---------------------------------------------------------------------
+\newcommand{\screenshot}[2]{%
+  \begin{tikzpicture}
+    \node[draw, dashed, thick, blue!45!black, fill=blue!3,
+          minimum height=#1, text width=0.86\linewidth, align=center,
+          inner sep=10pt]{%
+      {\bfseries\color{blue!45!black} SPACE RESERVED FOR A SCREENSHOT}\\[5pt]
+      \small\color{black}#2};
+  \end{tikzpicture}}
+
+\newcommand{\photo}[2]{%
+  \begin{tikzpicture}
+    \node[draw, dashed, thick, black!55, fill=black!3,
+          minimum height=#1, text width=0.86\linewidth, align=center,
+          inner sep=10pt]{%
+      {\bfseries\color{black!55} SPACE RESERVED FOR A PHOTOGRAPH}\\[5pt]
+      \small\color{black}#2};
+  \end{tikzpicture}}
+
+%% A figure to be reproduced from published work once permission is granted.
+\newcommand{\reproduced}[2]{%
+  \begin{tikzpicture}
+    \node[draw, dashed, thick, orange!70!black, fill=orange!4,
+          minimum height=#1, text width=0.86\linewidth, align=center,
+          inner sep=10pt]{%
+      {\bfseries\color{orange!70!black} SPACE RESERVED: FIGURE FROM PUBLISHED WORK}\\[5pt]
+      \small\color{black}#2\\[4pt]
+      {\footnotesize\itshape Written permission from the copyright holder is
+      required before this is reproduced.}};
+  \end{tikzpicture}}
+
+%% Names of files in the project repository, so a claim can be checked.
+\newcommand{\file}[1]{\texttt{\small #1}}
+
+%% ---------------------------------------------------------------------
+%%  One drawing vocabulary for every flow chart in the thesis, so the
+%%  diagrams can be read against each other. Shape carries the kind of
+%%  stage; colour carries whether the stage can stop the arm.
+%% ---------------------------------------------------------------------
+\tikzset{
+  sense/.style   = {draw, rounded corners=2pt, fill=blue!8,
+                    minimum height=8mm, text width=30mm, align=center,
+                    font=\scriptsize},
+  stage/.style    = {draw, fill=black!5, minimum height=8mm,
+                    text width=30mm, align=center, font=\scriptsize},
+  guard/.style   = {draw, thick, draw=red!60!black, fill=red!8,
+                    minimum height=8mm, text width=30mm, align=center,
+                    font=\scriptsize},
+  choice/.style  = {draw, diamond, aspect=2.3, fill=yellow!14,
+                    inner sep=1pt, text width=24mm, align=center,
+                    font=\scriptsize},
+  motor/.style   = {draw, thick, draw=green!45!black, fill=green!10,
+                    minimum height=8mm, text width=30mm, align=center,
+                    font=\scriptsize},
+  absent/.style  = {draw, dashed, draw=orange!70!black, fill=orange!8,
+                    minimum height=8mm, text width=30mm, align=center,
+                    font=\scriptsize},
+  person/.style  = {draw, rounded corners=3pt, fill=violet!8,
+                    minimum height=8mm, text width=30mm, align=center,
+                    font=\scriptsize},
+  go/.style      = {-{Latex[length=2mm]}, thick},
+  halt/.style    = {-{Latex[length=2mm]}, thick, red!65!black, dashed},
+  tag/.style     = {font=\tiny\itshape, inner sep=1.5pt, align=center},
+  stoptag/.style = {font=\tiny\itshape, red!65!black, inner sep=1.5pt,
+                    align=center},
+}
+
+\title{Driving a Pair of Worn Robot Arms: Interface Design, Safety, and
+What the Machine Can and Cannot Reach}
+\author{Gaus Sayyad}
+
+\begin{document}
+
+\input{title/title.tex}
+
+\input{chapters/00_frontmatter.tex}
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\input{chapters/01_introduction.tex}
+\input{chapters/02_background.tex}
+\input{chapters/03_system.tex}
+\input{chapters/04_master.tex}
+\input{chapters/05_safety.tex}
+\input{chapters/06_perception.tex}
+\input{chapters/07_study_design.tex}
+\input{chapters/08_system_results.tex}
+\input{chapters/09_participant_results.tex}
+\input{chapters/10_discussion.tex}
+\input{chapters/11_conclusion.tex}
+\input{chapters/12_appendix.tex}
+
+\bibliographystyle{plain}
+\bibliography{bibs/references}
+
+\end{document}

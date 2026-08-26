@@ -1,0 +1,186 @@
+\chapter{The study}
+\label{ch:study}
+
+This chapter sets out the study the system was built for: what would be asked
+of the participants, what would be measured, and how the data would be
+analysed. None of it has been run. Stating it in full is what makes
+\cref{ch:participant} an empty container rather than a gap.
+
+\section{The question}
+
+Does letting the machine take over part of the work help, and who does it
+help?
+
+The second half is the part that is usually left out. In a two-person
+arrangement, an improvement for the driver is not automatically an improvement
+for the wearer, and the existing evidence suggests it may be the
+opposite~\cite{zhou2026proxemics}. The study is therefore designed so that
+both people are measured on every trial, and so that a result can come out
+mixed.
+
+\section{Design}
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/design.tex}
+  \caption[The study design]{Three ways of driving, crossed with four tasks,
+  within each pair of participants. Cells marked as not currently possible are
+  measured limits of the platform rather than omissions, and are explained in
+  \cref{ch:results}.}
+  \label{fig:design}
+\end{figure}
+
+Sixteen pairs of participants, each pair doing every available combination of
+condition and task, three trials each. Everything varies within a pair rather
+than between pairs, because the differences between two people are larger than
+the differences the study is looking for.
+
+Condition order is balanced using a scheme that balances not only how often
+each condition appears in each position, but also which condition follows
+which. Simple counterbalancing leaves the second kind of imbalance in place,
+and with a task that people get better at, it matters.
+
+Two roles, not one. Each participant does one role for the whole session.
+Swapping them mid-session would halve the sample and confound role with
+fatigue, and the wearer's role involves carrying seventeen kilograms, which
+nobody should do twice in one visit.
+
+\section{The tasks}
+
+\emph{T1, reaching.} Six marked targets, three per arm, reached in a given
+order. No grasping. This is the only task available in all three conditions
+and is therefore the one that carries the main comparison. Difficulty is
+indexed in the standard way from the size of the target and the distance to
+it~\cite{fitts1954information}, so trials of different geometry can be pooled.
+
+\emph{T2, pick and place.} Four coloured blocks on a table, two coloured mats,
+each block to the mat of its own colour. This is the task the autonomous mode
+performs end to end from a typed sentence.
+
+\emph{T3, two-arm carry.} One object held by both grippers and moved without
+dropping or tilting it. Currently not performable, for a reason given in the
+next chapter: the object presents more width to the gripper than the gripper
+opens.
+
+\emph{T4, handing to the wearer.} The robot picks something up and offers it
+to the person carrying it. It is the only task in which the machine serves the
+wearer rather than working past them, and it is the one where ownership and
+trust have something to attach to.
+
+\section{What is measured}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Measures]{Everything recorded, by whom it is answered and when.}
+  \label{tab:measures}
+  \begin{tabular}{@{}p{0.30\linewidth}p{0.30\linewidth}p{0.32\linewidth}@{}}
+    \toprule
+    \textbf{Measure} & \textbf{Source} & \textbf{When} \\
+    \midrule
+    Completion time & Logged automatically & Every trial \\
+    Path efficiency & Logged automatically & Every trial \\
+    Success or failure & Logged automatically & Every trial \\
+    Number of clutch re-engagements & Logged automatically & Every trial \\
+    Closest approach to the wearer & Logged automatically & Every trial \\
+    Emergency stops and their cause & Logged automatically & Every trial \\
+    Task load index~\cite{hart1988nasatlx} & Both participants & After each
+      block \\
+    Physical exertion~\cite{borg1982perceived} & Wearer & After each block \\
+    Trust in the system & Both participants & After each block \\
+    Sense of ownership~\cite{longo2008embodiment} & Wearer & End of session \\
+    Free comment & Both participants & Debrief \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Exertion is asked of the wearer between every block rather than once at the
+end. Fatigue in a task like this rises steadily, and asking once at the end
+turns it from something measured into something guessed at.
+
+\section{How a session runs}
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/session.tex}
+  \caption[A session]{One session, about two hours. The red row is not
+  optional: the emergency stop is demonstrated and tested with both
+  participants watching before any task begins, and the wearer is shown how to
+  stop the arms themselves.}
+  \label{fig:session}
+\end{figure}
+
+Three people are present. The two participants, and a third person whose only
+job is to hold the stop and watch the wearer rather than the screen. That
+third role exists because the driver is concentrating on the task and the
+wearer cannot see behind their own shoulders.
+
+Consent is taken separately and in different rooms. The two participants may
+know each other, and a wearer who feels watched by the person who brought them
+is not consenting freely.
+
+\section{Analysis}
+
+For each measure, the comparison is across conditions within a pair. Where the
+assumptions hold, a repeated-measures analysis of variance; where they do not,
+its rank-based equivalent. Post-hoc comparisons are corrected for multiple
+tests, and both the raw and the corrected values are reported side by side so
+that a reader can see what the correction did.
+
+Effect sizes are reported with confidence intervals, and the intervals rather
+than the significance are what the discussion will be written around. With
+sixteen pairs and three trials each, the study is powered to detect a large
+effect on completion time and is not powered to detect a small one. That is
+stated in advance rather than discovered afterwards.
+
+Trials that were invalidated by a fault are excluded, and the rule for
+exclusion is written into the analysis code rather than applied by hand. If
+more than half a session's trials are invalid, the analysis stops and says so,
+because a session that fails silently and produces empty averages is
+indistinguishable from a null result.
+
+\section{Ethics and safety}
+
+The application is written and the study has not been submitted for approval,
+because a study cannot honestly be submitted while its baseline condition
+depends on sensor channels that do not work.
+
+The largest single risk is easy to state: a seventeen-kilogram machine mounted
+behind a seated person, moving under partly automatic control, within reach of
+their head. Everything else follows from that.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Risks and what is done about them]{The main risks to participants
+  and the measures in place. Software measures are the ones described in
+  \cref{ch:safety}; the rest are procedural.}
+  \label{tab:risks}
+  \begin{tabular}{@{}p{0.34\linewidth}p{0.58\linewidth}@{}}
+    \toprule
+    \textbf{Risk} & \textbf{What is done} \\
+    \midrule
+    Contact with the wearer & A \SI{150}{\milli\metre} margin enforced along
+      the whole path, measured geometrically, with the arm holding rather than
+      slowing when it is reached \\
+    The wearer cannot stop the arms & A stop within the wearer's own reach, and
+      a third person holding another \\
+    Load on the wearer's back & Twenty minutes carrying at a time, seated where
+      possible, exertion rated between blocks, and the session ended on request
+      without explanation \\
+    Fatigue confounding the results & Condition order balanced; exertion
+      recorded as a covariate rather than assumed constant \\
+    A participant feeling unable to withdraw & Consent taken separately, and
+      the right to stop restated at every break \\
+    Identifying data & Refused in code: the routine that writes the session
+      record raises an error if given a name, an email address, a date of
+      birth, an address or a telephone number \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Two things are worth saying about the last row. It is enforced in the program
+rather than in a policy document, because a policy document does not stop a
+keystroke. And video recording, which would be useful, is not part of the
+protocol: a video of somebody wearing this rig is not anonymous, and the
+analysis does not need one.

@@ -1,0 +1,137 @@
+\appendix
+
+\chapter{Success criteria and how they were judged}
+\label{app:criteria}
+
+Each criterion below carries a threshold and the reason that threshold was
+chosen. A criterion with a number attached but no reason for the number is not
+a criterion.
+
+\begin{table}[H]
+  \centering
+  \small
+  \caption[Success criteria]{The nine criteria this work is judged against.}
+  \label{tab:criteria}
+  \begin{tabular}{@{}p{0.04\linewidth}p{0.26\linewidth}p{0.36\linewidth}p{0.24\linewidth}@{}}
+    \toprule
+    & \textbf{Criterion} & \textbf{Threshold, and why} & \textbf{Outcome} \\
+    \midrule
+    1 & Angle conversion is exact & Converting an angle from the
+      manufacturer's convention to the software's and back must return the
+      original. Any deviation is a wrapping mistake, and the failure mode is
+      nearly a full turn of a joint beside a person & Met \\
+    2 & Commands go where intended & Within \SI{30}{\degree} per direction.
+      Beyond that the driver has to consciously correct rather than move
+      naturally & Partly met: up, down, forward and back pass; sideways does
+      not \\
+    3 & The arm follows the command in simulation & Within
+      \SI{5}{\milli\metre}. Below that the residual is the deadband rather
+      than the controller & Met, \SIrange{0.7}{4.7}{\milli\metre} \\
+    4 & Distance to the wearer & At least \SI{150}{\milli\metre} at all times
+      & Not met on three of the four tasks, reported per task \\
+    5 & Every injected fault is caught & All of them. A mechanism that catches
+      thirteen of fourteen is not a safety mechanism & Met, 14 of 14 \\
+    6 & Failed channels inject nothing & Below \SI{1}{\milli\metre} of
+      commanded movement from a still hand, and a refusal when nothing usable
+      remains & Partly met: one arm passes at
+      \SI{0.014}{\milli\metre}, the other fails at \SI{54.5}{\milli\metre} \\
+    7 & Every declared position is reachable & Ten repeats out of ten, along
+      the whole path. A single successful attempt is a coin flip & Met, 17 of
+      17 \\
+    8 & End-to-end delay & Under \SI{200}{\milli\second} & Not measured. The
+      highest-value remaining gap \\
+    9 & Grasps are verifiable in the recordings & The fingers must open, close
+      on the object and reopen, and the object must move with the hand & Met,
+      all recorded grasps \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Two criteria are deliberately absent. There is no force or stiffness criterion,
+because the simulator returns exactly zero for every force reading, so any
+quantity derived from one is undefined on this platform rather than merely
+unmeasured. And there is no wrist-tracking criterion, because the wrist
+orientation is pinned and the channels that would command it are the dead
+ones.
+
+\chapter{Equipment}
+\label{app:equipment}
+
+\begin{table}[H]
+  \centering
+  \small
+  \caption[Equipment]{Hardware and software used.}
+  \label{tab:equipment}
+  \begin{tabular}{@{}p{0.34\linewidth}p{0.60\linewidth}@{}}
+    \toprule
+    \textbf{Item} & \textbf{Detail} \\
+    \midrule
+    Robot arms & Two Kinova Gen3, seven joints each, \SI{8.2}{\kilo\gram}
+      apiece, \SI{0.902}{\metre} reach~\cite{kinova2022gen3} \\
+    Grippers & Robotiq two-finger, \SI{85}{\milli\metre} opening \\
+    Wrist cameras & Colour and depth, one per arm \\
+    Frame & Backpack harness, arms mounted behind the shoulders with a
+      \SI{60}{\degree} forward tilt \\
+    Master arm & Scale model of the same joint sequence, rotary sensor per
+      joint, inertial sensor at the wrist \\
+    Microcontroller & Teensy 4.1, reading all channels at about
+      \SI{50}{\hertz}~\cite{pjrc2020teensy41} \\
+    Hand controllers & Two tracked controllers, used with the headset
+      stationary as a reference \\
+    Computer & Laptop, Linux, graphics card with \SI{4}{\giga\byte} \\
+    Robot software & ROS~2~\cite{macenski2022ros2}, inverse kinematics by
+      TRAC-IK~\cite{beeson2015tracik} \\
+    Motion smoothing & Ruckig~\cite{berscheid2021ruckig} \\
+    Detection & Open-vocabulary detector~\cite{cheng2024yoloworld} with fast
+      segmentation~\cite{zhao2023fastsam} \\
+    Body tracking & MediaPipe Pose~\cite{lugaresi2019mediapipe} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\chapter{Where the evidence lives}
+\label{app:evidence}
+
+Every figure quoted in this thesis is produced by a named program and stored
+as a file, so it can be recomputed rather than taken on trust. The table below
+maps the main claims onto the programs that produce them.
+
+\begin{table}[H]
+  \centering
+  \small
+  \caption[Evidence]{Claims and the programs that produce them.}
+  \label{tab:evidence}
+  \begin{tabular}{@{}p{0.44\linewidth}p{0.50\linewidth}@{}}
+    \toprule
+    \textbf{Claim} & \textbf{Produced by} \\
+    \midrule
+    Channel health verdicts & \file{trajectory\_capture/channel\_report.py} \\
+    What a lost channel costs & \file{scripts/measure\_capability\_ladder.py} \\
+    Reach by direction & \file{scripts/measure\_workspace.py} \\
+    The two arms share no workspace &
+      \file{scripts/sweep\_mount\_overlap.py} \\
+    What a mount change would buy & \file{scripts/sweep\_mount\_geometry.py} \\
+    Distance to the wearer, per task &
+      \file{scripts/measure\_clearance\_region.py} \\
+    Positioning error budget & \file{scripts/measure\_control\_budget.py} \\
+    Motion smoothing & \file{scripts/measure\_teleop\_motion.py} \\
+    Fault injection & \file{srl\_teleop/fault\_injector.py} \\
+    Instruction handling & \file{scripts/sweep\_t1\_instructions.py} \\
+    Map accuracy & \file{scripts/calibrate\_environment.py} \\
+    Window checks & \file{scripts/verify\_gui\_buttons.py} \\
+    Automated tests & \file{scripts/check\_tests.py} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\chapter{Participant documents}
+\label{app:documents}
+
+\noindent\fbox{\parbox{0.95\linewidth}{\small\itshape
+To be attached before submission: the participant information sheet, the two
+consent forms, the pre-session screening questions and the debrief script. Two
+consent forms rather than one, because the two roles carry different risks:
+only one of them involves carrying seventeen kilograms, and only one of them
+involves a machine moving beside their head under someone else's control. The
+drafts exist in the project's research folder and are not reproduced here
+because they have not been through ethical review.}}

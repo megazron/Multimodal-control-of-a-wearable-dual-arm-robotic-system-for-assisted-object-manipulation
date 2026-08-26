@@ -1,0 +1,174 @@
+\chapter{The system as built}
+\label{ch:system}
+
+This chapter describes what exists, at the level of what each part is for.
+The two chapters after it go into the parts that carry the most risk.
+
+\section{The hardware}
+
+Two Kinova Gen3 arms, each with seven joints, a two-finger gripper and a small
+colour-and-depth camera at the wrist, are carried on a backpack frame. The
+mounting brackets sit behind the wearer's shoulders and tilt the arms forward
+so they come over the top rather than out to the sides.
+
+The driver's mannequin arm is a scale model of the same joint sequence with a
+rotary sensor at each joint and a small inertial sensor at the wrist. A Teensy
+4.1 microcontroller~\cite{pjrc2020teensy41} reads all of it and streams the
+numbers over a USB cable at about \SI{50}{\hertz}. There is no force feedback
+of any kind: the driver feels the mannequin arm's own friction and nothing
+about what the robot is touching.
+
+Everything runs on one laptop under Linux, with the robot software built on
+ROS~2~\cite{macenski2022ros2}. That machine has a small graphics card with
+\SI{4}{\giga\byte} of memory, which decided several questions later on by
+ruling out the larger vision and planning packages outright.
+
+\begin{figure}[htbp]
+  \centering
+  \photo{58mm}{The platform as assembled: the backpack frame worn on a stand,
+  both arms mounted and folded to the presentation pose, the mannequin master
+  on the bench beside it with its cable run, and the emergency stop within
+  reach. One wide shot, and one close view of a shoulder bracket showing the
+  \SI{60}{\degree} forward tilt.}
+  \caption[The platform]{The platform. A photograph is needed here rather than
+  a rendering, because the mounting bracket and the cable routing are the two
+  things a reader cannot infer from the model.}
+  \label{fig:platform}
+\end{figure}
+
+\section{The software, in one picture}
+
+The software is about forty small programs that talk to each other over named
+channels. They are grouped into eight packages by what they are responsible
+for, and the grouping matters for one reason: the teleoperation package is not
+allowed to depend on any of the others.
+
+That rule sounds like tidiness and is not. Plain teleoperation is the baseline
+that every assisted condition in the study is compared against. If the
+teleoperation code called into the autonomy code, the comparison would be
+between the autonomy and itself.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Software packages]{The eight first-party packages and what each is
+  responsible for. Sizes are measured lines of Python.}
+  \label{tab:packages}
+  \begin{tabular}{@{}p{0.20\linewidth}p{0.60\linewidth}r@{}}
+    \toprule
+    \textbf{Package} & \textbf{Responsible for} & \textbf{Lines} \\
+    \midrule
+    Teleoperation & Reading the master arm, turning it into commands, the
+      clutch, motion smoothing, the emergency stop, the operating window &
+      25\,737 \\
+    Perception & Cameras, finding objects, measuring the table, building a map
+      of the scene, tracking the wearer & 9\,431 \\
+    Autonomy & Choosing a grasp, guessing the goal, handing control over,
+      understanding a sentence & 3\,886 \\
+    Experiments & Tasks, conditions, logging, sessions, analysis & 12\,278 \\
+    Description & The model of the arms, the frame and the wearer & --- \\
+    Motion planning & Inverse kinematics, controllers, collision settings &
+      --- \\
+    Controller bridge & The hand controllers and their safety checks &
+      2\,709 \\
+    Controller autonomy & Assistance on the controller path & 246 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{From a hand movement to a moving arm}
+
+\Cref{fig:datapath} is the path every command takes, whichever way the arms
+are being driven. It is worth reading once carefully, because most of the rest
+of this thesis is about one or another of its boxes.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/datapath.tex}
+  \caption[The command path]{The path from the driver's input to the arms.
+  Red boxes can stop the motion; the green box is the only one that moves it.
+  Two of the red boxes matter most: the retry that swings the elbow to a
+  different position when the first attempt fails, and the clearance check,
+  which is measured against the wearer's body geometrically rather than being
+  taken from the collision settings.}
+  \label{fig:datapath}
+\end{figure}
+
+The path is deliberately short. The wanted hand pose goes to a solver that
+returns joint angles, the whole arm is checked against the wearer, the result
+is smoothed so no joint is asked to move faster than it can, and the joint
+commands go out. There is no planner in that loop and there should not be: the
+driver's hand is the plan, and the right problem is to follow it smoothly. For
+the autonomous mode, where there is a goal to plan towards, a planner was
+added and is described in \cref{ch:perception}.
+
+\section{Three ways to drive}
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/modes.tex}
+  \caption[The three ways of driving]{The three input routes. They differ only
+  above the common path. Everything that protects the wearer is shared, so a
+  change to the safety layer cannot apply to one condition of the study and
+  not another.}
+  \label{fig:modes}
+\end{figure}
+
+The mannequin master is the baseline. The driver moves it and the robot copies
+the movement of its tip, scaled and offset.
+
+The hand controllers came from a virtual reality headset, but the way they are
+used has almost nothing to do with virtual reality. Nobody wears the headset.
+It stands on a shelf and acts as the tracking reference while the driver
+holds the two controllers and watches the real robot across the room. That
+arrangement is the one the laboratory actually uses, and it caused two
+specific safety problems that are dealt with in \cref{sec:tracking}.
+
+The third route takes a sentence. Typing \emph{put the blue block on the blue
+mat} produces a plan, shows the driver what it understood before anything
+moves, and waits for a confirming click. It is built on a grammar rather than
+a language model, for three reasons: a grammar can explain why it refused, it
+can be tested exhaustively against a list of phrasings with a scored outcome
+for each, and it fits in the memory the graphics card has left after the
+object detector has loaded.
+
+\section{The operating window}
+
+Everything reachable from a terminal is also reachable from one window, and
+that is a rule rather than a convenience. A feature that can only be started
+by typing a command does not exist for the person running a session, who has
+a wearer standing in a rig and no attention to spare.
+
+\begin{figure}[htbp]
+  \centering
+  \screenshot{78mm}{The main operating window, full screen, with a
+  simulation running. It should show: the left column grouped into SET UP,
+  RUN and STATUS; the embedded three-dimensional view showing the commanded
+  arms; the panel beside it drawn from the arms' reported positions; and the
+  divergence readout underneath both. Take the shot with both arms away from
+  the home pose so the two views visibly differ.}
+  \caption[The operating window]{The window used to run a session. The point
+  of the side-by-side views is that the left one shows what the arms were
+  told to do and the right shows what they report doing, so a difference is
+  visible without reading a log.}
+  \label{fig:gui}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \screenshot{62mm}{The simulated scene as the operator sees it: the wearer's
+  body drawn as the shapes the clearance check actually uses, the table, the
+  four coloured blocks and the two coloured mats, the marked working area, and
+  both arms mid-task. A second panel showing the same scene with the
+  clearance shell drawn around the wearer would make the margin visible.}
+  \caption[The simulated scene]{The simulation. The wearer is drawn from the
+  same description the safety check measures against, so what is on screen and
+  what is being enforced cannot drift apart.}
+  \label{fig:sim}
+\end{figure}
+
+The window is checked by a program that presses every control in it and then
+checks what the press did, currently 257 separate checks. That sounds
+excessive until one notices that the first time it ran end to end it found
+four faults, including a set of buttons that had been doing nothing at all
+because the error they raised was being swallowed silently.

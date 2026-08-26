@@ -1,0 +1,159 @@
+\begin{thebibliography}{10}
+
+\bibitem{beeson2015tracik}
+Patrick Beeson and Barrett Ames.
+\newblock {TRAC-IK}: An open-source library for improved solving of generic inverse kinematics.
+\newblock In {\em Proc. IEEE-RAS 15th International Conference on Humanoid Robots (Humanoids)}, pages 928--935. IEEE, 2015.
+
+\bibitem{berscheid2021ruckig}
+Lars Berscheid and Torsten Kr{\"o}ger.
+\newblock Jerk-limited real-time trajectory generation with arbitrary target states.
+\newblock {\em Robotics: Science and Systems XVII}, 2021.
+
+\bibitem{borg1982perceived}
+Gunnar~A. Borg.
+\newblock Psychophysical bases of perceived exertion.
+\newblock {\em Medicine and Science in Sports and Exercise}, 14(5):377--381, 1982.
+
+\bibitem{botvinick1998rubber}
+Matthew Botvinick and Jonathan Cohen.
+\newblock Rubber hands `feel' touch that eyes see.
+\newblock {\em Nature}, 391(6669):756, 1998.
+
+\bibitem{cheng2024yoloworld}
+Tianheng Cheng, Lin Song, Yixiao Ge, Wenyu Liu, Xinggang Wang, and Ying Shan.
+\newblock {YOLO-World}: Real-time open-vocabulary object detection.
+\newblock In {\em Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)}, 2024.
+
+\bibitem{dragan2013policyblending}
+Anca~D. Dragan and Siddhartha~S. Srinivasa.
+\newblock A policy-blending formalism for shared control.
+\newblock {\em The International Journal of Robotics Research}, 32(7):790--805, 2013.
+
+\bibitem{fitts1954information}
+Paul~M. Fitts.
+\newblock The information capacity of the human motor system in controlling the amplitude of movement.
+\newblock {\em Journal of Experimental Psychology}, 47(6):381--391, 1954.
+
+\bibitem{guggenheim2021haptic}
+Jacob~W. Guggenheim and H.~Harry Asada.
+\newblock Inherent haptic feedback from supernumerary robotic limbs.
+\newblock {\em IEEE Transactions on Haptics}, 14(1):123--131, 2021.
+
+\bibitem{hart1988nasatlx}
+Sandra~G. Hart and Lowell~E. Staveland.
+\newblock Development of {NASA-TLX} (task load index): Results of empirical and theoretical research.
+\newblock In Peter~A. Hancock and Najmedin Meshkati, editors, {\em Human Mental Workload}, volume~52 of {\em Advances in Psychology}, pages 139--183. North-Holland, 1988.
+
+\bibitem{muve}
+{Imperial College London}.
+\newblock {MUlti-limb Virtual Environment (Dr. Octopus)}.
+\newblock \url{https://www.imperial.ac.uk/a-z-research/human-robotics/dr-octopus-/}.
+\newblock Accessed April 2026.
+
+\bibitem{javdani2015hindsight}
+Shervin Javdani, Siddhartha~S. Srinivasa, and J.~Andrew Bagnell.
+\newblock Shared autonomy via hindsight optimization.
+\newblock In {\em Robotics: Science and Systems XI}, 2015.
+
+\bibitem{kinova2022gen3}
+Kinova Robotics.
+\newblock {\em Gen3 Ultra Lightweight Robot User Guide}, 2022.
+
+\bibitem{kuffner2000rrtconnect}
+James~J. Kuffner and Steven~M. LaValle.
+\newblock {RRT-Connect}: An efficient approach to single-query path planning.
+\newblock {\em Proceedings of the IEEE International Conference on Robotics and Automation (ICRA)}, pages 995--1001, 2000.
+
+\bibitem{longo2008embodiment}
+Matthew~R. Longo, Friederike Sch{\"u}{\"u}r, Marjolein P.~M. Kammers, Manos Tsakiris, and Patrick Haggard.
+\newblock What is embodiment? a psychometric approach.
+\newblock {\em Cognition}, 107(3):978--998, 2008.
+
+\bibitem{lugaresi2019mediapipe}
+Camillo Lugaresi, Jiuqiang Tang, Hadon Nash, Chris McClanahan, Esha Uboweja, Michael Hays, Fan Zhang, Chuo-Ling Chang, Ming~Guang Yong, Juhyun Lee, et~al.
+\newblock {MediaPipe}: A framework for building perception pipelines.
+\newblock {\em arXiv preprint arXiv:1906.08172}, 2019.
+
+\bibitem{macenski2022ros2}
+Steven Macenski, Tully Foote, Brian Gerkey, Chris Lalancette, and William Woodall.
+\newblock Robot operating system 2: Design, architecture, and uses in the wild.
+\newblock {\em Science Robotics}, 7(66):eabm6074, 2022.
+
+\bibitem{moon2024impact}
+C.~Moon and J.~Kim.
+\newblock Assessing the physical impact of supernumerary limbs on a human subject: A simulation study.
+\newblock In {\em Proc. 46th Annual International Conference of the IEEE Engineering in Medicine and Biology Society (EMBC)}, pages 1--4. IEEE, 2024.
+
+\bibitem{parietti2013dynamic}
+Federico Parietti and H.~Harry Asada.
+\newblock Dynamic analysis and state estimation for wearable robotic limbs subject to human-induced disturbances.
+\newblock In {\em Proc. IEEE International Conference on Robotics and Automation (ICRA)}, pages 3880--3887. IEEE, 2013.
+
+\bibitem{parietti2014bracing}
+Federico Parietti and H.~Harry Asada.
+\newblock Supernumerary robotic limbs for aircraft fuselage assembly: Body stabilization and guidance by bracing.
+\newblock In {\em Proc. IEEE International Conference on Robotics and Automation (ICRA)}, pages 1176--1183. IEEE, 2014.
+
+\bibitem{parietti2016support}
+Federico Parietti and H.~Harry Asada.
+\newblock Supernumerary robotic limbs for human body support.
+\newblock {\em IEEE Transactions on Robotics}, 32(2):301--311, 2016.
+
+\bibitem{pinardi2023feedback}
+Mattia Pinardi, Matthew~R. Longo, Domenico Formica, Matija Strbac, Carsten Mehring, Etienne Burdet, and Giovanni Di~Pino.
+\newblock Impact of supplementary sensory feedback on the control and embodiment in human movement augmentation.
+\newblock {\em Communications Engineering}, 2:64, 2023.
+
+\bibitem{pjrc2020teensy41}
+{PJRC}.
+\newblock Teensy 4.1 development board.
+\newblock \url{https://www.pjrc.com/store/teensy41.html}.
+\newblock Pinout reference card rev.\ 4. Accessed August 2026.
+
+\bibitem{prattichizzo2021augmentation}
+Domenico Prattichizzo et~al.
+\newblock Human augmentation by wearable supernumerary robotic limbs: review and perspectives.
+\newblock {\em Progress in Biomedical Engineering}, 2021.
+
+\bibitem{saraiji2018fusion}
+MHD~Yamen Saraiji, Tomoya Sasaki, Reo Matsumura, Kouta Minamizawa, and Masahiko Inami.
+\newblock Fusion: full body surrogacy for collaborative communication.
+\newblock In {\em ACM SIGGRAPH 2018 Emerging Technologies}, pages 1--2. ACM, 2018.
+
+\bibitem{tong2021srlreview}
+Yuchen Tong and Jianbin Liu.
+\newblock Review of research and development of supernumerary robotic limbs.
+\newblock {\em IEEE/CAA Journal of Automatica Sinica}, 2021.
+
+\bibitem{yang2021srlreview}
+Bo~Yang, Jian Huang, Xu~Chen, Caihua Xiong, and Yasuhisa Hasegawa.
+\newblock Supernumerary robotic limbs: A review and future outlook.
+\newblock {\em IEEE Transactions on Medical Robotics and Bionics}, 3(3):623--639, 2021.
+
+\bibitem{zhang2023srlreview}
+K.~Zhang et~al.
+\newblock Review of supernumerary robotic limbs.
+\newblock {\em Journal of Physics: Conference Series}, 2023.
+
+\bibitem{zhang2024motioncomp}
+Y.~Zhang et~al.
+\newblock Motion-compensation control of supernumerary robotic arms subject to human-induced disturbances.
+\newblock {\em Advanced Intelligent Systems}, 2024.
+
+\bibitem{zhao2023fastsam}
+Xu~Zhao, Wenchao Ding, Yongqi An, Yinglong Du, Tao Yu, Min Li, Ming Tang, and Jinqiao Wang.
+\newblock Fast segment anything.
+\newblock {\em arXiv preprint arXiv:2306.12156}, 2023.
+
+\bibitem{zheng2026quantitative}
+Y.~Zheng et~al.
+\newblock Supernumerary robotic limbs: A quantitative analysis and review of design, embodiment, and future challenges.
+\newblock {\em Journal of Field Robotics}, 2026.
+
+\bibitem{zhou2026proxemics}
+Haoyuan Zhou, Anzhu Gao, Pierre Ducos, Jonathan Eden, and Etienne Burdet.
+\newblock Spatial guidelines for supernumerary robotic limbs in near-body interactions.
+\newblock In {\em Proceedings of the CHI Conference on Human Factors in Computing Systems}. ACM, 2026.
+
+\end{thebibliography}

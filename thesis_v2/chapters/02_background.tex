@@ -1,0 +1,139 @@
+\chapter{Background}
+\label{ch:background}
+
+Five bodies of work bear on this system: worn robot limbs and what they are
+for, the split between the person wearing a machine and the person driving it,
+the problem of driving a robot from a control that is not the same shape,
+sharing control between a person and a program, and how the wearer's
+experience is measured. This chapter takes them in that order and finishes
+with what is left open, which is narrower than it first looks.
+
+\section{Robot limbs worn on the body}
+
+The field's founding demonstrations come from Parietti and Asada, whose extra
+limbs brace against the environment to steady the wearer while they work
+overhead~\cite{parietti2014bracing,parietti2013dynamic}, later extended to
+supporting the whole body~\cite{parietti2016support}. Bracing is a useful
+starting point because it names the mechanical difficulty at once. An arm
+mounted on a person pushes back into that person, and the person moves.
+
+Later reviews map the design space along consistent
+lines~\cite{yang2021srlreview,prattichizzo2021augmentation,tong2021srlreview,zhang2023srlreview}.
+Where the limb is mounted trades reach against the twisting load it puts on
+the wearer. How it is actuated trades responsiveness against weight. How it is
+commanded ranges from muscle signals to a deliberate manual control. A recent
+survey adds a pointed observation: the field reports how embodied the wearer
+feels far more often than it reports whether the task got
+done~\cite{zheng2026quantitative}.
+
+Weight binds harder than anything else and is discussed least. Each Gen3 arm
+is \SI{8.2}{\kilo\gram}, so the pair with the harness passes
+\SI{17}{\kilo\gram}. Simulation of the loads such systems place on the body
+suggests this is not a detail~\cite{moon2024impact}, and it is the main reason
+the session design in \cref{ch:study} caps how long anybody wears the rig.
+
+\begin{figure}[htbp]
+  \centering
+  \reproduced{42mm}{Parietti and Asada's bracing arrangement, with the limbs
+  anchored against the work surface so that the wearer, the limbs and the
+  environment form one closed chain. Source: \cite{parietti2014bracing}.}
+  \caption[Bracing limbs (to be reproduced)]{The arrangement that set the
+  mechanical framing for the field. To be reproduced from
+  \cite{parietti2014bracing} once permission is obtained.}
+  \label{fig:repro-bracing}
+\end{figure}
+
+\section{When the wearer and the driver are different people}
+
+The closest predecessor to the arrangement used here is Fusion, which put a
+robot head and two arms on a worn frame and let a remote operator drive
+them~\cite{saraiji2018fusion}. Two qualifications have to travel with that
+reference. Its three modes describe how firmly the robot arms are strapped to
+the wearer's own arms, not how much the machine decides; in all three the
+machine decides nothing. And it is a two-page demonstration with no user study
+and no performance figures. It shows the arrangement existed. It cannot
+support a claim about how well it worked.
+
+The evidence about how it feels to wear one of these comes from elsewhere.
+Recent work on how close such a limb should come to the body ran a hidden
+human operator, varied how autonomous the machine appeared to be, and measured
+the wearer's arousal and reported trust~\cite{zhou2026proxemics}. The result
+runs against intuition. Greater apparent autonomy made both worse: arousal up,
+trust down. Because the autonomy in that study was a concealed person and the
+wearer had nothing else to do, it does not settle what happens when the
+autonomy is real and the wearer is busy. It does establish that the wearer's
+experience cannot be assumed benign.
+
+Part of the two-person problem is already solved. Zhang et al.\ compensate for
+the motion a human base introduces and report end-effector errors around
+\SI{1.4}{\milli\metre} with the shoulder as a moving
+base~\cite{zhang2024motioncomp}. What that leaves open is the case here, where
+the disturbance comes from a nervous system the driver has no advance warning
+of. When one person both wears and drives, the sway is partly predictable to
+the controller because the same person caused it. With two people it is not.
+
+\section{Driving something that is not the same shape}
+
+If the control and the robot differ in size or proportion, the mapping between
+them has to be chosen. Guggenheim and Asada argue for small physical copies of
+the robot on the grounds that a similar shape gives the operator feedback for
+free, without a separate force display~\cite{guggenheim2021haptic}. The
+argument holds for similarity of shape and says nothing about similarity of
+size, which is where this system departs: the master's links total
+\SI{0.272}{\metre} against the robot's \SI{0.902}{\metre} of reach, so the
+same joint angles produce very different hand movements.
+
+Two mappings are available. Sending master joint angles straight to robot
+joint angles preserves the shape the arm takes, which matters when the shape
+itself has to avoid something, but it demands that every master joint be
+measured accurately. Mapping hand movement to hand movement decouples the two
+chains and leaves the robot's spare joint unspecified. \Cref{ch:master}
+records why this project started with the first and ended with the second.
+
+A related question is what to feed back to the driver. Pinardi et al.\ review
+the added sensory channels used in movement augmentation and find that
+improving control and improving the sense of ownership do not go
+together~\cite{pinardi2023feedback}. Neither is a proxy for the other, which is
+why \cref{ch:study} measures both.
+
+\section{Sharing control with the machine}
+
+Shared autonomy asks a different question from teleoperation: not how to
+transmit the operator's intent faithfully, but how much of it the machine
+should supply. Policy blending mixes the operator's command with the
+machine's estimate of the goal in proportion to
+confidence~\cite{dragan2013policyblending}. Hindsight optimisation treats it
+as a decision under uncertainty about which goal is
+meant~\cite{javdani2015hindsight}. Both assume a bench robot and an operator
+who can see it directly.
+
+Two things change when the robot is worn by a second person. The cost of
+guessing wrong is no longer a dropped object, and the operator's confidence is
+no longer the only confidence that matters. The design used here keeps
+position entirely under the driver's control in every mode and lets the
+machine supply only the wrist orientation, which is the part the failing
+sensor channels cannot deliver anyway. That choice is argued in
+\cref{ch:system} and is the reason the assistance can be switched on without
+changing who is responsible for where the hand goes.
+
+\section{Measuring the wearer's experience}
+
+Three instruments recur in this literature and are used unchanged here. Task
+load is measured with the NASA Task Load Index~\cite{hart1988nasatlx}, physical
+exertion with the Borg category-ratio scale~\cite{borg1982perceived}, and the
+sense that a limb belongs to you with the embodiment questionnaire developed
+from the rubber-hand work~\cite{longo2008embodiment,botvinick1998rubber}.
+Difficulty of a pointing task is indexed in the standard
+way~\cite{fitts1954information}, which lets tasks of different sizes and
+distances be compared.
+
+\section{What is open}
+
+It is tempting to claim that nobody has looked at a two-person worn limb with
+real autonomy. That would be too strong. The concealed-operator
+study~\cite{zhou2026proxemics} has already varied autonomy and measured the
+wearer, and Fusion~\cite{saraiji2018fusion} already built the two-person
+arrangement. What has not been done is to measure task performance and wearer
+experience together, in the same sessions, with autonomy that is genuinely a
+program and a wearer who has a job of their own. That is the gap this study is
+designed to fill, and \cref{ch:study} sets out how.

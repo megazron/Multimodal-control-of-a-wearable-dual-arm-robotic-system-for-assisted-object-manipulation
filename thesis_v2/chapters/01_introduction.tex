@@ -1,0 +1,120 @@
+\chapter{Introduction}
+\label{ch:intro}
+
+An extra robot arm worn on the body is not a prosthesis. The person keeps the
+limbs they were born with, and the machine works alongside
+them~\cite{yang2021srlreview,prattichizzo2021augmentation}. The idea is old
+enough to have a literature and young enough that most of it is still about
+building the hardware rather than living with it.
+
+What makes these devices awkward to control is easy to state. A robot arm
+bolted to a bench has a base that stays where it was put. A robot arm bolted
+to a person has a base that breathes, sways, turns to look at something and
+occasionally flinches. It is also soft, irreplaceable, and within arm's reach
+of the thing being moved.
+
+This project works on the platform at Imperial College London known as Dr.\
+Octopus~\cite{muve}, which carries two Kinova Gen3 seven-jointed
+arms~\cite{kinova2022gen3} on a backpack frame. The arms are worn by one
+person and driven by another. That arrangement is the starting point rather
+than a detail, and \cref{fig:overview} shows how the parts sit together.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/overview.tex}
+  \caption[Who is where]{The arrangement this thesis is about. Two people, not
+  one. The driver commands the arms and cannot feel them; the wearer carries
+  them and does not command them. The software between the two is responsible
+  for the wearer's safety, because neither person is in a position to
+  guarantee it.}
+  \label{fig:overview}
+\end{figure}
+
+\section{The problem}
+
+Two arms of seven joints each give fourteen things that can move. A person has
+two hands and a limited amount of attention. Closing that gap is the design
+problem, and there is no way to do it that does not give something up.
+
+The obvious approach is to give the driver a small copy of the robot and let
+them pose it. That is the approach taken here, and it works up to a point.
+The mannequin master reproduces the sequence of joints in the real arm at
+roughly a third of the size. What it cannot reproduce is the accuracy: it
+routes fourteen analogue signals through joints that turn, and wires that
+flex through turning joints eventually stop reporting. By the time this
+project was measuring rather than building, seven of the fourteen channels no
+longer produced a usable signal.
+
+That could be treated as a repair job. It was instead treated as the normal
+operating condition, because the same thing will happen again to whichever
+channels are working next month. The system therefore has to answer three
+questions at all times: which channels can be believed, what the arm can still
+be commanded to do with the ones that remain, and what it should do when the
+answer is nothing.
+
+The second problem is the wearer. Standard robot software checks whether a
+planned motion would touch anything, and reports either contact or no contact.
+A person standing inside a pair of moving arms needs more than that. They need
+a margin, held all the way along the path and not only at the ends, and they
+need it enforced against the parts of the arm that actually swing past them,
+which are the ones nearest the shoulder rather than the hand. Getting this
+right turned out to be harder than expected, and \cref{ch:safety} is largely
+an account of the ways it can be got wrong while appearing to work.
+
+\section{Aims}
+
+\begin{enumerate}
+  \item Build a sensed mannequin arm that reproduces the robot's shape at
+    reduced size, and characterise what its sensors actually deliver rather
+    than what they are specified to deliver.
+  \item Turn the driver's hand movement into arm commands in a way that keeps
+    working as sensor channels fail, and measure what each failure costs.
+  \item Build a safety layer suited to a machine mounted beside a person, and
+    test it by deliberately breaking things rather than by reading the code.
+  \item Measure where the arms can actually work once the wearer's body is
+    taken into account, and say plainly which tasks that rules out.
+  \item Add a second and third way of driving the arms, so that the study has
+    something to compare against, and check that each reaches the same
+    commands.
+  \item Design the two-person study in full, and identify by measurement what
+    has to be fixed before it can be run.
+\end{enumerate}
+
+\section{What is new here}
+
+Three things in this thesis are not in the work it builds on.
+
+The first is the treatment of sensor loss as a designed-for condition. Systems
+of this kind are usually described in their working state. Here each channel
+carries a health verdict computed from its own recent behaviour, the checks
+applied to an incoming frame depend on which channels the current mode
+actually reads, any channel can be switched off while running, and the cost of
+switching it off is published rather than assumed. When too little is left, the
+system reports that it has no position rather than inventing one. On a machine
+beside somebody's head, an invented position is worse than an admitted gap.
+
+The second is a negative result with a price attached. Under the mount as
+built, the two arms share no reachable point anywhere in front of the wearer.
+That is not a tuning failure and no amount of better control will change it. It
+is reported here with the four independent measurements that establish it and
+with a costed mechanical change that would improve it.
+
+The third is methodological, and it is the part most likely to be useful
+elsewhere. Seventeen times during this project, a result that looked like a
+fault in the robot turned out to be a fault in the thing measuring the robot.
+\Cref{ch:results} reports the numbers; the habit that produced them, and the
+cases that taught it, are set out in \cref{sec:instruments}.
+
+\section{How this thesis is arranged}
+
+\Cref{ch:background} covers the work this builds on and states what is left
+open. \Cref{ch:system} describes the system as built, in overview.
+\Cref{ch:master} covers the mannequin arm and how a hand movement becomes an
+arm command. \Cref{ch:safety} covers the safety layer.
+\Cref{ch:perception} covers the cameras, and the change from a robot that was
+told where things are to one that measures where they are.
+\Cref{ch:study} sets out the study: tasks, conditions, measures and ethics.
+\Cref{ch:results} reports everything measured on the system itself.
+\Cref{ch:participant} is where the results from people will go, and is empty.
+\Cref{ch:discussion} weighs it up, and \cref{ch:conclusion} says what should
+happen next and in what order.

@@ -1,0 +1,232 @@
+\chapter{Keeping the wearer safe}
+\label{ch:safety}
+
+The wearer cannot see what the driver intends, cannot feel the controls, and
+has a moving machine within reach of their head. This chapter describes what
+sits between the two, and, more usefully, the ways that layer can appear to
+work while doing nothing.
+
+\section{Three stages and a floor}
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/safety.tex}
+  \caption[The safety layers]{What every command passes through. The first two
+  stages reject or reshape a pose. The third measures the distance from the
+  arm to the person and holds if it is too small. Anything on the right can
+  stop the arm outright, and everything that stops it has to say so by name.}
+  \label{fig:safety}
+\end{figure}
+
+The first stage asks the solver for joint angles with obstacle checking
+switched on, so a pose that would strike the table or the frame comes back
+refused. The second stage handles the common case where the hand pose is fine
+but the arm has chosen an awkward shape to reach it: the solver is asked again
+from up to six different starting guesses, which swings the elbow around
+without moving the hand. The third stage is the one that matters, and it is
+described next.
+
+\subsection{Why the simulator's own collision check is not enough}
+
+Robot software of this kind ships with a file listing which pairs of parts are
+allowed to touch. Pairs that are permanently adjacent, such as the arm's base
+and the bracket it is bolted to, are excluded, otherwise every pose would be
+reported as a collision.
+
+On a bench robot that is harmless. On this one it is not, because the parts
+nearest the wearer are exactly the parts that had to be excluded. Forty-four
+such pairs are excluded here, and every one of them is a piece of arm that
+swings past a shoulder, a neck or a chest. A pose the standard check calls
+valid can have the upper arm tube inside the person.
+
+The clearance check therefore does not use that file. It takes the shapes of
+the moving arm and the shapes of the body, from their live positions, and
+computes the shortest distance between them. If that distance falls below
+\SI{150}{\milli\metre}, the command is held, nothing is published, and the log
+names which body part was too close.
+
+Two facts about that number are worth stating. The mounting bracket itself
+sits \SI{161}{\milli\metre} from the wearer's torso and no joint moves it, so
+the margin has only \SI{11}{\milli\metre} of headroom before the arm has done
+anything at all. And a clearance reading of exactly \SI{161}{\milli\metre} is
+a measurement of the bracket rather than of the arm, which is why so many
+figures in this project sit at that value.
+
+\section{Where the body is}
+
+Until late in the project the body in the model was a mannequin, and the
+clearance check measured against that. A camera was then added that watches
+the wearer and estimates where their limbs actually are, using an off-the-shelf
+body-tracking model~\cite{lugaresi2019mediapipe}. Merging a measured body with
+an assumed one is where this could go wrong, so the rule is deliberately
+one-sided.
+
+\begin{quote}
+The camera may only ever make the wearer \emph{bigger}.
+\end{quote}
+
+Part by part, whichever of the measured shape and the assumed shape is
+\emph{closer} to the robot is the one the check uses. A tracking result placing
+the body further away than assumed changes nothing at all. This was tested by
+injecting a body \SI{0.1}{\metre}, \SI{0.3}{\metre}, \SI{1}{\metre} and
+\SI{5}{\metre} further away in turn; none of them moved the enforced margin.
+Six deliberate faults were then fed through the running system, including a
+dark frame, an empty frame and two people in shot, and each refusal was
+required to name the fault it had caught. That last requirement is what
+exposed a check that had never actually run.
+
+The honest limitation is on the other side. If the wearer raises their arms
+and the tracking then drops out, the system falls back to the assumed posture,
+which has the arms down. Measured through the guard's own geometry, arms held
+out to the sides leave \SI{93}{\milli\metre} of clearance at the home pose,
+where the fallback believes there is \SI{317}{\milli\metre}. The current answer
+to that is an instruction to the wearer, not a control system, and
+\cref{ch:discussion} treats it as the open safety problem it is.
+
+\section{Stopping}
+
+Three things stop the arms, and they are independent by design: a button, both
+master buttons held together, and the master going quiet.
+
+The third is the one that taught the most. A dead-man switch of this kind
+watches for the driver's input to stop arriving. The implementation watched
+for messages to stop arriving, which sounds like the same thing and is not.
+When the master's sensors degrade, the software that reads them does not go
+silent; it substitutes the last good reading and carries on publishing at the
+same rate. The topic never went quiet, so the dead-man could never fire on the
+failure that actually happens. It fired reliably when the cable was pulled out,
+which is why it passed every test for months.
+
+The fix was to stamp each frame with the age of the data it was built from
+rather than the time it was sent, and to key the dead-man on that. Measured
+afterwards: a master publishing steadily but with frozen data trips in
+\SIrange{0.94}{0.99}{\second}; a genuinely silent master trips in
+\SI{0.97}{\second}; and 243 healthy frames produce no false trip.
+
+A second fault in the same mechanism is worth recording because it was
+invisible in the same way. The stop routine tried to notify the arm driver
+first, using a call that waits up to two seconds for a service that does not
+exist when running in simulation. It did that twice. So every emergency stop
+blocked for four seconds before parking the arms, before logging anything, and
+before the rest of the system could be told. The detection was always on time.
+The response was not, and the log line that would have revealed it was itself
+stuck behind the delay. Parking now happens first and the driver is notified
+afterwards.
+
+\section{Making blocking visible}
+
+Four separate mechanisms in this system can stop all motion, and each of them
+is usually right to. The problem was never the stopping. It was that a stopped
+arm and a working arm looked identical from outside.
+
+Everything that can stop motion now registers with one component that enforces
+three rules. It must announce itself by name the first time it blocks and
+every five seconds after. Blocking for more than three seconds is escalated,
+because sustained blocking is never normal. And a blocker has to state, at the
+moment it registers, how it will clear; one that cannot is rejected outright,
+because a condition with no exit is a latch.
+
+That last rule came out of an incident which repeated five times, the fifth
+inside the code written to catch the first four. The pattern is always the
+same: the code that clears a condition sits after the code that sets it, so if
+setting the condition also stops that routine running, the condition can never
+be cleared. Rather than police each instance, any blocker that stops being
+re-asserted for two seconds now expires, and an expiry is treated as a third
+state rather than as an all-clear. Nobody asserting a condition is not evidence
+that the condition went away; it is evidence that whatever was watching has
+stopped.
+
+\section{Testing by breaking things}
+
+The safety layer is validated by injecting faults rather than by reading the
+code. Fourteen faults are injected in turn, covering sensor dropout, the
+master disconnecting, an emergency stop during motion, the object-tracking
+losing sight of its target, a logging failure, a clock going backwards, an
+attempt to write identifying data, the arm's control session being lost and
+the network to an arm going down. All fourteen are handled.
+
+Getting there was less tidy than that sentence suggests. Four separate bugs in
+the injection harness each produced a clean table of results while testing
+nothing at all. A fixed delay was not reliably landing inside a trial. The
+publisher had not finished being discovered before the fault was sent. State
+left over from the previous run satisfied the trigger condition for the next
+one. And the abort signal was a one-shot event, so a fault raised in the gap
+between two trials was seen by neither.
+
+The transferable lesson is not about this system. Any fault-injection harness
+is itself an instrument, and its verdicts should not be believed until it has
+been shown capable of reporting a failure.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Fault injection]{The fourteen injected faults and the response
+  required of each. All are currently handled.}
+  \label{tab:faults}
+  \begin{tabular}{@{}p{0.34\linewidth}p{0.58\linewidth}@{}}
+    \toprule
+    \textbf{Injected fault} & \textbf{Required response} \\
+    \midrule
+    A sensor channel drops out & Channel disabled automatically, loss of
+      capability announced, trial marked invalid \\
+    The master is unplugged & Dead-man trips within one second, arms park \\
+    Emergency stop during motion & Arms park, condition latches, clears only
+      on an explicit reset \\
+    Object tracking latches the wrong target & Estimate switches within
+      \SI{0.1}{\second} \\
+    Two targets equally likely & No assistance offered; a tie is not a
+      decision \\
+    The tracked object disappears & Estimate cleared rather than held \\
+    Nothing is detected at all & Assistance yields to the driver \\
+    The log cannot be written & Raises rather than dropping samples \\
+    Identifying data is submitted & Refused in code \\
+    The clock goes backwards & No interval measured from wall-clock time \\
+    The master reconnects & Detected again, next trial gated until data is
+      fresh \\
+    The arm's control session is lost & Closed and reopened without a restart \\
+    The camera sees nothing before a trial & Trial refused before it starts \\
+    The network to one arm drops & \emph{Both} arms frozen \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The last row is a design decision rather than a technical one. One arm live
+and one arm frozen on a person's back is worse than both frozen, and the two
+cannot be told apart by looking.
+
+\section{Two problems the desk arrangement introduces}
+\label{sec:tracking}
+
+When the driver holds tracked hand controllers across the room, the headset
+sits on a shelf and acts as the fixed reference for everything the controllers
+report. Two failures follow from that and neither announces itself.
+
+The first is that the shelf can be knocked. Nothing breaks: the controllers
+stay tracked, the update rate stays at \SI{90}{\hertz}, every reported position
+remains valid, and all of them are now expressed in a frame that has quietly
+rotated. The system latches the reference at the start and freezes if it moves
+by more than \SI{20}{\milli\metre} or \SI{2}{\degree}. The rotation limit is the
+one that matters, because a small twist barely moves the headset and puts every
+subsequent command several degrees wrong.
+
+The second is that a controller can be blocked from view. The system had a
+signal named for exactly this and it was derived from when the last message
+arrived, not from whether the controller in it was being tracked. Covering a
+controller with a hand for five seconds produced no reaction at all while the
+stream ran on normally. When the driver wears the headset this hardly matters,
+because their hands are in front of its cameras. With the headset on a shelf,
+being blocked from view is routine.
+
+\begin{figure}[htbp]
+  \centering
+  \screenshot{58mm}{The safety view during a run: the wearer drawn with the
+  \SI{150}{\milli\metre} margin shown as a shell around them, the nearest part
+  of the arm highlighted and labelled with which body part it is closest to,
+  and the readout showing the current clearance. Take one shot in a safe pose
+  and one with the arm deliberately brought close, so the difference is
+  visible.}
+  \caption[The safety view]{The clearance view. It draws the same body the
+  check is enforcing against, so what is displayed and what is enforced cannot
+  drift apart.}
+  \label{fig:safetyview}
+\end{figure}

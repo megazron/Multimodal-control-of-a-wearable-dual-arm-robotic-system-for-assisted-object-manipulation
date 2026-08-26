@@ -1,0 +1,181 @@
+\chapter{The mannequin arm and how it commands the robot}
+\label{ch:master}
+
+\section{What the master arm is}
+
+The master is a scale model of the robot arm, about a third of the size, with
+the same sequence of joints. A rotary sensor sits at each joint and a small
+inertial sensor sits at the wrist, and a microcontroller reads them all and
+sends the numbers up a USB cable. The driver holds it by the tip and moves it.
+Nothing pushes back.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.78\linewidth]{master_arm_chain.png}
+  \caption[The master arm]{The master arm as modelled, with its joint sequence
+  labelled. Its links total \SI{0.272}{\metre} against the robot's
+  \SI{0.902}{\metre} of reach, so the same joint angles do not produce the same
+  hand movement at each end.}
+  \label{fig:master}
+\end{figure}
+
+\section{Why the joints are not copied directly}
+
+The first version of this system sent each master joint angle straight to the
+matching robot joint. That is the simplest thing to build and it was
+abandoned, for a reason that is easy to see once stated: the two arms are not
+the same size. A \SI{10}{\degree} bend at the master's elbow moves its tip a
+few centimetres and the robot's hand about three times as far. Worse, the
+robot's joint limits and the master's are different, so there are master poses
+with no robot equivalent at all.
+
+What replaced it maps movement to movement. The driver's hand moving
+\SI{100}{\milli\metre} forward asks the robot's hand to move
+\SI{100}{\milli\metre} forward, from wherever it happens to be. The robot's
+own solver works out the joint angles. This decouples the two arms completely
+and costs one thing: the robot's spare joint, the one that swings the elbow
+without moving the hand, is left unspecified and has to be chosen by something
+else.
+
+\subsection{Lifting the mouse}
+
+Because the master's reach is a third of the robot's, the driver runs out of
+arm before the robot runs out of workspace. The fix is the one a computer
+mouse uses. A button disengages the link, the driver brings their hand back to
+a comfortable position, and pressing again re-engages from there. The robot
+does not move during the disengagement.
+
+Getting this right took three separate corrections. The button had to be
+debounced, because a single press was registering twice. The reference
+position had to be captured only when the master was genuinely still,
+otherwise the system latched onto a moving target. And the smoothing filter
+had to be cleared on re-engagement, or the first few frames after re-engaging
+were a blend of the new position and the old one. Measured over eight
+re-engagements, the arm now travels the full distance each time with no
+snap-back.
+
+\section{Reading the sensors: what the channels actually do}
+
+The specification says fourteen rotary sensors. What arrives is less tidy.
+
+A failing sensor of this kind does not go quiet. It reports values that span
+the full range and are not a trajectory: consecutive readings unrelated to
+each other, jumping tens of degrees in a fraction of a second. Judged on range
+alone, such a channel looks healthy, which is exactly how a broken one keeps
+being trusted. The system therefore classifies each channel into one of four
+states, and the third of them had to be invented for this project.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Channel verdicts]{The four verdicts, and the current state of the
+  master arm. Measured over \num{20430} recorded frames.}
+  \label{tab:verdicts}
+  \begin{tabular}{@{}p{0.16\linewidth}p{0.50\linewidth}p{0.26\linewidth}@{}}
+    \toprule
+    \textbf{Verdict} & \textbf{Meaning} & \textbf{Channels} \\
+    \midrule
+    Working & Reports a smooth range of values, rarely drops out & 5 of 14 \\
+    Dropping out & Reports usable values with gaps & 1 of 14 \\
+    Incoherent & Present, fresh, and wrong: more than one update in twenty
+      jumps by over \SI{60}{\degree} & 6 of 14 \\
+    Dead & No usable reading at all & 2 of 14 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\linewidth]{channels.pdf}
+  \caption[Channel health]{Every channel, on both measures that decide its
+  verdict. The upper panel is the one that matters: a channel above the five
+  per cent line is reporting values that are present, fresh and not a
+  trajectory. Six channels sit above it, five of them on the left arm.
+  Produced from the stored channel record of 6 August 2026.}
+  \label{fig:channels}
+\end{figure}
+
+One correction belongs here because it changed two conclusions that had stood
+for weeks. The recorder writes rows at about \SI{50}{\hertz} while the sensors
+themselves update at fifteen to seventeen. Between four and five of every six
+rows are therefore an exact copy of the row before. Any statistic computed
+across consecutive rows is dominated by those copies, which is why the noise
+figure read as exactly zero on every channel. It was measuring the recorder.
+Computed between genuine sensor updates instead, the noise floor is
+\SIrange{0.2}{5.4}{\degree}, and one channel that had been written off as dead
+turned out to be the cleanest one on that arm.
+
+\section{Working with fewer channels}
+
+\Cref{fig:ladder} shows what happens as channels are lost. The system does not
+have a working state and a broken state. It has a ladder, and it announces
+which rung it is standing on.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/ladder.tex}
+  \caption[The degradation ladder]{What the system does as sensor channels
+  fail. Each rung is a different way of estimating where the driver's hand is,
+  using fewer inputs than the one above it. The cost of each step down is
+  measured rather than assumed, and the bottom rung is a refusal.}
+  \label{fig:ladder}
+\end{figure}
+
+The mapping used at the top of the ladder splits the driver's hand position
+into three parts and takes each from whichever sensor sees it most directly.
+How high the hand is comes from the wrist's inertial sensor, which feels
+gravity and therefore needs no calibration and no drift correction. Which way
+round the hand is comes from the shoulder joint, which is a single rotary
+sensor. How far out the hand is comes from the remaining joint angles. The
+point of splitting it this way is that losing one part does not destroy the
+others.
+
+Two numbers say what this costs. Dropping from four sensed joints to one costs
+\SI{63.8}{\milli\metre} of accuracy at the tip, measured against the recorded
+frames. And replaying the failing channels with the driver's hand deliberately
+held still shows them injecting \SI{54.5}{\milli\metre} of commanded movement
+that nobody asked for, against a master reach of \SI{272}{\milli\metre}. The
+second figure is the reason the failing channels are frozen rather than
+filtered: the arm is a relay, and whatever the sensors feed in, the robot
+faithfully reproduces.
+
+\section{Making the motion smooth}
+
+Until late in the project, the last step before the joint commands went out
+was a simple limit on how far each joint could move in one cycle. It is the
+obvious approach and it has a defect that is not obvious.
+
+Because each joint is limited separately, a joint with a short distance to
+travel arrives in one cycle while a joint with a long distance takes two. In
+between, the joints are at different fractions of their own journeys, and the
+hand is not on the straight line the solver intended. Measured on a typical
+move, the hand strayed \SI{51.3}{\milli\metre} from the line it was supposed
+to follow. For comparison, the gripper has to be within \SI{30}{\milli\metre}
+of an object to close on it.
+
+The fix was to replace the per-joint limit with a generator that plans all
+seven joints together, so they start together, finish together, and stay in
+proportion in between~\cite{berscheid2021ruckig}. The straying went to zero,
+every joint now arrives on the same cycle, and the peak commanded joint speed
+dropped from about twelve times the manufacturer's stated limit to exactly
+one times it. The old code had never read the limits file at all.
+
+This is worth stating plainly because it was not a tuning problem. Sweeping
+the old method's step size across a wide range does not make the straying go
+away; it settles at about \SI{68}{\milli\metre} and stays there. The fault was
+the independence of the limits, not their size.
+
+\section{What the simulation does not tell us}
+
+Every joint on the real arm stops slightly short of where it was sent, on the
+side it approached from. Measured across 252 recorded joint movements, 211 of
+them land between \SI{0.25}{\degree} and \SI{0.30}{\degree} short, with the
+direction following the direction of travel. That is a bound rather than a
+spread, which means it is a systematic offset and not noise.
+
+At the hand, that adds up to about \SI{7.2}{\milli\metre} on a
+\SI{100}{\milli\metre} move. A single correction per arm, which simply
+overshoots each joint slightly in the direction it is already going, removes
+about three quarters of it. The correction is implemented and switched off,
+because it has not yet been tried on the physical arm and switching it on
+untested would change every recorded figure at once.

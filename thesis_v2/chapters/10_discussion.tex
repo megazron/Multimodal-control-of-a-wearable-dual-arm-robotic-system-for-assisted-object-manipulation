@@ -1,0 +1,163 @@
+\chapter{Discussion}
+\label{ch:discussion}
+
+\section{Designing for sensor loss was worth it, and not for the reason expected}
+
+The premise was that a body-worn control arm routing analogue signals through
+turning joints will lose channels, so losing them has to be survivable. That
+premise held. Seven of fourteen channels currently fail the health test, and
+the failures are progressive rather than sudden.
+
+What the architecture actually bought is narrower than it first appears. It
+did not keep the system working: with the channels in their present state,
+direct teleoperation is not usable, and no amount of graceful degradation
+changes that. What it bought was the ability to say so precisely. The system
+names which channels it no longer believes, states what capability that costs,
+and refuses rather than inventing a position when too little is left. The
+alternative, which is what the system did before, was to keep commanding the
+arm from readings that were confidently wrong.
+
+There is an uncomfortable corollary. A system that degrades gracefully also
+degrades quietly. Six of the fourteen channels failed over a period during
+which nothing stopped working in a way anybody noticed, and the failure was
+found by measuring rather than by using. Any design like this needs the health
+report to be visible in the ordinary course of a session, not available on
+request, which is why the channel state now appears in the operating window
+rather than in a log.
+
+\section{The reduced-control premise, assessed}
+
+The second premise was that commanding fourteen joints is a usability problem,
+so the system should take position from a few well-behaved sensors and leave
+the rest to the machine or to nobody.
+
+Taking position from a small number of channels worked. Splitting it into
+height, direction and distance, and taking each from whichever sensor sees it
+most directly, is the reason a system with half its sensors failing still
+produces a usable command on one arm.
+
+Pinning the wrist did not work as well as expected, and the cost was not
+measured until late. Fixing the wrist orientation on a seven-jointed arm uses
+up the spare joint, and the spare joint is precisely the one that swings the
+elbow away from the wearer while the hand stays put. Measured at the point
+where the work actually happens, pinning the wrist reduced the average
+distance the arm could travel from \SI{0.30}{\metre} to \SI{0.065}{\metre}, a
+factor of seven. Allowing the wrist to vary within a \SI{15}{\degree} cone
+recovers most of it and costs nothing measurable in accuracy. This should have
+been measured a month earlier than it was.
+
+\section{The workspace result, and what it costs the study}
+
+The two arms cannot both reach any point in front of the wearer. That result
+was checked four different ways precisely because it invalidates part of the
+study, and it survived all four.
+
+The consequences are concrete. Any task requiring the two hands to meet is
+impossible, which removes the passing of an object from one arm to the other.
+Anything requiring both arms on the same object requires the object to be wide
+enough to span the dead band, which is where the two-arm carry task ran into
+the gripper's opening. And the innermost column of the working area sits
+\SI{325}{\milli\metre} from the body's centre line, so a task described as
+happening in front of the wearer actually happens off to one side.
+
+It is worth being clear about what kind of result this is. It is not a
+limitation of the control system, and no improvement to the software affects
+it. It is a consequence of where two arms of this length are bolted to a
+person of this size. The measured mount change would improve it substantially
+and has not been applied, because applying it means re-deriving the resting
+pose, the approach direction and every clearance figure in this thesis. That
+is a session's work, not an afternoon's, and it should be done as one
+deliberate pass with everything re-measured afterwards.
+
+\section{The safety layer is honest about the wrong thing}
+
+The safety layer is thorough about distance and silent about time.
+
+Fourteen faults are injected and handled, the margin is measured
+geometrically against the parts of the arm that actually pass the wearer, and
+every mechanism that can stop the arm announces itself by name. All of that is
+sound and most of it was built after a specific failure showed why it was
+needed.
+
+What none of it addresses is that the margin is a distance and the wearer can
+move. In five of six modelled limb movements, the limb travels further than
+the entire \SI{150}{\milli\metre} margin before the guard hears about it. The
+system is protecting a stationary person from a moving robot, and the
+arrangement it is deployed in has a moving person as well.
+
+Three things would help and none is done. Inflating the margin by the delay
+times an assumed speed would at least make the number mean something, and it
+is a one-parameter change. Cutting the delay is mostly achievable, because
+most of the \SI{562}{\milli\second} is a rate limit rather than the tracking
+itself. And slowing the arm as it approaches the wearer would couple two
+quantities the system already has and currently does not connect. The first is
+the one to do first, because it changes what the margin claims rather than
+merely improving it.
+
+\section{Measurement was most of the work}
+
+The single most striking number in this project is not about the robot. It is
+that a surprising result turned out to be a fault in the measurement
+seventeen times.
+
+That has three consequences for how this thesis should be read. Any figure
+here that has not been produced by a program with a known-answer test behind it
+should be treated as provisional, and the text says which those are. Any
+figure that was produced once should be treated as provisional too, because
+the solver used here restarts from a random guess and a single call is a coin
+flip. And the absence of a measurement is reported rather than filled in,
+which is why several sentences in \cref{ch:results} end in a statement that
+something has never been measured.
+
+The habit is not free. Clearing an instrument before believing it roughly
+doubles the time a measurement takes. Set against that, several of the
+instrument faults found here would have propagated into published numbers, and
+two of them into the safety case.
+
+\section{Limitations}
+
+\emph{Nothing has run on a moving arm under load.} The simulator used here
+returns zero for every force and torque, so anything derived from a force
+reading is undefined on this platform rather than merely unmeasured. That is
+why there is no force feedback result in this thesis and no impedance
+criterion in the evaluation.
+
+\emph{The delay figures are lower bounds.} They are measured within one
+machine, over shared memory. The physical arm adds a network round trip per
+command, and that has not been characterised.
+
+\emph{The mapping results depend on a broken master.} The sideways mapping
+problem is reported as geometric, and the argument for that is a
+rotation-invariant measurement rather than an inference from the failing
+channels. But the accuracy figures for the working channels come from an arm
+whose other half does not work, and they should be re-measured after repair.
+
+\emph{One person built and measured all of it.} Every design decision was
+taken by the person who then measured its consequences. The instrument-checking
+habit was adopted partly as a defence against that, and it is not a complete
+one.
+
+\section{What stands between this and the study}
+
+In the order it should be done.
+
+\begin{enumerate}
+  \item \textbf{Repair the master arm's wiring.} Two of the fourteen channels
+    are dead and six are incoherent, and the failures cluster on one arm. Until
+    that is fixed there is no direct teleoperation baseline, and without a
+    baseline there is no comparison to make. This is a soldering job.
+  \item \textbf{Measure where the wrist camera actually is.} It is the largest
+    unknown in the positioning budget and the reason no grasp has landed from
+    an open-loop plan. It needs the hardware and a calibration target.
+  \item \textbf{Make the clearance check measure the whole arm.} At present it
+    samples the centres of joints, so it can return a comfortable number for a
+    pose in which the arm is touching the mannequin. This is the outstanding
+    safety defect and it should be fixed before anybody wears the rig.
+  \item \textbf{Put the delay into the margin.} One parameter, and it turns a
+    distance that means little into one that means something.
+  \item \textbf{Apply the mount change and re-measure everything.} A day's work
+    and a large improvement in what the arms can reach.
+  \item \textbf{Then submit for ethical approval}, with a baseline that works
+    and a safety case whose numbers have been measured on the arm rather than
+    in simulation.
+\end{enumerate}

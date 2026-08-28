@@ -1,6 +1,6 @@
 # The project presentation
 
-`SRL_project_presentation.pptx` — 48 slides, 16:9, PowerPoint-native (real
+`SRL_project_presentation.pptx` — 69 slides, 16:9, PowerPoint-native (real
 text boxes, real tables, no flattened images of slides). Open it in
 PowerPoint, Keynote, Google Slides or LibreOffice Impress.
 
@@ -20,6 +20,7 @@ The first command is idempotent and regenerates everything it can:
 | block diagrams | the thesis TikZ sources, compiled standalone with `xelatex` and cropped to their own ink |
 | clip frames | one frame each, cut with `ffmpeg` from the committed verification clips |
 | screenshots | copied from `docs/img/`, `thesis_v2/figures/` and `recordings/session/` |
+| formulas | typeset with `xelatex` from the `FORMULAS` block in `make_presentation.py`, cropped the same way as the diagrams |
 
 Anything whose source is missing is REFUSED BY NAME on stdout and the slide is
 not written. Nothing is drawn from prose.
@@ -68,9 +69,29 @@ same breath:
 Slide 44 is the whole ledger: what is measured with the file committed, and
 what is not measured and not claimed.
 
+## The formulas
+
+Every equation in the deck is transcribed from the implementation named on
+the slide, not from a textbook and not from memory:
+
+| slide | equation | source |
+| --- | --- | --- |
+| the control law | the two anchor-and-scale mappings, and `dim ker J = 1` | `master_pose_node.py:1502`, `vr_pose_mapper.py:16-17` |
+| smoothing | the 1-Euro filter, dt-correct | `srl_teleop/smoothing.py` |
+| motion generation | the clamp's constraint against Ruckig's | `config/joint_limits.yaml` |
+| the safety case | `fuse()`'s closest-wins rule and the 150 mm floor | `wearer_tracking.py:273` |
+| the safety case | `N = I − J⁺J` and why `J q̇ = 0` is the problem | `predictive_avoidance.py:226-268` |
+| measurement models | the terminal-offset model, RSS vs worst case, stereo depth noise | `sim_to_real_gap.py`, `measure_control_budget.py`, `measure_depth_pose_accuracy.py` |
+| voice | word error rate and the wake gate as an edit distance | `voice_instruction.json`, `wake_word.json` |
+
+Where a docstring and the code disagreed, the CODE is what is typeset. The
+`R_align` term is in the deck for that reason: the docstring claimed one for
+months while the implementation added the controller displacement raw, so a
+slide repeating the docstring would have repeated the bug.
+
 ## Spare figures
 
-`figures/` holds 22 more images than the deck embeds — the kinematic chain,
+`figures/` holds more images than the deck embeds — the kinematic chain,
 the degradation ladder, the calibration and session-timeline diagrams, the VR
 wrist and protocol plots, the master-versus-VR frames for the same task, the
 grip traces, and the sling geometry. They are built by the same command and
@@ -80,3 +101,32 @@ figure set is regenerated wholesale, so nothing has to be hunted for twice.
 A build reports every asset it could not produce, by name. If a slide shows
 `FIGURE REFUSED: <name> is not on disk`, that is the deck telling you an
 upstream generator did not run — not a placeholder to be filled in by hand.
+
+## The figure audit, 2026-08-28
+
+The repository held 184 measurement files under `recordings/baselines/` and
+thirteen figures. Eighteen more were added to `scripts/make_results.py` —
+same rules, same palette — so the deck draws from measurements that were on
+disk and unread:
+
+the pad-offset curve · the orientation-policy cost from two start points ·
+innermost column per wearer posture · the centre-on-surface search ·
+the positioning budget · the reaction budget · the 75-phrasing instruction
+sweep · the voice pipeline · predictive avoidance · depth pose accuracy ·
+the degradation ladder · all eight T1 stage-2 seeds · shared-autonomy gain ·
+detection on real RGB-D · pick accuracy against belief error · the home
+mirror residual · the cost of looking · the mount-overlap sweep.
+
+Two figures still REFUSE by name and should stay refused until their source
+exists: the pre-fix VR misses (prose only, no committed artifact) and the
+2026-08-26 VR session bag (no `mcap` library on this interpreter).
+
+**One of the eighteen was wrong when first drawn, and looking at it is what
+caught it.** `predictive_avoidance.json`'s own `min_clearance` field is the
+minimum over ALL steps, including the ones a policy REFUSED — poses the arm
+was never sent to. Differencing it across policies scored each policy at a
+pose it had declined, and the figure reported avoidance making clearance
+WORSE, contradicting the file's own `avoidance_never_reduces_clearance`
+control. Scored over commanded poses instead, the result is the opposite and
+much stronger: unassisted, the solver commands poses ~155 mm inside the
+wearer; with avoidance on, every pose it will command clears the floor.

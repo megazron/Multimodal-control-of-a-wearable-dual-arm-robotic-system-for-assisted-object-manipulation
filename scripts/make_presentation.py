@@ -165,6 +165,164 @@ def build_diagrams(work):
     return made
 
 
+# ==========================================================================
+# The mathematics, typeset.
+#
+# Every block below is transcribed from the implementation named beside it,
+# not from a textbook and not from memory. Where the code and a formula in a
+# docstring disagreed, the CODE is what is typeset -- the R_align term is in
+# here because the docstring claimed one for months while the implementation
+# added the displacement raw, and a slide that repeats the docstring would
+# repeat the bug.
+# ==========================================================================
+FORMULAS = {
+    "map_mannequin": r"""
+\[
+  p_{\mathrm{cmd}} \;=\; p_{\mathrm{anchor}} \;+\; s\,\bigl(p_{\mathrm{tip}}
+  - p_{\mathrm{ref}}\bigr)
+  \qquad
+  q_{\mathrm{cmd}} \;=\; q_{\mathrm{anchor}}\ \ (\text{fixed})
+\]
+""",
+    "map_vr": r"""
+\begin{align*}
+  p_{\mathrm{cmd}} &= p_{\mathrm{anchor}} + s\,R_{\mathrm{align}}
+                      \bigl(p_{\mathrm{ctrl}} - p_{\mathrm{ref}}\bigr) \\[2pt]
+  q_{\mathrm{cmd}} &= \Delta q\;q_{\mathrm{anchor}},
+   \qquad \Delta q = q_{\mathrm{ctrl}}\,q_{\mathrm{ref}}^{-1} \\[4pt]
+  R_{\mathrm{align}} &= R_z(\psi),
+   \qquad \det R_{\mathrm{align}} = +1\ \ \text{always}
+\end{align*}
+""",
+    "one_euro": r"""
+\[\begin{aligned}
+  \tau &= \frac{1}{2\pi f_c},
+  &\alpha(\Delta t, f_c) &= \frac{\Delta t}{\tau + \Delta t} \\[3pt]
+  \hat{x}_i &= \alpha\,x_i + (1-\alpha)\,\hat{x}_{i-1},
+  &\dot{x}_i &= \frac{x_i - x_{i-1}}{\Delta t} \\[3pt]
+  f_c &= f_{\min} + \beta\,\bigl\lVert \widehat{\dot{x}}_i \bigr\rVert
+  &&\quad\text{\small (the cutoff RISES with speed)}
+\end{aligned}\]
+""",
+    "terminal_offset": r"""
+\begin{align*}
+  \text{measured:}\quad
+   q^{\mathrm{arrive}}_j &= q^{\mathrm{cmd}}_j
+     - \varepsilon\,\operatorname{sgn}(\Delta q_j) \\[3pt]
+  \text{so command:}\quad
+   q^{\mathrm{cmd}}_j &=
+     \begin{cases}
+       q^{\mathrm{target}}_j + \varepsilon\,\operatorname{sgn}(\Delta q_j)
+         & \lvert \Delta q_j \rvert > \varepsilon \\[2pt]
+       q^{\mathrm{target}}_j & \text{otherwise}
+     \end{cases} \\[4pt]
+  \varepsilon_{\mathrm{L}} &= \SI{0.005327}{\radian}
+     = \ang{0.3052}, \quad
+  \varepsilon_{\mathrm{R}} = \SI{0.005338}{\radian} = \ang{0.3059}
+\end{align*}
+""",
+    "null_space": r"""
+\[\begin{aligned}
+  J(q)_{:,i} &= \frac{e\bigl(\mathrm{fk}(q + h e_i),\,
+                            \mathrm{fk}(q - h e_i)\bigr)}{2h}
+   &&\quad\text{\small central differences, } h=10^{-5} \\[3pt]
+  N &= I - J^{+}J
+   &&\quad\text{\small projects onto } \ker J \\[3pt]
+  \dot{q} &= N\,\nabla c(q)
+   &&\quad\text{\small climb the clearance gradient} \\[3pt]
+  J\dot{q} &= J\,N\,\nabla c(q) = 0
+   &&\quad\text{\small so the hand does not move --- which is the problem}
+\end{aligned}\]
+""",
+    "fuse": r"""
+\[
+  \mathrm{body}_i \;=\;
+  \begin{cases}
+    \mathrm{tracked}_i & d(\mathrm{tracked}_i, x_{\mathrm{probe}}) \le
+                         d(\mathrm{mannequin}_i, x_{\mathrm{probe}}) \\[3pt]
+    \mathrm{mannequin}_i & \text{otherwise}
+  \end{cases}
+\]
+\[
+  \min_{\ell \in \mathrm{links}} \; \min_i \;
+  d\bigl(\ell,\ \mathrm{body}_i\bigr) \;\ge\; \SI{0.15}{\metre}
+\]
+""",
+    "budget": r"""
+\[
+  e_{\mathrm{RSS}} = \sqrt{\textstyle\sum_k e_k^{2}} = \SI{12.91}{\milli\metre}
+  \qquad
+  e_{\mathrm{worst}} = \textstyle\sum_k \lvert e_k \rvert
+   = \SI{19.99}{\milli\metre}
+  \qquad
+  \text{gate} = \SI{30}{\milli\metre}
+\]
+""",
+    "depth": r"""
+\[
+  \sigma_z(z) \;=\; \frac{z^{2}\,\sigma_d}{f\,B},
+  \qquad f = \SI{512}{px},\;\; B = \SI{0.05}{\metre},\;\;
+  \sigma_d = \SI{0.15}{px}
+\]
+""",
+    "ruckig": r"""
+\begin{align*}
+  \text{legacy:}\quad
+   & \lvert \Delta q_j \rvert \le \Delta_{\max}
+     \ \ \text{per joint, independently} \\[3pt]
+  \text{Ruckig:}\quad
+   & \lvert \dot{q}_j \rvert \le v_j^{\max},\quad
+     \lvert \ddot{q}_j \rvert \le a^{\max},\quad
+     \lvert \dddot{q}_j \rvert \le j^{\max} \\[3pt]
+   & \text{phase-synchronised: } T_1 = T_2 = \dots = T_7
+\end{align*}
+""",
+    "redundancy": r"""
+\[
+  \dim \ker J \;=\; n - m \;=\; 7 - 6 \;=\; 1
+  \qquad\text{pinned wrist}\ \Rightarrow\ \text{that one is spent}
+\]
+""",
+    "wer": r"""
+\[
+  \mathrm{WER} = \frac{S + D + I}{N} = 25.2\%
+  \qquad
+  \text{wake accepted} \iff
+  \mathrm{lev}\bigl(\text{heard}, \text{``hey doc oc''}\bigr) \le \theta
+\]
+""",
+}
+
+
+def build_formulas(work):
+    """Typeset each formula alone and trim it to its own ink."""
+    if not shutil.which("xelatex"):
+        print("  formulas          REFUSED: no xelatex on this host")
+        return []
+    thesis = ROOT / "thesis_v2"
+    main = (thesis / "main.tex").read_text().splitlines()
+    end = next(i for i, ln in enumerate(main) if ln.startswith("\\title{"))
+    preamble = "\n".join(main[:end])
+    made = []
+    for name, body in FORMULAS.items():
+        tex = work / ("f_%s.tex" % name)
+        tex.write_text(preamble
+                       + "\n\\geometry{paperwidth=60cm,paperheight=40cm,"
+                         "margin=1cm}\n"
+                       + "\\begin{document}\\pagestyle{empty}\\noindent\n"
+                       + body + "\n\\end{document}\n")
+        _sh("xelatex -interaction=nonstopmode -output-directory=%s %s"
+            % (work, tex), cwd=thesis)
+        pdf = work / ("f_%s.pdf" % name)
+        if not pdf.exists():
+            print("  formula %-16s FAILED to compile" % name)
+            continue
+        outp = FIG / ("eq_%s.png" % name)
+        if _pdf_page_to_png(pdf, outp, dpi=300):
+            made.append(outp.name)
+    return made
+
+
 def _pdf_page_to_png(pdf, out, dpi=220):
     import fitz
     from PIL import Image, ImageChops
@@ -241,6 +399,9 @@ def prepare_assets():
 
     print("thesis diagrams")
     made += build_diagrams(work)
+
+    print("formulas")
+    made += build_formulas(work)
 
     print("clip frames")
     if shutil.which("ffmpeg"):
@@ -345,7 +506,8 @@ def build_deck():
     def caption(sl, text, source, top=None, warn=False):
         """The caption carries the claim; the source line carries the file."""
         top = BODY_BOT + 0.10 if top is None else top
-        tf = textbox(sl, MARGIN, top, W - 2 * MARGIN, 0.72)
+        tf = textbox(sl, MARGIN, top, W - 2 * MARGIN,
+                     min(1.00, H - top - 0.05))
         para(tf, text, 11, WARN if warn else INK, first=True, space=3)
         para(tf, "source: " + source, 8.5, GREY, font=MONO)
 
@@ -370,6 +532,91 @@ def build_deck():
         sl.shapes.add_picture(str(path), Inches(x), Inches(y),
                               Inches(w), Inches(h))
         return True
+
+    # Formulas are rendered at a known dpi, so their natural size on the
+    # slide is a real quantity: at MAG = 1 a 10 pt LaTeX glyph would be 10 pt
+    # here. Fitting each one to its own box instead made a one-line equation
+    # tower over a three-line one on the same slide, because "fit the box"
+    # is a layout rule and not a typographic one.
+    EQ_DPI, EQ_MAG = 300.0, 1.85
+
+    def eq_natural(name, max_w):
+        """(width, height) in inches at the common type size, width-capped."""
+        path = FIG / ("eq_%s.png" % name)
+        if not path.exists():
+            return None
+        iw, ih = Image.open(path).size
+        w, h = iw / EQ_DPI * EQ_MAG, ih / EQ_DPI * EQ_MAG
+        if w > max_w:
+            h *= max_w / w
+            w = max_w
+        return w, h
+
+    def eq(sl, name, box):
+        """Place a typeset formula at the common type size, centred."""
+        bx, by, bw, bh = box
+        nat = eq_natural(name, bw)
+        if nat is None:
+            return figure(sl, "eq_%s.png" % name, box, frame=False)
+        w, h = nat
+        if h > bh:                       # only ever shrink to fit
+            w *= bh / h
+            h = bh
+        return figure(sl, "eq_%s.png" % name,
+                      (bx + (bw - w) / 2, by + (bh - h) / 2, w, h),
+                      frame=False)
+
+    def _lines(text, width_in, pt):
+        """Rough wrapped-line count. Calibri runs ~1.9 chars per point of
+        width per inch; this is only used to reserve vertical space, and it
+        rounds UP, because a gloss that overruns its box is what the layout
+        check reports and a little slack costs nothing."""
+        per_line = max(20, int(width_in * 1.72 * (11.0 / pt) * 14.0))
+        return max(1, -(-len(text) // per_line))
+
+    def eq_slide(title, blocks, source, kicker=None, cap=None):
+        """title, then (formula, gloss) pairs stacked down the page.
+
+        The gloss box is sized from its own text. Fixing it at one line put
+        three-line glosses through the formula below them on five slides.
+        """
+        sl = new(title, kicker)
+        gw = W - 2 * MARGIN - 0.30
+        # One line of slack: the layout check wraps in Liberation Sans,
+        # which is wider than the Calibri this deck asks for, so its
+        # line count is an upper bound on PowerPoint's.
+        gloss_h = [(_lines(g, gw, 10.5) * 0.21 + 0.26) if g else 0.0
+                   for _, g in blocks]
+        gap = 0.12
+        avail = (BODY_BOT - BODY_TOP) - gap * (len(blocks) - 1)
+        # Each block asks for the height its formula NEEDS at the common type
+        # size; if they do not all fit, every one shrinks by the same factor,
+        # so their relative sizes survive.
+        want = []
+        for name, _ in blocks:
+            nat = eq_natural(name, gw)
+            want.append(nat[1] if nat else 0.6)
+        room = avail - sum(gloss_h)
+        if sum(want) > room and sum(want) > 0:
+            k = room / sum(want)
+            want = [w * k for w in want]
+        slack = (room - sum(want)) / len(blocks)
+        top = BODY_TOP
+        for (name, gloss), gh, eh in zip(blocks, gloss_h, want):
+            fh = eh + max(0.0, slack)
+            h = fh + gh
+            rect(sl, MARGIN, top, 0.045, h, ACCENT)
+            eq(sl, name, (MARGIN + 0.30, top, gw, fh))
+            if gloss:
+                tf = textbox(sl, MARGIN + 0.30, top + fh + 0.02, gw, gh)
+                para(tf, gloss, 10.5, GREY, first=True)
+            top += h + gap
+        if cap:
+            caption(sl, cap, source, top=BODY_BOT + 0.10)
+        else:
+            tf = textbox(sl, MARGIN, BODY_BOT + 0.20, W - 2 * MARGIN, 0.3)
+            para(tf, "source: " + source, 8.5, GREY, first=True, font=MONO)
+        return sl
 
     def new(title, kicker=None):
         sl = prs.slides.add_slide(blank)
@@ -636,6 +883,33 @@ def build_deck():
     # The mode diagrams are four to five times wider than they are tall, so
     # they go two to a slide at full width. Four in a 2x2 grid made every
     # label unreadable.
+    eq_slide("The control law: two input paths, one arm command",
+             [("map_mannequin",
+               "MODE 01 — the mannequin gives position; gravity gives roll "
+               "and pitch but never yaw, and on this rig j7 is railed and "
+               "j5/j6 are dead, so orientation is pinned to the anchor "
+               "constant."),
+              ("map_vr",
+               "MODE 02 — the Quest gives full 6-DOF, so orientation is "
+               "commanded too. Both are RELATIVE: the anchor pair is latched "
+               "at each clutch engage, so only motion SINCE engage matters "
+               "and the re-engage jump is zero by construction."),
+              ("redundancy",
+               "and this is the whole workspace story in one line: a fixed "
+               "6-DOF pose on a 7-DOF arm leaves a null space of dimension "
+               "one, and that one is the joint that moves the elbow out of "
+               "the wearer.")],
+             "srl_teleop/master_pose_node.py:1502; "
+             "srl_vr_teleop/vr_pose_mapper.py:16-17",
+             kicker="the mathematics",
+             cap="R_align is a YAW and can never be a reflection. Facing "
+                 "someone and copying them is a reflection, det = −1, which "
+                 "would mirror every ORIENTATION while the positions still "
+                 "looked right — the hardest class of bug to see. That is "
+                 "why the parameter is an angle and not a set of per-axis "
+                 "sign flips. It is calibrated from a recorded motion, not "
+                 "guessed.")
+
     sl = new("Driving the arms by hand: the mannequin, and VR",
              "operating modes")
     figure(sl, "diag_mode1_mannequin", (MARGIN, BODY_TOP, W - 2 * MARGIN, 2.12))
@@ -678,6 +952,28 @@ def build_deck():
               "tube inside the person.",
               "thesis_v2/figures/tikz/safety.tex", kicker="safety")
 
+    eq_slide("The safety case, as two expressions",
+             [("fuse",
+               "The camera may only make the wearer BIGGER. Per part, keep "
+               "whichever primitive is CLOSER to where the robot works — "
+               "there is no mode switch, so there is no mode to be in the "
+               "wrong one of. A part the camera says is further away is "
+               "kept at the assumed position, because a monocular depth "
+               "error looks exactly the same from one camera."),
+              ("null_space",
+               "And the predictive avoider, whose own algebra explains why "
+               "it is worth so little: the null space holds the hand fixed "
+               "by definition, and it is the hand that is inside the "
+               "person.")],
+             "srl_perception/wearer_tracking.py:273 (fuse); "
+             "srl_teleop/predictive_avoidance.py:226-268",
+             kicker="the mathematics",
+             cap="The distance is measured geometrically against the "
+                 "primitives. It is NOT the planner's collision check: the "
+                 "SRDF deliberately excludes the 44 proximal pairs a "
+                 "shoulder mount actually threatens, so a pose it calls "
+                 "valid can have the tube inside the person.")
+
     sl = new("The wearer is in the collision model", "safety")
     figure(sl, "rviz_home_pose_labelled", (MARGIN, BODY_TOP, 6.2, 4.3))
     figure(sl, "home_presentation_iso.png",
@@ -689,6 +985,18 @@ def build_deck():
                 "under a new name.",
             "thesis_v2/figures/rviz/home_pose_labelled.png; "
             "docs/img/presentation_pose_iso.png (2026-08-15)")
+
+    fig_slide("Predictive avoidance: what it actually buys",
+              "res_predictive_avoidance.png",
+              "With avoidance OFF the solver cheerfully commands poses "
+              "155 mm INSIDE the wearer. With it on, every pose it will "
+              "command clears the 150 mm floor and the rest are refused by "
+              "name. So what the null space buys is REFUSAL, not clearance — "
+              "the clearance gain itself is single-figure millimetres, "
+              "because the null space holds the hand fixed by definition and "
+              "it is the hand that is inside the person.",
+              "recordings/baselines/predictive_avoidance.json (2026-08-15)",
+              kicker="safety · measured")
 
     sl = new("Clearance to the wearer, per task", "safety · measured")
     figure(sl, "clearance_tasks.png", (MARGIN, BODY_TOP, 7.4, 4.3))
@@ -748,6 +1056,33 @@ def build_deck():
             "scripts/verify_wearer_fallbacks.py, "
             "src/srl_perception/test/test_wearer_tracking.py",
             top=BODY_BOT + 0.30)
+
+    two_fig_slide("Depth accuracy, and detection on real camera data",
+                  "res_depth_pose_accuracy.png",
+                  "res_detector_real_rgbd.png",
+                  "Fitting the object beats taking the centroid of what the "
+                  "camera can see, by an order of magnitude — that is the "
+                  "2.0 mm term in the control budget. On the right is the "
+                  "only detection number in this project measured on REAL "
+                  "RGB-D: 9% overall on the dataset's cluttered figurines. "
+                  "The boxes it does return fit well, so the failure is "
+                  "RECALL, not localisation — and it is why the 100% "
+                  "colour-vision score is labelled RENDERED.",
+                  "recordings/baselines/depth_pose_accuracy.json, "
+                  "detector_real_rgbd.json", kicker="perception",
+                  labels=["pose error against range",
+                          "prompted detection on real RGB-D"])
+
+    fig_slide("What it costs to look before grasping",
+              "res_look_then_grasp_cost.png",
+              "One look costs 48.6 s — and 48.3 s of that is the arm "
+              "TRAVELLING to and from the observe pose. Detection and "
+              "classification take 0.31 s. The whole optimisation available "
+              "here is a shorter journey, not a faster detector, and "
+              "amortised over the four picks one look plans it adds 12.1 s "
+              "per pick.",
+              "recordings/baselines/look_then_grasp.json (2026-08-16)",
+              kicker="perception")
 
     sl = new("The robot maps the workspace, then plans against the map",
              "environment mapping")
@@ -810,6 +1145,19 @@ def build_deck():
             "recordings/verification/06_full_autonomy/T1/S1_both_arms_centre/"
             "rviz_quad.mp4 (2026-08-23)")
 
+    fig_slide("Stage 2 is eight layouts, not one",
+              "res_t1_stage2_seeds.png",
+              "Every stage-2 seed walked at N=10 over the composed path. "
+              "Splits of 1/3, 2/2 and 3/1 all occur and both arms always "
+              "work. The chart is flat because the result is — worst pad "
+              "miss 0.01 mm across all eight — not because nothing was "
+              "measured: it cost 3 464 IK calls. Seed 0 draws 2/2 and is "
+              "indistinguishable from stage 1, which is why the recorded "
+              "clip uses seed 3: a task that only ever demonstrates its easy "
+              "case has demonstrated nothing.",
+              "recordings/baselines/t1_stage2_paths.json (2026-08-18)",
+              kicker="mode 06")
+
     two_fig_slide("A seeded layout, and the view where a grasp is judged",
                   "clip_t1s2_quad.png", "clip_t1_gripper.png",
                   "Stage 2 is stage 1's geometry with the side drawn at "
@@ -821,6 +1169,45 @@ def build_deck():
                   kicker="mode 06",
                   labels=["T1 stage 2 — seeded layout",
                           "T1 — the pads on the cube"])
+
+    fig_slide("The full instruction sweep, against the grammar it replaced",
+              "res_language_sweep_75.png",
+              "75 phrasings across 22 categories: 34 correct, 14 asked, 27 "
+              "refused, 0 MISUNDERSTOOD — against 21 / 14 / 37 / 3 for the "
+              "grammar it replaced, run on the same cases in its own "
+              "interpreter. An utterance that moves the arm to the wrong "
+              "place is the only unsafe outcome, and there are none. ASKED "
+              "and REFUSED are both safe: the arm moved in neither.",
+              "recordings/baselines/t1_instruction_sweep.json (2026-08-18)",
+              kicker="language")
+
+    eq_slide("How voice is scored — and what the score is not",
+             [("wer",
+               "Word error rate over the 40 spoken cases, and the wake gate "
+               "as an edit distance on the transcribed prefix. The threshold "
+               "sweep says the shipped value of 4 is looser than the data "
+               "supports; 1 is what the measurement recommends.")],
+             "recordings/baselines/voice_instruction.json, wake_word.json",
+             kicker="the mathematics",
+             cap="A 25.2% word error rate with ZERO exact transcripts still "
+                 "yields a parser that misunderstands nothing, because the "
+                 "grounding step re-resolves against what the camera can "
+                 "actually see and asks when it cannot. That is the "
+                 "argument for scoring the PARSER separately from the "
+                 "transcription — and it is why no claim here is a "
+                 "transcription claim.")
+
+    fig_slide("Voice, end to end — and why it is a parser score",
+              "res_voice_pipeline.png",
+              "Word error rate per utterance, and the wake-word threshold "
+              "sweep showing the shipped threshold is looser than the data "
+              "supports. The parser still returns 14 correct / 5 asked / 21 "
+              "refused / 0 misunderstood THROUGH this transcription. Every "
+              "number here came from SYNTHESISED audio: /dev/snd on this "
+              "host has only 'timer', so no microphone can be opened, and "
+              "accuracy against a real speaker is unmeasured.",
+              "recordings/baselines/voice_instruction.json, wake_word.json",
+              kicker="language", warn=True)
 
     sl = new("Understanding a free-form sentence", "language")
     figure(sl, "language_outcomes.png", (MARGIN, BODY_TOP, 6.6, 4.3))
@@ -876,6 +1263,29 @@ def build_deck():
             "recordings/verification/accuracy_table.json (2026-08-24)",
             top=BODY_BOT + 0.30)
 
+    fig_slide("The pad midpoint is a curve, not a constant",
+              "res_pad_offset_curve.png",
+              "The Robotiq's fingers swing on a four-bar, so wrist-to-pad "
+              "changes with the opening: 98.33 mm wide open, 110.98 mm on a "
+              "40 mm cube. BOTH numbers this project argued about are points "
+              "on this curve — the '13.47 mm too long' and T1's '11.43 mm "
+              "short' were comparing two different gripper states, which is "
+              "why the evidence flipped depending on what opening the "
+              "simulator had been left at.",
+              "recordings/baselines/pad_mid_ee_by_width.json (2026-08-23)",
+              kicker="results · grasping")
+
+    fig_slide("Picking from the measured map: whose error is it?",
+              "res_pick_accuracy.png",
+              "Pad miss against belief error for every pick planned from the "
+              "measured world map. The points sit on the diagonal: wherever "
+              "the pipeline believes the object is, the arm puts the pads "
+              "there. That localises the remaining error in PERCEPTION "
+              "rather than in the kinematics — and is why the unmeasured "
+              "camera extrinsic is the most expensive thing outstanding.",
+              "recordings/baselines/pick_accuracy.json (2026-08-24)",
+              kicker="results · grasping")
+
     two_fig_slide("Grasp success and positioning error, per mode",
                   "res_grasp_matrix.png", "res_accuracy_per_mode.png",
                   "Accuracy is TIED across all five modes on this clip set. "
@@ -896,6 +1306,44 @@ def build_deck():
               "present.",
               "recordings/baselines/mode_difference.json (2026-08-15)",
               kicker="results")
+
+    fig_slide("The positioning budget, term by term",
+              "res_control_budget.png",
+              "Systematic terms separated from random ones, because only the "
+              "systematic ones can be calibrated away, and the two "
+              "alternatives hatched so the column cannot be summed by "
+              "mistake. RSS 12.91 mm against a 30 mm capture gate. The "
+              "largest term left is not on the chart at all: the camera "
+              "frame against the physical module has never been measured.",
+              "recordings/baselines/control_budget.json (2026-08-23)",
+              kicker="results · budget")
+
+    fig_slide("The reaction budget: how far the arm gets before anyone can "
+              "stop it", "res_reaction_budget.png",
+              "Latency, and what that latency costs against the 150 mm "
+              "clearance floor. A deliberate reach at its worst consumes "
+              "562% of the floor; a startle or flinch, 1499%. This is the "
+              "argument for the floor being 150 mm and for the observer "
+              "e-stop being a person watching the wearer rather than the "
+              "screen — no software gate closes this gap.",
+              "recordings/baselines/control_budget.json (2026-08-23)",
+              kicker="results · safety", warn=True)
+
+    eq_slide("What the motion generator is actually constrained by",
+             [("ruckig",
+               "The legacy generator clamped each joint independently, so "
+               "seven joints arrived at seven different times and the hand "
+               "left the line the IK implies by 51.3 mm. Ruckig is "
+               "jerk-limited and phase-synchronised: every joint is given "
+               "the same duration, so they arrive together.")],
+             "srl_teleop motion generator; config/joint_limits.yaml",
+             kicker="the mathematics",
+             cap="The velocity limits are the robot's own, read from "
+                 "joint_limits.yaml — which the legacy generator never "
+                 "opened, commanding 17.5 rad/s against a 1.3963 limit. "
+                 "Acceleration and jerk are ASSUMED and labelled as such, "
+                 "because that file declares has_acceleration_limits: false "
+                 "for all fourteen joints.")
 
     sl = new("Motion generation: a per-joint clamp replaced by Ruckig",
              "results · motion")
@@ -919,6 +1367,24 @@ def build_deck():
                 "before 2026-08-23.",
             "recordings/baselines/teleop_motion.json (2026-08-23)")
 
+    eq_slide("Why a fixed EMA is the wrong shape, and what replaced it",
+             [("one_euro",
+               "The 1-Euro filter (Casiez, Roussel & Vogel, CHI 2012): a "
+               "one-pole low pass whose cutoff rises with the estimated "
+               "speed. Still, the cutoff is low and tremor is filtered hard; "
+               "moving, the cutoff opens and the lag collapses.")],
+             "srl_teleop/smoothing.py — one implementation, both input paths",
+             kicker="the mathematics",
+             cap="Tremor is high frequency at low amplitude and motion is "
+                 "low frequency at high amplitude, so one constant cannot "
+                 "serve both. Every alpha is computed from the MEASURED dt, "
+                 "so the response belongs to the filter and not to the "
+                 "machine's load — the EMA applied a fixed alpha per timer "
+                 "tick at 100 Hz against a 72 Hz headset. Orientation "
+                 "SLERPs with sign canonicalisation: averaging quaternion "
+                 "components chases a 360° excursion across a sign flip "
+                 "that never physically happened.")
+
     two_fig_slide("The VR path: smoothing, and where it stops working",
                   "res_vr_smoothing.png", "res_vr_lag_vs_speed.png",
                   "1-Euro against the EMA it replaced: 3.4× better stillness "
@@ -932,6 +1398,30 @@ def build_deck():
                   kicker="results · VR", labels=[
                       "stillness residual and reach lag",
                       "peak lag against peak hand speed"])
+
+    fig_slide("What shared autonomy is actually for",
+              "res_shared_autonomy_gain.png",
+              "Intent inference against a declared object coordinate that is "
+              "wrong by 0 to 120 mm, 400 trials. Calibrated perception "
+              "holds flat; the declared coordinate collapses past one cube "
+              "pitch and — the part that matters — becomes CONFIDENTLY wrong "
+              "rather than ambiguous. The ambiguous fraction falls as the "
+              "wrong fraction rises, which is the worst failure shape a "
+              "shared-control arbiter can have.",
+              "recordings/baselines/shared_autonomy_gain.json (2026-08-24)",
+              kicker="results · autonomy")
+
+    fig_slide("Degrading rather than stopping, one rung at a time",
+              "res_capability_ladder.png",
+              "What each rung of the degradation ladder costs in "
+              "end-effector position, replayed through 20 440 REAL recorded "
+              "master frames, and where each of the 128 channel subsets "
+              "lands. DIR_ONLY and NONE produce no position at all — drawn "
+              "as 'no position', never as a bar of height zero, which would "
+              "read as perfect. Recovery is monotonic: a channel coming back "
+              "never leaves the system on a lower rung.",
+              "recordings/baselines/capability_ladder.json, "
+              "capability_degradation.json", kicker="results · robustness")
 
     sl = new("The simulation-to-hardware gap — measured on the real arms",
              "results · real hardware")
@@ -955,6 +1445,26 @@ def build_deck():
                 "arm_directional_calibration.json and nothing read it.",
             "recordings/baselines/arm_directional_calibration.json, "
             "sim_to_real_gap.json (2026-08-23)", warn=True)
+
+    eq_slide("The measurement models behind the numbers",
+             [("terminal_offset",
+               "The simulation-to-hardware gap: every joint parks ε short of "
+               "its target, on the side it came from. The compensation is to "
+               "overshoot by ε in the direction of travel — no matrix, no "
+               "direction basis, no step length, which is exactly why it "
+               "survives the axis hold-out that kills a Cartesian 3×3."),
+              ("budget",
+               "Summed two ways on purpose: RSS is what you would quote if "
+               "the terms were independent and zero-mean; WORST CASE is what "
+               "you must design to when several are systematic and point the "
+               "same way — and the biggest one here is."),
+              ("depth",
+               "Stereo depth noise grows with the SQUARE of range, which is "
+               "why 2.0 mm at grasp range and the 0.082 m quoted elsewhere "
+               "are the same sensor at different distances.")],
+             "srl_teleop/sim_to_real_gap.py; scripts/measure_control_budget.py; "
+             "scripts/measure_depth_pose_accuracy.py",
+             kicker="the mathematics")
 
     sl = new("And the 'speed sweep' was not one", "results · instrument")
     bullets(sl, [
@@ -994,6 +1504,41 @@ def build_deck():
                   kicker="workspace", labels=[
                       "reach per direction, both arms",
                       "the two reachable sets do not overlap"])
+
+    fig_slide("What the pinned wrist costs, measured from two start points",
+              "res_orientation_cost.png",
+              "Mean reach per orientation policy, with a 0.15 m wearer floor "
+              "enforced under every one. From the HOME end effector the "
+              "pinned wrist costs 89 mm and looks affordable. At the point "
+              "where the work actually happens it costs 385 mm, and 11 of 12 "
+              "direction walks are stopped by the wearer. Measuring from the "
+              "wrong start point is what hid a factor of seven.",
+              "recordings/baselines/orientation_cost.json, "
+              "orientation_cost_what_binds.json", kicker="workspace · sized")
+
+    fig_slide("The wearer's posture is part of the model",
+              "res_wearer_posture.png",
+              "Innermost usable column and home clearance for the five "
+              "postures. With the wearer's arms deleted entirely the centre "
+              "is STILL shut, so what closes it is the torso. Two postures — "
+              "arms clasped behind the back, arms held out to the sides — "
+              "put the wearer's own limbs inside the 150 mm floor at the "
+              "HOME pose, which is why a wearer is never asked to adopt "
+              "them.",
+              "recordings/baselines/centre_vs_wearer_posture.json "
+              "(2026-08-15)", kicker="workspace · safety")
+
+    fig_slide("A negative result, drawn as one",
+              "res_centre_on_surface.png",
+              "1 680 configurations of table height, table distance, object "
+              "column and overhang, both arms, objects RESTING on the "
+              "surface, 3 583 IK calls. Twenty-two cells pass a single IK "
+              "call; two survive N=10 over the whole path. Not one is "
+              "anywhere near the centre, and every survivor needs the object "
+              "at the very front edge, because the pinned wrist arrives from "
+              "below.",
+              "recordings/baselines/centre_on_surface.json (2026-08-15)",
+              kicker="workspace")
 
     sl = new("What binds the workspace", "workspace")
     table(sl, ["direction", "what limits it", "measured"], [
@@ -1056,32 +1601,24 @@ def build_deck():
                   labels=["mount position sweep",
                           "the lateral constraint"])
 
-    sl = new("The error budget, term by term", "workspace · budget")
-    table(sl, ["term", "mm", "systematic", "note"], [
-        ("terminal joint error, uncompensated", "7.24", "yes",
-         "0.305° per joint on 36 real runs"),
-        ("  the same, overshoot switched on", "1.88", "yes",
-         "modelled, held out on an unseen axis — UNTRIED on hardware"),
-        ("shell bias, before the plane", "10.50", "yes",
-         "the object's bottom was unknown"),
-        ("  the same, with the support plane", "0.00", "yes",
-         "the object RESTS on the plane, so its bottom is known"),
-        ("depth noise at 0.4–0.8 m", "2.00", "no", "RealSense D4xx, "
-         "subpixel-limited"),
-        ("IK solve residual", "0.20", "no", "arm_ik reports its achieved "
-         "residual; a refusal is searched"),
-        ("declared vs measured pad offset", "0.05", "yes",
-         "derived from the FK measurement since 2026-08-23"),
-        ("camera_link vs the physical module", "UNMEASURED", "yes",
-         "the largest remaining unknown — no CAD of the gripper here"),
-    ], widths=[4.3, 1.35, 1.5, 4.96], size=10, row_h=0.44,
-        colours={(7, 1): WARN, (7, 3): WARN, (1, 3): WARN})
-    caption(sl, "RSS 18.64 → 12.91 mm, worst case 33.39 → 19.99 mm — inside "
-                "the 30 mm capture gate for the first time. The pad row is "
-                "COMPUTED from the constants, so reverting the derivation "
-                "makes the budget say so.",
-            "recordings/baselines/control_budget.json; "
-            "scripts/measure_control_budget.py", top=BODY_BOT + 0.30)
+    two_fig_slide("Two arms that barely share a workspace, and cannot mirror",
+                  "res_mount_overlap_sweep.png", "res_home_mirror_residual.png",
+                  "The best mount anywhere in a 108-configuration sweep gives "
+                  "the two arms 29 shared cells. And they cannot be made "
+                  "symmetric: the mounts' base axes mirror exactly but differ "
+                  "by 168° of roll, so two identical arms on mirrored mounts "
+                  "cannot mirror. The control matters — reflecting the LEFT "
+                  "arm against ITSELF gives 1.24 m, so a small residual is a "
+                  "measurement and not the instrument agreeing with itself.",
+                  "recordings/baselines/mount_overlap_sweep.json, "
+                  "home_render.json", kicker="workspace",
+                  labels=["cells both arms reach, across the sweep",
+                          "per-link mirror residual at home"])
+
+    # The budget had a slide here as a TABLE and another in PART 4 as a
+    # graph, both from control_budget.json. One measurement gets one slide;
+    # the graph keeps it because it separates systematic from random, which
+    # is the decision the table only implied.
 
     # ============================================ PART 6 — method and limits
     section("6", "Method, limits and next steps",

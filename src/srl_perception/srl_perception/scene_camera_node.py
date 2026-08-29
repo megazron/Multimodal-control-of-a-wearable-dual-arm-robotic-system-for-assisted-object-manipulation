@@ -140,6 +140,15 @@ class SceneCamera(Node):
             if not cap.isOpened():
                 cap.release()
                 continue
+            # MJPG IS MANDATORY OVER USBIP, not a preference, and this
+            # line was missing. The default uncompressed YUYV negotiates
+            # happily and then delivers NOTHING: the device opens, every
+            # call succeeds, and read() returns False for ever. Measured on
+            # this rig (srl_cameras.py): MJPG 640x480 -> 24.9 fps, YUYV ->
+            # no frames at all. Without it the loop below rejected a WORKING
+            # camera and blamed "an IR or depth node", which sent the reader
+            # to the wrong device entirely.
+            cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
             cap.set(cv2.CAP_PROP_FRAME_WIDTH,
                     int(self.get_parameter("width").value))
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT,
@@ -179,6 +188,23 @@ class SceneCamera(Node):
                         "scene camera delivered no frame (%d in a row). "
                         "NOTHING is being published -- the last picture is "
                         "not being re-sent." % self.n_fail)
+                # RE-PROBE, DO NOT SIT THERE FAILING FOR EVER.
+                #
+                # This used to `return` on every failed read and never try
+                # again, so a camera that went away was gone until somebody
+                # noticed and restarted the node. Under WSL that is the
+                # NORMAL case, not an edge case: the usbipd service drops
+                # devices on its own, and a re-attach can hand the SAME
+                # camera back as a different /dev/videoN. The node was still
+                # holding the old handle, reading nothing, and reporting
+                # "open on /dev/video0" while /dev/video0 no longer existed.
+                #
+                # `_open()` re-runs the whole probe -- candidates, MJPG, and
+                # the read test -- so recovery does not assume the number is
+                # unchanged. Attempted on a back-off rather than every tick,
+                # because re-opening a V4L2 device at 30 Hz is its own way of
+                # keeping a camera unusable.
+                self._maybe_reopen()
                 return
         if frame is None:
             return
@@ -196,6 +222,40 @@ class SceneCamera(Node):
         m.data = frame.tobytes()
         self.pub.publish(m)
         self.info_pub.publish(self._info(stamp, frame.shape))
+
+    #: Consecutive failed reads before the first re-probe. At the 30 Hz
+    #: tick this is about a second -- long enough not to fire on a single
+    #: dropped frame, short enough that a re-attach is picked up quickly.
+    REOPEN_AFTER_FAILURES = 30
+    #: Seconds between re-probe attempts once it is failing.
+    REOPEN_EVERY_S = 2.0
+
+    def _maybe_reopen(self):
+        """Re-run the probe, on a back-off, while the camera is not reading."""
+        if self.n_fail < self.REOPEN_AFTER_FAILURES:
+            return
+        now = time.monotonic()
+        if now - getattr(self, "_last_reopen", 0.0) < self.REOPEN_EVERY_S:
+            return
+        self._last_reopen = now
+        old_dev = getattr(self, "dev", None)
+        try:
+            if self.cap is not None:
+                self.cap.release()
+        except Exception:                                     # noqa: BLE001
+            pass
+        self.cap = None
+        self.dev = None
+        try:
+            self._open()
+        except Exception as e:                                # noqa: BLE001
+            self.reason = "re-probe failed: %s" % e
+            return
+        if self.cap is not None:
+            self.n_fail = 0
+            self.get_logger().info(
+                "scene camera RECOVERED: %s (was %s)"
+                % (self.reason, old_dev or "not open"))
 
     def _info(self, stamp, shape):
         ci = CameraInfo()
@@ -241,6 +301,11 @@ class SceneCamera(Node):
             reason=self.reason,
             frames=self.n_frames,
             consecutive_failures=self.n_fail,
+            # WHETHER IT IS TRYING TO COME BACK. A consumer
+            # must be able to tell 'gone for ever' from
+            # 'reconnecting', because they need different
+            # reactions from the operator.
+            reprobing=bool(self.n_fail >= self.REOPEN_AFTER_FAILURES),
             age_s=None if age is None else round(age, 3),
             calibrated=self.K is not None,
             calibration=self.calib_src,

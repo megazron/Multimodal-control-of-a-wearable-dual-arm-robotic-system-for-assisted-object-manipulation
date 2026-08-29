@@ -3383,8 +3383,33 @@ class Gui(QMainWindow):
                 pass
             self._start_record_all(label=lbl)
 
+    def _rec_pose_refresh(self, info):
+        """The POSE panel's copy of the recording state."""
+        if not hasattr(self, "rec_pose_btn"):
+            return
+        if info:
+            secs = int(time.time() - float(info.get("started", time.time())))
+            self.rec_pose_btn.setText("\u25a0  STOP RECORDING")
+            self.rec_pose_btn.setStyleSheet(
+                "background:%s; color:white; font-weight:bold" % C_BAD)
+            self.rec_pose_lbl.setText(
+                "RECORDING %s  --  %d:%02d"
+                % (os.path.basename(info.get("outdir", "?")),
+                   secs // 60, secs % 60))
+            self.rec_pose_lbl.setStyleSheet("color:%s" % C_BAD)
+        else:
+            self.rec_pose_btn.setText("\u25cf  RECORD EVERYTHING")
+            self.rec_pose_btn.setStyleSheet("")
+            self.rec_pose_lbl.setText("not recording")
+            self.rec_pose_lbl.setStyleSheet("color:%s" % C_MUTED)
+
     def _rec_all_refresh(self):
         info = self._record_all_live()
+        # THE SECOND BUTTON IS NOT A SECOND RECORDER. Both reach the same
+        # session marker, so both must show the same state -- a stopped
+        # button beside a running one is how an operator ends up believing
+        # nothing is being captured while it is.
+        self._rec_pose_refresh(info)
         if not hasattr(self, "rec_all_btn"):
             return
         if info:
@@ -4197,6 +4222,38 @@ class Gui(QMainWindow):
         self.pose_note.setWordWrap(True)
         self.pose_note.setStyleSheet("color:%s" % C_MUTED)
         v.addWidget(self.pose_note)
+
+        # ===================================================================
+        # RECORD EVERYTHING -- here, because every control mode passes here
+        # ===================================================================
+        # The copy in the DATA panel is tied to the experiment settings, which
+        # made it feel like a VR/trial control. Recording is not specific to a
+        # mode: master teleop, VR, shared autonomy and a bare hand-driven
+        # session all produce data worth keeping, and most of what an operator
+        # wants captured happens during set-up and free driving rather than
+        # inside a scripted trial. Both buttons drive the SAME recorder and
+        # the SAME live-session marker, so pressing either one stops the other
+        # -- there is one recording, not two.
+        self.rec_pose_btn = QPushButton("\u25cf  RECORD EVERYTHING")
+        self.rec_pose_btn.setFont(helvetica(11, True))
+        self.rec_pose_btn.setMinimumHeight(34)
+        self.rec_pose_btn.setToolTip(
+            "Captures the WHOLE session under any control mode: every ROS "
+            "topic via `ros2 bag record -a` (both wrist cameras, the scene "
+            "camera, detections, TF, joint states, master, VR, autonomy), a "
+            "uniform trail.csv, an events log with the clutch and its refusal "
+            "reasons, and BOTH real arms read straight off the Kortex API. "
+            "Graphs and a summary are written when you stop, and the summary "
+            "NAMES any channel that never published so a recording cannot "
+            "come out quietly empty.")
+        self.rec_pose_btn.clicked.connect(self.on_record_all_toggle)
+        self.buttons["record_everything_pose"] = self.rec_pose_btn
+        v.addWidget(self.rec_pose_btn)
+        self.rec_pose_lbl = QLabel("not recording")
+        self.rec_pose_lbl.setFont(helvetica(9))
+        self.rec_pose_lbl.setWordWrap(True)
+        self.rec_pose_lbl.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.rec_pose_lbl)
 
         # ------------------------------------------------- THE WHOLE JOB
         # The operator asked for the sequence as buttons: home, pick pose,
@@ -6941,14 +6998,37 @@ class Gui(QMainWindow):
             # operator debugging a node that cannot possibly work.
             import glob
             if not glob.glob("/dev/video*"):
-                msg = ("REFUSED: there are no /dev/video* devices at all. "
-                       "The camera is not attached to WSL. In an "
-                       "Administrator PowerShell: usbipd attach --wsl "
-                       "--busid <id>  (detach first if it says already "
-                       "attached).")
-                self.log(msg, bad=True)
-                self.scene_cam_note.setText(msg)
-                return
+                # REPAIR IT, DO NOT JUST COMPLAIN. attach and detach need NO
+                # administrator rights -- measured 2026-08-29, usbipd.exe runs
+                # straight from WSL -- so the window can fix this itself
+                # instead of handing the operator a command to type. The stale
+                # case matters most: after the usbipd service restarts,
+                # Windows still believes the device is attached and a plain
+                # `attach` REFUSES, so the repair has to detach first. That is
+                # what usb_cameras.py --fix does.
+                self.scene_cam_note.setText(
+                    "no /dev/video* -- attaching the cameras from Windows...")
+                self.log("scene camera: no /dev/video*, running "
+                         "usb_cameras.py --fix")
+                try:
+                    r = subprocess.run(
+                        [sys.executable,
+                         os.path.join(_WS, "scripts", "usb_cameras.py"),
+                         "--fix"],
+                        capture_output=True, text=True, timeout=120)
+                    for ln in (r.stdout or "").strip().splitlines():
+                        self.log("  %s" % ln.strip())
+                except Exception as e:                        # noqa: BLE001
+                    self.log("usb_cameras.py failed: %r" % e, bad=True)
+                if not glob.glob("/dev/video*"):
+                    msg = ("STILL no /dev/video*. If usbipd says its service "
+                           "is stopped, that needs ONE administrator command "
+                           "and it also explains a missing master arm: "
+                           "Start-Service usbipd")
+                    self.log(msg, bad=True)
+                    self.scene_cam_note.setText(msg)
+                    return
+                self.log("cameras attached -- starting the scene camera")
             self._run_raw("scene_camera_node",
                           ["ros2", "run", "srl_perception", "scene_camera_node"])
             self.log("scene camera: START requested")

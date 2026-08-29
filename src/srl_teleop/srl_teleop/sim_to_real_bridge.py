@@ -446,7 +446,28 @@ class SimToRealBridge(Node):
             return float("inf"), None
         return self.clearance.clearance(pts, REAL_ROBOT_PAD_M)
 
+    def _refresh_tuning(self):
+        """Re-read the FEEL parameters every tick, so a slider is real.
+
+        `delay`, `max_vel` and `max_step` were read once in __init__, so
+        `ros2 param set` -- and therefore any control in the operations
+        window -- changed a number nobody looked at again. That is the same
+        "feature present but does nothing" shape as the real-arm gate, and
+        it would have made a smoothness panel a panel of decorations.
+
+        `lag_trip` is DELIBERATELY NOT HERE. It is the safety trip, not a
+        feel knob, and a guard that can be widened from a slider while the
+        arm is moving is not a guard. It stays a launch parameter.
+        """
+        try:
+            self.delay = float(self.get_parameter("preview_delay_s").value)
+            self.max_vel = float(self.get_parameter("max_vel_rad_s").value)
+            self.max_step = float(self.get_parameter("max_step_rad").value)
+        except Exception:                                     # noqa: BLE001
+            pass
+
     def tick(self):
+        self._refresh_tuning()
         if not self.enabled:
             return
         if self.estopped:

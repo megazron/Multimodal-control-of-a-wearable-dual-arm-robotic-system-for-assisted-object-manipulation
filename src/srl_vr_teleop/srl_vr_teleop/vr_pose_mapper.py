@@ -296,6 +296,7 @@ class VrPoseMapper(Node):
         self.create_service(Trigger, '/vr/reset', self._srv_reset)
         self.create_subscription(Empty, '/vr/reset_request',
                                  lambda _m: self.reset('/vr/reset_request'), 10)
+        self.add_on_set_parameters_callback(self._on_param)
         self.create_timer(1.0 / float(self.get_parameter('rate_hz').value), self._tick)
         # A HEARTBEAT WHILE DISENGAGED, at 2 Hz.
         #
@@ -315,6 +316,46 @@ class VrPoseMapper(Node):
 
     # --------------------------------------------------------------- reset
     # ----------------------------------------------------------- smoothing
+    #: Parameters whose new value only reaches the operator through a REBUILT
+    #: filter. `_make_pfilt` / `_make_qfilt` read them when they construct,
+    #: and nothing constructs again on its own, so a `ros2 param set` -- or a
+    #: slider in the operations window -- changed a number that the running
+    #: filter had already copied. Dropping the filters makes the next sample
+    #: rebuild them, which is the same path a re-grip takes.
+    SMOOTHING_PARAMS = (
+        'smoothing', 'ema_alpha', 'min_cutoff_hz', 'beta', 'd_cutoff_hz',
+        'smooth_orientation', 'rot_min_cutoff_hz', 'rot_beta',
+        'rot_d_cutoff_hz')
+
+    def _on_param(self, params):
+        """Live-tune the smoothing law, and SAY the filter was rebuilt.
+
+        The filters carry state -- a 1-Euro filter's whole job is to remember
+        the last sample and its derivative -- so a change takes effect on the
+        next sample rather than instantly, and the first sample after it is
+        unsmoothed. That is a re-grip's worth of transient, which is why this
+        drops the filter rather than mutating one in flight: a filter whose
+        cutoff changes between its own samples has no defined behaviour.
+        """
+        from rcl_interfaces.msg import SetParametersResult
+        touched = [p.name for p in params if p.name in self.SMOOTHING_PARAMS]
+        if touched and hasattr(self, 'pfilt'):
+            # EXACTLY WHAT `reset` DOES, and for the same reason. `pfilt` and
+            # `qfilt` are the filter OBJECTS and are rebuilt from the
+            # parameters; `filt` is the primed FLAG and is cleared so the next
+            # sample re-primes. Setting `qfilt` to None instead would not
+            # rebuild it -- None is a legitimate value there meaning
+            # "orientation smoothing off" -- so it would silently turn a
+            # smoother off while reporting that it had been retuned.
+            for h in HANDS:
+                self.pfilt[h] = self._make_pfilt()
+                self.qfilt[h] = self._make_qfilt()
+                self.filt[h] = None
+            self.get_logger().warn(
+                'smoothing changed live (%s) -- filters dropped; they rebuild '
+                'on the next controller sample' % ', '.join(touched))
+        return SetParametersResult(successful=True)
+
     def _make_pfilt(self):
         """The position smoother named by the `smoothing` parameter.
 

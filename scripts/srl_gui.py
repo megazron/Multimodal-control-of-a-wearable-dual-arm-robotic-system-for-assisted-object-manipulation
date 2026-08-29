@@ -1079,16 +1079,55 @@ class Bus(Node):
         if chosen.startswith("/real/"):
             self._start_hold(arm, pub, list(map(float, q)), secs)
         else:
-            self.release_hold(arm)
-            t = JointTrajectory()
-            t.joint_names = ["%s_joint_%d" % (arm, i) for i in range(1, 8)]
-            pt = JointTrajectoryPoint()
-            pt.positions = [float(x) for x in q]
-            pt.time_from_start = RosDuration(sec=int(secs), nanosec=0)
-            t.points = [pt]
-            for _ in range(3):
-                pub.publish(t)
+            # TAKE THE TOPIC FIRST, OR THIS DOES NOTHING.
+            #
+            # THE DEFECT, 2026-08-29: GO HOME and GO TO PICK POSE did nothing
+            # whenever teleoperation was live. Not dead -- OUTVOTED.
+            # `vr_pose_mapper` runs `hold_when_idle`, publishing the arm's own
+            # live pose at 20 Hz so a clutch release cannot let the dead-man
+            # latch; `ik_follower` turns that into trajectories on this very
+            # topic. Three publishes here against twenty a second there, and
+            # the target was gone inside 50 ms.
+            #
+            # `/pose_move_active` asks `ik_follower` to stand down for the
+            # duration. The MAPPER keeps publishing throughout, so the
+            # dead-man stays fed and the reason `hold_when_idle` exists is
+            # not undone -- only the arm-controller topic changes hands.
+            #
+            # And the target is HELD, not fired three times. A
+            # JointTrajectoryController holds its own goal, but the operator
+            # presses this to get somewhere, and the hold is what makes
+            # "arrived" a thing this window can wait for. It stops on
+            # arrival, exactly as the real path's hold does.
+            self.claim_arm_topic(True)
+            self._start_hold(arm, pub, list(map(float, q)), secs)
         return (True, chosen)
+
+    #: Longest a pose move may own the arm-controller topic before the claim
+    #: is released regardless. A claim that could stick would be a way to
+    #: disable teleoperation from a button that says GO HOME.
+    POSE_CLAIM_MAX_S = 25.0
+
+    def claim_arm_topic(self, on):
+        """Take, or release, the arm-controller topic for a pose move.
+
+        LATCHED, because `ik_follower` may not have been listening when the
+        claim went out -- it subscribes at start-up and a pose move can
+        happen before or after a follower restart. TRANSIENT_LOCAL means a
+        follower that joins late still learns the topic is claimed.
+        """
+        self.publish_once(Bool, "/pose_move_active", bool(on))
+        if on:
+            self._claim_t = time.time()
+            self.note("pose move: took /<arm>_arm_controller/joint_trajectory "
+                      "-- teleop commands are dropped until it releases")
+        else:
+            self.note("pose move: released the arm-controller topic")
+
+    def claim_expired(self):
+        """True when a claim has been held longer than it should be."""
+        t = getattr(self, "_claim_t", 0.0)
+        return bool(t) and (time.time() - t) > self.POSE_CLAIM_MAX_S
 
     @staticmethod
     def _cascade_running():
@@ -1155,6 +1194,25 @@ class Bus(Node):
             time.sleep(1.0 / self.HOLD_HZ)
             with self._hold_lock:
                 items = list(self._hold.items())
+            # HAND THE TOPIC BACK THE MOMENT THE MOVE IS OVER.
+            #
+            # Every hold ends -- on arrival, on the ceiling, or on an e-stop
+            # -- so "no holds left" is exactly "the pose move is finished".
+            # Releasing here rather than at the call site means a move that
+            # ends the way nobody planned still gives teleoperation back. A
+            # claim that could stick would be a way to disable the master arm
+            # from a button labelled GO HOME, which is a worse defect than
+            # the one this whole mechanism fixes.
+            if not items and getattr(self, "_claim_t", 0.0):
+                self._claim_t = 0.0
+                self.claim_arm_topic(False)
+            elif items and self.claim_expired():
+                self._claim_t = 0.0
+                self.claim_arm_topic(False)
+                self.note("pose move exceeded %.0f s -- the topic was handed "
+                          "back while the hold was still running. The arm may "
+                          "not have arrived."
+                          % self.POSE_CLAIM_MAX_S, bad=True)
             for arm, h in items:
                 est = self.snap.get("estop")
                 if est and bool(est[0]):
@@ -2028,6 +2086,7 @@ class Gui(QMainWindow):
         self.mode_btn["shared_vr"] = self.vr_shared
         vv.addWidget(self.vr_shared)
         vv.addWidget(self._vr_panel())
+        vv.addWidget(self._feel_panel())
         tabs.addTab(vt, "VR")
 
         # ------------------------------------------------- FULL AUTONOMY
@@ -2096,6 +2155,153 @@ class Gui(QMainWindow):
         self.flow_note.setStyleSheet("color:%s" % C_MUTED)
         v.addWidget(self.flow_note)
         return g
+
+    # ===================================================================
+    #  FEEL  --  the knobs that decide whether teleoperation is usable
+    # ===================================================================
+    #: (label, node, parameter, min, max, decimals, default, what it trades)
+    #
+    # EVERY ONE OF THESE IS RE-READ BY THE NODE THAT OWNS IT. That is not a
+    # detail, it is the whole reason this panel is allowed to exist: on
+    # 2026-08-29 the real-arm gate was a parameter with no consumer, and a
+    # row of sliders writing values nobody looks at again would be the same
+    # defect with a nicer face. `sim_to_real_bridge` re-reads its feel
+    # parameters every tick, `kortex_highlevel_bridge` has had a live
+    # parameter callback all along, and `vr_pose_mapper` rebuilds its
+    # filters when one of these changes.
+    #
+    # WHAT IS DELIBERATELY ABSENT: `lag_trip_rad`, `max_step_rad`,
+    # `enable_gap_rad`. Those are the guards, not the feel. A limit that can
+    # be widened from a slider while the arm is moving is not a limit, and
+    # the operator reaching for "smoother" must not be able to reach a
+    # safety trip by accident. They stay launch parameters.
+    FEEL = [
+        ("hand motion scale", "/vr_pose_mapper", "scale",
+         0.10, 2.00, 2, 1.00,
+         "How far the ROBOT moves per metre of YOUR hand. THE DEXTERITY "
+         "KNOB: 0.3 means a 30 cm reach becomes 9 cm of robot, so fine work "
+         "gets three times the hand travel to do it in. Takes effect on the "
+         "next re-grip."),
+        ("steadiness  (min cutoff Hz)", "/vr_pose_mapper", "min_cutoff_hz",
+         0.10, 5.00, 2, 0.50,
+         "The 1-Euro filter's floor. LOWER is steadier when your hand is "
+         "nearly still -- it is what kills tremor -- and adds lag. Raise it "
+         "if the arm feels like it is wading."),
+        ("follow-through  (beta)", "/vr_pose_mapper", "beta",
+         0.0, 300.0, 0, 100.0,
+         "How much the filter opens up when you move FAST. HIGHER means "
+         "less lag on quick moves while keeping the tremor rejection above. "
+         "This is the knob that buys you both."),
+        ("wrist steadiness", "/vr_pose_mapper", "rot_min_cutoff_hz",
+         0.10, 5.00, 2, 0.50,
+         "The same floor for ORIENTATION. Wrist jitter is the usual reason "
+         "a grasp will not line up; lower this before lowering the scale."),
+        ("arm lag behind you  (s)", "/sim_to_real_bridge_%s",
+         "preview_delay_s", 0.10, 2.00, 2, 1.00,
+         "How far the METAL runs behind the simulation. 1.0 s is a big part "
+         "of why teleoperation feels indirect -- you are steering something "
+         "a second in the past. Lower it for directness; the delay is what "
+         "gives the lag monitor time to catch a divergence before the arm "
+         "commits to it."),
+        ("arm speed cap  (rad/s)", "/sim_to_real_bridge_%s",
+         "max_vel_rad_s", 0.05, 0.80, 2, 0.40,
+         "The fastest the relay will replay a joint. Too low and the arm can "
+         "NEVER keep up, the error accumulates and the lag monitor trips on "
+         "a limit rather than a fault -- that is what 0.15 did on "
+         "2026-08-25. 0.40 is 29% of the joint limit."),
+        ("tracking stiffness  (kp)", "/kortex_highlevel_bridge_%s", "kp",
+         0.10, 1.50, 2, 0.50,
+         "How hard the arm closes the gap to its setpoint. Higher tracks "
+         "more tightly and, past this link's latency budget, oscillates. "
+         "Raise it in small steps and watch for buzz at the wrist."),
+    ]
+
+    def _feel_panel(self):
+        """SLIDERS FOR THE THINGS THAT DECIDE WHETHER THIS IS USABLE.
+
+        The operator's complaint is not a bug report, it is the real
+        measure: "teleoperation is hard, not smooth, not dexterous". Every
+        knob that answers that lived in a launch argument or a parameter
+        name, which means it did not exist for the person in the headset.
+
+        Each row says what it TRADES, not just what it is. A slider labelled
+        `min_cutoff_hz` is a slider nobody moves.
+        """
+        g = QGroupBox("FEEL  --  smoothness and dexterity, live")
+        g.setFont(helvetica(11, True))
+        v = QVBoxLayout(g)
+        note = QLabel(
+            "Live, while you drive. Every one of these is re-read by the "
+            "node that owns it -- nothing here is a number that gets "
+            "written and forgotten. The safety trips are NOT here.")
+        note.setWordWrap(True)
+        note.setFont(helvetica(9))
+        note.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(note)
+        self.feel_lbl = {}
+        for (label, node, prm, lo, hi, dec, dflt, tip) in self.FEEL:
+            row = QWidget()
+            rl = QVBoxLayout(row)
+            rl.setContentsMargins(0, 2, 0, 2)
+            rl.setSpacing(1)
+            cap = QLabel("%s   %.*f" % (label, dec, dflt))
+            cap.setFont(helvetica(9, True))
+            cap.setStyleSheet("color:%s" % C_MUTED)
+            cap.setToolTip(tip)
+            rl.addWidget(cap)
+            sld = QSlider(Qt.Horizontal)
+            steps = 200
+            sld.setMinimum(0)
+            sld.setMaximum(steps)
+            sld.setValue(int(round((dflt - lo) / (hi - lo) * steps)))
+            sld.setToolTip(tip)
+            sld.valueChanged.connect(
+                lambda n, _lo=lo, _hi=hi, _st=steps, _d=dec, _c=cap,
+                _l=label: _c.setText(
+                    "%s   %.*f" % (_l, _d, _lo + (_hi - _lo) * n / _st)))
+            # ON RELEASE, NOT ON EVERY PIXEL. `valueChanged` fires for every
+            # step of a drag; each one is a service call to a node driving a
+            # real arm, and a hundred of them in a second is a different
+            # experiment from the one the operator thinks they are running.
+            sld.sliderReleased.connect(
+                lambda _s=sld, _lo=lo, _hi=hi, _st=steps, _n=node, _p=prm,
+                _d=dec, _l=label: self._feel_apply(
+                    _n, _p, _lo + (_hi - _lo) * _s.value() / _st, _d, _l))
+            rl.addWidget(sld)
+            self.feel_lbl[prm] = cap
+            v.addWidget(row)
+        return g
+
+    def _feel_apply(self, node, prm, value, dec, label):
+        """Set one feel parameter, off the Qt thread, and say what happened.
+
+        Through `bus.set_param`, which checks the service is ready, reads the
+        value BACK and is loud when it did not take -- a slider that moved
+        while the arm did not is the failure this whole session was about.
+        """
+        # PER-ARM NODES GET IT ON EVERY ARM THAT IS UP. Hard-coding `_left`
+        # would tune one arm of a two-arm rig and leave the operator
+        # comparing a smoothed arm against an unsmoothed one without being
+        # told -- two conditions that look like one.
+        if "%s" in node:
+            arms = self._kortex_arms() if "kortex" in node \
+                else self._relay_arms()
+            targets = [node % a for a in arms] or []
+        else:
+            targets = [node]
+        if not targets:
+            self.log("%s: no node is running that owns %s -- UNCHANGED"
+                     % (label, prm), bad=True)
+            return
+
+        def go():
+            for t in targets:
+                self.bus.set_param(t, prm, float(value))
+        try:
+            self.bus.submit(go, label="%s -> %.*f (%s)"
+                            % (label, dec, value, ", ".join(targets)))
+        except Exception as e:                                # noqa: BLE001
+            self.log("feel: %s FAILED %r" % (label, e), bad=True)
 
     def _shared_toggle(self, tip, who):
         """The shared-autonomy option as a bordered, checkable button that

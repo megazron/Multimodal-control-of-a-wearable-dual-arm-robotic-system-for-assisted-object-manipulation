@@ -452,6 +452,30 @@ class IKFollowerNode(Node):
 
         self.pub = self.create_publisher(
             JointTrajectory, f"/{self.arm}_arm_controller/joint_trajectory", 10)
+
+        # STAND DOWN WHILE A POSE MOVE IS RUNNING.
+        #
+        # THE DEFECT, 2026-08-29: the operations window's GO HOME / GO TO
+        # PICK POSE did nothing whenever teleoperation was live, and looked
+        # like a dead button.
+        #
+        # It was not dead, it was OUTVOTED. `vr_pose_mapper` runs with
+        # `hold_when_idle` true -- it publishes the arm's OWN live pose at
+        # 20 Hz whenever it is not driving a hand, so that a clutch release
+        # cannot let /master_arm_pose_<arm> go stale and latch the dead-man's
+        # e-stop. This node turns that stream into trajectories. The pose
+        # button publishes its target THREE times; this node republishes
+        # "stay exactly where you are" TWENTY times a second, and the target
+        # is overwritten inside 50 ms.
+        #
+        # Two writers on one topic, and the fix is not to make the button
+        # shout louder -- that is a race, not a design. The mover asks this
+        # node to stand down for the duration, and it does. The mapper keeps
+        # publishing poses throughout, so the dead-man stays fed and the
+        # reason `hold_when_idle` exists is not undone.
+        self.pose_move_active = False
+        self.create_subscription(
+            Bool, "/pose_move_active", self._on_pose_move, 10)
         # CUMULATIVE guard/solver counters, published rather than logged, so
         # a recorder can attribute slews and rejections to a time window
         # without scraping [STATS]/[GUARD] text.
@@ -878,6 +902,11 @@ class IKFollowerNode(Node):
                 f"out) -- unwinding to {tgt:.2f} rad.")
 
         traj, total_time = self.build_unwind_trajectory(current, target)
+        if self.pose_move_active:
+            self.get_logger().warn(
+                "[UNWIND] deferred: a pose move owns the arm-controller "
+                "topic. It will unwind when that finishes.")
+            return
         self.pub.publish(traj)
         self.get_logger().warn(
             f"[UNWIND] {len(traj.points)} waypoints over {total_time:.1f}s at "
@@ -887,6 +916,19 @@ class IKFollowerNode(Node):
         # small settle margin.
         self.unwind_timer = self.create_timer(
             total_time + 1.0, self.finish_unwind)
+
+    def _on_pose_move(self, m):
+        """A pose move has taken, or released, the arm-controller topic."""
+        was = self.pose_move_active
+        self.pose_move_active = bool(m.data)
+        if self.pose_move_active and not was:
+            self.get_logger().warn(
+                "standing down: a pose move owns "
+                "/%s_arm_controller/joint_trajectory. Teleop commands are "
+                "DROPPED until it releases." % self.arm)
+        elif was and not self.pose_move_active:
+            self.get_logger().warn(
+                "pose move released the topic -- following the master again.")
 
     def build_unwind_trajectory(self, current, target):
         """Walk from current to target in small steps so the controller
@@ -1474,6 +1516,22 @@ class IKFollowerNode(Node):
         pt.positions = positions
         pt.time_from_start = _duration(time_from_start)
         traj.points = [pt]
+        if self.pose_move_active:
+            # A pose move owns the topic. Dropping the command is correct
+            # rather than queueing it: by the time the move finishes this
+            # target is stale, and the operator's hand has moved on.
+            #
+            # `_refuse()` FIRST, AND IT IS NOT BOOKKEEPING. The generator has
+            # already taken its step for this cycle, so it now believes it
+            # commanded a position that was never published -- and the arm is
+            # meanwhile being driven somewhere else entirely by the pose move.
+            # Resyncing to the arm's real state is what stops the first
+            # command after the release being computed from a pose the arm
+            # was never in. `test_every_refusal_after_the_step_resyncs_the
+            # _generator` holds this for every early return here, and it
+            # caught this one.
+            self._refuse()
+            return
         self.pub.publish(traj)
         self.redundancy_try = 0
 

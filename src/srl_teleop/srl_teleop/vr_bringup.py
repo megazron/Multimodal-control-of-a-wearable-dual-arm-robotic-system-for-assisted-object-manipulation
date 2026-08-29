@@ -66,6 +66,149 @@ PORT = int(os.environ.get("VR_PORT", "8765"))
 # runbook has carried since this was first diagnosed.
 SHM_SETTLE_S = 5.0
 
+# HOW LONG THE SIMULATION IS GIVEN, and how long after it first speaks before
+# it is believed. Two different numbers because they answer two different
+# questions.
+#
+# `/joint_states` is ADVERTISED early in the launch; the controllers,
+# `move_group` and RViz are still coming up behind it for tens of seconds.
+# The bring-up's own step waited for the topic and then moved on, and the
+# repair button did not wait at all -- it spawned the launch, returned
+# "press the button again when it settles", and the window re-ran the whole
+# sequence 400 ms later against a simulation that was ten seconds into a
+# minute-long start. The operator got "the simulation is not running" from a
+# simulation that was starting perfectly well, and RViz was still a grey
+# window when the verdict was printed.
+#
+# Worse than the wrong words: step 5 then found no `/joint_states` AND no
+# `move_group` process yet -- because `move_group` is late in the same launch
+# -- and SPAWNED A SECOND STACK. That is HARD CONSTRAINT 3 reached through
+# the repair button.
+SIM_WAIT_S = float(os.environ.get("SRL_VR_SIM_WAIT_S", "150"))
+SIM_SETTLE_S = float(os.environ.get("SRL_VR_SIM_SETTLE_S", "10"))
+# And how long RViz gets after that, which is NOT a gate: see
+# `_wait_for_rviz`.
+RVIZ_WAIT_S = float(os.environ.get("SRL_VR_RVIZ_WAIT_S", "60"))
+
+# WHETHER THE LAUNCH BRINGS ITS OWN RViz. The operations window EMBEDS one
+# and sets this false, because `use_rviz:=true` opened a SECOND top-level
+# RViz over the window -- the 2026-08-27 finding, which fixed every stack
+# spec the GUI launches and missed this one, since it is spawned from
+# `vr_bringup` and not from a spec. From a terminal the default stands.
+def _sim_rviz():
+    # READ AT CALL TIME, not at import. The window sets this when it opens,
+    # and it imports this module at start-up -- a module-level constant here
+    # would be read before the window had said anything.
+    return os.environ.get("SRL_VR_SIM_RVIZ", "true").lower() not in (
+        "0", "false", "no")
+
+
+def _master_present():
+    """Is there a Teensy on the bus for `master_pose_node` to open?
+
+    Globbed rather than remembered. The board arrives and leaves with a
+    `usbipd attach` and moves between /dev/ttyACM0 and ACM1 when it does, so
+    anything cached is wrong by the next session.
+    """
+    return bool(glob.glob("/dev/ttyACM*") or glob.glob("/dev/ttyUSB*"))
+
+
+def _sim_argv(w):
+    """The one command that starts the simulation. ONE place, because the
+    step and the repair must start the SAME thing.
+
+    AND IT LEAVES THE MASTER ARM OUT WHEN THERE IS NO TEENSY.
+
+    `master_pose_node` is `respawn=True`, deliberately: a board attached
+    after launch then connects on its own without restarting the stack. With
+    no board on the bus at all that becomes a process dying and respawning
+    every five seconds for ever. `gui_launch_specs` records what that cost on
+    2026-08-26 -- five live instances, load average 8-11, the controller
+    manager overrunning, every spawner timing out, `joint_state_broadcaster`
+    never coming up, `/joint_states` with no publisher -- and it added a
+    whole `sim_nomaster` spec to avoid it.
+
+    THIS PATH NEVER USED THAT SPEC. `START VR TELEOP` came through here and
+    started the master-ful stack, on a machine with no Teensy, every time. It
+    happened twice on 2026-08-29: the stack came up, ran, and died, and the
+    second time it took the operations window's own ROS context with it
+    because the window was the launch's parent. The operator's report was
+    "the real arm is not moving", four layers down.
+
+    The VR operator holds controllers; the master arm is not their input.
+    So when there is no board this asks for the stack without it, and says
+    which it chose rather than leaving that to a process listing.
+    """
+    argv = [os.path.join(w.ws, "scripts", "run_teleop.sh"), "gate:=false"]
+    if not _master_present():
+        argv.append("master:=false")
+    if not _sim_rviz():
+        argv.append("use_rviz:=false")
+    return argv
+
+# What a launch that is still coming up looks like in the process table,
+# BEFORE any of the nodes it starts exist to be found.
+SIM_LAUNCHER_RX = r"run_teleop\.sh|ros2 launch srl_teleop"
+
+
+def _wait_for_rviz(w, t0, wait_s=None):
+    """Give RViz the rest of its start, and never fail on it.
+
+    NOT A GATE. `use_rviz:=false` and a headless box are both legitimate, so
+    a missing window must not stop the bring-up -- but returning the instant
+    the joints report leaves the operator staring at a grey COMMANDED panel
+    while the window says the simulation is running, which is what "it does
+    not give RViz enough time" means. So: wait for the real window, up to a
+    bound, and SAY which of the two happened either way.
+    """
+    wait_s = RVIZ_WAIT_S if wait_s is None else wait_s
+    end = w.now() + wait_s
+    while w.now() < end:
+        if w.rviz_windows():
+            return ", RViz drawn at %.0f s" % (w.now() - t0)
+        w.sleep(3.0)
+    return (", no RViz window after %.0f s (fine if it was started without "
+            "one)" % wait_s)
+
+
+def _wait_for_sim(w, wait_s=None, settle_s=None):
+    """Wait until the simulation is REPORTING, not merely listed.
+
+    Returns `(ok, seconds, detail)`.
+
+    LISTED IS NOT REPORTING, and reporting is not LOADED. The topic exists
+    the moment the launch advertises it, the first joint update arrives
+    before the controllers have all spawned, and RViz finishes last. So this
+    waits for the topic, then gives the rest of the launch `settle_s`, and
+    only then counts arrivals -- and a count of zero after that keeps
+    waiting rather than returning a verdict on a stack that is mid-start.
+    """
+    wait_s = SIM_WAIT_S if wait_s is None else wait_s
+    settle_s = SIM_SETTLE_S if settle_s is None else settle_s
+    t0 = w.now()
+    listed_at = None
+    while w.now() - t0 < wait_s:
+        w.sleep(3.0)
+        topics = w.topics() or []
+        if "/joint_states" not in topics:
+            continue
+        if listed_at is None:
+            listed_at = w.now()
+        if w.now() - listed_at < settle_s:
+            continue
+        beats = w.joint_beats(2.0)
+        if beats:
+            rviz = _wait_for_rviz(w, t0)
+            return True, w.now() - t0, (
+                "reporting after %.0f s, %d joint updates in 2 s%s"
+                % (w.now() - t0, beats, rviz))
+    if listed_at is None:
+        return False, w.now() - t0, (
+            "no /joint_states after %.0f s" % (w.now() - t0))
+    return False, w.now() - t0, (
+        "/joint_states listed after %.0f s but still nothing arriving on it "
+        "at %.0f s" % (listed_at - t0, w.now() - t0))
+
 
 class Outcome:
     """What one step did, and what to do if it did not."""
@@ -490,6 +633,20 @@ class World:
         """
         return self._count('/vr/observer_estop_present', window_s)
 
+    def rviz_windows(self):
+        """How many REAL RViz windows are drawn. See `rviz_windows.py`.
+
+        The process table cannot answer "has RViz loaded" -- the process is
+        there from the first second of a start and the window it draws in is
+        built last, which on WSLg is tens of seconds later. That gap is what
+        the operator saw: a grey panel beside a verdict.
+        """
+        try:
+            from srl_teleop.rviz_windows import real_windows
+            return len(real_windows())
+        except Exception:                                     # noqa: BLE001
+            return 0
+
     def now(self):
         """THE CLOCK LIVES HERE TOO.
 
@@ -709,7 +866,7 @@ def step_no_second_stack(w):
                    detail="no duplicates, no stray robot description")
 
 
-def step_sim_stack(w, wait_s=90.0):
+def step_sim_stack(w, wait_s=None):
     """5. The simulation is up. START IT if it is not.
 
     THE ORDER MATTERS AND IT IS NOT ARBITRARY. `vr_pose_mapper` refuses to
@@ -718,6 +875,7 @@ def step_sim_stack(w, wait_s=90.0):
     nothing anywhere says why. So the simulation goes up first and this step
     WAITS for it rather than assuming.
     """
+    wait_s = SIM_WAIT_S if wait_s is None else wait_s
     topics = w.topics()
     if topics is None:
         return Outcome(UNKNOWN, "Could not tell whether the simulation is "
@@ -740,6 +898,24 @@ def step_sim_stack(w, wait_s=90.0):
                                "the robot is.",
                            detail="%d topics, %d joint updates in 2 s"
                                   % (len(topics), beats))
+        # SILENT, OR STILL COMING UP. The topic is advertised early in the
+        # launch and the first joint update is not; between the two this
+        # step used to declare the simulation broken and offer to restart
+        # the very thing that was starting. If a launch is in the process
+        # table, wait for it before saying anything.
+        if w.procs(SIM_LAUNCHER_RX):
+            ok, _secs, why = _wait_for_sim(w, wait_s)
+            if ok:
+                return Outcome(OK, "The simulation finished starting and is "
+                                   "running.", detail=why)
+            return Outcome(
+                FAILED,
+                "The simulation has been starting for %.0f s and is still "
+                "not saying where the robot is." % wait_s,
+                detail=why,
+                fix_label="Show me why", fix="show_sim_log",
+                fix_note="opens what the simulation printed while it was "
+                         "starting")
         return Outcome(
             FAILED,
             "The simulation is running but it is not saying where the robot "
@@ -747,7 +923,8 @@ def step_sim_stack(w, wait_s=90.0):
             "and the panel will show every joint as a dash.",
             detail="/joint_states listed, 0 messages in 2 s",
             fix_label="Restart the simulation", fix="restart_sim",
-            fix_note="stops it and starts it again; takes about a minute")
+            fix_note="stops it and starts it again; it takes about two "
+                     "minutes and this window waits for it")
 
     # RUNNING, BUT INVISIBLE. Before concluding the simulation is not there,
     # ask the process table -- the two are different problems with different
@@ -765,23 +942,33 @@ def step_sim_stack(w, wait_s=90.0):
                    % len(procs),
             fix_label="Restart that helper", fix="reset_daemon",
             fix_note="a few seconds, and it disturbs nothing that is running")
-    w.spawn("simulation",
-            [os.path.join(w.ws, "scripts", "run_teleop.sh"), "gate:=false"],
-            log=os.path.join(_scratch(w), "vr_bringup_sim.log"))
-    t0 = w.now()
-    while w.now() - t0 < wait_s:
-        w.sleep(3.0)
-        t = w.topics() or []
-        if "/joint_states" in t:
-            return Outcome(OK, "The simulation started and is running.",
-                           detail="up after %.0f s" % (w.now() - t0))
+    # A LAUNCH ALREADY COMING UP IS NOT AN ABSENT ONE. `move_group` is late
+    # in `run_teleop.sh`, so for the first tens of seconds of a start there
+    # is no `move_group` to find and no `/joint_states` to list -- which is
+    # byte for byte what a machine with no simulation looks like. Spawning
+    # here put a SECOND stack on top of a starting one, which is HARD
+    # CONSTRAINT 3. Ask for the launcher itself, and wait for it instead.
+    starting = w.procs(SIM_LAUNCHER_RX)
+    if starting:
+        w.note("a simulation launch is already coming up (%s); waiting for "
+               "it rather than starting a second one"
+               % ", ".join(str(p) for p, _ in starting))
+    else:
+        w.spawn("simulation", _sim_argv(w),
+                log=os.path.join(_scratch(w), "vr_bringup_sim.log"))
+    ok, _secs, why = _wait_for_sim(w, wait_s)
+    if ok:
+        return Outcome(
+            OK,
+            "The simulation %s and is running."
+            % ("finished starting" if starting else "started"),
+            detail=why)
     if w.procs(r"lib/moveit_ros_move_group/move_group"):
         return Outcome(
             FAILED,
             "The simulation started but this window still cannot see it. The "
             "answer is stale rather than wrong.",
-            detail="processes present, /joint_states not listed after %.0f s"
-                   % wait_s,
+            detail="processes present, %s" % why,
             fix_label="Restart the helper that lists what is running",
             fix="reset_daemon")
     return Outcome(
@@ -789,8 +976,7 @@ def step_sim_stack(w, wait_s=90.0):
         "The simulation did not finish starting. Nothing else can go up until "
         "it does, because the controller mapping needs to know where the "
         "robot is.",
-        detail="no /joint_states and no simulation process after %.0f s"
-               % wait_s,
+        detail="no simulation process; %s" % why,
         fix_label="Show me why", fix="show_sim_log",
         fix_note="opens what the simulation printed while it was starting")
 
@@ -881,7 +1067,13 @@ def step_bridge(w, wait_s=25.0):
         "-p", "port:=%d" % w.port, "-p", "certfile:=%s" % crt,
         "-p", "keyfile:=%s" % key,
         "-p", "web_dir:=%s" % os.path.join(
-            w.ws, "src/srl_vr_teleop/web")],
+            w.ws, "src/srl_vr_teleop/web"),
+        # The link's own measured behaviour: 81 Hz median with ONE stall of
+        # 1.14 s (VR_REAL_ARM_AS_RUN.md). The default 0.2 s watchdog turned
+        # that stall into a dropped clutch mid-motion. Same default as
+        # start_vr_wifi.sh, same env override.
+        "-p", "stale_timeout_s:=%s" % os.environ.get(
+            "VR_LINK_TIMEOUT", "0.6")],
         log=os.path.join(_scratch(w), "vr_bringup_bridge.log"))
     t0 = w.now()
     while w.now() - t0 < wait_s:
@@ -934,7 +1126,26 @@ def step_mapper(w, wait_s=20.0):
                       ("gripper", "vr_gripper_node"),
                       ("safety", "vr_safety_node"),
                       ("feedback", "vr_feedback_node")):
-        w.spawn(name, ["ros2", "run", "srl_vr_teleop", exe],
+        argv = ["ros2", "run", "srl_vr_teleop", exe]
+        if exe == "vr_safety_node":
+            # THE SAME GATES AS start_vr_wifi.sh, FROM THE SAME ENVIRONMENT.
+            # This spawn used to be bare, so the one-button path always ran
+            # the shut defaults -- the GUI's "working alone" and "headset is
+            # worn" ticks reached the script route and silently not this
+            # one, which is two behaviours behind one button.
+            e = os.environ
+            argv += ["--ros-args",
+                     "-p", "require_observer_estop:=%s"
+                     % e.get("VR_REQUIRE_OBSERVER", "true"),
+                     "-p", "allow_real_arm:=%s"
+                     % e.get("VR_ALLOW_REAL_ARM", "false"),
+                     "-p", "allow_real_arm_without_observer:=%s"
+                     % e.get("VR_ALLOW_REAL_NO_OBSERVER", "false"),
+                     "-p", "watch_tracking_reference:=%s"
+                     % e.get("VR_WATCH_REFERENCE", "true"),
+                     "-p", "tracking_timeout_s:=%s"
+                     % e.get("VR_TRACKING_TIMEOUT", "0.6")]
+        w.spawn(name, argv,
                 log=os.path.join(_scratch(w), "vr_bringup_%s.log" % name))
     t0 = w.now()
     want = "/vr/mapper_right"
@@ -1399,12 +1610,24 @@ def fix_restart_sim(w):
         except Exception:                                     # noqa: BLE001
             pass
     w.sleep(5.0)
-    w.spawn("simulation",
-            [os.path.join(w.ws, "scripts", "run_teleop.sh"), "gate:=false"],
+    w.spawn("simulation", _sim_argv(w),
             log=os.path.join(_scratch(w), "vr_bringup_sim.log"))
-    return True, ("Stopped %d part(s) and started the simulation again. It "
-                  "takes about a minute; press the button again when it "
-                  "settles." % stopped)
+    # AND WAIT FOR IT. This used to return the moment the launch was
+    # spawned, with "press the button again when it settles" -- and the
+    # window did not wait for the operator, it re-ran the whole sequence
+    # 400 ms later. So the repair reported success, the sequence reported
+    # the simulation absent, and RViz was still a grey window while both
+    # sentences were on screen. A repair that returns before it has
+    # repaired anything is the "feature present but does nothing" row of
+    # CLAUDE.md, in the button whose whole job is to fix this.
+    ok, secs, why = _wait_for_sim(w)
+    if ok:
+        return True, ("Stopped %d part(s), started the simulation again and "
+                      "waited for it: %s." % (stopped, why))
+    return False, ("Stopped %d part(s) and started the simulation again, but "
+                   "after %.0f s it is still not saying where the robot is "
+                   "(%s). Open what it printed while it was starting."
+                   % (stopped, secs, why))
 
 
 def fix_cancel_bypass(w):

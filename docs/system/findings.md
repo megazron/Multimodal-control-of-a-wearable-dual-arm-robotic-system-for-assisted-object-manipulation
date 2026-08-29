@@ -7037,3 +7037,446 @@ dropping it takes its preposition with it.
 * **There is no audio device.** `/dev/snd` holds only `timer`. Piper can
   synthesise the narration to a file — which is how it would reach a clip —
   and nothing can be played aloud on this machine.
+
+---
+
+## 2026-08-25 — the cube pick, and seven instruments that lied
+
+First sustained attempt to drive a real arm from the gripper camera. The
+grasp geometry was never the hard part; every hour went to instruments that
+reported confident wrong answers. Full procedure: `docs/PICK_THE_CUBE.md`.
+
+**The finding that governs everything else: the gripper camera's extrinsic is
+wrong by ~8.5 deg and it rotates WITH THE WRIST.** The table cannot move, so
+the table normal measured from any arm pose must be the same vector. Measured
+from four poses: 9.74, 15.42, 16.26, 18.14 deg off world vertical — a worst
+pairwise disagreement of **8.45 deg**, i.e. 34 mm of position error at 0.23 m
+and 59 mm at 0.40 m. No open-loop grasp planned through that transform can
+land inside the 30 mm capture gate, and none did. `camera_link` vs the
+physical module was already CLAUDE.md's largest unmeasured unknown; this
+sizes it. The pick now servos closed-loop in the camera's own frame instead.
+
+**The depth camera itself is excellent** and was never the problem: table
+plane 94.8% inliers at **0.46 mm RMS**, a real 40 mm cube measured at
+39.2 x 38.9 x 40.9 mm. Only the transform out of the camera is bad.
+
+**Instruments that produced a false pass:**
+
+| instrument | what it claimed | ground truth |
+| --- | --- | --- |
+| `ClearanceModel` via link origins | **367.0 mm** clearance | the arm was physically against the mannequin — and it returns 367.0 for a clear pose too. A constant dressed as a measurement. HARD CONSTRAINT 11 is **not enforced in code**. |
+| `/real_status_*` | pose matched the saved file to 0.144 deg | published by a leftover `real_homing_node` republishing a FROZEN snapshot with fresh stamps after its input died. Key on DISTINCT SOURCE STAMPS. |
+| `in_contact` / `force_n` | 25–41 N, "in contact" | no free-space baseline exists, so it cannot separate contact from gravity and payload |
+| fixed 2.5 s settle | "did not arrive, 7.2 deg out" | the bridge closes error at kp=0.5 (~2 s time constant); it was still converging |
+| joint error by subtraction | "STALLED at 360.076 deg" | joints 3/5/7 are CONTINUOUS: −179.05 and +181.02 are the SAME pose. The run had ARRIVED. |
+| `self.q` in a publish loop | "moved 0.032 deg — arm not responding" | `spin_once(timeout_sec=0.0)` starves the subscription; telemetry showed the arm had moved ~7 deg |
+| table-plane-only path check | every leg cleared by >100 mm | it checked the hand against the TABLE. The 94 deg transit swung the arm into the wearer. |
+
+**Two transport traps.** `RMW_IMPLEMENTATION` unset makes rclpy discover
+NOTHING while the graph is plainly there. And domain 0's FastDDS shared memory
+is polluted such that no NEW process can join — minimal pub/sub: 0 of 3
+messages on domain 0, 3 of 3 on domain 7. Existing nodes keep working, which
+is exactly what makes it hard to see. The arms now run on ROS_DOMAIN_ID=7.
+
+**The vendored `kinova_vision` launch had two defects.** Its static TF puts
+`camera_link->depth` at (-0.0195,-0.005,0) against srl_description's
+(-0.0275,-0.0096,0) — 8.0/4.6 mm apart, two writers on one static edge — and
+both arms publish the SAME unprefixed `camera_link`, so left and right collide
+in one global tree. A `launch_tf` argument (default true, behaviour unchanged)
+now lets the frames be remapped onto the URDF's.
+
+**`loadCameraInfo()` declares its parameters unconditionally** and runs again
+on reconnect, so all four camera nodes abort with
+`ParameterAlreadyDeclaredException` the moment a stream recovers.
+
+**The pad midpoint moves when the hand closes** — 0.09833 m open, 0.10976 m on
+a 40 mm cube. Solving a grasp open and then closing drives the pads 11.43 mm
+further along the tool axis, into the table. Independently reproduces the
+figure CLAUDE.md records for T1.
+
+**Still open:** the wearer check above; a real hand-eye calibration for the
+gripper camera; and the left arm dropped its Kortex session three times with
+`Broken pipe` while still pingable, then both arms left the network entirely.
+
+---
+
+## 2026-08-27 — the VR regression was four mechanisms, none of them the mapper
+
+VR teleoperation ran smoothly on 2026-08-26 from 11:00 to 14:00 (the 1-Euro
+smoothing work, finished 11:40, was IN that state). The operator's report the
+next morning was "the RViz follower was not properly working on the real
+arms" and "the overnight session messed everything up". The triage was done
+from the session transcripts, not the diff: the uncommitted tree mixes the
+working 11:00 state with the overnight edits, and only the transcripts say
+which edit landed when. Overnight changes to the VR chain itself turned out
+to be three, all defensible; the regression was a stack of standing
+mechanisms that the first real-arm-facing session exposed at once:
+
+1. **The domain split.** The arms and their bridges run on ROS_DOMAIN_ID=7
+   since 2026-08-25; `start_vr_wifi.sh` never set a domain, so the whole VR
+   stack inherited the launching shell — domain 0 in practice. RViz follows
+   the hand; the metal hears nothing; no error anywhere, because DDS has no
+   way to say "wrong bus". It now sources `env.sh`, which joins the RUNNING
+   rig's domain.
+2. **Silence fed the dead-man.** `vr_pose_mapper` published only while the
+   clutch was engaged; on any real-arm launch `estop_node` latches after
+   0.5 s x 5 of `/master_arm_pose_*` staleness — including for an arm that
+   has NEVER published. Releasing the grip, any freeze, or one-handed
+   driving therefore ended in a LATCHED e-stop that outlived its cause and
+   needed `/estop_reset` from a terminal. The mapper now commands the arm's
+   OWN live pose while alive-but-not-driving: zero motion by construction, a
+   freeze still stops the arm, and the dead-man still catches what it exists
+   for — the process dying. `test_the_mapper_feeds_the_deadman.py`.
+3. **Two 0.2 s watchdogs against a link with a measured 1.14 s stall.**
+   The bridge's `stale_timeout_s` and the safety node's `tracking_timeout_s`
+   both defaulted 0.2; the as-run doc prescribed 0.6 for one of them and no
+   launch path passed either. Every wifi stall dropped the clutch
+   mid-motion for a reason invisible from inside a headset. Both are 0.6
+   now, in `start_vr_wifi.sh` AND the one-button bring-up.
+4. **The reference watch, armed on a worn head.** `watch_tracking_reference`
+   guards a headset standing on a shelf; worn, it freezes — stickily, only
+   `/vr/rebase_reference` clears it — on the first head turn. The env var
+   that could disable it was read and never set by anything. The GUI now has
+   "the headset is being worn", applied live and at launch; an "accept moved
+   reference" button (the service existed with NO control anywhere); and the
+   freeze REASON on `/vr/safety` is finally drawn in the window.
+
+Also found: the one-button `START VR TELEOP` spawned `vr_safety_node` BARE,
+so every GUI tick reached the script route and silently not the button —
+two behaviours behind one control. And `check_discovery` compared this
+window's env against STACK processes only, so the exact 2026-08-26 state
+(arm bridges up on 7, no sim stack, window on 0) was reported as "nothing
+else is running yet, this window's settings are right". The kortex bridges
+now count as something running.
+
+**The GUI had 68 launch buttons in one panel** — every task x 5 modes, 24
+of them saying "vr" somewhere — and the operator said so in plain words.
+It is now: the 8 mode buttons (renamed out of jargon), one "do" picker, one
+"how" picker in plain words, one RUN that greys with the reason BEFORE the
+press. The audit drives every (task, mode) pair through the real selectors:
+`verify_gui_buttons.py` 247 checks, 0 failed — and its one interim failure
+was itself the audit correctly catching that the new picker did not log its
+selection.
+
+**The unified vision layer** (same day): `scene_understanding_node` watches
+all four cameras — both wrist RGB-D, the RealSense, the USB scene camera —
+plane + objects per camera per cycle, per-camera health and NAMED refusals
+on `/perception/scene/objects`; `map_obstacles_node` is the seam that never
+existed from measured objects to MoveIt (`mapped_*`, add-or-grow only,
+removal only by explicit Trigger, wearer-volume overlap excluded). 29 new
+known-answer tests; srl_perception 287 passed. Buttons in Checks and fixes;
+health line in the vision panel. Note the baseline `world_map.json`'s two
+objects both land inside the wearer AABB and are excluded by name — the
+load service says "0 added, 2 excluded" rather than inventing obstacles.
+
+**Same day, second pass (operator's follow-up).** The RUN tab now opens on
+"DRIVE THE ARMS -- three clicks": pick how you drive (START VR / START
+MASTER / SHARED AUTONOMY over either input), OPEN THE SIM, DRIVE THE REAL
+ARMS -- every button delegating to the existing idempotent machinery
+(`on_vr_start`, `start_mode`, `_ensure_rviz`), no new path to the metal.
+Smoothing knobs live behind an "advanced" tick; the single-piece launchers
+are labelled Advanced. Shared autonomy is the DEFAULT mode in both the task
+runner and the experiments panel (default task moved m1 -> m0, because m1
+is locked to 06 and the old default pair would have opened on a refusal).
+`scripts/make_results.py` regenerates every figure the committed recordings
+support -- 10 built, 2 refused by name (prose-only numbers; no mcap lib) --
+into `recordings/analysis/` with per-figure provenance, wired to MAKE ALL
+GRAPHS in the experiments panel. The honest answer to "is VR the smoothest
+and most accurate mode": smoother than it was by 3.4x stillness / 2.4x lag
+(1-Euro vs the old EMA, method of test_vr_smoothing.py); accuracy is TIED
+100% / 0.0 mm across all five modes on the 2026-08-23 clip set, which
+PREDATES the smoothing; "smoothest MODE" needs the same protocol run under
+mode 01, which has never been measured. Audit 257/257; gate 1381 passed,
+0 new.
+
+**Third pass, same day (the operator's window spec, verbatim).** The RUN tab
+is now: the connection row on top; ONE "DRIVE" tab with exactly three
+sections -- MASTER, VR, FULL AUTONOMY -- shared autonomy a tick inside
+master and VR rather than a section; one START REAL ARMS under the tabs;
+START launches the simulation and everything the cascade will need, and
+opens RViz itself. The five-row OPERATE panel is gone (its invariants moved
+to the start_mode() call sites and the adoption test now parses those). The
+bottom-right divergence table shares its strip with an ALWAYS-ON scene
+camera view showing the vision layer's ANNOTATED frames -- boxes, labels,
+or the refusal burned into the banner -- and the gripper camera panels
+prefer the annotated streams while fresh (raw still feeds liveness).
+`scene_understanding_node` publishes /perception/scene/overlay/<camera> at
+its cycle rate, no-republish rule kept (293 perception tests).
+
+**And the master arm smooths like the VR arm now.** The 1-Euro moved to
+`srl_teleop/smoothing.py` (single source; vr_smoothing is a shim pinned by
+identity), applied per-arm to the master tip with the same live params, EMA
+kept for reproducing old recordings, filter reset at the clutch boundary.
+Measured through the shipped smooth_tip at 50 Hz: raw 2.57 mm still / 0.02
+lag; EMA(0.3) 1.10 / **18.67 mm lag** -- over half the capture gate by
+itself; 1-Euro **0.83 / 1.59 mm**. Modes 03/04 subscribe
+/master_arm_pose_* and re-derive nothing, so shared autonomy inherits the
+filtered signal on both input paths. Orientation defaults unfiltered
+because the shipped orientation_mode is "fixed" (a constant cannot be
+smoothed); the other modes get the quaternion filter behind
+smooth_orientation. Law + cutoff ride /master_status_* [8..9]; the window
+control is in the MASTER tab behind "advanced: smoothing".
+
+---
+
+## 2026-08-27 (later) — "there is no rviz, no master follower": three defects, none in the stack
+
+The operator pressed START on the reorganised window and saw no RViz and
+no motion. The stack was HEALTHY every time -- /joint_states at 100 Hz,
+both followers connected in 21 s. Diagnosed by pressing the button for
+real and watching, not from the audit (whose launches are dry-run fakes):
+
+1. **The embedded RViz starts at window-open and never recovers.** It came
+   up against no stack, showed a grey grid with "Fixed Frame [world] does
+   not exist", and nothing restarted it when the robot appeared --
+   `_ensure_rviz` fired only on a DEAD process. An empty embedded RViz
+   reads as "there is no rviz". Now `_rviz_keepalive` (5 s cadence)
+   restarts the view once a stack exists if it started pre-stack or died.
+   Verified live: the robot appears in the COMMANDED panel.
+2. **Two RVizs.** The launch files default use_rviz:=true, so every
+   GUI-launched stack opened the MoveIt RViz as a second top-level window
+   over the operations window. Every stack spec the GUI launches now
+   passes use_rviz:=false (terminal launches keep their own);
+   shared_autonomy.launch.py forwards use_rviz and serial_port into its
+   teleop include -- it declared neither.
+3. **START MASTER on a Teensy-less bench was a working stack in which
+   nothing ever moves.** master_pose_node retries (2,5,10,20,30,60) s and
+   parks DORMANT at ~165 s; the no-master spec existed and was unreachable
+   from the window; and `scripts/virtual_teensy.py` -- a pty replaying a
+   REAL recorded session in the wire format the node parses -- existed
+   with no consumer. START MASTER now starts the virtual Teensy when no
+   /dev/ttyACM* exists and passes its pty as serial_port:= (auto never
+   finds /dev/pts/*), saying loudly that the input is a DEMONSTRATION,
+   not evidence. STOP stops it.
+
+**Measured end to end after the fixes, one button, no hardware:** virtual
+Teensy on /dev/pts/3, ONE rviz2 process, /master_arm_pose_left at 49.6 Hz,
+and left_joint_1 sweeping 0.074 rad in 6 s -- replayed human motion
+through master node -> 1-Euro smoothing -> IK follower -> sim, visible in
+the window.
+
+---
+
+## 2026-08-29 — "restart simulation" answered before the simulation had started
+
+The operator pressed `START VR TELEOP`, took the `Restart the simulation`
+repair, and got "the simulation is not running" from a simulation that was
+starting perfectly well, with RViz still a grey window while both sentences
+were on screen.
+
+Nothing was wrong with the simulation. Three defects in what asked it:
+
+1. **The repair did not wait.** `fix_restart_sim` killed the stack, spawned
+   the launch and returned "press the button again when it settles" -- and
+   the window did not wait for the operator: `on_vr_fix` re-ran the whole
+   sequence 400 ms later. A repair that returns before it has repaired
+   anything is CLAUDE.md's own "feature present but does nothing" row, in
+   the button whose entire job is to fix this. It now waits for the
+   simulation to REPORT (`_wait_for_sim`, 150 s bound) and fails loudly if
+   it does not.
+2. **Listed is not reporting, and reporting is not loaded.**
+   `/joint_states` is advertised early in the launch; the controllers,
+   `move_group` and RViz are still coming up behind it for tens of seconds.
+   Step 5's "listed but silent" branch fired in that gap and offered to
+   restart the thing that was starting. It now asks the process table for
+   the LAUNCHER first and waits for it. There is a settle window
+   (`SIM_SETTLE_S`, 10 s) between the topic appearing and the count being
+   taken, and a bounded, NON-FATAL wait for RViz's real window after it --
+   non-fatal because `use_rviz:=false` and a headless box are both
+   legitimate.
+3. **And it could start a SECOND stack.** `move_group` is late in the same
+   launch, so for the first tens of seconds of a start there is no
+   `move_group` to find and no `/joint_states` to list -- byte for byte
+   what a machine with no simulation looks like. Step 5 spawned on that, on
+   top of the launch the repair had just started. HARD CONSTRAINT 3,
+   reached through the repair button. It asks for the launcher
+   (`SIM_LAUNCHER_RX`) before spawning and waits instead.
+
+Two things fell out of it. The 2026-08-27 "two RVizs" fix went through every
+launch SPEC and missed this path -- the VR button spawns `run_teleop.sh`
+from `vr_bringup`, not from a spec -- so the one-button bring-up was opening
+a second top-level RViz over the operations window; the window sets
+`SRL_VR_SIM_RVIZ=false` now and a terminal run keeps its own. And "has RViz
+loaded" cannot be answered from the process table (the process exists from
+the first second), so the window-filter the GUI already had is now one
+module, `srl_teleop/rviz_windows.py`, with the measured WSLg tree as its
+known-answer test: the GUI embeds and the bring-up waits on the same answer.
+
+Repairs also run OFF the UI thread now. Waiting two minutes is right; two
+minutes of a frozen window is not, so the worker reports back through the
+same queue the step rows use and the sequence re-runs only when the repair
+has actually finished.
+
+## 2026-08-29 — START REAL ARM TELEOP set a parameter nothing reads
+
+Reported from the rig: "the real arms are not moving even when clutch in is
+there". The simulation followed the controllers; the metal did not.
+
+Measured on the running stack, not inferred:
+
+* `kortex_highlevel_bridge_left` up and `/real/session_state` reporting
+  `connected: true`. `kortex_highlevel_bridge_right` absent.
+* `sim_to_real_bridge` **not running on either arm**. It is the only thing in
+  the rig that republishes the SIM's joint states onto
+  `/real/<arm>_arm_controller/joint_trajectory`, which is what the Kortex
+  bridge consumes — so the simulation had no route to the arm at all.
+* `/real/left_arm_controller/joint_trajectory` had exactly one publisher, and
+  it was `srl_gui`'s own pose-button path. Nothing was relaying.
+
+Two defects in the REAL ARM SEQUENCE panel of `scripts/srl_gui.py`:
+
+**1. Step 4, `START REAL ARM TELEOP`, could not move anything.** It called
+`/vr/enable_real_arm` and nothing else. That service sets `allow_real_arm` on
+`vr_safety_node`, which republishes it inside the `/vr/safety` status string.
+Grep the tree for that parameter: the node that declares it, the launch files
+that pass it, and **no consumer**. Nothing gates on it, nothing starts because
+of it. The service returned success, the panel said "Asked for real-arm
+control", and the arms could not have moved. CLAUDE.md's own *feature present
+but does nothing* row — checked that a field is STORED, not that a consumer
+READS it — in the one control in the window whose whole job is to let VR move
+real metal.
+
+It now calls the gate (which is still allowed to refuse), then starts
+`sim_to_real_bridge` on every connected arm via `start_cascade.sh` and enables
+it with `/bridge_enable_<arm>`. With no Kortex session it REFUSES by name and
+names the step to press instead, rather than opening a gate that changes
+nothing and hides the real reason.
+
+**2. Step 1, `START REAL ARMS`, could disconnect the arms.** It shelled out to
+`start_real.sh` raw, which opens one Kortex session per arm. The arm permits
+exactly ONE (HARD CONSTRAINT 2), so against already-connected arms the second
+is refused, the launch fails, and the script's own cleanup sweeps
+`kortex_highlevel_bridge` as a straggler on the way out — taking the working
+sessions with it. `start_mode` has substituted `real_cascade` for exactly this
+reason since 2026-08-26 and this button went round the substitution. It takes
+the same route now.
+
+The `arm status` line reported "net UP, session up" throughout, which was true
+and irrelevant: a rig that looks connected and cannot be driven read as
+healthy. It names the relay now.
+
+Pinned by `test_the_real_arm_button_reaches_the_metal.py` (6 tests over a faked
+process table; 5 of the 6 fail against the code as it was, which is the
+standing rule's requirement that a check be able to fail).
+
+## 2026-08-29 (later) — the window outlived its own ROS node
+
+Same session, after the relay fix went in and the operator still saw nothing
+move. The operations window was drawn, taking clicks, and showing a full set
+of readings. Its ROS node was dead. Proved with a control rather than
+inferred, because `ros2 param list` is served from a node's OWN executor:
+
+```
+/vr_safety_node                ANSWERS
+/kortex_highlevel_bridge_left  ANSWERS
+/ik_follower_left              ANSWERS
+/srl_gui                       NO ANSWER
+```
+
+Three controls answering and this one not is the executor, not the daemon and
+not the transport.
+
+What the operator read was `bridge up, NO DATA` on the arm panel. At that
+moment `/real/joint_states` was publishing at **11.9 Hz** with `srl_gui`
+listed as its subscriber and QoS matched on both ends. The data was arriving
+at a process that had stopped collecting it. That label is chosen when
+`fresh` is false, and `fresh` is false both when the ARM stops publishing and
+when THIS WINDOW stops receiving — rendered identically, so the reading
+pointed at the arm, which was fine. Every service button was inert at the
+same time and for the same reason: `bus.submit` appends to a queue drained by
+a timer in the dead executor, so a press logged nothing and sent nothing.
+
+**A frozen picture of a rig is worse than a blank one: it is a reading the
+operator has no reason to distrust.** `Bus._snapshot` runs on a 0.1 s timer
+inside that executor, so `snap["t"]` stops advancing the moment the executor
+does — the liveness signal already existed and nothing read it. The banner now
+says so ahead of every other state (including the e-stop slab, because with
+the executor stopped `es` is as stale as everything else), and the arm label
+names the window instead of the arm. Pinned by
+`test_the_window_says_when_its_own_ros_is_dead.py`.
+
+**And the sim stack had gone with it.** `ros2 launch srl_teleop
+teleop.launch.py` (pid 15411) was a ZOMBIE whose **parent was the GUI**:
+the window launched the stack under itself and then died, leaving the launch
+unreaped. `ros2_control_node`, `move_group` and `robot_state_publisher` were
+gone, so `/joint_states` had **zero publishers** — no simulation to drive, and
+`sim_to_real_bridge` would have refused to enable with "no sim /joint_states"
+even had it been running.
+
+The likely trigger is already in this file under 2026-08-26: it was launched
+WITHOUT `master:=false` and there is no Teensy on this machine
+(`/dev/ttyACM*` absent), so `master_pose_node` — `respawn=True` — died and
+restarted for ever. `ros2 node list` showed **six** `/master_pose_node`
+entries against one live process, the controller manager overran, and the
+spawners timed out.
+
+Order that survives this: **stack first, window second.** A window that
+launches the stack beneath it takes the stack down when it goes.
+
+## 2026-08-29 (later still) — adopting a session left the arm unhomeable, permanently
+
+The relay fix earlier today worked: `start_cascade.sh` brought
+`sim_to_real_bridge_left` up on the already-open Kortex session. The arm still
+did not move, and the reason is a DEADLOCK between two correct behaviours.
+
+Measured on the running rig:
+
+```
+/cascade_active_left  : false
+/bridge_status_left   : [0.0, 1.0, 2.7294, 0.0, -1.0, 4000.0]
+                          ^enabled = 0      ^gap = 2.729 rad = 156 deg
+```
+
+* HARD CONSTRAINT 0 — sim home is the presentation pose since 2026-08-15 and
+  the real arms are still at the legacy Kortex home. An ADOPTED session is
+  therefore typically far from the loaded home.
+* `sim_to_real_bridge.enable()` refuses past `enable_gap_rad`, because it
+  replays sim angles STARTING at home and enabling would command the
+  difference as a jump.
+
+Both are right. Together they say: home the arm first. And then —
+
+```
+$ ros2 service list | grep home_arm
+(nothing)
+```
+
+**`real_homing_node` is started by `real_arms_highlevel.launch.py` and was
+never started by `start_cascade.sh`.** On an adopted session `/home_arm_<arm>`
+did not exist, so `2. HOME BOTH ARMS` answered "service not present -- nothing
+was sent". The one step that closes the gap was unreachable, so the relay could
+never enable, so the arm could never move. Every session, for as long as the
+cascade path has existed, with nothing in the window naming which half was
+missing.
+
+The cascade now starts `real_homing_node` per arm with **`auto_home:=false`**.
+That flag is the whole safety property: adopting a session the operator did not
+just start must never silently drive that arm. The node comes up, prints its
+plan, moves NOTHING, and serves `/home_arm_<arm>` and `/home_abort_<arm>`. It
+is placed BEFORE the relay's own `cascade ALREADY RUNNING ... continue`,
+because the arm that needs it most is exactly the one whose relay is already up
+and refusing — after that branch the fix does nothing for the only rig with the
+bug. `test_adopting_a_session_can_still_be_homed.py` pins both, and its
+can-fail case moves the block and requires the ordering test to notice.
+
+**And the panel was claiming ARMED over a refusal.** `_real_enable_relays`
+called `/bridge_enable_<arm>` and reported success as soon as it had ASKED --
+the same "report the request, not the result" defect as the enable gate it
+replaced. `Bus.call_trigger` now takes a `then` callback and hands the response
+back; the panel waits for the relay's own answer and prints the refusal
+verbatim, because `sim_to_real_bridge` names the joint, the distance and the
+runbook and is the only place that information exists.
+
+**Instrument note, per the standing rule.** The first version of the ordering
+test read `SH.index("real_homing_node")` and matched the HEADER COMMENT at byte
+1698, so it passed whatever the code did. Its own can-fail case caught it. The
+test anchors on `setsid ros2 run srl_teleop real_homing_node` now.
+
+**Regression note.** The longer status strings this change introduced overflowed
+the control column — the button audit failed `no control-column page is cut off`
+at viewport 496 px against 524 needed. `_fit_left_column` measures the column
+BEFORE any button is pressed, so a long string set BY a press can only overflow
+it, never widen it. Status chips in that column are not word-wrapped and must
+stay at most as long as the existing longest (`reachable, NO BRIDGE`); detail
+belongs in the word-wrapped note line or the banner. Back to 247 checks,
+247 PASS, column 514 px — identical to the pre-change baseline.

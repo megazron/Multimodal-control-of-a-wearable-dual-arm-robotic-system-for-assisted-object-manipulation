@@ -83,6 +83,7 @@ import json
 import math
 import os
 import re
+import signal
 import subprocess
 import sys
 import threading
@@ -961,7 +962,7 @@ class Bus(Node):
         m.data = value
         pub.publish(m)
 
-    def call_trigger(self, name):
+    def call_trigger(self, name, then=None):
         cli = self.create_client(Trigger, name)
         if not cli.service_is_ready():
             # NEVER wait_for_service HERE. Blocking the ROS thread on a
@@ -971,8 +972,23 @@ class Bus(Node):
                       bad=True)
             return
         fut = cli.call_async(Trigger.Request())
-        fut.add_done_callback(
-            lambda f: self.note("%s -> %s" % (name, _res(f))))
+
+        def done(f):
+            self.note("%s -> %s" % (name, _res(f)))
+            # AND HAND IT BACK. The event log is a scrolling list; a caller
+            # that needs to say "this worked" or "this was REFUSED, here is
+            # why" in its own panel cannot read it. Without this every
+            # service button could only report that it had ASKED -- which is
+            # how a panel comes to say ARMED over a refusal.
+            if then is None:
+                return
+            try:
+                r = f.result()
+                then(bool(r.success), str(r.message))
+            except Exception as e:                            # noqa: BLE001
+                then(False, "error %r" % (e,))
+
+        fut.add_done_callback(done)
 
     def real_arms_seen(self, max_age=2.0):
         """Which arms have published joint states RECENTLY. {arm: age_s}.
@@ -2031,14 +2047,17 @@ class Gui(QMainWindow):
 
         v.addWidget(tabs)
 
-        # Shared steps: whatever tab is live, these mean the same thing.
-        b = _big("START REAL ARMS",
-                 "Connects the real arms (or adopts already-connected "
-                 "ones) and relays the sim onto them. Refuses, by name, "
-                 "anything unsafe.",
-                 self.on_flow_real, C_BAD)
-        self.mode_btn["__real__"] = b
-        v.addWidget(b)
+        # THE REAL ARMS ARE ONE BUTTON, AND IT IS NOT IN HERE.
+        #
+        # There were FOUR ways to start the real arms in this window -- this
+        # one, plus `1. START REAL ARMS`, `2. HOME BOTH ARMS` and
+        # `4. START REAL ARM TELEOP` in the panel below -- and the operator
+        # had to know which, and in what order, and what each would refuse.
+        # On 2026-08-29 that cost a lab session: every one of them was
+        # pressed, each did part of the job, and the arm never moved.
+        # `MOVE THE REAL ARMS`, beside RECORD EVERYTHING, is now the only
+        # one. It works out for itself which of those steps are still
+        # needed and does them in order.
         r = QHBoxLayout()
         r.setSpacing(4)
         b = QPushButton("open the sim view")
@@ -2234,38 +2253,10 @@ class Gui(QMainWindow):
         self.real_head.setStyleSheet("color:%s" % C_MUTED)
         v.addWidget(self.real_head)
 
-        for text, slot, tip, big in (
-            ("1.  START REAL ARMS",
-             self.on_real_start,
-             "Opens ONE Kortex session per arm and homes both to the pose in "
-             "config/home_positions_*.txt. The arm permits exactly one "
-             "session, so never start this twice.", True),
-            ("2.  HOME BOTH ARMS",
-             self.on_real_home,
-             "Drives both arms to the config home under the velocity law, "
-             "with the wearer clearance floor live. Safe to press again; a "
-             "homed arm simply reports it is already there.", False),
-            ("3.  OBSERVER STATION",
-             self.on_real_observer,
-             "Opens the observer's e-stop station. It is a 5 Hz HEARTBEAT: "
-             "two seconds of silence reads as the observer having WITHDRAWN, "
-             "which is the state the interlock exists to catch.", False),
-            ("4.  START REAL ARM TELEOP",
-             self.on_real_teleop,
-             "Hands the VR mapper the real arms. Refuses unless the observer "
-             "is present or the 'working alone' box above is ticked. This is "
-             "the only control in this window that lets VR move real metal.",
-             True),
-        ):
-            b = QPushButton(text)
-            b.setFont(helvetica(12 if big else 10, True))
-            if big:
-                b.setMinimumHeight(38)
-                b.setStyleSheet("color:%s;border:1px solid %s" % (C_OK, C_OK))
-            b.setToolTip(tip)
-            b.clicked.connect(slot)
-            v.addWidget(b)
-
+        # THE NUMBERED STEPS ARE GONE. One button does them, in order,
+        # and works out which are still needed -- see `on_real_one`. What is
+        # left here is the E-STOP above and the things you reach for when
+        # something has already gone wrong.
         row = QHBoxLayout()
         for text, slot, tip in (
             ("reset e-stop", self.on_real_estop_reset,
@@ -2276,6 +2267,12 @@ class Gui(QMainWindow):
              "the next run cannot connect."),
             ("arm status", self.on_real_status,
              "Network, session, joint feed and distance from home, per arm."),
+            ("restart the relay", self.on_real_relay_restart,
+             "Stops sim_to_real_bridge and starts it again on the same "
+             "Kortex session. The relay is the only thing that puts the "
+             "simulation onto the metal, and a code change to it only takes "
+             "effect on a node restart -- symlink-install means the FILE is "
+             "already current and the PROCESS is not."),
         ):
             b = QPushButton(text)
             b.setFont(helvetica(9))
@@ -2313,7 +2310,7 @@ class Gui(QMainWindow):
         except Exception as e:                                # noqa: BLE001
             self._real_say("%s FAILED: %r" % (label, e), bad=True)
 
-    def _svc(self, name, typ="std_srvs/srv/Trigger"):
+    def _svc(self, name, typ="std_srvs/srv/Trigger", then=None):
         """Call a Trigger service IN PROCESS, and report what happened.
 
         THIS USED TO SHELL OUT to `ros2 service call`, and that is how the
@@ -2335,24 +2332,165 @@ class Gui(QMainWindow):
         never `wait_for_service`, which is the 4 s e-stop stall -- refuses by
         name when the service is absent, and reports the real response.
         """
-        self.bus.submit(lambda: self.bus.call_trigger(name),
+        self.bus.submit(lambda: self.bus.call_trigger(name, then=then),
                         label="calling %s" % name)
 
+    # WHAT HAS TO BE RUNNING BEFORE A VR GRIP CAN REACH THE METAL, and how
+    # each part is proved. Asked of the PROCESS TABLE, never of a flag this
+    # window set: the operator's arms are frequently connected by a terminal
+    # this window did not start, and a window that only believes its own
+    # presses is a window that reports a healthy rig as absent.
+    #
+    #   kortex_highlevel_bridge_<arm>   the Kortex session. Without it there
+    #                                   is no metal to command at all.
+    #   sim_to_real_bridge_<arm>        THE RELAY. It reads the SIMULATED
+    #                                   arm's joint states and republishes
+    #                                   them on
+    #                                   /real/<arm>_arm_controller/joint_trajectory,
+    #                                   so whatever drives the sim -- VR, the
+    #                                   master arm, a pose button -- drives
+    #                                   the arm. NOTHING ELSE DOES THIS.
+    @staticmethod
+    def _arms_running(pattern):
+        """Which of left/right have a live process matching `pattern % arm`.
+
+        The same patterns `start_cascade.sh` matches on, so this window and
+        that script cannot disagree about what is up.
+        """
+        found = []
+        for a in ("left", "right"):
+            try:
+                if subprocess.run(["pgrep", "-f", pattern % a],
+                                  stdout=subprocess.DEVNULL,
+                                  stderr=subprocess.DEVNULL,
+                                  timeout=5).returncode == 0:
+                    found.append(a)
+            except Exception:                                 # noqa: BLE001
+                pass
+        return found
+
+    def _kortex_arms(self):
+        """Arms with an open Kortex session."""
+        return self._arms_running("kortex_highlevel_bridge_%s")
+
+    def _relay_arms(self):
+        """Arms whose sim -> real relay is running."""
+        return self._arms_running("sim_to_real_bridge_%s")
+
     def on_real_start(self):
-        self._real_guard("start real arms", lambda: (
-            self._run_raw("start_real.sh",
-                          ["bash", os.path.join(_WS, "scripts/start_real.sh"),
-                           "arm:=both"]),
-            self.real_head.setText("starting both arms -- watch this window"),
+        """Connect the arms -- OR RELAY ONTO ARMS ALREADY CONNECTED.
+
+        THIS BUTTON COULD DISCONNECT THE ARMS. The arm permits exactly ONE
+        Kortex session (HARD CONSTRAINT 2). `start_real.sh` opens one per
+        arm, so against a rig whose bridges are already up the second session
+        is refused, the launch fails, and the script's own cleanup then
+        sweeps `kortex_highlevel_bridge` as a straggler on the way out --
+        taking the WORKING sessions with it. `start_mode` has substituted
+        `real_cascade` for exactly this reason since 2026-08-26, and this
+        button went round it by shelling out to `start_real.sh` raw.
+
+        It takes the same route now. Bridges up -> `start_cascade.sh`, which
+        opens no session and starts the RELAY, which is the only thing in the
+        rig that puts the simulation onto the metal.
+        """
+        self._real_guard("start real arms", self._real_start_go)
+
+    def _real_start_go(self):
+        live = self._kortex_arms()
+        if live:
+            self._run_raw(
+                "start_cascade.sh",
+                ["bash", os.path.join(_WS, "scripts/start_cascade.sh")] + live)
+            self.real_head.setText(
+                "%s connected -- starting the relay"
+                % "/".join(a.upper() for a in live))
             self._real_say(
-                "Opening one Kortex session per arm, then homing. Two arms "
-                "share one link, so the script drops the command rate to "
-                "12 Hz per arm on purpose.")))
+                "Kortex session already open on %s. Opening a second one is "
+                "refused by the arm and would sweep the live one on the way "
+                "out, so this starts sim_to_real_bridge on the open "
+                "session(s) instead. NOTHING HAS MOVED AND NOTHING WILL YET: "
+                "this path does no homing, and the relay will refuse while "
+                "the real arm is far from the loaded home. Press "
+                "2. HOME BOTH ARMS, then 4. START REAL ARM TELEOP."
+                % ", ".join(live))
+            return
+        self._run_raw("start_real.sh",
+                      ["bash", os.path.join(_WS, "scripts/start_real.sh"),
+                       "arm:=both"])
+        self.real_head.setText("starting both arms -- watch this window")
+        self._real_say(
+            "Opening one Kortex session per arm, then homing, then the "
+            "sim -> real relay. Two arms share one link, so the script drops "
+            "the command rate to 12 Hz per arm on purpose.")
 
     def on_real_home(self):
-        self._real_guard("home", lambda: (
-            self._svc("/home_arm_left"), self._svc("/home_arm_right"),
-            self._real_say("homing both arms to the config pose")))
+        """Home the connected arms -- AND MAKE SURE THERE IS SOMETHING TO ASK.
+
+        THIS BUTTON WAS DEAD ON AN ADOPTED SESSION. It called `/home_arm_left`
+        and `/home_arm_right` unconditionally, and those services are served
+        by `real_homing_node`, which only `real_arms_highlevel.launch.py`
+        started. Adopt an already-open Kortex session -- which is what every
+        rig brought up outside this window is -- and the services did not
+        exist, so the press answered "service not present, nothing was sent"
+        and the arm stayed where it was.
+
+        That is one half of the 2026-08-29 deadlock: the relay refuses until
+        the arm is homed, and homing was unreachable, so the arm could never
+        move. `start_cascade.sh` serves the homing node now (auto_home false,
+        so it moves nothing on its own); this ensures it is up before asking,
+        and asks only for arms that actually have a Kortex session.
+        """
+        self._real_guard("home", self._real_home_go)
+
+    def _real_home_go(self):
+        live = self._kortex_arms()
+        if not live:
+            self.real_head.setText("no Kortex session")
+            self._real_say(
+                "REFUSED: no kortex_highlevel_bridge is running, so there is "
+                "no arm to home. Press 1. START REAL ARMS first.", bad=True)
+            return
+        missing = [a for a in live if a not in self._homing_arms()]
+        if missing:
+            self._run_raw(
+                "start_cascade.sh",
+                ["bash", os.path.join(_WS, "scripts/start_cascade.sh")]
+                + missing)
+            self._real_say(
+                "The homing service was not being served on %s -- starting "
+                "real_homing_node there (auto_home OFF, nothing moves yet). "
+                "Asking again in 8 s." % ", ".join(missing))
+            QTimer.singleShot(8000, lambda: self._real_guard(
+                "home", lambda: self._real_home_ask(live)))
+            return
+        self._real_home_ask(live)
+
+    def _homing_arms(self):
+        """Arms whose homing service is actually being served."""
+        return self._arms_running("real_homing_node_%s")
+
+    def _real_home_ask(self, arms):
+        up = self._homing_arms()
+        for a in arms:
+            if a in up:
+                self._svc("/home_arm_%s" % a)
+        dead = [a for a in arms if a not in up]
+        if dead:
+            self.real_head.setText(
+                "NO HOMING NODE: %s" % "/".join(a.upper() for a in dead))
+            self._real_say(
+                "REFUSED for %s: real_homing_node_%s is not running, so "
+                "/home_arm_%s is unserved and the press would go nowhere. "
+                "See the event log for why start_cascade.sh could not start "
+                "it." % (", ".join(dead), dead[0], dead[0]), bad=True)
+            return
+        self.real_head.setText(
+            "HOMING %s -- watch the arm" % "/".join(a.upper() for a in arms))
+        self._real_say(
+            "Homing %s to the pose in config/home_positions_*.txt under the "
+            "velocity law, clearance floor live. The arm MOVES now. Hand on "
+            "the e-stop. The homing node's own reply is in the event log."
+            % ", ".join(arms))
 
     def on_real_observer(self):
         self._real_guard("observer", lambda: (
@@ -2363,11 +2501,149 @@ class Gui(QMainWindow):
                            "2 s of silence reads as withdrawal")))
 
     def on_real_teleop(self):
-        self._real_guard("real arm teleop", lambda: (
-            self._svc("/vr/enable_real_arm"),
+        """Hand the VR mapper the real arms -- AND ACTUALLY OPEN THE PATH.
+
+        THIS BUTTON SET A PARAMETER NOBODY READ. It called
+        `/vr/enable_real_arm` and nothing else. That service sets
+        `allow_real_arm` on `vr_safety_node`, which publishes it inside the
+        `/vr/safety` status string -- and grepping the whole tree for that
+        parameter finds the node that declares it, the launch files that
+        pass it, and NO CONSUMER. Nothing gates on it, nothing starts on it,
+        nothing moves because of it. CLAUDE.md's own "feature present but
+        does nothing" row: checked that a field is STORED, not that a
+        consumer READS it.
+
+        So the operator pressed the one control in the window that is
+        supposed to let VR move real metal, the panel said "Asked for
+        real-arm control", the service replied success, and the arms stood
+        still -- with nothing anywhere contradicting it. Measured on this rig
+        2026-08-29: Kortex session open on the left arm, VR chain running,
+        and `sim_to_real_bridge` not running at all, so the simulation had no
+        route to the arm whatever this service returned.
+
+        The safety gate is still called and still governs whether this is
+        ALLOWED. What was missing is the thing that makes it HAPPEN: the
+        relay must be running on each connected arm and must be ENABLED
+        (`/bridge_enable_<arm>`). This does both, per arm, and REFUSES BY
+        NAME when it cannot -- naming the step to press instead.
+        """
+        self._real_guard("real arm teleop", self._real_teleop_go)
+
+    def _real_teleop_go(self):
+        live = self._kortex_arms()
+        if not live:
+            self.real_head.setText("no Kortex session")
             self._real_say(
-                "Asked for real-arm control. REFUSED means the observer is "
-                "not present and the 'working alone' box is not ticked.")))
+                "REFUSED: no kortex_highlevel_bridge is running, so there is "
+                "no arm for VR to drive and enabling the gate would change "
+                "nothing. Press 1. START REAL ARMS first.", bad=True)
+            return
+        # The safety gate first: it is allowed to refuse, and if it does
+        # there is no point starting a relay.
+        self._svc("/vr/enable_real_arm")
+        missing = [a for a in live if a not in self._relay_arms()]
+        if missing:
+            self._run_raw(
+                "start_cascade.sh",
+                ["bash", os.path.join(_WS, "scripts/start_cascade.sh")]
+                + missing)
+            self._real_say(
+                "The sim -> real relay was NOT running on %s -- that is why "
+                "the arm did not move. Starting sim_to_real_bridge there now; "
+                "enabling in 8 s." % ", ".join(missing))
+            QTimer.singleShot(8000, lambda: self._real_guard(
+                "enable relay", lambda: self._real_enable_relays(live)))
+            return
+        self._real_enable_relays(live)
+
+    def _real_enable_relays(self, arms):
+        """Enable the relay on each arm, and SAY which arms are actually live.
+
+        `sim_to_real_bridge` starts disabled unless told otherwise and can
+        refuse to enable -- e-stop latched, homing still running, or the real
+        arm too far from the loaded home to replay sim angles without
+        commanding the difference as a jump (HARD CONSTRAINT 0). Those
+        refusals arrive as the service response and are printed in the event
+        log by `bus.call_trigger`, so a refusal is visible rather than being
+        a silent arm.
+        """
+        up = self._relay_arms()
+        self._relay_reply = {}
+        for a in arms:
+            if a in up:
+                # THE RELAY IS ALLOWED TO SAY NO, AND USUALLY DOES.
+                # `sim_to_real_bridge.enable()` refuses on a latched e-stop,
+                # on homing still running, and -- the one that bites every
+                # session -- when the real arm is further from the loaded
+                # home than `enable_gap_rad`, because it replays sim angles
+                # starting at home and enabling would command the difference
+                # as a JUMP (HARD CONSTRAINT 0: sim home and real home
+                # disagree on purpose). Measured on this rig 2026-08-29:
+                # 2.729 rad of gap, relay running, `cascade_active_left`
+                # FALSE, and the panel saying nothing at all.
+                self._svc("/bridge_enable_%s" % a,
+                          then=lambda ok, msg, a=a: self._relay_reply.__setitem__(
+                              a, (ok, msg)))
+        dead = [a for a in arms if a not in up]
+        if dead:
+            self.real_head.setText(
+                "RELAY MISSING: %s" % "/".join(a.upper() for a in dead))
+            self._real_say(
+                "REFUSED for %s: sim_to_real_bridge_%s is not running, so "
+                "nothing republishes the simulation onto "
+                "/real/%s_arm_controller/joint_trajectory and the arm will "
+                "not move however the gate is set. Look at the event log for "
+                "why start_cascade.sh could not start it."
+                % (", ".join(dead), dead[0], dead[0]), bad=True)
+            return
+        self.real_head.setText(
+            "asking the relay: %s..." % "/".join(a.upper() for a in arms))
+        self._real_say(
+            "Real-arm control requested. Waiting for the relay's own answer "
+            "-- it is allowed to refuse, and until it says yes nothing "
+            "reaches the metal.")
+        QTimer.singleShot(700, lambda: self._real_relay_verdict(arms))
+
+    def _real_relay_verdict(self, arms, tries=12):
+        """Say what the relay ACTUALLY answered. Never assume it said yes.
+
+        THE PANEL USED TO CLAIM `VR -> REAL ARMED` THE MOMENT IT HAD ASKED.
+        That is the same defect as the enable gate itself -- reporting the
+        request instead of the result -- and on 2026-08-29 it hid a refusal
+        the operator needed to see: `bridge_status_left` read enabled 0.0
+        with a 2.729 rad gap while the window said the arms were armed.
+
+        The refusal text is worth surfacing verbatim rather than
+        summarising: `sim_to_real_bridge` names the joint, the distance and
+        the runbook, and it is the only place that information exists.
+        """
+        pending = [a for a in arms if a not in self._relay_reply]
+        if pending and tries > 0:
+            QTimer.singleShot(500,
+                              lambda: self._real_relay_verdict(arms, tries - 1))
+            return
+        good = [a for a in arms if self._relay_reply.get(a, (False,))[0]]
+        bad = [(a, self._relay_reply.get(a, (False, "no reply"))[1])
+               for a in arms if a not in good]
+        if not bad:
+            self.real_head.setText(
+                "VR -> REAL ARMED on %s" % "/".join(a.upper() for a in good))
+            self._real_say(
+                "The relay is ENABLED on %s. Squeeze the grip: the "
+                "simulation moves first and the metal follows it."
+                % ", ".join(good))
+            return
+        self.real_head.setText(
+            "RELAY REFUSED: %s" % "/".join(a.upper() for a, _ in bad))
+        self._real_say(
+            "%s%s"
+            % ("; ".join("%s: %s" % (a, m.replace("\n", " ")) for a, m in bad),
+               ("  --  If that names a distance from home, press "
+                "2. HOME BOTH ARMS first: the relay replays the simulation "
+                "STARTING at home, so it will not close a gap it did not "
+                "command."
+                if any("home" in m for _, m in bad) else "")),
+            bad=True)
 
     def on_real_estop(self):
         """Halt both arms. PUBLISH first, then call the service.
@@ -2407,6 +2683,184 @@ class Gui(QMainWindow):
                 "session from the terminal running start_real.sh with "
                 "Ctrl-C -- SIGINT, so the session closes cleanly.")))
 
+    # ------------------------------------------------- THE ONE BIG BUTTON
+    def _one_say(self, text, bad=False):
+        try:
+            self.real_one_lbl.setText(text)
+            self.real_one_lbl.setStyleSheet(
+                "color:%s" % (C_BAD if bad else C_MUTED))
+            self.bus.note("MOVE THE REAL ARMS: %s" % text, bad=bad)
+        except Exception:                                     # noqa: BLE001
+            pass
+
+    def on_real_one(self):
+        """The whole real-arm sequence, as one press, skipping what is done.
+
+        A SEQUENCER, NOT A MACRO. It asks the process table and the nodes
+        what is already true and does only the missing part, so pressing it
+        twice is safe and pressing it against a half-built rig is the normal
+        case rather than an error. Every stage says what it did.
+        """
+        self._real_guard("move the real arms", self._real_one_go)
+
+    def _real_one_go(self):
+        live = self._kortex_arms()
+        if self._real_one_stage == "home" and live:
+            # The operator has pressed a second time on a button that says
+            # it will move the arm. That is the consent; take it and reset
+            # the stage so a third press cannot re-home a moving arm.
+            self._real_one_stage = "idle"
+            self._real_one_home(live)
+            return
+
+        # 1. A Kortex session per arm. One, never two -- the arm permits
+        #    exactly one (HARD CONSTRAINT 2), so with any already open this
+        #    adopts them instead of opening more.
+        if not live:
+            self._one_say(
+                "no Kortex session -- connecting the arms. This opens one "
+                "session per arm and homes them, so THE ARMS WILL MOVE. "
+                "Watch them; the e-stop is above.")
+            self._run_raw("start_real.sh",
+                          ["bash", os.path.join(_WS, "scripts/start_real.sh"),
+                           "arm:=both"])
+            QTimer.singleShot(25000, lambda: self._real_guard(
+                "move the real arms", self._real_one_go))
+            return
+
+        # 2. The three things an ADOPTED session does not get from its
+        #    launch file: the relay, the homing service, and the `real_*`
+        #    frames the clearance guard measures against. Missing any one of
+        #    them and the arm cannot move, each for a different reason.
+        need = ([a for a in live if a not in self._relay_arms()]
+                + [a for a in live if a not in self._homing_arms()])
+        if need:
+            self._run_raw(
+                "start_cascade.sh",
+                ["bash", os.path.join(_WS, "scripts/start_cascade.sh")]
+                + sorted(set(need)))
+            self._one_say(
+                "%s connected. Starting the sim -> real relay, the homing "
+                "service and the real_* frames. Nothing has moved."
+                % "/".join(a.upper() for a in live))
+            QTimer.singleShot(12000, lambda: self._real_guard(
+                "move the real arms", self._real_one_go))
+            return
+
+        # 3. Ask the relay to enable. IT is the authority on whether the arm
+        #    and the simulation agree closely enough, so rather than
+        #    duplicating that comparison here, ask and read the answer.
+        self._one_say(
+            "%s ready. Asking the relay to enable..."
+            % "/".join(a.upper() for a in live))
+        self._relay_reply = {}
+        for a in live:
+            self._svc("/bridge_enable_%s" % a,
+                      then=lambda ok, msg, a=a:
+                      self._relay_reply.__setitem__(a, (ok, msg)))
+        QTimer.singleShot(700, lambda: self._real_guard(
+            "move the real arms", lambda: self._real_one_verdict(live)))
+
+    def _real_one_verdict(self, arms, tries=12):
+        pending = [a for a in arms if a not in self._relay_reply]
+        if pending and tries > 0:
+            QTimer.singleShot(500, lambda: self._real_guard(
+                "move the real arms",
+                lambda: self._real_one_verdict(arms, tries - 1)))
+            return
+        bad = [(a, self._relay_reply.get(a, (False, "no reply"))[1])
+               for a in arms if not self._relay_reply.get(a, (False,))[0]]
+        if not bad:
+            self._real_one_stage = "idle"
+            self.real_one_btn.setText("\u25b6  MOVE THE REAL ARMS")
+            self._one_say(
+                "ARMED on %s. The simulation now drives the metal -- squeeze "
+                "the grip." % "/".join(a.upper() for a in arms))
+            return
+        # A refusal that names home is the one case this button can fix, and
+        # fixing it MOVES THE ARM. So it asks again rather than doing it.
+        if any("home" in m for _, m in bad):
+            self._real_one_stage = "home"
+            self.real_one_btn.setText(
+                "\u25b6  HOME THE ARMS  --  THIS MOVES THEM")
+            self._one_say(
+                "%s  --  press again to home the arm(s) and then arm. THE "
+                "ARM WILL MOVE. Hand on the e-stop."
+                % "; ".join("%s: %s" % (a, m.replace("\n", " "))
+                            for a, m in bad), bad=True)
+            return
+        self._real_one_stage = "idle"
+        self._one_say("; ".join("%s: %s" % (a, m.replace("\n", " "))
+                                for a, m in bad), bad=True)
+
+    def _real_one_home(self, arms):
+        """Second press: home, then come back and try to arm again."""
+        up = self._homing_arms()
+        for a in arms:
+            if a in up:
+                self._svc("/home_arm_%s" % a)
+        self._real_one_stage = "homing"
+        self.real_one_btn.setText("\u25b6  MOVE THE REAL ARMS")
+        self._one_say(
+            "homing %s. The arm is moving. When it stops this will try to "
+            "arm again by itself." % "/".join(a.upper() for a in arms))
+        QTimer.singleShot(30000, lambda: self._real_guard(
+            "move the real arms", self._real_one_go))
+
+    def on_real_relay_restart(self):
+        """Restart the sim -> real relay without touching the Kortex session.
+
+        THE TERMINAL THIS REPLACES. Every relay problem this session ended in
+        `pkill -INT -f sim_to_real_bridge_left` followed by
+        `bash scripts/start_cascade.sh left`, typed at a prompt, because the
+        window could start the relay and could not restart one that was
+        already running -- and a relay whose retry thread had died looked
+        exactly like a healthy one. THE GUI RULE: a capability reachable only
+        from a terminal does not exist for the person running the session.
+
+        SIGINT, never SIGKILL, and by explicit PID -- HARD CONSTRAINT 9. The
+        Kortex session belongs to `kortex_highlevel_bridge` and is not
+        touched here, so this is safe to press repeatedly: the arm keeps its
+        one session throughout.
+        """
+        self._real_guard("restart relay", self._real_relay_restart_go)
+
+    def _real_relay_restart_go(self):
+        live = self._kortex_arms()
+        if not live:
+            self.real_head.setText("no Kortex session")
+            self._real_say(
+                "REFUSED: no kortex_highlevel_bridge is running, so there is "
+                "nothing to relay onto. Press 1. START REAL ARMS first.",
+                bad=True)
+            return
+        killed = []
+        for a in live:
+            try:
+                out = subprocess.run(
+                    ["pgrep", "-f", "sim_to_real_bridge_%s" % a],
+                    capture_output=True, text=True, timeout=5).stdout
+            except Exception:                                 # noqa: BLE001
+                out = ""
+            for pid in [int(x) for x in out.split() if x.strip().isdigit()]:
+                try:
+                    os.kill(pid, signal.SIGINT)
+                    killed.append(pid)
+                except Exception:                             # noqa: BLE001
+                    pass
+        self.real_head.setText(
+            "restarting the relay: %s" % "/".join(a.upper() for a in live))
+        self._real_say(
+            "SIGINT to %s. The Kortex session is untouched. Starting a fresh "
+            "relay in 3 s; press 4. START REAL ARM TELEOP after it is up."
+            % (("relay pid(s) " + ", ".join(str(p) for p in killed))
+               if killed else "no running relay (there was none)"))
+        QTimer.singleShot(3000, lambda: self._real_guard(
+            "restart relay", lambda: self._run_raw(
+                "start_cascade.sh",
+                ["bash", os.path.join(_WS, "scripts/start_cascade.sh")]
+                + live)))
+
     def on_real_status(self):
         """Ping both arms and look for their sessions -- OFF the Qt thread.
 
@@ -2432,9 +2886,18 @@ class Gui(QMainWindow):
                 sess = subprocess.run(
                     ["pgrep", "-f", "kortex_highlevel_bridge.*arm:=%s" % a],
                     stdout=subprocess.DEVNULL).returncode == 0
-                bits.append("%s: net %s, session %s"
+                # THE RELAY, NAMED. Network and session both UP with no
+                # sim_to_real_bridge is a rig that looks connected and
+                # cannot be driven -- exactly the state this panel used to
+                # report as healthy while VR moved nothing.
+                relay = subprocess.run(
+                    ["pgrep", "-f", "sim_to_real_bridge_%s" % a],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL).returncode == 0
+                bits.append("%s: net %s, session %s, sim->real relay %s"
                             % (a.upper(), "UP" if up else "DOWN",
-                               "up" if sess else "down"))
+                               "up" if sess else "down",
+                               "UP" if relay else "MISSING"))
             self._arm_status_text = "   |   ".join(bits)
             self._real_say("arm status refreshed")
 
@@ -3149,6 +3612,54 @@ class Gui(QMainWindow):
         self.rec_all_lbl.setWordWrap(True)
         self.rec_all_lbl.setStyleSheet("color:%s" % C_MUTED)
         v.addWidget(self.rec_all_lbl)
+
+        # ===================================================================
+        # MOVE THE REAL ARMS -- the ONLY real-arm start in this window
+        # ===================================================================
+        # THERE WERE FOUR, AND THAT IS WHY THE ARM DID NOT MOVE.
+        #
+        # `START REAL ARMS` on the mode panel, then `1. START REAL ARMS`,
+        # `2. HOME BOTH ARMS` and `4. START REAL ARM TELEOP` in the sequence
+        # panel. Each did part of the job and refused for a different reason,
+        # the order mattered and was not enforced, and a refusal at step 4
+        # was cured at step 2. On 2026-08-29 every one of them was pressed,
+        # several times, and the arm never moved -- because the missing piece
+        # was a fifth thing none of them started.
+        #
+        # This is one button and it is a SEQUENCER. It asks what is already
+        # true and does only what is missing: open or adopt the Kortex
+        # session, bring up the relay, the homing service and the `real_*`
+        # frames, put the arm at home, then enable the relay. Every stage
+        # says what it did, and a refusal is reported with the refusing
+        # node's own words.
+        #
+        # IT MOVES METAL, SO IT ASKS TWICE. When the arm needs homing the
+        # button changes to say so and waits for a SECOND press. Not a modal
+        # dialog: one hung the button audit for weeks, and a window that can
+        # block behind a dialog is a window whose e-stop can too.
+        self.real_one_btn = QPushButton("\u25b6  MOVE THE REAL ARMS")
+        self.real_one_btn.setFont(helvetica(11, True))
+        self.real_one_btn.setMinimumHeight(34)
+        self.real_one_btn.setStyleSheet(
+            "color:%s;border:1px solid %s" % (C_OK, C_OK))
+        self.real_one_btn.setToolTip(
+            "The whole real-arm sequence, in order, skipping whatever is "
+            "already done: adopt or open the Kortex session (one per arm -- "
+            "it never opens a second), start the sim -> real relay, the "
+            "homing service and the real_* frames the clearance guard needs, "
+            "home the arm, then enable the relay so the simulation drives "
+            "the metal. Press it again at any point; it picks up where the "
+            "rig actually is. It asks a second time before anything moves.")
+        self.real_one_btn.clicked.connect(self.on_real_one)
+        self.buttons["move_the_real_arms"] = self.real_one_btn
+        self.mode_btn["__real__"] = self.real_one_btn
+        v.addWidget(self.real_one_btn)
+        self.real_one_lbl = QLabel("the real arms are not started")
+        self.real_one_lbl.setFont(helvetica(9))
+        self.real_one_lbl.setWordWrap(True)
+        self.real_one_lbl.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.real_one_lbl)
+        self._real_one_stage = "idle"
         self._rec_all_proc = None
         self._rec_all_timer = QTimer(self)
         self._rec_all_timer.timeout.connect(self._rec_all_refresh)
@@ -5044,6 +5555,14 @@ class Gui(QMainWindow):
         except Exception:                                     # noqa: BLE001
             pass
 
+        # THE ONE-BUTTON BRING-UP MUST NOT OPEN ITS OWN RViz. This window
+        # embeds one; `use_rviz:=true` puts a second top-level RViz over the
+        # top of it, which is the 2026-08-27 "two RVizs" finding. That fix
+        # went through every launch SPEC and missed this path, because the
+        # VR button spawns `run_teleop.sh` from `vr_bringup` and not from a
+        # spec.
+        os.environ["SRL_VR_SIM_RVIZ"] = "false"
+
         self._vr_world = None
         self._vr_results = []
         self._vr_fixes = {}
@@ -5175,6 +5694,18 @@ class Gui(QMainWindow):
         if kind == "step":
             self._vr_render_step(key, res)
             return
+        if kind == "fixed":
+            ok, msg, name = res
+            self._vr_busy = False
+            self.vr_btn.setEnabled(True)
+            self.vr_note.setText(msg)
+            self.log("VR fix %s: %s" % (key, msg), bad=not ok)
+            # Only re-run when the repair actually finished its work. A
+            # failed repair leaves the diagnosis on screen instead of
+            # replacing it with a fresh sweep that says the same thing.
+            if ok and not name.endswith("_help"):
+                QTimer.singleShot(400, self.on_vr_start)
+            return
         # done
         self._vr_busy = False
         self.vr_btn.setEnabled(True)
@@ -5248,15 +5779,32 @@ class Gui(QMainWindow):
         if fn is None:
             self.log("no such repair: %s" % name, bad=True)
             return
-        self.vr_note.setText("working...")
-        try:
-            ok, msg = fn(self._vr_world or vrb.World(ws=_WS))
-        except Exception as e:                                # noqa: BLE001
-            ok, msg = False, "could not do it: %r" % (e,)
-        self.vr_note.setText(msg)
-        self.log("VR fix %s: %s" % (key, msg), bad=not ok)
-        if ok and not name.endswith("_help"):
-            QTimer.singleShot(400, self.on_vr_start)
+        # OFF THE UI THREAD, AND THE SEQUENCE DOES NOT RE-RUN UNTIL IT IS
+        # DONE. Restarting the simulation now WAITS for the simulation --
+        # up to two minutes -- because returning early is what produced
+        # "the simulation is not running" from a simulation that was
+        # thirty seconds into a normal start, with RViz still grey. Two
+        # minutes of a frozen window is not an improvement, so the repair
+        # runs in a worker and the row says what it is doing.
+        if self._vr_busy:
+            self.log("VR bring-up is already running", bad=True)
+            return
+        self._vr_busy = True
+        self.vr_btn.setEnabled(False)
+        self.vr_note.setText("working... (%s -- this window is waiting for "
+                             "it, not stuck)" % name.replace("_", " "))
+        self.log("VR fix %s: %s -- working..." % (key, name))
+        world = self._vr_world or vrb.World(ws=_WS)
+
+        def work():
+            try:
+                ok, msg = fn(world)
+            except Exception as e:                            # noqa: BLE001
+                ok, msg = False, "could not do it: %r" % (e,)
+            with self._vr_lock:
+                self._vr_pending.append(("fixed", key, (ok, msg, name),
+                                         list(self._vr_results)))
+        threading.Thread(target=work, daemon=True).start()
 
     def _vr_show_log(self, name):
         which = name.replace("show_", "").replace("_log", "")
@@ -7726,69 +8274,14 @@ class Gui(QMainWindow):
     def _rviz_windows():
         """RViz's REAL top-level windows. Not everything with 'rviz' in it.
 
-        THE DEFECT THIS REPLACES, measured 2026-08-22 on WSLg. This matched
-        any line of `xwininfo -root -tree` containing "rviz", and rviz2
-        creates several X windows besides the one it draws in:
-
-            0x600106 "....rviz - RViz": ("rviz2" "rviz2")  1600x1000   <- real
-            0x600004 "Qt Selection Owner for rviz2": ()     549x819    <- not
-            0x600008 "rviz2": ()                            1x1        <- not
-            0xa00004 (has no name): ()                    1568x914     <- child
-
-        The caller then took `sorted(new)[0]`, the LOWEST id, which is the
-        selection owner. So the GUI reparented an invisible helper window
-        into the commanded panel, the geometry dump measured the container
-        and read 1005..1554 exactly as designed, every check passed, and the
-        panel showed nothing while the real RViz sat in its own window on
-        top of the GUI. CLAUDE.md recorded embedding as working on the
-        strength of it.
-
-        That is this repository's own listed failure mode -- "feature present
-        but does nothing", and "everything matches: substring matching" -- in
-        the one place where the evidence is a picture nobody was looking at.
-
-        Three filters, and a window must pass all three:
-          * a WM_CLASS of rviz2. The helpers have none, which is the
-            cleanest single discriminator.
-          * a title that is not one of Qt's internal ones.
-          * a size worth drawing in. A 1x1 window is not a viewport.
+        ONE SOURCE, in `srl_teleop.rviz_windows`. The three filters and the
+        measured defect they encode are documented there; the VR bring-up
+        waits on the same answer, and two copies of this parser would mean
+        the window the GUI embeds and the window the bring-up waits for
+        could be different windows.
         """
-        try:
-            o = subprocess.run(["xwininfo", "-root", "-tree"],
-                               capture_output=True, text=True,
-                               timeout=6).stdout
-        except Exception:                                     # noqa: BLE001
-            return set()
-        ids = set()
-        # 0x600106 "title": ("rviz2" "rviz2")  1600x1000+38+59  +135+45
-        pat = re.compile(
-            r'(0x[0-9a-f]+)\s+(?:"(?P<title>[^"]*)"|\(has no name\))'
-            r'\s*:\s*\((?P<cls>[^)]*)\)'
-            r'(?:\s+(?P<w>\d+)x(?P<h>\d+))?')
-        for line in o.splitlines():
-            m = pat.search(line)
-            if not m:
-                continue
-            cls = (m.group("cls") or "").lower()
-            if "rviz" not in cls:
-                continue                       # helpers carry no WM_CLASS
-            title = m.group("title") or ""
-            if title.startswith("Qt Selection Owner"):
-                continue
-            # THE MAIN WINDOW, BY TITLE. rviz2 titles its main window
-            # "<config path> - RViz"; the transient windows it makes while
-            # starting up do not. Measured 2026-08-22: embedding whatever
-            # appeared first at 1.5 s caught a 400x287 startup window, and
-            # RViz then built its real 1600x1000 one as a SEPARATE toplevel
-            # -- so the panel held a stub and the real view sat outside.
-            if not title.endswith("- RViz"):
-                continue
-            w = int(m.group("w") or 0)
-            h = int(m.group("h") or 0)
-            if w < 200 or h < 200:
-                continue                       # 1x1 stubs are not viewports
-            ids.add(int(m.group(1), 16))
-        return ids
+        from srl_teleop.rviz_windows import real_windows
+        return real_windows()
 
     def _window_geometry(self, wid):
         """(w, h, mapped) for one X window, or None. Used to CHECK what was
@@ -8158,6 +8651,35 @@ class Gui(QMainWindow):
         self.sess_log.verticalScrollBar().setValue(
             self.sess_log.verticalScrollBar().maximum())
 
+    #: Seconds of snapshot staleness past which this window's ROS node is
+    #: treated as DEAD rather than slow. `Bus._snapshot` runs on a 0.1 s
+    #: timer inside the ROS executor, so `snap["t"]` stops advancing the
+    #: moment that executor stops -- which makes it the liveness signal, with
+    #: no new plumbing and nothing to keep in sync.
+    ROS_DEAD_S = 3.0
+
+    def ros_stale_s(self, s=None):
+        """How long since the ROS side of this window last produced a
+        snapshot, or None if it is keeping up.
+
+        THE WINDOW CAN OUTLIVE ITS OWN ROS NODE, and it did on 2026-08-29.
+        Qt kept painting, every panel kept its last value, and the arm panel
+        read "bridge up, NO DATA" -- blaming the ARM for the window's own
+        deafness while `/real/joint_states` was publishing at 11.9 Hz and
+        three other nodes answered `ros2 param list` normally. Every service
+        button was inert at the same time, because `bus.submit` appends to a
+        queue drained by a timer that was no longer running.
+
+        A frozen picture of a rig is worse than a blank one: it is a reading
+        the operator has no reason to distrust.
+        """
+        s = self.bus.snap if s is None else s
+        t = s.get("t")
+        if not t:
+            return None
+        age = time.monotonic() - t
+        return age if age > self.ROS_DEAD_S else None
+
     def refresh(self):
         t0 = time.perf_counter()
         s = self.bus.snap
@@ -8430,6 +8952,20 @@ class Gui(QMainWindow):
         if getattr(self, "_narration", None):
             self.banner.setText(self._narration[0])
             self.banner.setStyleSheet(self._narration[1])
+        elif self.ros_stale_s(s) is not None:
+            # AHEAD OF THE E-STOP SLAB, and deliberately. With the executor
+            # stopped, `es` is a value read some time ago and every other
+            # reading in the window is the same -- so the honest banner is
+            # not what the rig was doing, it is that this window can no
+            # longer see the rig OR send to it. The physical e-stop is
+            # unaffected by a dead Qt process.
+            self.banner.setText(
+                "THIS WINDOW'S ROS CONNECTION IS DEAD (%.0f s) -- every "
+                "reading below is FROZEN and no button will send. Restart "
+                "the window." % self.ros_stale_s(s))
+            self.banner.setStyleSheet(
+                "color:#0b0f13;background:%s;padding:5px;letter-spacing:1px"
+                % C_BAD)
         elif es:
             # THE ONLY SLAB IN THE INTERFACE. Reserved for the one state that
             # must interrupt whatever the operator was reading.
@@ -8671,6 +9207,7 @@ class Gui(QMainWindow):
             self._arm_ping_t = now
             threading.Thread(target=self._ping_arms, daemon=True).start()
         js = s.get("real_js_arms") or {}
+        deaf = self.ros_stale_s(s)
         for arm, lbl in self.arm_state_lbl.items():
             up = self._arm_ping.get(arm)
             pids = self._bridge_pids(arm)
@@ -8685,6 +9222,17 @@ class Gui(QMainWindow):
             elif not pids:
                 lbl.setText("reachable, NO BRIDGE")
                 col = C_WARN
+            elif deaf is not None:
+                # NAME THE RIGHT SUBSYSTEM. `fresh` is false whenever this
+                # window has not stamped an arrival recently -- and that is
+                # true both when the ARM stopped publishing and when THIS
+                # WINDOW stopped receiving. The two were rendered
+                # identically, as "bridge up, NO DATA", which sent the
+                # operator to the arm on 2026-08-29 while the arm was
+                # publishing at 11.9 Hz and the window's own ROS node was
+                # dead. Distinguish them before saying either.
+                lbl.setText("WINDOW NOT RECEIVING")
+                col = C_BAD
             elif not fresh:
                 lbl.setText("bridge up, NO DATA")
                 col = C_BAD

@@ -201,6 +201,50 @@ def level2_click():
     srl_gui.Gui._inst_start = fake_start
     srl_gui.Gui._inst_spawn = fake_spawn
 
+    # THE SCAN AND PICK BUTTONS DRIVE BOTH ARMS ACROSS A TABLE.
+    #
+    # Pressing them for real in the middle of an audit is exactly the sort of
+    # thing this file exists to avoid, and it is the same treatment LOOK,
+    # VOICE and the launchers already get: replace ONLY the Popen, and leave
+    # the whole click path -- the missing-file refusal, the venv choice, the
+    # note line, the log entry -- running for real.
+    seq_spawned = []
+
+    def fake_seq_spawn(self, argv):
+        seq_spawned.append(list(argv))
+        return None
+    srl_gui.Gui._seq_spawn = fake_seq_spawn
+
+    # THE ARM BUTTONS OPEN AND CLOSE KORTEX SESSIONS.
+    #
+    # CONNECT starts a real bridge; DISCONNECT signals one. Doing either for
+    # real mid-audit would open a session on the physical arm, or SIGINT the
+    # one an operator is using. Replace the spawn and the signal, and leave
+    # the rest of the path -- the missing-script refusal, the "no bridge is
+    # running" case, the note line -- running for real.
+    arm_spawned, arm_signalled = [], []
+
+    def fake_arm_spawn(self, argv):
+        arm_spawned.append(list(argv))
+        return None
+    srl_gui.Gui._arm_spawn = fake_arm_spawn
+
+    # No bridge exists during an audit, so DISCONNECT takes its "nothing was
+    # running" branch -- which is the branch worth exercising anyway.
+    srl_gui.Gui._bridge_pids = staticmethod(lambda arm: [])
+
+    # THE POSE BUTTONS COMMAND JOINT TRAJECTORIES. Same reasoning: the values
+    # and the refusal path are what matter, not whether an arm moves.
+    posed = []
+
+    def fake_send(self, arm, q, secs=5.0):
+        # RETURNS THE PAIR THE REAL ONE RETURNS. It returned a bare True while
+        # production returned (ok, topic); the caller then unpacked True and
+        # the audit would have passed on a signature that no longer existed.
+        posed.append((arm, [round(float(x), 4) for x in q], secs))
+        return (True, "/real/%s_arm_controller/joint_trajectory" % arm)
+    srl_gui.Bus.send_joint_pose = fake_send
+
     # THE CONSENT GATE IS MODAL, AND IT IS SUPPOSED TO BE.
     #
     # START SESSION walks `session.CONSENT_STEPS` with a modal QMessageBox per
@@ -304,18 +348,20 @@ def level2_click():
 
     # ---- AND EVERY MODE HAS A WAY IN.
     #
-    # The RUN tab opened on START VR TELEOP with the mode launchers five
-    # panels below it, so the honest answer to "what can this window do" was
-    # "VR teleoperation". Shared autonomy and full autonomy were behind a
-    # scroll and full autonomy's prompt was a tab in another column.
+    # The contract changed on 2026-08-27: the per-mode SIM/MOCK/REAL grid
+    # was absorbed into the three-click panel. Every mode still has ONE
+    # start button, and the sim view, the mock rehearsal and the real
+    # cascade are shared steps that apply to whichever mode is live --
+    # which is how the machine actually works (start_mode adopts what is
+    # running). The audit therefore proves: five mode starts, the instruct
+    # way in, and the three shared steps, all enabled.
     rows = getattr(g, "mode_btn", {})
-    want = {"%s_%s" % (m, t)
-            for m in ("teleop", "vr", "shared", "full")
-            for t in ("sim", "mock", "real")} | {"__instruct__"}
-    check("2", "every mode offers SIM, SIM+MOCK and SIM+REAL",
-          set(rows) >= want,
+    want = {"teleop", "vr", "shared", "shared_vr", "full",
+            "__instruct__", "__sim_view__", "__real__", "__mock__"}
+    check("2", "every mode has a start, plus sim view / mock / real",
+          set(rows) >= want and all(rows[k].isEnabled() for k in want),
           "missing: %s" % ", ".join(sorted(want - set(rows)))
-          if set(rows) < want else "%d buttons" % len(rows))
+          if set(rows) < want else "%d buttons, all enabled" % len(rows))
     check("2", "full autonomy has a prompt reachable from RUN",
           "__instruct__" in rows and rows["__instruct__"].isEnabled()
           and getattr(g, "instruct_tab_index", None) is not None,
@@ -465,7 +511,14 @@ def level2_click():
 
     # 3 -- WITH NO STACK UP, a service button must SAY the service is absent.
     #      This is the difference between "it did not work" and "it worked".
-    for k in ("2.  HOME BOTH ARMS", "reset e-stop", "stop real arms"):
+    # `2. HOME BOTH ARMS` was one of FOUR real-arm start buttons and is gone:
+    # they were consolidated into `MOVE THE REAL ARMS` on 2026-08-29, because
+    # an operator holding four buttons that each did part of the job and
+    # refused for a different reason pressed all of them and the arm never
+    # moved. Homing is now a stage inside that sequencer. What this check is
+    # FOR -- a service button must say so when its service is absent -- is
+    # unchanged, and the two remaining service buttons still carry it.
+    for k in ("reset e-stop", "stop real arms"):
         b = by_text.get(k)
         if b is None:
             check("2b", "service button present: %s" % k, False, "missing")
@@ -749,6 +802,27 @@ def level2_click():
         def shm_segments(self):
             return self.kw.get("shm", [])
 
+        def stale_shm_segments(self):
+            """THE ONE `check_shm` ACTUALLY BRANCHES ON.
+
+            This override was missing, so the injected segment reached
+            `shm_segments()` and then `check_shm` asked the REAL
+            `stale_shm_segments()`, which globs the live /dev/shm and consults
+            /proc. On a machine with nothing stale that returns [], the check
+            took its "segments in use by what is running" branch and reported
+            OK -- so the shm fault could never be reproduced and its repair
+            button could never be pressed.
+
+            It is the injection missing its consumer: the world said one
+            thing and the code under test read another, which is why a fault
+            injector needs its own control. `stale` is deliberately DERIVED
+            from the injected `shm` here rather than being a second
+            independent knob, so the two cannot drift apart again.
+            """
+            if "shm" not in self.kw:
+                return []
+            return list(self.kw["shm"])
+
         def daemon_nodes(self, timeout_s=8):
             return self.kw.get("daemon", (["/x"], False))
 
@@ -871,10 +945,45 @@ def level2_click():
           "buttons shown: %s" % (", ".join(shown) or "none"))
     g.doctor_frozen = False
 
-    # Every enabled launch spec must have been pressed.
+    # ---------------------------------------------------- the task runner
+    # The task/demo wall of one-button-per-(task x mode) is gone -- the
+    # operator called 55 buttons in one panel what it was. The runner is
+    # two selectors and RUN, so the audit drives it the way an operator
+    # does: every pair the manifest offers is selected and RUN pressed.
+    pairs = getattr(g, "_task_pairs", {})
+    task_demo = {s.key for s in g.specs if s.group in ("task", "demo")}
+    check("2", "every task/demo spec reachable from the selectors",
+          {sp.key for sp in pairs.values()} == task_demo,
+          "%d pairs vs %d specs" % (len(pairs), len(task_demo)))
+    refused_greys = None
+    for (base, short), sp in sorted(pairs.items()):
+        bi = g.task_pick.findData(base)
+        mi = g.mode_pick.findData(short)
+        if bi < 0 or mi < 0:
+            check("2", "selector offers %s / %s" % (base, short), False,
+                  "missing from a combo")
+            continue
+        g.task_pick.setCurrentIndex(bi)
+        g.mode_pick.setCurrentIndex(mi)
+        app.processEvents()
+        if sp.enabled:
+            g.task_run_btn.click()
+            _settle(2)
+        elif refused_greys is None:
+            # A pair the dispatcher refuses must grey RUN with the reason
+            # ON it before any press -- a RUN that exits 2 looks exactly
+            # like one that launched something invisible.
+            refused_greys = (not g.task_run_btn.isEnabled()
+                            and bool(g.task_run_note.text().strip()))
+    if refused_greys is not None:
+        check("2", "a refused pair greys RUN and says why", refused_greys,
+              g.task_run_note.text()[:60])
+
+    # Every enabled launch spec must have been LAUNCHED -- mode and diag
+    # specs from their buttons, task and demo specs through the runner.
     enabled = {s.key for s in g.specs if s.enabled}
     pressed = {k for k, _, _ in launched}
-    check("2", "every enabled launch button pressed", enabled <= pressed,
+    check("2", "every enabled launch spec launched", enabled <= pressed,
           "%d/%d (%s)" % (len(pressed & enabled), len(enabled),
                           ",".join(sorted(enabled - pressed)) or "none missing"))
 

@@ -73,6 +73,8 @@ from std_srvs.srv import Trigger
 
 import tf2_ros
 
+from . import vr_smoothing as smooth
+
 HANDS = ('left', 'right')
 
 
@@ -165,9 +167,34 @@ class VrPoseMapper(Node):
         # mannequin, where 1:1 was the right default.
         self.declare_parameter('scale_step_per_s', 0.5)
         self.declare_parameter('command_orientation', True)
-        # First-order low pass on the command. The Quest is a high-rate, low-
-        # noise source, so this is much lighter than the mannequin's 0.3 EMA.
+        # ------------------------------------------------------- SMOOTHING
+        # `one_euro` (default), `ema` (what shipped before), or `none`.
+        #
+        # THE EMA COULD NOT WIN. A fixed low pass buys stillness and lag with
+        # one constant and they trade directly: measured against a 1.5 mm-rms
+        # still hand and a 0.40 m/s reach, the shipped ema(0.6) left 1.74 mm
+        # of tremor and 3.66 mm of lag, and an EMA retuned to the 1-Euro's
+        # 0.51 mm stillness carries 64.4 mm of lag. The adaptive filter is off
+        # the fixed filter's trade-off curve, which is the only thing that
+        # justifies replacing a control law that was working.
+        #
+        # `ema` is kept so recordings made before this change reproduce, the
+        # same reason `motion_generator:=legacy` exists on the follower side.
+        self.declare_parameter('smoothing', 'one_euro')
         self.declare_parameter('ema_alpha', 0.6)
+        # Position, in metres. beta is Hz PER METRE PER SECOND -- the 1-Euro
+        # paper's example values are for PIXELS and are ~1000x too small here.
+        self.declare_parameter('min_cutoff_hz', 0.5)
+        self.declare_parameter('beta', 100.0)
+        self.declare_parameter('d_cutoff_hz', 0.2)
+        # ORIENTATION WAS NOT FILTERED AT ALL until 2026-08-26: the raw
+        # controller quaternion went straight to IK while position got an EMA.
+        # Wrist tremor therefore reached the arm unattenuated, and it is the
+        # wrist that the pads hang off. beta here is Hz per (rad/s).
+        self.declare_parameter('smooth_orientation', True)
+        self.declare_parameter('rot_min_cutoff_hz', 0.5)
+        self.declare_parameter('rot_beta', 8.0)
+        self.declare_parameter('rot_d_cutoff_hz', 0.5)
         self.declare_parameter('rate_hz', 100.0)
         # THE RATE LIMIT WAS THE OTHER HALF OF "SLOW". 0.35 m/s is slower
         # than an ordinary reach, so any brisk hand movement hit the limiter
@@ -177,8 +204,22 @@ class VrPoseMapper(Node):
         # the follower's own limit, so the follower and not this node remains
         # the thing that bounds arm speed.
         self.declare_parameter('max_speed_mps', 1.20)
-        self.declare_parameter('quiet_engage_m', 0.003)
+        self.declare_parameter('quiet_engage_m', 0.020)
         self.declare_parameter('quiet_window_s', 0.10)
+        # FEED THE DEAD-MAN WHILE NOT DRIVING. On a real-arm launch
+        # estop_node latches an e-stop when /master_arm_pose_<arm> goes
+        # stale for 0.5 s x 5 checks -- INCLUDING for an arm that has never
+        # published. This mapper used to publish only while the clutch was
+        # engaged, so every clutch release, every freeze, and the whole run
+        # for a one-handed session ended in a LATCHED e-stop that outlived
+        # its cause and needed /estop_reset from a terminal. While the
+        # mapper is alive but not driving a hand, it now commands the arm's
+        # OWN live pose: zero motion by construction (target == where the
+        # arm already is), so a freeze still stops the arm -- it just no
+        # longer converts into a latched e-stop. The dead-man still catches
+        # what it exists for: this PROCESS dying.
+        self.declare_parameter('hold_when_idle', True)
+        self.declare_parameter('hold_rate_hz', 20.0)
 
         self.hands = list(self.get_parameter('hands').value)
         self.arm_of = {'left': self.get_parameter('left_controller_arm').value,
@@ -190,11 +231,24 @@ class VrPoseMapper(Node):
         self.ctrl_hist = {h: [] for h in HANDS}
         self.joy = {h: None for h in HANDS}
         self.engaged = {h: False for h in HANDS}
+        # WHY the last squeeze did not engage, per hand. The
+        # refusals were logger.warn only, and the mapper runs as a
+        # detached subprocess with stdout at DEVNULL -- so the
+        # operator squeezed the grip, nothing moved, and the reason
+        # existed nowhere they could see it.
+        self.engage_refused = {h: None for h in HANDS}
+        self.grip_held = {h: False for h in HANDS}
         self.p_ref = {h: None for h in HANDS}
         self.q_ref = {h: None for h in HANDS}
         self.p_anchor = {h: None for h in HANDS}
         self.q_anchor = {h: None for h in HANDS}
         self.filt = {h: None for h in HANDS}
+        # The smoothers, one pair per hand. Built here and REBUILT on reset,
+        # because a filter carries the last run's state in exactly the way
+        # `filt` did -- and that was the accumulating miss that cost mode 02
+        # every grasping task.
+        self.pfilt = {h: self._make_pfilt() for h in HANDS}
+        self.qfilt = {h: self._make_qfilt() for h in HANDS}
         self.last_cmd = {h: None for h in HANDS}
         self.tracking_ok = False
         # PER-HAND tracking, separate from the global stream watchdog.
@@ -210,6 +264,7 @@ class VrPoseMapper(Node):
         self.lag = {h: 0.0 for h in HANDS}
         self.lag_max = {h: 0.0 for h in HANDS}
         self.n_resets = 0
+        self.last_hold_t = {h: 0.0 for h in HANDS}
 
         self.tf_buf = tf2_ros.Buffer()
         self.tf_lis = tf2_ros.TransformListener(self.tf_buf, self)
@@ -259,6 +314,31 @@ class VrPoseMapper(Node):
             'and only one input may be running at a time.')
 
     # --------------------------------------------------------------- reset
+    # ----------------------------------------------------------- smoothing
+    def _make_pfilt(self):
+        """The position smoother named by the `smoothing` parameter.
+
+        An unknown name RAISES rather than quietly falling back: a typo
+        selecting a different control law is how a session gets spent
+        comparing two conditions that were secretly the same one.
+        """
+        kind = str(self.get_parameter('smoothing').value)
+        return smooth.make(
+            kind,
+            alpha=float(self.get_parameter('ema_alpha').value),
+            min_cutoff=float(self.get_parameter('min_cutoff_hz').value),
+            beta=float(self.get_parameter('beta').value),
+            d_cutoff=float(self.get_parameter('d_cutoff_hz').value))
+
+    def _make_qfilt(self):
+        if not bool(self.get_parameter('smooth_orientation').value) \
+                or str(self.get_parameter('smoothing').value) == 'none':
+            return None
+        return smooth.OneEuroQuat(
+            float(self.get_parameter('rot_min_cutoff_hz').value),
+            float(self.get_parameter('rot_beta').value),
+            float(self.get_parameter('rot_d_cutoff_hz').value))
+
     def reset(self, why='request'):
         """Return the mapper to its just-started state.
 
@@ -277,6 +357,13 @@ class VrPoseMapper(Node):
             self.p_anchor[h] = None
             self.q_anchor[h] = None
             self.filt[h] = None
+            # REBUILT, not just cleared. A smoother holds the last run's
+            # position, velocity estimate and adaptive cutoff; carried into a
+            # second run they are wrong by however far the first run ended up.
+            # This is the same class of defect as `filt` and was found the
+            # same way.
+            self.pfilt[h] = self._make_pfilt()
+            self.qfilt[h] = self._make_qfilt()
             self.last_cmd[h] = None
             self.ctrl_hist[h] = []
             self.jump[h] = []
@@ -313,6 +400,9 @@ class VrPoseMapper(Node):
                     'this arm freezes. Re-grip in view to re-latch.' % hand)
             self.engaged[hand] = False
             self.filt[hand] = None
+            self.pfilt[hand].reset()
+            if self.qfilt[hand] is not None:
+                self.qfilt[hand].reset()
 
     def _on_safety_freeze(self, m):
         was = self.safety_frozen
@@ -325,6 +415,9 @@ class VrPoseMapper(Node):
                         'its last pose; re-grip once the cause is cleared.' % h)
                 self.engaged[h] = False
                 self.filt[h] = None
+                self.pfilt[h].reset()
+                if self.qfilt[h] is not None:
+                    self.qfilt[h].reset()
 
     def _on_tracking(self, m):
         was = self.tracking_ok
@@ -344,6 +437,9 @@ class VrPoseMapper(Node):
                         'Re-grip to re-latch; the arm holds its last pose.' % h)
                 self.engaged[h] = False
                 self.filt[h] = None
+                self.pfilt[h].reset()
+                if self.qfilt[h] is not None:
+                    self.qfilt[h].reset()
 
     # ------------------------------------------------------------ callbacks
     def _on_pose(self, hand, m):
@@ -364,6 +460,7 @@ class VrPoseMapper(Node):
         grip = m.axes[1]
         was = (prev.axes[1] > 0.6) if (prev and len(prev.axes) > 1) else False
         now = grip > 0.6
+        self.grip_held[hand] = bool(now)
         if now and not self.engaged[hand]:
             # RETRY while the grip is HELD, rather than only on the rising
             # edge. Engage can legitimately be refused - no pose yet, no robot
@@ -374,6 +471,7 @@ class VrPoseMapper(Node):
             # clutch never engaged again.
             self._engage(hand)
         elif was and not now:
+            self.engage_refused[hand] = None
             self._disengage(hand)
 
     # --------------------------------------------------------------- clutch
@@ -398,20 +496,24 @@ class VrPoseMapper(Node):
 
     def _engage(self, hand):
         if self.ctrl[hand] is None:
+            self.engage_refused[hand] = 'no controller pose yet'
             self.get_logger().warn('[%s] engage ignored: no controller pose' % hand)
             return
         if self.safety_frozen:
+            self.engage_refused[hand] = 'safety freeze held'
             self.get_logger().warn(
                 '[%s] engage REFUSED: the safety node is holding a freeze.'
                 % hand)
             return
         if not self.hand_tracked[hand]:
+            self.engage_refused[hand] = 'controller not tracked'
             self.get_logger().warn(
                 '[%s] engage REFUSED: the controller is not tracked. Latching '
                 'a reference off an emulated pose anchors the whole run to a '
                 'position the runtime invented.' % hand)
             return
         if not self._quiet(hand):
+            self.engage_refused[hand] = 'hand moving at engage - hold still'
             self.get_logger().warn(
                 '[%s] engage while the controller is MOVING - the reference '
                 'would be latched off a moving hand. Hold still and re-grip.'
@@ -420,6 +522,7 @@ class VrPoseMapper(Node):
         arm = self.arm_of[hand]
         pr, qr = self._robot_pose(arm)
         if pr is None:
+            self.engage_refused[hand] = 'no robot TF for this arm'
             self.get_logger().warn('[%s] engage ignored: no robot TF' % hand)
             return
         p, q = self.ctrl[hand]
@@ -431,6 +534,7 @@ class VrPoseMapper(Node):
         # frames after engage and shows up as a small jump.
         self.filt[hand] = None
         self.engaged[hand] = True
+        self.engage_refused[hand] = None
         # WHAT THIS NUMBER ACTUALLY IS, because it was reported under the
         # wrong name. The command at engage is set to `pr`, the arm's OWN
         # current pose read from TF, so the jump the ARM experiences is zero
@@ -482,7 +586,42 @@ class VrPoseMapper(Node):
                 tracking_ok=self.tracking_ok,
                 safety_frozen=self.safety_frozen,
                 align_yaw_deg=round(yaw, 2),
-                resets=self.n_resets))))
+                resets=self.n_resets,
+                grip_held=self.grip_held[hand],
+                engage_refused=self.engage_refused[hand],
+                # Whether this hand's arm topic is being kept alive with
+                # hold-in-place commands (the dead-man feed). False means an
+                # idle hand STARVES /master_arm_pose_<arm> on a real run.
+                feeding_deadman=bool(
+                    self.get_parameter('hold_when_idle').value)))))
+
+    def _publish_hold(self, hand):
+        """Command the arm's own live pose: zero motion by construction.
+
+        This is what keeps /master_arm_pose_<arm> a live source for the
+        e-stop dead-man while the clutch is out or a freeze stands. Silence
+        here does not stop the arm any harder than a hold does -- the
+        follower holds its last command either way -- but silence LATCHES
+        the e-stop, and the latch outlives the freeze that caused it.
+        """
+        if not bool(self.get_parameter('hold_when_idle').value):
+            return
+        now = self.get_clock().now().nanoseconds * 1e-9
+        if now - self.last_hold_t[hand] < 1.0 / max(
+                1e-3, float(self.get_parameter('hold_rate_hz').value)):
+            return
+        arm = self.arm_of[hand]
+        p, q = self._robot_pose(arm)
+        if p is None:
+            return                       # no TF yet: nothing true to say
+        m = PoseStamped()
+        m.header.stamp = self.get_clock().now().to_msg()
+        m.header.frame_id = 'world'
+        m.pose.position.x, m.pose.position.y, m.pose.position.z = map(float, p)
+        (m.pose.orientation.x, m.pose.orientation.y,
+         m.pose.orientation.z, m.pose.orientation.w) = map(float, q)
+        self.cmd_pub[hand].publish(m)
+        self.last_hold_t[hand] = now
 
     def _tick(self):
         dt = 1.0 / float(self.get_parameter('rate_hz').value)
@@ -493,17 +632,20 @@ class VrPoseMapper(Node):
                         * j.axes[3] * dt)
                 self._set_scale(hand, self.scale + step)
             if not self.engaged[hand] or self.ctrl[hand] is None:
+                self._publish_hold(hand)
                 continue
             if self.safety_frozen or not self.tracking_ok \
                     or not self.hand_tracked[hand]:
-                # Freeze. Publishing nothing is the correct behaviour: the
-                # follower holds its last command.
+                # Freeze. The arm must not MOVE -- so command where it
+                # already is, rather than going silent and feeding the
+                # dead-man latch. See _publish_hold.
                 self.get_logger().error(
-                    '[%s] %s - FREEZING (publishing no command)'
+                    '[%s] %s - FROZEN (commanding hold-in-place)'
                     % (hand, 'safety freeze' if self.safety_frozen
                        else 'link lost' if not self.tracking_ok
                        else 'controller not tracked'),
                     throttle_duration_sec=1.0)
+                self._publish_hold(hand)
                 continue
             p, q = self.ctrl[hand]
             d = p - self.p_ref[hand]
@@ -513,10 +655,17 @@ class VrPoseMapper(Node):
             p_cmd = self.p_anchor[hand] + self.scale * (R @ d)
             if self.filt[hand] is None:
                 self.filt[hand] = p_cmd.copy()
+                self.pfilt[hand].reset()
+                self.pfilt[hand](p_cmd, dt)
             else:
-                a = self.alpha
-                nxt = a * p_cmd + (1 - a) * self.filt[hand]
-                # speed limit, same spirit as the follower's max_vel
+                # SMOOTH FIRST, THEN RATE LIMIT. The order matters and it is
+                # not interchangeable: rate-limiting a noisy signal makes the
+                # limiter fire on tremor, and a limiter that has fired cannot
+                # give the distance back while the motion continues -- that is
+                # the accumulating `lag_m`. Filtering first means the limiter
+                # only ever sees smooth motion, so it fires on genuinely fast
+                # hands and nothing else.
+                nxt = np.asarray(self.pfilt[hand](p_cmd, dt), float)
                 step = nxt - self.filt[hand]
                 mx = float(self.get_parameter('max_speed_mps').value) * dt
                 n = float(np.linalg.norm(step))
@@ -550,6 +699,20 @@ class VrPoseMapper(Node):
                     qz = yaw_quat(yaw)
                     dq = q_mul(q_mul(qz, dq), q_conj(qz))
                 q_out = q_norm(q_mul(dq, self.q_anchor[hand]))
+                # SMOOTHED, WHICH IT NEVER WAS. Until 2026-08-26 this line
+                # published the controller's rotation raw while position went
+                # through a low pass, so wrist tremor reached the arm
+                # unattenuated -- and the wrist is what the pads hang off, so
+                # 0.74 deg of hand tremor is ~1.4 mm at the fingertips plus
+                # whatever chatter it induces in the IK.
+                #
+                # Slerped, not component-averaged, and sign-canonicalised
+                # against the previous output: q and -q are the same rotation,
+                # and a filter that misses that interpolates the long way
+                # round and swings the wrist through 360 deg on an input that
+                # was perfectly valid.
+                if self.qfilt[hand] is not None:
+                    q_out = q_norm(self.qfilt[hand](q_out, dt))
             else:
                 q_out = self.q_anchor[hand]
 
@@ -581,10 +744,26 @@ class VrPoseMapper(Node):
                 reengage_jump_m=0.0,
                 n_engages=len(self.jump[hand]),
                 hand_tracked=self.hand_tracked[hand],
+                grip_held=self.grip_held[hand],
+                engage_refused=None,
                 align_yaw_deg=round(yaw, 2),
                 safety_frozen=self.safety_frozen,
                 lag_m=round(self.lag[hand], 5),
                 max_lag_m=round(self.lag_max[hand], 5),
+                # WHAT THE SMOOTHER IS DOING RIGHT NOW. The adaptive cutoff is
+                # the whole mechanism, so leaving it invisible would make
+                # "feels laggy" and "feels jittery" unfalsifiable in exactly
+                # the way the old fixed alpha was: `cutoff_hz` near
+                # min_cutoff means it is treating the hand as still, and high
+                # means it is tracking a fast reach.
+                smoothing=str(self.get_parameter('smoothing').value),
+                cutoff_hz=round(float(getattr(self.pfilt[hand], 'cutoff',
+                                              float('nan'))), 2),
+                hand_speed_mps=round(float(getattr(self.pfilt[hand], 'speed',
+                                                   float('nan'))), 4),
+                rot_smoothed=self.qfilt[hand] is not None,
+                rot_cutoff_hz=(None if self.qfilt[hand] is None else
+                               round(float(self.qfilt[hand].cutoff), 2)),
                 resets=self.n_resets))
             self.st_pub[hand].publish(s)
 

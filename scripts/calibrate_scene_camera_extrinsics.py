@@ -279,14 +279,31 @@ def main(argv=None):
 
     K, D = load_K()
     if a.live:
-        cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+        # MJPG, AND THE PROBED NODE. Index 0 with the default format is two
+        # bugs at once over usbip: YUYV opens and then never delivers a
+        # frame, and index 0 is a RealSense depth node the moment the depth
+        # camera is attached. A calibration that silently grabs the wrong
+        # sensor -- or no frame at all -- produces an extrinsic nobody can
+        # tell is wrong.
+        sys.path.insert(0, os.path.join(WS, "src/srl_perception"))
+        from srl_perception.srl_cameras import probe_scene_camera
+        idx, tried = probe_scene_camera()
+        if idx is None:
+            raise SystemExit(
+                "REFUSING: no camera delivered a frame. Tried: %s. "
+                "Run scripts/attach_scene_camera.sh." % "; ".join(tried))
+        cap = cv2.VideoCapture(idx, cv2.CAP_V4L2)
         if not cap.isOpened():
             raise SystemExit(
-                "REFUSING: no camera. Run scripts/attach_scene_camera.sh.")
+                "REFUSING: /dev/video%d will not open. Run "
+                "scripts/attach_scene_camera.sh." % idx)
+        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         img = None
         for _ in range(12):
             good, f = cap.read()
-            if good:
+            if good and f is not None:
                 img = f
         cap.release()
     elif a.image:

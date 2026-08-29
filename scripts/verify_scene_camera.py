@@ -80,13 +80,42 @@ def main(argv=None):
     img = None
     src = ""
     if a.live and vids:
-        cap = cv2.VideoCapture(vids[0], cv2.CAP_V4L2)
-        for _ in range(10):
-            ok, f = cap.read()
-            if ok:
-                img = f
-        cap.release()
-        src = vids[0]
+        # THROUGH THE ONE PROBE, NOT vids[0] AND NOT THE DEFAULT FORMAT.
+        #
+        # This verifier had two independent ways of failing a WORKING camera,
+        # and it is the instrument the reader trusts to tell them whether the
+        # camera works -- CLAUDE.md's standing rule, in the tool whose whole
+        # job is the measurement.
+        #
+        #   * It never set MJPG. Uncompressed YUYV negotiates happily over
+        #     usbip and then delivers NOTHING for ever: measured on this rig
+        #     MJPG 640x480 reads 131.7 mean and YUYV times out in select().
+        #     `scene_camera_node` carries a comment saying exactly this; the
+        #     verifier did not carry the line.
+        #   * It took vids[0]. A RealSense presents SIX /dev/video* nodes and
+        #     several of them open cleanly and return nothing, so with the
+        #     depth camera attached the verifier graded a depth node and
+        #     reported the scene camera dead.
+        #
+        # `probe_scene_camera` already solves both and names every node it
+        # rejected. A third copy of the logic here is how the two drift.
+        sys.path.insert(0, os.path.join(WS, "src/srl_perception"))
+        from srl_perception.srl_cameras import probe_scene_camera
+        idx, tried = probe_scene_camera()
+        if idx is None:
+            row("scene camera delivers", "NO", True,
+                "; ".join(tried) or "no candidate node")
+        else:
+            cap = cv2.VideoCapture(idx, cv2.CAP_V4L2)
+            cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            for _ in range(10):
+                ok, f = cap.read()
+                if ok and f is not None:
+                    img = f
+            cap.release()
+            src = "/dev/video%d" % idx
     if img is None:
         cands = ([a.image] if a.image else
                  sorted(glob.glob(os.path.join(WS, "recordings", "scene_camera",

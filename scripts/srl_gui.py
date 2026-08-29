@@ -96,6 +96,8 @@ from rcl_interfaces.srv import SetParameters
 from std_msgs.msg import Bool, Float64MultiArray, String
 from std_srvs.srv import Trigger
 from sensor_msgs.msg import Image, JointState
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+from builtin_interfaces.msg import Duration as RosDuration
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _WS = os.path.dirname(_HERE)
@@ -127,6 +129,8 @@ from srl_teleop import real_arm_doctor as rad                 # noqa: E402
 # deliberately broken machine and require it to say so, without binding
 # a port or deleting a certificate on the machine running the test.
 from srl_teleop import vr_bringup as vrb                     # noqa: E402
+import srl_named_poses as _POSES                             # noqa: E402
+import srl_map_objects as _MAPOBJ                            # noqa: E402
 
 # THE MOTION GENERATORS, AND WHAT EACH COSTS. Measured offline by
 # `scripts/measure_teleop_motion.py` on the left arm's shipped home plus
@@ -162,11 +166,12 @@ MOTION_NOTES = [
      "it only to reproduce a recording made before that date."),
 ]
 
-from PyQt5.QtCore import Qt, QTimer                          # noqa: E402
+from PyQt5.QtCore import QEvent, QObject, Qt, QTimer                          # noqa: E402
 from PyQt5.QtGui import (QColor, QFont, QGuiApplication,   # noqa: E402
                          QImage, QPalette,
                          QPixmap, QWindow)
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox,  # noqa: E402
+                             QDoubleSpinBox,
                              QGridLayout,
                              QGroupBox, QHBoxLayout, QLabel, QMainWindow,
                              QPushButton, QScrollArea, QSizePolicy, QSlider,
@@ -373,6 +378,24 @@ class Bus(Node):
                      ("/master_channel_state", "chan"),
                      ("/autonomy_decision", "autonomy"),
                      ("/vr_state", "vr"),
+                     # THE LINK ITSELF: which address the headset should be
+                     # pointed at, which address it actually connected FROM,
+                     # and whether frames are arriving. The window used to
+                     # show none of that -- the URL was behind a button that
+                     # printed it once, and the headset's own address was
+                     # never reported at all, so "connected" was a count of
+                     # anonymous sockets.
+                     ("/vr/bridge_status", "vrbridge"),
+                     ("/vr/mapper_left", "vrmap_left"),
+                     ("/vr/mapper_right", "vrmap_right"),
+                     # WHY THE ARM IS NOT MOVING, in the window. The safety
+                     # node has always published its freeze and the reason on
+                     # /vr/safety; the window never read it, so a frozen
+                     # mapper looked identical to a broken one -- the exact
+                     # confusion the 2026-08-20 real session spent an hour on.
+                     ("/vr/safety", "vrsafety"),
+                     # The unified vision layer's per-camera verdict.
+                     ("/perception/scene/objects", "scenecv"),
                      ("/gripper_reference", "grip"),
                      ("/recovery_state", "recovery"),
                      ("/trial_state", "trial"),
@@ -400,10 +423,12 @@ class Bus(Node):
         # arrival and content-change apart -- /real/joint_states is known to
         # FREEZE at full rate rather than stop when the hardware component
         # goes inactive, and arrival-rate freshness cannot see that.
-        self.create_subscription(JointState, "/joint_states",
-                                 self._on_sim_js, 20)
-        self.create_subscription(JointState, "/real/joint_states",
-                                 self._on_real_js, 20)
+        self.create_subscription(
+            JointState, "/joint_states",
+            lambda m: (self._note_sim_js(m), self._on_sim_js(m)), 20)
+        self.create_subscription(
+            JointState, "/real/joint_states",
+            lambda m: (self._note_real_arm(m), self._on_real_js(m)), 20)
 
         from tf2_msgs.msg import TFMessage
         from rclpy.qos import QoSProfile, DurabilityPolicy
@@ -433,6 +458,14 @@ class Bus(Node):
         self.create_subscription(
             Image, "/scene_camera/image_raw", self._on_scene_image,
             qos_profile_sensor_data)
+        # The vision layer's ANNOTATED scene frame: boxes, labels, or the
+        # refusal burned into the picture. Preferred over the raw frame in
+        # the always-on scene view whenever it is fresh.
+        self.scene_ov_img = None
+        self.scene_ov_img_t = 0.0
+        self.create_subscription(
+            Image, "/perception/scene/overlay/scene_usb",
+            self._on_scene_overlay, qos_profile_sensor_data)
 
         self.cam = {a: cr.ChannelState() for a in ARMS}
         self.cam_img = {a: None for a in ARMS}
@@ -459,8 +492,13 @@ class Bus(Node):
         # of them, this still works. Whichever one arrives is NAMED in the
         # panel, so "there is a picture" and "the picture came from where I
         # think" stay separate claims.
+        # The vision layer's ANNOTATED gripper frame goes FIRST: when
+        # scene_understanding_node runs, the operator sees the detections
+        # on the picture, not beside it. _on_image keys freshness per
+        # topic arrival, and the panel names which topic it is showing.
         for a in ARMS:
-            for topic in ("/%s_camera/color/image_raw" % a,
+            for topic in ("/perception/scene/overlay/gripper_%s" % a,
+                          "/%s_camera/color/image_raw" % a,
                           "/%s_wrist_camera/image_raw" % a,
                           "/wrist_mounted_camera/%s/image" % a):
                 self.create_subscription(
@@ -556,16 +594,59 @@ class Bus(Node):
                           msg.encoding)
         self.scene_img_t = time.monotonic()
 
+    def _on_scene_overlay(self, msg):
+        self.scene_ov_img = (msg.width, msg.height, bytes(msg.data),
+                             msg.step, msg.encoding)
+        self.scene_ov_img_t = time.monotonic()
+
     def _on_image(self, arm, msg, topic=None):
         self.cam[arm].on_frame(msg.width, msg.height, msg.encoding)
-        # WHICH topic it came from, so the panel can say. Three names are
-        # subscribed and only one of them is what this repository publishes.
+        # ANNOTATED FRAMES WIN WHILE FRESH. The vision overlay runs ~2 Hz
+        # against a raw stream many times faster; last-writer-wins would
+        # flash a detection for one frame and paint raw over it. While an
+        # overlay arrived in the last 2.5 s, raw frames feed liveness (the
+        # on_frame above) but not the picture.
+        is_ov = bool(topic) and "/overlay/" in topic
+        now = time.monotonic()
+        if is_ov:
+            self._cam_ov_t = getattr(self, "_cam_ov_t", {})
+            self._cam_ov_t[arm] = now
+        elif now - getattr(self, "_cam_ov_t", {}).get(arm, 0.0) < 2.5:
+            return
+        # WHICH topic it came from, so the panel can say. Four names are
+        # subscribed and only two are ever published here.
         self.cam_topic[arm] = topic
         # Keep the RAW buffer; convert on the GUI thread only when it will
         # actually be painted, so ROS-thread time is not spent on frames the
         # GUI is about to discard as stale.
         self.cam_img[arm] = (msg.width, msg.height, msg.encoding,
                              bytes(msg.data), msg.step)
+
+    def sim_js_age(self):
+        """Seconds since /joint_states last arrived, or None if never.
+
+        THIS IS WHAT THE REAL CASCADE ACTUALLY WAITS ON. `start_real.sh`
+        step 1 of 6 is "checking the sim stack" and it refuses with
+        "/joint_states is not publishing" -- so the thing to wait for is the
+        TOPIC, not the processes.
+        """
+        t = getattr(self, "_sim_js_t", 0.0)
+        return None if not t else (time.time() - t)
+
+    def _note_sim_js(self, msg):
+        self._sim_js_t = time.time()
+
+    def _note_real_arm(self, msg):
+        """Stamp each arm that appears in a /real/joint_states message."""
+        if not hasattr(self, "_real_arm_t"):
+            self._real_arm_t = {}
+        if not hasattr(self, "_real_q"):
+            self._real_q = {}
+        self._real_q.update(dict(zip(msg.name, msg.position)))
+        names = set(msg.name)
+        for arm in ("left", "right"):
+            if all("%s_joint_%d" % (arm, i) in names for i in range(1, 8)):
+                self._real_arm_t[arm] = time.time()
 
     def _set(self, k, v):
         self._d[k] = (v, time.monotonic())
@@ -613,6 +694,8 @@ class Bus(Node):
         s["robot_schema"] = self._robot_schema()
         s["scene_img"] = self.scene_img
         s["scene_img_t"] = self.scene_img_t
+        s["scene_ov_img"] = self.scene_ov_img
+        s["scene_ov_img_t"] = self.scene_ov_img_t
         s["log"] = list(self.log[-200:])
         self.snap = s
 
@@ -891,6 +974,231 @@ class Bus(Node):
         fut.add_done_callback(
             lambda f: self.note("%s -> %s" % (name, _res(f))))
 
+    def real_arms_seen(self, max_age=2.0):
+        """Which arms have published joint states RECENTLY. {arm: age_s}.
+
+        KEYED ON ARRIVAL, and deliberately per-ARM rather than per-topic:
+        both bridges publish to /real/joint_states and each message carries
+        only its own arm's joints, so "the topic is alive" says nothing about
+        whether a PARTICULAR arm is. This session read exactly that wrong --
+        a single snapshot of the topic showed the right arm and reported the
+        left as MISSING while the left bridge was running perfectly at
+        25.7 Hz.
+        """
+        now = time.time()
+        seen = getattr(self, "_real_arm_t", {})
+        return {a: now - t for a, t in seen.items() if now - t < max_age}
+
+    #: How often the held setpoint is re-sent, Hz. The bridge's watchdog is
+    #: `watchdog_s` (0.5 s by default) and it commands ZERO SPEED when no
+    #: target has arrived within it, so a setpoint sent once is a setpoint
+    #: that stops being obeyed half a second later.
+    HOLD_HZ = 20.0
+
+    def send_joint_pose(self, arm, q, secs=5.0):
+        """Command one arm to a joint vector AND KEEP HOLDING IT.
+
+        THE BRIDGE HAS A WATCHDOG AND THIS DID NOT FEED IT.
+        ---------------------------------------------------
+        `kortex_highlevel_bridge` lists three things that command zero speed,
+        and the first is "the watchdog, if no target arrives for
+        watchdog_s" -- 0.5 s. This method published the trajectory three
+        times and stopped, so the arm moved for half a second, the watchdog
+        fired, and it stopped wherever it had got to. The operator's symptom
+        was exact: HOME and PICK POSE had to be pressed over and over to keep
+        the arm there, because each press bought 0.5 s of motion.
+
+        `execute_pick_left.Executor` never had this problem -- it republishes
+        `self._hold` every cycle at 20 Hz for exactly this reason. This now
+        does the same: the target is latched per arm and re-sent by a
+        background thread until a NEW target replaces it.
+
+        THE HOLD IS A SETPOINT, NOT A PUSH. The bridge closes the error
+        proportionally, so re-sending the same target is what "hold this
+        pose" means to it; it is not repeated commanding of new motion.
+        """
+        if not hasattr(self, "_jt_pub"):
+            self._jt_pub = {}
+        real = "/real/%s_arm_controller/joint_trajectory" % arm
+        sim = "/%s_arm_controller/joint_trajectory" % arm
+        for topic in (real, sim):
+            if topic not in self._jt_pub:
+                self._jt_pub[topic] = self.create_publisher(
+                    JointTrajectory, topic, 10)
+                time.sleep(0.25)
+        # WHEN THE CASCADE IS RUNNING, COMMAND THE SIMULATION -- NOT /real/.
+        #
+        # `sim_to_real_bridge` replays the SIM's joint states onto
+        # /real/<arm>_arm_controller/joint_trajectory continuously. Publishing
+        # there as well makes TWO WRITERS on one arm, each overriding the
+        # other several times a second, and the arm shakes on every movement.
+        # That is a genuinely dangerous failure and it is what "the arms are
+        # shaking with every movement" was.
+        #
+        # So: cascade up -> drive the sim ONCE and let the cascade relay it.
+        # No cascade (a bare bridge from CONNECT) -> drive /real/ and hold it,
+        # because then nothing else is feeding the bridge's watchdog.
+        cascade = self._cascade_running()
+        order = (sim, real) if cascade else (real, sim)
+        pub = chosen = None
+        for topic in order:
+            if self._jt_pub[topic].get_subscription_count() >= 1:
+                pub, chosen = self._jt_pub[topic], topic
+                break
+        if pub is None:
+            return (False, None)
+        # THE HOLD IS FOR THE REAL BRIDGE ONLY. NEVER THE SIMULATION.
+        #
+        # The bridge is a SETPOINT consumer with a 0.5 s watchdog, so it needs
+        # feeding. A JointTrajectoryController -- which is what the bare
+        # (simulated) topic is -- is a TRAJECTORY consumer: every message is a
+        # NEW trajectory, so re-sending at 20 Hz makes it re-plan fifty times
+        # a second and the arm shakes. Under SIM + REAL that shake is then
+        # RELAYED to the metal by sim_to_real_bridge, which is how a fix for
+        # "the pose will not hold" turned into "the arms shake on every
+        # movement".
+        #
+        # The simulated controller holds its own goal, so it needs exactly one
+        # message and nothing more.
+        if chosen.startswith("/real/"):
+            self._start_hold(arm, pub, list(map(float, q)), secs)
+        else:
+            self.release_hold(arm)
+            t = JointTrajectory()
+            t.joint_names = ["%s_joint_%d" % (arm, i) for i in range(1, 8)]
+            pt = JointTrajectoryPoint()
+            pt.positions = [float(x) for x in q]
+            pt.time_from_start = RosDuration(sec=int(secs), nanosec=0)
+            t.points = [pt]
+            for _ in range(3):
+                pub.publish(t)
+        return (True, chosen)
+
+    @staticmethod
+    def _cascade_running():
+        """Is sim_to_real_bridge relaying the simulation onto the real arm?
+
+        Cached for a second: this is asked on every pose command and spawning
+        pgrep on the Qt thread at speed is its own problem.
+        """
+        import subprocess as _sp
+        now = time.time()
+        if now - getattr(Bus, "_casc_t", 0.0) < 1.0:
+            return Bus._casc
+        try:
+            out = _sp.run(["pgrep", "-f", "sim_to_real_bridge"],
+                          capture_output=True, text=True, timeout=3).stdout
+            Bus._casc = bool([x for x in out.split() if x.strip().isdigit()])
+        except Exception:                                     # noqa: BLE001
+            Bus._casc = False
+        Bus._casc_t = now
+        return Bus._casc
+
+    def _start_hold(self, arm, pub, q, secs):
+        if not hasattr(self, "_hold"):
+            self._hold = {}
+            self._hold_lock = threading.Lock()
+        with self._hold_lock:
+            # REPLACES any previous hold for this arm. Two holds on one arm
+            # would be two writers racing on the same setpoint.
+            self._hold[arm] = dict(pub=pub, q=q, secs=secs, t0=time.time())
+        if not getattr(self, "_hold_thread_up", False):
+            self._hold_thread_up = True
+            threading.Thread(target=self._hold_loop, daemon=True).start()
+
+    #: Arrived, in degrees, worst joint. Once inside this the hold STOPS.
+    HOLD_ARRIVED_DEG = 1.5
+    #: A constant, gentle horizon for every re-send. NOT a shrinking one.
+    HOLD_HORIZON_S = 1.0
+
+    def _hold_loop(self):
+        """Feed the setpoint until the arm ARRIVES, then stop.
+
+        TWO BUGS LIVED HERE AND THEY ARE OPPOSITES.
+        -------------------------------------------
+        FIRST: nothing was re-sent at all. The bridge's watchdog commands zero
+        speed if no target arrives within `watchdog_s` (0.5 s), so one send
+        bought half a second of motion and the operator had to press HOME over
+        and over.
+
+        THEN, fixing that badly: the whole trajectory was re-sent at 20 Hz
+        with a time_from_start that SHRANK toward 0.2 s. A
+        JointTrajectoryController treats each message as a NEW TRAJECTORY, so
+        the arm was re-planned fifty times a second and told to close whatever
+        error remained in 0.2 s. It reached the pose and then dithered around
+        it, hard -- "extremely unstable" is exactly right, and it is worse the
+        closer it gets, because the horizon is shortest there.
+
+        The resolution is that the hold is only needed WHILE MOVING. Once the
+        arm is at the target, the watchdog firing is harmless: zero speed on a
+        non-backdrivable servo IS holding position. So this feeds the move and
+        then gets out of the way, which is what both consumers want.
+        """
+        import numpy as _np
+        while True:
+            time.sleep(1.0 / self.HOLD_HZ)
+            with self._hold_lock:
+                items = list(self._hold.items())
+            for arm, h in items:
+                est = self.snap.get("estop")
+                if est and bool(est[0]):
+                    with self._hold_lock:
+                        self._hold.pop(arm, None)
+                    self.note("e-stop engaged -- dropped the %s arm's held "
+                              "setpoint" % arm, bad=True)
+                    continue
+                # ARRIVED? Then stop feeding it and say so ONCE.
+                names = ["%s_joint_%d" % (arm, i) for i in range(1, 8)]
+                cur = getattr(self, "_real_q", {}) or {}
+                have = [cur.get(n) for n in names]
+                if all(v is not None for v in have):
+                    d = _np.abs((_np.array(have) - _np.array(h["q"]) + _np.pi)
+                                % (2 * _np.pi) - _np.pi)
+                    worst = float(_np.degrees(d).max())
+                    if worst < self.HOLD_ARRIVED_DEG:
+                        with self._hold_lock:
+                            self._hold.pop(arm, None)
+                        self.note("%s arm arrived (worst %.2f deg) -- hold "
+                                  "released; the controller holds position "
+                                  "from here" % (arm, worst))
+                        continue
+                # GIVE UP FEEDING after a sane ceiling rather than for ever.
+                # A setpoint re-sent indefinitely at an arm that is not moving
+                # is an arm fighting something, and that should be visible.
+                if time.time() - h["t0"] > max(20.0, h["secs"] * 3):
+                    with self._hold_lock:
+                        self._hold.pop(arm, None)
+                    self.note("%s arm did not arrive within %.0f s -- hold "
+                              "released. It may be blocked, e-stopped, or the "
+                              "target may be unreachable."
+                              % (arm, max(20.0, h["secs"] * 3)), bad=True)
+                    continue
+                t = JointTrajectory()
+                t.joint_names = names
+                pt = JointTrajectoryPoint()
+                pt.positions = h["q"]
+                # CONSTANT horizon. A shrinking one is what made the endgame
+                # violent: the closer the arm got, the harder it was told to
+                # close the remainder.
+                pt.time_from_start = RosDuration(
+                    sec=int(self.HOLD_HORIZON_S),
+                    nanosec=int((self.HOLD_HORIZON_S % 1.0) * 1e9))
+                t.points = [pt]
+                try:
+                    h["pub"].publish(t)
+                except Exception:                             # noqa: BLE001
+                    pass
+
+    def release_hold(self, arm=None):
+        """Stop holding. Used by the e-stop path and when a run takes over."""
+        if not hasattr(self, "_hold"):
+            return
+        with self._hold_lock:
+            if arm is None:
+                self._hold.clear()
+            else:
+                self._hold.pop(arm, None)
+
     def set_param(self, node, name, value):
         """Parameter CLIENT, read back, and LOUD on failure.
 
@@ -906,9 +1214,22 @@ class Bus(Node):
         p = Parameter()
         p.name = name
         v = ParameterValue()
+        # THE ORDER OF THESE BRANCHES IS LOAD-BEARING. `bool` is a subclass of
+        # `int` in Python, so an `isinstance(value, int)` test placed above the
+        # bool test swallows True/False and sends them as integers -- which a
+        # node declaring a BOOL parameter then REFUSES, reporting a type error
+        # against a control that looks perfectly correct in the window.
         if isinstance(value, bool):
             v.type = ParameterType.PARAMETER_BOOL
             v.bool_value = value
+        elif isinstance(value, str):
+            # STRINGS WERE NOT SUPPORTED AND WERE NOT REFUSED EITHER: every
+            # non-bool went through float(), so a string parameter raised
+            # ValueError inside this method and the operator saw nothing at
+            # all. `smoothing` is the first string parameter any control in
+            # this window sets.
+            v.type = ParameterType.PARAMETER_STRING
+            v.string_value = value
         else:
             v.type = ParameterType.PARAMETER_DOUBLE
             v.double_value = float(value)
@@ -997,6 +1318,30 @@ class Dial(QWidget):
 # ===========================================================================
 #  MAIN WINDOW
 # ===========================================================================
+class WheelGuard(QObject):
+    """Refuse wheel events on value controls that do not have focus.
+
+    See the note at the install site in main(). The guarded types are the
+    ones whose value decides what the next run does; a wheel over any of
+    them while merely scrolling the column past it is a silent edit.
+    """
+
+    # QDoubleSpinBox is NOT a subclass of QSpinBox -- both derive from
+    # QAbstractSpinBox and neither from the other -- so leaving it out would
+    # have left the two smoothing knobs unguarded while looking covered. They
+    # sit in a scrolling column, which is exactly the situation this guard
+    # exists for: a wheel over `beta` on the way past it silently retunes the
+    # teleoperation.
+    GUARDED = (QComboBox, QSlider, QSpinBox, QDoubleSpinBox)
+
+    def eventFilter(self, obj, ev):
+        if ev.type() == QEvent.Wheel and isinstance(obj, self.GUARDED):
+            if not obj.hasFocus():
+                ev.ignore()
+                return True
+        return False
+
+
 class Gui(QMainWindow):
 
     def __init__(self, bus, args):
@@ -1392,7 +1737,7 @@ class Gui(QMainWindow):
         # arms are on somebody else's back. Placed last it fell below the fold
         # on a 950 px display, which for the single most important panel is a
         # real defect rather than a cosmetic one.
-        campanel = QGroupBox("Gripper cameras  --  what each hand sees")
+        campanel = QGroupBox("GRIPPER CAMERAS  --  live")
         campanel.setFont(helvetica(11, True))
         cl = QHBoxLayout(campanel)
         self.cam_lbl, self.cam_cap = {}, {}
@@ -1402,7 +1747,28 @@ class Gui(QMainWindow):
             nm.setFont(helvetica(10, True))
             nm.setAlignment(Qt.AlignCenter)
             img = QLabel()
-            img.setMinimumSize(140, 106)
+            # A FIXED BOX, NOT A MINIMUM, AND IT IS A BUG FIX.
+            #
+            # This was setMinimumSize, and refresh() scales each frame to
+            # `cam_lbl.width()/height()` -- the label's OWN CURRENT SIZE. A
+            # label with a pixmap takes its size hint FROM that pixmap, so
+            # the label sized the frame and the frame then sized the label:
+            # a positive feedback loop with nothing damping it.
+            #
+            # The stale path made it visible. Going stale clears the pixmap
+            # and writes text, so the label collapses toward its minimum;
+            # the next frame is then scaled into the smaller box, and the
+            # box ratchets. Measured on the rig 2026-08-25 the panel
+            # resized continuously, several times a second, because the
+            # Kinova colour stream was flapping live/stale at 1.6-5 Hz
+            # against a fixed 0.5 s staleness window (fixed separately, in
+            # camera_relay.thresholds).
+            #
+            # A fixed box breaks the loop at the source: the scale target no
+            # longer depends on what was last painted, so a frame, a STALE
+            # label and an empty panel all occupy exactly the same rectangle
+            # and nothing downstream of them moves.
+            img.setFixedSize(220, 165)
             img.setAlignment(Qt.AlignCenter)
             img.setStyleSheet("background:#111;color:#bbb;border:1px solid #999")
             cap = QLabel()
@@ -1413,6 +1779,14 @@ class Gui(QMainWindow):
             # caption cannot be read is a camera panel with no caption, and
             # the caption is the only thing separating "live" from "stale".
             cap.setWordWrap(True)
+            # AND A FIXED HEIGHT ON THE CAPTION, for the same reason one line
+            # up. The caption is wrapped, so its height depends on how long
+            # the text is -- and the text alternates between "live 9.2 Hz
+            # 1280x720 [/left_camera/color/image_raw]" and "STALE -- last
+            # frame 0.52 s ago", which wrap to different numbers of lines.
+            # Every one of those transitions relaid out the column. Three
+            # lines is enough for the longest caption plus its topic name.
+            cap.setFixedHeight(42)
             c.addWidget(nm)
             c.addWidget(img)
             c.addWidget(cap)
@@ -1452,25 +1826,20 @@ class Gui(QMainWindow):
         run = QWidget()
         rv = QVBoxLayout(run)
         rv.setContentsMargins(2, 4, 2, 2)
-        # MODES FIRST, THEN THE ONE BUTTON.
-        #
-        # `START VR TELEOP` used to be first on the argument that it is the
-        # only control a VR session needs. True, and it made the window look
-        # like a VR-only tool: everything else was below the fold, and the
-        # first question anybody asked of it was "where is autonomy". The
-        # mode panel is four rows and answers that before anything is
-        # scrolled; the VR button is immediately under it and has lost
-        # nothing.
-        # MAP FIRST, because that is the order of the work: measure what is
-        # on the table, then plan against it. It also has to be ABOVE THE
-        # FOLD -- this window has already had one defect where every mode
-        # button was below it and the first question anybody asked was where
-        # they had gone. Screenshotted after moving, not assumed.
-        rv.addWidget(self._map_panel())
-        rv.addWidget(self._modes_panel())
+        # THE OPERATOR'S OWN ORDER (2026-08-27): the connection row on top,
+        # then ONE tab with the three modes (shared autonomy is an option
+        # inside master and VR, not a section), then the data controls.
+        # Everything below that is detail. The VR section lives INSIDE the
+        # VR tab now -- one place per mode, no repeats.
+        rv.addWidget(self._arms_panel())
+        # POSE directly under the connection row (operator, 2026-08-27):
+        # "put the arms somewhere known" is the most frequent press of a
+        # session and belongs where the arms are.
+        rv.addWidget(self._pose_panel())
+        rv.addWidget(self._mode_tabs())
         rv.addWidget(self._experiments_panel())
-        rv.addWidget(self._vr_panel())
         rv.addWidget(self._real_panel())
+        rv.addWidget(self._map_panel())
         rv.addWidget(self._vision_panel())
         rv.addWidget(self._controls())
         rv.addWidget(self._launchers())
@@ -1532,6 +1901,303 @@ class Gui(QMainWindow):
         sa.setWidget(widget)
         return sa
 
+    def _mode_tabs(self):
+        """MASTER | VR | FULL AUTONOMY -- one tab each, one START each.
+
+        The operator's spec, verbatim: connection row on top, then a tab
+        with the three modes; shared autonomy is an OPTION inside master
+        and VR, not a section of its own; START launches the simulation
+        and everything the real cascade will need; START REAL ARMS then
+        just works. Every button delegates to machinery that already
+        exists and is idempotent (`on_vr_start`, `start_mode`,
+        `_ensure_rviz`) -- this panel adds no new path to the metal.
+        """
+        g = QGroupBox("DRIVE")
+        g.setFont(helvetica(11, True))
+        v = QVBoxLayout(g)
+        v.setContentsMargins(4, 16, 4, 4)
+        v.setSpacing(4)
+        self.mode_btn = {}
+
+        def _big(text, tip, fn, col=None):
+            b = QPushButton(text)
+            b.setFont(helvetica(12, True))
+            b.setMinimumHeight(40)
+            b.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+            edge = col or LINE
+            b.setStyleSheet(
+                "QPushButton{border:1px solid %s;border-radius:3px;"
+                "padding:3px;color:%s}QPushButton:hover{border:1px solid %s}"
+                % (edge, col or C_TEXT, col or C_OK))
+            b.setToolTip(tip)
+            b.clicked.connect(fn)
+            return b
+
+        tabs = QTabWidget()
+        tabs.setFont(helvetica(10, True))
+        self.drive_tabs = tabs
+
+        # ------------------------------------------------------- MASTER
+        mt = QWidget()
+        mv = QVBoxLayout(mt)
+        mv.setSpacing(4)
+        b = _big("START MASTER TELEOP",
+                 "Launches the simulation and the master-arm stack, ready "
+                 "for the real arms. Needs the Teensy.",
+                 self.on_start_master, C_OK)
+        self.mode_btn["teleop"] = b
+        mv.addWidget(b)
+        # A TOGGLE THAT LOOKS LIKE ONE. This was a QCheckBox, whose
+        # indicator is nearly invisible on this dark theme -- the operator
+        # asked "why is there no option for shared autonomy" while the
+        # option was on screen. Same defect as the flat mode buttons of
+        # 2026-08-22: a control that does not look like a control is not
+        # one.
+        self.ma_shared = self._shared_toggle(
+            "START then also launches perception, grasp generation and the "
+            "arbiter on top of your control.", "master")
+        self.mode_btn["shared"] = self.ma_shared
+        mv.addWidget(self.ma_shared)
+        # The master path runs the same adaptive smoothing as VR since
+        # 2026-08-27 (measured: EMA(0.3) cost 18.7 mm of lag on a brisk
+        # reach; 1-Euro 1.6 mm). The law is a live parameter; this is its
+        # window control, hidden like VR's because it matters when tuning
+        # feel and never during a session start.
+        ma_adv = QCheckBox("advanced: smoothing")
+        ma_adv.setFont(helvetica(8))
+        mv.addWidget(ma_adv)
+        ma_row = QWidget()
+        mrl = QHBoxLayout(ma_row)
+        mrl.setContentsMargins(0, 0, 0, 0)
+        t = QLabel("law")
+        t.setFont(helvetica(9))
+        mrl.addWidget(t)
+        self.ma_smooth = QComboBox()
+        self.ma_smooth.setFont(helvetica(9))
+        self.ma_smooth.addItems(["one_euro", "ema", "none"])
+        self.ma_smooth.setToolTip(
+            "one_euro: still when you are still, no lag when you move "
+            "(0.83 mm / 1.59 mm measured).\n"
+            "ema: the fixed filter that shipped before -- 18.7 mm of lag "
+            "at 0.40 m/s. Kept so old recordings reproduce.\n"
+            "none: raw.")
+        self.ma_smooth.currentTextChanged.connect(
+            lambda law: (self.bus.set_param("/master_pose_node",
+                                            "smoothing", law),
+                         self.log("master smoothing law -> %s" % law)))
+        mrl.addWidget(self.ma_smooth, 1)
+        ma_row.setVisible(False)
+        ma_adv.toggled.connect(
+            lambda on: (ma_row.setVisible(bool(on)),
+                        self.log("master smoothing settings %s"
+                                 % ("shown" if on else "hidden"))))
+        mv.addWidget(ma_row)
+        mv.addStretch(1)
+        tabs.addTab(mt, "MASTER")
+
+        # ----------------------------------------------------------- VR
+        vt = QWidget()
+        vv = QVBoxLayout(vt)
+        vv.setSpacing(4)
+        self.vr_btn = _big(
+            "START VR TELEOP",
+            "Launches the simulation and the whole VR chain, all twelve "
+            "steps checked, stopping at the first thing it cannot do.",
+            self.on_start_vr_clicked, C_OK)
+        self.mode_btn["vr"] = self.vr_btn
+        vv.addWidget(self.vr_btn)
+        self.vr_shared = self._shared_toggle(
+            "START then also launches the arbiter on top of the VR "
+            "controllers: the mapper runs, autonomy owns the pose.", "VR")
+        self.mode_btn["shared_vr"] = self.vr_shared
+        vv.addWidget(self.vr_shared)
+        vv.addWidget(self._vr_panel())
+        tabs.addTab(vt, "VR")
+
+        # ------------------------------------------------- FULL AUTONOMY
+        ft = QWidget()
+        fv = QVBoxLayout(ft)
+        fv.setSpacing(4)
+        b = _big("START FULL AUTONOMY  --  type what you want",
+                 "Launches the autonomy stack and puts the keyboard in the "
+                 "Instruct box. Nothing moves until you press CONFIRM "
+                 "there.",
+                 self.on_flow_full, C_OK)
+        self.mode_btn["full"] = b
+        self.mode_btn["__instruct__"] = b
+        fv.addWidget(b)
+        fv.addStretch(1)
+        tabs.addTab(ft, "FULL AUTONOMY")
+
+        v.addWidget(tabs)
+
+        # Shared steps: whatever tab is live, these mean the same thing.
+        b = _big("START REAL ARMS",
+                 "Connects the real arms (or adopts already-connected "
+                 "ones) and relays the sim onto them. Refuses, by name, "
+                 "anything unsafe.",
+                 self.on_flow_real, C_BAD)
+        self.mode_btn["__real__"] = b
+        v.addWidget(b)
+        r = QHBoxLayout()
+        r.setSpacing(4)
+        b = QPushButton("open the sim view")
+        b.setFont(helvetica(9))
+        b.setToolTip("RViz. It opens on its own with START; this re-opens "
+                     "it if it is not there.")
+        b.clicked.connect(self.on_flow_sim)
+        self.mode_btn["__sim_view__"] = b
+        r.addWidget(b)
+        b = QPushButton("rehearse with mock arms")
+        b.setFont(helvetica(9))
+        b.setToolTip("The identical real-arm sequence against mock "
+                     "hardware. Nothing physical moves.")
+        b.clicked.connect(
+            lambda: self.start_mode(["real_mock"], "REHEARSE (mock arms)"))
+        self.mode_btn["__mock__"] = b
+        r.addWidget(b)
+        v.addLayout(r)
+
+        self.mode_live_lbl = QLabel("live mode: --")
+        self.mode_live_lbl.setFont(helvetica(9, True))
+        self.mode_live_lbl.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.mode_live_lbl)
+        self.mode_seq_lbl = QLabel("")
+        self.mode_seq_lbl.setWordWrap(True)
+        self.mode_seq_lbl.setFont(helvetica(9))
+        self.mode_seq_lbl.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.mode_seq_lbl)
+        stop = QPushButton("STOP everything this window launched")
+        stop.setFont(helvetica(10, True))
+        stop.clicked.connect(self.on_stop_jobs)
+        v.addWidget(stop)
+        self.flow_note = QLabel("")
+        self.flow_note.setFont(helvetica(9))
+        self.flow_note.setWordWrap(True)
+        self.flow_note.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.flow_note)
+        return g
+
+    def _shared_toggle(self, tip, who):
+        """The shared-autonomy option as a bordered, checkable button that
+        SAYS its state -- OFF / ON in the label, never an indicator dot."""
+        b = QPushButton("robot helps  (shared autonomy):  OFF")
+        b.setCheckable(True)
+        b.setFont(helvetica(10, True))
+        b.setMinimumHeight(30)
+        b.setToolTip(tip)
+        b.setStyleSheet(
+            "QPushButton{border:1px solid %s;border-radius:3px;padding:3px;"
+            "color:%s}QPushButton:checked{border:2px solid %s;color:%s}"
+            % (LINE, C_MUTED, C_OK, C_OK))
+        b.toggled.connect(lambda on: (
+            b.setText("robot helps  (shared autonomy):  %s"
+                      % ("ON" if on else "OFF")),
+            self.log("%s: shared autonomy %s for the next START"
+                     % (who, "ON" if on else "off"))))
+        return b
+
+    def _ensure_virtual_teensy(self):
+        """A master input with no hardware: scripts/virtual_teensy.py, a pty
+        replaying a REAL recorded session in the exact wire format
+        master_pose_node parses. Returns the pty path, or None.
+
+        Without this, START MASTER on a Teensy-less bench brings up a
+        perfectly healthy stack whose master node retries for ~165 s and
+        parks DORMANT -- a working simulation in which nothing ever moves,
+        which the operator correctly reads as broken.
+        """
+        port_file = "/tmp/virtual_teensy_port"
+        vt = getattr(self, "_vteensy", None)
+        if vt is not None and vt.poll() is None and os.path.exists(port_file):
+            try:
+                return open(port_file).read().strip() or None
+            except OSError:
+                return None
+        script = os.path.join(_WS, "scripts", "virtual_teensy.py")
+        if not os.path.exists(script):
+            return None
+        try:
+            os.remove(port_file)
+        except OSError:
+            pass
+        try:
+            log = open(os.path.join(_scratch(), "virtual_teensy.log"), "wb")
+        except OSError:
+            log = subprocess.DEVNULL
+        try:
+            self._vteensy = subprocess.Popen(
+                [sys.executable, script, "--mode", "replay",
+                 "--duration", "86400"],
+                stdout=log, stderr=subprocess.STDOUT,
+                start_new_session=True)
+        except Exception as e:                                # noqa: BLE001
+            self.log("virtual Teensy failed to start: %r" % (e,), bad=True)
+            return None
+        for _ in range(50):
+            if os.path.exists(port_file):
+                try:
+                    p = open(port_file).read().strip()
+                except OSError:
+                    p = ""
+                if p:
+                    return p
+            time.sleep(0.1)
+        return None
+
+    def _master_extra_args(self):
+        """serial_port:= for the virtual Teensy when no real one exists."""
+        if _teensy():
+            return []
+        port = self._ensure_virtual_teensy()
+        if port:
+            self.log("no master hardware -- the master path is driven by a "
+                     "VIRTUAL TEENSY replaying a real recorded session "
+                     "(%s). A DEMONSTRATION input, not trial evidence."
+                     % port, bad=True)
+            return ["serial_port:=%s" % port]
+        self.log("no Teensy and no virtual one -- the stack will come up "
+                 "and the master node will retry, then park DORMANT in "
+                 "about 165 s. Nothing will drive the arms.", bad=True)
+        return []
+
+    def on_start_master(self):
+        extra = self._master_extra_args()
+        if self.ma_shared.isChecked():
+            self._stack_extra_args = {"autonomy": extra}
+            self.start_mode(["autonomy"], "SHARED AUTONOMY (master arm)")
+        else:
+            self._stack_extra_args = {"sim": extra}
+            self.start_mode(["sim"], "MASTER TELEOP")
+
+    def on_start_vr_clicked(self):
+        if self.vr_shared.isChecked():
+            self.start_mode(["autonomy_nomaster", "vr"],
+                            "SHARED AUTONOMY (VR)")
+        else:
+            self.on_vr_start()
+
+    def on_flow_full(self):
+        self.start_mode(["autonomy_nomaster"], "FULL AUTONOMY")
+        self.on_show_instruct()
+
+    def on_flow_sim(self):
+        if _stack_pids() <= 0:
+            self.flow_note.setText(
+                "Nothing is running yet -- press a START button in step 1 "
+                "first. RViz opens on its own when the simulation is up.")
+            self.log("OPEN THE SIM: no simulation running -- start step 1 "
+                     "first")
+            return
+        self._ensure_rviz()
+        self.flow_note.setText(
+            "The sim is the COMMANDED view on the right. If the RViz panel "
+            "is blank, this press relaunches it.")
+        self.log("OPEN THE SIM: RViz ensured (embedded in COMMANDED)")
+
+    def on_flow_real(self):
+        self.start_mode(["real"], "DRIVE THE REAL ARMS")
+
     def _real_panel(self):
         """THE REAL ARMS, AND THE ORDER IS THE SAFETY CASE.
 
@@ -1544,7 +2210,7 @@ class Gui(QMainWindow):
         would type. Nothing is reimplemented in the GUI, so the GUI cannot
         drift away from the procedure that was tested at the terminal.
         """
-        g = QGroupBox("Real arms")
+        g = QGroupBox("REAL ARM SEQUENCE  --  step by step")
         g.setFont(helvetica(11, True))
         v = QVBoxLayout(g)
 
@@ -1897,6 +2563,17 @@ class Gui(QMainWindow):
         self.vis_plan.setStyleSheet("color:%s" % C_MUTED)
         v.addWidget(self.vis_plan)
 
+        # THE STANDING VISION LAYER, distinct from the one-shot LOOK above:
+        # scene_understanding_node watches every camera continuously and
+        # this line is its per-camera verdict -- including the refusals,
+        # which are the part an operator needs when a camera is unplugged.
+        self.vis_scene = QLabel("scene vision not running (button in "
+                                "Checks and fixes)")
+        self.vis_scene.setFont(mono(8))
+        self.vis_scene.setWordWrap(True)
+        self.vis_scene.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.vis_scene)
+
         QTimer.singleShot(600, self._vision_backend_note)
         return g
 
@@ -2055,172 +2732,12 @@ class Gui(QMainWindow):
     # OPERATE -- every way the arms can be driven, in one place
     # =================================================================
     #
-    # WHY THIS PANEL EXISTS. Until 2026-08-22 the RUN tab opened on
-    # `START VR TELEOP` and the mode launchers were the FIFTH group down,
-    # under the VR panel, the real-arm panel, the vision panel and the
-    # running controls. Everything was reachable and nothing was visible:
-    # asked what the window could do, the honest answer from looking at it
-    # was "VR teleoperation". Shared autonomy and full autonomy were behind
-    # a scroll, and full autonomy's prompt -- the whole point of mode 06 --
-    # was a tab in a different column.
-    #
-    # The rule here is the one `docs/NEXT_SESSION_2026_08_22.md` asks for:
-    # ONE PANEL PER MODE, each saying the same four things -- what it will
-    # command, what it refuses and why, where it is live, and how to stop it.
-    # Nothing below is a new capability. Every button runs a Spec that
-    # already existed in `gui_launch_specs`; what changed is that you can
-    # see them.
-    # (key, title, [stack specs, in order], what it is, the caveat)
-    #
-    # THE SECOND FIELD IS A SEQUENCE, and that is the whole point of this
-    # rewrite. A mode is not one launch: VR is the sim stack AND the VR
-    # transport on top of it, and "with the real arms" is any of those
-    # followed by the cascade. Those were four separate buttons in a grid
-    # five panels down, in an order the operator had to know.
-    MODE_ROWS = [
-        ("teleop", "1  MASTER TELEOP", ["sim"],
-         "The instrumented arm drives the robot. Mode 01.",
-         "Needs the Teensy. 7 of 14 master channels were INCOHERENT at the "
-         "last channel check, so this is the mode most likely to refuse."),
-        ("vr", "2  VR / DESK TELEOP", ["sim", "vr"],
-         "Controllers as 6-DOF motion capture. Mode 02. Nobody wears the "
-         "headset -- it stands on a shelf as the tracking reference.",
-         "START VR TELEOP below does the same thing with all twelve "
-         "bring-up steps checked, and is the better button for a session."),
-        ("shared", "3  SHARED AUTONOMY", ["autonomy"],
-         "Perception, grasp generation and the arbiter, on top of teleop. "
-         "Modes 03 and 04.",
-         "Starts a stack. Refuses if one is already running -- HARD "
-         "CONSTRAINT 3."),
-        ("full", "4  FULL AUTONOMY", ["autonomy"],
-         "Mode 06. Say it in a sentence; the parser shows you what it "
-         "understood and what the camera saw BEFORE anything moves.",
-         "Same stack as shared autonomy. Use TYPE WHAT YOU WANT to drive "
-         "it; nothing is commanded until you press CONFIRM there."),
-    ]
-
-    # What "+ REAL" adds, after the stack is up.
-    REAL_STEP = {"real": ("SIM + REAL", "real",
-                          "Cascades to the physical arms. Opens one Kortex "
-                          "session per arm and refuses unless homing "
-                          "succeeds."),
-                 "mock": ("SIM + MOCK", "real_mock",
-                          "The identical sequence against "
-                          "mock_real.launch.py. Nothing physical moves. "
-                          "Rehearse here first.")}
-
-    def _modes_panel(self):
-        g = QGroupBox("OPERATE  --  how the arms are driven")
-        g.setFont(helvetica(11, True))
-        v = QVBoxLayout(g)
-        v.setSpacing(3)
-
-        intro = QLabel(
-            "Pick a mode, then whether it drives the SIMULATION only or "
-            "cascades to the REAL arms. They are not layers you stack: one "
-            "row at a time.")
-        intro.setWordWrap(True)
-        intro.setStyleSheet("color:%s" % C_MUTED)
-        intro.setFont(helvetica(9))
-        v.addWidget(intro)
-
-        specs = {sp.key: sp for sp in self._ensure_specs()}
-        self.mode_btn = {}
-        self.mode_note = {}
-        for key, label, chain, what, caveat in self.MODE_ROWS:
-            head = QLabel(label)
-            head.setFont(helvetica(12, True))
-            head.setAlignment(Qt.AlignCenter)
-            v.addWidget(head)
-
-            note = QLabel(what)
-            note.setWordWrap(True)
-            note.setFont(helvetica(9))
-            note.setStyleSheet("color:%s" % C_TEXT)
-            v.addWidget(note)
-
-            row = QHBoxLayout()
-            row.setSpacing(4)
-            for tag, btxt, extra in (
-                    ("sim", "SIM ONLY", None),
-                    ("mock", self.REAL_STEP["mock"][0],
-                     self.REAL_STEP["mock"][1]),
-                    ("real", self.REAL_STEP["real"][0],
-                     self.REAL_STEP["real"][1])):
-                seq = list(chain) + ([extra] if extra else [])
-                b = QPushButton(btxt)
-                b.setFont(helvetica(9, True))
-                b.setMinimumHeight(26)
-                b.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-                # A BUTTON MUST LOOK PRESSABLE. On this dark theme a bare
-                # QPushButton renders as flat text and is indistinguishable
-                # from the labels around it -- which is half the reason the
-                # window read as "VR only": the other modes were there and
-                # did not look like controls. Real is warned in the bad
-                # colour, because it is the one that moves metal.
-                edge, txt, hover = ((C_BAD, C_BAD, C_BAD) if tag == "real"
-                                    else (LINE, C_TEXT, C_OK))
-                b.setStyleSheet(
-                    "QPushButton{border:1px solid %s;border-radius:3px;"
-                    "padding:3px;color:%s}"
-                    "QPushButton:hover{border:1px solid %s}"
-                    "QPushButton:disabled{border:1px solid %s;color:%s}"
-                    % (edge, txt, hover, LINE, C_MUTED))
-                missing = [k for k in seq if k not in specs]
-                if missing:
-                    # A ROW WITH NO SPEC IS A DEAD BUTTON. Say so ON it.
-                    b.setEnabled(False)
-                    b.setToolTip("no launch spec: %s" % ", ".join(missing))
-                    b.setText(btxt + " (no spec)")
-                else:
-                    b.setToolTip(
-                        "Launches, in order: %s.%s"
-                        % (" then ".join(specs[k].label for k in seq),
-                           ("\n\n" + self.REAL_STEP[tag][2])
-                           if tag in self.REAL_STEP else ""))
-                    b.clicked.connect(
-                        lambda _, s_=seq, n_="%s / %s" % (label, btxt):
-                        self.start_mode(s_, n_))
-                row.addWidget(b)
-                self.mode_btn["%s_%s" % (key, tag)] = b
-            v.addLayout(row)
-
-            sub = QLabel(caveat)
-            sub.setWordWrap(True)
-            sub.setFont(helvetica(8))
-            sub.setStyleSheet("color:%s" % C_MUTED)
-            v.addWidget(sub)
-
-            if key == "full":
-                b = QPushButton("TYPE WHAT YOU WANT  ->  Instruct")
-                b.setFont(helvetica(10, True))
-                b.setMinimumHeight(28)
-                b.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-                b.setToolTip("Switches the middle column to the Instruct "
-                             "panel and puts the keyboard in the box. "
-                             "Nothing is commanded until CONFIRM.")
-                b.clicked.connect(self.on_show_instruct)
-                v.addWidget(b)
-                self.mode_btn["__instruct__"] = b
-
-        live = QLabel("live mode: --")
-        live.setFont(helvetica(9, True))
-        live.setStyleSheet("color:%s" % C_MUTED)
-        self.mode_live_lbl = live
-        v.addWidget(live)
-
-        self.mode_seq_lbl = QLabel("")
-        self.mode_seq_lbl.setWordWrap(True)
-        self.mode_seq_lbl.setFont(helvetica(9))
-        self.mode_seq_lbl.setStyleSheet("color:%s" % C_MUTED)
-        v.addWidget(self.mode_seq_lbl)
-
-        stop = QPushButton("STOP everything this window launched")
-        stop.setFont(helvetica(10, True))
-        stop.clicked.connect(self.on_stop_jobs)
-        v.addWidget(stop)
-        return g
-
+    # THE MODES LIVE IN THE THREE-CLICK PANEL NOW (2026-08-27). The OPERATE
+    # panel that stood here -- five prose rows x three buttons each -- was
+    # absorbed into `_flow_panel`: the operator counted the sections and
+    # asked for one. A mode is still a SEQUENCE of specs (VR is the sim
+    # stack AND the transport; "real" is any of them plus the cascade), and
+    # `start_mode` below is still the only thing that runs one.
     # ------------------------------------------------- the mode sequencer
     def start_mode(self, seq, name, _i=0):
         """Launch a chain of specs, WAITING for the stack between them.
@@ -2240,13 +2757,77 @@ class Gui(QMainWindow):
             self._seq_name = name
         if _i >= len(seq):
             self._seq_say("%s: all %d step(s) launched." % (name, len(seq)))
+            self._ensure_rviz()
             return
         key = seq[_i]
+        # A MODE IS AN END STATE, NOT A LIST OF PROCESSES TO SPAWN.
+        #
+        # This is the defect the operator hit on 2026-08-26, twice in one
+        # button row. Every step was launched unconditionally, so:
+        #
+        #   SIM ONLY, with a stack already up -- `sim` carries
+        #   starts_stack=True and the preflight refuses it under HARD
+        #   CONSTRAINT 3. Correct, and useless: the refusal scrolled past in
+        #   a status line, the sequence stopped at step 1, the VR transport
+        #   at step 2 never ran, and from the operator's side the button
+        #   simply did nothing.
+        #
+        #   SIM + REAL, with the arms already connected -- `real` runs
+        #   `start_real.sh`, which starts a Kortex bridge per arm. The arm
+        #   permits exactly ONE session (HARD CONSTRAINT 2), so the second
+        #   is refused, the launch fails, and its cleanup sweeps the WORKING
+        #   bridges as orphaned stack processes. The button labelled
+        #   "cascade to the real arms" DISCONNECTED them.
+        #
+        # Both are the same mistake: asking "have I launched this?" when the
+        # question is "is this up?". Each step is now probed against the
+        # process table first. Already up -> skipped and SAID SO, never
+        # silently. Reachable another way -> substituted, and the
+        # substitution is named. Neither hides a refusal.
+        key, sub_why = self._step_substitute(key)
         sp = specs.get(key)
         if sp is None:
             self._seq_say("%s: no launch spec %r -- stopping here."
                           % (name, key), bad=True)
             return
+        if sub_why:
+            self._seq_say("%s: step %d of %d -- %s"
+                          % (name, _i + 1, len(seq), sub_why))
+        already = self._step_running(key)
+        if already:
+            self._seq_say("%s: step %d of %d -- %s is ALREADY RUNNING (%s), "
+                          "adopting it." % (name, _i + 1, len(seq), sp.label,
+                                            already))
+            QTimer.singleShot(300,
+                              lambda: self.start_mode(seq, name, _i + 1))
+            return
+        # THE REAL CASCADE NEEDS THE CONTROLLERS PUBLISHING, NOT MERELY
+        # PROCESSES EXISTING.
+        #
+        # Measured 2026-08-26: SIM + REAL fired `start_real.sh` as soon as the
+        # stack's PIDs appeared. Its step 1 of 6 checks /joint_states, which
+        # `joint_state_broadcaster` had not finished spawning -- so it refused
+        # with "Is the sim controller up?" and its own cleanup then SWEPT THE
+        # ARM BRIDGES as orphaned stack processes. Two working Kortex sessions
+        # were killed by a race between two things that were both fine.
+        if getattr(sp, "needs_real", False):
+            age = self.bus.sim_js_age()
+            if age is None or age > 1.0:
+                if time.monotonic() > getattr(self, "_seq_deadline", 0):
+                    self._seq_say(
+                        "%s: step %d of %d (%s) needs /joint_states and it "
+                        "never started publishing. The simulation's "
+                        "joint_state_broadcaster did not come up -- look in "
+                        ".scratch/launch_*.log for a spawner that timed out. "
+                        "NOT launching the real cascade: it would refuse and "
+                        "sweep any running bridges on its way out."
+                        % (name, _i + 1, len(seq), key), bad=True)
+                    return
+                self._seq_say("%s: step %d of %d (%s) -- waiting for "
+                              "/joint_states from the simulation..."
+                              % (name, _i + 1, len(seq), key))
+                QTimer.singleShot(1000, lambda: self.start_mode(seq, name, _i))
+                return
         # Wait for the stack when this step needs one and there is not one.
         if sp.needs_stack and _stack_pids() <= 0:
             if time.monotonic() > getattr(self, "_seq_deadline", 0):
@@ -2266,6 +2847,81 @@ class Gui(QMainWindow):
                       % (name, _i + 1, len(seq), sp.label))
         self.on_launch(sp)
         QTimer.singleShot(2000, lambda: self.start_mode(seq, name, _i + 1))
+
+    # What proves each step is up, as a pattern for `pgrep -f` plus the
+    # plain-words name of the thing found. Probed against the PROCESS TABLE
+    # and not against a flag this window set, because the operator's stack is
+    # frequently one this window did not start -- `srl_bringup_all.sh` brings
+    # up everything before the GUI, which is the documented order.
+    STEP_PROC = {
+        "sim":               ("lib/moveit_ros_move_group/move_group",
+                              "move_group"),
+        "sim_nomaster":      ("lib/moveit_ros_move_group/move_group",
+                              "move_group"),
+        "autonomy":          ("lib/moveit_ros_move_group/move_group",
+                              "move_group"),
+        "autonomy_nomaster": ("lib/moveit_ros_move_group/move_group",
+                              "move_group"),
+        "vr":                ("quest_bridge_node", "quest_bridge_node"),
+        "real":              ("kortex_highlevel_bridge", "a Kortex bridge"),
+        "real_cascade":      ("sim_to_real_bridge", "sim_to_real_bridge"),
+    }
+
+    def _step_running(self, key):
+        """Is this step's end state already reached? The evidence, or None."""
+        pat = self.STEP_PROC.get(key)
+        if pat is None:
+            return None
+        try:
+            n = subprocess.run(["pgrep", "-fc", pat[0]], capture_output=True,
+                               text=True, timeout=5).stdout.strip()
+            n = int(n or 0)
+        except Exception:                                      # noqa: BLE001
+            return None
+        return ("%d x %s" % (n, pat[1])) if n > 0 else None
+
+    def _step_substitute(self, key):
+        """The step to actually run, and why, when the rig is already part-up.
+
+        One substitution today, and it is the one that was destroying live
+        Kortex sessions: `real` starts a bridge per arm, so with bridges
+        already running it must become `real_cascade`, which relays onto them
+        and opens nothing. Returns (key, reason-or-None).
+        """
+        if key == "real" and self._step_running("real"):
+            return ("real_cascade",
+                    "the arms are ALREADY CONNECTED, so cascading onto the "
+                    "open Kortex sessions instead of opening new ones "
+                    "(start_real.sh would be refused and would sweep them "
+                    "on its way out)")
+        return (key, None)
+
+    def _ensure_rviz(self):
+        """Redraw the COMMANDED view if this window's RViz has died.
+
+        The COMMANDED panel is half of what the operator watches, and an
+        RViz that exits leaves it blank with the mode still running -- which
+        reads as "the mode did nothing". A mode sequence is exactly the
+        moment to notice, because it is the moment the operator starts
+        looking at that panel.
+
+        THROUGH `start_rviz`, NOT A BARE Popen. This window EMBEDS RViz into
+        its own layout where a window manager exists; a plain `rviz2` here
+        would open a second, unembedded, floating window that hides the one
+        the operator is using. Restarting is the existing path's job.
+        """
+        try:
+            if _stack_pids() <= 0:
+                return
+            alive = [k for k, p in getattr(self, "rviz", []) if p.poll() is None]
+            if alive:
+                return
+            if getattr(self.args, "no_rviz", False):
+                return
+        except Exception:                                      # noqa: BLE001
+            return
+        self.bus.note("the COMMANDED view had no RViz -- restarting it")
+        self.start_rviz()
 
     def _seq_say(self, text, bad=False):
         lbl = getattr(self, "mode_seq_lbl", None)
@@ -2306,14 +2962,16 @@ class Gui(QMainWindow):
                     "03_shared_autonomy", "04_vr_shared"]
 
     def _experiments_panel(self):
-        g = QGroupBox("EXPERIMENTS  --  run a trial and keep the data")
+        g = QGroupBox("DATA  --  record trials, CSV, graphs")
         g.setFont(helvetica(11, True))
         v = QVBoxLayout(g)
         v.setSpacing(3)
 
+        # The stated default must match the actual combo defaults, which
+        # moved to T0 / shared autonomy on 2026-08-27.
         intro = QLabel(
-            "Every field has a working default. Press RUN TRIAL and it runs "
-            "T1 under full autonomy as PILOT. Fill in what you need.")
+            "Defaults work: RUN TRIAL records T0 under shared autonomy, "
+            "CSV + video on.")
         intro.setWordWrap(True)
         intro.setFont(helvetica(9))
         intro.setStyleSheet("color:%s" % C_MUTED)
@@ -2334,6 +2992,12 @@ class Gui(QMainWindow):
         self.exp_task = QComboBox()
         for k, lab in self.TASK_CHOICES:
             self.exp_task.addItem("%s  --  %s" % (k, lab), k)
+        # m0 pairs with the shared-autonomy default below; m1 (the old
+        # default) is locked to 06 by its own spec, so defaulting to it
+        # alongside mode 03 would make RUN TRIAL open on a refusal.
+        i = self.exp_task.findData("m0")
+        if i >= 0:
+            self.exp_task.setCurrentIndex(i)
         # WHAT THE NEXT RUN WILL BE RECORDED AS, said out loud. Changing the
         # task or the mode changes the identity of everything that follows,
         # and a silent change is how two different runs end up looking like
@@ -2348,6 +3012,13 @@ class Gui(QMainWindow):
         self.exp_mode = QComboBox()
         for m in self.MODE_CHOICES:
             self.exp_mode.addItem(m, m)
+        # SHARED AUTONOMY IS THE DEFAULT (operator, 2026-08-27): the study's
+        # condition of interest, wanted on every run unless deliberately
+        # changed. The change is logged like every other, and tasks locked
+        # to another mode still refuse by name at dispatch.
+        i = self.exp_mode.findData("03_shared_autonomy")
+        if i >= 0:
+            self.exp_mode.setCurrentIndex(i)
         self.exp_mode.currentIndexChanged.connect(
             lambda _: self.log("experiments: mode -> %s"
                                % self.exp_mode.currentData()))
@@ -2453,13 +3124,95 @@ class Gui(QMainWindow):
         self.exp_status.setStyleSheet("color:%s" % C_MUTED)
         v.addWidget(self.exp_status)
 
+        # ===================================================================
+        # RECORD EVERYTHING -- one press, the whole run on disk
+        # ===================================================================
+        # Independent of RUN TRIAL on purpose. Most of what the operator wants
+        # captured (VR clutch behaviour, master arm channels, a camera that is
+        # or is not detecting) happens during SET-UP and free driving, not
+        # inside a scripted trial -- so the capture must not be welded to one.
+        self.rec_all_btn = QPushButton("\u25cf  RECORD EVERYTHING")
+        self.rec_all_btn.setFont(helvetica(11, True))
+        self.rec_all_btn.setMinimumHeight(34)
+        self.rec_all_btn.setToolTip(
+            "Starts `ros2 bag record -a` (EVERY topic: cameras, detections, "
+            "TF, joint states, master, VR, autonomy) plus a uniform trail.csv, "
+            "an events log, and the REAL arms read straight off the Kortex "
+            "API. Press again to stop; graphs and a summary are written on "
+            "stop. The summary NAMES any channel that never published, so a "
+            "recording cannot quietly come out empty.")
+        self.rec_all_btn.clicked.connect(self.on_record_all_toggle)
+        self.buttons["record_everything"] = self.rec_all_btn
+        v.addWidget(self.rec_all_btn)
+        self.rec_all_lbl = QLabel("not recording")
+        self.rec_all_lbl.setFont(helvetica(9))
+        self.rec_all_lbl.setWordWrap(True)
+        self.rec_all_lbl.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.rec_all_lbl)
+        self._rec_all_proc = None
+        self._rec_all_timer = QTimer(self)
+        self._rec_all_timer.timeout.connect(self._rec_all_refresh)
+        self._rec_all_timer.start(2000)
+
         b = QPushButton("open the recordings folder")
         b.setFont(helvetica(9))
         b.setToolTip("Where every trial's manifest, CSV, plots and clips "
                      "land: recordings/sessions/<session>/")
         b.clicked.connect(self.on_open_recordings)
         v.addWidget(b)
+
+        # RESULTS, ONE PRESS. Every figure the committed recordings support,
+        # regenerated into recordings/analysis/ with an index naming each
+        # figure's source file and date -- and the figures it CANNOT build
+        # are listed with the reason, never drawn empty.
+        b2 = QPushButton("MAKE ALL GRAPHS  (results)")
+        b2.setFont(helvetica(10, True))
+        b2.setMinimumHeight(30)
+        b2.setToolTip("Runs scripts/make_results.py: accuracy per mode, "
+                      "grasp matrix, VR smoothing and protocol runs, motion "
+                      "generator, sim-to-real park error, grip traces, "
+                      "mode path lengths. Skips are named in index.md.")
+        b2.clicked.connect(self.on_make_results)
+        v.addWidget(b2)
+        self.results_lbl = QLabel("no graphs made this session yet")
+        self.results_lbl.setFont(helvetica(8))
+        self.results_lbl.setWordWrap(True)
+        self.results_lbl.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.results_lbl)
         return g
+
+    def on_make_results(self):
+        """Regenerate every figure, in the background, and say what came
+        out -- counts from the script's own stdout, never assumed."""
+        script = os.path.join(_WS, "scripts", "make_results.py")
+        if not os.path.exists(script):
+            self.results_lbl.setText("scripts/make_results.py is missing")
+            self.log("MAKE ALL GRAPHS: script missing", bad=True)
+            return
+        self.results_lbl.setText("making graphs...")
+        self.log("MAKE ALL GRAPHS: running scripts/make_results.py")
+
+        def go():
+            try:
+                r = subprocess.run(
+                    [sys.executable, script], cwd=_WS, timeout=300,
+                    capture_output=True, text=True)
+                built = sum(1 for ln in r.stdout.splitlines()
+                            if ln.strip().startswith("BUILT"))
+                skipped = sum(1 for ln in r.stdout.splitlines()
+                              if ln.strip().startswith("SKIP"))
+                msg = ("%d figure(s) in recordings/analysis/ (%d skipped, "
+                       "reasons in index.md)" % (built, skipped))
+                if r.returncode != 0:
+                    msg = "FAILED (exit %d): %s" % (
+                        r.returncode, (r.stdout + r.stderr)[-200:])
+            except Exception as e:                            # noqa: BLE001
+                msg = "could not run it: %r" % (e,)
+            QTimer.singleShot(0, lambda: (
+                self.results_lbl.setText(msg),
+                self.log("MAKE ALL GRAPHS: %s" % msg)))
+
+        threading.Thread(target=go, daemon=True).start()
 
     # ------------------------------------------------------ experiment run
     def _exp_session(self):
@@ -2490,8 +3243,14 @@ class Gui(QMainWindow):
         """One trial, and the recorders that go with it."""
         argv = self._exp_argv()
         if self.exp_rec_csv.isChecked():
-            self._run_raw("full_state_recorder",
-                          ["ros2", "run", "srl_teleop", "full_state_recorder"])
+            # NOT full_state_recorder. That is a GUIDED SNAPSHOT tool: it
+            # blocks on input() waiting for ENTER on a terminal, and this
+            # launches detached with stdout at DEVNULL, so every trial
+            # "recorded" through this tick captured nothing and said nothing.
+            self._start_record_all(
+                label="trial%d_%s" % (self.exp_trial.value(),
+                                      self.exp_task.currentData()),
+                mode=self.exp_mode.currentData())
         if self.exp_rec_video.isChecked():
             self._run_raw("record_rviz",
                           ["python3", os.path.join(_WS,
@@ -2548,6 +3307,101 @@ class Gui(QMainWindow):
         # CONSTRAINT 3 one level down -- a verifier that overlapped a sweep
         # read 18 of 171 where two clean runs read 0.
         QTimer.singleShot(8000, self._exp_next)
+
+    # ------------------------------------------------ RECORD EVERYTHING
+    def _record_all_script(self):
+        return os.path.join(_WS, "scripts/record_all.py")
+
+    def _record_all_python(self):
+        """The kortex venv if it is there, so the REAL arms get read too.
+
+        Falls back to the system interpreter, which records everything except
+        the direct Kortex read -- and record_all.py says so in arms.jsonl
+        rather than leaving the absence to be discovered later.
+        """
+        kv = os.path.join(_WS, ".kortex_venv/bin/python")
+        return kv if os.path.exists(kv) else "python3"
+
+    def _record_all_live(self):
+        """The live session dir, or None. Read from the marker record_all
+        writes, not from our own handle, so a session started from a terminal
+        is still visible here."""
+        marker = os.path.join(_WS, "recordings/sessions/.current")
+        try:
+            info = json.load(open(marker))
+        except Exception:                                     # noqa: BLE001
+            return None
+        if not os.path.exists("/proc/%d" % int(info.get("pid", -1))):
+            return None
+        return info
+
+    def _start_record_all(self, label="session", mode=None):
+        if self._record_all_live():
+            self.log("RECORD EVERYTHING: already recording")
+            return
+        argv = [self._record_all_python(), self._record_all_script(),
+                "--label", label]
+        if mode:
+            argv += ["--mode", str(mode)]
+        # SAY WHAT THE NEXT RUN IS RECORDED AS. The GUI rule: a control that
+        # changes what the run does must log its new value.
+        # THE ACTUAL TICKS, not a guess. Both mode tabs carry their own
+        # shared-autonomy toggle; either one being on makes the next START a
+        # shared run, and the recording must be labelled with the condition it
+        # was made under or it is not a comparison.
+        try:
+            shared = "on" if (self.ma_shared.isChecked()
+                              or self.vr_shared.isChecked()) else "off"
+        except Exception:                                     # noqa: BLE001
+            shared = "unknown"
+        argv += ["--shared-autonomy", shared]
+        self._run_raw("record_all", argv)
+        self.log("RECORD EVERYTHING started: label=%s mode=%s shared_autonomy=%s"
+                 % (label, mode or "unspecified", shared))
+        QTimer.singleShot(1200, self._rec_all_refresh)
+
+    def _stop_record_all(self):
+        try:
+            subprocess.Popen(
+                [self._record_all_python(), self._record_all_script(), "--stop"],
+                start_new_session=True,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self.log("RECORD EVERYTHING stopping -- graphs and summary are "
+                     "written on stop, which takes a few seconds")
+        except Exception as e:                                # noqa: BLE001
+            self.log("RECORD EVERYTHING stop FAILED: %r" % e, bad=True)
+        QTimer.singleShot(3000, self._rec_all_refresh)
+
+    def on_record_all_toggle(self):
+        if self._record_all_live():
+            self._stop_record_all()
+        else:
+            lbl = "manual"
+            try:
+                lbl = self._exp_session() or "manual"
+            except Exception:                                 # noqa: BLE001
+                pass
+            self._start_record_all(label=lbl)
+
+    def _rec_all_refresh(self):
+        info = self._record_all_live()
+        if not hasattr(self, "rec_all_btn"):
+            return
+        if info:
+            secs = int(time.time() - float(info.get("started", time.time())))
+            name = os.path.basename(info.get("outdir", "?"))
+            self.rec_all_btn.setText("\u25a0  STOP RECORDING")
+            self.rec_all_btn.setStyleSheet(
+                "background:%s; color:white; font-weight:bold" % C_BAD)
+            self.rec_all_lbl.setText(
+                "RECORDING %s  --  %d:%02d  --  every topic, the trail, the "
+                "events and both real arms" % (name, secs // 60, secs % 60))
+            self.rec_all_lbl.setStyleSheet("color:%s" % C_BAD)
+        else:
+            self.rec_all_btn.setText("\u25cf  RECORD EVERYTHING")
+            self.rec_all_btn.setStyleSheet("")
+            self.rec_all_lbl.setText("not recording")
+            self.rec_all_lbl.setStyleSheet("color:%s" % C_MUTED)
 
     def on_open_recordings(self):
         d = os.path.join(_WS, "recordings/sessions")
@@ -2800,10 +3654,31 @@ class Gui(QMainWindow):
             except Exception as e:                            # noqa: BLE001
                 self._map_say("no map to show: %r" % (e,), bad=True)
                 return
-            lines = ["surface z = %.4f m   %d object(s)   finder: %s"
-                     % (doc["surface"]["z_m"], len(doc["objects"]),
+            # HOW OLD THE MAP IS, IN THE FIRST LINE.
+            #
+            # `load_map()` has always computed `_age_s` and this panel has
+            # always thrown it away, which is the "feature present but does
+            # nothing" row of CLAUDE.md's own instrument table: the field is
+            # STORED and no consumer READS it. Measured 2026-08-25: the panel
+            # said "6 object(s)" about a map 22.3 hours old, describing the
+            # simulated T1 layout, while the real table in front of the
+            # operator held two things. Nothing on screen distinguished that
+            # from a map of the table you are looking at, and `PICK IT UP`
+            # plans from whatever this returns.
+            age_s = float(doc.get("_age_s", 0.0))
+            if age_s < 3600:
+                age = "%d min old" % round(age_s / 60)
+            else:
+                age = "%.1f HOURS OLD" % (age_s / 3600)
+            stale = age_s > 1800
+            lines = ["surface z = %.4f m   %d object(s)   %s   finder: %s"
+                     % (doc["surface"]["z_m"], len(doc["objects"]), age,
                         doc.get("provenance", {})
                         .get("object_finder", "?")[:40])]
+            if stale:
+                lines.append(
+                    "THIS MAP IS NOT OF THE TABLE IN FRONT OF YOU unless "
+                    "nothing has moved since it was made. Run FULL SCAN.")
             for i, o in enumerate(doc["objects"]):
                 lines.append("%2d  %s  %5.0f mm  %s"
                              % (i, " ".join("%7.3f" % v for v in o["centre"]),
@@ -3115,21 +3990,727 @@ class Gui(QMainWindow):
     # IT CANNOT REACH A REAL ARM, by construction and by test. A one-click
     # bring-up that could energise a robot as a side effect is the wrong
     # shape whatever it prints.
+    def _vr_spin(self, layout, label, lo, hi, step, val, tip, apply_fn):
+        """One labelled spin box that pushes its value at a running node.
+
+        `valueChanged` fires on every keystroke, which would send a parameter
+        per digit while somebody types "100" -- three writes, two of them at
+        values nobody asked for. `editingFinished` plus the arrow buttons is
+        what the operator means.
+        """
+        row = QHBoxLayout()
+        lab = QLabel(label)
+        lab.setFont(helvetica(9))
+        lab.setToolTip(tip)
+        row.addWidget(lab, 1)
+        sp = QDoubleSpinBox()
+        sp.setFont(helvetica(9))
+        sp.setRange(lo, hi)
+        sp.setSingleStep(step)
+        sp.setValue(val)
+        sp.setDecimals(2)
+        sp.setToolTip(tip)
+        sp.setKeyboardTracking(False)
+        sp.valueChanged.connect(
+            lambda x, n=label: (apply_fn(float(x)),
+                                self.log("%s -> %.2f" % (n, x))))
+        row.addWidget(sp)
+        layout.addLayout(row)
+        return sp
+
+    def on_vr_smoothing(self, name):
+        self.bus.set_param("/vr_pose_mapper", "smoothing", str(name))
+        self.log("VR smoothing law -> %s" % name)
+        # `none` and `ema` have no adaptive cutoff, so the readout would sit
+        # at a stale number from the last one_euro run. Say which it is.
+        if name != "one_euro":
+            self.vr_smooth_state.setText(
+                "law is %s -- no adaptive cutoff to report" % name)
+
+    #: The arms and their addresses. ONE source -- arm_link_monitor's own
+    #: table -- so the window cannot disagree with the thing that pings them.
+    ARM_IPS = {"left": "192.168.1.10", "right": "192.168.1.9"}
+
+    def _arms_panel(self):
+        """Per-arm CONNECT / DISCONNECT, with the address and the live state.
+
+        WHY THE ADDRESS IS ON THE BUTTON. "The arm is not connected" has three
+        completely different causes and they need three different actions:
+        the arm is off the network (power/cable), the arm answers but no
+        bridge is running (press CONNECT), or a bridge is running and the
+        session is dead (press DISCONNECT then CONNECT). This session spent
+        real time on each of those, and the only way to tell them apart was a
+        terminal. The row now says which one it is.
+
+        DISCONNECT IS SIGINT AND ONLY SIGINT. HARD CONSTRAINT 2: the arm
+        permits exactly ONE Kortex session and SIGKILL LEAKS IT -- the next
+        connect then fails while the arm still pings and its API port still
+        answers, which is indistinguishable from a network fault.
+        """
+        g = QGroupBox("ARMS  --  the physical robots")
+        g.setFont(helvetica(11, True))
+        v = QVBoxLayout(g)
+        v.setContentsMargins(6, 18, 6, 6)
+        v.setSpacing(4)
+        self.arm_state_lbl = {}
+        self.arm_btn = {}
+        for arm in ("left", "right"):
+            row = QHBoxLayout()
+            row.setSpacing(6)
+            lab = QLabel("%s   %s" % (arm.upper(), self.ARM_IPS[arm]))
+            lab.setFont(mono(11, True))
+            lab.setMinimumWidth(150)
+            row.addWidget(lab)
+            st = QLabel("checking...")
+            st.setFont(helvetica(11, True))
+            st.setMinimumWidth(120)
+            st.setStyleSheet("color:%s" % C_UNKNOWN)
+            self.arm_state_lbl[arm] = st
+            row.addWidget(st, 1)
+            for act, txt, col in (("connect", "CONNECT", C_OK),
+                                  ("disconnect", "DISCONNECT", C_WARN)):
+                b = QPushButton(txt)
+                b.setFont(helvetica(10, True))
+                b.setMinimumHeight(34)
+                b.setStyleSheet("color:%s;border:1px solid %s" % (col, col))
+                b.setToolTip(
+                    ("Starts the high-level bridge and the wrist camera for "
+                     "this arm (scripts/bringup_arm.sh). Idempotent -- "
+                     "pressing it twice does not open a second session."
+                     if act == "connect" else
+                     "Stops this arm's bridge with SIGINT and waits for "
+                     "'kortex session closed cleanly'. NEVER SIGKILL: that "
+                     "leaks the one session the arm allows, and the next "
+                     "connect fails while the arm still pings."))
+                b.clicked.connect(
+                    lambda _, a=arm, k=act: self.on_arm_link(a, k))
+                row.addWidget(b)
+                self.arm_btn[(arm, act)] = b
+            v.addLayout(row)
+        self.arm_note = QLabel("")
+        self.arm_note.setFont(helvetica(9))
+        self.arm_note.setWordWrap(True)
+        self.arm_note.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.arm_note)
+        return g
+
+    def _arm_spawn(self, argv):
+        """The ONE Popen the arm buttons use, so the audit can replace it."""
+        return subprocess.Popen(argv, start_new_session=True,
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL)
+
+    def on_arm_link(self, arm, action):
+        import signal
+        if action == "connect":
+            sh = os.path.join(_WS, "scripts", "bringup_arm.sh")
+            if not os.path.exists(sh):
+                self.log("%s is missing" % sh, bad=True)
+                self.arm_note.setText("bringup_arm.sh is missing")
+                return
+            try:
+                self._arm_spawn(["bash", sh, arm])
+            except Exception as e:                            # noqa: BLE001
+                self.log("%s connect failed: %s" % (arm, e), bad=True)
+                return
+            self.log("%s arm: CONNECT requested (%s)" % (arm, self.ARM_IPS[arm]))
+            self.arm_note.setText(
+                "%s arm connecting to %s -- the Kortex session takes a few "
+                "seconds, and the wrist camera a few more."
+                % (arm, self.ARM_IPS[arm]))
+            return
+        # ---- disconnect: SIGINT ONLY.
+        pids = self._bridge_pids(arm)
+        if not pids:
+            self.arm_note.setText("%s arm: no bridge is running" % arm)
+            self.log("%s arm: DISCONNECT -- nothing was running" % arm)
+            return
+        for pid in pids:
+            try:
+                os.kill(pid, signal.SIGINT)
+            except OSError as e:
+                self.log("%s arm: could not signal %d: %s" % (arm, pid, e),
+                         bad=True)
+        self.log("%s arm: SIGINT sent to %s -- waiting for a clean session "
+                 "close" % (arm, pids))
+        self.arm_note.setText(
+            "%s arm disconnecting (SIGINT to %s). Never force-kill a bridge: "
+            "it leaks the one session the arm allows."
+            % (arm, ", ".join(str(p) for p in pids)))
+
+    @staticmethod
+    def _bridge_pids(arm):
+        """PIDs of this arm's bridge, by the node name bringup_arm.sh gives it."""
+        try:
+            out = subprocess.run(
+                ["pgrep", "-f", "kortex_highlevel_bridge_%s" % arm],
+                capture_output=True, text=True, timeout=5).stdout
+        except Exception:                                     # noqa: BLE001
+            return []
+        return [int(x) for x in out.split() if x.strip().isdigit()]
+
+    def _pose_panel(self):
+        """GO HOME / GO TO PICK POSE -- one press, both arms.
+
+        THE VALUES COME FROM `srl_named_poses`, which reads the SAME files
+        every other consumer reads. CLAUDE.md records home living in five
+        places and drifting between them; a button carrying its own copy of
+        the joint angles would be the sixth, and the one nobody would think
+        to check.
+        """
+        g = QGroupBox("POSE  --  put the arms somewhere known")
+        g.setFont(helvetica(11, True))
+        v = QVBoxLayout(g)
+        # ROOM FOR THE TITLE. A QGroupBox draws its title inside its own
+        # frame, so the default top margin puts the first row under the
+        # words. Caught by screenshotting the panel, not by the audit --
+        # which pressed both buttons happily while they were unreadable.
+        v.setContentsMargins(6, 18, 6, 6)
+        v.setSpacing(4)
+
+        row = QHBoxLayout()
+        row.setSpacing(6)
+        self.pose_btn = {}
+        # THREE DISTINCT COLOURS, none of them the muted text colour.
+        # SCAN POSE was drawn in C_TEXT and read as DISABLED beside the two
+        # coloured buttons -- a live control that looks greyed out is one
+        # nobody presses, which is the same outcome as not having it.
+        for key, col in (("home", C_OK), ("pick", C_WARN),
+                         ("scan", C_UNKNOWN)):
+            lbl, why = _POSES.describe(key)
+            b = QPushButton(lbl)
+            b.setFont(helvetica(14, True))
+            b.setMinimumHeight(52)
+            b.setStyleSheet("color:%s;border:1px solid %s" % (col, col))
+            b.setToolTip("%s\n\nSource: %s\n\nSends both arms there over 5 s "
+                         "on the arm controllers. Release the VR clutch first "
+                         "-- while the clutch is IN the follower is also "
+                         "commanding, and the two fight."
+                         % (why, _POSES.source_of(key, "left")))
+            b.clicked.connect(lambda _, k=key: self.on_goto_pose(k))
+            row.addWidget(b)
+            self.pose_btn[key] = b
+        v.addLayout(row)
+
+        self.pose_note = QLabel("")
+        self.pose_note.setFont(helvetica(9))
+        self.pose_note.setWordWrap(True)
+        self.pose_note.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.pose_note)
+
+        # ------------------------------------------------- THE WHOLE JOB
+        # The operator asked for the sequence as buttons: home, pick pose,
+        # scan pose, scan, back, pick. Each step is its own button because
+        # a sequence that can only be run whole cannot be debugged -- when
+        # the scan finds nothing you want to re-run the scan, not the day.
+        seq = QLabel("SCAN AND PICK  --  each step, or the whole run")
+        seq.setFont(helvetica(10, True))
+        seq.setStyleSheet("color:%s" % C_TEXT)
+        v.addWidget(seq)
+
+        r2 = QHBoxLayout()
+        r2.setSpacing(4)
+        self.seq_btn = {}
+        for key, lbl, tip in (
+                ("scan_run", "SCAN THE TABLE",
+                 "Both arms raster the surface tool-down, serpentine, and "
+                 "build the world map from the wrist depth cameras. Only the "
+                 "arms that are CONNECTED are scanned with."),
+                ("seq_all", "RUN THE WHOLE SEQUENCE",
+                 "HOME, PICK POSE, SCAN POSE, scan, back to PICK POSE. Stops "
+                 "at the first step that refuses.")):
+            b = QPushButton(lbl)
+            b.setFont(helvetica(10, True))
+            b.setMinimumHeight(34)
+            b.setToolTip(tip)
+            b.clicked.connect(lambda _, k=key: self.on_sequence(k))
+            r2.addWidget(b)
+            self.seq_btn[key] = b
+        v.addLayout(r2)
+
+        # ------------------------------------------------- WHAT IT FOUND
+        # ONE BUTTON PER OBJECT, NAMED. The window used to ask for "object 0"
+        # in a spin box, with the number coming from a separate LIST button
+        # that printed to a log. Nothing on screen connected that number to
+        # the thing on the table, so picking the wrong one was one typo away
+        # and looked identical to picking the right one.
+        #
+        # The names are DERIVED from the map -- the colour the camera measured
+        # and the width it measured -- so they cannot drift from what the
+        # robot actually believes is there.
+        self.found_head = QLabel("WHAT IT FOUND  --  press one to pick it")
+        self.found_head.setFont(helvetica(10, True))
+        self.found_head.setStyleSheet("color:%s" % C_TEXT)
+        v.addWidget(self.found_head)
+        self.found_box = QWidget()
+        self.found_lay = QVBoxLayout(self.found_box)
+        self.found_lay.setContentsMargins(0, 0, 0, 0)
+        self.found_lay.setSpacing(3)
+        v.addWidget(self.found_box)
+        self.found_btns = []
+        # ONE TICK, AND IT GOVERNS THE SCAN AND THE PICK ALIKE.
+        #
+        # Both underlying scripts default to the SIMULATION: they publish to
+        # the bare `/<arm>_arm_controller/joint_trajectory` while
+        # `kortex_highlevel_bridge` subscribes under `/real`. So a scan and a
+        # pick could both run start to finish, report success, and move
+        # nothing but the picture -- which is exactly what happened. Neither
+        # errors, because commanding a topic nobody real is listening to is
+        # not an error.
+        self.found_move = QCheckBox(
+            "MOVE THE REAL ARM   (unticked = simulation only)")
+        self.found_move.setFont(helvetica(10, True))
+        self.found_move.setStyleSheet("color:%s" % C_BAD)
+        self.found_move.setToolTip(
+            "Governs BOTH the scan and the pick. Unticked, they run against "
+            "the simulation and the metal does not move. Ticked, both are "
+            "given --drive-real, which puts the commands where the arm "
+            "bridge is listening.")
+        self.found_move.toggled.connect(
+            lambda on: self.log("REAL ARM motion -> %s"
+                                % ("ENABLED" if on else "off (simulation)"),
+                                bad=bool(on)))
+        v.addWidget(self.found_move)
+        self._refresh_found()
+
+        self.seq_note = QLabel("")
+        self.seq_note.setFont(helvetica(9))
+        self.seq_note.setWordWrap(True)
+        self.seq_note.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.seq_note)
+        return g
+
+    def _refresh_found(self):
+        """Rebuild the object buttons from the map. Cheap, and idempotent."""
+        for b in getattr(self, "found_btns", []):
+            b.setParent(None)
+        self.found_btns = []
+        objs = _MAPOBJ.load()
+        age = _MAPOBJ.age_s()
+        if not objs:
+            self.found_head.setText(
+                "WHAT IT FOUND  --  nothing yet. Press SCAN THE TABLE.")
+            return
+        self.found_head.setText(
+            "WHAT IT FOUND  --  %d object(s), map %s old. Press one to pick it."
+            % (len(objs), self._age_str(age)))
+        for o in objs:
+            b = QPushButton("%s   %.0f mm" % (o["name"], o["width_mm"]))
+            b.setFont(helvetica(10, True))
+            b.setMinimumHeight(30)
+            if o["graspable"]:
+                b.setStyleSheet("color:%s;border:1px solid %s" % (C_OK, C_OK))
+                b.setToolTip("Pick this one. Measured %.1f mm across its "
+                             "narrowest axis." % o["width_mm"])
+            else:
+                # OFFERED BUT REFUSED, WITH THE REASON ON IT. Hiding it would
+                # leave the operator wondering why the thing they can see is
+                # not in the list.
+                b.setEnabled(False)
+                b.setStyleSheet("color:%s" % C_MUTED)
+                b.setText("%s   %.0f mm  -- cannot grip"
+                          % (o["name"], o["width_mm"]))
+                b.setToolTip(o["why"] or "the map says this is not graspable")
+            b.clicked.connect(lambda _, o=o: self.on_pick_named(o))
+            self.found_lay.addWidget(b)
+            self.found_btns.append(b)
+
+    @staticmethod
+    def _age_str(a):
+        if a is None:
+            return "?"
+        if a < 90:
+            return "%.0f s" % a
+        if a < 5400:
+            return "%.0f min" % (a / 60)
+        return "%.1f h" % (a / 3600)
+
+    def on_pick_named(self, o):
+        """Pick the object the operator pressed, by name."""
+        arm = self.map_arm.currentText().split()[0] if hasattr(self, "map_arm") \
+            else "left"
+        if arm == "both":
+            arm = "left"
+        move = self.found_move.isChecked()
+        py = os.path.join(_WS, ".venv_vision", "bin", "python")
+        argv = [py if os.path.exists(py) else sys.executable, "-u",
+                os.path.join(_WS, "scripts", "pick_from_map.py"),
+                "--arm", arm, "--object", str(o["index"])]
+        if move:
+            # --drive-real IS NOT OPTIONAL WHEN THE OPERATOR SAID "MOVE".
+            # pick_from_map's own help: "Without it --execute moves the
+            # SIMULATION ONLY -- the bridge subscribes under /real and never
+            # sees a bare topic." Ticking "really move the arm" and watching
+            # the simulation move is the worst outcome available.
+            argv += ["--execute", "--drive-real"]
+        self.log("pick '%s' (object %d) with the %s arm, %s"
+                 % (o["name"], o["index"], arm,
+                    "MOVING THE REAL ARM" if move else "plan only"))
+        try:
+            self._seq_spawn(argv)
+        except Exception as e:                                # noqa: BLE001
+            self.log("pick_from_map would not start: %s" % e, bad=True)
+            return
+        self.seq_note.setText(
+            "picking '%s' with the %s arm -- %s"
+            % (o["name"], arm,
+               "MOVING" if move else "planning only, nothing will move"))
+
+    # ------------------------------------------------------------- sequence
+    #: The order the operator asked for. Each entry is (label, what it does).
+    #: RUN THE WHOLE SEQUENCE stops after the scan and the return to the
+    #: pick pose. THE PICK IS DELIBERATELY NOT IN IT: which object to pick is
+    #: a decision, the map is what informs it, and the map does not exist
+    #: until the scan has run. Picking "object 0" automatically is picking
+    #: whatever the segmenter happened to list first.
+    SEQ_STEPS = [("home", "pose"), ("pick", "pose"), ("scan", "pose"),
+                 ("scan_run", "run"), ("pick", "pose")]
+
+    def _seq_spawn(self, argv):
+        """The ONE Popen the scan/pick buttons use.
+
+        Separate and named so `verify_gui_buttons` can replace exactly this
+        and leave the whole click path -- refusals, logging, the note line --
+        running for real. Pressing SCAN for real during an audit would drive
+        both arms across a table.
+        """
+        return subprocess.Popen(argv, start_new_session=True,
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL)
+
+    def on_sequence(self, key):
+        """Run one step of the scan-and-pick sequence, or all of it."""
+        if key == "seq_all":
+            done, stopped = [], None
+            for name, kind in self.SEQ_STEPS:
+                ok = (self._seq_pose(name) if kind == "pose"
+                      else self._seq_run(name))
+                if not ok:
+                    stopped = name
+                    break
+                done.append(name)
+            msg = "sequence: %s" % (" -> ".join(done) or "nothing ran")
+            if stopped:
+                msg += "   STOPPED at %s" % stopped
+            self.seq_note.setText(msg)
+            self.log(msg, bad=bool(stopped))
+            return
+        before = self.seq_note.text()
+        ok = self._seq_run(key)
+        # DO NOT OVERWRITE A REASON WITH A VERDICT. `_seq_run` sets a note
+        # naming exactly what is missing; replacing it with "REFUSED" throws
+        # away the only useful half of the message.
+        if self.seq_note.text() == before:
+            self.seq_note.setText("%s: %s"
+                                  % (key, "started" if ok else "REFUSED"))
+
+    def _planned_legs(self, key, arm):
+        """Waypoints for this pose from `recordings/baselines/scan_move.json`.
+
+        Returns [] when there is no plan, so an unplanned pose behaves
+        exactly as before. Returns None-safe: a plan that cannot be read is
+        treated as no plan and SAID, never silently ignored -- a missing plan
+        that quietly becomes a direct move is how the collision happened.
+        """
+        if key != "scan":
+            return []
+        path = os.path.join(_WS, "recordings/baselines/scan_move.json")
+        if not os.path.exists(path):
+            self.log("no scan_move.json -- SCAN POSE would be a DIRECT move. "
+                     "Run: python3 scripts/plan_scan_move.py --both "
+                     "--start pick --save", bad=True)
+            return []
+        try:
+            with open(path) as fh:
+                d = json.load(fh)
+        except Exception as e:                                # noqa: BLE001
+            self.log("scan_move.json unreadable (%s)" % e, bad=True)
+            return []
+        r = d.get(arm)
+        if not r or not r.get("waypoints"):
+            return []
+        self.log("%s arm: following the planned move via '%s' "
+                 "(%d waypoint(s), worst clearance %.3f m)"
+                 % (arm, r.get("via", "?"), len(r["waypoints"]),
+                    r.get("worst_clearance_m", float("nan"))))
+        return [list(map(float, w)) for w in r["waypoints"]]
+
+    def _wait_arrival(self, arm, q, tol_deg=3.0, timeout_s=20.0):
+        """Block until the arm is near `q`, or the timeout expires.
+
+        Arrival is WAITED FOR, not timed: the bridge closes error
+        proportionally, so a fixed sleep leaves a third of it standing --
+        which on a detour waypoint means the corner is cut.
+        """
+        import numpy as _np
+        names = ["%s_joint_%d" % (arm, i) for i in range(1, 8)]
+        # IF THE ARM IS NOT REPORTING, THERE IS NOTHING TO WAIT FOR.
+        #
+        # Blocking the Qt thread for 20 s per waypoint against an arm that
+        # publishes nothing freezes the window -- including the e-stop, which
+        # is the one control that must never be blocked. It also made the
+        # button audit fail: the press never returned. With no joint states
+        # arrival cannot be established at all, so waiting achieves nothing
+        # and the hold keeps the setpoint alive regardless.
+        cur0 = getattr(self.bus, "_real_q", {}) or {}
+        if not all(n in cur0 for n in names):
+            self.log("%s arm: no joint states -- cannot confirm the waypoint "
+                     "was reached; the held setpoint stands" % arm)
+            return False
+        t0 = time.time()
+        while time.time() - t0 < timeout_s:
+            QApplication.processEvents()
+            cur = getattr(self.bus, "_real_q", {}) or {}
+            have = [cur.get(n) for n in names]
+            if all(v is not None for v in have):
+                d = _np.abs((_np.array(have) - _np.array(q) + _np.pi)
+                            % (2 * _np.pi) - _np.pi)
+                if float(_np.degrees(d).max()) < tol_deg:
+                    return True
+            time.sleep(0.05)
+        self.log("%s arm: waypoint not reached within %.0f s -- continuing "
+                 "anyway would cut the corner the detour exists for; stopping "
+                 "here" % (arm, timeout_s), bad=True)
+        return False
+
+    def _seq_pose(self, key):
+        """One pose step of the sequence. False stops the run.
+
+        A REFUSAL STOPS THE SEQUENCE. If HOME could not be commanded --
+        e-stop engaged, or no arm connected -- then scanning and picking from
+        an unknown pose is worse than not running at all.
+        """
+        self.on_goto_pose(key)
+        txt = self.pose_note.text()
+        return ("NOT sent" not in txt) and ("REFUSED" not in txt)
+
+    def _scan_preflight(self, arms):
+        """What `calibrate_environment` will WAIT 120 SECONDS for.
+
+        THE BUTTON LOOKED DEAD AND THE SCRIPT WAS FINE.
+        -----------------------------------------------
+        `env_probe.wait_ready` blocks for 120 s waiting on /compute_ik,
+        /joint_states for the arm, and that arm's wrist camera -- and this
+        window spawned the scanner with its output going to /dev/null. So
+        pressing SCAN THE TABLE started a process that sat in silence for two
+        minutes and then refused where nobody could see it. Measured
+        2026-08-26: the traceback was in a terminal, never in the window, and
+        from the operator's side the button simply did nothing.
+
+        Checked HERE instead, in milliseconds, and named.
+        """
+        missing = []
+        have = {n for n, _ in self.bus.get_topic_names_and_types()}
+        srv = {n for n, _ in self.bus.get_service_names_and_types()}
+        if "/compute_ik" not in srv:
+            missing.append("/compute_ik (MoveIt is not up -- start a mode)")
+        if "/joint_states" not in have:
+            missing.append("/joint_states (no controllers running)")
+        for a in arms:
+            if "/%s_camera/depth/image_raw" % a not in have:
+                missing.append("the %s wrist camera (/%s_camera/depth/"
+                               "image_raw)" % (a, a))
+        return missing
+
+    def _seq_run(self, key):
+        """Start the scan, and SHOW WHAT IT SAYS.
+
+        Output goes to .scratch/scan.log and the exit code is watched, so a
+        scan that dies says so in the window. A long job that reports nothing
+        is a job nobody can debug, and this one takes minutes.
+        """
+        script = {"scan_run": "calibrate_environment.py"}.get(key)
+        if script is None:
+            self.log("unknown sequence step %r" % key, bad=True)
+            return False
+        path = os.path.join(_WS, "scripts", script)
+        if not os.path.exists(path):
+            self.log("%s is missing -- cannot run %s" % (path, key), bad=True)
+            return False
+
+        # ONLY THE ARMS THAT ARE ACTUALLY CONNECTED. This passed --arm both
+        # unconditionally; with one arm on the network the sweep tries to
+        # drive an arm that has no bridge and nothing visible happens.
+        live = [a for a in ARMS if self._bridge_pids(a)]
+        if not live:
+            msg = ("SCAN REFUSED: no arm has a bridge running. Press CONNECT "
+                   "in the ARMS panel first.")
+            self.log(msg, bad=True)
+            self.seq_note.setText(msg)
+            return False
+        miss = self._scan_preflight(live)
+        if miss:
+            msg = ("SCAN REFUSED: missing %s. The scanner would have waited "
+                   "120 s and then given up." % "; ".join(miss))
+            self.log(msg, bad=True)
+            self.seq_note.setText(msg)
+            return False
+
+        venv = os.path.join(_WS, ".venv_vision", "bin", "python")
+        py = venv if os.path.exists(venv) else sys.executable
+        argv = [py, "-u", path,
+                "--arm", "both" if len(live) == 2 else live[0],
+                "--order", "serpentine"]
+        real = bool(getattr(self, "found_move", None)
+                    and self.found_move.isChecked())
+        if real:
+            # Without --drive-real the sweep publishes to the bare topics and
+            # moves the SIMULATION ONLY; the bridge subscribes under /real.
+            argv.append("--drive-real")
+        self.log("scanning with %s -- %s"
+                 % (", ".join(live),
+                    "DRIVING THE REAL ARM" if real else "SIMULATION ONLY"),
+                 bad=real)
+        logp = os.path.join(_WS, ".scratch", "scan.log")
+        try:
+            os.makedirs(os.path.dirname(logp), exist_ok=True)
+            self._scan_log = open(logp, "w")
+            self._scan_proc = subprocess.Popen(
+                argv, start_new_session=True,
+                stdout=self._scan_log, stderr=subprocess.STDOUT)
+        except Exception as e:                                # noqa: BLE001
+            self.log("%s would not start: %s" % (script, e), bad=True)
+            return False
+        self.seq_note.setText(
+            "scanning with %s (%s). Full output in .scratch/scan.log"
+            % (", ".join(live), "REAL ARM" if real else "simulation"))
+        QTimer.singleShot(4000, self._scan_watch)
+        for ms in (20000, 60000, 180000, 360000):
+            QTimer.singleShot(ms, self._refresh_found)
+        return True
+
+    def _scan_watch(self):
+        """Poll the scan and report when it ends, with what it last said."""
+        p = getattr(self, "_scan_proc", None)
+        if p is None:
+            return
+        if p.poll() is None:
+            QTimer.singleShot(4000, self._scan_watch)
+            return
+        rc = p.returncode
+        tail = ""
+        try:
+            with open(os.path.join(_WS, ".scratch", "scan.log")) as fh:
+                lines = [ln.rstrip() for ln in fh
+                         if ln.strip() and "RTPS_TRANSPORT_SHM" not in ln]
+            tail = lines[-1][:160] if lines else ""
+        except Exception:                                     # noqa: BLE001
+            pass
+        if rc == 0:
+            self.log("scan finished. %s" % tail)
+            self.seq_note.setText("scan finished -- %s" % tail)
+        else:
+            self.log("SCAN FAILED (exit %d): %s" % (rc, tail), bad=True)
+            self.seq_note.setText(
+                "SCAN FAILED (exit %d): %s    [see .scratch/scan.log]"
+                % (rc, tail))
+        self._scan_proc = None
+        self._refresh_found()
+    def on_goto_pose(self, key):
+        """Command a named pose on whichever arms are actually connected.
+
+        THE E-STOP IS CHECKED FIRST, AND IT IS A REFUSAL.
+        --------------------------------------------------
+        Measured 2026-08-26: HOME was pressed, the trajectory reached the
+        bridge, and the bridge answered `zero speed: estop` twice a second
+        while this window logged "HOME commanded on left, right". The arm
+        could not move and the operator was told it had been told to. That is
+        this repository's own "feature present but does nothing", in a button
+        whose entire job is to move an arm. Nothing is published while the
+        e-stop is engaged, and the reason names the reset button.
+
+        ONE ARM IS A VALID SETUP.
+        -------------------------
+        Each arm is commanded independently and reported independently: an
+        absent right arm must not stop the left from homing. What it must ALSO
+        not do is quietly go somewhere else -- the previous version fell back
+        per-arm to the SIMULATION topic, so with only the left bridge up, HOME
+        drove the real left arm and the SIMULATED right one in the same press,
+        and said "commanded on left, right".
+        """
+        lbl, _why = _POSES.describe(key)
+
+        # ---- e-stop gate
+        est = self.bus.snap.get("estop")
+        engaged = bool(est[0]) if est else None
+        if engaged:
+            msg = ("%s REFUSED: the E-STOP is engaged, so the bridge answers "
+                   "every command with zero speed. Press 'reset e-stop' at "
+                   "the bottom of this window, then try again." % lbl)
+            self.log(msg, bad=True)
+            self.pose_note.setText(msg)
+            return
+
+        sent, failed, sim_used = [], [], []
+        for arm in ARMS:
+            try:
+                q = _POSES.load(key, arm)
+            except _POSES.PoseError as e:
+                failed.append("%s: %s" % (arm, e))
+                continue
+            # A PLANNED MOVE IS FOLLOWED IF ONE EXISTS.
+            #
+            # The scan pose is reached by a checked PATH, not by handing the
+            # controller the target and letting it interpolate in joint
+            # space. Measured 2026-08-26: the direct joint interpolation from
+            # the pick pose to the scan pose took the LEFT hand along the
+            # mannequin's forearm at 0.1897 m -- 16 of 31 samples under the
+            # margin -- and it hit. Both ENDPOINTS were clear; the middle was
+            # not, and only the endpoints were ever checked.
+            legs = self._planned_legs(key, arm)
+            if legs:
+                ok, topic = False, None
+                for i, wp in enumerate(legs, 1):
+                    ok, topic = self.bus.send_joint_pose(
+                        arm, wp, secs=6.0)
+                    if not ok:
+                        break
+                    if i < len(legs):
+                        # Each leg is HELD until the arm is there. Firing the
+                        # next waypoint immediately would blend the two and
+                        # cut the corner -- which is the very corner the
+                        # detour exists to avoid.
+                        self._wait_arrival(arm, wp)
+            else:
+                ok, topic = self.bus.send_joint_pose(arm, q, secs=5.0)
+            if not ok:
+                failed.append("%s arm: not connected -- nothing subscribes to "
+                              "/real/%s_arm_controller/joint_trajectory or the "
+                              "sim equivalent. Press CONNECT for this arm."
+                              % (arm, arm))
+                continue
+            sent.append("%s -> %s" % (arm, topic))
+            if not topic.startswith("/real/"):
+                sim_used.append(arm)
+        for one in sent:
+            self.log("%s commanded: %s (5 s)" % (lbl, one))
+        for f in failed:
+            self.log("%s REFUSED -- %s" % (lbl, f), bad=True)
+
+        msg = []
+        if sent:
+            msg.append("%s sent: %s." % (lbl, "; ".join(sent)))
+        if sim_used:
+            # SAY IT. A press that moves the picture and not the metal is the
+            # most confusing outcome available, and it looks like success.
+            msg.append("NOTE: %s went to the SIMULATION, not a real arm."
+                       % " and ".join(sim_used))
+        if failed:
+            msg.append("NOT sent: " + " | ".join(failed))
+        if sent and engaged is None:
+            msg.append("(e-stop state unknown -- no /estop_state publisher; "
+                       "if nothing moves, that is the first thing to check.)")
+        self.pose_note.setText("  ".join(msg))
+
     def _vr_panel(self):
-        g = QGroupBox("VR teleoperation")
+        g = QGroupBox("session details")
         g.setFont(helvetica(11, True))
         v = QVBoxLayout(g)
 
-        self.vr_btn = QPushButton("START VR TELEOP")
-        self.vr_btn.setFont(helvetica(13, True))
-        self.vr_btn.setMinimumHeight(44)
-        self.vr_btn.setStyleSheet("color:%s;border:1px solid %s" % (C_OK, C_OK))
-        self.vr_btn.setToolTip(
-            "Brings up everything a VR session needs, in order, and stops at "
-            "the first thing it cannot do -- with the fix as a button. It "
-            "does not touch the real arms.")
-        self.vr_btn.clicked.connect(self.on_vr_start)
-        v.addWidget(self.vr_btn)
+        # The start button lives in the three-click panel at the top of the
+        # tab (self.vr_btn is created there); this section carries only what
+        # a running VR session needs: the ticks, the link, the freeze state
+        # and the twelve step rows.
 
         # I AM WORKING ALONE. Beside the observer check, never instead of it.
         #
@@ -3156,12 +4737,185 @@ class Gui(QMainWindow):
         self.vr_alone_note.setStyleSheet("color:%s" % C_MUTED)
         v.addWidget(self.vr_alone_note)
 
+        # WORN OR ON THE SHELF. The reference watch exists for a headset
+        # standing still as the tracking origin (desk operation): a knock
+        # announces nothing, so it freezes on 20 mm / 2 deg of drift. Worn
+        # on a head, that same gate freezes the moment the operator looks
+        # around -- stickily -- and nothing in this window could clear it.
+        # This box is the missing control: ticked = the headset moves with a
+        # person, so the watch is off; unticked = shelf, watch on. It is
+        # applied LIVE to a running safety node and carried into the next
+        # launch's environment.
+        self.vr_worn = QCheckBox("the headset is being worn (not on a shelf)")
+        self.vr_worn.setFont(helvetica(9, True))
+        self.vr_worn.setToolTip(
+            "Untick when the headset stands on a shelf as the tracking "
+            "reference -- then a knock to it freezes everything, on purpose. "
+            "Tick when somebody wears it: a worn headset is SUPPOSED to "
+            "move, and the freeze would fire on the first head turn.")
+        self.vr_worn.toggled.connect(self.on_vr_worn)
+        v.addWidget(self.vr_worn)
+
+        # WHY THE ARM IS FROZEN, in plain words, where the operator looks.
+        self.vr_freeze_lbl = QLabel("")
+        self.vr_freeze_lbl.setFont(helvetica(9, True))
+        self.vr_freeze_lbl.setWordWrap(True)
+        self.vr_freeze_lbl.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.vr_freeze_lbl)
+
         self.vr_head = QLabel("not started")
         self.vr_head.setFont(helvetica(11, True))
         self.vr_head.setWordWrap(True)
         self.vr_head.setStyleSheet("color:%s" % C_MUTED)
         v.addWidget(self.vr_head)
 
+        # ------------------------------------------------------- THE LINK
+        # Two addresses, and they are not the same question:
+        #
+        #   THIS MACHINE -- what to type into the headset's browser. Known as
+        #   soon as the bridge is serving, and needed BEFORE any headset has
+        #   connected, which is exactly when a pop-up that has to be clicked
+        #   is least useful.
+        #
+        #   THE HEADSET -- who actually connected. The bridge had this the
+        #   whole time and threw it away, so the window could say "1 client"
+        #   and nothing more. With two headsets on the bench, or a phone left
+        #   on the page from an earlier test, that message is identical
+        #   whether or not the right device is on the other end.
+        lk = QGroupBox("link")
+        lk.setFont(helvetica(9, True))
+        lkv = QVBoxLayout(lk)
+        # TOP MARGIN LEAVES ROOM FOR THE TITLE. A QGroupBox draws its title
+        # INSIDE its own frame, so a 4 px top margin puts the first row under
+        # the word "link" -- which is what shipped for about ten minutes and
+        # is invisible from a return code: the audit pressed every control in
+        # here and passed 277/277 while the label was unreadable.
+        lkv.setContentsMargins(6, 16, 6, 4)
+        lkv.setSpacing(2)
+
+        self.vr_url_lbl = QLabel("this machine:  (bridge not started)")
+        self.vr_url_lbl.setFont(mono(10, True))
+        self.vr_url_lbl.setWordWrap(True)
+        self.vr_url_lbl.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.vr_url_lbl.setToolTip(
+            "Open this in the headset's own browser. Every address this "
+            "machine has is shown, robot network first -- the headset may be "
+            "on either wifi, and the wrong one fails inside the headset where "
+            "you cannot see why.")
+        lkv.addWidget(self.vr_url_lbl)
+
+        self.vr_headset_lbl = QLabel("headset:  no headset connected")
+        self.vr_headset_lbl.setFont(mono(10, True))
+        self.vr_headset_lbl.setWordWrap(True)
+        self.vr_headset_lbl.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.vr_headset_lbl.setToolTip(
+            "The address the headset connected FROM, and whether pose frames "
+            "are actually arriving. An open socket is not a live headset: a "
+            "suspended browser page still answers pings, so this reads the "
+            "frame counter rather than the socket count.")
+        lkv.addWidget(self.vr_headset_lbl)
+        v.addWidget(lk)
+
+        # ------------------------------------------------------- SMOOTHING
+        # THE FEEL OF THE TELEOPERATION, where the operator can reach it.
+        #
+        # These set parameters on a RUNNING vr_pose_mapper, so a change takes
+        # effect on the next command rather than the next session -- which is
+        # the only way "smoother" can be judged, because it is judged by hand.
+        # Every control logs its new value: this panel changes what the arm
+        # does, and the audit rule for this window is that such a control must
+        # SAY so.
+        # The title is short enough not to be elided at this column width.
+        # "smoothing -- how the command follows your hand" was, and a
+        # QGroupBox elides its title without any indication that it did.
+        sg = QGroupBox("smoothing")
+        sg.setFont(helvetica(9, True))
+        sg.setToolTip("How the commanded pose follows the operator's hand.")
+        sv = QVBoxLayout(sg)
+        sv.setContentsMargins(6, 16, 6, 4)
+        sv.setSpacing(3)
+
+        r0 = QHBoxLayout()
+        lab = QLabel("law")
+        lab.setFont(helvetica(9))
+        r0.addWidget(lab)
+        self.vr_smooth = QComboBox()
+        self.vr_smooth.setFont(helvetica(9))
+        self.vr_smooth.addItems(["one_euro", "ema", "none"])
+        self.vr_smooth.setToolTip(
+            "one_euro: cutoff rises with hand speed -- still when you are "
+            "still, no lag when you move. Measured against a 1.5 mm-rms "
+            "tremor and a 0.40 m/s reach: 0.51 mm still / 1.53 mm lag, "
+            "against 1.74 / 3.66 for the ema this replaced.\n"
+            "ema: the fixed filter that shipped before. Kept so recordings "
+            "made before 2026-08-26 reproduce.\n"
+            "none: raw. For seeing what the filter is actually doing.")
+        self.vr_smooth.currentTextChanged.connect(self.on_vr_smoothing)
+        r0.addWidget(self.vr_smooth, 1)
+        sv.addLayout(r0)
+
+        # min_cutoff and beta are the two knobs that matter and they pull in
+        # opposite directions, so they are shown together rather than buried.
+        self.vr_mincut = self._vr_spin(
+            sv, "steadiness (min cutoff, Hz)", 0.1, 5.0, 0.1, 0.5,
+            "LOWER = steadier when your hand is still. Costs lag only at low "
+            "speed, where lag is cheap.",
+            lambda x: self.bus.set_param("/vr_pose_mapper", "min_cutoff_hz", x))
+        self.vr_beta = self._vr_spin(
+            sv, "responsiveness (beta, Hz per m/s)", 0.0, 400.0, 10.0, 100.0,
+            "HIGHER = less lag when you move fast, at the price of letting "
+            "tremor through during fast motion, where you cannot see it. "
+            "NOTE THE UNITS: this signal is in METRES, so the 1-Euro paper's "
+            "pixel-scale values (~0.001-1) are about 1000x too small and "
+            "leave the filter stuck as a heavy fixed low pass.",
+            lambda x: self.bus.set_param("/vr_pose_mapper", "beta", x))
+
+        self.vr_rot_smooth = QCheckBox("smooth the wrist too")
+        self.vr_rot_smooth.setFont(helvetica(9))
+        self.vr_rot_smooth.setChecked(True)
+        self.vr_rot_smooth.setToolTip(
+            "Orientation was NOT filtered at all before 2026-08-26 -- the raw "
+            "controller quaternion went straight to IK while position got a "
+            "low pass. The pads hang off the wrist, so hand tremor arrived "
+            "there unattenuated. Untick to compare.")
+        self.vr_rot_smooth.toggled.connect(
+            lambda on: (self.bus.set_param("/vr_pose_mapper",
+                                           "smooth_orientation", bool(on)),
+                        self.log("wrist smoothing -> %s" % ("on" if on else "OFF"))))
+        sv.addWidget(self.vr_rot_smooth)
+
+        # WHAT THE FILTER IS DOING RIGHT NOW. Without this, "feels laggy" and
+        # "feels jittery" are unfalsifiable -- which is exactly what the old
+        # fixed alpha was.
+        self.vr_smooth_state = QLabel("mapper not running")
+        self.vr_smooth_state.setFont(mono(9))
+        self.vr_smooth_state.setWordWrap(True)
+        self.vr_smooth_state.setStyleSheet("color:%s" % C_MUTED)
+        sv.addWidget(self.vr_smooth_state)
+        # BEHIND A TICK, NOT IN THE FACE. The operator called the RUN tab
+        # what it was: too many options. The smoothing knobs matter when
+        # tuning feel and never during a session start, so they hide until
+        # asked for. The live one-line state stays visible logic-side --
+        # it reappears with the panel.
+        self.vr_adv = QCheckBox("advanced: smoothing settings")
+        self.vr_adv.setFont(helvetica(8))
+        self.vr_adv.toggled.connect(
+            lambda on: (sg.setVisible(bool(on)),
+                        self.log("VR smoothing settings %s"
+                                 % ("shown" if on else "hidden"))))
+        v.addWidget(self.vr_adv)
+        sg.setVisible(False)
+        v.addWidget(sg)
+
+        # THE TWELVE CHECK ROWS, HIDDEN UNTIL A BRING-UP RUNS. Idle, they
+        # were twelve lines of grey text the operator read as clutter --
+        # rightly, because with nothing started they say nothing. They
+        # appear the moment START runs them (on_vr_start), which is the
+        # moment a failed row and its fix button matter.
+        self.vr_steps_box = QWidget()
+        sbl = QVBoxLayout(self.vr_steps_box)
+        sbl.setContentsMargins(0, 0, 0, 0)
+        sbl.setSpacing(0)
         self.vr_rows = {}
         for key, title, _fn in vrb.STEPS:
             box = QWidget()
@@ -3184,8 +4938,10 @@ class Gui(QMainWindow):
             bl.addWidget(t)
             bl.addWidget(why)
             bl.addWidget(fix)
-            v.addWidget(box)
+            sbl.addWidget(box)
             self.vr_rows[key] = (box, t, why, fix)
+        self.vr_steps_box.setVisible(False)
+        v.addWidget(self.vr_steps_box)
 
         row = QHBoxLayout()
         b = QPushButton("stop VR")
@@ -3198,6 +4954,19 @@ class Gui(QMainWindow):
         b2.setFont(helvetica(9))
         b2.clicked.connect(self.on_vr_show_url)
         row.addWidget(b2)
+        # THE ONLY WAY OUT OF A REFERENCE FREEZE. The freeze is sticky by
+        # design (poses keep flowing, so the ordinary unfreeze is true the
+        # whole time it is wrong) and until now the service existed with no
+        # control anywhere in the window.
+        b3 = QPushButton("accept moved reference")
+        b3.setFont(helvetica(9))
+        b3.setToolTip(
+            "The headset (the tracking reference) moved and everything "
+            "froze. Press this to accept where it now stands. Every pose is "
+            "then in the new frame -- re-run the operator yaw calibration "
+            "if the move was more than a nudge.")
+        b3.clicked.connect(self.on_vr_rebase)
+        row.addWidget(b3)
         row.addStretch(1)
         v.addLayout(row)
 
@@ -3241,6 +5010,12 @@ class Gui(QMainWindow):
             return
         if on:
             rec = OB.grant(who="gui", reason="operator working alone")
+            # The one-button bring-up spawns vr_safety_node from THIS
+            # process's environment; without these the tick reached the
+            # script route and silently not the button.
+            os.environ.update(VR_REQUIRE_OBSERVER="false",
+                              VR_ALLOW_REAL_ARM="true",
+                              VR_ALLOW_REAL_NO_OBSERVER="true")
             self.vr_alone_note.setText(
                 "WORKING ALONE since %s. Nobody is holding an e-stop. This "
                 "is in the log." % rec["granted_at_iso"])
@@ -3249,10 +5024,43 @@ class Gui(QMainWindow):
                      "session" % rec["granted_at_iso"], bad=True)
         else:
             OB.clear(who="gui", note="unticked")
+            for k in ("VR_REQUIRE_OBSERVER", "VR_ALLOW_REAL_ARM",
+                      "VR_ALLOW_REAL_NO_OBSERVER"):
+                os.environ.pop(k, None)
             self.vr_alone_note.setText("Observer required.")
             self.vr_alone_note.setStyleSheet("color:%s" % C_MUTED)
             self.log("observer bypass cancelled -- an observer is required "
                      "again")
+
+    def on_vr_worn(self, on):
+        """Worn headset: the reference watch is wrong by construction.
+
+        Applied LIVE (the safety node reads the parameter per message) and
+        recorded for the next launch via _launch_env. The audit rule: a
+        control that changes what the next run does must SAY so.
+        """
+        # set_param is loud on failure through the bus notes; if no safety
+        # node is running yet, the setting still reaches the next launch:
+        # spec launches read _launch_env, and the one-button bring-up
+        # (vr_bringup) reads THIS process's environment at spawn time.
+        os.environ["VR_WATCH_REFERENCE"] = "false" if on else "true"
+        self.bus.set_param("/vr_safety_node", "watch_tracking_reference",
+                           not bool(on))
+        if on:
+            self.log("headset marked WORN: the moved-reference freeze is "
+                     "OFF, live and for the next VR start. A worn headset "
+                     "is supposed to move.")
+        else:
+            self.log("headset marked ON THE SHELF: the moved-reference "
+                     "freeze is ON, live and for the next VR start. A knock "
+                     "now freezes everything, on purpose.")
+
+    def on_vr_rebase(self):
+        """Accept the tracking reference where it now stands. The result
+        arrives asynchronously as a bus note; call_trigger refuses loudly
+        when the service is absent."""
+        self.log("accepting the moved tracking reference...")
+        self.bus.call_trigger("/vr/rebase_reference")
 
     def on_vr_start(self):
         if self._vr_busy:
@@ -3260,6 +5068,7 @@ class Gui(QMainWindow):
             return
         self._vr_busy = True
         self.vr_btn.setEnabled(False)
+        self.vr_steps_box.setVisible(True)
         self.vr_head.setText("STARTING...")
         self.vr_head.setStyleSheet("color:%s" % C_WARN)
         self.log("VR bring-up: starting")
@@ -3319,6 +5128,10 @@ class Gui(QMainWindow):
         self.vr_head.setStyleSheet("color:%s" % col)
         self.log("VR bring-up: %s" % head, bad=(state == vrb.FAILED))
         if state == vrb.OK:
+            # The simulation is up by now (it is an early bring-up step);
+            # opening its view here is what makes "click VR, see the sim"
+            # one click instead of two.
+            self._ensure_rviz()
             self.vr_note.setText(
                 "Put the headset on its shelf, open the address above in its "
                 "own browser, accept the one warning and press ENTER VR.")
@@ -3908,16 +5721,157 @@ class Gui(QMainWindow):
         with no button is the same defect as a button with no manifest entry
         and is harder to see.
         """
-        g = QGroupBox("Start the robot doing something")
+        g = QGroupBox("Run a task")
         g.setFont(helvetica(11, True))
         v = QVBoxLayout(g)
-        for group, title in (("mode", "Modes"), ("task", "Tasks"),
-                             ("demo", "Demonstrations (no trial data)")):
-            self._spec_group(v, group, title)
+        # ONE RUNNER, NOT A WALL. The task and demo groups used to render
+        # one button per (task x mode) -- 55 of them, 24 saying "vr"
+        # somewhere -- and the operator called it what it was: unusable.
+        # The specs, keys and dispatch path are unchanged; only the
+        # presentation collapses to two choices and one button.
+        self._task_runner(v)
+        # DEMOTED, NOT DELETED, AND LAST. These launch a single stack piece
+        # by hand; the session's own controls are the three-click panel at
+        # the top. Kept because a stuck session sometimes needs exactly one
+        # piece relaunched -- but labelled as what it is, below the work.
+        self._spec_group(v, "mode", "Advanced  --  launch one piece by hand")
         b = QPushButton("stop all launched jobs")
         b.clicked.connect(self.on_stop_jobs)
         v.addWidget(b)
         return g
+
+    # Plain words for the five clip-tree modes, in the clip tree's order.
+    # Keyed by the short name inside the spec label's brackets, which comes
+    # from the mode directory name -- so a mode the tree gains shows up
+    # under its raw name rather than vanishing.
+    MODE_WORDS = [
+        ("master teleop", "you drive -- master arm"),
+        ("vr teleop", "you drive -- VR controllers"),
+        ("shared autonomy", "you drive, robot helps -- master arm"),
+        ("vr shared", "you drive, robot helps -- VR"),
+        ("full autonomy", "robot does it alone"),
+    ]
+
+    def _task_runner(self, layout):
+        """Pick what, pick how, press RUN."""
+        specs = [x for x in self._ensure_specs()
+                 if x.group in ("task", "demo")]
+        # label "T1 pick and place  [vr teleop]" -> ("T1 pick and place",
+        # "vr teleop"). The bracket form is asserted by validate()'s
+        # duplicate check working at all, but parse defensively: a label
+        # with no bracket becomes its own activity with a blank mode.
+        self._task_pairs = {}
+        acts = []
+        demo_bases = set()
+        for sp in specs:
+            base, _, rest = sp.label.partition("  [")
+            short = rest[:-1] if rest.endswith("]") else ""
+            self._task_pairs[(base, short)] = sp
+            if base not in acts:
+                acts.append(base)
+            if sp.group == "demo":
+                demo_bases.add(base)
+
+        lab = QLabel("Tasks and demonstrations")
+        lab.setFont(helvetica(10, True))
+        layout.addWidget(lab)
+
+        r1 = QHBoxLayout()
+        t = QLabel("do")
+        t.setFont(helvetica(9))
+        r1.addWidget(t)
+        self.task_pick = QComboBox()
+        self.task_pick.setFont(helvetica(9))
+        for a in acts:
+            self.task_pick.addItem(
+                a + ("   (demo -- no trial data)" if a in demo_bases else ""),
+                a)
+        self.task_pick.setToolTip(
+            "What the robot should do. Demonstrations produce no trial "
+            "data and say so on the clip.")
+        r1.addWidget(self.task_pick, 1)
+        layout.addLayout(r1)
+
+        r2 = QHBoxLayout()
+        t = QLabel("how")
+        t.setFont(helvetica(9))
+        r2.addWidget(t)
+        self.mode_pick = QComboBox()
+        self.mode_pick.setFont(helvetica(9))
+        shorts = {s for (_, s) in self._task_pairs}
+        for short, words in self.MODE_WORDS:
+            if short in shorts:
+                self.mode_pick.addItem(words, short)
+        for short in sorted(shorts - {s for s, _ in self.MODE_WORDS}):
+            if short:
+                self.mode_pick.addItem(short, short)
+        self.mode_pick.setToolTip(
+            "Who is in control. The same waypoints are commanded under "
+            "every mode; the mode is the path the command travels.")
+        # Shared autonomy is the study's condition of interest and the
+        # operator's requested default for every run (2026-08-27).
+        i = self.mode_pick.findData("shared autonomy")
+        if i >= 0:
+            self.mode_pick.setCurrentIndex(i)
+        r2.addWidget(self.mode_pick, 1)
+        layout.addLayout(r2)
+
+        self.task_run_note = QLabel("")
+        self.task_run_note.setFont(helvetica(8))
+        self.task_run_note.setWordWrap(True)
+        self.task_run_note.setStyleSheet("color:%s" % C_MUTED)
+        layout.addWidget(self.task_run_note)
+
+        self.task_run_btn = QPushButton("RUN")
+        self.task_run_btn.setFont(helvetica(11, True))
+        self.task_run_btn.setMinimumHeight(34)
+        self.task_run_btn.clicked.connect(self.on_run_selected_task)
+        layout.addWidget(self.task_run_btn)
+
+        self.task_pick.currentIndexChanged.connect(self._task_pick_changed)
+        self.mode_pick.currentIndexChanged.connect(self._task_pick_changed)
+        self._task_pick_changed()
+
+    def _selected_task_spec(self):
+        base = self.task_pick.currentData()
+        short = self.mode_pick.currentData()
+        return self._task_pairs.get((base, short))
+
+    def _task_pick_changed(self, *_):
+        """The RUN button must say, BEFORE the press, what it will refuse.
+
+        A pair the manifest does not offer (T1 runs under full autonomy
+        only) or offers disabled must grey the button with the reason on
+        it -- a RUN that exits 2 on press looks exactly like one that
+        launched something invisible.
+        """
+        sp = self._selected_task_spec()
+        if sp is None:
+            self.task_run_btn.setEnabled(False)
+            self.task_run_note.setText(
+                "%s does not run under '%s' -- pick another mode."
+                % (self.task_pick.currentData(),
+                   self.mode_pick.currentText()))
+        elif not sp.enabled:
+            self.task_run_btn.setEnabled(False)
+            self.task_run_note.setText(sp.disabled_reason or "unavailable")
+        else:
+            self.task_run_btn.setEnabled(True)
+            self.task_run_note.setText(sp.note or "")
+        # The audit's own rule: a control that changes what the next run
+        # does must SAY so. These two combos decide exactly that.
+        self.log("RUN is set to: %s / %s%s"
+                 % (self.task_pick.currentData(),
+                    self.mode_pick.currentText(),
+                    "" if sp is not None and sp.enabled
+                    else "  (refused -- see the note)"))
+
+    def on_run_selected_task(self):
+        sp = self._selected_task_spec()
+        if sp is None or not sp.enabled:
+            return
+        self.log("RUN: %s" % sp.label)
+        self.on_launch(sp)
 
     def _diag_launchers(self):
         g = QGroupBox("Something is wrong?  Checks and fixes")
@@ -4892,8 +6846,194 @@ class Gui(QMainWindow):
         self.viz_split.setStretchFactor(self.viz_split.count() - 1, 2)
         self.viz_split.setSizes([560, 360])
         v.addWidget(self.viz_split, 1)
-        v.addWidget(self._divergence_panel())
+        # THE BOTTOM STRIP: the scene camera, ALWAYS ON, where the
+        # divergence table alone used to sit (operator, 2026-08-27). The
+        # sim->real gap stays beside it in a slimmer column -- it is the
+        # number the lag trip acts on and hiding it entirely would make
+        # the first trip unexplainable from the window.
+        strip = QHBoxLayout()
+        strip.setSpacing(4)
+        strip.addWidget(self._scene_cam_panel(), 3)
+        strip.addWidget(self._divergence_panel(), 2)
+        v.addLayout(strip)
         return w
+
+    def _scene_cam_panel(self):
+        g = QGroupBox("SCENE CAMERA  --  live, with detections")
+        g.setFont(helvetica(11, True))
+        bl = QVBoxLayout(g)
+        bl.setContentsMargins(4, 14, 4, 2)
+        self.scene_view = swp.FeedView(
+            dict(bg=C_BG, line=LINE, muted=C_MUTED, accent=C_OK, bad=C_BAD,
+                 warn=C_WARN, unknown=C_UNKNOWN))
+        # SMALL MINIMUM, on purpose: this strip shares the window's width
+        # budget with the master-arm column, and a 240 px floor here was
+        # measured (screenshot, 2026-08-27) squeezing that column until its
+        # dials overdrew their own labels.
+        self.scene_view.setMinimumSize(160, 100)
+        self.scene_view.setToolTip(
+            "The room camera. When the vision layer runs, this is its "
+            "ANNOTATED frame -- boxes, labels, or the refusal burned into "
+            "the picture; otherwise the raw stream.")
+        bl.addWidget(self.scene_view, 1)
+
+        # THE PUBLISHER, REACHABLE. This panel SUBSCRIBED to
+        # /scene_camera/image_raw and nothing in the window -- or in any
+        # launch spec, mode sequence or startup script -- ever started
+        # `scene_camera_node`. It is a registered entry point that only a
+        # verification script ran, so the panel was empty for every operator
+        # who did not know to type `ros2 run srl_perception scene_camera_node`
+        # at a terminal. GUI RULE: the window is the interface; a capability
+        # the window cannot reach does not exist.
+        row = QHBoxLayout()
+        row.setSpacing(4)
+        self.scene_cam_btn = QPushButton("START SCENE CAMERA")
+        self.scene_cam_btn.setFont(helvetica(9, True))
+        self.scene_cam_btn.setToolTip(
+            "Starts scene_camera_node, which is what publishes "
+            "/scene_camera/image_raw into the view above. It probes for the "
+            "node that actually DELIVERS an MJPG frame rather than taking "
+            "/dev/video0 -- a RealSense presents six video nodes and several "
+            "open cleanly while returning nothing for ever.")
+        self.scene_cam_btn.clicked.connect(self.on_scene_camera_toggle)
+        self.buttons["scene_camera"] = self.scene_cam_btn
+        row.addWidget(self.scene_cam_btn, 1)
+        bl.addLayout(row)
+        self.scene_cam_note = QLabel("")
+        self.scene_cam_note.setFont(helvetica(8))
+        self.scene_cam_note.setWordWrap(True)
+        self.scene_cam_note.setStyleSheet("color:%s" % C_MUTED)
+        bl.addWidget(self.scene_cam_note)
+        self._scene_cam_timer = QTimer(self)
+        self._scene_cam_timer.timeout.connect(self._scene_cam_refresh)
+        self._scene_cam_timer.start(3000)
+        QTimer.singleShot(500, self._scene_cam_refresh)
+        return g
+
+    # ------------------------------------------------------- scene camera
+    @staticmethod
+    def _scene_cam_pids():
+        try:
+            out = subprocess.run(
+                ["pgrep", "-f", "srl_perception/scene_camera_node"],
+                capture_output=True, text=True, timeout=5).stdout
+        except Exception:                                     # noqa: BLE001
+            return []
+        return [int(x) for x in out.split() if x.strip().isdigit()]
+
+    def on_scene_camera_toggle(self):
+        import signal
+        pids = self._scene_cam_pids()
+        if pids:
+            for pid in pids:
+                try:
+                    os.kill(pid, signal.SIGINT)
+                except OSError as e:
+                    self.log("scene camera: could not signal %d: %s" % (pid, e),
+                             bad=True)
+            self.log("scene camera: SIGINT sent to %s"
+                     % ", ".join(str(p) for p in pids))
+            self.scene_cam_note.setText("stopping...")
+        else:
+            # NO /dev/video* IS ITS OWN FAULT, AND IT IS NOT A ROS FAULT.
+            # Under WSL the cameras arrive over usbip, and the service drops
+            # them on its own. Saying so here costs one glob and saves the
+            # operator debugging a node that cannot possibly work.
+            import glob
+            if not glob.glob("/dev/video*"):
+                msg = ("REFUSED: there are no /dev/video* devices at all. "
+                       "The camera is not attached to WSL. In an "
+                       "Administrator PowerShell: usbipd attach --wsl "
+                       "--busid <id>  (detach first if it says already "
+                       "attached).")
+                self.log(msg, bad=True)
+                self.scene_cam_note.setText(msg)
+                return
+            self._run_raw("scene_camera_node",
+                          ["ros2", "run", "srl_perception", "scene_camera_node"])
+            self.log("scene camera: START requested")
+            self.scene_cam_note.setText("starting...")
+        QTimer.singleShot(2500, self._scene_cam_refresh)
+
+    def _scene_cam_refresh(self):
+        if not hasattr(self, "scene_cam_btn"):
+            return
+        pids = self._scene_cam_pids()
+        if pids:
+            self.scene_cam_btn.setText("STOP SCENE CAMERA")
+            fresh = time.time() - getattr(self, "scene_img_t", 0.0) < 3.0
+            self.scene_cam_note.setText(
+                "running (pid %s) -- %s"
+                % (", ".join(str(p) for p in pids),
+                   "publishing frames" if fresh
+                   else "NO FRAMES YET on /scene_camera/image_raw"))
+            self.scene_cam_note.setStyleSheet(
+                "color:%s" % (C_OK if fresh else C_WARN))
+        else:
+            self.scene_cam_btn.setText("START SCENE CAMERA")
+            self.scene_cam_note.setText("not running -- the view above stays "
+                                        "empty until this is started")
+            self.scene_cam_note.setStyleSheet("color:%s" % C_MUTED)
+
+    def _rviz_keepalive(self):
+        """Restart the COMMANDED view when the stack it draws appears.
+
+        Two cases, both measured on 2026-08-27: RViz started at window-open
+        against no stack never recovers when one arrives (grey grid, dead
+        fixed frame); and an RViz that died stays dead unless a mode
+        sequence happens to end. Neither is the operator's job to notice.
+        """
+        now = time.monotonic()
+        if now - getattr(self, "_rviz_kept_t", 0.0) < 5.0:
+            return
+        self._rviz_kept_t = now
+        if getattr(self.args, "no_rviz", False):
+            return
+        if _stack_pids() <= 0:
+            return
+        procs = list(getattr(self, "rviz", []))
+        alive = [p for _k, p in procs if p.poll() is None]
+        if alive and not getattr(self, "_rviz_prestack", False):
+            return
+        for _k, p in procs:
+            if p.poll() is None:
+                try:
+                    os.killpg(os.getpgid(p.pid), 15)
+                except Exception:                             # noqa: BLE001
+                    try:
+                        p.terminate()
+                    except Exception:                         # noqa: BLE001
+                        pass
+        self.rviz = []
+        self.log("the simulation is up -- restarting the COMMANDED view "
+                 "so it can see the robot"
+                 if alive else
+                 "the COMMANDED view was gone and a stack is up -- "
+                 "restarting it")
+        self.start_rviz()
+
+    def _refresh_scene_view(self, s):
+        """Prefer the vision layer's annotated frame; fall back to raw.
+
+        Freshness decides, not preference order: a dead vision node must
+        not freeze this view while raw frames still flow.
+        """
+        view = getattr(self, "scene_view", None)
+        if view is None:
+            return
+        ov, ov_t = s.get("scene_ov_img"), s.get("scene_ov_img_t", 0.0)
+        raw, raw_t = s.get("scene_img"), s.get("scene_img_t", 0.0)
+        now = time.monotonic()
+        if ov is not None and now - ov_t < 3.0:
+            view.set_frame(ov, ov_t)
+            view.set_overlay(None, "detections ON", "ok")
+        elif raw is not None:
+            view.set_frame(raw, raw_t)
+            view.set_overlay(None, "raw stream -- vision layer not "
+                                   "running", "unknown")
+        else:
+            view.set_overlay(None, "no scene camera frame has ever "
+                                   "arrived", "unknown")
 
     def _actual_panel(self):
         box = QGroupBox("ACTUAL  --  where the real arms are")
@@ -4933,11 +7073,17 @@ class Gui(QMainWindow):
         return box
 
     def _divergence_panel(self):
-        g = QGroupBox("How far the real arms are from where they were told")
+        g = QGroupBox("SIM -> REAL gap")
         g.setFont(helvetica(11, True))
         grid = QGridLayout(g)
         self.div_head = QLabel()
         self.div_head.setFont(helvetica(10))
+        # WRAPPED, and that is load-bearing: an unwrappable one-line header
+        # sets this panel's MINIMUM width, and since the panel shares its
+        # strip with the scene camera (2026-08-27) that minimum was taken
+        # out of the master-arm column, which drew its dials over their own
+        # labels. Measured from a screenshot, invisible from a return code.
+        self.div_head.setWordWrap(True)
         grid.addWidget(self.div_head, 0, 0, 1, 10)
         self.div_max, self.div_ee, self.div_state, self.div_joint = {}, {}, {}, {}
         for r, a in enumerate(ARMS):
@@ -4952,6 +7098,7 @@ class Gui(QMainWindow):
             self.div_ee[a].setFont(helvetica(13, True))
             grid.addWidget(self.div_ee[a], r + 1, 3)
             self.div_joint[a] = QLabel()
+            self.div_joint[a].setWordWrap(True)
             self.div_joint[a].setFont(helvetica(9))
             self.div_joint[a].setStyleSheet("color:%s" % C_MUTED)
             grid.addWidget(self.div_joint[a], r + 1, 4, 1, 6)
@@ -5143,6 +7290,13 @@ class Gui(QMainWindow):
             for k in self.viz_msg:
                 self.viz_msg[k].setText("RViz disabled (--no-rviz)")
             return
+        # Remember whether a stack existed when this RViz started. Started
+        # before one, it shows a grey grid and "Fixed Frame [world] does
+        # not exist" FOR EVER -- the view does not recover when the robot
+        # appears, and the operator reads it as "there is no rviz"
+        # (measured live, 2026-08-27). _rviz_keepalive restarts it once a
+        # stack is up.
+        self._rviz_prestack = _stack_pids() <= 0
         embed = getattr(self.args, "embed_rviz", False)
         if not embed and not getattr(self.args, "no_embed_rviz", False):
             embed = _have_wm()
@@ -5654,10 +7808,53 @@ class Gui(QMainWindow):
             spec = spec.with_argv(spec.argv + ["motion_generator:=%s" % want])
             self.bus.note("launching with motion_generator:=%s -- NOT the "
                           "default" % want, bad=True)
+        # One-shot per-key extras, set by the START handlers -- today the
+        # virtual Teensy's serial_port for a master run with no hardware.
+        extra = getattr(self, "_stack_extra_args", {}).pop(spec.key, None)
+        if extra:
+            spec = spec.with_argv(spec.argv + list(extra))
+            self.bus.note("launching %s with %s"
+                          % (spec.label, " ".join(extra)))
         return spec
 
-    def _spawn(self, spec):
+    def _launch_env(self, spec):
+        """The environment this spec runs with, carrying the session's gates.
+
+        THE VR SAFETY GATES REACH THE NODE THAT ENFORCES THEM. `start_vr_wifi`
+        started `vr_safety_node` with its shut defaults and no way to change
+        them, so pressing the VR button on a rig with the arms connected
+        launched everything and left the mapper frozen on an interlock no
+        control in this window could clear. The operator's only route was to
+        kill the node and relaunch it by hand -- which is how an interlock
+        stops being one: the workaround removes it entirely instead of
+        recording that it was bypassed.
+
+        The tick box is already the place that decision is made and already
+        writes the audit line. This is the wire from it to the process. With
+        the box clear, nothing is set and the defaults stand.
+        """
         env = dict(os.environ, PYTHONUNBUFFERED="1")
+        if spec.key == "vr" and getattr(self, "vr_alone", None) is not None \
+                and self.vr_alone.isChecked():
+            env.update(VR_REQUIRE_OBSERVER="false",
+                       VR_ALLOW_REAL_ARM="true",
+                       VR_ALLOW_REAL_NO_OBSERVER="true")
+            self.bus.note(
+                "VR safety launched with the observer requirement BYPASSED "
+                "-- you ticked 'working alone'. Logged to "
+                "recordings/observer_bypass_log.jsonl.", bad=True)
+        if spec.key == "vr" and getattr(self, "vr_worn", None) is not None \
+                and self.vr_worn.isChecked():
+            # A worn headset moves with a head; latching its first pose as
+            # a fixed reference freezes the run on the first head turn.
+            env.update(VR_WATCH_REFERENCE="false")
+            self.bus.note(
+                "VR safety launched for a WORN headset -- the "
+                "moved-reference freeze is off for this session.")
+        return env
+
+    def _spawn(self, spec):
+        env = self._launch_env(spec)
         # KEEP WHAT IT SAID. This was DEVNULL on both streams, so a launched
         # job that REFUSED -- naming its reason, as every refusal in this
         # repository is written to do -- produced a bare exit code and nothing
@@ -5743,6 +7940,17 @@ class Gui(QMainWindow):
                 except Exception:                             # noqa: BLE001
                     pass
         self.jobs = []
+        # The virtual Teensy is not a launched spec, but it is this
+        # window's process and STOP means stop.
+        vt = getattr(self, "_vteensy", None)
+        if vt is not None and vt.poll() is None:
+            try:
+                os.killpg(os.getpgid(vt.pid), 2)
+                n += 1
+                self.log("virtual Teensy stopped")
+            except Exception:                                 # noqa: BLE001
+                pass
+        self._vteensy = None
         self.bus.note("SIGINT to %d job(s)" % n)
 
     # ----------------------------------------------------------- self test
@@ -6127,6 +8335,13 @@ class Gui(QMainWindow):
         self._refresh_divergence(s)
         self._refresh_cameras(s)
         self._refresh_say(s)
+        self._refresh_vr_link(s)
+        self._refresh_vr_smoothing(s)
+        self._refresh_vr_safety(s)
+        self._refresh_scene_cv(s)
+        self._refresh_scene_view(s)
+        self._rviz_keepalive()
+        self._refresh_arms(s)
 
         # ---- banner. A narration override wins: the tutorial recorder drives
         # the banner as its caption track, and refresh() runs at 10 Hz, so
@@ -6348,6 +8563,227 @@ class Gui(QMainWindow):
                 "worst %s   " % r.max_joint + "  ".join(
                     "j%d %+.3f" % (i + 1, r.per_joint.get("%s_joint_%d" % (a, i + 1), 0.0))
                     for i in range(7)))
+
+    def _refresh_arms(self, s):
+        """Three different faults, told apart, once a second.
+
+        "Not connected" is useless on its own. These are the three states
+        this session actually hit, each needing a different action:
+
+          OFF THE NETWORK   no ping. Power or cable -- no button helps.
+          NO BRIDGE         arm answers, nothing is talking to it. CONNECT.
+          NO DATA           a bridge is running but no joint states are
+                            arriving: the session dropped (this is what
+                            "Broken pipe" in the log looks like from here).
+                            DISCONNECT, then CONNECT.
+
+        Ping is cached and run off the Qt thread -- a blocking ping in
+        refresh() at 10 Hz would stall the window, and this panel is not
+        worth a frozen e-stop.
+        """
+        if not hasattr(self, "arm_state_lbl"):
+            return
+        now = time.time()
+        if not hasattr(self, "_arm_ping"):
+            self._arm_ping = {}
+            self._arm_ping_t = 0.0
+        if now - self._arm_ping_t > 4.0:
+            self._arm_ping_t = now
+            threading.Thread(target=self._ping_arms, daemon=True).start()
+        js = s.get("real_js_arms") or {}
+        for arm, lbl in self.arm_state_lbl.items():
+            up = self._arm_ping.get(arm)
+            pids = self._bridge_pids(arm)
+            fresh = arm in (self.bus.real_arms_seen()
+                            if hasattr(self.bus, "real_arms_seen") else {})
+            if up is None:
+                lbl.setText("checking...")
+                col = C_UNKNOWN
+            elif not up:
+                lbl.setText("OFF THE NETWORK")
+                col = C_BAD
+            elif not pids:
+                lbl.setText("reachable, NO BRIDGE")
+                col = C_WARN
+            elif not fresh:
+                lbl.setText("bridge up, NO DATA")
+                col = C_BAD
+            else:
+                lbl.setText("CONNECTED")
+                col = C_OK
+            lbl.setStyleSheet("color:%s" % col)
+
+    def _ping_arms(self):
+        for arm, ip in self.ARM_IPS.items():
+            try:
+                r = subprocess.run(["ping", "-c1", "-W1", ip],
+                                   stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL, timeout=4)
+                self._arm_ping[arm] = (r.returncode == 0)
+            except Exception:                                 # noqa: BLE001
+                self._arm_ping[arm] = False
+
+    def _refresh_vr_link(self, s):
+        """The two addresses of a VR session, live.
+
+        THE SOCKET COUNT IS NOT THE HEADSET. A suspended browser page keeps
+        answering WebSocket pings, so `clients` reads 1 with nothing arriving
+        -- measured 2026-08-19, when the headset came off and the bridge went
+        on reporting a healthy link indefinitely. The colour here therefore
+        follows `live`, which the bridge computes from the FRAME COUNTER
+        against a window ending now, and the address is shown beside it so
+        "connected but silent" is one glance rather than two topics.
+        """
+        v = s.get("vrbridge")
+        raw = None if v is None else v[0]
+        if raw is None:
+            self.vr_url_lbl.setText("this machine:  (bridge not started)")
+            self.vr_url_lbl.setStyleSheet("color:%s" % C_MUTED)
+            self.vr_headset_lbl.setText("headset:  (bridge not started)")
+            self.vr_headset_lbl.setStyleSheet("color:%s" % C_MUTED)
+            return
+        try:
+            d = json.loads(raw)
+        except Exception:                                     # noqa: BLE001
+            self.vr_headset_lbl.setText("headset:  unparsable bridge status")
+            self.vr_headset_lbl.setStyleSheet("color:%s" % C_BAD)
+            return
+
+        urls = d.get("urls") or []
+        if urls:
+            self.vr_url_lbl.setText("this machine:  " + "   or   ".join(urls))
+            self.vr_url_lbl.setStyleSheet("color:%s" % C_OK)
+        else:
+            # The bridge in mock mode never serves, so it has no URL and that
+            # is correct rather than broken -- say which it is.
+            self.vr_url_lbl.setText(
+                "this machine:  not serving a page (mock bridge, or no LAN "
+                "address)")
+            self.vr_url_lbl.setStyleSheet("color:%s" % C_WARN)
+
+        ip = d.get("headset_ip")
+        addrs = d.get("client_addrs") or []
+        live = bool(d.get("live"))
+        hz = d.get("rate_hz")
+        if ip:
+            extra = ("  +%d more" % (len(addrs) - 1)) if len(addrs) > 1 else ""
+            if live:
+                self.vr_headset_lbl.setText(
+                    "headset:  %s%s   %.0f Hz  LIVE" % (ip, extra, hz or 0.0))
+                self.vr_headset_lbl.setStyleSheet("color:%s" % C_OK)
+            else:
+                age = d.get("age_s")
+                self.vr_headset_lbl.setText(
+                    "headset:  %s%s   CONNECTED BUT SENDING NOTHING%s"
+                    % (ip, extra,
+                       "" if age is None else " (%.1f s)" % age))
+                self.vr_headset_lbl.setStyleSheet("color:%s" % C_BAD)
+        else:
+            last = d.get("last_client")
+            age = d.get("last_client_age_s")
+            if last:
+                self.vr_headset_lbl.setText(
+                    "headset:  none now - last was %s%s"
+                    % (last, "" if age is None else ", %.0f s ago" % age))
+            else:
+                self.vr_headset_lbl.setText(
+                    "headset:  no headset has connected yet")
+            self.vr_headset_lbl.setStyleSheet("color:%s" % C_MUTED)
+
+    def _refresh_scene_cv(self, s):
+        """One line per camera from the standing vision layer: what it sees
+        or, just as importantly, WHY it sees nothing."""
+        v = s.get("scenecv")
+        raw = None if v is None else v[0]
+        if raw is None:
+            return                        # keep the "not running" hint
+        try:
+            d = json.loads(raw)
+        except Exception:                                     # noqa: BLE001
+            return
+        rows, any_obj = [], False
+        for name, ent in sorted((d.get("cameras") or {}).items()):
+            if ent.get("refusal"):
+                # First clause only: the full sentence is in the topic.
+                rows.append("%-14s %s" % (name,
+                                          ent["refusal"].split(" -- ")[0]))
+            else:
+                n = len(ent.get("objects") or [])
+                any_obj = any_obj or n > 0
+                rows.append("%-14s %d object(s)" % (name, n))
+        if rows:
+            self.vis_scene.setText("\n".join(rows))
+            self.vis_scene.setStyleSheet(
+                "color:%s" % (C_OK if any_obj else C_MUTED))
+
+    def _refresh_vr_safety(self, s):
+        """Why the arm is (not) frozen, in the window, in plain words.
+
+        The safety node published this the whole time; the window never
+        read it, so 'frozen on an interlock' and 'broken' looked identical
+        from the operator's chair.
+        """
+        v = s.get("vrsafety")
+        raw = None if v is None else v[0]
+        if raw is None:
+            self.vr_freeze_lbl.setText("")
+            return
+        try:
+            d = json.loads(raw)
+        except Exception:                                     # noqa: BLE001
+            return
+        if d.get("frozen"):
+            why = d.get("reason") or "no reason given"
+            self.vr_freeze_lbl.setText("FROZEN: %s" % why)
+            self.vr_freeze_lbl.setStyleSheet("color:%s" % C_BAD)
+        else:
+            self.vr_freeze_lbl.setText("not frozen -- VR commands reach "
+                                       "the follower")
+            self.vr_freeze_lbl.setStyleSheet("color:%s" % C_OK)
+
+    def _refresh_vr_smoothing(self, s):
+        """What the smoother is doing, per hand, right now.
+
+        `cutoff_hz` IS the mechanism: near min_cutoff means the filter is
+        treating the hand as still and is filtering hard; high means it has
+        opened up to track a fast reach. Showing it turns "feels laggy" from
+        an opinion into a reading -- and `lag_m` beside it says whether the
+        rate limiter is the thing costing distance, which is a different
+        fault with a different fix.
+        """
+        rows = []
+        engaged_any = False
+        for hand in ("left", "right"):
+            v = s.get("vrmap_%s" % hand)
+            raw = None if v is None else v[0]
+            if raw is None:
+                continue
+            try:
+                d = json.loads(raw)
+            except Exception:                                 # noqa: BLE001
+                continue
+            if not d.get("engaged"):
+                rows.append("%-5s idle" % hand)
+                continue
+            engaged_any = True
+            law = d.get("smoothing", "?")
+            if law == "one_euro":
+                rows.append(
+                    "%-5s %.1f Hz cutoff  hand %.2f m/s  lag %.1f mm%s"
+                    % (hand, d.get("cutoff_hz") or 0.0,
+                       d.get("hand_speed_mps") or 0.0,
+                       (d.get("lag_m") or 0.0) * 1000.0,
+                       "" if d.get("rot_smoothed") else "  WRIST RAW"))
+            else:
+                rows.append("%-5s law=%s  lag %.1f mm"
+                            % (hand, law, (d.get("lag_m") or 0.0) * 1000.0))
+        if not rows:
+            self.vr_smooth_state.setText("mapper not running")
+            self.vr_smooth_state.setStyleSheet("color:%s" % C_MUTED)
+            return
+        self.vr_smooth_state.setText("\n".join(rows))
+        self.vr_smooth_state.setStyleSheet(
+            "color:%s" % (C_OK if engaged_any else C_MUTED))
 
     def _refresh_cameras(self, s):
         cams = s.get("cam", {})
@@ -6701,6 +9137,27 @@ def main(argv=None):
     app = QApplication([sys.argv[0]] + rest)
     app.setFont(helvetica(10))
     app.setStyleSheet(STYLE)
+    # SCROLLING PAST A CONTROL MUST NOT CHANGE WHAT THE ARMS DO.
+    #
+    # Qt's default is that a combo box, slider or spin box under the pointer
+    # eats the wheel and CHANGES ITS VALUE, focused or not. Both of this
+    # window's control columns are taller than the screen, so reaching a
+    # button means scrolling past a dozen such widgets.
+    #
+    # Measured on the live window 2026-08-25, by scrolling to reach the real
+    # arm panel and nothing else: the experiment `task` silently went from
+    # `m1 -- T1 pick and place` to `d3 -- Dance: play`, and `right scale`
+    # went from 1.00 to 0.82 -- the motion scale that decides how far real
+    # metal travels per unit of operator input. Neither was touched, both
+    # persisted, and the next run would have used them.
+    #
+    # The valueChanged log fires, so this is NOT the "leaves no trace" bug --
+    # it is worse. The trace is real and scrolls past in a log the operator
+    # is not reading, describing a change they did not make.
+    #
+    # Focused, the wheel still works: click the control first and it behaves
+    # exactly as before. Only the drive-by is refused.
+    app.installEventFilter(WheelGuard(app))
     g = Gui(bus, args)
     g.show()
     # PUT IT IN FRONT, AND SAY WHERE IT IS.

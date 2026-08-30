@@ -1,8 +1,9 @@
 {
  "floor_m": 0.15,
  "step_m": 0.025,
- "seeds": 28,
+ "seeds": 3,
  "start_mode": "home",
+ "as_follower": false,
  "tol_p_m": 0.005,
  "policies": [
   "pinned",
@@ -228,7 +229,7 @@
     1.1799
    ],
    "reach": {
-    "pinned": 0.35,
+    "pinned": 0.075,
     "spin": 0.35,
     "cone15": 0.4,
     "cone45": 0.475,
@@ -242,14 +243,14 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 5.7 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 5.7 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 5.1 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 7.0 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 13.3 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 3.1 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 5.7 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 5.2 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 7.1 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 13.3 mm. A SEARCHED refusal."
    },
-   "gain_spin_m": 0.0,
-   "gain_free_m": 0.15
+   "gain_spin_m": 0.275,
+   "gain_free_m": 0.425
   },
   {
    "arm": "left",
@@ -262,9 +263,9 @@
    "reach": {
     "pinned": 0.4,
     "spin": 0.4,
-    "cone15": 0.45,
-    "cone45": 0.55,
-    "free": 0.625
+    "cone15": 0.4,
+    "cone45": 0.375,
+    "free": 0.375
    },
    "why": {
     "pinned": "WEARER",
@@ -274,14 +275,14 @@
     "free": "WEARER"
    },
    "detail": {
-    "pinned": "reachable to 0.0 mm but the best of 22 solutions clears the wearer by only 0.1366 m against the 0.15 m floor",
-    "spin": "reachable to 0.0 mm but the best of 25 solutions clears the wearer by only 0.1366 m against the 0.15 m floor",
-    "cone15": "reachable to 0.0 mm but the best of 27 solutions clears the wearer by only 0.1365 m against the 0.15 m floor",
-    "cone45": "reachable to 0.0 mm but the best of 27 solutions clears the wearer by only 0.1452 m against the 0.15 m floor",
-    "free": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1384 m against the 0.15 m floor"
+    "pinned": "reachable to 0.0 mm but the best of 2 solutions clears the wearer by only 0.1363 m against the 0.15 m floor",
+    "spin": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1363 m against the 0.15 m floor",
+    "cone15": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1025 m against the 0.15 m floor",
+    "cone45": "reachable to 0.0 mm but the best of 2 solutions clears the wearer by only 0.1291 m against the 0.15 m floor",
+    "free": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1354 m against the 0.15 m floor"
    },
    "gain_spin_m": 0.0,
-   "gain_free_m": 0.225
+   "gain_free_m": -0.025
   },
   {
    "arm": "left",
@@ -292,7 +293,7 @@
     1.1799
    ],
    "reach": {
-    "pinned": 0.2,
+    "pinned": 0.175,
     "spin": 0.2,
     "cone15": 0.225,
     "cone45": 0.25,
@@ -306,14 +307,14 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 9.2 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 11.8 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 12.7 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 20.0 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 20.0 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 2.2 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 11.8 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 12.7 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 20.0 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 20.0 mm. A SEARCHED refusal."
    },
-   "gain_spin_m": 0.0,
-   "gain_free_m": 0.05
+   "gain_spin_m": 0.025,
+   "gain_free_m": 0.075
   },
   {
    "arm": "left",
@@ -370,11 +371,11 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 9.7 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 10.4 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 20.9 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 20.0 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 20.0 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 12.2 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 12.0 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 21.0 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 20.0 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 20.0 mm. A SEARCHED refusal."
    },
    "gain_spin_m": 0.0,
    "gain_free_m": 0.025
@@ -402,11 +403,11 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 2.1 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 2.1 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 6.7 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 4.6 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 13.7 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 2.2 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 2.2 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 6.7 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 4.6 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 13.8 mm. A SEARCHED refusal."
    },
    "gain_spin_m": 0.0,
    "gain_free_m": 0.2
@@ -424,7 +425,7 @@
     "spin": 0.5,
     "cone15": 0.5,
     "cone45": 0.5,
-    "free": 0.5
+    "free": 0.475
    },
    "why": {
     "pinned": "WEARER",
@@ -434,14 +435,14 @@
     "free": "WEARER"
    },
    "detail": {
-    "pinned": "reachable to 0.0 mm but the best of 18 solutions clears the wearer by only 0.1330 m against the 0.15 m floor",
-    "spin": "reachable to 0.0 mm but the best of 23 solutions clears the wearer by only 0.1366 m against the 0.15 m floor",
-    "cone15": "reachable to 0.0 mm but the best of 23 solutions clears the wearer by only 0.1366 m against the 0.15 m floor",
-    "cone45": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1366 m against the 0.15 m floor",
-    "free": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1366 m against the 0.15 m floor"
+    "pinned": "reachable to 0.0 mm but the best of 2 solutions clears the wearer by only 0.1330 m against the 0.15 m floor",
+    "spin": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1366 m against the 0.15 m floor",
+    "cone15": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1366 m against the 0.15 m floor",
+    "cone45": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1366 m against the 0.15 m floor",
+    "free": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1480 m against the 0.15 m floor"
    },
    "gain_spin_m": 0.05,
-   "gain_free_m": 0.05
+   "gain_free_m": 0.025
   },
   {
    "arm": "left",
@@ -452,28 +453,28 @@
     1.1799
    ],
    "reach": {
-    "pinned": 0.45,
-    "spin": 0.5,
+    "pinned": 0.125,
+    "spin": 0.325,
     "cone15": 0.5,
-    "cone45": 0.5,
-    "free": 0.5
+    "cone45": 0.45,
+    "free": 0.45
    },
    "why": {
-    "pinned": "WEARER",
+    "pinned": "UNREACHABLE",
     "spin": "WEARER",
     "cone15": "WEARER",
     "cone45": "WEARER",
     "free": "WEARER"
    },
    "detail": {
-    "pinned": "reachable to 0.1 mm but the best of 18 solutions clears the wearer by only 0.1391 m against the 0.15 m floor",
-    "spin": "reachable to 0.0 mm but the best of 22 solutions clears the wearer by only 0.1397 m against the 0.15 m floor",
-    "cone15": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1414 m against the 0.15 m floor",
-    "cone45": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1413 m against the 0.15 m floor",
-    "free": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1413 m against the 0.15 m floor"
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 10.4 mm. A SEARCHED refusal.",
+    "spin": "reachable to 0.0 mm but the best of 2 solutions clears the wearer by only 0.1493 m against the 0.15 m floor",
+    "cone15": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1414 m against the 0.15 m floor",
+    "cone45": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1445 m against the 0.15 m floor",
+    "free": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.0830 m against the 0.15 m floor"
    },
-   "gain_spin_m": 0.05,
-   "gain_free_m": 0.05
+   "gain_spin_m": 0.2,
+   "gain_free_m": 0.325
   },
   {
    "arm": "left",
@@ -498,11 +499,11 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 7.6 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 7.6 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 3.0 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 5.2 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 23.3 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 7.7 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 7.7 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 3.0 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 5.4 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 23.3 mm. A SEARCHED refusal."
    },
    "gain_spin_m": 0.0,
    "gain_free_m": 0.1
@@ -530,11 +531,11 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 7.9 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 10.8 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 17.7 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 16.5 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 16.5 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 10.9 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 10.8 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 17.8 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 16.6 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 16.6 mm. A SEARCHED refusal."
    },
    "gain_spin_m": 0.0,
    "gain_free_m": 0.025
@@ -562,11 +563,11 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 3.9 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 3.9 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 6.2 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 3.6 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 20.1 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 4.0 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 4.0 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 6.2 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 3.7 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 20.2 mm. A SEARCHED refusal."
    },
    "gain_spin_m": 0.0,
    "gain_free_m": 0.325
@@ -626,11 +627,11 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 3.8 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 3.8 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 8.7 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 15.9 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 12.0 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 3.8 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 3.8 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 8.8 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 15.9 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 12.0 mm. A SEARCHED refusal."
    },
    "gain_spin_m": 0.0,
    "gain_free_m": 0.1
@@ -658,11 +659,11 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 5.6 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 7.8 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 5.3 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 7.8 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 7.8 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 7.9 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 7.9 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 5.3 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 7.8 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 7.8 mm. A SEARCHED refusal."
    },
    "gain_spin_m": 0.0,
    "gain_free_m": 0.05
@@ -678,9 +679,9 @@
    "reach": {
     "pinned": 0.4,
     "spin": 0.4,
-    "cone15": 0.45,
-    "cone45": 0.575,
-    "free": 0.625
+    "cone15": 0.375,
+    "cone45": 0.475,
+    "free": 0.4
    },
    "why": {
     "pinned": "WEARER",
@@ -690,14 +691,14 @@
     "free": "WEARER"
    },
    "detail": {
-    "pinned": "reachable to 0.0 mm but the best of 25 solutions clears the wearer by only 0.1410 m against the 0.15 m floor",
-    "spin": "reachable to 0.0 mm but the best of 25 solutions clears the wearer by only 0.1409 m against the 0.15 m floor",
-    "cone15": "reachable to 0.0 mm but the best of 25 solutions clears the wearer by only 0.1301 m against the 0.15 m floor",
-    "cone45": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1378 m against the 0.15 m floor",
-    "free": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1390 m against the 0.15 m floor"
+    "pinned": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1407 m against the 0.15 m floor",
+    "spin": "reachable to 0.0 mm but the best of 2 solutions clears the wearer by only 0.1407 m against the 0.15 m floor",
+    "cone15": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1342 m against the 0.15 m floor",
+    "cone45": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1077 m against the 0.15 m floor",
+    "free": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1124 m against the 0.15 m floor"
    },
    "gain_spin_m": 0.0,
-   "gain_free_m": 0.225
+   "gain_free_m": 0.0
   },
   {
    "arm": "right",
@@ -722,11 +723,11 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 4.6 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 4.6 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 4.1 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 18.3 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 9.1 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 4.7 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 4.7 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 4.1 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 18.3 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 9.1 mm. A SEARCHED refusal."
    },
    "gain_spin_m": 0.0,
    "gain_free_m": 0.15
@@ -754,11 +755,11 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 8.5 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 7.7 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 4.8 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 21.5 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 21.5 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 8.6 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 8.6 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 10.2 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 21.6 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 21.6 mm. A SEARCHED refusal."
    },
    "gain_spin_m": 0.0,
    "gain_free_m": 0.05
@@ -818,11 +819,11 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 7.5 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 7.5 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 9.0 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 20.6 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 20.6 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 7.6 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 7.6 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 9.0 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 20.7 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 20.7 mm. A SEARCHED refusal."
    },
    "gain_spin_m": 0.0,
    "gain_free_m": 0.05
@@ -850,11 +851,11 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 2.4 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 2.4 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 8.0 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 10.9 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 14.5 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 2.4 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 2.4 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 8.0 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 10.9 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 14.5 mm. A SEARCHED refusal."
    },
    "gain_spin_m": 0.0,
    "gain_free_m": 0.175
@@ -882,11 +883,11 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 5.3 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 5.3 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 3.1 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 6.3 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 14.8 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 5.3 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 5.3 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 3.1 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 6.3 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 14.9 mm. A SEARCHED refusal."
    },
    "gain_spin_m": 0.0,
    "gain_free_m": 0.3
@@ -900,28 +901,28 @@
     1.1798
    ],
    "reach": {
-    "pinned": 0.9,
+    "pinned": 0.75,
     "spin": 0.875,
     "cone15": 0.9,
     "cone45": 0.9,
     "free": 0.9
    },
    "why": {
-    "pinned": "CAP",
+    "pinned": "UNREACHABLE",
     "spin": "UNREACHABLE",
     "cone15": "CAP",
     "cone45": "CAP",
     "free": "CAP"
    },
    "detail": {
-    "pinned": "not bounded within 0.90 m",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 2.1 mm. A SEARCHED refusal.",
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 4.2 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 2.2 mm. A SEARCHED refusal.",
     "cone15": "not bounded within 0.90 m",
     "cone45": "not bounded within 0.90 m",
     "free": "not bounded within 0.90 m"
    },
-   "gain_spin_m": -0.025,
-   "gain_free_m": 0.0
+   "gain_spin_m": 0.125,
+   "gain_free_m": 0.15
   },
   {
    "arm": "right",
@@ -946,11 +947,11 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 8.3 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 8.3 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 5.3 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 13.8 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 11.6 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 8.3 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 8.3 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 5.3 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 13.9 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 11.7 mm. A SEARCHED refusal."
    },
    "gain_spin_m": 0.0,
    "gain_free_m": 0.075
@@ -978,11 +979,11 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 7.2 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 7.3 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 4.8 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 7.1 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 7.1 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 7.3 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 7.3 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 4.9 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 7.2 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 7.2 mm. A SEARCHED refusal."
    },
    "gain_spin_m": 0.0,
    "gain_free_m": 0.05
@@ -996,28 +997,28 @@
     1.1798
    ],
    "reach": {
-    "pinned": 0.475,
-    "spin": 0.475,
-    "cone15": 0.475,
+    "pinned": 0.2,
+    "spin": 0.225,
+    "cone15": 0.225,
     "cone45": 0.475,
-    "free": 0.475
+    "free": 0.45
    },
    "why": {
-    "pinned": "WEARER",
+    "pinned": "UNREACHABLE",
     "spin": "WEARER",
     "cone15": "WEARER",
     "cone45": "WEARER",
     "free": "WEARER"
    },
    "detail": {
-    "pinned": "reachable to 0.0 mm but the best of 19 solutions clears the wearer by only 0.1452 m against the 0.15 m floor",
-    "spin": "reachable to 0.0 mm but the best of 24 solutions clears the wearer by only 0.1452 m against the 0.15 m floor",
-    "cone15": "reachable to 0.0 mm but the best of 25 solutions clears the wearer by only 0.1452 m against the 0.15 m floor",
-    "cone45": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1452 m against the 0.15 m floor",
-    "free": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1452 m against the 0.15 m floor"
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 5.7 mm. A SEARCHED refusal.",
+    "spin": "reachable to 0.0 mm but the best of 2 solutions clears the wearer by only 0.0925 m against the 0.15 m floor",
+    "cone15": "reachable to 0.0 mm but the best of 2 solutions clears the wearer by only 0.0869 m against the 0.15 m floor",
+    "cone45": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1439 m against the 0.15 m floor",
+    "free": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1146 m against the 0.15 m floor"
    },
-   "gain_spin_m": 0.0,
-   "gain_free_m": 0.0
+   "gain_spin_m": 0.025,
+   "gain_free_m": 0.25
   },
   {
    "arm": "right",
@@ -1028,8 +1029,8 @@
     1.1798
    ],
    "reach": {
-    "pinned": 0.475,
-    "spin": 0.475,
+    "pinned": 0.075,
+    "spin": 0.425,
     "cone15": 0.475,
     "cone45": 0.475,
     "free": 0.475
@@ -1042,14 +1043,14 @@
     "free": "WEARER"
    },
    "detail": {
-    "pinned": "reachable to 0.0 mm but the best of 21 solutions clears the wearer by only 0.1467 m against the 0.15 m floor",
-    "spin": "reachable to 0.3 mm but the best of 23 solutions clears the wearer by only 0.1467 m against the 0.15 m floor",
-    "cone15": "reachable to 0.0 mm but the best of 27 solutions clears the wearer by only 0.1467 m against the 0.15 m floor",
-    "cone45": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1467 m against the 0.15 m floor",
-    "free": "reachable to 0.0 mm but the best of 28 solutions clears the wearer by only 0.1467 m against the 0.15 m floor"
+    "pinned": "reachable to 0.0 mm but the best of 1 solutions clears the wearer by only 0.1181 m against the 0.15 m floor",
+    "spin": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1476 m against the 0.15 m floor",
+    "cone15": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1467 m against the 0.15 m floor",
+    "cone45": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1423 m against the 0.15 m floor",
+    "free": "reachable to 0.0 mm but the best of 3 solutions clears the wearer by only 0.1336 m against the 0.15 m floor"
    },
-   "gain_spin_m": 0.0,
-   "gain_free_m": 0.0
+   "gain_spin_m": 0.35,
+   "gain_free_m": 0.4
   },
   {
    "arm": "right",
@@ -1074,11 +1075,11 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 9.0 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 10.5 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 8.2 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 6.3 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 6.2 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 10.5 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 10.5 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 8.3 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 6.5 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 6.4 mm. A SEARCHED refusal."
    },
    "gain_spin_m": 0.0,
    "gain_free_m": 0.05
@@ -1106,11 +1107,11 @@
     "free": "UNREACHABLE"
    },
    "detail": {
-    "pinned": "no pose met 5 mm and the pinned policy in 28 seeded starts; closest position 7.2 mm. A SEARCHED refusal.",
-    "spin": "no pose met 5 mm and the spin policy in 28 seeded starts; closest position 8.8 mm. A SEARCHED refusal.",
-    "cone15": "no pose met 5 mm and the cone15 policy in 28 seeded starts; closest position 20.5 mm. A SEARCHED refusal.",
-    "cone45": "no pose met 5 mm and the cone45 policy in 28 seeded starts; closest position 20.5 mm. A SEARCHED refusal.",
-    "free": "no pose met 5 mm and the free policy in 28 seeded starts; closest position 20.5 mm. A SEARCHED refusal."
+    "pinned": "no pose met 5 mm and the pinned policy in 3 seeded starts; closest position 8.8 mm. A SEARCHED refusal.",
+    "spin": "no pose met 5 mm and the spin policy in 3 seeded starts; closest position 8.9 mm. A SEARCHED refusal.",
+    "cone15": "no pose met 5 mm and the cone15 policy in 3 seeded starts; closest position 20.6 mm. A SEARCHED refusal.",
+    "cone45": "no pose met 5 mm and the cone45 policy in 3 seeded starts; closest position 20.6 mm. A SEARCHED refusal.",
+    "free": "no pose met 5 mm and the free policy in 3 seeded starts; closest position 20.6 mm. A SEARCHED refusal."
    },
    "gain_spin_m": 0.0,
    "gain_free_m": 0.025
@@ -1119,23 +1120,63 @@
  "monotonic": false,
  "monotonic_failures": [
   {
-   "arm": "right",
+   "arm": "left",
+   "dir": "-1+0+0",
+   "looser": "cone45",
+   "tighter": "cone15",
+   "tighter_reach_m": 0.4,
+   "looser_reach_m": 0.375
+  },
+  {
+   "arm": "left",
+   "dir": "-1-1-1",
+   "looser": "free",
+   "tighter": "cone45",
+   "tighter_reach_m": 0.5,
+   "looser_reach_m": 0.475
+  },
+  {
+   "arm": "left",
    "dir": "-1-1+1",
-   "looser": "spin",
-   "tighter": "pinned",
-   "tighter_reach_m": 0.9,
-   "looser_reach_m": 0.875
+   "looser": "cone45",
+   "tighter": "cone15",
+   "tighter_reach_m": 0.5,
+   "looser_reach_m": 0.45
+  },
+  {
+   "arm": "right",
+   "dir": "+1+0+0",
+   "looser": "cone15",
+   "tighter": "spin",
+   "tighter_reach_m": 0.4,
+   "looser_reach_m": 0.375
+  },
+  {
+   "arm": "right",
+   "dir": "+1+0+0",
+   "looser": "free",
+   "tighter": "cone45",
+   "tighter_reach_m": 0.475,
+   "looser_reach_m": 0.4
+  },
+  {
+   "arm": "right",
+   "dir": "+1-1-1",
+   "looser": "free",
+   "tighter": "cone45",
+   "tighter_reach_m": 0.475,
+   "looser_reach_m": 0.45
   }
  ],
  "mean_reach_m": {
-  "pinned": 0.4598,
-  "spin": 0.4625,
-  "cone15": 0.492,
-  "cone45": 0.5304,
-  "free": 0.5491
+  "pinned": 0.408,
+  "spin": 0.4455,
+  "cone15": 0.4786,
+  "cone45": 0.5187,
+  "free": 0.5286
  },
  "wearer_bound_walks": {
-  "pinned": 6,
+  "pinned": 4,
   "spin": 6,
   "cone15": 6,
   "cone45": 6,

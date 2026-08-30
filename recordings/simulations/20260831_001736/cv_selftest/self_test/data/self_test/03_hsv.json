@@ -1,0 +1,41 @@
+{
+  "source": "self_test",
+  "stage": "hsv",
+  "num": 3,
+  "title": "BGR to HSV, the space the colour tests live in",
+  "status": "ok",
+  "formula": "V = max(B,G,R);  S = (V - min(B,G,R))/V;  H = the sector of the RGB hexagon, 0..179 in OpenCV (not 0..359)",
+  "measurements": [
+    {
+      "quantity": "median hue",
+      "value": 90.0,
+      "unit": "0-179"
+    },
+    {
+      "quantity": "median saturation",
+      "value": 8.0,
+      "unit": "0-255"
+    },
+    {
+      "quantity": "median value",
+      "value": 170.0,
+      "unit": "0-255"
+    },
+    {
+      "quantity": "pixels below S=80",
+      "value": 98.118,
+      "unit": "%"
+    },
+    {
+      "quantity": "pixels below V=40",
+      "value": 0.0,
+      "unit": "%"
+    },
+    {
+      "quantity": "pixels above V=200",
+      "value": 0.0,
+      "unit": "%"
+    }
+  ],
+  "tables": {}
+}

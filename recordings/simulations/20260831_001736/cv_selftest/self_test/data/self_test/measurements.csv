@@ -1,0 +1,164 @@
+source,stage_num,stage,quantity,value,unit
+self_test,1,raw_colour,frame width,640,px
+self_test,1,raw_colour,frame height,480,px
+self_test,1,raw_colour,"focus, variance of Laplacian",6.7,-
+self_test,1,raw_colour,pixels clipped white,0,%
+self_test,1,raw_colour,pixels crushed black,0,%
+self_test,1,raw_colour,mean blue,167.55,0-255
+self_test,1,raw_colour,mean green,169.91,0-255
+self_test,1,raw_colour,mean red,162.93,0-255
+self_test,1,raw_colour,median grey,169,0-255
+self_test,1,raw_colour,grey std,6.93,0-255
+self_test,2,intrinsics,fx,600,px
+self_test,2,intrinsics,fy,600,px
+self_test,2,intrinsics,cx,320,px
+self_test,2,intrinsics,cy,240,px
+self_test,2,intrinsics,image centre u,320,px
+self_test,2,intrinsics,image centre v,240,px
+self_test,2,intrinsics,principal point offset from centre,0,px
+self_test,2,intrinsics,that offset at 1 m range,0,mm
+self_test,2,intrinsics,horizontal field of view,56.145,deg
+self_test,2,intrinsics,vertical field of view,43.603,deg
+self_test,2,intrinsics,ground sample distance at 1 m,1.6667,mm/px
+self_test,3,hsv,median hue,90,0-179
+self_test,3,hsv,median saturation,8,0-255
+self_test,3,hsv,median value,170,0-255
+self_test,3,hsv,pixels below S=80,98.118,%
+self_test,3,hsv,pixels below V=40,0,%
+self_test,3,hsv,pixels above V=200,0,%
+self_test,4,green_threshold,hue low,40,0-179
+self_test,4,green_threshold,hue high,85,0-179
+self_test,4,green_threshold,saturation floor,80,0-255
+self_test,4,green_threshold,value floor,40,0-255
+self_test,4,green_threshold,pixels selected,5780,px
+self_test,4,green_threshold,fraction of the frame,1.8815,%
+self_test,4,green_threshold,median S of the selected,193,0-255
+self_test,4,green_threshold,median V of the selected,165,0-255
+self_test,5,morphology,kernel,9x9,px
+self_test,5,morphology,pixels before,5780,px
+self_test,5,morphology,pixels after,5766,px
+self_test,5,morphology,pixels removed,14,px
+self_test,5,morphology,removed,0.242,%
+self_test,5,morphology,blobs before,1,count
+self_test,5,morphology,blobs after,1,count
+self_test,6,components,components over 40 px,1,count
+self_test,6,components,largest area,5766,px
+self_test,6,components,total area kept,5766,px
+self_test,6,components,median area,5766,px
+self_test,7,vocabulary,colour terms tested,11,count
+self_test,7,vocabulary,terms with any pixels,1,count
+self_test,7,vocabulary,largest term,green,-
+self_test,7,vocabulary,its pixel count,5774,px
+self_test,8,region_mean,regions tested,1,count
+self_test,8,region_mean,regions passing,1,count
+self_test,8,region_mean,regions rejected as near-black,0,count
+self_test,8,region_mean,blue ratio threshold,1.25,-
+self_test,8,region_mean,red ratio threshold,1.8,-
+self_test,8,region_mean,near-black floor,25,0-255
+self_test,9,minarearect,contours measured,1,count
+self_test,9,minarearect,aspect gate for publishing yaw,1.15,-
+self_test,9,minarearect,yaws published,1,count
+self_test,9,minarearect,yaws withheld as degenerate,0,count
+self_test,10,size_at_range,fx used,600,px
+self_test,10,size_at_range,assumed object width,40,mm
+self_test,10,size_at_range,near limit of the window,0.25,m
+self_test,10,size_at_range,far limit of the window,1.5,m
+self_test,10,size_at_range,blobs tested,1,count
+self_test,10,size_at_range,blobs accepted,0,count
+self_test,10,size_at_range,blobs rejected,1,count
+self_test,15,raw_depth,depth width,640,px
+self_test,15,raw_depth,depth height,480,px
+self_test,15,raw_depth,pixels with a return,307200,px
+self_test,15,raw_depth,that fraction,100,%
+self_test,15,raw_depth,median range,0.6888,m
+self_test,15,raw_depth,5th percentile,0.3753,m
+self_test,15,raw_depth,95th percentile,3.6228,m
+self_test,15,raw_depth,nearest return,0.3118,m
+self_test,15,raw_depth,furthest return,6.8759,m
+self_test,15,raw_depth,returns inside this camera's working band,245760,px
+self_test,15,raw_depth,band near,0.08,m
+self_test,15,raw_depth,band far,1.5,m
+self_test,16,alignment,re-projection needed,no,-
+self_test,16,alignment,aligner,librealsense rs.align,-
+self_test,17,deprojection,points lifted,245760,count
+self_test,17,deprojection,fx,600,px
+self_test,17,deprojection,fy,600,px
+self_test,17,deprojection,cx,320,px
+self_test,17,deprojection,cy,240,px
+self_test,17,deprojection,X minimum,-0.7968,m
+self_test,17,deprojection,X maximum,0.7946,m
+self_test,17,deprojection,Y minimum,-0.3589,m
+self_test,17,deprojection,Y maximum,0.1448,m
+self_test,17,deprojection,Z minimum,0.3118,m
+self_test,17,deprojection,Z maximum,1.4954,m
+self_test,17,deprojection,centroid X,-0.0006,m
+self_test,17,deprojection,centroid Y,0.0035,m
+self_test,17,deprojection,centroid Z,0.6775,m
+self_test,18,ransac,normal x,2e-06,-
+self_test,18,ransac,normal y,-0.9138,-
+self_test,18,ransac,normal z,-0.4061,-
+self_test,18,ransac,offset d,0.2792,m
+self_test,18,ransac,points fitted,60000,count
+self_test,18,ransac,points scored,245760,count
+self_test,18,ransac,inliers,239980,count
+self_test,18,ransac,inlier fraction,97.65,%
+self_test,18,ransac,residual RMS,0.151,mm
+self_test,18,ransac,inlier tolerance,6,mm
+self_test,18,ransac,RANSAC iterations,400,count
+self_test,18,ransac,angle to the optical axis,66.04,deg
+self_test,19,pca_refine,normal moved,0,deg
+self_test,19,pca_refine,RMS before refinement,0.151,mm
+self_test,19,pca_refine,RMS after refinement,0.151,mm
+self_test,19,pca_refine,inliers with the matched pair,239980,count
+self_test,19,pca_refine,inliers with a mixed normal and offset,239980,count
+self_test,19,pca_refine,inliers lost by mixing,0,count
+self_test,20,height_map,height threshold,5,mm
+self_test,20,height_map,points above it,5780,count
+self_test,20,height_map,that fraction,2.352,%
+self_test,20,height_map,tallest point,40.7,mm
+self_test,20,height_map,lowest point,-0.92,mm
+self_test,20,height_map,median height,0.004,mm
+self_test,21,mode_surface,bin width,2,mm
+self_test,21,mode_surface,points binned,245760,count
+self_test,21,mode_surface,share in the fullest bin,97.65,%
+self_test,21,mode_surface,share required,20,%
+self_test,21,mode_surface,modal bin centre,-0.2791,m
+self_test,21,mode_surface,refined estimate,-0.2792,m
+self_test,21,mode_surface,spread of the inliers,0.151,mm
+self_test,21,mode_surface,inlier band,6,mm
+self_test,21,mode_surface,a plain mean would say,-0.2784,m
+self_test,21,mode_surface,that mean's error,0.85,mm
+self_test,21,mode_surface,RANSAC's own offset,-0.2792,m
+self_test,21,mode_surface,the two estimators differ by,0,mm
+self_test,22,on_surface,pieces standing on the surface,1,count
+self_test,22,on_surface,height threshold,5,mm
+self_test,22,on_surface,largest piece,5780,px
+self_test,22,on_surface,tallest piece,40.7,mm
+self_test,23,cube_measurement,object points,5766,count
+self_test,23,cube_measurement,points that are the colour but ON the plane,0,count
+self_test,23,cube_measurement,points off the plane but not the colour,14,count
+self_test,23,cube_measurement,top above the plane,40.7,mm
+self_test,23,cube_measurement,median height,39.82,mm
+self_test,23,cube_measurement,centre x,0.0097,m
+self_test,23,cube_measurement,centre y,0.1313,m
+self_test,23,cube_measurement,centre z,0.3419,m
+self_test,23,cube_measurement,range to the centre,0.3664,m
+self_test,23,cube_measurement,plane RMS,0.151,mm
+self_test,23,cube_measurement,plane inlier fraction,0.9765,-
+self_test,23,cube_measurement,minimum points the pick requires,60,count
+self_test,29,table,points on the surface,239980,count
+self_test,29,table,surface extent along its first axis,0.98,m
+self_test,29,table,surface extent along its second axis,1.1439,m
+self_test,29,table,area spanned,1.121,m2
+self_test,29,table,perpendicular distance from the camera,0.2792,m
+self_test,29,table,distance to the middle of that extent,0.8958,m
+self_test,29,table,nearest point on the surface,0.3902,m
+self_test,29,table,furthest point on the surface,1.7307,m
+self_test,29,table,tilt from the optical axis,66.04,deg
+self_test,29,table,"flatness, RMS of the inliers",0.151,mm
+self_test,33,self_view,pixels nearer than the gate,0,px
+self_test,33,self_view,that fraction,0,%
+self_test,33,self_view,nearest return of all,0.3118,m
+self_test,33,self_view,blobs of near return,0,count
+self_test,33,self_view,this camera is on the hand,no,-
+self_test,33,self_view,near edge of this camera's band,0.08,m

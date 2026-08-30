@@ -1,0 +1,228 @@
+{
+  "source": "scene_rs",
+  "stage": "boxes3d",
+  "num": 30,
+  "title": "Every object, as an oriented 3-D box",
+  "status": "ok",
+  "formula": "centre = mid-extent ACROSS the surface + (foot + top/2) ALONG the normal; axes = (minimum-width direction, its perpendicular, the plane normal); size = the spans along them",
+  "measurements": [
+    {
+      "quantity": "objects posed",
+      "value": 12,
+      "unit": "count"
+    },
+    {
+      "quantity": "nearest object",
+      "value": 2.6092,
+      "unit": "m"
+    },
+    {
+      "quantity": "furthest object",
+      "value": 4.5669,
+      "unit": "m"
+    },
+    {
+      "quantity": "largest footprint",
+      "value": 2854.7,
+      "unit": "mm"
+    },
+    {
+      "quantity": "tallest object",
+      "value": 4071.8,
+      "unit": "mm"
+    },
+    {
+      "quantity": "graspable within the 85 mm jaw",
+      "value": 0,
+      "unit": "count"
+    }
+  ],
+  "tables": {
+    "every object, in the camera frame": {
+      "headers": [
+        "#",
+        "points",
+        "area px",
+        "x m",
+        "y m",
+        "z m",
+        "range m",
+        "length mm",
+        "width mm",
+        "height mm",
+        "yaw deg",
+        "graspable"
+      ],
+      "rows": [
+        [
+          0,
+          5862,
+          75485,
+          0.7356,
+          -0.1212,
+          2.5965,
+          2.7015,
+          2440.5,
+          1313.6,
+          4071.8,
+          103.2,
+          false
+        ],
+        [
+          1,
+          3559,
+          69938,
+          -0.061,
+          0.0742,
+          2.6075,
+          2.6092,
+          2657.0,
+          1178.3,
+          3631.5,
+          128.2,
+          false
+        ],
+        [
+          2,
+          2273,
+          45012,
+          0.7186,
+          -1.2775,
+          3.4749,
+          3.7714,
+          2854.7,
+          1134.7,
+          2414.9,
+          112.0,
+          false
+        ],
+        [
+          3,
+          1487,
+          6609,
+          -0.759,
+          1.102,
+          3.0382,
+          3.3198,
+          658.3,
+          319.1,
+          2396.1,
+          6.2,
+          false
+        ],
+        [
+          4,
+          1486,
+          2546,
+          0.9002,
+          -0.2561,
+          3.9459,
+          4.0554,
+          954.9,
+          675.3,
+          1555.6,
+          86.8,
+          false
+        ],
+        [
+          5,
+          1461,
+          2492,
+          -0.1955,
+          -0.1331,
+          3.5896,
+          3.5974,
+          711.7,
+          493.1,
+          1673.5,
+          113.2,
+          false
+        ],
+        [
+          6,
+          1243,
+          5548,
+          0.2245,
+          -0.3475,
+          3.6847,
+          3.7079,
+          948.6,
+          743.1,
+          1715.4,
+          98.5,
+          false
+        ],
+        [
+          7,
+          1017,
+          1450,
+          -0.4498,
+          -0.0371,
+          3.7129,
+          3.7403,
+          510.6,
+          233.5,
+          1300.0,
+          28.2,
+          false
+        ],
+        [
+          8,
+          811,
+          1584,
+          0.6928,
+          -0.278,
+          4.5055,
+          4.5669,
+          786.6,
+          455.8,
+          368.6,
+          62.8,
+          false
+        ],
+        [
+          9,
+          785,
+          5594,
+          -0.2457,
+          0.5293,
+          3.5342,
+          3.582,
+          650.0,
+          307.2,
+          1726.8,
+          145.8,
+          false
+        ],
+        [
+          10,
+          598,
+          26768,
+          0.1763,
+          0.8282,
+          2.8543,
+          2.9772,
+          1535.8,
+          385.4,
+          3245.4,
+          74.8,
+          false
+        ],
+        [
+          11,
+          597,
+          906,
+          -0.8055,
+          0.8803,
+          3.0274,
+          3.2541,
+          349.2,
+          112.5,
+          2402.2,
+          136.0,
+          false
+        ]
+      ]
+    }
+  }
+}

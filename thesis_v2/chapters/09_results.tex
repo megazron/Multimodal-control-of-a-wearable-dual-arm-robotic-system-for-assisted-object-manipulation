@@ -51,16 +51,380 @@ all is \cref{sec:hardware-session}.
         channels inject; axis correctness; the lateral constraint
       & \cref{sec:channelhealth} onwards \\
     Verified in simulation
-      & Fault injection and dead-man timing; the task set; grasping;
-        workspace and clearance; motion generation; the recorded
-        demonstration set; latency
-      & this chapter, \cref{ch:workspace} \\
+      & The whole campaign of \cref{sec:campaign}: the task set at
+        \num{13927} inverse-kinematics calls, motion generation, smoothing,
+        intent inference; and, from earlier work, fault injection and
+        dead-man timing, grasping, workspace and clearance, latency
+      & \cref{sec:campaign}, this chapter, \cref{ch:workspace} \\
     Measured on constructed data
-      & Instruction grounding; the study's analysis and its power
-      & \cref{sec:instruction-results}, \cref{ch:participant} \\
+      & The vision arithmetic against a scene whose plane, object pose and
+        object size were chosen; instruction grounding; the study's analysis
+        and its power
+      & \cref{sec:sim-cv}, \cref{sec:sim-language},
+        \cref{ch:participant} \\
     \bottomrule
   \end{tabular}
 \end{table}
+
+\section{The simulation campaign}
+\label{sec:campaign}
+
+\emph{Every stage in this section was run by one command on
+2026-08-31. Nothing was copied from an earlier terminal.}
+
+The measurements in this thesis were, until this point, each run once, by
+hand, on the day the thing they measure was built. That is reproducible in
+principle and not in practice: there was no such thing as ``the
+simulations'' to run, only nineteen scripts with nineteen argument lists,
+some needing a live motion planner and most not, and no record of which were
+run together or against which geometry.
+
+\repo{scripts/run\_simulation\_campaign.py} runs all of them, records what
+each produced with its exit status and its duration, and writes one directory
+this chapter is built from. \repo{scripts/make\_sim\_figures.py} turns that
+directory into the tables and plots below; it \emph{refuses} to emit a table
+whose stage did not run, so a missing result is visibly missing rather than
+quietly stale. Both carry their own known-answer self-tests, including the
+one that matters most here --- that a stage which could not run is reported
+as failed rather than as absent.
+
+\subsection{What ran, and what it needed}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[The simulation campaign]{Every stage of the campaign. Two tiers,
+  and the distinction is load-bearing. \emph{Standalone} stages are
+  arithmetic, kinematics and analysis in one process --- no middleware, no
+  motion planner, no cameras --- and are the ones a reader can reproduce on a
+  laptop. \emph{Simulated platform} stages need a live \repo{/compute\_ik},
+  so a MoveIt stack is brought up for them; one stack serves all of them at
+  once, because two planning clients against one scene has already produced a
+  measurement in which one run's furniture was in the other run's scene.
+  \emph{Recorded data} is neither: it is analysis of data captured from
+  physical hardware, tagged separately so its numbers are never read as
+  simulation output.}
+  \label{tab:campaign}
+  \input{figures/sim/sim_campaign_inventory.tex}
+\end{table}
+
+\subsection{Computer vision, against a scene whose answer is known}
+\label{sec:sim-cv}
+
+\Cref{ch:vision} reports the vision pipeline on four physical cameras, where
+the truth is whatever was in the room. Here the same code is run against a
+constructed depth frame whose support plane, object pose, object size and
+noise were all \emph{chosen}, so every stage can be scored rather than merely
+observed.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[The vision pipeline against a constructed scene]{Twenty-one
+  known-answer checks on a constructed frame: a plane at a chosen offset,
+  a \SI{40}{\milli\metre} cube turned to a chosen yaw, and
+  \SI{0.3}{\milli\metre} of noise. The rows marked \emph{control} are the
+  half that makes this a measurement rather than a demonstration --- each is
+  a naive method that must get the answer \emph{wrong}, and a change that
+  broke the pipeline into agreeing with them would fail here.}
+  \label{tab:sim-cv}
+  \input{figures/sim/sim_cv_selftest.tex}
+\end{table}
+
+Three results follow, and the controls are what license them.
+
+The geometry is exact where it should be exact. The fitted plane normal lands
+\SI{0.0001}{\degree} from the constructed one and its offset within
+\SI{0.005}{\milli\metre}; projection followed by deprojection returns the
+original point to \SI{1e-17}{\metre}, which establishes that
+\cref{eq:deproject} and its inverse are implemented consistently rather than
+merely plausibly. The residual is \SI{0.151}{\milli\metre} on
+\SI{0.3}{\milli\metre} of injected noise, which is the noise floor and not a
+property of the fit.
+
+The object measurement is accurate to under a millimetre in three dimensions.
+The \SI{40}{\milli\metre} cube measures \SI{40.70}{\milli\metre} tall by
+height above the plane, $\SI{40.8}{} \times \SI{40.7}{} \times
+\SI{40.7}{\milli\metre}$ as an oriented box, and its centre lands
+\SI{0.41}{\milli\metre} from the constructed one in full three dimensions.
+
+\textbf{And the two obvious shortcuts are measured to be wrong, by how much.}
+An axis-aligned bounding box on the same turned cube reads
+\SI{56.54}{\milli\metre} --- \SI{41}{\percent} too wide, which on this
+platform is the difference between a grasp the \SI{85}{\milli\metre} jaw
+accepts and one it refuses. Taking the object centre as the mean of its
+visible points is out by \SI{16.15}{\milli\metre} along the surface normal,
+because a single view sees a shell and not a solid; the correction that
+assumes the object rests on the fitted plane brings that to
+\SI{0.35}{\milli\metre}. Both errors are systematic, both are invisible in a
+rendered picture, and both are terms in the budget of \cref{ch:motion}.
+
+\subsection{Teleoperation: what the motion generator does to a command}
+\label{sec:sim-motion}
+
+One commanded slew, three generators, both arms, at the master's own
+\SI{50}{\hertz}.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Three motion generators on one slew]{The same commanded
+  displacement through three generators. \emph{Off-path} is the largest
+  distance the end effector leaves the straight line between the endpoints,
+  against a \SI{30}{\milli\metre} grasp capture gate. \emph{Same-cycle} is
+  the largest single-cycle displacement, which is what a controller has to
+  execute. \emph{Peak $\dot{q}$ of limit} is the fastest commanded joint
+  speed as a multiple of the manufacturer's declared limit. The last column
+  is whether all seven joints arrive on the same cycle.}
+  \label{tab:sim-generators}
+  \input{figures/sim/sim_teleop_generators.tex}
+\end{table}
+
+The per-joint clamp that constituted the entire motion generation for
+teleoperation until 2026-08-23 takes the hand
+\SI{51.3}{\milli\metre} off the line the inverse-kinematics solution implies,
+on a platform whose capture gate is \SI{30}{\milli\metre}, and commands joint
+speeds \num{12.53} times the declared limit. The delivered generator is
+\SI{0.0}{\milli\metre} off the line and \num{1.00} times the limit.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/sim/sim_teleop_stepsweep.tex}
+  \caption[The clamp against its own step size]{The excursion is a property
+  of the algorithm, not of its tuning. Sweeping the per-joint step bound over
+  a factor of \num{35} does not drive the excursion toward zero: it settles
+  at \SI{68}{\milli\metre}, and is in fact \emph{worse} at small steps than
+  at the shipped one. \Cref{sec:clamp-maths} gives the reason --- the clamped
+  step is parallel to the required displacement only when every joint is
+  inside the bound or every joint is saturated equally, and at no step size
+  is that generally true. Each point is a genuinely different path densified
+  at \SI{0.02}{\radian}, not one path sampled at different rates.}
+  \label{fig:sim-stepsweep}
+\end{figure}
+
+\subsection{Teleoperation: what the smoother does to the operator's hand}
+\label{sec:sim-smoothing}
+
+Measured through the shipped node rather than against the filter in
+isolation: a stationary master carrying \SI{1.5}{\milli\metre} RMS of tremor,
+and a \SI{0.40}{\metre\per\second} reach, at \SI{50}{\hertz}.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Master smoothing]{Stillness and lag, measured together. They are
+  the pair a fixed coefficient cannot win: the tremor is high frequency at
+  low amplitude and the motion is low frequency at high amplitude, so any
+  single cutoff trades one against the other. The fixed exponential average
+  the node ran until 2026-08-27 buys
+  \SI{1.5}{\milli\metre} of stillness for \SI{18.7}{\milli\metre} of lag ---
+  more than half the capture gate, spent on a hand that is simply moving.}
+  \label{tab:sim-smoothing}
+  \input{figures/sim/sim_teleop_smoothing.tex}
+\end{table}
+
+The speed-adaptive filter is steadier \emph{and} less laggy than the one it
+replaced: \SI{0.83}{\milli\metre} against \SI{1.10}{\milli\metre} when still,
+and \SI{1.59}{\milli\metre} against \SI{18.67}{\milli\metre} when moving.
+That is not a better setting of the same trade; it is off the fixed filter's
+trade-off curve, which is what an adaptive cutoff buys and the only reason to
+pay for one.
+
+\subsection{Shared autonomy: what the intent estimator is actually sensitive to}
+\label{sec:sim-shared}
+
+The shared-autonomy layer's whole function is to answer \emph{which object is
+the operator reaching for}. Its inputs are the object positions, so its
+accuracy can be no better than the scene description it is given. In
+simulation the declared coordinates \emph{are} the truth, so a
+declared-position estimator and a perfectly calibrated one receive identical
+inputs and score identically --- which is a result about the renderer and not
+about the system. The declared error is therefore swept, over the range a
+real table actually spans, and the calibrated arm is given the error the
+calibration \emph{achieves} (\SI{11.3}{\milli\metre}) rather than a hoped-for
+zero.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/sim/sim_autonomy_sweep.tex}
+  \caption[Intent inference against a mis-declared table]{Intent inference
+  over \num{300} trials per point, four candidate objects on a
+  \SI{60}{\milli\metre} pitch. The quantity that matters is not the correct
+  rate but the \textbf{confidently wrong} rate, because a wrong answer held
+  with confidence is the one state in which this system assists an operator
+  toward an object they were not reaching for. Working from declared
+  coordinates, it reaches \SI{50}{\percent} once the declaration is one cube
+  pitch out. Working from measured ones it stays at \SI{0.0}{\percent}
+  across the whole sweep, and the correct rate stays flat at
+  \SIrange{71.7}{75.7}{\percent}.}
+  \label{fig:sim-autonomy}
+\end{figure}
+
+The shape of the two curves is the argument for the perception stage of
+\cref{ch:perception}, stated as a number rather than as a principle. A
+declared-coordinate system does not degrade gracefully as the room drifts
+from the file: it becomes confidently wrong, and it becomes so at a
+displacement of one object pitch, which is a table nudged by a hand. The
+measured-coordinate system is flat because the quantity it depends on ---
+\SI{11.3}{\milli\metre} of calibration error --- does not grow when the table
+moves.
+
+There is a second reading, and it is less flattering. The correct rate never
+exceeds \SI{76}{\percent} in \emph{any} condition, including the one where
+the estimator is given perfect information. The remaining quarter is
+ambiguity, not error, and the arbiter is specified to stay in direct
+teleoperation whenever it is ambiguous. So the honest summary of this figure
+is that calibration converts a failure mode that moves the arm into one that
+does not, rather than that it makes the estimator right more often.
+
+\subsection{Full autonomy: seventy-five ways of asking for the same task}
+\label{sec:sim-language}
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/sim/sim_autonomy_instructions.tex}
+  \caption[Instruction handling, before and after]{Seventy-five phrasings of
+  one task --- selectors, compounds, bare picks, politeness and misspellings
+  --- scored against the delivered grammar and against the grammar as
+  committed at an earlier revision, checked out of version control and run in
+  its own interpreter, so the two columns differ by the code and by nothing
+  else. \emph{Asked} and \emph{refused} are safe outcomes: the arm does not
+  move and the operator is told why. \emph{Misunderstood} is the only unsafe
+  one, because it is the outcome in which the arm moves and does the wrong
+  thing.}
+  \label{fig:sim-instructions}
+\end{figure}
+
+Correct interpretations rose from \num{21} to \num{34} of \num{75}, refusals
+fell from \num{37} to \num{27}, and misunderstandings fell from \num{3} to
+\num{0}. Ten of the fourteen questions the system asks carry a scored reply,
+and all ten resolve correctly in twelve replies --- scored on their own line
+and never counted as correct above, because a grammar that asks about
+everything must not be able to look like one that understands everything.
+
+The figure to read is the last pair of bars. A system that refuses is
+annoying and a system that misunderstands is dangerous, and the change bought
+both: fewer refusals \emph{and} no misunderstandings, rather than trading one
+for the other.
+
+\subsection{What the campaign could not run, and why that is stated here}
+
+\Cref{tab:campaign} lists every stage that did not run and what it needed.
+Nothing was skipped for convenience: the stages marked \emph{simulated
+platform} require a live motion planner, and they are reported in
+\cref{sec:sim-tasks} because they were run in a second pass, inside one
+stack, for the reason that table gives.
+
+\subsection{The task set, inside the simulated platform}
+\label{sec:sim-tasks}
+
+\emph{Verified in simulation, against a live motion planner.}
+
+Four stages need a live motion planner, so they were run in a second pass
+inside one MoveIt stack. One stack for all of them is not a convenience: two
+planning clients against one scene has already produced a measurement in
+which one run's furniture was present in the other run's collision world, and
+the resulting figure looked like a task failure.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[The task set inside the simulated platform]{Every commanded
+  coordinate of the task set, solved against a live motion planner. Paths are
+  densified to \SI{20}{\milli\metre} and each pose is solved $N$ times,
+  because the solver restarts randomly and a pose that solves once has not
+  been shown to be reachable. \emph{Floor breaches} counts poses in which any
+  moving link came within \SI{150}{\milli\metre} of the wearer, measured
+  geometrically rather than by asking the planner whether the pose is valid
+  --- the semantic collision description excludes the forty-four proximal
+  pairs a shoulder mount actually threatens.}
+  \label{tab:sim-tasks}
+  \input{figures/sim/sim_task_set.tex}
+\end{table}
+
+\num{13927} inverse-kinematics calls, zero failures, zero clearance breaches.
+Three things about that number are worth stating, because a clean table is
+the easiest kind to over-read.
+
+\textbf{It reproduces.} This is the second consecutive campaign to return the
+same result field for field, which is the property this project spent a long
+time not having: earlier reachability figures were re-asserted rather than
+re-measured, and \cref{ch:instrument} records two occasions on which a clean
+sweep was measured with the arms somewhere other than where the task
+commands them.
+
+\textbf{The controls fired.} Every stage in this pass carries poses that must
+be refused as well as poses that must be accepted --- a target
+\SI{1.6}{\metre} out, a target inside the wearer's torso, a target inside the
+bench, and for T1 a clearance probe that must go from clear to buried when a
+slab is added. All were refused. A reachability sweep with no unreachable
+control is a sweep that cannot fail.
+
+\textbf{It says nothing about grasping.} Reaching every commanded coordinate
+is a statement about the arm, not about the hand. The same run measures the
+grasp itself from forward kinematics on the finger tips: the cube presents
+\SI{56.3}{\milli\metre} across the closing axis against an
+\SI{85}{\milli\metre} jaw, the pads land \SIrange{9.57}{9.58}{\milli\metre}
+from the declared coordinate, and the follower supplies a \SI{5.0}{\degree}
+wrist tilt to make the pose reachable at all --- a tilt that costs
+$2|\mathbf{r}_{\text{pad}}|\sin(\theta/2) = \SI{8.58}{\milli\metre}$ of pad
+displacement by construction, and \SI{9.58}{\milli\metre} as measured. That
+is inside the \SI{30}{\milli\metre} capture gate and it is not zero, and
+\cref{ch:motion} treats it as a term in the budget rather than as a rounding
+error.
+
+\subsubsection{What the pinned wrist costs, measured against its own control}
+
+The fourth stack stage measures the reach available under each orientation
+policy, walking outward in fourteen directions from each arm's home pose with
+the \SI{150}{\milli\metre} wearer floor enforced throughout.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Reach against orientation policy]{Mean reach over \num{28}
+  directional walks, by how tightly the commanded wrist is constrained. The
+  \emph{pinned} row is what teleoperation actually runs. A walk is recorded
+  as wearer-bound when it stops because of the clearance floor rather than
+  because the arm ran out of reach, and that count is the reason the last
+  column matters: loosening the wrist does not loosen the floor.}
+  \label{tab:sim-orientation}
+  \begin{tabular}{@{}lccl@{}}
+    \toprule
+    Orientation policy & mean reach & vs pinned & walks stopped \\
+    & \si{\metre} & \si{\milli\metre} & by the wearer \\
+    \midrule
+    pinned to the anchor (delivered) & \num{0.408} & --- & 4 of 28 \\
+    roll free & \num{0.446} & $+38$ & 6 of 28 \\
+    within a \SI{15}{\degree} cone & \num{0.479} & $+71$ & 6 of 28 \\
+    within a \SI{45}{\degree} cone & \num{0.519} & $+111$ & 6 of 28 \\
+    position only & \num{0.529} & $+121$ & 6 of 28 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Two readings, and the second is the one that changes what should be built
+next.
+
+Freeing the wrist is worth up to \SI{121}{\milli\metre} of mean reach, which
+is a quarter of the arm's working radius and far from negligible. But the
+count of wearer-bound walks \emph{rises} from four to six as the policy
+loosens, which is the expected shape: a looser wrist lets the arm reach
+further in directions where the limit was the wrist, and in doing so it walks
+into the person in directions where the limit was never the wrist at all.
+Orientation freedom buys reach in free space and buys nothing at the boundary
+that matters.
+
+\textbf{This stage failed on its first run, and the failure is worth
+reporting.} At three random seeds per pose it reported six walks in which a
+\emph{looser} policy reached less far than a tighter one, which is
+arithmetically impossible: the tighter policy's solutions are a subset of the
+looser one's. That is not a property of the arm, it is the stochastic solver
+drawing a boundary in the wrong place, and the instrument said so in those
+words and refused to write a result. Raised to ten seeds it is monotone and
+the table above is the re-run. An instrument that had simply reported the
+first set of numbers would have published a physical impossibility, and
+nothing downstream would have queried it.
 
 \section{Channel health}
 \label{sec:channelhealth}
@@ -649,21 +1013,34 @@ second in the order of work.
 
 \begin{table}[htbp]
   \centering
-  \caption[Verification totals]{What is checked automatically, at the date of
-  writing. The two counts that exercise the system as an operator would are
-  the window audit and the fault injections.}
+  \caption[Verification totals]{What is checked automatically, as of
+  2026-08-31. The counts that exercise the system as an operator would are
+  the window audit and the fault injections; the counts that exercise it as a
+  \emph{measurement} are the campaign of \cref{sec:campaign} and the
+  inverse-kinematics calls beneath it. Two tests fail and are on the gate's
+  allowlist, both of them style checks against a package that uses double
+  quotes throughout.}
   \label{tab:verification}
   \begin{tabular}{@{}lr@{}}
     \toprule
     Measure & Count \\
     \midrule
-    Automated tests passing & \num{1322} \\
-    Test modules & 114 \\
-    Checks made on the operating window & 257 \\
+    Automated tests passing & \num{1499} \\
+    Test modules & \num{135} \\
+    Checks made on the operating window & \num{257} \\
     Faults injected and handled & 14 of 14 \\
+    \midrule
+    Simulation stages in one campaign & \num{16} \\
+    \quad of which ran & \num{16} \\
+    Inverse-kinematics calls in the task set & \num{13927} \\
+    \quad failures & \textbf{0} \\
+    Known-answer checks on the vision arithmetic & \num{21} \\
+    Simulated studies of the analysis procedure & \num{20000} \\
+    \midrule
     Recorded demonstration cells & 17, at 8 camera angles each \\
-    Analysis and verification programs & 233 \\
-    Stored measurement records & 195 \\
+    Vision stages instrumented on real cameras & \num{132} \\
+    Analysis and verification programs & \num{271} \\
+    Stored measurement records & \num{185} \\
     \bottomrule
   \end{tabular}
 \end{table}

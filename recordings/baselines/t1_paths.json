@@ -34,8 +34,9 @@
       "arm": "left",
       "solved": true,
       "tool_axis_tilt_deg": 5.0,
+      "gate_mm": 30.0,
       "across_mm": 56.3,
-      "pad_miss_mm": 9.58,
+      "pad_miss_mm": 9.57,
       "lowest_tip_above_table_mm": 21.3,
       "finger_span_mm": 93.3,
       "closing_axis": [
@@ -43,15 +44,16 @@
         -0.8174,
         0.0141
       ],
-      "ok": false
+      "ok": true
     },
     {
       "cube": 1,
       "arm": "left",
       "solved": true,
       "tool_axis_tilt_deg": 5.0,
+      "gate_mm": 30.0,
       "across_mm": 56.3,
-      "pad_miss_mm": 9.58,
+      "pad_miss_mm": 9.57,
       "lowest_tip_above_table_mm": 21.3,
       "finger_span_mm": 93.3,
       "closing_axis": [
@@ -59,13 +61,14 @@
         -0.8174,
         0.0141
       ],
-      "ok": false
+      "ok": true
     },
     {
       "cube": 2,
       "arm": "right",
       "solved": true,
       "tool_axis_tilt_deg": 5.0,
+      "gate_mm": 30.0,
       "across_mm": 56.3,
       "pad_miss_mm": 9.58,
       "lowest_tip_above_table_mm": 21.3,
@@ -75,13 +78,14 @@
         0.8174,
         -0.0141
       ],
-      "ok": false
+      "ok": true
     },
     {
       "cube": 3,
       "arm": "right",
       "solved": true,
       "tool_axis_tilt_deg": 5.0,
+      "gate_mm": 30.0,
       "across_mm": 56.3,
       "pad_miss_mm": 9.58,
       "lowest_tip_above_table_mm": 21.3,
@@ -91,12 +95,16 @@
         0.8174,
         -0.0141
       ],
-      "ok": false
+      "ok": true
     }
   ],
+  "worst_pad_miss_mm": 9.58,
+  "worst_tool_axis_tilt_deg": 5.0,
+  "capture_gate_mm": 30.0,
+  "path_clean": true,
   "orientation_policy": "cone",
   "orientation_cone_deg": 15.0,
-  "clean": false,
+  "clean": true,
   "ik_calls": 4005,
   "stage2_seed": null,
   "layout": {

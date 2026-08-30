@@ -1,0 +1,1474 @@
+{
+  "checks": [
+    {
+      "check": "the constructed frame lifts to a cloud",
+      "passed": true,
+      "detail": "245760"
+    },
+    {
+      "check": "project then deproject returns the same point (< 1 um)",
+      "passed": true,
+      "detail": "9.813077866773595e-18"
+    },
+    {
+      "check": "the fitted plane normal is within 0.5 deg of the constructed one",
+      "passed": true,
+      "detail": "0.0001 deg"
+    },
+    {
+      "check": "the fitted offset is within 2 mm of the constructed one",
+      "passed": true,
+      "detail": "0.00 mm"
+    },
+    {
+      "check": "the plane RMS is under 1 mm on 0.3 mm of noise",
+      "passed": true,
+      "detail": "0.151 mm"
+    },
+    {
+      "check": "the cube's points are found above the plane",
+      "passed": true,
+      "detail": "5780"
+    },
+    {
+      "check": "the cube measures 40 mm tall, within 3 mm",
+      "passed": true,
+      "detail": "40.70 mm"
+    },
+    {
+      "check": "rotating calipers measure the 40 mm cube within 5 mm",
+      "passed": true,
+      "detail": "40.68 mm"
+    },
+    {
+      "check": "THE CONTROL: the axis-aligned box reads the turned cube over 48 mm",
+      "passed": true,
+      "detail": "56.54 mm"
+    },
+    {
+      "check": "mid-extent puts the centre within 2 mm ACROSS the surface",
+      "passed": true,
+      "detail": "0.22 mm"
+    },
+    {
+      "check": "THE CONTROL: along the normal it is out by more than 10 mm, because that axis is still the MEAN of a one-sided cloud",
+      "passed": true,
+      "detail": "16.15 mm"
+    },
+    {
+      "check": "the shell correction fixes the normal axis to within 2 mm",
+      "passed": true,
+      "detail": "0.35 mm"
+    },
+    {
+      "check": "THE CONTROL: and it is worse ACROSS the surface, because its footprint centroid is a shell's",
+      "passed": true,
+      "detail": "4.72 mm"
+    },
+    {
+      "check": "mid-extent across, shell correction along: within 2 mm in FULL 3-D",
+      "passed": true,
+      "detail": "0.41 mm"
+    },
+    {
+      "check": "the oriented box measures the 40 mm cube to within 3 mm on all three sides",
+      "passed": true,
+      "detail": "40.8 x 40.7 x 40.7 mm"
+    },
+    {
+      "check": "and its centre is within 2 mm of the constructed one",
+      "passed": true,
+      "detail": "0.41 mm"
+    },
+    {
+      "check": "its range matches the constructed centre's",
+      "passed": true,
+      "detail": "0.3697 m"
+    },
+    {
+      "check": "the mode estimator lands within 3 mm of the plane offset",
+      "passed": true,
+      "detail": "0.00 mm"
+    },
+    {
+      "check": "THE CONTROL: with the depth scaled 1.5x the height check FAILS",
+      "passed": true,
+      "detail": "61.04 mm"
+    },
+    {
+      "check": "PLUMBING: the drawn cube is one green component",
+      "passed": true,
+      "detail": "1"
+    },
+    {
+      "check": "every stage produced a figure without crashing",
+      "passed": true,
+      "detail": ""
+    }
+  ],
+  "stages": [
+    {
+      "num": 1,
+      "slug": "raw_colour",
+      "title": "The frame, as the camera delivered it",
+      "status": "ok",
+      "seconds": 0.02,
+      "figure": "stages/self_test/01_raw_colour.png",
+      "formula": "none -- this is the input every later stage is a function of",
+      "provenance": "CONSTRUCTED, not measured: a plane at n=(0.0000, -0.9138, -0.4061) d=0.2792 carrying a 40 mm cube turned 45 deg, ray-traced analytically with 0.3 mm of Gaussian range noise",
+      "numbers": "640 x 480 px | focus (variance of Laplacian) 7 | 0.00% of pixels clipped white, 0.00% crushed black",
+      "note": "the COLOUR image is drawn, so the colour stages here are plumbing checks and not evidence",
+      "data": [
+        {
+          "quantity": "frame width",
+          "value": 640,
+          "unit": "px"
+        },
+        {
+          "quantity": "frame height",
+          "value": 480,
+          "unit": "px"
+        },
+        {
+          "quantity": "focus, variance of Laplacian",
+          "value": 6.7,
+          "unit": "-"
+        },
+        {
+          "quantity": "pixels clipped white",
+          "value": 0.0,
+          "unit": "%"
+        },
+        {
+          "quantity": "pixels crushed black",
+          "value": 0.0,
+          "unit": "%"
+        },
+        {
+          "quantity": "mean blue",
+          "value": 167.55,
+          "unit": "0-255"
+        },
+        {
+          "quantity": "mean green",
+          "value": 169.91,
+          "unit": "0-255"
+        },
+        {
+          "quantity": "mean red",
+          "value": 162.93,
+          "unit": "0-255"
+        },
+        {
+          "quantity": "median grey",
+          "value": 169.0,
+          "unit": "0-255"
+        },
+        {
+          "quantity": "grey std",
+          "value": 6.93,
+          "unit": "0-255"
+        }
+      ],
+      "tables": {}
+    },
+    {
+      "num": 2,
+      "slug": "intrinsics",
+      "title": "Intrinsics and the ray each pixel stands for",
+      "status": "ok",
+      "seconds": 0.01,
+      "figure": "stages/self_test/02_intrinsics.png",
+      "formula": "bearing = ((u - cx)/fx, (v - cy)/fy);  X = bearing * Z",
+      "provenance": "CONSTRUCTED, not measured: a plane at n=(0.0000, -0.9138, -0.4061) d=0.2792 carrying a 40 mm cube turned 45 deg, ray-traced analytically with 0.3 mm of Gaussian range noise",
+      "numbers": "fx 600.00  fy 600.00  cx 320.00  cy 240.00 | field of view 56.1 x 43.6 deg | principal point is 0.0 px from the image centre, which is 0 mm of sideways error at 1 m if you assume the centre",
+      "data": [
+        {
+          "quantity": "fx",
+          "value": 600.0,
+          "unit": "px"
+        },
+        {
+          "quantity": "fy",
+          "value": 600.0,
+          "unit": "px"
+        },
+        {
+          "quantity": "cx",
+          "value": 320.0,
+          "unit": "px"
+        },
+        {
+          "quantity": "cy",
+          "value": 240.0,
+          "unit": "px"
+        },
+        {
+          "quantity": "image centre u",
+          "value": 320.0,
+          "unit": "px"
+        },
+        {
+          "quantity": "image centre v",
+          "value": 240.0,
+          "unit": "px"
+        },
+        {
+          "quantity": "principal point offset from centre",
+          "value": 0.0,
+          "unit": "px"
+        },
+        {
+          "quantity": "that offset at 1 m range",
+          "value": 0.0,
+          "unit": "mm"
+        },
+        {
+          "quantity": "horizontal field of view",
+          "value": 56.145,
+          "unit": "deg"
+        },
+        {
+          "quantity": "vertical field of view",
+          "value": 43.603,
+          "unit": "deg"
+        },
+        {
+          "quantity": "ground sample distance at 1 m",
+          "value": 1.6667,
+          "unit": "mm/px"
+        }
+      ],
+      "tables": {}
+    },
+    {
+      "num": 3,
+      "slug": "hsv",
+      "title": "BGR to HSV, the space the colour tests live in",
+      "status": "ok",
+      "seconds": 0.02,
+      "figure": "stages/self_test/03_hsv.png",
+      "formula": "V = max(B,G,R);  S = (V - min(B,G,R))/V;  H = the sector of the RGB hexagon, 0..179 in OpenCV (not 0..359)",
+      "provenance": "CONSTRUCTED, not measured: a plane at n=(0.0000, -0.9138, -0.4061) d=0.2792 carrying a 40 mm cube turned 45 deg, ray-traced analytically with 0.3 mm of Gaussian range noise",
+      "numbers": "median H 90  S 8  V 170 | 98.1% of pixels are below S=80 and cannot satisfy any colour term in this repository",
+      "note": "Hue is why colour is done here and not in BGR: brightness moves B, G and R together and leaves H alone, so a shadow does not change what colour something is -- until V collapses, which is what the value floors in each term exist to catch.",
+      "data": [
+        {
+          "quantity": "median hue",
+          "value": 90.0,
+          "unit": "0-179"
+        },
+        {
+          "quantity": "median saturation",
+          "value": 8.0,
+          "unit": "0-255"
+        },
+        {
+          "quantity": "median value",
+          "value": 170.0,
+          "unit": "0-255"
+        },
+        {
+          "quantity": "pixels below S=80",
+          "value": 98.118,
+          "unit": "%"
+        },
+        {
+          "quantity": "pixels below V=40",
+          "value": 0.0,
+          "unit": "%"
+        },
+        {
+          "quantity": "pixels above V=200",
+          "value": 0.0,
+          "unit": "%"
+        }
+      ],
+      "tables": {}
+    },
+    {
+      "num": 4,
+      "slug": "green_threshold",
+      "title": "The pick path's own green threshold",
+      "status": "ok",
+      "seconds": 0.02,
+      "figure": "stages/self_test/04_green_threshold.png",
+      "formula": "mask(u,v) = 1 iff  40 <= H <= 85  and  80 <= S <= 255  and  40 <= V <= 255",
+      "provenance": "constants from scripts/servo_pick_left.py:measure -- the thresholds the live pick actually runs on",
+      "numbers": "5780 px selected (1.882% of the frame) | of those, median S 193 and median V 165",
+      "note": "A threshold is a hard decision with no confidence attached, which is why colour is a FALLBACK in this repository and capped below any AprilTag: it fails by being confidently wrong under changed light, and nothing downstream can tell.",
+      "data": [
+        {
+          "quantity": "hue low",
+          "value": 40,
+          "unit": "0-179"
+        },
+        {
+          "quantity": "hue high",
+          "value": 85,
+          "unit": "0-179"
+        },
+        {
+          "quantity": "saturation floor",
+          "value": 80,
+          "unit": "0-255"
+        },
+        {
+          "quantity": "value floor",
+          "value": 40,
+          "unit": "0-255"
+        },
+        {
+          "quantity": "pixels selected",
+          "value": 5780,
+          "unit": "px"
+        },
+        {
+          "quantity": "fraction of the frame",
+          "value": 1.8815,
+          "unit": "%"
+        },
+        {
+          "quantity": "median S of the selected",
+          "value": 193.0,
+          "unit": "0-255"
+        },
+        {
+          "quantity": "median V of the selected",
+          "value": 165.0,
+          "unit": "0-255"
+        }
+      ],
+      "tables": {}
+    },
+    {
+      "num": 5,
+      "slug": "morphology",
+      "title": "What the 9x9 opening removes",
+      "status": "ok",
+      "seconds": 0.02,
+      "figure": "stages/self_test/05_morphology.png",
+      "formula": "open(M) = dilate(erode(M, K), K),  K = ones(9, 9).  Erode deletes anything thinner than the kernel; dilate restores what survived to its original size.",
+      "provenance": "9x9 is the pick path's kernel (servo_pick_left); prompt_detector and colour_shape_detector both use 5x5",
+      "numbers": "5780 px in, 5766 px out, 14 px removed (0.2%) | 1 separate blobs before, 1 after",
+      "note": "The kernel size IS a decision about the smallest object that can survive: at this range a 9 px feature is deleted whatever colour it is.",
+      "data": [
+        {
+          "quantity": "kernel",
+          "value": "9x9",
+          "unit": "px"
+        },
+        {
+          "quantity": "pixels before",
+          "value": 5780,
+          "unit": "px"
+        },
+        {
+          "quantity": "pixels after",
+          "value": 5766,
+          "unit": "px"
+        },
+        {
+          "quantity": "pixels removed",
+          "value": 14,
+          "unit": "px"
+        },
+        {
+          "quantity": "removed",
+          "value": 0.242,
+          "unit": "%"
+        },
+        {
+          "quantity": "blobs before",
+          "value": 1,
+          "unit": "count"
+        },
+        {
+          "quantity": "blobs after",
+          "value": 1,
+          "unit": "count"
+        }
+      ],
+      "tables": {}
+    },
+    {
+      "num": 6,
+      "slug": "components",
+      "title": "Connected components, and their statistics",
+      "status": "ok",
+      "seconds": 0.01,
+      "figure": "stages/self_test/06_components.png",
+      "formula": "8-connectivity flood label; per label: area, bounding box, centroid = (1/A) * sum of member pixel coordinates",
+      "provenance": "CONSTRUCTED, not measured: a plane at n=(0.0000, -0.9138, -0.4061) d=0.2792 carrying a 40 mm cube turned 45 deg, ray-traced analytically with 0.3 mm of Gaussian range noise",
+      "numbers": "1 components over 40 px | largest 5766 px | this is where a MASK becomes a set of candidate OBJECTS",
+      "note": "A centroid is not an object's centre: it is the centre of the pixels that happened to pass the threshold, so a partly shadowed cube reports a centroid shifted into its lit half.",
+      "data": [
+        {
+          "quantity": "components over 40 px",
+          "value": 1,
+          "unit": "count"
+        },
+        {
+          "quantity": "largest area",
+          "value": 5766,
+          "unit": "px"
+        },
+        {
+          "quantity": "total area kept",
+          "value": 5766,
+          "unit": "px"
+        },
+        {
+          "quantity": "median area",
+          "value": 5766.0,
+          "unit": "px"
+        }
+      ],
+      "tables": {
+        "every component": {
+          "rows": 1,
+          "csv": "data/self_test/06_components__every_component.csv",
+          "headers": [
+            "#",
+            "area px",
+            "box x",
+            "box y",
+            "box w",
+            "box h",
+            "centroid u",
+            "centroid v"
+          ]
+        }
+      }
+    },
+    {
+      "num": 7,
+      "slug": "vocabulary",
+      "title": "The whole colour vocabulary, swept",
+      "status": "ok",
+      "seconds": 0.09,
+      "figure": "stages/self_test/07_vocabulary.png",
+      "formula": "one inRange per band, OR-ed across bands (red needs two: it wraps the hue circle at 0/179), then a 5x5 opening",
+      "provenance": "srl_perception/prompt_detector.py:COLOUR_TERMS -- the colour backend's entire vocabulary, stated so its limit is visible rather than discovered",
+      "numbers": "green 5774 | red 0 | orange 0 | yellow 0 | cyan 0 | blue 0",
+      "note": "THE THREE GREENS ARE NOT THE SAME: servo_pick_left (the live pick) H40-85 S>=80 V>=40 open 9: 5766 px; prompt_detector.COLOUR_TERMS H36-85 S>=80 V>=25 open 5: 5774 px; colour_shape_detector.DEFAULT H40-85 S>=80 V>=60 open 5: 5774 px. They differ in the value floor (25 / 40 / 60) and in the opening kernel, so the same cube in the same frame gives three different pixel counts depending on which module is asking.",
+      "data": [
+        {
+          "quantity": "colour terms tested",
+          "value": 11,
+          "unit": "count"
+        },
+        {
+          "quantity": "terms with any pixels",
+          "value": 1,
+          "unit": "count"
+        },
+        {
+          "quantity": "largest term",
+          "value": "green",
+          "unit": "-"
+        },
+        {
+          "quantity": "its pixel count",
+          "value": 5774,
+          "unit": "px"
+        }
+      ],
+      "tables": {
+        "pixels per colour term": {
+          "rows": 11,
+          "csv": "data/self_test/07_vocabulary__pixels_per_colour_term.csv",
+          "headers": [
+            "colour term",
+            "pixels",
+            "fraction of frame %"
+          ]
+        },
+        "the three definitions of green": {
+          "rows": 3,
+          "csv": "data/self_test/07_vocabulary__the_three_definitions_of_green.csv",
+          "headers": [
+            "module",
+            "H low",
+            "H high",
+            "S floor",
+            "V floor",
+            "open kernel",
+            "pixels"
+          ]
+        }
+      }
+    },
+    {
+      "num": 8,
+      "slug": "region_mean",
+      "title": "The region-MEAN ratio test, and its near-black guard",
+      "status": "ok",
+      "seconds": 0.01,
+      "figure": "stages/self_test/08_region_mean.png",
+      "formula": "green  <=>  mean_G > 1.25 * mean_B  and  mean_G > 1.8 * mean_R,  refused outright when max(B,G,R) < 25",
+      "provenance": "srl_perception/prompt_detector.py:_colour_matches",
+      "numbers": "1 of 1 regions pass",
+      "note": "Per-pixel hue picked the room's teal robots three times: their shadowed hue is 76 against the target cube's 74, two apart and inside noise. Region MEANS separate them, because teal carries far more blue. The near-black guard exists because a region measuring (4.1, 8.8, 3.9) -- visually black -- satisfies the ratios on sensor noise alone and was reported as the cube.",
+      "data": [
+        {
+          "quantity": "regions tested",
+          "value": 1,
+          "unit": "count"
+        },
+        {
+          "quantity": "regions passing",
+          "value": 1,
+          "unit": "count"
+        },
+        {
+          "quantity": "regions rejected as near-black",
+          "value": 0,
+          "unit": "count"
+        },
+        {
+          "quantity": "blue ratio threshold",
+          "value": 1.25,
+          "unit": "-"
+        },
+        {
+          "quantity": "red ratio threshold",
+          "value": 1.8,
+          "unit": "-"
+        },
+        {
+          "quantity": "near-black floor",
+          "value": 25.0,
+          "unit": "0-255"
+        }
+      ],
+      "tables": {
+        "region means and verdicts": {
+          "rows": 1,
+          "csv": "data/self_test/08_region_mean__region_means_and_verdicts.csv",
+          "headers": [
+            "region",
+            "area px",
+            "mean B",
+            "mean G",
+            "mean R",
+            "near black",
+            "passes green"
+          ]
+        }
+      }
+    },
+    {
+      "num": 9,
+      "slug": "minarearect",
+      "title": "Rotated box, in-image yaw, and the degeneracy gate",
+      "status": "ok",
+      "seconds": 0.01,
+      "figure": "stages/self_test/09_minarearect.png",
+      "formula": "minAreaRect -> ((cx,cy), (w,h), angle);  yaw is published as q = (0, 0, sin(angle/2), cos(angle/2)) ONLY when max(w,h)/min(w,h) >= 1.15",
+      "provenance": "srl_perception/colour_shape_detector.py",
+      "numbers": "71 x 99 px, 90.0 deg, aspect 1.39, yaw published",
+      "note": "Rotation about the OPTICAL AXIS is exactly what this measures; out-of-plane tilt is what it cannot see. The detector published identity for months while measuring the angle into a debug string, so an object at 30 deg got a square grasp and no check could tell that from a square object. A near-square blob still gets identity, because minAreaRect's angle is degenerate there and publishing it would be inventing a direction.",
+      "data": [
+        {
+          "quantity": "contours measured",
+          "value": 1,
+          "unit": "count"
+        },
+        {
+          "quantity": "aspect gate for publishing yaw",
+          "value": 1.15,
+          "unit": "-"
+        },
+        {
+          "quantity": "yaws published",
+          "value": 1,
+          "unit": "count"
+        },
+        {
+          "quantity": "yaws withheld as degenerate",
+          "value": 0,
+          "unit": "count"
+        }
+      ],
+      "tables": {
+        "rotated boxes": {
+          "rows": 1,
+          "csv": "data/self_test/09_minarearect__rotated_boxes.csv",
+          "headers": [
+            "area px",
+            "w px",
+            "h px",
+            "angle deg",
+            "aspect",
+            "yaw published"
+          ]
+        }
+      }
+    },
+    {
+      "num": 10,
+      "slug": "size_at_range",
+      "title": "The size-at-range gate",
+      "status": "ok",
+      "seconds": 0.02,
+      "figure": "stages/self_test/10_size_at_range.png",
+      "formula": "z = fx * object_width / px_across;  accept iff 0.25 <= z <= 1.50 m.  With depth the honest form is used instead: compare px against fx * size / measured_depth, tolerance 0.55 to 1.80",
+      "provenance": "srl_perception/colour_shape_detector.py -- expected_px() and size_at_range_ok()",
+      "numbers": "99 px -> 0.242 m REJECT",
+      "note": "This gate was added after a measured failure: T1's coloured pads are 210 x 130 mm in exactly the cube colours, and with a minimum-area floor and no upper bound the detector locked onto the pads and scored 0 of 4 cubes. A 210 mm pad read as a 40 mm cube implies z = 0.134 m -- 'a cube 134 mm from the lens' -- which is outside anything the arm works in, so the pad disappears while a real cube at 0.5 m passes untouched.",
+      "data": [
+        {
+          "quantity": "fx used",
+          "value": 600.0,
+          "unit": "px"
+        },
+        {
+          "quantity": "assumed object width",
+          "value": 40.0,
+          "unit": "mm"
+        },
+        {
+          "quantity": "near limit of the window",
+          "value": 0.25,
+          "unit": "m"
+        },
+        {
+          "quantity": "far limit of the window",
+          "value": 1.5,
+          "unit": "m"
+        },
+        {
+          "quantity": "blobs tested",
+          "value": 1,
+          "unit": "count"
+        },
+        {
+          "quantity": "blobs accepted",
+          "value": 0,
+          "unit": "count"
+        },
+        {
+          "quantity": "blobs rejected",
+          "value": 1,
+          "unit": "count"
+        }
+      ],
+      "tables": {
+        "implied range per blob": {
+          "rows": 1,
+          "csv": "data/self_test/10_size_at_range__implied_range_per_blob.csv",
+          "headers": [
+            "px across",
+            "implied range m",
+            "accepted"
+          ]
+        }
+      }
+    },
+    {
+      "num": 11,
+      "slug": "fastsam",
+      "title": "FastSAM: every region in the picture, no prompt",
+      "status": "refused",
+      "seconds": 0.0,
+      "figure": "stages/self_test/11_fastsam.png",
+      "reason": "--fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.",
+      "data": [],
+      "tables": {}
+    },
+    {
+      "num": 12,
+      "slug": "area_filter",
+      "title": "The area filter: noise below, the table above",
+      "status": "refused",
+      "seconds": 0.0,
+      "figure": "stages/self_test/12_area_filter.png",
+      "reason": "--fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.",
+      "data": [],
+      "tables": {}
+    },
+    {
+      "num": 13,
+      "slug": "segment_match",
+      "title": "Segment everything, then pick the one that matches",
+      "status": "refused",
+      "seconds": 0.01,
+      "figure": "stages/self_test/13_segment_match.png",
+      "reason": "--fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.",
+      "data": [],
+      "tables": {}
+    },
+    {
+      "num": 14,
+      "slug": "yoloworld",
+      "title": "YOLO-World: open-vocabulary naming",
+      "status": "refused",
+      "seconds": 0.0,
+      "figure": "stages/self_test/14_yoloworld.png",
+      "reason": "--fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.",
+      "data": [],
+      "tables": {}
+    },
+    {
+      "num": 15,
+      "slug": "raw_depth",
+      "title": "The depth frame, and where it has no answer",
+      "status": "ok",
+      "seconds": 0.04,
+      "figure": "stages/self_test/15_raw_depth.png",
+      "formula": "one 16-bit value per pixel, in MILLIMETRES on the wire, divided by 1000 here. 0 means 'no return' and is NOT a distance of zero.",
+      "provenance": "CONSTRUCTED, not measured: a plane at n=(0.0000, -0.9138, -0.4061) d=0.2792 carrying a 40 mm cube turned 45 deg, ray-traced analytically with 0.3 mm of Gaussian range noise",
+      "numbers": "640 x 480 | 100.0% of pixels have a return | median 0.689 m, 5th-95th 0.375-3.623 m | 245760 px between the 0.08 and 1.50 m gate the pick path uses",
+      "note": "A hole is not a far surface. Averaging a hole in as 0 drags every edge pixel toward the camera, which is why the RealSense average is taken over VALID pixels only.",
+      "data": [
+        {
+          "quantity": "depth width",
+          "value": 640,
+          "unit": "px"
+        },
+        {
+          "quantity": "depth height",
+          "value": 480,
+          "unit": "px"
+        },
+        {
+          "quantity": "pixels with a return",
+          "value": 307200,
+          "unit": "px"
+        },
+        {
+          "quantity": "that fraction",
+          "value": 100.0,
+          "unit": "%"
+        },
+        {
+          "quantity": "median range",
+          "value": 0.6888,
+          "unit": "m"
+        },
+        {
+          "quantity": "5th percentile",
+          "value": 0.3753,
+          "unit": "m"
+        },
+        {
+          "quantity": "95th percentile",
+          "value": 3.6228,
+          "unit": "m"
+        },
+        {
+          "quantity": "nearest return",
+          "value": 0.3118,
+          "unit": "m"
+        },
+        {
+          "quantity": "furthest return",
+          "value": 6.8759,
+          "unit": "m"
+        },
+        {
+          "quantity": "returns inside this camera's working band",
+          "value": 245760,
+          "unit": "px"
+        },
+        {
+          "quantity": "band near",
+          "value": 0.08,
+          "unit": "m"
+        },
+        {
+          "quantity": "band far",
+          "value": 1.5,
+          "unit": "m"
+        }
+      ],
+      "tables": {}
+    },
+    {
+      "num": 16,
+      "slug": "alignment",
+      "title": "Depth put into the colour frame",
+      "status": "ok",
+      "seconds": 0.04,
+      "figure": "stages/self_test/16_alignment.png",
+      "formula": "P = ((u-cx_d)z/fx_d, (v-cy_d)z/fy_d, z);  P' = P + t;  u' = fx_c X'/Z' + cx_c,  v' = fy_c Y'/Z' + cy_c",
+      "provenance": "aligned by librealsense (rs.align to colour); no re-projection done here",
+      "numbers": "no re-projection was needed",
+      "note": "The rotation between the two sensors is taken as IDENTITY here, because a recorded translation is all this program has. The live pick path uses the URDF FK between camera_depth_frame and camera_color_frame instead -- and that extrinsic is known to be ~8.5 deg wrong and to rotate with the wrist, which is why the pick servos in the camera frame rather than planning through it.",
+      "data": [
+        {
+          "quantity": "re-projection needed",
+          "value": false,
+          "unit": "-"
+        },
+        {
+          "quantity": "aligner",
+          "value": "librealsense rs.align",
+          "unit": "-"
+        }
+      ],
+      "tables": {}
+    },
+    {
+      "num": 17,
+      "slug": "deprojection",
+      "title": "Pixels and depth become a cloud",
+      "status": "ok",
+      "seconds": 0.18,
+      "figure": "stages/self_test/17_deprojection.png",
+      "formula": "X = (u - cx) Z / fx,   Y = (v - cy) Z / fy,   Z = depth",
+      "provenance": "rgbd_grasp.deproject / servo_pick_left.measure, with fx 600.00 fy 600.00 cx 320.00 cy 240.00",
+      "numbers": "245760 points in the 0.08-1.50 m band | extent X -0.797 to 0.795, Y -0.359 to 0.145, Z 0.312 to 1.495 m",
+      "note": "This is the whole of 'depth decides WHERE'. Everything after it is geometry on these points, in the CAMERA's frame -- no robot transform is involved yet, which is exactly why the pick measures its error here.",
+      "data": [
+        {
+          "quantity": "points lifted",
+          "value": 245760,
+          "unit": "count"
+        },
+        {
+          "quantity": "fx",
+          "value": 600.0,
+          "unit": "px"
+        },
+        {
+          "quantity": "fy",
+          "value": 600.0,
+          "unit": "px"
+        },
+        {
+          "quantity": "cx",
+          "value": 320.0,
+          "unit": "px"
+        },
+        {
+          "quantity": "cy",
+          "value": 240.0,
+          "unit": "px"
+        },
+        {
+          "quantity": "X minimum",
+          "value": -0.7968,
+          "unit": "m"
+        },
+        {
+          "quantity": "X maximum",
+          "value": 0.7946,
+          "unit": "m"
+        },
+        {
+          "quantity": "Y minimum",
+          "value": -0.3589,
+          "unit": "m"
+        },
+        {
+          "quantity": "Y maximum",
+          "value": 0.1448,
+          "unit": "m"
+        },
+        {
+          "quantity": "Z minimum",
+          "value": 0.3118,
+          "unit": "m"
+        },
+        {
+          "quantity": "Z maximum",
+          "value": 1.4954,
+          "unit": "m"
+        },
+        {
+          "quantity": "centroid X",
+          "value": -0.0006,
+          "unit": "m"
+        },
+        {
+          "quantity": "centroid Y",
+          "value": 0.0035,
+          "unit": "m"
+        },
+        {
+          "quantity": "centroid Z",
+          "value": 0.6775,
+          "unit": "m"
+        }
+      ],
+      "tables": {}
+    },
+    {
+      "num": 18,
+      "slug": "ransac",
+      "title": "RANSAC: the support plane",
+      "status": "ok",
+      "seconds": 0.02,
+      "figure": "stages/self_test/18_ransac.png",
+      "formula": "draw 3 points -> n = (b-a) x (c-a) / |...|,  d = -n.a;  score = #{ |n.P + d| < 6 mm };  keep the best of 400 draws",
+      "provenance": "scripts/servo_pick_left.py:fit_plane, imported; fitted on 60000 of 245760 points",
+      "numbers": "normal (0.0000, -0.9138, -0.4061), offset 0.2792 m | 239980 of 245760 points are inliers (97.6%) | RMS 0.15 mm | 66.0 deg between the plane normal and the camera's optical axis",
+      "note": "A plane with too few inliers is not a plane. The pick refuses below 200 inliers rather than returning a geometry whose RMS is NaN -- everything downstream would treat that as a fix and the arm would move on it.",
+      "data": [
+        {
+          "quantity": "normal x",
+          "value": 2e-06,
+          "unit": "-"
+        },
+        {
+          "quantity": "normal y",
+          "value": -0.913812,
+          "unit": "-"
+        },
+        {
+          "quantity": "normal z",
+          "value": -0.406137,
+          "unit": "-"
+        },
+        {
+          "quantity": "offset d",
+          "value": 0.279219,
+          "unit": "m"
+        },
+        {
+          "quantity": "points fitted",
+          "value": 60000,
+          "unit": "count"
+        },
+        {
+          "quantity": "points scored",
+          "value": 245760,
+          "unit": "count"
+        },
+        {
+          "quantity": "inliers",
+          "value": 239980,
+          "unit": "count"
+        },
+        {
+          "quantity": "inlier fraction",
+          "value": 97.65,
+          "unit": "%"
+        },
+        {
+          "quantity": "residual RMS",
+          "value": 0.151,
+          "unit": "mm"
+        },
+        {
+          "quantity": "inlier tolerance",
+          "value": 6.0,
+          "unit": "mm"
+        },
+        {
+          "quantity": "RANSAC iterations",
+          "value": 400,
+          "unit": "count"
+        },
+        {
+          "quantity": "angle to the optical axis",
+          "value": 66.04,
+          "unit": "deg"
+        }
+      ],
+      "tables": {}
+    },
+    {
+      "num": 19,
+      "slug": "pca_refine",
+      "title": "The PCA refinement, and the NaN it once produced",
+      "status": "ok",
+      "seconds": 0.12,
+      "figure": "stages/self_test/19_pca_refine.png",
+      "formula": "C = cov(Q - mean(Q)) for inliers Q;  n = eigvec(C)[:, argmin];  d = -n . mean(Q)   <-- BOTH halves, together",
+      "provenance": "scripts/servo_pick_left.py:fit_plane, imported",
+      "numbers": "the normal moved 0.000 deg | RMS 0.15 mm -> 0.15 mm | mixing the refined normal with the RANSAC offset selects 239980 inliers instead of 239980",
+      "note": "That last number is the bug this stage exists to show. The function once returned the REFINED normal with the OLD offset; those describe different planes, the inlier mask could select ZERO points, and mean() of an empty slice is NaN. The pick printed 'plane RMS nan mm' and 'FOUND' in the same breath, then closed 540 mm blind on a centre computed against that plane.",
+      "data": [
+        {
+          "quantity": "normal moved",
+          "value": 0.0,
+          "unit": "deg"
+        },
+        {
+          "quantity": "RMS before refinement",
+          "value": 0.151,
+          "unit": "mm"
+        },
+        {
+          "quantity": "RMS after refinement",
+          "value": 0.151,
+          "unit": "mm"
+        },
+        {
+          "quantity": "inliers with the matched pair",
+          "value": 239980,
+          "unit": "count"
+        },
+        {
+          "quantity": "inliers with a mixed normal and offset",
+          "value": 239980,
+          "unit": "count"
+        },
+        {
+          "quantity": "inliers lost by mixing",
+          "value": 0,
+          "unit": "count"
+        }
+      ],
+      "tables": {}
+    },
+    {
+      "num": 20,
+      "slug": "height_map",
+      "title": "Height above the plane",
+      "status": "ok",
+      "seconds": 0.02,
+      "figure": "stages/self_test/20_height_map.png",
+      "formula": "h(P) = n . P + d,  signed;  positive is off the surface, toward the camera",
+      "provenance": "servo_pick_left.measure -- the same expression the live pick uses to separate the cube from the table",
+      "numbers": "5780 of 245760 points stand more than 5 mm off the plane (2.35%) | tallest 40.7 mm",
+      "note": "The floor is 5 mm because the plane RMS is under 1 mm on this sensor. Set it below the depth noise and the table itself becomes an object; set it far above and a flat item is missed.",
+      "data": [
+        {
+          "quantity": "height threshold",
+          "value": 5.0,
+          "unit": "mm"
+        },
+        {
+          "quantity": "points above it",
+          "value": 5780,
+          "unit": "count"
+        },
+        {
+          "quantity": "that fraction",
+          "value": 2.352,
+          "unit": "%"
+        },
+        {
+          "quantity": "tallest point",
+          "value": 40.7,
+          "unit": "mm"
+        },
+        {
+          "quantity": "lowest point",
+          "value": -0.92,
+          "unit": "mm"
+        },
+        {
+          "quantity": "median height",
+          "value": 0.004,
+          "unit": "mm"
+        }
+      ],
+      "tables": {}
+    },
+    {
+      "num": 21,
+      "slug": "mode_surface",
+      "title": "The surface height as a MODE, not a mean",
+      "status": "ok",
+      "seconds": 0.07,
+      "figure": "stages/self_test/21_mode_surface.png",
+      "formula": "bin at 2 mm; take the fullest bin; require it to hold >= 20% of the points; refine as the mean of everything within +/-6 mm of it",
+      "provenance": "srl_perception/surface_from_depth.py, applied along the fitted plane normal because this program has no camera-to-world transform; the node applies it to world z",
+      "numbers": "modal bin holds 97.6% of 245760 points (floor 20%) | refined -0.2792 m, spread 0.15 mm | a plain MEAN would say -0.2784 m, which is 0.9 mm out | RANSAC's own offset is -0.2792 m, 0.00 mm from this",
+      "note": "Two independent estimators of one surface, so they can be compared: RANSAC votes on inliers, this votes on the fullest histogram bin. A mean is dragged up by everything standing on the table and down by every hole, and it MOVES as the objects move -- the 'measurement' would change between trials on a motionless table.",
+      "data": [
+        {
+          "quantity": "bin width",
+          "value": 2.0,
+          "unit": "mm"
+        },
+        {
+          "quantity": "points binned",
+          "value": 245760,
+          "unit": "count"
+        },
+        {
+          "quantity": "share in the fullest bin",
+          "value": 97.65,
+          "unit": "%"
+        },
+        {
+          "quantity": "share required",
+          "value": 20.0,
+          "unit": "%"
+        },
+        {
+          "quantity": "modal bin centre",
+          "value": -0.27914,
+          "unit": "m"
+        },
+        {
+          "quantity": "refined estimate",
+          "value": -0.27922,
+          "unit": "m"
+        },
+        {
+          "quantity": "spread of the inliers",
+          "value": 0.151,
+          "unit": "mm"
+        },
+        {
+          "quantity": "inlier band",
+          "value": 6.0,
+          "unit": "mm"
+        },
+        {
+          "quantity": "a plain mean would say",
+          "value": -0.27837,
+          "unit": "m"
+        },
+        {
+          "quantity": "that mean's error",
+          "value": 0.85,
+          "unit": "mm"
+        },
+        {
+          "quantity": "RANSAC's own offset",
+          "value": -0.27922,
+          "unit": "m"
+        },
+        {
+          "quantity": "the two estimators differ by",
+          "value": 0.0,
+          "unit": "mm"
+        }
+      ],
+      "tables": {}
+    },
+    {
+      "num": 22,
+      "slug": "on_surface",
+      "title": "What is standing on the surface",
+      "status": "ok",
+      "seconds": 2.49,
+      "figure": "stages/self_test/22_on_surface.png",
+      "formula": "{ pixels whose lifted point has h > 5 mm }, 8-connected",
+      "provenance": "the plane of stage 18 fitted in the colour frame; heights from the aligned depth of stage 16",
+      "numbers": "5780 px, 5780 pts, top 41 mm",
+      "note": "This is the pre-2020 method on its own -- threshold above a plane, then cluster what is left. It is exactly what fails when two 40 mm cubes sit 20 mm apart: connectivity fuses them into one object 140 mm across. Compare this figure with stage 11.",
+      "data": [
+        {
+          "quantity": "pieces standing on the surface",
+          "value": 1,
+          "unit": "count"
+        },
+        {
+          "quantity": "height threshold",
+          "value": 5.0,
+          "unit": "mm"
+        },
+        {
+          "quantity": "largest piece",
+          "value": 5780,
+          "unit": "px"
+        },
+        {
+          "quantity": "tallest piece",
+          "value": 40.7,
+          "unit": "mm"
+        }
+      ],
+      "tables": {
+        "pieces above the plane": {
+          "rows": 1,
+          "csv": "data/self_test/22_on_surface__pieces_above_the_plane.csv",
+          "headers": [
+            "area px",
+            "points",
+            "top mm",
+            "median height mm",
+            "box x",
+            "box y",
+            "box w",
+            "box h"
+          ]
+        }
+      }
+    },
+    {
+      "num": 23,
+      "slug": "cube_measurement",
+      "title": "The measurement the pick actually acts on",
+      "status": "ok",
+      "seconds": 0.08,
+      "figure": "stages/self_test/23_cube_measurement.png",
+      "formula": "cube = colour(u,v) AND h > 5 mm;  foot = mean(Pk) - n (n.mean(Pk) + d);  centre = foot + n * max(h)/2",
+      "provenance": "scripts/servo_pick_left.py:measure -- this is the measurement the servo loop nulls against, in the CAMERA's frame, where the data is good",
+      "numbers": "5766 object points | top 40.7 mm above the plane | centre (0.0097, 0.1313, 0.3419) m in the camera frame | plane RMS 0.15 mm, inlier fraction 0.98",
+      "note": "Two independent gates, and that is the point: colour alone picks up the green pad the cube stands on and anything green in the room; height alone picks up everything on the table. The centre uses the foot point rather than the cloud's centroid because a depth camera sees a SHELL -- the front surface only -- and a shell's centroid is biased toward the camera, measured at 10.5 mm in the error budget against a 30 mm capture gate.",
+      "data": [
+        {
+          "quantity": "object points",
+          "value": 5766,
+          "unit": "count"
+        },
+        {
+          "quantity": "points that are the colour but ON the plane",
+          "value": 0,
+          "unit": "count"
+        },
+        {
+          "quantity": "points off the plane but not the colour",
+          "value": 14,
+          "unit": "count"
+        },
+        {
+          "quantity": "top above the plane",
+          "value": 40.7,
+          "unit": "mm"
+        },
+        {
+          "quantity": "median height",
+          "value": 39.82,
+          "unit": "mm"
+        },
+        {
+          "quantity": "centre x",
+          "value": 0.0097,
+          "unit": "m"
+        },
+        {
+          "quantity": "centre y",
+          "value": 0.13132,
+          "unit": "m"
+        },
+        {
+          "quantity": "centre z",
+          "value": 0.34193,
+          "unit": "m"
+        },
+        {
+          "quantity": "range to the centre",
+          "value": 0.36641,
+          "unit": "m"
+        },
+        {
+          "quantity": "plane RMS",
+          "value": 0.151,
+          "unit": "mm"
+        },
+        {
+          "quantity": "plane inlier fraction",
+          "value": 0.9765,
+          "unit": "-"
+        },
+        {
+          "quantity": "minimum points the pick requires",
+          "value": 60,
+          "unit": "count"
+        }
+      ],
+      "tables": {}
+    },
+    {
+      "num": 24,
+      "slug": "layers",
+      "title": "Splitting a cube from the pad it stands on",
+      "status": "refused",
+      "seconds": 0.0,
+      "figure": "stages/self_test/24_layers.png",
+      "reason": "--fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.",
+      "data": [],
+      "tables": {}
+    },
+    {
+      "num": 25,
+      "slug": "min_width",
+      "title": "Rotating calipers, against the two controls",
+      "status": "refused",
+      "seconds": 0.0,
+      "figure": "stages/self_test/25_min_width.png",
+      "reason": "--fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.",
+      "data": [],
+      "tables": {}
+    },
+    {
+      "num": 26,
+      "slug": "nested",
+      "title": "Dropping masks that are unions of finer ones",
+      "status": "refused",
+      "seconds": 0.0,
+      "figure": "stages/self_test/26_nested.png",
+      "reason": "--fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.",
+      "data": [],
+      "tables": {}
+    },
+    {
+      "num": 27,
+      "slug": "grasp",
+      "title": "The parallel-jaw grasp",
+      "status": "refused",
+      "seconds": 0.0,
+      "figure": "stages/self_test/27_grasp.png",
+      "reason": "--fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.",
+      "data": [],
+      "tables": {}
+    },
+    {
+      "num": 28,
+      "slug": "apriltag",
+      "title": "Fiducials: the primary detector",
+      "status": "refused",
+      "seconds": 0.01,
+      "figure": "stages/self_test/28_apriltag.png",
+      "reason": "no AprilTag of family 36h11, 25h9 or 16h5 is in this frame. That is an answer, not a failure: a tag either decodes or it does not, which is exactly why this is the PRIMARY detector and colour is the capped fallback. Detector used: cv2.aruco.ArucoDetector (OpenCV 4.11.0).",
+      "data": [],
+      "tables": {}
+    },
+    {
+      "num": 29,
+      "slug": "table",
+      "title": "The support surface, as an object",
+      "status": "ok",
+      "seconds": 0.08,
+      "figure": "stages/self_test/29_table.png",
+      "formula": "fit the plane, keep its inliers, span them in the plane's own basis; extent taken at the 2nd and 98th percentile so one stray return cannot stretch it",
+      "provenance": "the plane of stage 18, expressed as a rectangle in the camera frame",
+      "numbers": "0.980 x 1.144 m of surface, 0.279 m away, flat to 0.15 mm",
+      "note": "This is a MEASURED surface, not the declared one. srl_experiments/work_surface.py has had set_measured() since it was written and nothing ever called it, so a table 20 mm out would have been absorbed silently into every grasp.",
+      "data": [
+        {
+          "quantity": "points on the surface",
+          "value": 239980,
+          "unit": "count"
+        },
+        {
+          "quantity": "surface extent along its first axis",
+          "value": 0.98,
+          "unit": "m"
+        },
+        {
+          "quantity": "surface extent along its second axis",
+          "value": 1.1439,
+          "unit": "m"
+        },
+        {
+          "quantity": "area spanned",
+          "value": 1.121,
+          "unit": "m2"
+        },
+        {
+          "quantity": "perpendicular distance from the camera",
+          "value": 0.2792,
+          "unit": "m"
+        },
+        {
+          "quantity": "distance to the middle of that extent",
+          "value": 0.8958,
+          "unit": "m"
+        },
+        {
+          "quantity": "nearest point on the surface",
+          "value": 0.3902,
+          "unit": "m"
+        },
+        {
+          "quantity": "furthest point on the surface",
+          "value": 1.7307,
+          "unit": "m"
+        },
+        {
+          "quantity": "tilt from the optical axis",
+          "value": 66.04,
+          "unit": "deg"
+        },
+        {
+          "quantity": "flatness, RMS of the inliers",
+          "value": 0.151,
+          "unit": "mm"
+        }
+      ],
+      "tables": {}
+    },
+    {
+      "num": 30,
+      "slug": "boxes3d",
+      "title": "Every object, as an oriented 3-D box",
+      "status": "refused",
+      "seconds": 0.01,
+      "figure": "stages/self_test/30_boxes3d.png",
+      "reason": "--fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.",
+      "data": [],
+      "tables": {}
+    },
+    {
+      "num": 31,
+      "slug": "distances",
+      "title": "How far apart everything is",
+      "status": "refused",
+      "seconds": 0.01,
+      "figure": "stages/self_test/31_distances.png",
+      "reason": "--fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.",
+      "data": [],
+      "tables": {}
+    },
+    {
+      "num": 32,
+      "slug": "people",
+      "title": "People in the picture",
+      "status": "refused",
+      "seconds": 0.01,
+      "figure": "stages/self_test/32_people.png",
+      "reason": "--fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.",
+      "data": [],
+      "tables": {}
+    },
+    {
+      "num": 33,
+      "slug": "self_view",
+      "title": "The robot in the picture, and what is NOT detected",
+      "status": "ok",
+      "seconds": 0.01,
+      "figure": "stages/self_test/33_self_view.png",
+      "formula": "{ pixels with 0 < depth < 0.08 m } -- nearer than anything this camera works on",
+      "provenance": "CONSTRUCTED, not measured: a plane at n=(0.0000, -0.9138, -0.4061) d=0.2792 carrying a 40 mm cube turned 45 deg, ray-traced analytically with 0.3 mm of Gaussian range noise",
+      "numbers": "0 px nearer than 0.08 m",
+      "note": "THE ROBOT ITSELF IS NOT DETECTED IN THE IMAGE, and no stage in this program claims to. Nothing in this repository finds an arm in a picture: the robot's pose comes from its own encoders through the URDF, and drawing it into a camera image needs the camera-to-robot extrinsic -- measured at ~8.5 deg wrong on the wrist, and never measured at all for the scene cameras. On a wrist camera the near-field blobs above are usually the gripper's own fingers entering the bottom of the frame, which is also why the last ~80 mm of a grasp is completed from the last good fix rather than from live vision.",
+      "data": [
+        {
+          "quantity": "pixels nearer than the gate",
+          "value": 0,
+          "unit": "px"
+        },
+        {
+          "quantity": "that fraction",
+          "value": 0.0,
+          "unit": "%"
+        },
+        {
+          "quantity": "nearest return of all",
+          "value": 0.3118,
+          "unit": "m"
+        },
+        {
+          "quantity": "blobs of near return",
+          "value": 0,
+          "unit": "count"
+        },
+        {
+          "quantity": "this camera is on the hand",
+          "value": false,
+          "unit": "-"
+        },
+        {
+          "quantity": "near edge of this camera's band",
+          "value": 0.08,
+          "unit": "m"
+        }
+      ],
+      "tables": {
+        "near-field blobs": {
+          "rows": 0,
+          "csv": "data/self_test/33_self_view__near_field_blobs.csv",
+          "headers": [
+            "area px",
+            "nearest m",
+            "median m",
+            "box x",
+            "box y"
+          ]
+        }
+      }
+    }
+  ]
+}

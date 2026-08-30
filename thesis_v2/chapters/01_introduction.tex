@@ -223,6 +223,16 @@ hardware.} \Cref{ch:discussion} explains why.
     rate. The design's own power calculation reports neither number.
     \emph{Measured on constructed data;} \cref{ch:participant}.
 
+  \item \textbf{A reproducible simulation campaign.} Every simulation this
+    project can run, behind one command, in two declared tiers, with each
+    stage's status and duration recorded and the thesis's tables generated
+    from that record rather than transcribed from a terminal. The generator
+    refuses to emit a table whose stage did not run. \num{16} stages,
+    \num{13927} inverse-kinematics calls at zero failures, and one stage that
+    failed on its first pass because its own monotonicity control caught the
+    solver reporting a physical impossibility. \emph{Measured;}
+    \cref{sec:campaign}.
+
   \item \textbf{A verification methodology} requiring an instrument to recover
     a known answer before a surprising measurement taken with it is reported.
     \emph{Applied throughout.}

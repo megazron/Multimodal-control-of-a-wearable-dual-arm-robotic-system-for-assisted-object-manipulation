@@ -1,0 +1,61 @@
+{
+  "source": "scene_rs",
+  "stage": "table",
+  "num": 29,
+  "title": "The support surface, as an object",
+  "status": "ok",
+  "formula": "fit the plane, keep its inliers, span them in the plane's own basis; extent taken at the 2nd and 98th percentile so one stray return cannot stretch it",
+  "measurements": [
+    {
+      "quantity": "points on the surface",
+      "value": 1475,
+      "unit": "count"
+    },
+    {
+      "quantity": "surface extent along its first axis",
+      "value": 1.0115,
+      "unit": "m"
+    },
+    {
+      "quantity": "surface extent along its second axis",
+      "value": 1.7624,
+      "unit": "m"
+    },
+    {
+      "quantity": "area spanned",
+      "value": 1.7828,
+      "unit": "m2"
+    },
+    {
+      "quantity": "perpendicular distance from the camera",
+      "value": 4.3516,
+      "unit": "m"
+    },
+    {
+      "quantity": "distance to the middle of that extent",
+      "value": 4.9018,
+      "unit": "m"
+    },
+    {
+      "quantity": "nearest point on the surface",
+      "value": 4.6302,
+      "unit": "m"
+    },
+    {
+      "quantity": "furthest point on the surface",
+      "value": 5.589,
+      "unit": "m"
+    },
+    {
+      "quantity": "tilt from the optical axis",
+      "value": 15.0,
+      "unit": "deg"
+    },
+    {
+      "quantity": "flatness, RMS of the inliers",
+      "value": 3.405,
+      "unit": "mm"
+    }
+  ],
+  "tables": {}
+}

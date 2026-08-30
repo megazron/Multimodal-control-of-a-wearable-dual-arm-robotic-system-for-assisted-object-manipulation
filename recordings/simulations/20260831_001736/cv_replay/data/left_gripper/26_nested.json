@@ -1,0 +1,83 @@
+{
+  "source": "left_gripper",
+  "stage": "nested",
+  "num": 26,
+  "title": "Dropping masks that are unions of finer ones",
+  "status": "ok",
+  "formula": "voxelise each instance at 5 mm; accept smallest first; reject one whose claimed-voxel overlap exceeds 0.55",
+  "measurements": [
+    {
+      "quantity": "instances in",
+      "value": 5,
+      "unit": "count"
+    },
+    {
+      "quantity": "kept",
+      "value": 5,
+      "unit": "count"
+    },
+    {
+      "quantity": "dropped as already explained",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "quantity": "voxel size",
+      "value": 5.0,
+      "unit": "mm"
+    },
+    {
+      "quantity": "overlap fraction that rejects",
+      "value": 0.55,
+      "unit": "-"
+    }
+  ],
+  "tables": {
+    "per instance": {
+      "headers": [
+        "instance",
+        "points",
+        "area px",
+        "claimed overlap",
+        "verdict"
+      ],
+      "rows": [
+        [
+          4,
+          343,
+          5923,
+          0.0,
+          "kept"
+        ],
+        [
+          3,
+          701,
+          17453,
+          0.0,
+          "kept"
+        ],
+        [
+          2,
+          861,
+          10222,
+          0.0,
+          "kept"
+        ],
+        [
+          1,
+          10697,
+          34542,
+          0.0,
+          "kept"
+        ],
+        [
+          0,
+          51424,
+          104550,
+          0.006,
+          "kept"
+        ]
+      ]
+    }
+  }
+}

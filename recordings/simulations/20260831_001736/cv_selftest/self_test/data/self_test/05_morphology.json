@@ -1,0 +1,46 @@
+{
+  "source": "self_test",
+  "stage": "morphology",
+  "num": 5,
+  "title": "What the 9x9 opening removes",
+  "status": "ok",
+  "formula": "open(M) = dilate(erode(M, K), K),  K = ones(9, 9).  Erode deletes anything thinner than the kernel; dilate restores what survived to its original size.",
+  "measurements": [
+    {
+      "quantity": "kernel",
+      "value": "9x9",
+      "unit": "px"
+    },
+    {
+      "quantity": "pixels before",
+      "value": 5780,
+      "unit": "px"
+    },
+    {
+      "quantity": "pixels after",
+      "value": 5766,
+      "unit": "px"
+    },
+    {
+      "quantity": "pixels removed",
+      "value": 14,
+      "unit": "px"
+    },
+    {
+      "quantity": "removed",
+      "value": 0.242,
+      "unit": "%"
+    },
+    {
+      "quantity": "blobs before",
+      "value": 1,
+      "unit": "count"
+    },
+    {
+      "quantity": "blobs after",
+      "value": 1,
+      "unit": "count"
+    }
+  ],
+  "tables": {}
+}

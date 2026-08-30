@@ -1,0 +1,17 @@
+# DERIVED PIXELS, NOT EVIDENCE.
+#
+# A campaign's vision stages redraw every figure from raw frames that are
+# already committed under recordings/vision_thesis/. Keeping a second copy
+# per campaign would add ~240 MB per run to a history that is already 3.5 GB,
+# and would add nothing: the numbers are in measurements.csv, data/ and the
+# campaign's own campaign.json, and any figure is one --replay away.
+#
+# What IS kept: campaign.json, report.md, logs/, and every JSON and CSV a
+# stage produced.
+*/cv_replay/stages/
+*/cv_replay/preview/
+*/cv_replay/sheet_*.png
+*/cv_replay/raw/
+*/cv_selftest/**/stages/
+*/cv_selftest/**/preview/
+*/cv_selftest/**/sheet_*.png

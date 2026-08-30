@@ -1,0 +1,56 @@
+{
+  "source": "self_test",
+  "stage": "on_surface",
+  "num": 22,
+  "title": "What is standing on the surface",
+  "status": "ok",
+  "formula": "{ pixels whose lifted point has h > 5 mm }, 8-connected",
+  "measurements": [
+    {
+      "quantity": "pieces standing on the surface",
+      "value": 1,
+      "unit": "count"
+    },
+    {
+      "quantity": "height threshold",
+      "value": 5.0,
+      "unit": "mm"
+    },
+    {
+      "quantity": "largest piece",
+      "value": 5780,
+      "unit": "px"
+    },
+    {
+      "quantity": "tallest piece",
+      "value": 40.7,
+      "unit": "mm"
+    }
+  ],
+  "tables": {
+    "pieces above the plane": {
+      "headers": [
+        "area px",
+        "points",
+        "top mm",
+        "median height mm",
+        "box x",
+        "box y",
+        "box w",
+        "box h"
+      ],
+      "rows": [
+        [
+          5780,
+          5780,
+          40.7,
+          39.8,
+          288,
+          405,
+          100,
+          75
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,227 @@
+source,stage_num,stage,quantity,value,unit
+right_gripper,1,raw_colour,frame width,1280,px
+right_gripper,1,raw_colour,frame height,720,px
+right_gripper,1,raw_colour,"focus, variance of Laplacian",97.9,-
+right_gripper,1,raw_colour,pixels clipped white,4.043,%
+right_gripper,1,raw_colour,pixels crushed black,0.143,%
+right_gripper,1,raw_colour,mean blue,133.23,0-255
+right_gripper,1,raw_colour,mean green,130.95,0-255
+right_gripper,1,raw_colour,mean red,133.22,0-255
+right_gripper,1,raw_colour,median grey,123,0-255
+right_gripper,1,raw_colour,grey std,70.11,0-255
+right_gripper,2,intrinsics,fx,1298,px
+right_gripper,2,intrinsics,fy,1299,px
+right_gripper,2,intrinsics,cx,620.914,px
+right_gripper,2,intrinsics,cy,238.2803,px
+right_gripper,2,intrinsics,image centre u,640,px
+right_gripper,2,intrinsics,image centre v,360,px
+right_gripper,2,intrinsics,principal point offset from centre,123.21,px
+right_gripper,2,intrinsics,that offset at 1 m range,94.9,mm
+right_gripper,2,intrinsics,horizontal field of view,52.504,deg
+right_gripper,2,intrinsics,vertical field of view,30.988,deg
+right_gripper,2,intrinsics,ground sample distance at 1 m,0.7706,mm/px
+right_gripper,3,hsv,median hue,117,0-179
+right_gripper,3,hsv,median saturation,30,0-255
+right_gripper,3,hsv,median value,139,0-255
+right_gripper,3,hsv,pixels below S=80,70.72,%
+right_gripper,3,hsv,pixels below V=40,6.992,%
+right_gripper,3,hsv,pixels above V=200,27.115,%
+right_gripper,4,green_threshold,hue low,40,0-179
+right_gripper,4,green_threshold,hue high,85,0-179
+right_gripper,4,green_threshold,saturation floor,80,0-255
+right_gripper,4,green_threshold,value floor,40,0-255
+right_gripper,4,green_threshold,pixels selected,12357,px
+right_gripper,4,green_threshold,fraction of the frame,1.3408,%
+right_gripper,4,green_threshold,median S of the selected,139,0-255
+right_gripper,4,green_threshold,median V of the selected,116,0-255
+right_gripper,5,morphology,kernel,9x9,px
+right_gripper,5,morphology,pixels before,12357,px
+right_gripper,5,morphology,pixels after,12206,px
+right_gripper,5,morphology,pixels removed,151,px
+right_gripper,5,morphology,removed,1.222,%
+right_gripper,5,morphology,blobs before,8,count
+right_gripper,5,morphology,blobs after,1,count
+right_gripper,6,components,components over 40 px,1,count
+right_gripper,6,components,largest area,12206,px
+right_gripper,6,components,total area kept,12206,px
+right_gripper,6,components,median area,1.221e+04,px
+right_gripper,7,vocabulary,colour terms tested,11,count
+right_gripper,7,vocabulary,terms with any pixels,8,count
+right_gripper,7,vocabulary,largest term,white,-
+right_gripper,7,vocabulary,its pixel count,248739,px
+right_gripper,8,region_mean,regions tested,1,count
+right_gripper,8,region_mean,regions passing,1,count
+right_gripper,8,region_mean,regions rejected as near-black,0,count
+right_gripper,8,region_mean,blue ratio threshold,1.25,-
+right_gripper,8,region_mean,red ratio threshold,1.8,-
+right_gripper,8,region_mean,near-black floor,25,0-255
+right_gripper,9,minarearect,contours measured,1,count
+right_gripper,9,minarearect,aspect gate for publishing yaw,1.15,-
+right_gripper,9,minarearect,yaws published,0,count
+right_gripper,9,minarearect,yaws withheld as degenerate,1,count
+right_gripper,10,size_at_range,fx used,1298,px
+right_gripper,10,size_at_range,assumed object width,40,mm
+right_gripper,10,size_at_range,near limit of the window,0.25,m
+right_gripper,10,size_at_range,far limit of the window,1.5,m
+right_gripper,10,size_at_range,blobs tested,1,count
+right_gripper,10,size_at_range,blobs accepted,1,count
+right_gripper,10,size_at_range,blobs rejected,0,count
+right_gripper,11,fastsam,regions returned,39,count
+right_gripper,11,fastsam,largest region,265965,px
+right_gripper,11,fastsam,largest as a fraction of the frame,28.86,%
+right_gripper,11,fastsam,smallest region,308,px
+right_gripper,11,fastsam,median region,8370,px
+right_gripper,11,fastsam,inference time,0.98,s
+right_gripper,11,fastsam,input size,1024,px
+right_gripper,11,fastsam,confidence threshold,0.25,-
+right_gripper,11,fastsam,NMS IoU,0.7,-
+right_gripper,11,fastsam,device,cpu,-
+right_gripper,12,area_filter,regions in,39,count
+right_gripper,12,area_filter,kept,39,count
+right_gripper,12,area_filter,rejected as noise,0,count
+right_gripper,12,area_filter,rejected as too large,0,count
+right_gripper,12,area_filter,lower bound,60,px
+right_gripper,12,area_filter,upper bound,322560,px
+right_gripper,12,area_filter,upper bound as a fraction,0.35,-
+right_gripper,13,segment_match,colour word parsed,green,-
+right_gripper,13,segment_match,regions considered,39,count
+right_gripper,13,segment_match,regions matched,1,count
+right_gripper,13,segment_match,regions rejected on colour,38,count
+right_gripper,13,segment_match,best score,1,0-1
+right_gripper,15,raw_depth,depth width,480,px
+right_gripper,15,raw_depth,depth height,270,px
+right_gripper,15,raw_depth,pixels with a return,104280,px
+right_gripper,15,raw_depth,that fraction,80.46,%
+right_gripper,15,raw_depth,median range,1.838,m
+right_gripper,15,raw_depth,5th percentile,0.339,m
+right_gripper,15,raw_depth,95th percentile,5.105,m
+right_gripper,15,raw_depth,nearest return,0.299,m
+right_gripper,15,raw_depth,furthest return,6.636,m
+right_gripper,15,raw_depth,returns inside this camera's working band,42779,px
+right_gripper,15,raw_depth,band near,0.08,m
+right_gripper,15,raw_depth,band far,1.5,m
+right_gripper,16,alignment,points projected,60377,count
+right_gripper,16,alignment,points falling outside the colour frame,43864,count
+right_gripper,16,alignment,colour pixels given a depth,58.79,%
+right_gripper,16,alignment,splat radius,1,px
+right_gripper,16,alignment,baseline x,-27.06,mm
+right_gripper,16,alignment,baseline y,-9.97,mm
+right_gripper,16,alignment,baseline z,-4.71,mm
+right_gripper,16,alignment,rotation assumed,identity,-
+right_gripper,17,deprojection,points lifted,42779,count
+right_gripper,17,deprojection,fx,360.013,px
+right_gripper,17,deprojection,fy,360.013,px
+right_gripper,17,deprojection,cx,243.872,px
+right_gripper,17,deprojection,cy,137.922,px
+right_gripper,17,deprojection,X minimum,-0.2839,m
+right_gripper,17,deprojection,X maximum,0.4424,m
+right_gripper,17,deprojection,Y minimum,-0.1816,m
+right_gripper,17,deprojection,Y maximum,0.1799,m
+right_gripper,17,deprojection,Z minimum,0.299,m
+right_gripper,17,deprojection,Z maximum,0.927,m
+right_gripper,17,deprojection,centroid X,0.0297,m
+right_gripper,17,deprojection,centroid Y,0.0903,m
+right_gripper,17,deprojection,centroid Z,0.5407,m
+right_gripper,18,ransac,normal x,0.1263,-
+right_gripper,18,ransac,normal y,-0.9409,-
+right_gripper,18,ransac,normal z,-0.3143,-
+right_gripper,18,ransac,offset d,0.2981,m
+right_gripper,18,ransac,points fitted,42779,count
+right_gripper,18,ransac,points scored,42779,count
+right_gripper,18,ransac,inliers,22584,count
+right_gripper,18,ransac,inlier fraction,52.79,%
+right_gripper,18,ransac,residual RMS,1.593,mm
+right_gripper,18,ransac,inlier tolerance,6,mm
+right_gripper,18,ransac,RANSAC iterations,400,count
+right_gripper,18,ransac,angle to the optical axis,71.68,deg
+right_gripper,19,pca_refine,normal moved,0,deg
+right_gripper,19,pca_refine,RMS before refinement,1.593,mm
+right_gripper,19,pca_refine,RMS after refinement,1.593,mm
+right_gripper,19,pca_refine,inliers with the matched pair,22584,count
+right_gripper,19,pca_refine,inliers with a mixed normal and offset,22584,count
+right_gripper,19,pca_refine,inliers lost by mixing,0,count
+right_gripper,20,height_map,height threshold,5,mm
+right_gripper,20,height_map,points above it,20193,count
+right_gripper,20,height_map,that fraction,47.203,%
+right_gripper,20,height_map,tallest point,357.11,mm
+right_gripper,20,height_map,lowest point,-30.29,mm
+right_gripper,20,height_map,median height,2.195,mm
+right_gripper,21,mode_surface,bin width,2,mm
+right_gripper,21,mode_surface,points binned,42779,count
+right_gripper,21,mode_surface,share in the fullest bin,24.61,%
+right_gripper,21,mode_surface,share required,20,%
+right_gripper,21,mode_surface,modal bin centre,-0.2973,m
+right_gripper,21,mode_surface,refined estimate,-0.2981,m
+right_gripper,21,mode_surface,spread of the inliers,1.651,mm
+right_gripper,21,mode_surface,inlier band,6,mm
+right_gripper,21,mode_surface,a plain mean would say,-0.2512,m
+right_gripper,21,mode_surface,that mean's error,46.95,mm
+right_gripper,21,mode_surface,RANSAC's own offset,-0.298,m
+right_gripper,21,mode_surface,the two estimators differ by,0.071,mm
+right_gripper,22,on_surface,pieces standing on the surface,7,count
+right_gripper,22,on_surface,height threshold,5,mm
+right_gripper,22,on_surface,largest piece,152263,px
+right_gripper,22,on_surface,tallest piece,227.7,mm
+right_gripper,23,cube_measurement,object points,160,count
+right_gripper,23,cube_measurement,points that are the colour but ON the plane,708,count
+right_gripper,23,cube_measurement,points off the plane but not the colour,20033,count
+right_gripper,23,cube_measurement,top above the plane,55.01,mm
+right_gripper,23,cube_measurement,median height,19.57,mm
+right_gripper,23,cube_measurement,centre x,0.0511,m
+right_gripper,23,cube_measurement,centre y,0.0519,m
+right_gripper,23,cube_measurement,centre z,0.726,m
+right_gripper,23,cube_measurement,range to the centre,0.7296,m
+right_gripper,23,cube_measurement,plane RMS,1.593,mm
+right_gripper,23,cube_measurement,plane inlier fraction,0.5279,-
+right_gripper,23,cube_measurement,minimum points the pick requires,60,count
+right_gripper,24,layers,region area,265965,px
+right_gripper,24,layers,points lifted from it,159236,count
+right_gripper,24,layers,points above the plane,68870,count
+right_gripper,24,layers,pixels removed by the 1 px erosion,3748,px
+right_gripper,24,layers,layers found,3,count
+right_gripper,24,layers,lowest point,4,mm
+right_gripper,24,layers,highest point,64.23,mm
+right_gripper,25,min_width,instance points,68870,count
+right_gripper,25,min_width,"minimum width, rotating calipers",191.96,mm
+right_gripper,25,min_width,at this angle in the plane,170,deg
+right_gripper,25,min_width,"PCA short axis, THE CONTROL",221.34,mm
+right_gripper,25,min_width,"axis-aligned box, THE CONTROL",241.74,mm
+right_gripper,25,min_width,PCA overstates by,29.39,mm
+right_gripper,25,min_width,long axis,390.41,mm
+right_gripper,25,min_width,height,60.23,mm
+right_gripper,25,min_width,jaw span,85,mm
+right_gripper,25,min_width,graspable as it lies,no,-
+right_gripper,25,min_width,sweep step,0.5,deg
+right_gripper,26,nested,instances in,25,count
+right_gripper,26,nested,kept,20,count
+right_gripper,26,nested,dropped as already explained,5,count
+right_gripper,26,nested,voxel size,5,mm
+right_gripper,26,nested,overlap fraction that rejects,0.55,-
+right_gripper,29,table,points on the surface,175957,count
+right_gripper,29,table,surface extent along its first axis,0.4284,m
+right_gripper,29,table,surface extent along its second axis,0.4671,m
+right_gripper,29,table,area spanned,0.2001,m2
+right_gripper,29,table,perpendicular distance from the camera,0.2902,m
+right_gripper,29,table,distance to the middle of that extent,0.6679,m
+right_gripper,29,table,nearest point on the surface,0.4645,m
+right_gripper,29,table,furthest point on the surface,0.9372,m
+right_gripper,29,table,tilt from the optical axis,71.71,deg
+right_gripper,29,table,"flatness, RMS of the inliers",1.688,mm
+right_gripper,30,boxes3d,objects posed,12,count
+right_gripper,30,boxes3d,nearest object,0.3869,m
+right_gripper,30,boxes3d,furthest object,0.8966,m
+right_gripper,30,boxes3d,largest footprint,599.6,mm
+right_gripper,30,boxes3d,tallest object,223.9,mm
+right_gripper,30,boxes3d,graspable within the 85 mm jaw,7,count
+right_gripper,31,distances,objects measured,10,count
+right_gripper,31,distances,nearest object,0.3936,m
+right_gripper,31,distances,furthest object,0.8966,m
+right_gripper,31,distances,closest pair,0.0057,m
+right_gripper,31,distances,tightest free gap,0,m
+right_gripper,31,distances,what the origin IS,"the wrist camera, so range is distance from the HAND",-
+right_gripper,33,self_view,pixels nearer than the gate,0,px
+right_gripper,33,self_view,that fraction,0,%
+right_gripper,33,self_view,nearest return of all,0.299,m
+right_gripper,33,self_view,blobs of near return,0,count
+right_gripper,33,self_view,this camera is on the hand,yes,-
+right_gripper,33,self_view,near edge of this camera's band,0.08,m

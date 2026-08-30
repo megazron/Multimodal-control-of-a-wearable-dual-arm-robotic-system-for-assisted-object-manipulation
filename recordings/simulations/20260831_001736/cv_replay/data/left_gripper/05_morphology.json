@@ -1,0 +1,46 @@
+{
+  "source": "left_gripper",
+  "stage": "morphology",
+  "num": 5,
+  "title": "What the 9x9 opening removes",
+  "status": "ok",
+  "formula": "open(M) = dilate(erode(M, K), K),  K = ones(9, 9).  Erode deletes anything thinner than the kernel; dilate restores what survived to its original size.",
+  "measurements": [
+    {
+      "quantity": "kernel",
+      "value": "9x9",
+      "unit": "px"
+    },
+    {
+      "quantity": "pixels before",
+      "value": 31333,
+      "unit": "px"
+    },
+    {
+      "quantity": "pixels after",
+      "value": 30550,
+      "unit": "px"
+    },
+    {
+      "quantity": "pixels removed",
+      "value": 783,
+      "unit": "px"
+    },
+    {
+      "quantity": "removed",
+      "value": 2.499,
+      "unit": "%"
+    },
+    {
+      "quantity": "blobs before",
+      "value": 26,
+      "unit": "count"
+    },
+    {
+      "quantity": "blobs after",
+      "value": 2,
+      "unit": "count"
+    }
+  ],
+  "tables": {}
+}

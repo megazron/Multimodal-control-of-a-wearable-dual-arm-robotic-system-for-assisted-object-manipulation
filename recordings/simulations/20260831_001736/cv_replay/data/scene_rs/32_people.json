@@ -1,0 +1,108 @@
+{
+  "source": "scene_rs",
+  "stage": "people",
+  "num": 32,
+  "title": "People in the picture",
+  "status": "ok",
+  "formula": "markerless pose landmarks; each landmark's range read from the depth at its own pixel (median of a 9x9 window)",
+  "measurements": [
+    {
+      "quantity": "people detected",
+      "value": 1,
+      "unit": "count"
+    },
+    {
+      "quantity": "landmarks per person",
+      "value": 33,
+      "unit": "count"
+    },
+    {
+      "quantity": "inference time",
+      "value": 1.16,
+      "unit": "s"
+    },
+    {
+      "quantity": "depth attached to landmarks",
+      "value": true,
+      "unit": "-"
+    }
+  ],
+  "tables": {
+    "body landmarks": {
+      "headers": [
+        "person",
+        "landmark",
+        "u px",
+        "v px",
+        "visibility",
+        "range m"
+      ],
+      "rows": [
+        [
+          0,
+          "left shoulder",
+          364,
+          170,
+          1.0,
+          4.632
+        ],
+        [
+          0,
+          "right shoulder",
+          333,
+          172,
+          0.998,
+          "no depth"
+        ],
+        [
+          0,
+          "left elbow",
+          382,
+          185,
+          0.913,
+          4.5753
+        ],
+        [
+          0,
+          "right elbow",
+          318,
+          189,
+          0.767,
+          2.756
+        ],
+        [
+          0,
+          "left wrist",
+          375,
+          176,
+          0.855,
+          4.6179
+        ],
+        [
+          0,
+          "right wrist",
+          321,
+          189,
+          0.583,
+          2.781
+        ],
+        [
+          0,
+          "left hip",
+          361,
+          240,
+          0.997,
+          "no depth"
+        ],
+        [
+          0,
+          "right hip",
+          344,
+          240,
+          0.994,
+          2.768
+        ]
+      ]
+    }
+  }
+}

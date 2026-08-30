@@ -1,0 +1,71 @@
+{
+  "source": "self_test",
+  "stage": "ransac",
+  "num": 18,
+  "title": "RANSAC: the support plane",
+  "status": "ok",
+  "formula": "draw 3 points -> n = (b-a) x (c-a) / |...|,  d = -n.a;  score = #{ |n.P + d| < 6 mm };  keep the best of 400 draws",
+  "measurements": [
+    {
+      "quantity": "normal x",
+      "value": 2e-06,
+      "unit": "-"
+    },
+    {
+      "quantity": "normal y",
+      "value": -0.913812,
+      "unit": "-"
+    },
+    {
+      "quantity": "normal z",
+      "value": -0.406137,
+      "unit": "-"
+    },
+    {
+      "quantity": "offset d",
+      "value": 0.279219,
+      "unit": "m"
+    },
+    {
+      "quantity": "points fitted",
+      "value": 60000,
+      "unit": "count"
+    },
+    {
+      "quantity": "points scored",
+      "value": 245760,
+      "unit": "count"
+    },
+    {
+      "quantity": "inliers",
+      "value": 239980,
+      "unit": "count"
+    },
+    {
+      "quantity": "inlier fraction",
+      "value": 97.65,
+      "unit": "%"
+    },
+    {
+      "quantity": "residual RMS",
+      "value": 0.151,
+      "unit": "mm"
+    },
+    {
+      "quantity": "inlier tolerance",
+      "value": 6.0,
+      "unit": "mm"
+    },
+    {
+      "quantity": "RANSAC iterations",
+      "value": 400,
+      "unit": "count"
+    },
+    {
+      "quantity": "angle to the optical axis",
+      "value": 66.04,
+      "unit": "deg"
+    }
+  ],
+  "tables": {}
+}

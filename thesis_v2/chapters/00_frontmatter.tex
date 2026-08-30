@@ -72,6 +72,22 @@ being rotated by \SI{180}{\degree} on an assumption nobody had measured, which
 was invisible to every metric stage and changed what the learned segmenter
 returned.
 
+Every simulation in this thesis is run by one command and its tables are
+generated from that run's own record rather than transcribed: \num{16} stages
+across vision, teleoperation, the task set, shared autonomy, full autonomy
+and the study's own analysis. The task set solves \num{13927}
+inverse-kinematics calls over densified paths at ten repeats per pose with
+zero failures and zero clearance breaches. Two results from that campaign are
+new. Intent inference working from declared object coordinates becomes
+\emph{confidently wrong} on half of trials once the declaration is one object
+pitch out, while the same estimator working from measured coordinates stays
+at zero across the whole sweep --- which states the case for measuring the
+scene as a number rather than as a principle. And the replacement motion
+generator removes the excursion entirely at every step size, where the
+per-joint limiter it replaced settles at \SI{68}{\milli\metre} rather than
+tending to zero, establishing that the excursion was a property of the
+algorithm and never of its tuning.
+
 No result in this thesis was validated on a physical arm carrying a load, and
 no participant data has been collected. The analysis that the planned
 two-person study will apply was therefore validated against constructed

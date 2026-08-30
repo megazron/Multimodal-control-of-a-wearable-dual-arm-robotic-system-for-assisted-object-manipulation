@@ -1,0 +1,104 @@
+{
+  "calibrated_err_mm": 11.3,
+  "cube_pitch_mm": 60.0,
+  "note": "the declared error is SWEPT because in simulation the declared coordinate is the truth; the sweep is what a real table does",
+  "rows": {
+    "0": {
+      "CALIBRATED": {
+        "ambiguous_pct": 24.3,
+        "correct_pct": 75.7,
+        "err_mm": 11.3,
+        "frames_to_confident": 15.5,
+        "wrong_pct": 0.0
+      },
+      "DECLARED": {
+        "ambiguous_pct": 29.3,
+        "correct_pct": 70.7,
+        "err_mm": 0,
+        "frames_to_confident": 14.3,
+        "wrong_pct": 0.0
+      }
+    },
+    "120": {
+      "CALIBRATED": {
+        "ambiguous_pct": 25.3,
+        "correct_pct": 74.7,
+        "err_mm": 11.3,
+        "frames_to_confident": 15.7,
+        "wrong_pct": 0.0
+      },
+      "DECLARED": {
+        "ambiguous_pct": 2.3,
+        "correct_pct": 47.7,
+        "err_mm": 120,
+        "frames_to_confident": 10.9,
+        "wrong_pct": 50.0
+      }
+    },
+    "20": {
+      "CALIBRATED": {
+        "ambiguous_pct": 25.3,
+        "correct_pct": 74.7,
+        "err_mm": 11.3,
+        "frames_to_confident": 15.3,
+        "wrong_pct": 0.0
+      },
+      "DECLARED": {
+        "ambiguous_pct": 26.7,
+        "correct_pct": 72.7,
+        "err_mm": 20,
+        "frames_to_confident": 16.3,
+        "wrong_pct": 0.7
+      }
+    },
+    "40": {
+      "CALIBRATED": {
+        "ambiguous_pct": 28.0,
+        "correct_pct": 72.0,
+        "err_mm": 11.3,
+        "frames_to_confident": 15.4,
+        "wrong_pct": 0.0
+      },
+      "DECLARED": {
+        "ambiguous_pct": 24.7,
+        "correct_pct": 58.7,
+        "err_mm": 40,
+        "frames_to_confident": 17.2,
+        "wrong_pct": 16.7
+      }
+    },
+    "60": {
+      "CALIBRATED": {
+        "ambiguous_pct": 26.0,
+        "correct_pct": 74.0,
+        "err_mm": 11.3,
+        "frames_to_confident": 15.1,
+        "wrong_pct": 0.0
+      },
+      "DECLARED": {
+        "ambiguous_pct": 11.0,
+        "correct_pct": 53.3,
+        "err_mm": 60,
+        "frames_to_confident": 15.6,
+        "wrong_pct": 35.7
+      }
+    },
+    "80": {
+      "CALIBRATED": {
+        "ambiguous_pct": 28.3,
+        "correct_pct": 71.7,
+        "err_mm": 11.3,
+        "frames_to_confident": 16.0,
+        "wrong_pct": 0.0
+      },
+      "DECLARED": {
+        "ambiguous_pct": 5.7,
+        "correct_pct": 52.7,
+        "err_mm": 80,
+        "frames_to_confident": 13.9,
+        "wrong_pct": 41.7
+      }
+    }
+  },
+  "trials": 300
+}

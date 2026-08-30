@@ -1,0 +1,66 @@
+{
+  "source": "self_test",
+  "stage": "intrinsics",
+  "num": 2,
+  "title": "Intrinsics and the ray each pixel stands for",
+  "status": "ok",
+  "formula": "bearing = ((u - cx)/fx, (v - cy)/fy);  X = bearing * Z",
+  "measurements": [
+    {
+      "quantity": "fx",
+      "value": 600.0,
+      "unit": "px"
+    },
+    {
+      "quantity": "fy",
+      "value": 600.0,
+      "unit": "px"
+    },
+    {
+      "quantity": "cx",
+      "value": 320.0,
+      "unit": "px"
+    },
+    {
+      "quantity": "cy",
+      "value": 240.0,
+      "unit": "px"
+    },
+    {
+      "quantity": "image centre u",
+      "value": 320.0,
+      "unit": "px"
+    },
+    {
+      "quantity": "image centre v",
+      "value": 240.0,
+      "unit": "px"
+    },
+    {
+      "quantity": "principal point offset from centre",
+      "value": 0.0,
+      "unit": "px"
+    },
+    {
+      "quantity": "that offset at 1 m range",
+      "value": 0.0,
+      "unit": "mm"
+    },
+    {
+      "quantity": "horizontal field of view",
+      "value": 56.145,
+      "unit": "deg"
+    },
+    {
+      "quantity": "vertical field of view",
+      "value": 43.603,
+      "unit": "deg"
+    },
+    {
+      "quantity": "ground sample distance at 1 m",
+      "value": 1.6667,
+      "unit": "mm/px"
+    }
+  ],
+  "tables": {}
+}

@@ -1,0 +1,325 @@
+{
+  "started": "2026-08-31T00:17:36",
+  "stamp": "20260831_001736",
+  "argv": [
+    "scripts/run_simulation_campaign.py"
+  ],
+  "out": "recordings/simulations/20260831_001736",
+  "interpreter": "/usr/bin/python3",
+  "stages": [
+    {
+      "key": "cv_arithmetic",
+      "title": "Vision arithmetic against a constructed scene",
+      "group": "computer vision",
+      "tier": "standalone",
+      "argv": [
+        "/home/gausms/kortex_ws/.venv_vision/bin/python",
+        "scripts/cv_pickpose_visuals.py",
+        "--self-test",
+        "--fast",
+        "--out",
+        "recordings/simulations/20260831_001736/cv_selftest"
+      ],
+      "note": "every geometric stage run against a depth frame whose plane, object heights and object widths were CHOSEN, so the answer is known before the stage runs",
+      "produces": [
+        {
+          "path": "recordings/simulations/20260831_001736/cv_selftest",
+          "exists": true,
+          "bytes": null
+        }
+      ],
+      "seconds": 11.6,
+      "exit": 0,
+      "status": "ok",
+      "tail": "  self_test      11/33 fastsam                            REFUSED     0.0 s\n      -> --fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.\n  self_test      12/33 area_filter                        REFUSED     0.0 s\n      -> --fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.\n  self_test      13/33 segment_match                      REFUSED     0.0 s\n      -> --fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.\n  self_test      14/33 yoloworld                          REFUSED     0.0 s\n      -> --fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.\n  self_test      15/33 raw_depth                          ok          0.0 s\n  self_test      16/33 alignment                          ok          0.0 s\n  self_test      17/33 deprojection                       ok          0.2 s\n  self_test      18/33 ransac                             ok          0.0 s\n  self_test      19/33 pca_refine                         ok          0.1 s\n  self_test      20/33 height_map                         ok          0.0 s\n  self_test      21/33 mode_surface                       ok          0.1 s\n  self_test      22/33 on_surface                         ok          2.5 s\n  self_test      23/33 cube_measurement                   ok          0.1 s\n  self_test      24/33 layers                             REFUSED     0.0 s\n      -> --fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.\n  self_test      25/33 min_width                          REFUSED     0.0 s\n      -> --fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.\n  self_test      26/33 nested                             REFUSED     0.0 s\n      -> --fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.\n  self_test      27/33 grasp                              REFUSED     0.0 s\n      -> --fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.\n  self_test      28/33 apriltag                           REFUSED     0.0 s\n      -> no AprilTag of family 36h11, 25h9 or 16h5 is in this frame. That is an answer, not a failure: a tag either decodes or it does not, which is exactly wh\n  self_test      29/33 table                              ok          0.1 s\n  self_test      30/33 boxes3d                            REFUSED     0.0 s\n      -> --fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.\n  self_test      31/33 distances                          REFUSED     0.0 s\n      -> --fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.\n  self_test      32/33 people                             REFUSED     0.0 s\n      -> --fast was given, so the segmentation, open-vocabulary and per-instance stages were skipped. They are the slow ones; drop --fast for the full set.\n  self_test      33/33 self_view                          ok          0.0 s\n  every stage produced a figure without crashing                   ok\n\nself-test PASSED  (21 checks, 0 failed)\n\nwritten to recordings/simulations/20260831_001736/cv_selftest/self_test",
+      "log": "recordings/simulations/20260831_001736/logs/cv_arithmetic.log"
+    },
+    {
+      "key": "cv_replay",
+      "title": "The full pipeline replayed on the recorded cameras",
+      "group": "computer vision",
+      "tier": "standalone",
+      "argv": [
+        "/home/gausms/kortex_ws/.venv_vision/bin/python",
+        "scripts/cv_pickpose_visuals.py",
+        "--replay",
+        "recordings/vision_thesis/20260830_073141_upright",
+        "--out",
+        "recordings/simulations/20260831_001736/cv_replay"
+      ],
+      "note": "the frames are real; the RUN is offline, so every constant can be changed and the whole set redrawn without a camera",
+      "produces": [
+        {
+          "path": "recordings/simulations/20260831_001736/cv_replay/measurements.csv",
+          "exists": true,
+          "bytes": 37050
+        },
+        {
+          "path": "recordings/simulations/20260831_001736/cv_replay/manifest.json",
+          "exists": true,
+          "bytes": 234455
+        }
+      ],
+      "seconds": 87.7,
+      "exit": 0,
+      "status": "ok",
+      "tail": "  scene_rs       09/33 minarearect                        REFUSED     0.0 s\n      -> no contour over the 400 px floor in this frame, so there is no rotated box to fit\n  scene_rs       10/33 size_at_range                      REFUSED     0.0 s\n      -> no blob over 400 px to test\n  scene_rs       11/33 fastsam                            ok          1.2 s\n  scene_rs       12/33 area_filter                        ok          0.1 s\n  scene_rs       13/33 segment_match                      ok          0.1 s\n  scene_rs       14/33 yoloworld                          REFUSED     3.5 s\n      -> YOLO-World ran in 3.5 s over classes ['green cube'] at conf 0.05 and found NOTHING. This is the measured behaviour on this rig, not a misconfiguration\n  scene_rs       15/33 raw_depth                          ok          0.0 s\n  scene_rs       16/33 alignment                          ok          0.0 s\n  scene_rs       17/33 deprojection                       ok          0.1 s\n  scene_rs       18/33 ransac                             ok          2.9 s\n  scene_rs       19/33 pca_refine                         ok          0.0 s\n  scene_rs       20/33 height_map                         ok          0.0 s\n  scene_rs       21/33 mode_surface                       ok          0.0 s\n  scene_rs       22/33 on_surface                         ok          1.6 s\n  scene_rs       23/33 cube_measurement                   REFUSED     0.0 s\n      -> only 20 points are both green-coloured AND more than 5 mm above the plane (the pick needs 60 and returns None below that). 0 points are coloured but O\n  scene_rs       24/33 layers                             ok          0.1 s\n  scene_rs       25/33 min_width                          ok          2.3 s\n  scene_rs       26/33 nested                             ok          0.1 s\n  scene_rs       27/33 grasp                              REFUSED     0.1 s\n      -> the grasp planner refused, which is an ANSWER: object is 1387 mm across its narrowest axis; the Robotiq 85 opens 75 mm usable. It cannot be grasped as\n  scene_rs       28/33 apriltag                           REFUSED     0.0 s\n      -> no AprilTag of family 36h11, 25h9 or 16h5 is in this frame. That is an answer, not a failure: a tag either decodes or it does not, which is exactly wh\n  scene_rs       29/33 table                              ok          0.0 s\n  scene_rs       30/33 boxes3d                            ok          1.2 s\n  scene_rs       31/33 distances                          ok          1.0 s\n  scene_rs       32/33 people                             ok          1.2 s\n  scene_rs       33/33 self_view                          ok          0.0 s\n\n96 of 132 stages produced a result; 0 crashed\n\nwritten to recordings/simulations/20260831_001736/cv_replay\n  measurements.csv  723 measurements, every one with a unit\n  data/          per stage: the same numbers as JSON, plus a CSV per object table\n  report.md      every stage with its formula and its numbers\n  sheet_*.png    one page per camera\n  raw/           the frames, so figures can be redrawn with --replay recordings/simulations/20260831_001736/cv_replay",
+      "log": "recordings/simulations/20260831_001736/logs/cv_replay.log"
+    },
+    {
+      "key": "cv_orientation",
+      "title": "Which way up the scene camera is",
+      "group": "computer vision",
+      "tier": "standalone",
+      "argv": [
+        "/home/gausms/kortex_ws/.venv_vision/bin/python",
+        "scripts/scene_rs_orientation.py",
+        "--self-test"
+      ],
+      "note": "12 known-answer checks on the rotation, its intrinsic map and the instrument that decides it",
+      "produces": [],
+      "seconds": 0.3,
+      "exit": 0,
+      "status": "ok",
+      "tail": "  ok    cx' = W-1-cx\n  ok    cy' = H-1-cy\n  ok    focal lengths are untouched\n  ok    rotating K twice is the identity\n  ok    the stripe moved to the bottom\n  ok    the depth moved with it\n  ok    K moved with the image\n  ok    apply=False is the identity\n  ok    an upright frame reads UPRIGHT (+1.00 vs +0.57)\n  ok    a flipped frame reads UPSIDE_DOWN (+0.57 vs +1.00)\n  ok    unrelated pictures read UNDECIDED (+0.01 vs -0.01)\n  ok    the stored orientation is upright\n\n12 checks, 0 failed",
+      "log": "recordings/simulations/20260831_001736/logs/cv_orientation.log"
+    },
+    {
+      "key": "teleop_motion",
+      "title": "Motion generation: three generators compared",
+      "group": "teleoperation",
+      "tier": "standalone",
+      "argv": [
+        "/usr/bin/python3",
+        "scripts/measure_teleop_motion.py"
+      ],
+      "note": "off-path excursion, same-cycle excursion, peak commanded velocity against the declared limit, and arrival synchrony",
+      "produces": [
+        {
+          "path": "recordings/baselines/teleop_motion.json",
+          "exists": true,
+          "bytes": 6616
+        }
+      ],
+      "seconds": 4.6,
+      "exit": 0,
+      "status": "ok",
+      "tail": "instrument self-test passed (FK control, four known answers)\n\nLEFT arm, 50 Hz, slew [0.5, -0.3, 0.1, 0.25, -0.05, 0.15, 0.02]\n  generator             off-path  same-cyc    peak v    arrive  sync\n                          max mm    max mm  of limit    cycles\n  clamp_towards             51.3     135.3    12.53x       1,2  NO\n  ruckig                     0.0      69.8     1.00x        36  YES\n  synchronised-clamp         0.0      22.7     1.00x        18  YES\n\nRIGHT arm, 50 Hz, slew [0.5, -0.3, 0.1, 0.25, -0.05, 0.15, 0.02]\n  generator             off-path  same-cyc    peak v    arrive  sync\n                          max mm    max mm  of limit    cycles\n  clamp_towards             39.2      75.0    12.53x       1,2  NO\n  ruckig                     0.0      54.8     1.00x        36  YES\n  synchronised-clamp         0.0      18.1     1.00x        18  YES\n\nthe per-joint clamp against its own step size (left arm):\n  max_step 0.35 rad ->   2 cycles,   51.3 mm off the path\n  max_step 0.20 rad ->   3 cycles,   34.4 mm off the path\n  max_step 0.10 rad ->   5 cycles,   68.0 mm off the path\n  max_step 0.05 rad ->  10 cycles,   68.0 mm off the path\n  max_step 0.02 rad ->  25 cycles,   68.0 mm off the path\n  max_step 0.01 rad ->  50 cycles,   68.0 mm off the path\n\n  51.3 mm at the shipped 0.35 rad, 68.0 mm at 0.01 rad. The excursion does NOT\n  tend to zero as the step shrinks -- it settles -- because the joints are\n  at different fractions of their own travel however small the step is.\n  Each row is a genuinely different path, densified at 0.02 rad, not one\n  path sampled at different rates. It is the shape of the algorithm.\n\nwrote /home/gausms/kortex_ws/recordings/baselines/teleop_motion.json",
+      "log": "recordings/simulations/20260831_001736/logs/teleop_motion.log"
+    },
+    {
+      "key": "teleop_smoothing",
+      "title": "Master smoothing: 1-Euro against the fixed EMA",
+      "group": "teleoperation",
+      "tier": "standalone",
+      "argv": [
+        "/usr/bin/python3",
+        "scripts/measure_master_smoothing.py",
+        "--self-test"
+      ],
+      "note": "stillness and lag measured together, which is the pair a fixed alpha cannot win",
+      "produces": [],
+      "seconds": 0.4,
+      "exit": 0,
+      "status": "ok",
+      "tail": "Master-arm smoothing, measured through the shipped MasterPoseNode.smooth_tip (50 Hz)\n  still: a stationary master + 1.5 mm-rms tremor -> output RMS\n  lag:   a 0.40 m/s reach -> how far the tip trails the master\n\nlaw                        still_mm     lag_mm\nnone (raw)                     2.57       0.02\nema(0.3)  [was]                1.10      18.67\none_euro  [now]                0.83       1.59\n\n  the node actually applies the filter                 PASS   0.83 vs 2.57 mm raw\n  one_euro is steadier than the ema(0.3) it replaced   PASS   0.83 vs 1.10 mm\n  one_euro does not pay for it in lag                  PASS   1.59 vs 18.67 mm\n\nPASS",
+      "log": "recordings/simulations/20260831_001736/logs/teleop_smoothing.log"
+    },
+    {
+      "key": "teleop_budget",
+      "title": "The positioning error budget",
+      "group": "teleoperation",
+      "tier": "standalone",
+      "argv": [
+        "/usr/bin/python3",
+        "scripts/measure_control_budget.py"
+      ],
+      "note": "each term measured separately, combined in quadrature and added, against the 30 mm capture gate",
+      "produces": [
+        {
+          "path": "recordings/baselines/control_budget.json",
+          "exists": true,
+          "bytes": 4839
+        }
+      ],
+      "seconds": 0.8,
+      "exit": 0,
+      "status": "ok",
+      "tail": "  a quick reach or a fidget    562 ms   843-1405 mm   EXCEEDS IT\n  a startle or flinch           62 ms   155-248 mm   EXCEEDS IT\n  a startle or flinch          562 ms  1405-2248 mm   EXCEEDS IT\n\n  5 of 6 cases move further than the whole floor before the guard has\n  heard about it. The floor is a DISTANCE, not a reaction time, and nothing\n  in this system reacts to a wearer who moves quickly.\n\n==========================================================================\n3  WHAT THE GUARD GETS WRONG WHEN TRACKING DROPS\n   the assumed posture is 'down'; the person may not be\n==========================================================================\n  left  at HOME, clearance to the wearer by ARM POSTURE:\n      out      0.0933 m   (-224 mm vs 'down')  BREACHES THE 0.15 m FLOOR\n      behind   0.2779 m   (-39 mm vs 'down')\n      down     0.3170 m   (+0 mm vs 'down')\n      folded   0.3211 m   (+4 mm vs 'down')\n      none     0.3211 m   (+4 mm vs 'down')\n  right at HOME, clearance to the wearer by ARM POSTURE:\n      out      0.0933 m   (-224 mm vs 'down')  BREACHES THE 0.15 m FLOOR\n      behind   0.2779 m   (-39 mm vs 'down')\n      down     0.3170 m   (+0 mm vs 'down')\n      folded   0.3211 m   (+4 mm vs 'down')\n      none     0.3211 m   (+4 mm vs 'down')\n\n==========================================================================\n4  HOW FREE THE ARMS ARE\n==========================================================================\n  at_the_work_point (12 walks):\n      pinned   0.065 m mean reach, 0 walk(s) wearer-bound\n      cone15   0.304 m mean reach, 0 walk(s) wearer-bound\n      cone45   0.325 m mean reach, 0 walk(s) wearer-bound\n      free     0.362 m mean reach, 0 walk(s) wearer-bound\n  at_home (28 walks):\n      pinned   0.460 m mean reach, 6 walk(s) wearer-bound\n      cone15   0.492 m mean reach, 6 walk(s) wearer-bound\n      cone45   0.530 m mean reach, 6 walk(s) wearer-bound\n      free     0.549 m mean reach, 6 walk(s) wearer-bound\n\nwrote recordings/baselines/control_budget.json",
+      "log": "recordings/simulations/20260831_001736/logs/teleop_budget.log"
+    },
+    {
+      "key": "tasks_accuracy",
+      "title": "Accuracy table over the recorded clip set",
+      "group": "robot tasks",
+      "tier": "standalone",
+      "argv": [
+        "/usr/bin/python3",
+        "scripts/accuracy_table.py"
+      ],
+      "note": "grasp success, positioning error at closure and placement error, per task and per mode, from committed clip data",
+      "produces": [],
+      "seconds": 0.1,
+      "exit": 0,
+      "status": "ok",
+      "tail": "instrument self-test passed (7 known answers, including two that must FAIL on bad input)\n\nrecordings/verification\nmode                   cells  grasp %  pos err mm    place mm     var mm   min obj\n----------------------------------------------------------------------------------\n01_master_teleop           1   100.0%       0.000          --         --     30 mm\n02_vr_teleop               1   100.0%       0.000          --         --     30 mm\n03_shared_autonomy         1   100.0%       0.000          --         --     30 mm\n04_vr_shared               1   100.0%       0.000          --         --     30 mm\n06_full_autonomy           3   100.0%       0.000      56.258      0.591     30 mm\n   NOTE: placement is scored against the CURRENT targets. Clips recorded before the\n   planes moved are scored against coordinates they never ran in, so treat the\n   placement and variance columns as INVALID for those. Grasp rate and positioning\n   error are independent of target position and are sound.\n-> recordings/verification/accuracy_table.json",
+      "log": "recordings/simulations/20260831_001736/logs/tasks_accuracy.log"
+    },
+    {
+      "key": "tasks_status",
+      "title": "Which cells of the task/mode matrix exist",
+      "group": "robot tasks",
+      "tier": "standalone",
+      "argv": [
+        "/usr/bin/python3",
+        "scripts/status_table.py"
+      ],
+      "note": "planned cells against recorded cells, with by-design absences separated from real gaps",
+      "produces": [],
+      "seconds": 0.9,
+      "exit": 0,
+      "status": "ok",
+      "tail": "BLOCKED ON THE LAB -- not on code, and not fixable from here\n==============================================================================\n  * two real Kortex sessions\n      all dual-arm work is against mocks; the arm permits exactly ONE session and a leaked one refuses the next\n  * detection rate at working distance\n      MEASURED 0-4% on rendered primitives vs 0.89-0.91 on a real photograph -- the renderer is out of distribution, so the 95% gate is NEITHER passed nor failed\n  * the real camera intrinsics, distortion and extrinsic\n      the mock's values are nominal; only the driver is a source for the real ones\n  * whether the vision module streams at all\n      open, given that UDP cyclic is dead on this host and only SHM works\n  * the master arm\n      7 of 14 channels INCOHERENT as of the 2026-08-06 baseline; this is a soldering problem, not a software one\n  * l_j2 and l_j4 specifically\n      regression names them: the left arm has NO reach observable without them (R2 0.133, residual 93% of spread)\n  * the right arm's home joint values\n      recorded as NEVER READ from hardware; P_HOME for that arm depends on them\n  * the arms sharing a workspace\n      0 of 63 frontal cells reachable by both, 0 of 319 surveyed cells at |x| <= 0.10. T4 handover is BLOCKED by geometry and needs the right arm RE-PARKED in hardware\n  * the mount's proximal interference\n      real and mechanical; the SRDF exclusion silences the alarm, it does not move the metal\n  * Kortex close-then-reconnect\n      the riskiest thing in the recovery layer and the part a real run hits first\n  * adb / Android Platform-Tools\n      installed on neither side; the one hard prerequisite before any headset test\n  * this machine is off the lab network\n      eth0 DOWN, 100% loss to 192.168.1.10 -- nothing needing a real arm can run here at all\n\n==============================================================================\nBLOCKED ON ETHICS -- approval, not equipment\n==============================================================================\n  * any run with a real participant\n      every figure in this repo is scripted or synthetic; no human data has been collected\n  * the two-person dyad protocol\n      operator and wearer are DIFFERENT people, so both are participants and both consent separately\n  * worn operation\n      >17 kg with harness and NO gravity compensation, on a person who did not choose the motion; recommended against until the proximal interference is fixed mechanically\n  * physiological measures (EDA)\n      trust/arousal measures on the wearer need their own approval\n  * recording of participants\n      the clip pipeline records the SIM only; any camera on a person is a separate matter",
+      "log": "recordings/simulations/20260831_001736/logs/tasks_status.log"
+    },
+    {
+      "key": "autonomy_instructions",
+      "title": "Full autonomy: 75 phrasings through the grammar",
+      "group": "autonomy",
+      "tier": "standalone",
+      "argv": [
+        "/usr/bin/python3",
+        "scripts/sweep_t1_instructions.py",
+        "--json",
+        "recordings/simulations/20260831_001736/instructions.json"
+      ],
+      "note": "correct / asked / refused / MISUNDERSTOOD, against the committed earlier grammar on the same cases",
+      "produces": [
+        {
+          "path": "recordings/simulations/20260831_001736/instructions.json",
+          "exists": true,
+          "bytes": 79383
+        }
+      ],
+      "seconds": 0.3,
+      "exit": 0,
+      "status": "ok",
+      "tail": "  lift the second cube                                       CORRECT        1 cube, picked up and held (number 2)\n\n-- MISSPELLING\n  put the bleu ones on the bleu pad                          CORRECT        2 cubes, on the blue pad (read 'bleu' as 'blue', 'bleu' as\n  put the blue cubbes on the blue pad                        CORRECT        2 cubes, on the blue pad (read 'cubbes' as 'cubes')\n  put the gren ones on the gren pad                          ASKED          I could not read 'gren' -- did you mean green or grey?\n        reply 'green'                                        CORRECT  2 cubes, on the green pad\n  put the gerne ones on the gerne pad                        ASKED          Which cube? I can see 2 blue, 2 green, and 'put the gerne \n  pt the blue ones on the blue pad                           REFUSED        no known verb in 'pt blue ones on blue pad'\n  put the blue ones on the blue padd                         ASKED          I could not read 'padd' -- did you mean pad or pads?\n  sort teh cubes by colour                                   CORRECT        4 cubes, each on the pad of the colour the camera saw\n  put the blue ones on the blue pad wen you are ready        CORRECT        2 cubes, on the blue pad\n  put the lefmost blue cube on the blue pad                  CORRECT        1 cube, on the blue pad (the left one) (read 'lefmost' as \n\n==============================================================================\nTOTALS over 75 phrasings\n==============================================================================\n                 at b782a9b      now\n  CORRECT                21       34   (45.3%)\n  ASKED                  14       14   (18.7%)\n  REFUSED                37       27   (36.0%)\n  MISUNDERSTOOD           3        0   (0.0%)\n\n  'at b782a9b' is the SAME cases run against the grammar and the grounding\n  layer as committed, checked out of git into a temporary tree and run in\n  its own interpreter. The two columns differ by the code and by nothing\n  else.\n\n  OF THE 10 THAT WERE ANSWERED, IN 12 REPLIES:\n     CORRECT        10\n  These are NOT counted as CORRECT above. A grammar that asks about\n  everything must not be able to look like one that understands everything.\n\n  ASKED and REFUSED are SAFE -- the arm did not move and the operator was told.\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nNO MISUNDERSTANDINGS.\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n  -> recordings/simulations/20260831_001736/instructions.json",
+      "log": "recordings/simulations/20260831_001736/logs/autonomy_instructions.log"
+    },
+    {
+      "key": "autonomy_arbitration",
+      "title": "Shared autonomy: the arbiter over its whole input range",
+      "group": "autonomy",
+      "tier": "standalone",
+      "argv": [
+        "/usr/bin/python3",
+        "scripts/measure_shared_autonomy.py",
+        "--out",
+        "recordings/simulations/20260831_001736/arbitration.json"
+      ],
+      "note": "what fraction of the confidence range assists, what the position path does in each state, and the tie case",
+      "produces": [
+        {
+          "path": "recordings/simulations/20260831_001736/arbitration.json",
+          "exists": true,
+          "bytes": 2436
+        }
+      ],
+      "seconds": 3.7,
+      "exit": 0,
+      "status": "ok",
+      "tail": "shared-autonomy intent inference, 300 trials per condition\n4 cubes on a 60 mm pitch; the calibrated arm carries its MEASURED 11.3 mm error\n\ntable is off positions    correct    WRONG  ambiguous    frames\n--------------------------------------------------------------\n0 mm         DECLARED       70.7%     0.0%      29.3%      14.3\n             CALIBRATED     75.7%     0.0%      24.3%      15.5\n20 mm        DECLARED       72.7%     0.7%      26.7%      16.3\n             CALIBRATED     74.7%     0.0%      25.3%      15.3\n40 mm        DECLARED       58.7%    16.7%      24.7%      17.2\n             CALIBRATED     72.0%     0.0%      28.0%      15.4\n60 mm        DECLARED       53.3%    35.7%      11.0%      15.6\n             CALIBRATED     74.0%     0.0%      26.0%      15.1\n80 mm        DECLARED       52.7%    41.7%       5.7%      13.9\n             CALIBRATED     71.7%     0.0%      28.3%      16.0\n120 mm       DECLARED       47.7%    50.0%       2.3%      10.9\n             CALIBRATED     74.7%     0.0%      25.3%      15.7\n\nDECLARED positions are the task file's. CALIBRATED are what the\nsweep measured. At 0 mm they are the same question, which is why\ntoday's simulation cannot show the difference.\n-> recordings/simulations/20260831_001736/arbitration.json",
+      "log": "recordings/simulations/20260831_001736/logs/autonomy_arbitration.log"
+    },
+    {
+      "key": "study_power",
+      "title": "The pre-registered analysis on constructed data",
+      "group": "study",
+      "tier": "standalone",
+      "argv": [
+        "/usr/bin/python3",
+        "scripts/validate_analysis_pipeline.py",
+        "--trials",
+        "20000"
+      ],
+      "note": "power and false-positive rate of the procedure that will be applied to the participant data",
+      "produces": [
+        {
+          "path": "recordings/baselines/analysis_pipeline_validation.json",
+          "exists": true,
+          "bytes": 1906
+        }
+      ],
+      "seconds": 16.9,
+      "exit": 0,
+      "status": "ok",
+      "tail": "      \"dyads\": 18,\n      \"uncorrected\": 0.8289,\n      \"corrected\": 0.7239333333333333,\n      \"family_wise\": 0.9871666666666666\n    },\n    {\n      \"dyads\": 20,\n      \"uncorrected\": 0.8762666666666666,\n      \"corrected\": 0.8028666666666666,\n      \"family_wise\": 0.9956666666666667\n    },\n    {\n      \"dyads\": 24,\n      \"uncorrected\": 0.9286333333333333,\n      \"corrected\": 0.8995666666666666,\n      \"family_wise\": 0.9996666666666667\n    },\n    {\n      \"dyads\": 28,\n      \"uncorrected\": 0.9581333333333333,\n      \"corrected\": 0.9467666666666666,\n      \"family_wise\": 1.0\n    },\n    {\n      \"dyads\": 32,\n      \"uncorrected\": 0.9788666666666667,\n      \"corrected\": 0.9748,\n      \"family_wise\": 1.0\n    }\n  ],\n  \"design\": {\n    \"dyads\": 16,\n    \"contrasts\": 5,\n    \"alpha\": 0.05,\n    \"effect_d\": 0.73,\n    \"correction\": \"Holm-Bonferroni, pre-registered\"\n  }\n}\n\nwritten to /home/gausms/kortex_ws/recordings/baselines/analysis_pipeline_validation.json",
+      "log": "recordings/simulations/20260831_001736/logs/study_power.log"
+    },
+    {
+      "key": "sim_to_real",
+      "title": "The simulation-to-hardware gap",
+      "group": "transfer",
+      "tier": "recorded",
+      "argv": [
+        "/usr/bin/python3",
+        "scripts/measure_sim_to_real_gap.py"
+      ],
+      "note": "ANALYSIS OF RECORDED HARDWARE DATA, not a simulation. Tagged separately so its numbers are never read as one",
+      "produces": [
+        {
+          "path": "recordings/baselines/sim_to_real_gap.json",
+          "exists": true,
+          "bytes": 6458
+        }
+      ],
+      "seconds": 0.6,
+      "exit": 0,
+      "status": "ok",
+      "tail": "weak: by DIRECTION leaks through the +/- pair, and by AXIS is the honest one:\n  arm      identity        fit    HO by dir    HO by AXIS\n  left      7.240 mm    0.976 mm     1.937 mm       93.5 mm\n  right     7.215 mm    1.134 mm     2.265 mm       93.6 mm\n\nTIERS. Held-out RMS (mm) per tier per hold-out scheme. The AXIS column is the one that decides whether a tier may be used for a direction nobody measured:\n  arm    tier                     by DIR     by AXIS\n  left   identity                               7.24  <- identity 7.24\n  left   scalar                     3.25        3.52  GENERAL\n  left   diagonal                   2.74        7.24  measured directions only\n  left   full3x3                    1.94       93.50  measured directions only\n  right  identity                               7.21  <- identity 7.21\n  right  scalar                     3.40        3.76  GENERAL\n  right  diagonal                   2.69        7.21  measured directions only\n  right  full3x3                    2.27       93.58  measured directions only\n\nCROSS-ARM (fit on one, predict the other, never seen):\n  left_to_right     7.215 mm ->    4.349 mm\n  right_to_left     7.240 mm ->    4.311 mm\n\nTHE JOINT-TERMINAL MODEL. One parameter per arm: every joint parks EPS short,\non the side it came from. Predicted cartesian error = J . (-EPS * sign).\n  arm       EPS deg    identity      fitted HELD OUT axis signs scrambled\n  left       0.3052     7.24 mm     1.83 mm       1.88 mm       7.19 mm\n  right      0.3059     7.21 mm     1.68 mm       1.72 mm       7.16 mm\n  the 3x3 scores 93.5 mm on the same axis hold-out. This model is ONE parameter and\n  it generalises, because it is about the joints and not about a direction basis.\n\nwrote recordings/baselines/sim_to_real_gap.json\n\nTHE HEADLINE. The error is a per-joint TERMINAL OFFSET of 0.3052 deg (left), 0.3059 deg (right), not a Cartesian gain.\n  Removed, HELD OUT on an axis the fit never saw: left 74%, right 76%.\n  Compensation is to overshoot each joint by EPS in the direction of travel. That needs\n  no direction basis and no step length, so unlike the 3x3 it applies to ANY move.\n\nWHAT STILL NEEDS THE ARMS. The recording does not store the commanded joint\n  trajectory, so the SIGN of each joint's travel is taken from the sign of its\n  recorded error. The magnitude and the generalisation are measured; 'the joint\n  parks on the side it came from' is the mechanism they are consistent with, and\n  one hardware run confirms or kills it.",
+      "log": "recordings/simulations/20260831_001736/logs/sim_to_real.log"
+    },
+    {
+      "key": "teleop_orientation_cost",
+      "title": "What the pinned wrist costs",
+      "group": "teleoperation",
+      "tier": "stack",
+      "status": "skipped",
+      "note": "mean reach per direction under each orientation policy",
+      "reason": "needs a live /compute_ik; re-run with --with-stack"
+    },
+    {
+      "key": "tasks_t1",
+      "title": "T1, both stages, over the whole densified path",
+      "group": "robot tasks",
+      "tier": "stack",
+      "status": "skipped",
+      "note": "N=10 repeats per pose, densified to 20 mm, both arms confirmed at home before any sample",
+      "reason": "needs a live /compute_ik; re-run with --with-stack"
+    },
+    {
+      "key": "tasks_msc",
+      "title": "The MSc task set, every coordinate",
+      "group": "robot tasks",
+      "tier": "stack",
+      "status": "skipped",
+      "note": "IK success and wearer clearance for every waypoint of T0, T1, T2 and T3",
+      "reason": "needs a live /compute_ik; re-run with --with-stack"
+    },
+    {
+      "key": "tasks_dance",
+      "title": "The demonstration routines",
+      "group": "robot tasks",
+      "tier": "stack",
+      "status": "skipped",
+      "note": "every waypoint of the three routines",
+      "reason": "needs a live /compute_ik; re-run with --with-stack"
+    }
+  ],
+  "finished": "2026-08-31T00:19:44",
+  "totals": {
+    "ok": 12,
+    "skipped": 4
+  }
+}

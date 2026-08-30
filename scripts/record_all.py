@@ -66,6 +66,16 @@ def _trail_columns():
         c += ["sim_%s_j%d" % (a, i) for i in range(1, 8)]
         c += ["real_%s_j%d" % (a, i) for i in range(1, 8)]
         c += ["master_%s_%s" % (a, k) for k in ("x", "y", "z", "qx", "qy", "qz", "qw")]
+        # THE TEENSY, RAW. The pose above is DERIVED -- seven potentiometers
+        # and an IMU through a calibration that has changed during this
+        # project and will change again. Recording only the derived pose means
+        # a recalibration cannot be replayed against old sessions, and E1's
+        # Fitts characterisation of the master arm has no input trajectory to
+        # characterise. `/master_arm_raw_<arm>` carries all thirteen values
+        # and the trail kept none of them.
+        c += ["mraw_%s_p%d" % (a, i) for i in range(1, 8)]
+        c += ["mraw_%s_%s" % (a, k)
+              for k in ("ax", "ay", "az", "gx", "gy", "gz")]
         c += ["cmd_%s_%s" % (a, k) for k in ("x", "y", "z")]
         # THE END EFFECTOR, MEASURED. The pre-registration is explicit:
         # "No experiment may use commanded pose as a proxy for end-effector
@@ -86,6 +96,18 @@ def _trail_columns():
         c += ["vr_%s_engaged" % h, "vr_%s_grip" % h, "vr_%s_refused" % h,
               "vr_%s_disp_m" % h, "vr_%s_lag_m" % h, "vr_%s_cutoff_hz" % h,
               "vr_%s_tracked" % h, "vr_%s_fresh" % h]
+        # THE CONTROLLER, RAW. Everything above is the MAPPER's opinion after
+        # filtering, scaling and alignment. The controller's own pose and its
+        # analogue inputs are what the operator actually did, and they are
+        # what a re-tune of the 1-Euro constants has to be replayed against --
+        # the filter changed twice on 2026-08-30 alone. Trigger and thumbstick
+        # matter too: the trigger is the gripper and the stick sets scale, so
+        # without them a grasp has no visible cause in the data.
+        c += ["vrc_%s_%s" % (h, k)
+              for k in ("x", "y", "z", "qx", "qy", "qz", "qw")]
+        c += ["vrc_%s_trig" % h, "vrc_%s_gripax" % h,
+              "vrc_%s_stick_x" % h, "vrc_%s_stick_y" % h,
+              "vrc_%s_btn_a" % h, "vrc_%s_btn_b" % h]
     # THE PREDICTOR, SAMPLE BY SAMPLE. E5 needs the ranked goal and its
     # probability over time -- H5.1 is accuracy at the commitment point and
     # H5.2 bins accuracy at 20/40/60/80% of the reach. The arbiter already
@@ -96,6 +118,24 @@ def _trail_columns():
     # THE TRIAL, which is what turns a recording into data. Completion time
     # is undefined without a boundary, so H2.1 cannot be computed; Fitts'
     # index of difficulty needs the target's width and distance.
+    # WHICH INPUT IS DRIVING, per sample.
+    #
+    # `vr_pose_mapper` and `master_pose_node` BOTH publish
+    # /master_arm_pose_<arm> -- deliberately, so everything downstream is
+    # input-agnostic. The consequence for the data is that `master_*` means
+    # "the pose input", not "the mannequin": in the 86.8 s VR session of
+    # 2026-08-30 `master_left_fresh` read 86% fresh with no Teensy attached,
+    # because the VR mapper was publishing there.
+    #
+    # So the input cannot be recovered from those columns afterwards, and a
+    # study that splits VR runs from mannequin runs on them is splitting on
+    # nothing. This is derived from EVIDENCE rather than from a checkbox:
+    # which input nodes are alive, and whether the VR clutch is engaged.
+    c += ["input_mode", "vr_node_up", "master_node_up"]
+    # The gripper command on both input paths, and the headset. A grasp with
+    # no recorded command is an event with no cause.
+    c += ["grip_cmd_left", "grip_cmd_right", "master_fsr",
+          "hmd_x", "hmd_y", "hmd_z"]
     c += ["trial_id", "trial_phase", "goal_truth", "target_id",
           "target_w_m", "target_d_m"]
     c += ["estop", "n_detections", "autonomy_left", "autonomy_right"]
@@ -109,7 +149,7 @@ class Recorder:
         import rclpy  # noqa: F401
         from geometry_msgs.msg import PoseStamped
         from sensor_msgs.msg import JointState, Joy  # noqa: F401
-        from std_msgs.msg import Bool, String
+        from std_msgs.msg import Bool, Float64MultiArray, String
 
         self.node = node
         self.outdir = outdir
@@ -130,6 +170,12 @@ class Recorder:
         self.n_det = 0
         self.autonomy = {a: None for a in ARMS}
         self.pred = {a: {} for a in ARMS}          # arbiter JSON, per arm
+        self.mraw = {a: None for a in ARMS}        # Teensy pots + IMU, raw
+        self.vrc = {h: None for h in ARMS}         # controller pose, raw
+        self.vrj = {h: None for h in ARMS}         # controller buttons/axes
+        self.gripc = {h: None for h in ARMS}       # gripper command
+        self.fsr = None                            # master FSR buttons
+        self.hmd = None                            # headset pose
         self.cascade = {a: None for a in ARMS}     # is the relay ENABLED
         self.ee = {a: None for a in ARMS}          # measured EE pose from tf2
         # The trial the operator declared. Written by `--trial`, so a task
@@ -166,8 +212,27 @@ class Recorder:
             node.create_subscription(
                 Bool, "/cascade_active_%s" % a,
                 lambda m, a=a: self.cascade.__setitem__(a, bool(m.data)), 10)
+            node.create_subscription(
+                Float64MultiArray, "/master_arm_raw_%s" % a,
+                lambda m, a=a: self.mraw.__setitem__(a, list(m.data)), 20)
+            node.create_subscription(
+                PoseStamped, "/vr/controller_pose_%s" % a,
+                lambda m, h=a: self.vrc.__setitem__(h, m), 20)
+            node.create_subscription(
+                Joy, "/vr/controller_joy_%s" % a,
+                lambda m, h=a: self.vrj.__setitem__(h, m), 20)
+            node.create_subscription(
+                Float64MultiArray, "/vr/gripper_%s" % a,
+                lambda m, h=a: self.gripc.__setitem__(
+                    h, (list(m.data) or [None])[0]), 10)
         node.create_subscription(Bool, "/estop_state",
                                  lambda m: self._estop(m), 10)
+        node.create_subscription(
+            Float64MultiArray, "/master_fsr_buttons",
+            lambda m: setattr(self, "fsr", list(m.data)), 20)
+        node.create_subscription(
+            PoseStamped, "/vr/hmd_pose",
+            lambda m: setattr(self, "hmd", m), 20)
         node.create_subscription(String, "/perception/objects_info",
                                  lambda m: self._det(m), 10)
 
@@ -220,6 +285,26 @@ class Recorder:
             self.pred[arm] = json.loads(msg.data)
         except Exception:                                     # noqa: BLE001
             self.pred[arm] = {}
+
+    def _master_node_up(self):
+        """Is the MANNEQUIN's node running? Cached for a second.
+
+        Asked of the process table, because the topic cannot answer it: the
+        VR mapper publishes the same topic, so a live /master_arm_pose_<arm>
+        proves only that SOMETHING is driving.
+        """
+        now = time.monotonic()
+        if now - getattr(self, "_mnode_t", 0.0) < 1.0:
+            return self._mnode
+        self._mnode_t = now
+        try:
+            self._mnode = subprocess.run(
+                ["pgrep", "-f", "srl_teleop/master_pose_node"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                timeout=3).returncode == 0
+        except Exception:                                     # noqa: BLE001
+            self._mnode = False
+        return self._mnode
 
     def _read_ee(self, arm):
         """Measured end-effector pose, or None. NEVER falls back to the
@@ -308,6 +393,51 @@ class Recorder:
             r["pred_%s_ambiguous" % a] = ("" if pd.get("ambiguous") is None
                                           else int(bool(pd.get("ambiguous"))))
             r["pred_%s_dist_m" % a] = pd.get("distance_m", "")
+            # the Teensy, raw: seven pots then the IMU
+            mr = self.mraw[a]
+            if mr and len(mr) >= 13:
+                for i in range(7):
+                    r["mraw_%s_p%d" % (a, i + 1)] = round(float(mr[i]), 4)
+                for i, k in enumerate(("ax", "ay", "az", "gx", "gy", "gz")):
+                    r["mraw_%s_%s" % (a, k)] = round(float(mr[7 + i]), 5)
+            # the controller, raw pose then its analogue inputs
+            cp = self.vrc[a]
+            if cp is not None:
+                p_, q_ = cp.pose.position, cp.pose.orientation
+                for k, v in zip(("x", "y", "z", "qx", "qy", "qz", "qw"),
+                                (p_.x, p_.y, p_.z, q_.x, q_.y, q_.z, q_.w)):
+                    r["vrc_%s_%s" % (a, k)] = round(float(v), 6)
+            jm = self.vrj[a]
+            if jm is not None:
+                ax = list(jm.axes) + [0.0] * 4
+                bt = list(jm.buttons) + [0] * 2
+                r["vrc_%s_trig" % a] = round(float(ax[0]), 4)
+                r["vrc_%s_gripax" % a] = round(float(ax[1]), 4)
+                r["vrc_%s_stick_x" % a] = round(float(ax[2]), 4)
+                r["vrc_%s_stick_y" % a] = round(float(ax[3]), 4)
+                r["vrc_%s_btn_a" % a] = int(bt[0])
+                r["vrc_%s_btn_b" % a] = int(bt[1])
+            r["grip_cmd_%s" % a] = ("" if self.gripc[a] is None
+                                    else round(float(self.gripc[a]), 4))
+        # WHICH INPUT, FROM EVIDENCE. A checkbox says what the operator
+        # intended; this says what was actually driving. They differ exactly
+        # when it matters -- a mis-set condition is invisible otherwise.
+        vr_up = any((self.vr[a] or {}) for a in ARMS)
+        vr_drive = any(bool((self.vr[a] or {}).get("engaged")) for a in ARMS)
+        mast_up = self._master_node_up()
+        r["vr_node_up"] = int(vr_up)
+        r["master_node_up"] = int(mast_up)
+        r["input_mode"] = ("vr" if vr_drive else
+                           "master" if (mast_up and not vr_up) else
+                           "both_up" if (mast_up and vr_up) else
+                           "vr_idle" if vr_up else
+                           "none")
+        r["master_fsr"] = ("" if not self.fsr else
+                           "|".join("%.3f" % float(v) for v in self.fsr[:6]))
+        if self.hmd is not None:
+            hp = self.hmd.pose.position
+            for k, v in zip(("x", "y", "z"), (hp.x, hp.y, hp.z)):
+                r["hmd_%s" % k] = round(float(v), 5)
         r["estop"] = "" if self.estop is None else int(self.estop)
         r["n_detections"] = self.n_det
         # The declared trial, carried on every row so a slice of the CSV is
@@ -711,6 +841,15 @@ def main():
     ap.add_argument("--shared-autonomy", default="unknown",
                     choices=["on", "off", "unknown"])
     ap.add_argument("--participant", default="")
+    # THE INPUT, AND A SHARED-AUTONOMY TICK PER INPUT. Both are recorded
+    # because `--shared-autonomy` alone was an OR across two tabs and lost
+    # which mode it belonged to; and because the pose topic is shared by the
+    # VR mapper and the mannequin, so nothing downstream can recover the
+    # input after the fact.
+    ap.add_argument("--input-mode", default="unknown",
+                    help="vr | master | both_up | unknown")
+    ap.add_argument("--shared-vr", default="unknown")
+    ap.add_argument("--shared-master", default="unknown")
     ap.add_argument("--rate", type=float, default=20.0, help="trail sample Hz")
     ap.add_argument("--no-bag", action="store_true",
                     help="skip `ros2 bag record -a` (images are large)")
@@ -806,6 +945,8 @@ def main():
 
     manifest = dict(
         label=a.label, mode=a.mode, shared_autonomy=a.shared_autonomy,
+        input_mode=a.input_mode, shared_vr=a.shared_vr,
+        shared_master=a.shared_master,
         participant=a.participant, started=time.time(),
         started_iso=datetime.now().isoformat(timespec="seconds"),
         git_rev=git("rev-parse", "HEAD"), git_branch=git("rev-parse", "--abbrev-ref", "HEAD"),

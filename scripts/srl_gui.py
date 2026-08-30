@@ -4507,18 +4507,65 @@ class Gui(QMainWindow):
         # shared-autonomy toggle; either one being on makes the next START a
         # shared run, and the recording must be labelled with the condition it
         # was made under or it is not a comparison.
+        # WHICH INPUT, AND WHOSE SHARED-AUTONOMY TICK.
+        #
+        # This was `ma_shared.isChecked() or vr_shared.isChecked()` -- an OR
+        # across two tabs. It recorded THAT shared autonomy was on and lost
+        # WHICH mode it belonged to, so ticking it on the VR tab and then
+        # driving with the mannequin produced a run labelled `on` that the
+        # data could not contradict. For E2, whose whole design is a
+        # condition per run, that is a mislabelled trial rather than a
+        # missing field.
+        #
+        # And the input itself was never recorded at all: `vr_pose_mapper`
+        # and `master_pose_node` both publish /master_arm_pose_<arm>, so the
+        # `master_*` columns cannot tell them apart afterwards.
         try:
-            shared = "on" if (self.ma_shared.isChecked()
-                              or self.vr_shared.isChecked()) else "off"
+            vr_on = bool(self.vr_shared.isChecked())
+            ma_on = bool(self.ma_shared.isChecked())
         except Exception:                                     # noqa: BLE001
-            shared = "unknown"
+            vr_on = ma_on = False
+        mode_now = self._live_input_mode()
+        shared = ("on" if (vr_on if mode_now == "vr" else ma_on) else "off")
         argv += ["--shared-autonomy", shared]
+        argv += ["--input-mode", mode_now]
+        argv += ["--shared-vr", "on" if vr_on else "off"]
+        argv += ["--shared-master", "on" if ma_on else "off"]
         self._run_raw("record_all", argv)
         self.log("RECORD EVERYTHING started: label=%s mode=%s shared_autonomy=%s"
                  % (label, mode or "unspecified", shared))
         QTimer.singleShot(1200, self._rec_all_refresh)
 
     def _stop_record_all(self):
+        """Stop the session, AND SAY SO THE INSTANT THE BUTTON IS PRESSED.
+
+        THE DEFECT, reported 2026-08-30 as "the recording button is not
+        stopping". It was stopping. A stop flushes the bag cache, compresses
+        the mcap and renders five figures, which takes about five seconds --
+        and for all five the button still read STOP RECORDING in red, because
+        the state comes from the live-session marker and the marker is only
+        removed at the END of that work. So the press had no visible effect,
+        which from the operator's side is a dead button, and the natural
+        response is to press it again.
+        --
+        The button now changes on the press itself and the refresh takes over
+        when the session is really gone. Same rule as the e-stop label fixed
+        earlier tonight: a control that acts without acknowledging cannot be
+        told from one that is wired to nothing.
+        """
+        try:
+            self._rec_stopping = time.time()
+            self.rec_all_btn.setText("\u25a0  STOPPING...")
+            self.rec_all_btn.setStyleSheet(
+                "background:%s; color:white; font-weight:bold" % C_WARN)
+            self.rec_all_btn.setEnabled(False)
+            self.rec_all_lbl.setText(
+                "closing the session: flushing the bag, compressing it and "
+                "drawing the figures. About five seconds -- the graphs and "
+                "the summary are written now, so this is worth waiting for.")
+            self.rec_all_lbl.setStyleSheet("color:%s" % C_WARN)
+        except Exception:                                     # noqa: BLE001
+            pass
         try:
             subprocess.Popen(
                 [self._record_all_python(), self._record_all_script(), "--stop"],
@@ -4528,7 +4575,10 @@ class Gui(QMainWindow):
                      "written on stop, which takes a few seconds")
         except Exception as e:                                # noqa: BLE001
             self.log("RECORD EVERYTHING stop FAILED: %r" % e, bad=True)
-        QTimer.singleShot(3000, self._rec_all_refresh)
+        # Poll through the stop rather than once at 3 s: the work takes
+        # about five seconds and a single check at three is a coin flip.
+        for ms in (1500, 3000, 5000, 7000, 10000, 15000):
+            QTimer.singleShot(ms, self._rec_all_refresh)
 
     def on_record_all_toggle(self):
         if self._record_all_live():
@@ -4549,6 +4599,41 @@ class Gui(QMainWindow):
                 except Exception:                             # noqa: BLE001
                     lbl = "manual"
             self._start_record_all(label=lbl)
+
+    def _live_input_mode(self):
+        """Which input is driving RIGHT NOW: "vr", "master", or "unknown".
+
+        From the process table and the mapper's own state, never from a tab
+        being visible. The operator connects one input at a time, and the
+        recording has to say which -- the pose topic cannot, because both
+        publishers use it.
+        """
+        try:
+            vr = subprocess.run(
+                ["pgrep", "-f", "srl_vr_teleop/vr_pose_mapper"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                timeout=3).returncode == 0
+            ma = subprocess.run(
+                ["pgrep", "-f", "srl_teleop/master_pose_node"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                timeout=3).returncode == 0
+        except Exception:                                     # noqa: BLE001
+            return "unknown"
+        if vr and not ma:
+            return "vr"
+        if ma and not vr:
+            return "master"
+        if vr and ma:
+            # Both alive. The clutch is the tie-break: a VR session with the
+            # grip engaged is a VR session whatever else is running.
+            s = self.bus.snap.get("vrmap_left") or self.bus.snap.get("vrmap_right")
+            try:
+                if s and json.loads(s[0]).get("engaged"):
+                    return "vr"
+            except Exception:                                 # noqa: BLE001
+                pass
+            return "both_up"
+        return "unknown"
 
     def _rec_label(self):
         """The operator's name for this run, made safe for a directory.
@@ -4609,6 +4694,38 @@ class Gui(QMainWindow):
         self._rec_pose_refresh(info)
         if not hasattr(self, "rec_all_btn"):
             return
+        # A STOP IN FLIGHT OUTRANKS THE MARKER.
+        #
+        # This refresh runs every 2 s, and a stop takes about five: flushing
+        # the bag cache, compressing the mcap, drawing five figures. The
+        # live-session marker is removed at the END of that work, so for the
+        # first two seconds after the press this saw a live session and put
+        # the button back to a red STOP RECORDING -- overwriting the
+        # STOPPING... that the press had just set. The operator sees yellow
+        # flash and then a button that looks untouched, which reads as "it
+        # did not stop" when the recorder had already begun closing down.
+        # Reported exactly that way on 2026-08-30.
+        #
+        # So while a stop is outstanding the button says so, whatever the
+        # marker says. Bounded, because a stop that never finishes must not
+        # leave the control stuck: after 60 s the marker is believed again
+        # and the operator gets the button back.
+        stopping = getattr(self, "_rec_stopping", 0.0)
+        if stopping and (time.time() - stopping) > 60.0:
+            self._rec_stopping = stopping = 0.0
+        if not info:
+            self._rec_stopping = 0.0
+        elif stopping:
+            self.rec_all_btn.setText("\u25a0  STOPPING...")
+            self.rec_all_btn.setStyleSheet(
+                "background:%s; color:white; font-weight:bold" % C_WARN)
+            self.rec_all_btn.setEnabled(False)
+            self.rec_all_lbl.setText(
+                "closing the session (%.0f s): flushing the bag, compressing "
+                "it and drawing the figures."
+                % (time.time() - stopping))
+            self.rec_all_lbl.setStyleSheet("color:%s" % C_WARN)
+            return
         if info:
             secs = int(time.time() - float(info.get("started", time.time())))
             name = os.path.basename(info.get("outdir", "?"))
@@ -4620,6 +4737,10 @@ class Gui(QMainWindow):
                 "events and both real arms" % (name, secs // 60, secs % 60))
             self.rec_all_lbl.setStyleSheet("color:%s" % C_BAD)
         else:
+            # The session is really gone -- give the button back. Re-enabling
+            # HERE rather than on a timer means it returns exactly when it is
+            # safe to press again, not a fixed guess at how long a stop takes.
+            self.rec_all_btn.setEnabled(True)
             self.rec_all_btn.setText("\u25cf  RECORD EVERYTHING")
             self.rec_all_btn.setStyleSheet("")
             self.rec_all_lbl.setText("not recording")
@@ -5874,6 +5995,44 @@ class Gui(QMainWindow):
             self.pose_note.setText(msg)
             return
 
+        # OFF THE Qt THREAD, BECAUSE THIS WAITS FOR AN ARM TO ARRIVE.
+        #
+        # A planned pose is a SEQUENCE of waypoints, and each leg is held
+        # until the arm reaches it -- `_wait_arrival`, up to 20 s apiece.
+        # Run inline that is the window frozen for the whole move, e-stop
+        # included, and the button audit measured exactly that: "click
+        # returns: SCAN POSE, took 20.6 s -- the window was frozen for that
+        # long". Pacing relayed moves to the relay's speed cap made it more
+        # likely, because a move the arm can actually follow takes longer
+        # than one it cannot.
+        #
+        # Fourth site of this defect in this file tonight -- `arm status`,
+        # `START SCENE CAMERA` and the camera doctor were the others. The
+        # rule is the same every time: anything that WAITS gets a thread,
+        # and the result comes back through a label the refresh already
+        # polls.
+        self.pose_note.setText("%s: moving. Each waypoint is held until the "
+                               "arm reaches it, so a planned pose takes as "
+                               "long as the arm takes." % lbl)
+        self._pose_out = None
+        threading.Thread(target=self._goto_pose_work,
+                         args=(key, lbl), daemon=True).start()
+        QTimer.singleShot(700, self._goto_pose_render)
+
+    def _goto_pose_render(self, tries=90):
+        out = getattr(self, "_pose_out", None)
+        if out is None:
+            if tries > 0:
+                QTimer.singleShot(700,
+                                  lambda: self._goto_pose_render(tries - 1))
+            else:
+                self.pose_note.setText("the pose move did not report back "
+                                       "-- see the event log")
+            return
+        self.pose_note.setText(out)
+        self._pose_out = None
+
+    def _goto_pose_work(self, key, lbl):
         sent, failed, sim_used = [], [], []
         for arm in ARMS:
             try:
@@ -5933,7 +6092,10 @@ class Gui(QMainWindow):
         if sent and engaged is None:
             msg.append("(e-stop state unknown -- no /estop_state publisher; "
                        "if nothing moves, that is the first thing to check.)")
-        self.pose_note.setText("  ".join(msg))
+        # BACK THROUGH THE POLLED LABEL, not by touching the widget from
+        # this thread. Qt widgets belong to the thread that made them; the
+        # render callback runs on the Qt thread and picks this up.
+        self._pose_out = "  ".join(msg)
 
     def _vr_panel(self):
         g = QGroupBox("session details")

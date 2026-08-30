@@ -1,0 +1,171 @@
+{
+  "source": "left_gripper",
+  "stage": "fastsam",
+  "num": 11,
+  "title": "FastSAM: every region in the picture, no prompt",
+  "status": "ok",
+  "formula": "object-agnostic instance masks; no class, no prompt, no scene knowledge -- 'what are the regions', not 'where is the green cube'",
+  "measurements": [
+    {
+      "quantity": "regions returned",
+      "value": 32,
+      "unit": "count"
+    },
+    {
+      "quantity": "largest region",
+      "value": 464645,
+      "unit": "px"
+    },
+    {
+      "quantity": "largest as a fraction of the frame",
+      "value": 50.42,
+      "unit": "%"
+    },
+    {
+      "quantity": "smallest region",
+      "value": 283,
+      "unit": "px"
+    },
+    {
+      "quantity": "median region",
+      "value": 9224.0,
+      "unit": "px"
+    },
+    {
+      "quantity": "inference time",
+      "value": 6.1,
+      "unit": "s"
+    },
+    {
+      "quantity": "input size",
+      "value": 1024,
+      "unit": "px"
+    },
+    {
+      "quantity": "confidence threshold",
+      "value": 0.25,
+      "unit": "-"
+    },
+    {
+      "quantity": "NMS IoU",
+      "value": 0.7,
+      "unit": "-"
+    },
+    {
+      "quantity": "device",
+      "value": "cpu",
+      "unit": "-"
+    }
+  ],
+  "tables": {
+    "the twenty largest regions": {
+      "headers": [
+        "rank",
+        "area px",
+        "fraction of frame %"
+      ],
+      "rows": [
+        [
+          1,
+          464645,
+          50.417
+        ],
+        [
+          2,
+          369697,
+          40.115
+        ],
+        [
+          3,
+          104550,
+          11.344
+        ],
+        [
+          4,
+          39110,
+          4.244
+        ],
+        [
+          5,
+          34799,
+          3.776
+        ],
+        [
+          6,
+          34542,
+          3.748
+        ],
+        [
+          7,
+          31448,
+          3.412
+        ],
+        [
+          8,
+          28009,
+          3.039
+        ],
+        [
+          9,
+          20438,
+          2.218
+        ],
+        [
+          10,
+          19700,
+          2.138
+        ],
+        [
+          11,
+          17453,
+          1.894
+        ],
+        [
+          12,
+          16955,
+          1.84
+        ],
+        [
+          13,
+          12210,
+          1.325
+        ],
+        [
+          14,
+          10222,
+          1.109
+        ],
+        [
+          15,
+          9525,
+          1.034
+        ],
+        [
+          16,
+          9336,
+          1.013
+        ],
+        [
+          17,
+          9112,
+          0.989
+        ],
+        [
+          18,
+          8099,
+          0.879
+        ],
+        [
+          19,
+          5923,
+          0.643
+        ],
+        [
+          20,
+          5587,
+          0.606
+        ]
+      ]
+    }
+  }
+}

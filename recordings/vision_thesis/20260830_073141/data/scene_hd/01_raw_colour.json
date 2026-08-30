@@ -1,0 +1,61 @@
+{
+  "source": "scene_hd",
+  "stage": "raw_colour",
+  "num": 1,
+  "title": "The frame, as the camera delivered it",
+  "status": "ok",
+  "formula": "none -- this is the input every later stage is a function of",
+  "measurements": [
+    {
+      "quantity": "frame width",
+      "value": 1280,
+      "unit": "px"
+    },
+    {
+      "quantity": "frame height",
+      "value": 720,
+      "unit": "px"
+    },
+    {
+      "quantity": "focus, variance of Laplacian",
+      "value": 1141.4,
+      "unit": "-"
+    },
+    {
+      "quantity": "pixels clipped white",
+      "value": 8.58,
+      "unit": "%"
+    },
+    {
+      "quantity": "pixels crushed black",
+      "value": 1.954,
+      "unit": "%"
+    },
+    {
+      "quantity": "mean blue",
+      "value": 129.86,
+      "unit": "0-255"
+    },
+    {
+      "quantity": "mean green",
+      "value": 130.33,
+      "unit": "0-255"
+    },
+    {
+      "quantity": "mean red",
+      "value": 127.16,
+      "unit": "0-255"
+    },
+    {
+      "quantity": "median grey",
+      "value": 135.0,
+      "unit": "0-255"
+    },
+    {
+      "quantity": "grey std",
+      "value": 89.47,
+      "unit": "0-255"
+    }
+  ],
+  "tables": {}
+}

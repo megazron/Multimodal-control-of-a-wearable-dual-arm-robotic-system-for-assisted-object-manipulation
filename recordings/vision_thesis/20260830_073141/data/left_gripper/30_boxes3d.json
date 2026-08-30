@@ -1,0 +1,130 @@
+{
+  "source": "left_gripper",
+  "stage": "boxes3d",
+  "num": 30,
+  "title": "Every object, as an oriented 3-D box",
+  "status": "ok",
+  "formula": "centre = mid-extent ACROSS the surface + (foot + top/2) ALONG the normal; axes = (minimum-width direction, its perpendicular, the plane normal); size = the spans along them",
+  "measurements": [
+    {
+      "quantity": "objects posed",
+      "value": 5,
+      "unit": "count"
+    },
+    {
+      "quantity": "nearest object",
+      "value": 0.5389,
+      "unit": "m"
+    },
+    {
+      "quantity": "furthest object",
+      "value": 0.8427,
+      "unit": "m"
+    },
+    {
+      "quantity": "largest footprint",
+      "value": 341.0,
+      "unit": "mm"
+    },
+    {
+      "quantity": "tallest object",
+      "value": 63.9,
+      "unit": "mm"
+    },
+    {
+      "quantity": "graspable within the 85 mm jaw",
+      "value": 4,
+      "unit": "count"
+    }
+  ],
+  "tables": {
+    "every object, in the camera frame": {
+      "headers": [
+        "#",
+        "points",
+        "area px",
+        "x m",
+        "y m",
+        "z m",
+        "range m",
+        "length mm",
+        "width mm",
+        "height mm",
+        "yaw deg",
+        "graspable"
+      ],
+      "rows": [
+        [
+          0,
+          51424,
+          104550,
+          -0.0971,
+          0.0032,
+          0.6706,
+          0.6776,
+          341.0,
+          277.7,
+          63.9,
+          0.0,
+          false
+        ],
+        [
+          1,
+          10697,
+          34542,
+          0.0554,
+          0.0234,
+          0.5355,
+          0.5389,
+          99.1,
+          25.9,
+          59.7,
+          148.3,
+          true
+        ],
+        [
+          2,
+          861,
+          10222,
+          -0.3103,
+          0.0208,
+          0.7715,
+          0.8318,
+          203.0,
+          49.6,
+          58.7,
+          47.5,
+          true
+        ],
+        [
+          3,
+          701,
+          17453,
+          -0.1798,
+          -0.0419,
+          0.8222,
+          0.8427,
+          68.6,
+          9.2,
+          63.9,
+          122.8,
+          true
+        ],
+        [
+          4,
+          343,
+          5923,
+          -0.2415,
+          0.0264,
+          0.7094,
+          0.7498,
+          30.2,
+          7.3,
+          63.9,
+          24.8,
+          true
+        ]
+      ]
+    }
+  }
+}

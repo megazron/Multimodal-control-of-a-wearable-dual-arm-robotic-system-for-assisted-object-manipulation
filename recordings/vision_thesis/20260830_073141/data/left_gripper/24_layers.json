@@ -1,0 +1,69 @@
+{
+  "source": "left_gripper",
+  "stage": "layers",
+  "num": 24,
+  "title": "Splitting a cube from the pad it stands on",
+  "status": "ok",
+  "formula": "find the MODAL height bin (5 mm bins); cut 12 mm above it; recurse on what is left, twice",
+  "measurements": [
+    {
+      "quantity": "region area",
+      "value": 104550,
+      "unit": "px"
+    },
+    {
+      "quantity": "points lifted from it",
+      "value": 66260,
+      "unit": "count"
+    },
+    {
+      "quantity": "points above the plane",
+      "value": 51424,
+      "unit": "count"
+    },
+    {
+      "quantity": "pixels removed by the 1 px erosion",
+      "value": 1770,
+      "unit": "px"
+    },
+    {
+      "quantity": "layers found",
+      "value": 2,
+      "unit": "count"
+    },
+    {
+      "quantity": "lowest point",
+      "value": 4.0,
+      "unit": "mm"
+    },
+    {
+      "quantity": "highest point",
+      "value": 63.87,
+      "unit": "mm"
+    }
+  ],
+  "tables": {
+    "height layers": {
+      "headers": [
+        "layer",
+        "from mm",
+        "to mm",
+        "points"
+      ],
+      "rows": [
+        [
+          1,
+          4.0,
+          16.0,
+          12667
+        ],
+        [
+          2,
+          16.0,
+          63.87,
+          38757
+        ]
+      ]
+    }
+  }
+}

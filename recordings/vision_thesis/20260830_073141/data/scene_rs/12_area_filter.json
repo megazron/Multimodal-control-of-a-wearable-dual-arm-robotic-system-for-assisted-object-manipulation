@@ -1,0 +1,46 @@
+{
+  "source": "scene_rs",
+  "stage": "area_filter",
+  "num": 12,
+  "title": "The area filter: noise below, the table above",
+  "status": "ok",
+  "formula": "keep iff  60 px <= area <= 0.35 * W * H  (= 107520 px here)",
+  "measurements": [
+    {
+      "quantity": "regions in",
+      "value": 92,
+      "unit": "count"
+    },
+    {
+      "quantity": "kept",
+      "value": 92,
+      "unit": "count"
+    },
+    {
+      "quantity": "rejected as noise",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "quantity": "rejected as too large",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "quantity": "lower bound",
+      "value": 60,
+      "unit": "px"
+    },
+    {
+      "quantity": "upper bound",
+      "value": 107520,
+      "unit": "px"
+    },
+    {
+      "quantity": "upper bound as a fraction",
+      "value": 0.35,
+      "unit": "-"
+    }
+  ],
+  "tables": {}
+}

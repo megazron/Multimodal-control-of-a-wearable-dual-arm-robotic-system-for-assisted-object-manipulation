@@ -1,0 +1,19 @@
+instance,points,area px,claimed overlap,verdict
+17,32,9483,0,kept
+16,37,400,0,kept
+15,58,9964,0,kept
+14,60,23858,0,kept
+12,83,1550,0,kept
+9,87,2517,0,kept
+10,87,821,0,kept
+11,87,1189,0,kept
+8,107,835,0,kept
+7,135,395,0,kept
+6,162,8377,0,kept
+5,327,17688,0,kept
+3,444,827,0.003,kept
+2,572,4138,0,kept
+1,1185,82781,0,kept
+13,79,3365,1,dropped
+4,412,27250,0.861,dropped
+0,1310,70421,0.904,dropped

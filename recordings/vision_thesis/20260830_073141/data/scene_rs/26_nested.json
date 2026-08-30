@@ -1,0 +1,174 @@
+{
+  "source": "scene_rs",
+  "stage": "nested",
+  "num": 26,
+  "title": "Dropping masks that are unions of finer ones",
+  "status": "ok",
+  "formula": "voxelise each instance at 5 mm; accept smallest first; reject one whose claimed-voxel overlap exceeds 0.55",
+  "measurements": [
+    {
+      "quantity": "instances in",
+      "value": 18,
+      "unit": "count"
+    },
+    {
+      "quantity": "kept",
+      "value": 15,
+      "unit": "count"
+    },
+    {
+      "quantity": "dropped as already explained",
+      "value": 3,
+      "unit": "count"
+    },
+    {
+      "quantity": "voxel size",
+      "value": 5.0,
+      "unit": "mm"
+    },
+    {
+      "quantity": "overlap fraction that rejects",
+      "value": 0.55,
+      "unit": "-"
+    }
+  ],
+  "tables": {
+    "per instance": {
+      "headers": [
+        "instance",
+        "points",
+        "area px",
+        "claimed overlap",
+        "verdict"
+      ],
+      "rows": [
+        [
+          17,
+          32,
+          9483,
+          0.0,
+          "kept"
+        ],
+        [
+          16,
+          37,
+          400,
+          0.0,
+          "kept"
+        ],
+        [
+          15,
+          58,
+          9964,
+          0.0,
+          "kept"
+        ],
+        [
+          14,
+          60,
+          23858,
+          0.0,
+          "kept"
+        ],
+        [
+          12,
+          83,
+          1550,
+          0.0,
+          "kept"
+        ],
+        [
+          9,
+          87,
+          2517,
+          0.0,
+          "kept"
+        ],
+        [
+          10,
+          87,
+          821,
+          0.0,
+          "kept"
+        ],
+        [
+          11,
+          87,
+          1189,
+          0.0,
+          "kept"
+        ],
+        [
+          8,
+          107,
+          835,
+          0.0,
+          "kept"
+        ],
+        [
+          7,
+          135,
+          395,
+          0.0,
+          "kept"
+        ],
+        [
+          6,
+          162,
+          8377,
+          0.0,
+          "kept"
+        ],
+        [
+          5,
+          327,
+          17688,
+          0.0,
+          "kept"
+        ],
+        [
+          3,
+          444,
+          827,
+          0.003,
+          "kept"
+        ],
+        [
+          2,
+          572,
+          4138,
+          0.0,
+          "kept"
+        ],
+        [
+          1,
+          1185,
+          82781,
+          0.0,
+          "kept"
+        ],
+        [
+          13,
+          79,
+          3365,
+          1.0,
+          "dropped"
+        ],
+        [
+          4,
+          412,
+          27250,
+          0.861,
+          "dropped"
+        ],
+        [
+          0,
+          1310,
+          70421,
+          0.904,
+          "dropped"
+        ]
+      ]
+    }
+  }
+}

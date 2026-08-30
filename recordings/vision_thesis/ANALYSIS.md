@@ -121,3 +121,46 @@ same sensor.
 The raw colour, depth (`.npy`, metres) and intrinsics are kept for exactly
 this, so a figure can be redrawn or a constant changed without another lab
 session.
+
+---
+
+# The run after the fixes: `20260830_073141`
+
+All four cameras delivered. **96 of 132 stages produced a result, 0 crashed**,
+against 85 of 132 before, and the two program defects above are visibly gone.
+
+| | before (`070529`) | after (`073141`) |
+| --- | --- | --- |
+| `scene_rs` stages with a result | 17 / 33 | **27 / 33** |
+| `scene_rs` returns inside the band | **0** of 85 061 | **38 526** |
+| `scene_rs` "what stands on the surface" | refused | **18 pieces** |
+| `scene_rs` objects posed in 3-D | refused | **12, nearest 1.757 m** |
+| `left_gripper` stages with a result | 27 / 33 | 28 / 33 |
+| `right_gripper` stages with a result | 29 / 33 | 29 / 33 |
+
+The wrist cameras were also recovered between the runs: **both** vision
+modules had wedged in a state with no discriminator -- port 554 accepted a TCP
+connection while the RTSP server never answered OPTIONS, so
+`reboot_vision_module.py`'s own liveness check called them UP and refused to
+act. `scripts/rtsp_probe.py` names it; `--force` recovered both in 37 s and
+they now report `serving, 30 fps`.
+
+## What this run says that is worth being careful about
+
+**The scene camera's support plane is weak, and the figures say so.** Its
+RANSAC plane holds only **3.75% of the points** at 3.37 mm RMS, against
+**74%** and 1.4 mm on the wrist camera. That is the honest consequence of
+pointing a camera at a ROOM rather than at a work surface: there is no
+dominant plane, so "height above the support" -- and therefore every object
+height and 3-D box from that camera -- rests on a plane that only a
+thirtieth of the scene agrees with. The wrist cameras' numbers do not have
+this problem and should be the ones quoted.
+
+**The arms were still not at the pick pose** -- left 10.67 deg, right 13.53
+deg out. Much closer than the 75-82 deg of the earlier runs, but outside the
+2 deg the check allows, so these figures still must not be captioned "at the
+pick pose".
+
+**`scene_hd` remains 2-D only.** 8 stages refuse for want of intrinsics; it
+has never been calibrated in this repository. `scripts/calibrate_scene_camera.py`
+is all that stands between it and the full set.

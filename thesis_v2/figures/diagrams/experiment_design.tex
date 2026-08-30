@@ -1,46 +1,29 @@
-% EXPERIMENTAL DESIGN. Two modes crossed with five tasks, within subjects,
-% and the three options that were costed before this one was chosen.
+% THE EXPERIMENTAL DESIGN. Two conditions crossed with five tasks, within
+% dyads, drawn as a grid so a reader can count the cells. The rejected
+% alternatives are a table beneath rather than a box beside, so the figure
+% fits the text column at full size.
 \begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize]
 
-\node[font=\bfseries\small, anchor=west] at (-8, 8) {Chosen: 2 modes $\times$ 5 tasks, within subjects, $n=16$ dyads};
+\node[font=\bfseries\small, anchor=west] at (-6, 12)
+  {Two conditions $\times$ five tasks, within dyads, $n = 16$ dyads (32 participants)};
 
-\foreach \i/\t/\n in {0/{T1 positioning}/{L, R, both},
+\foreach \i/\t/\n in {0/{T1 positioning}/{left, right, both},
                       1/{T2 pick and place}/{one arm at a time},
-                      2/{T3 rigid carry}/{both, coupled},
-                      3/{T4 compliant carry}/{both, coupled},
-                      4/{T5 dual pursuit}/{both, disjoint}}
+                      2/{T3 rigid carry}/{both arms, coupled},
+                      3/{T4 compliant carry}/{both arms, coupled},
+                      4/{T5 dual pursuit}/{both arms, disjoint}}
 {
   \pgfmathsetmacro{\x}{\i*33}
-  \node[draw, fill=gray!8, minimum width=30mm, minimum height=11mm,
-        align=center, text width=28mm] at (\x, -2) {\textbf{\t}\\ \n};
-  \node[draw, fill=blue!8, minimum width=30mm, minimum height=7mm,
-        align=center, text width=28mm] at (\x, -14) {direct teleoperation};
-  \node[draw, fill=green!8, minimum width=30mm, minimum height=7mm,
-        align=center, text width=28mm] at (\x, -23) {shared autonomy};
+  \node[draw, fill=gray!8, minimum width=31mm, minimum height=12mm,
+        align=center, text width=29mm] at (\x, 0) {\textbf{\t}\\\n};
+  \node[draw, fill=blue!10, minimum width=31mm, minimum height=8mm,
+        align=center, text width=29mm] at (\x, -13) {direct teleoperation};
+  \node[draw, fill=green!10, minimum width=31mm, minimum height=8mm,
+        align=center, text width=29mm] at (\x, -23) {shared autonomy};
 }
-
-\node[anchor=west, text width=136mm, align=left] at (-16, -38)
-  {Order is counterbalanced with a Williams square, which balances immediate
-   sequence as well as position. Mode is within subjects because the
-   between-subjects alternative needs 96 participants to reach the same
-   sensitivity.};
-
-\node[draw, fill=gray!4, text width=136mm, align=left, anchor=west] at (-16, -62)
-  {\textbf{Why not all four modes.} Four modes $\times$ five tasks is
-   \SIrange{260}{320}{\minute} of task time, a \SIrange{5.5}{6.5}{\hour}
-   session, against a \SI{48}{\minute} cap on how long a person can wear
-   \SI{17}{\kilo\gram}. The three costed options were:\\[3pt]
-   \begin{tabular}{@{}llll@{}}
-   \toprule
-   option & conditions & session & detectable effect\\
-   \midrule
-   mode between subjects & 5 & \SI{127}{\minute} & only $f=0.40$, needs $n=96$\\
-   all modes, one task & 8 & \SI{169}{\minute} & breaks the pack-on cap\\
-   \textbf{two modes, five tasks} & \textbf{10} & \textbf{\SI{167}{\minute}}
-     & \textbf{$d=0.73$ at 80\% power, $n=32$}\\
-   \bottomrule
-   \end{tabular}\\[3pt]
-   Dropping VR and full autonomy is a real loss of scope and is recorded as
-   one. The comparison kept is the one where the literature disagrees with
-   itself.};
+\draw[decorate, decoration={brace, mirror, amplitude=4pt}]
+  (-16.5, -28) -- (148.5, -28)
+  node[midway, below=5pt, font=\scriptsize]
+  {ten cells per dyad; order counterbalanced with a Williams square, which
+   balances immediate sequence as well as position};
 \end{tikzpicture}

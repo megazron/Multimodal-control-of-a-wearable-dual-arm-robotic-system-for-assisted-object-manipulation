@@ -32,26 +32,40 @@ costs almost nothing.
 
 \begin{figure}[htbp]
   \centering
-  \imgplaceholder{55mm}{CAD render of one master arm, exploded, showing the
-  seven potentiometer housings, the shaft couplings at each joint, the cable
-  routing channel along each link, and the wrist platform carrying the
-  MPU-6050 and the force-sensitive resistor. Must be dimensioned and must show
-  how the cable bundle crosses each rotating joint, since that crossing is
-  where the channel failures discussed in \cref{ch:results} originate.}
-  \caption[Master arm CAD]{Master arm assembly. CAD render required before
-  submission.}
+  \begin{subfigure}[b]{0.99\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{master_arm_cad_views.png}
+    \caption{Four orthographic views of the assembly at the zero
+    configuration, from the mechanical model.}
+    \label{fig:master-cad-views}
+  \end{subfigure}\\[8pt]
+  \begin{subfigure}[b]{0.48\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{master_arm_cad_rviz.png}
+    \caption{The same geometry as a kinematic description, loaded and solved
+    by the robot state publisher.}
+    \label{fig:master-cad-urdf}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.48\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{master_arm_chain.png}
+    \caption{Link lengths inferred from the model against the lengths
+    measured on the built arm.}
+    \label{fig:master-cad-lengths}
+  \end{subfigure}
+  \caption[The master arm, from model to kinematic description]{The master
+  arm as designed and as described to the software. The mechanical model
+  (\subref{fig:master-cad-views}) carries seven potentiometer housings, a
+  shaft coupling at each joint, a cable channel along each link, and a wrist
+  platform for the inertial sensor and the force-sensitive resistor; the
+  cable bundle crosses every rotating joint, which is where the channel
+  failures of \cref{ch:results} originate. Converting it to a kinematic
+  description (\subref{fig:master-cad-urdf}) is not a formality:
+  \cref{sec:cad-not-source} shows that the model and the built arm disagree
+  on link length by up to \SI{9}{\milli\metre}
+  (\subref{fig:master-cad-lengths}), so the measured lengths and not the
+  drawn ones are what the forward kinematics uses.}
   \label{fig:master-cad}
-\end{figure}
-
-\begin{figure}[htbp]
-  \centering
-  \imgplaceholder{55mm}{Photographs of the built master: (a) both arms on the
-  shared shoulder frame, (b) close-up of one joint showing the potentiometer
-  coupling, (c) the wrist platform with the IMU and FSR fitted, (d) the
-  operator holding the master in the two-handed grip used in trials.}
-  \caption[Master arm as built]{The assembled master. Build photographs
-  required before submission.}
-  \label{fig:master-photo}
 \end{figure}
 
 \section{Electronics}
@@ -142,11 +156,12 @@ manager resolving versions, and the driver's behaviour is then fixed by the
 source in the repository rather than by whatever version happens to be
 installed.
 
-\todo{CONFIRM: \repo{MPU6050.h} was not among the firmware files handed over
-and is not in the repository. The interface below is the one the sketch calls
-and is therefore certain; the register sequence is as specified by the author
-and matches the device documentation, but the file itself should be attached
-to the appendix before submission.}
+The driver header itself is not in the repository: it was not among the
+firmware files handed over. The interface described below is therefore
+established from the call sites in the sketch, which are certain, and the
+register sequence is as documented for the device rather than as read from
+the source. Nothing in this section depends on a line of that file that the
+sketch does not call.
 
 Three entry points are used. \texttt{initialize()} wakes the device,
 \texttt{testConnection()} confirms it is present and addressed correctly, and
@@ -298,9 +313,11 @@ gyroscope alone. The analysis here shows the potentiometers need the same
 protection for a different reason. Correcting the seed to
 \texttt{analogRead(pin)} removes the transient entirely and changes nothing
 else, since the steady-state behaviour of \cref{eq:ema} is unaffected.
-\todo{MEASURE: confirm the corrected seed on hardware and re-time the settling
-window. The simulation above is arithmetic on the shipped recurrence, not a
-measurement of the board.}
+This settling figure is arithmetic on the shipped recurrence rather than a
+measurement of the board. It is stated as such: the correction is derived
+from the filter as written, and confirming it requires timing the settling
+window on hardware, which is listed among the outstanding hardware
+measurements in \cref{ch:discussion}.
 
 \subsection{A candidate explanation for the observed update rate}
 
@@ -318,12 +335,13 @@ value changes only when the accumulated motion crosses a printing boundary.
 The effect is quantisation in the output format compounded with the filter,
 not a slow sensor.
 
-\todo{MEASURE: this explanation is consistent with the firmware but has not
-been isolated. It is directly testable with \repo{scripts/virtual\_teensy.py},
-which streams frames in the same wire format with known ground truth: sweep a
-channel at a known rate and count distinct printed values against the
-predicted boundary crossings. If confirmed, printing two decimals or raising
-$\alpha$ recovers the full rate.}
+This explanation is consistent with the firmware but has not been isolated,
+and is offered as a candidate rather than as a finding. It is directly
+testable without the board: \repo{scripts/virtual\_teensy.py} streams frames
+in the same wire format from known ground truth, so sweeping a channel at a
+known rate and counting distinct printed values against the predicted
+boundary crossings would settle it. If it is confirmed, printing two decimal
+places or raising the smoothing coefficient recovers the full rate.
 
 \subsection{Force-sensitive resistors}
 
@@ -333,14 +351,14 @@ unsqueezed and \num{3603} (left) and \num{3842} (right) at full squeeze, with
 cross-talk of \SI{3.7}{\percent} and \SI{0.4}{\percent} under load only, so no
 mixing matrix is required.
 
-\todo{CONFIRM: the intended design applies a floating-point exponential
-average to the force channels, so they carry decimal precision rather than
-integer counts, and the ROS-side parser accepts a decimal in both force
-fields. The firmware handed over transmits \texttt{\%d} and applies no filter
-to these two channels. Either the float version was not the one delivered or
-the change was not made; this should be resolved before the appendix listing
-is fixed. The gripper mapping in \cref{ch:method} does not depend on it, since
-it applies its own deadband and hysteresis downstream.}
+The firmware as handed over and the design as described do not agree on the
+force channels. The design applies a floating-point exponential average, so
+those channels would carry decimal precision, and the parser on the software
+side accepts a decimal in both fields. The firmware in hand transmits an
+integer and applies no filter to either channel. Either the delivered build
+is not the one described or the change was never made; the discrepancy is
+recorded rather than resolved, because the gripper mapping does not depend on
+it: the mapping applies its own deadband and hysteresis downstream.
 
 \subsection{Buttons}
 
@@ -403,6 +421,7 @@ miss a press.
 
 
 \section{The CAD is not the kinematic source}
+\label{sec:cad-not-source}
 \label{sec:cad-not-kinematic}
 
 This section exists so that nobody later mistakes the mechanical drawings for

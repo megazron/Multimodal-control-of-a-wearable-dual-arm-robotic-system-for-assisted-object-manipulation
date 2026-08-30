@@ -251,51 +251,86 @@ One safety stack serves all six. Every mode transition asserts the invariant,
 and dropping any one of the six shared mechanisms is refused in every mode
 rather than being available as a per-mode option.
 
-\begin{sidewaysfigure}
+\begin{figure}[p]
   \centering
-  \resizebox{\textheight}{!}{\input{figures/diagrams/mode1_mannequin.tex}}
-  \caption[Data path: direct teleoperation from the mannequin]{Direct
-  teleoperation from the mannequin master. Red stages can stop the arm; dashed
-  red arrows are failure exits.}
+  \input{figures/diagrams/mode1_mannequin.tex}
+  \caption[Data path: direct teleoperation from the mannequin]{Mode 01,
+  direct teleoperation from the mannequin master. The centre column is the
+  command spine; guards and side inputs enter from the right; a dashed red
+  arrow leaves to the left for each way a stage can refuse, and names what
+  the arm does instead. Blue is sensing, grey is processing, red is a stage
+  that can stop the arm, and green commands motion. The same three-column
+  grid is used for \cref{fig:mode2,fig:mode3,fig:mode4}, so the four paths
+  can be read against one another stage by stage.}
   \label{fig:mode1}
-\end{sidewaysfigure}
+\end{figure}
 
-\begin{sidewaysfigure}
+\begin{figure}[p]
   \centering
-  \resizebox{\textheight}{!}{\input{figures/diagrams/mode2_vr.tex}}
-  \caption[Data path: direct teleoperation from VR]{Direct teleoperation from
-  a Quest headset. The headset supplies six degrees of freedom directly, so
-  neither the spherical decomposition nor the channel-health layer is
-  required.}
+  \input{figures/diagrams/mode2_vr.tex}
+  \caption[Data path: direct teleoperation from VR]{Mode 02, direct
+  teleoperation from a Quest headset. The headset supplies six degrees of
+  freedom directly, so neither the spherical decomposition nor the
+  channel-health layer of \cref{fig:mode1} appears; everything from
+  \emph{scale and anchor} downwards is the same code. Four guards are
+  specific to this path, and three of the four were added after a measurement
+  showed the fault they cover was undetectable
+  (\cref{sec:vr-guards}).}
   \label{fig:mode2}
-\end{sidewaysfigure}
+\end{figure}
 
-\begin{sidewaysfigure}
+\begin{figure}[p]
   \centering
-  \resizebox{\textheight}{!}{\input{figures/diagrams/mode3_shared.tex}}
-  \caption[Data path: shared autonomy]{Shared autonomy. Position never leaves
-  the operator, in any state.}
+  \input{figures/diagrams/mode3_shared.tex}
+  \caption[Data path: shared autonomy]{Mode 04, shared autonomy. The green
+  spine carries commanded position and does not pass through the autonomy
+  stack, so no failure of intent estimation, object tracking or grasp
+  synthesis can move the arm; the autonomy branch reaches only the
+  orientation blend. A tie between two adjacent candidates holds
+  $P=\num{0.5}$ exactly and the arbiter remains in DIRECT, because assisting
+  toward the wrong one of two candidates is worse than not assisting.}
   \label{fig:mode3}
-\end{sidewaysfigure}
+\end{figure}
 
-\begin{sidewaysfigure}
+\begin{figure}[p]
   \centering
-  \resizebox{\textheight}{!}{\input{figures/diagrams/mode4_voice.tex}}
-  \caption[Data path: full autonomy from voice]{Full autonomy from voice.
-  Refusals are drawn as first-class outcomes because this mode declines more
-  utterances than it accepts.}
+  \input{figures/diagrams/mode4_voice.tex}
+  \caption[Data path: full autonomy from an instruction]{Mode 06, full
+  autonomy from a typed or spoken instruction. Refusals are drawn as
+  first-class terminals rather than as error paths, because the mode declines
+  more utterances than it accepts and the distribution of outcomes is itself
+  the result (\cref{sec:instruction-results}). An utterance the system was
+  not addressed in produces no reply at all: an earlier version answered
+  ``sorry, I did not understand'', which defeats the purpose of a wake word
+  by replying to conversations the robot was never part of.}
   \label{fig:mode4}
-\end{sidewaysfigure}
+\end{figure}
 
-\subsection{Why the transport for VR is USB rather than the network}
+\subsection{The transport, and why it changed}
+\label{sec:vr-transport}
 
-The headset connects over \texttt{adb reverse} on USB, so the client addresses
-\texttt{ws://127.0.0.1}. Browser-based immersive sessions require a secure
-context, which over a local network means a self-signed certificate carrying
-the address, a firewall exception, and an operator accepting a warning inside
-a headset they are wearing. A loopback address is a secure origin by
-definition, so all of that disappears. The link is also not the wireless
-network the arms are on.
+An immersive browser session requires a secure context. The first
+implementation obtained one the cheap way, by tunnelling the socket over USB
+with \texttt{adb reverse} so that the client addressed
+\texttt{ws://127.0.0.1}: a loopback address is a secure origin by definition,
+which removes the certificate, the firewall exception, and the prospect of an
+operator dismissing a browser warning from inside a headset they are wearing.
+That route was abandoned because it requires \texttt{adb}, which requires
+developer mode on the headset, which cannot be assumed on a borrowed device.
+
+The delivered route serves the client page and the \texttt{wss} socket from
+\emph{one} origin, so a single certificate exception covers both, and the
+certificate carries the host's address in its \texttt{subjectAltName}.
+Mirrored networking under the Windows Subsystem for Linux makes the Linux
+host's address the Windows host's, so the address in the certificate is the
+address the headset dials. The path was verified end to end on
+2026-08-19 and requires no \texttt{adb}, no sideloading and no account on the
+headset. Bringing it up for the first time exposed two defects that no unit
+test would have found: the bridge node had never started at all, because an
+attribute named \texttt{clients} shadowed a read-only property of the base
+class; and its axis map had been written for the conventional robotics frame
+rather than for this project's, so a hand moved \SI{3}{\metre} forward
+commanded \SI{3}{\metre} to the wearer's right.
 
 \subsection{The controller route is motion capture, not virtual reality}
 \label{sec:desk}
@@ -322,6 +357,7 @@ room can identify; a second motion is a cross-check rather than an input, and
 the calibration refuses to write a value if the two are not perpendicular and
 horizontal.
 
+\label{sec:vr-guards}
 \emph{Two failures become routine off the head.} The tracking reference is a
 physical object that can be knocked, and a knock announces nothing: poses stay
 valid, the rate stays at \SI{90}{\hertz}, the controllers stay tracked, and
@@ -364,6 +400,7 @@ modular pipeline fails at a named stage with its inputs logged.
 \section{Safety architecture}
 
 \subsection{Collision avoidance in three stages}
+\label{sec:clearance}
 
 The wearer is in the collision model. Adding this was not a matter of setting
 a flag: the flag was already set, but the wearer's model carried
@@ -409,6 +446,7 @@ remained a backstop. Every zone resumed on retreat.
 \end{figure}
 
 \subsection{Blocking must be observable}
+\label{sec:blocking-observable}
 
 Four mechanisms in this system have historically stopped all motion silently.
 The common failure was never the blocking, which is usually correct. It was
@@ -499,28 +537,42 @@ was never imported.
 
 \begin{figure}[htbp]
   \centering
-  \screenshot{74mm}{The operating window at full size with a simulation
-  running: the left column grouped into set-up, run and status; the embedded
-  three-dimensional view showing the commanded configuration; the panel beside
-  it drawn from the arms' reported joint states; and the divergence readout
-  beneath both. Capture with the arms away from the home pose so that the two
-  views visibly differ.}
-  \caption[The operating window]{The window used to run a session. The
-  side-by-side arrangement exists so that a difference between what was
-  commanded and what the arms report is visible without reading a log.}
+  \includegraphics[width=\linewidth]{gui/operating_window.png}
+  \caption[The operating window]{The window a session is run from. One
+  command opens it. The left column is grouped into set-up, run and status;
+  the centre carries the mode registry and the per-mode controls; the right
+  is the three-dimensional view of the commanded configuration beside a panel
+  drawn from the arms' own reported joint states, with the divergence between
+  them read out beneath both. The arrangement exists so that a difference
+  between what was commanded and what the arms report is visible without
+  reading a log, which is the failure that motivated
+  \cref{sec:blocking-observable}. The emergency stop is the red control at
+  the lower left and is reachable from every tab.}
   \label{fig:gui}
 \end{figure}
 
 \begin{figure}[htbp]
   \centering
-  \screenshot{58mm}{The simulated scene as the operator sees it: the wearer
-  drawn from the same primitives the clearance check evaluates, the working
-  surface, the task objects, the marked working region, and both arms
-  mid-task. A second panel with the \SI{150}{\milli\metre} shell drawn around
-  the wearer would make the enforced margin visible.}
-  \caption[The simulated scene]{The simulation. The wearer is drawn from the
-  description the safety check measures against, so the display and the
-  enforced geometry cannot diverge.}
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{gui/sim_scene_iso.png}
+    \caption{Oblique view.}
+    \label{fig:sim-iso}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{gui/sim_scene_plan.png}
+    \caption{Plan view, with the two coloured pads and the marked working
+    region.}
+    \label{fig:sim-plan}
+  \end{subfigure}
+  \caption[The simulated scene]{The simulated scene at the home pose. The
+  wearer is drawn from the same primitives the clearance check evaluates, so
+  the display and the enforced geometry cannot diverge: a body that appears
+  in one and not the other has been seen and fixed twice in this project
+  (\cref{ch:instrument}). The working region is drawn as an outline at the
+  plane it bounds rather than as filled tiles, because a filled surface hides
+  the objects standing on it.}
   \label{fig:sim}
 \end{figure}
 
@@ -555,22 +607,32 @@ usable.
 
 \section{Calibration}
 
-\begin{sidewaysfigure}
+\begin{figure}[p]
   \centering
-  \resizebox{\textheight}{!}{\input{figures/diagrams/calibration.tex}}
-  \caption[Calibration procedure]{Calibration order. Two of the orderings are
-  load-bearing and the call-outs say why.}
+  \input{figures/diagrams/calibration.tex}
+  \caption[Calibration procedure]{The calibration procedure, in order. Each
+  step consumes the previous step's output, and the two orderings that are
+  load-bearing are braced to the call-out that explains them. Steps 0 and 3
+  are both consequences of the same general point: a calibration routine
+  measures whatever the instrument was actually doing at the time, so
+  establishing that the instrument is in a valid state is part of the
+  measurement and not a preliminary to it.}
   \label{fig:calibration}
-\end{sidewaysfigure}
+\end{figure}
 
 \begin{figure}[htbp]
   \centering
-  \imgplaceholder{50mm}{Annotated RViz screenshot at the home pose: both arms,
-  the backpack mount, the wearer model with collision geometry shown, and the
-  world frame triad. Must be labelled with the mount origin, the two
-  end-effector frames, and the measured clearance from the nearest arm link to
-  the torso.}
-  \caption[The model at home]{Simulated platform at the home pose. Annotated
-  screenshot required before submission.}
+  \includegraphics[width=0.78\linewidth]{rviz_after_fix.png}
+  \caption[The model at the home pose]{The complete model at the home pose:
+  both Gen3 arms, the backpack frame, and the wearer built from
+  \repo{wearer\_posture.py}, which is the single source that writes both the
+  kinematic description drawn here and the primitives the clearance guard
+  evaluates. Reading a clearance figure from this model requires two facts
+  from \cref{sec:clearance}: the mount origin sits \SI{0.1610}{\metre} from
+  the torso and is moved by no joint, so a clearance reading of exactly that
+  value is a measurement of the mount rather than of the arm; and the
+  semantic collision description excludes the forty-four proximal pairs a
+  shoulder mount actually threatens, so clearance is measured geometrically
+  and not by asking the planner whether the pose is valid.}
   \label{fig:rviz-home}
 \end{figure}

@@ -30,15 +30,10 @@
 \pgfplotsset{compat=1.18}
 \usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc,
                 shapes.geometric,shapes.misc,decorations.pathreplacing,
-                decorations.pathmorphing}
-\usepackage{rotating}   %% wide data-path diagrams go on landscape pages
+                decorations.pathmorphing,decorations.markings}
 \usepackage{setspace}
 \usepackage{fontspec}
 \usepackage{titlesec}
-\usepackage[colorinlistoftodos]{todonotes}
-%% Notes go inline. The template's marginparwidth is narrower than the note
-%% text, so margin notes ran off the page edge and were unreadable.
-\presetkeys{todonotes}{inline}{}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
 \usepackage[capitalise,nameinlink]{cleveref}
 
@@ -61,44 +56,6 @@
 \DeclareRobustCommand{\repo}[1]{{\small\ttfamily
   \def\_{\char`\_\hspace{0pt}}\def\slash{/\hspace{0pt}}#1}}
 \DeclareRobustCommand{\file}[1]{\repo{#1}}
-
-%% ---------------------------------------------------------------------------
-%% RESERVED SPACE. An image that does not exist yet is drawn as a marked box
-%% rather than omitted, so a missing figure is visible in the compiled
-%% document instead of silently absent. #1 is the height, #2 what the image
-%% must show.
-%% ---------------------------------------------------------------------------
-\newcommand{\imgplaceholder}[2]{%
-  \begin{tikzpicture}
-    \node[draw, dashed, thick, red!60!black, fill=red!3,
-          minimum height=#1, text width=0.86\linewidth, align=center,
-          inner sep=10pt] (ph) {%
-      {\bfseries\color{red!60!black} PLACEHOLDER: IMAGE REQUIRED}\\[4pt]
-      \small\color{black}#2};
-  \end{tikzpicture}}
-
-%% Screenshots of the simulator, the operating window or a live view.
-\newcommand{\screenshot}[2]{%
-  \begin{tikzpicture}
-    \node[draw, dashed, thick, blue!45!black, fill=blue!3,
-          minimum height=#1, text width=0.86\linewidth, align=center,
-          inner sep=10pt]{%
-      {\bfseries\color{blue!45!black} SPACE RESERVED FOR A SCREENSHOT}\\[5pt]
-      \small\color{black}#2};
-  \end{tikzpicture}}
-
-%% A figure reproduced from another publication. Permission is required
-%% before submission, so the requirement travels with the box.
-\newcommand{\reprodplaceholder}[2]{%
-  \begin{tikzpicture}
-    \node[draw, dashed, thick, orange!70!black, fill=orange!4,
-          minimum height=#1, text width=0.86\linewidth, align=center,
-          inner sep=10pt] {%
-      {\bfseries\color{orange!70!black} PLACEHOLDER: REPRODUCED FIGURE}\\[4pt]
-      \small\color{black}#2\\[4pt]
-      {\footnotesize\itshape Reproduction requires written permission from the
-      copyright holder. Not yet obtained.}};
-  \end{tikzpicture}}
 
 %% ---------------------------------------------------------------------------
 %% FLOWCHART STYLES. One vocabulary for every data-path and control-flow
@@ -210,6 +167,7 @@ Characterisation}
 \input{chapters/04_development.tex}
 \input{chapters/05_system.tex}
 \input{chapters/06_perception.tex}
+\input{chapters/07_vision.tex}
 \input{chapters/07_motion.tex}
 \input{chapters/08_instrument.tex}
 \input{chapters/09_results.tex}

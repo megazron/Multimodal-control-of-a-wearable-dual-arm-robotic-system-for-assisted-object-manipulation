@@ -88,8 +88,9 @@ The planning report framed this project around a haptic master and slave pair
 with physical springs at the master and virtual impedance at the slave. The
 delivered system diverged from that plan, for reasons set out in
 \cref{ch:discussion} and recorded in full in the accompanying divergence
-analysis. \todo{CONFIRM: whether the divergence analysis is submitted as an
-appendix or remains a supporting file.} The objectives below are the revised
+analysis, which is retained as a supporting file rather than as an appendix
+because it documents the route rather than the result. The objectives below
+are the revised
 set, aligned to what was built and measured.
 
 \begin{enumerate}
@@ -203,6 +204,25 @@ hardware.} \Cref{ch:discussion} explains why.
     unmeasured term. \emph{Measured; one term explicitly unmeasured and
     labelled.}
 
+  \item \textbf{A stage-by-stage instrumentation of the perception pipeline
+    on four physical cameras.} Thirty-three stages per camera, each drawing
+    itself on the frame it was given and reporting its quantities with units;
+    \num{96} of \num{132} stages produced a result and none crashed. It
+    establishes the surface fit on a real table at \SI{1.43}{\milli\metre}
+    root mean square with \SI{74}{\percent} inlier support at working
+    distance, separates a refusal from an absence by design, and found within
+    the first hour a scene-camera orientation that three files had asserted
+    and none had measured. \emph{Measured on physical cameras;}
+    \cref{ch:vision}.
+
+  \item \textbf{A validation of the study's own analysis against constructed
+    ground truth.} The pre-registered procedure recovers the effect the design
+    was powered for on \SI{97.3}{\percent} of \num{20000} simulated studies
+    family-wise but on only \SI{63.8}{\percent} for any named task once the
+    correction is applied, while rejecting a true null at exactly the nominal
+    rate. The design's own power calculation reports neither number.
+    \emph{Measured on constructed data;} \cref{ch:participant}.
+
   \item \textbf{A verification methodology} requiring an instrument to recover
     a known answer before a surprising measurement taken with it is reported.
     \emph{Applied throughout.}
@@ -210,7 +230,7 @@ hardware.} \Cref{ch:discussion} explains why.
 
 The last arose from necessity. Across this project, results that looked like
 system failures turned out to be defects in the measuring tool on
-twenty-five separate occasions, and validating the instrument first caught
+twenty-six separate occasions, and validating the instrument first caught
 errors that would otherwise have entered the record as findings. Two of them
 would have removed results that are now central to this thesis. It is the most
 transferable outcome of the work, and \cref{ch:instrument} reports the whole
@@ -226,7 +246,10 @@ tried and abandoned. \Cref{ch:method} describes the system as built.
 \Cref{ch:perception} covers the perception stage that replaced declared
 coordinates with measured ones, the planner that consults it, the
 natural-language route into the task layer, and the camera that observes the
-wearer. \Cref{ch:motion} covers motion generation and what is known about
+wearer. \Cref{ch:vision} then reports what that pipeline does on four
+physical cameras, stage by stage, and is together with
+\cref{sec:hardware-session} the only part of this thesis whose numbers come
+from hardware in the laboratory. \Cref{ch:motion} covers motion generation and what is known about
 transferring a joint command to a physical arm, and assembles the positioning
 and reaction budgets. \Cref{ch:instrument} is the methods contribution: every
 occasion on which the instrument rather than the system was at fault.
@@ -234,7 +257,8 @@ occasion on which the instrument rather than the system was at fault.
 strength of evidence behind it. \Cref{ch:workspace} presents the workspace
 characterisation separately, because it is a chain of measurements whose
 consequences determine the shape of the task set. \Cref{ch:study} specifies
-the two-person study in full and \cref{ch:participant} is where its results
-will go. \Cref{ch:discussion} interprets the results and states the
+the two-person study in full, and \cref{ch:participant} reports what can be
+established about that study without participants: the analysis written out,
+and a measurement of what it does to data whose answer is known. \Cref{ch:discussion} interprets the results and states the
 limitations, and \cref{ch:conclusion} sets out what would most improve the
 system, in the order it should be done.

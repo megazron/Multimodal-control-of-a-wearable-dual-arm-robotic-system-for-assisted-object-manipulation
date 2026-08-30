@@ -115,6 +115,9 @@ from datetime import datetime
 
 import numpy as np
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import scene_rs_orientation as _rs_orient   # noqa: E402
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 WS = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
@@ -993,12 +996,23 @@ def rs_profiles():
     return d, usb, have
 
 
-def grab_scene_rs(frames=12, rotate180=True):
+def grab_scene_rs(frames=12, rotate180=None):
     """RealSense D435i: depth ALIGNED to colour, averaged over valid pixels.
 
     The stream mode is negotiated against what the device reports, because
     what it offers depends on how it enumerated -- see RS_CANDIDATES.
+
+    WHICH WAY UP IS NOT DECIDED HERE.  It used to be: this function carried
+    `rotate180=True` and the sentence "the camera is mounted upside down",
+    and nobody had measured it.  It is not mounted upside down, and every
+    scene_rs figure recorded before 2026-08-30 came out inverted.  The
+    orientation now comes from `config/scene_rs_orientation.json` through
+    `scene_rs_orientation`, which is also what the live node and the
+    calibration rig read, so the three cannot disagree again.  Passing
+    rotate180 explicitly overrides the file; None means "ask the file".
     """
+    if rotate180 is None:
+        rotate180 = _rs_orient.rotate180_flag()
     import pyrealsense2 as rs
     dev, usb, have = rs_profiles()
     picks = [(dp, cp) for dp, cp in RS_CANDIDATES
@@ -1073,12 +1087,12 @@ def grab_scene_rs(frames=12, rotate180=True):
                     % (dp[0], dp[1], dp[2], len(hashes), uniq))
             continue
         w, h = ci.width, ci.height
-        if rotate180:
-            depth = cv2.rotate(depth, cv2.ROTATE_180)
-            colour = cv2.rotate(colour, cv2.ROTATE_180)
-            K = (ci.fx, ci.fy, w - 1 - ci.ppx, h - 1 - ci.ppy, w, h)
-        else:
-            K = (ci.fx, ci.fy, ci.ppx, ci.ppy, w, h)
+        # Image and intrinsics rotate TOGETHER or not at all -- one call, so
+        # there is no branch in which half of the rotation can be applied.
+        colour, depth, Kc, _ = _rs_orient.rotate(
+            colour, depth, (ci.fx, ci.fy, ci.ppx, ci.ppy),
+            (ci.fx, ci.fy, ci.ppx, ci.ppy), apply=rotate180)
+        K = tuple(Kc) + (w, h)
         live = dict(frames=len(hashes), unique_content=uniq,
                     unique_frame_numbers=uniq,
                     valid_frac=float((depth > 0).mean()))
@@ -1096,9 +1110,12 @@ def grab_scene_rs(frames=12, rotate180=True):
                     "what the device reports it has. Depth is aligned to "
                     "colour by librealsense and averaged over %d frames, "
                     "valid pixels only." % (chosen, frames)),
-        notes=["rotated 180 deg: the camera is mounted upside down and the "
-               "principal point is rotated WITH the image (cx'=W-1-cx)"
-               if rotate180 else "not rotated",
+        notes=["rotated 180 deg (from %s): the principal point is rotated "
+               "WITH the image, cx'=W-1-cx"
+               % _rs_orient.load_orientation()["source"] if rotate180 else
+               "NOT rotated: measured 2026-08-30 against the HD webcam, "
+               "which watches the same scene and is rotated by nothing, "
+               "this camera is mounted the right way up",
                "liveness: %d frames, %d distinct depth images, %d distinct "
                "frame numbers, %.0f%% of pixels valid"
                % (live["frames"], live["unique_content"],
@@ -3916,7 +3933,9 @@ def _acquire_once(name, args):
                                   "failed: %s" % (first, second))
         return grab_gripper_rtsp(arm)
     if name == "scene_rs":
-        return grab_scene_rs(args.rs_frames, not args.no_rs_rotate)
+        return grab_scene_rs(args.rs_frames,
+                             {"auto": None, "on": True,
+                              "off": False}[args.rs_rotate])
     if name == "scene_hd":
         try:
             return grab_scene_hd()
@@ -4450,9 +4469,12 @@ def main(argv=None):
                          "streams and Kinova allows only two clients.")
     ap.add_argument("--rs-frames", type=int, default=12,
                     help="RealSense frames to average over valid pixels")
-    ap.add_argument("--no-rs-rotate", action="store_true",
-                    help="the RealSense is mounted upside down and is rotated "
-                         "180 deg by default; this turns that off")
+    ap.add_argument("--rs-rotate", choices=("auto", "on", "off"),
+                    default="auto",
+                    help="whether to rotate the RealSense 180 deg. 'auto' "
+                         "reads config/scene_rs_orientation.json, which "
+                         "records the MEASURED mounting; 'on'/'off' override "
+                         "it for one run.")
     ap.add_argument("--fix", action="store_true",
                     help="attempt the repair when a camera does not answer: "
                          "re-attach the USB cameras over usbipd, and start the "

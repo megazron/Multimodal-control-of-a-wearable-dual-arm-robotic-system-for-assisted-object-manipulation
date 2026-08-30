@@ -2,20 +2,20 @@
   "name": "scene_rs",
   "provenance": "RealSense D435i across the room, depth 480x270@6 + colour 640x480@6, USB 2.1, negotiated against what the device reports it has. Depth is aligned to colour by librealsense and averaged over 12 frames, valid pixels only.",
   "notes": [
-    "rotated 180 deg: the camera is mounted upside down and the principal point is rotated WITH the image (cx'=W-1-cx)",
+    "ORIENTATION CORRECTED 2026-08-30: this frame had been rotated 180 deg on the assumption that the camera is mounted upside down. It is not. Measured against the HD webcam, which watches the same scene and is rotated by nothing: as-saved r=+0.272, rotated r=+0.662. The rotation has been undone on the image, the depth and the principal point together (cx=W-1-cx).",
     "liveness: 12 frames, 12 distinct depth images, 12 distinct frame numbers, 28% of pixels valid"
   ],
   "K_colour": [
     603.0215454101562,
     603.1287841796875,
-    320.125244140625,
-    247.78213500976562
+    318.874755859375,
+    231.21786499023438
   ],
   "K_depth": [
     603.0215454101562,
     603.1287841796875,
-    320.125244140625,
-    247.78213500976562
+    318.874755859375,
+    231.21786499023438
   ],
   "depth_is_aligned": true,
   "no_depth_reason": "",
@@ -27,5 +27,9 @@
   "depth_shape": [
     480,
     640
-  ]
+  ],
+  "orientation_corrected": {
+    "rotated_by_deg": 180,
+    "evidence": "as-saved r=+0.272, rotated r=+0.662"
+  }
 }

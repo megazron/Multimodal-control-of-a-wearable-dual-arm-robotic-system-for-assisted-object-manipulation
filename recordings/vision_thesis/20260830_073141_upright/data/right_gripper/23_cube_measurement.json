@@ -1,0 +1,71 @@
+{
+  "source": "right_gripper",
+  "stage": "cube_measurement",
+  "num": 23,
+  "title": "The measurement the pick actually acts on",
+  "status": "ok",
+  "formula": "cube = colour(u,v) AND h > 5 mm;  foot = mean(Pk) - n (n.mean(Pk) + d);  centre = foot + n * max(h)/2",
+  "measurements": [
+    {
+      "quantity": "object points",
+      "value": 160,
+      "unit": "count"
+    },
+    {
+      "quantity": "points that are the colour but ON the plane",
+      "value": 708,
+      "unit": "count"
+    },
+    {
+      "quantity": "points off the plane but not the colour",
+      "value": 20033,
+      "unit": "count"
+    },
+    {
+      "quantity": "top above the plane",
+      "value": 55.01,
+      "unit": "mm"
+    },
+    {
+      "quantity": "median height",
+      "value": 19.57,
+      "unit": "mm"
+    },
+    {
+      "quantity": "centre x",
+      "value": 0.05106,
+      "unit": "m"
+    },
+    {
+      "quantity": "centre y",
+      "value": 0.05186,
+      "unit": "m"
+    },
+    {
+      "quantity": "centre z",
+      "value": 0.72599,
+      "unit": "m"
+    },
+    {
+      "quantity": "range to the centre",
+      "value": 0.72963,
+      "unit": "m"
+    },
+    {
+      "quantity": "plane RMS",
+      "value": 1.593,
+      "unit": "mm"
+    },
+    {
+      "quantity": "plane inlier fraction",
+      "value": 0.5279,
+      "unit": "-"
+    },
+    {
+      "quantity": "minimum points the pick requires",
+      "value": 60,
+      "unit": "count"
+    }
+  ],
+  "tables": {}
+}

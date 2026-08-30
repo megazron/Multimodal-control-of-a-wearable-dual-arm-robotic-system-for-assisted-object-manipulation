@@ -39,7 +39,7 @@ Four corollaries, each learned from a specific case below.
 \section{The cases}
 
 \Cref{tab:instr} lists the sixteen recorded during the interface work and
-\cref{tab:instr2} the nine recorded afterwards, during the perception, motion
+\cref{tab:instr2} the ten recorded afterwards, during the perception, motion
 generation and hardware work. The split is itself informative: the rate did not
 fall as the project matured, because each new capability brought a new
 instrument with it, and the later cases are on the whole more expensive than
@@ -186,13 +186,19 @@ the earlier ones.
         \SI{181.02}{\degree} are the same configuration. The move had
         completed
       & The commanded and achieved poses being physically identical \\
+    Every scene-camera figure recorded upside down
+      & Three files decided independently whether the camera is inverted,
+        two rotating and one not. None had measured it; the camera is the
+        right way up (\cref{sec:orientation})
+      & A second camera watching the same room, correlated against the first
+        in both orientations \\
     \bottomrule
   \end{tabular}
 \end{table}
 
 \section{Four mechanisms}
 
-Sorted by mechanism rather than by symptom, the twenty-five fall into four
+Sorted by mechanism rather than by symptom, the twenty-six fall into four
 groups. None is specific to robotics.
 
 \paragraph{Absence read as a value.} A known-answer check that passed on zero
@@ -219,6 +225,17 @@ from nothing, and they do not.
 after perturbing it, and screenshotting after the window closed. Both are easy
 to do and invisible in the output afterwards.
 
+\paragraph{A constant asserted in more than one place.} The twenty-sixth case
+belongs to none of the four and is worth naming separately, because it is the
+one this project is most likely to repeat. Three files each carried their own
+answer to ``which way up is the camera'', two of them agreeing with each other
+and none of them measured. There was no single place to be wrong, so there was
+no single place to check, and the disagreement between the files was silent
+because no artefact was ever compared across them. The remedy is structural
+rather than diligent: one owner for the fact, one function that applies it to
+the image and the intrinsics together so that half of it cannot be applied,
+and a stored record of the measurement that set it.
+
 \section{What actually caught them}
 
 The defence that worked was not care. It was \textbf{redundancy}: having an
@@ -226,13 +243,13 @@ independently known quantity to check against.
 
 \begin{table}[htbp]
   \centering
-  \caption{What revealed each of the twenty-five.}
+  \caption{What revealed each of the twenty-six.}
   \label{tab:caught}
   \begin{tabular}{@{}lr@{}}
     \toprule
     Revealed by & Cases \\
     \midrule
-    An independently known quantity contradicting the reading & \textbf{14} \\
+    An independently known quantity contradicting the reading & \textbf{15} \\
     Inspection of the code or the method & 5 \\
     Looking at the raw artefact, usually an image & 6 \\
     \bottomrule
@@ -280,6 +297,9 @@ operator to ignore it, which spends the credibility on which every other alarm
 in the system depends. Suppressing the symptom without knowing the cause was
 available and was refused.
 
-\todo{CONFIRM: whether this chapter belongs in the main body or as an
-appendix. It is a methods contribution rather than a result, and its length is
-justified only if the examiner reads it as such.}
+This chapter is placed in the main body deliberately. It is a methods
+contribution rather than a result, and the twenty-six cases it reports are the
+reason several numbers elsewhere in this thesis are stated with the
+qualifications they carry. Read as an appendix it would be a list of bugs;
+read in place it is the argument for why the measurements that survived are
+worth believing.

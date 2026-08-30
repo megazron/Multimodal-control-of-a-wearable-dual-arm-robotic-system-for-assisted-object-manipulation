@@ -1,52 +1,50 @@
-% MODE 6 IN THE REGISTRY -- FULL AUTONOMY FROM VOICE.
-% Refusals are drawn as first-class outcomes, not error paths: this mode
-% declines more utterances than it accepts, and each refusal has its own exit.
-\begin{tikzpicture}[x=32mm, y=15mm]
+% MODE 06 -- FULL AUTONOMY FROM A TYPED OR SPOKEN INSTRUCTION.
+% Refusals are drawn as first-class outcomes with their own terminals,
+% because this mode declines more utterances than it accepts and the
+% distribution of outcomes IS the result (34 correct / 14 asked / 27 refused
+% / 0 misunderstood over 75 phrasings).
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize,
+  spine/.style  = {proc,   text width=42mm},
+  guardn/.style = {safety, text width=40mm},
+  sensen/.style = {sensor, text width=34mm},
+  sinkn/.style  = {draw, dashed, rounded corners=2pt, red!60!black,
+                   fill=red!3, text width=38mm, align=center,
+                   font=\scriptsize, inner sep=3pt},
+  outn/.style   = {actuator, text width=42mm}]
 
-\node[sensor] (mic)  at (0, 3.0) {microphone};
-\node[proc]   (stt)  at (1, 3.0) {faster-whisper\\\texttt{small}, int8\\\SI{1222}{\mebi\byte} VRAM};
-\node[decision](wake)at (2, 3.0) {wake word?};
-\node[proc, text width=30mm] (gram) at (3.1, 3.0)
-      {grammar parser\\closed verb set:\\grab, handover,\\place, stop};
+\node[sensen] (mic) at (-54, 10) {typed sentence,\\or microphone};
+\node[sensen] (cam) at ( 54, 10) {wrist and scene cameras\\RGB-D};
 
-\node[sensor] (cam)  at (0, 0.6) {wrist cameras\\RGB-D};
-\node[proc]   (det)  at (1, 0.6) {YOLO-World-s\\open vocabulary\\\SI{23}{\milli\second} per frame};
-\node[proc]   (world)at (2, 0.6) {world model\\\texttt{match(exclude=..)}};
-\node[safety] (keep) at (3.1, 0.6) {wearer keep-out\\\emph{filters before}\\\emph{resolution}};
+\node[spine] (stt)  at (-54,-12) {\texttt{faster-whisper} small\\int8, \SI{1222}{\mebi\byte} VRAM};
+\node[decision, text width=26mm] (wake) at (-54,-32) {addressed?};
+\node[spine] (gram) at (-54,-54) {grammar parser\\closed verb set:\\pick, place, hand over, stop};
 
-\node[decision](res) at (4.3, 1.8) {resolves to\\exactly one?};
-\node[safety] (conf) at (5.5, 1.8) {spoken confirmation\\\SI{2}{\second} window};
-\node[stub]   (plan) at (6.5, 1.8) {motion plan\\\emph{execution stops}\\\emph{at PLAN}};
-\node[actuator](arm) at (7.5, 1.8) {Kinova Gen3\\$v_{\max}$ \SI{0.15}{\radian\per\second}};
-\node[safety] (stop) at (5.5, 3.4) {voice ``stop''\\$\rightarrow$ \texttt{/estop}\\in \SI{2}{\milli\second}};
+\node[spine] (det)   at (54,-12) {open-vocabulary detector\\HSV gate with a per-cube margin};
+\node[spine] (world) at (54,-32) {world model\\from the measured map};
+\node[guardn](keep)  at (54,-54) {wearer keep-out\\filters \emph{before} resolution};
 
-% refusal sinks, drawn explicitly so each has somewhere to go
-\node[proc, fill=red!4, draw=red!50!black, text width=30mm] (silent) at (2, 4.6)
-      {\textbf{no reply at all}};
-\node[proc, fill=red!4, draw=red!50!black, text width=34mm] (refuse) at (4.3, -0.9)
-      {\textbf{refuse, and say why}\\``I can't see anything\\matching \ldots'' \emph{or}\\``which one?'' picking none};
+\node[decision, text width=32mm] (res) at (0,-78) {resolves to\\exactly one?};
+\node[guardn](conf) at (0,-100) {announce the intention,\\then require a confirmation};
+\node[spine] (plan) at (0,-120) {plan against the measured map\\not against declared coordinates};
+\node[outn]  (arm)  at (0,-140) {Kinova Gen3\\$v_{\max}=\SI{0.15}{\radian\per\second}$};
+
+\node[guardn, text width=36mm] (stop) at (62,-100) {``stop'' $\rightarrow$ \texttt{/estop}\\in \SI{2}{\milli\second}};
+
+\node[sinkn] (silent) at (-54,-78) {not addressed:\\\textbf{no reply at all}};
+\node[sinkn] (ask)    at (-54,-104) {none, or more than one:\\\textbf{refuse, and say why}\\or \textbf{ask}, picking none};
 
 \draw[flow] (mic) -- (stt);
 \draw[flow] (stt) -- (wake);
-\draw[flow] (wake) -- node[lbl, above] {yes} (gram);
+\draw[flow] (wake) -- node[lbl, right] {yes} (gram);
 \draw[flow] (cam) -- (det);
 \draw[flow] (det) -- (world);
 \draw[flow] (world) -- (keep);
-\draw[flow] (gram.east) to[out=0,in=120] (res.north west);
-\draw[flow] (keep.east) to[out=0,in=240] (res.south west);
-\draw[flow] (res) -- node[lbl, above] {yes} (conf);
+\draw[flow] (gram.south) to[out=270,in=180] (res.west);
+\draw[flow] (keep.south) to[out=270,in=0]   (res.east);
+\draw[flow] (res) -- node[lbl, right] {yes} (conf);
 \draw[flow] (conf) -- (plan);
 \draw[flow] (plan) -- (arm);
-\draw[flow] (stop) -- (conf);
-
-\draw[fail] (wake.north) -- node[faillbl, right, pos=0.45] {no} (silent.south);
-\draw[fail] (res.south) -- node[faillbl, right, pos=0.4] {none, or many} (refuse.north);
-
-\node[font=\scriptsize\itshape, anchor=north west, text width=200mm] at (-0.45, -1.7)
-  {A no-wake utterance produces no reply at all; an earlier version answered
-   ``sorry, I didn't understand'', which defeats the wake word by replying to
-   conversations the robot was never addressed in. The keep-out filters
-   candidates \emph{before} disambiguation, so a target behind the wearer is
-   never one of the options offered. Autonomy runs at a quarter of the
-   teleoperation velocity cap because nobody is holding a master arm.};
+\draw[flow] (stop.west) -- (conf.east);
+\draw[fail] (wake.west) to[out=180,in=90] node[faillbl, left, pos=0.4] {no} (silent.north);
+\draw[fail] (res.west) -- node[faillbl, above] {no} (ask.east);
 \end{tikzpicture}

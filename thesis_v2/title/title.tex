@@ -6,9 +6,15 @@
 %	LOGO SECTION
 %----------------------------------------------------------------------------------------
 
-% LOGO. Overleaf converts EPS automatically, so on Overleaf the line below
-% can be replaced by:  \includegraphics[width=8cm]{title/logo.eps}
-\vspace*{2cm}
+% LOGO. The supplied file is a DOS-EPS container, which needs Ghostscript to
+% convert and is therefore not portable. The wordmark was extracted from the
+% container's own preview to a lossless bitmap, so the title page builds
+% identically on Overleaf and locally. logo.eps is kept beside it unchanged,
+% and logo_clean.eps is the same file with the DOS container stripped, which
+% is the vector version to use where Ghostscript is available.
+\IfFileExists{title/logo.png}{%
+  \includegraphics[width=8cm]{title/logo.png}\\[1cm]}{%
+  \vspace*{2cm}}
  
 %----------------------------------------------------------------------------------------
 
@@ -60,7 +66,11 @@ Dr.\ Etienne Burdet % Comment out these two lines if there is no co-supervisor
 %	DATE SECTION
 %----------------------------------------------------------------------------------------
 
-{\large \today}\\[2cm] % Date, change the \today to a set date if you want to be precise
+{\large \today}\\[1.2cm]
+
+{\normalsize Submitted in partial fulfilment of the requirements for the degree
+of\\ Master of Science in Human and Biological Robotics\\ at Imperial College
+London}\\[1.2cm]
 
 \vfill % Fill the rest of the page with whitespace
 

@@ -1,12 +1,66 @@
 \chapter{Results}
 \label{ch:results}
 
-Every result is labelled with the strength of evidence behind it. Three levels
-are used and the distinction is not cosmetic: \emph{measured on recorded
-hardware data} means the numbers come from the physical master; \emph{verified
-in simulation} means they come from the simulated platform with mock hardware;
-\emph{implemented} means the code exists and runs but the quantity was not
-measured. Nothing in this chapter was validated on a physical Kinova arm.
+Every result in this chapter is labelled with the strength of evidence behind
+it, and the label is placed under the section heading rather than buried in
+the text, so that no number can be read without it. Four classes are used and
+the distinction is not cosmetic.
+
+\begin{description}
+  \item[Measured on physical hardware.] The numbers come from a physical
+    device in the laboratory: the instrumented master arm, a moving Kinova
+    arm, or a real camera. This is the strongest class and the rarest.
+  \item[Measured on recorded hardware data.] The numbers come from data
+    captured from a physical device and analysed offline. The device was
+    real; the conditions were whatever they were on the day of capture.
+  \item[Verified in simulation.] The numbers come from the simulated platform
+    with mock hardware, using the same kinematic description, the same
+    inverse-kinematics solver and the same safety code as the delivered
+    system. Everything downstream of a joint command is modelled.
+  \item[Measured on constructed data.] The numbers characterise an
+    \emph{algorithm} against an input whose answer was chosen rather than
+    observed. Legitimate for arithmetic and for statistics, never for
+    perception, and always labelled as such.
+\end{description}
+
+\Cref{tab:evidence-map} places every result in this thesis in one of those
+classes. \textbf{No result anywhere in this thesis was validated on a physical
+Kinova arm carrying a load}, and the single session in which an arm moved at
+all is \cref{sec:hardware-session}.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Where each result comes from]{Where every result in this thesis
+  comes from. The table is the answer to the question an examiner should ask
+  first, and it is deliberately unflattering: the majority of this work is
+  simulated, the hardware column is short, and the two entries that are
+  neither are labelled for what they are.}
+  \label{tab:evidence-map}
+  \begin{tabular}{@{}p{0.30\linewidth}p{0.32\linewidth}p{0.30\linewidth}@{}}
+    \toprule
+    Evidence class & Results in this class & Where \\
+    \midrule
+    Measured on physical hardware
+      & Perception on four real cameras, \num{132} stages; the scene-camera
+        orientation; one Kinova arm driven from its own wrist camera; the
+        hand-eye transform error
+      & \cref{ch:vision}, \cref{sec:hardware-session} \\
+    Measured on recorded hardware data
+      & Channel health; the cost of each degradation rung; what the incoherent
+        channels inject; axis correctness; the lateral constraint
+      & \cref{sec:channelhealth} onwards \\
+    Verified in simulation
+      & Fault injection and dead-man timing; the task set; grasping;
+        workspace and clearance; motion generation; the recorded
+        demonstration set; latency
+      & this chapter, \cref{ch:workspace} \\
+    Measured on constructed data
+      & Instruction grounding; the study's analysis and its power
+      & \cref{sec:instruction-results}, \cref{ch:participant} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \section{Channel health}
 \label{sec:channelhealth}
@@ -455,13 +509,19 @@ updates.
 
 \begin{figure}[htbp]
   \centering
-  \imgplaceholder{45mm}{Screenshot of the operations console under load,
-  showing the pipeline view with one stage marked as the root cause and
-  downstream stages marked as consequences, the per-channel staleness panel,
-  and the blocking summary. Must be captured with a fault present so the
-  first-out annunciation is visible.}
-  \caption[Operations console]{The console during a fault. Screenshot required
-  before submission.}
+  \includegraphics[width=0.86\linewidth]{gui/ready_panel.png}
+  \caption[The readiness panel with faults present]{The readiness panel with
+  faults present. Nine preconditions are evaluated continuously and each
+  reports one of three states, which is the point: \textsc{not checked} is
+  drawn distinctly from \textsc{passing}, because a check that has not run
+  and a check that has passed are indistinguishable in a two-state display
+  and the difference is exactly the one an operator needs. Two conditions are
+  failing here and six have not been evaluated, and the panel says so in
+  those words rather than showing a single aggregate light. The failure this
+  design exists to prevent is recorded in \cref{ch:instrument}: a bring-up
+  sequence that reported \textsc{ready to operate} with no headset in the
+  building, because the step that was supposed to establish that poses were
+  arriving checked only that the topic was listed.}
   \label{fig:console}
 \end{figure}
 
@@ -502,6 +562,7 @@ the failure it produces is the arm driving confidently at coordinates measured
 in a previous session.
 
 \section{Instruction handling}
+\label{sec:instruction-results}
 
 \emph{Measured on constructed scenes; grounding rather than detection.}
 
@@ -539,6 +600,7 @@ gripper pads by alternating index, which is a single-arm assumption, and
 therefore scored two objects against the pad \SI{0.58}{\metre} away.
 
 \section{The first hardware session}
+\label{sec:hardware-session}
 \label{sec:hardware}
 
 \emph{Measured on a physical arm. This is the only section of this thesis

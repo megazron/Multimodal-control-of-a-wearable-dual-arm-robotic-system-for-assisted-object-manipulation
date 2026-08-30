@@ -1,0 +1,71 @@
+{
+  "source": "left_gripper",
+  "stage": "raw_depth",
+  "num": 15,
+  "title": "The depth frame, and where it has no answer",
+  "status": "ok",
+  "formula": "one 16-bit value per pixel, in MILLIMETRES on the wire, divided by 1000 here. 0 means 'no return' and is NOT a distance of zero.",
+  "measurements": [
+    {
+      "quantity": "depth width",
+      "value": 480,
+      "unit": "px"
+    },
+    {
+      "quantity": "depth height",
+      "value": 270,
+      "unit": "px"
+    },
+    {
+      "quantity": "pixels with a return",
+      "value": 115923,
+      "unit": "px"
+    },
+    {
+      "quantity": "that fraction",
+      "value": 89.45,
+      "unit": "%"
+    },
+    {
+      "quantity": "median range",
+      "value": 2.222,
+      "unit": "m"
+    },
+    {
+      "quantity": "5th percentile",
+      "value": 0.426,
+      "unit": "m"
+    },
+    {
+      "quantity": "95th percentile",
+      "value": 5.474,
+      "unit": "m"
+    },
+    {
+      "quantity": "nearest return",
+      "value": 0.362,
+      "unit": "m"
+    },
+    {
+      "quantity": "furthest return",
+      "value": 10.565,
+      "unit": "m"
+    },
+    {
+      "quantity": "returns inside this camera's working band",
+      "value": 54789,
+      "unit": "px"
+    },
+    {
+      "quantity": "band near",
+      "value": 0.08,
+      "unit": "m"
+    },
+    {
+      "quantity": "band far",
+      "value": 1.5,
+      "unit": "m"
+    }
+  ],
+  "tables": {}
+}

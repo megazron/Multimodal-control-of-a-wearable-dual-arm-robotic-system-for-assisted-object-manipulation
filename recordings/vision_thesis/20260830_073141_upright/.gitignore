@@ -1,0 +1,6 @@
+# Derived: regenerate with `cv_pickpose_visuals.py --replay <this dir>`.
+# See README.md. Kept out of git because they are 226 MB of reproducible
+# pixels in a repository whose history is already 3.5 GB.
+stages/
+preview/
+sheet_*.png

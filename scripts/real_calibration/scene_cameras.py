@@ -32,8 +32,13 @@ distinct frames, YUYV -> no frames at all.
 from __future__ import annotations
 
 import hashlib
+import os
+import sys
 
 import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import scene_rs_orientation as _rs_orient   # noqa: E402
 
 RS_DEPTH_WH = (424, 240)
 RS_COLOR_WH = (640, 480)
@@ -49,8 +54,13 @@ class CameraError(RuntimeError):
 class SceneRealSense:
     """Depth + colour, aligned to colour, with a liveness check."""
 
-    def __init__(self, rotate180=True):
-        self.rotate180 = rotate180
+    def __init__(self, rotate180=None):
+        # WHICH WAY UP IS NOT DECIDED HERE. It used to default to True on an
+        # assumption nobody had measured; measured 2026-08-30 the camera is
+        # the right way up. config/scene_rs_orientation.json is the one
+        # owner, shared with srl_realsense_node and cv_pickpose_visuals.
+        self.rotate180 = (_rs_orient.rotate180_flag() if rotate180 is None
+                          else bool(rotate180))
         self.pipe = None
         self.scale = None
         self.K = None          # (fx, fy, cx, cy, w, h) AFTER rotation
@@ -80,11 +90,10 @@ class SceneRealSense:
         ci = prof.get_stream(rs.stream.color) \
                  .as_video_stream_profile().get_intrinsics()
         w, h = ci.width, ci.height
-        if self.rotate180:
-            # BOTH halves of the rotation, together. See the module docstring.
-            self.K = (ci.fx, ci.fy, w - 1 - ci.ppx, h - 1 - ci.ppy, w, h)
-        else:
-            self.K = (ci.fx, ci.fy, ci.ppx, ci.ppy, w, h)
+        # BOTH halves of the rotation, together. See the module docstring.
+        K = ((ci.fx, ci.fy, ci.ppx, ci.ppy) if not self.rotate180
+             else _rs_orient.rotate_K((ci.fx, ci.fy, ci.ppx, ci.ppy), w, h))
+        self.K = tuple(K) + (w, h)
         self._align = rs.align(rs.stream.color)
         for _ in range(20):
             self.pipe.wait_for_frames()

@@ -57,14 +57,14 @@ rather than merely quiet.
 
 \section{Design}
 
-\begin{sidewaysfigure}
+\begin{figure}[htbp]
   \centering
-  \resizebox{\textheight}{!}{\input{figures/diagrams/experiment_design.tex}}
+  \input{figures/diagrams/experiment_design.tex}
   \caption[Experimental design]{Conditions crossed with tasks, together with
   the design options that were costed and rejected. Within-dyad throughout:
   between-subject variance on this task is larger than the effects sought.}
   \label{fig:expdesign}
-\end{sidewaysfigure}
+\end{figure}
 
 Two modes, direct teleoperation and shared autonomy, crossed with five tasks,
 within subjects, at sixteen dyads. Roles are fixed for the whole session:
@@ -86,6 +86,30 @@ that fits inside the wearer's exposure limit while retaining the task
 contrast, and dropping the controller and full-autonomy modes is recorded as a
 real loss of scope rather than absorbed silently.
 
+\begin{table}[htbp]
+  \centering
+  \caption[Design options costed before the study was fixed]{The three
+  designs that were costed before this one was chosen. Session length is task
+  time plus fitting, breaks and questionnaires; the exposure cap is the
+  \SI{48}{\minute} for which a person should carry \SI{17}{\kilo\gram} in one
+  continuous block, and the pack-on total is what the design actually
+  imposes. Detectable effect is at \SI{80}{\percent} power, $\alpha=0.05$.}
+  \label{tab:design-options}
+  \small
+  \begin{tabular}{@{}lccll@{}}
+    \toprule
+    Design & Cells & Session & Exposure & Detectable effect \\
+    \midrule
+    Mode between subjects & 5 & \SI{127}{\minute} & within cap
+      & $f = 0.40$, needs $n = 96$ \\
+    Four modes, one task & 8 & \SI{169}{\minute} & \textbf{exceeds cap}
+      & $d = 0.73$, $n = 32$ \\
+    \textbf{Two modes, five tasks} & \textbf{10} & \textbf{\SI{167}{\minute}}
+      & \textbf{within cap} & $\mathbf{d = 0.73}$, $\mathbf{n = 32}$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
 Mode order is counterbalanced with Williams squares rather than a Latin
 square, because a Latin square balances position but not immediate sequence,
 and on a task with a learning curve the sequence effect is the one that bites.
@@ -93,6 +117,7 @@ At $n = 16$ the design achieves zero position imbalance and zero sequence
 imbalance, verified by the counterbalancing module rather than assumed.
 
 \subsection{Which cells exist}
+\label{sec:cells}
 
 One row of the design is unavailable, and it is a measured property of the
 platform rather than a design decision.
@@ -209,14 +234,14 @@ not.
 
 \section{Procedure}
 
-\begin{sidewaysfigure}
+\begin{figure}[htbp]
   \centering
-  \resizebox{\textheight}{!}{\input{figures/diagrams/session_timeline.tex}}
+  \input{figures/diagrams/session_timeline.tex}
   \caption[Session timeline]{Session structure for two people. The wearer's
   exposure to the carried load is the binding constraint and is drawn as its
   own track.}
   \label{fig:timeline}
-\end{sidewaysfigure}
+\end{figure}
 
 Three people are present: the two participants and a safety observer whose
 only task is to hold an emergency stop and watch the wearer rather than the

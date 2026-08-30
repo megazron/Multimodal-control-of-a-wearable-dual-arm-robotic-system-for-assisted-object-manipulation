@@ -62,25 +62,67 @@ already been fooled by them three times. The robots stand \SI{2.8}{\metre}
 away while the rig works within \SI{1.6}{\metre}, so range separates the two
 populations cleanly and is applied at detection time.
 
+\emph{Range is a discriminator that costs nothing to compute.} A blob of $s$
+pixels across at range $Z$ subtends a physical width
+
+\begin{equation}
+  \label{eq:size-at-range}
+  w = \frac{s\,Z}{f},
+\end{equation}
+
+so the same expression that rejects the distant robots also rejects a
+\SI{210}{\milli\metre} pad presented as a \SI{40}{\milli\metre} cube, without
+a second model and without a threshold on appearance.
+
 \emph{Grasp synthesis is geometric and deliberately not learned.}
-\repo{srl\_perception/rgbd\_grasp.py} takes the principal axes of the depth
-cloud, closes across the short axis and approaches along the free one. A
-parallel jaw closing on a rigid convex object is a solved problem; a learned
+\repo{srl\_perception/rgbd\_grasp.py} takes the principal axes of the object's
+depth cloud. Writing the mean-centred points as $\mathbf{P}_k$, the axes are
+the eigenvectors of the scatter matrix
+
+\begin{equation}
+  \label{eq:pca}
+  \mathbf{C} = \frac{1}{N}\sum_{k=1}^{N}
+    (\mathbf{P}_k - \bar{\mathbf{P}})(\mathbf{P}_k - \bar{\mathbf{P}})^{\!\top},
+  \qquad
+  \mathbf{C}\,\mathbf{u}_j = \lambda_j \mathbf{u}_j,
+  \; \lambda_1 \ge \lambda_2 \ge \lambda_3 ,
+\end{equation}
+
+and the jaw closes across $\mathbf{u}_3$, the direction of least extent, while
+approaching along whichever of the remaining axes is free. The width to be
+closed on is not the eigenvalue but the extent of the projected points, which
+is the quantity the jaw physically has to span:
+
+\begin{equation}
+  \label{eq:graspwidth}
+  w = \max_k \mathbf{u}_3^{\!\top}\mathbf{P}_k
+      - \min_k \mathbf{u}_3^{\!\top}\mathbf{P}_k
+  \;\le\; w_{\max} = \SI{85}{\milli\metre} .
+\end{equation}
+
+A parallel jaw closing on a rigid convex object is a solved problem; a learned
 alternative would need video memory that is not available beside the detector;
-and, decisively, a geometric method can \emph{name} the cause of a refusal. It
-does: no depth returns, wider than the \SI{85}{\milli\metre} jaw, or too few
-points to fit an axis.
+and, decisively, a geometric method can \emph{name} the cause of a refusal.
+\Cref{eq:graspwidth} gives one of the three it names --- wider than the jaw,
+and by how much --- alongside no depth returns and too few points to fit an
+axis. All three were exercised on real objects in \cref{ch:vision}, where the
+width test refused every object in the scene and reported the arithmetic that
+made it do so.
 
 \begin{figure}[htbp]
   \centering
-  \screenshot{55mm}{The detection view during a run: the wrist camera image
-  with the detected object outlined, the noun phrase searched for, the
-  confidence, the backend that produced it, and the synthesised grasp drawn as
-  the two finger positions. A second frame should show a refused detection
-  with its named cause displayed.}
-  \caption[Detection and grasp synthesis]{What the operator is shown before
-  the arm is committed. The refusal case is the one worth capturing: a stage
-  that cannot show why it declined is one an operator learns to override.}
+  \includegraphics[width=0.92\linewidth]{vision/wrist_ransac.png}
+  \caption[Detection: the support plane, fitted and scored]{One stage of the
+  detection pipeline as it is actually instrumented. Every stage draws itself
+  on the frame it was given, states the operation as a formula, and reports
+  the numbers it produced with units, so that a figure captioned ``the vision
+  works'' can be replaced by one a reader can check. Here the support plane
+  is fitted by random sample consensus on the left-hand wrist camera:
+  \num{40517} of \num{54789} deprojected points are inliers at a
+  \SI{6}{\milli\metre} tolerance, giving a residual of
+  \SI{1.43}{\milli\metre} root mean square. The inlier fraction is the
+  quantity that matters, not the residual: a plane can fit three points
+  perfectly.}
   \label{fig:detect}
 \end{figure}
 
@@ -202,14 +244,15 @@ by inspection.
 
 \begin{figure}[htbp]
   \centering
-  \screenshot{60mm}{The fused map drawn over the real scene: the fitted
-  support plane, the six recovered objects with their extents, and the arm at
-  one sweep viewpoint. A second panel showing the same map converted to the
-  planner's occupancy structure, with the table drawn as an obstacle, would
-  make the hand-over visible.}
-  \caption[The measured map]{The product of one sweep. Every coordinate the
-  autonomous mode subsequently uses derives from this, and the record carries
-  the time it was made so that a stale map can be refused rather than
+  \includegraphics[width=0.92\linewidth]{vision/wrist_boxes3d.png}
+  \caption[The measured map]{The map, as objects rather than as a point
+  pile. Five objects are recovered from the left-hand wrist camera between
+  \SI{0.539}{\metre} and \SI{0.843}{\metre}, each with its extent in the
+  camera frame, and the table under them is measured at
+  $\SI{0.579}{\metre}\times\SI{0.423}{\metre}$, \SI{0.278}{\metre} away and
+  flat to \SI{1.42}{\milli\metre}. Every coordinate the autonomous mode
+  subsequently uses derives from a record like this one, and the record
+  carries the time it was made so that a stale map can be refused rather than
   trusted.}
   \label{fig:map}
 \end{figure}
@@ -303,17 +346,17 @@ and it is therefore the quantity this evaluation is designed around.
 
 \begin{figure}[htbp]
   \centering
-  \screenshot{65mm}{The instruction panel: the text box with an instruction
-  entered, the parsed interpretation displayed beneath it, the detections the
-  plan was formed from with the classifier's own hue margin per object, the
-  announced intention in plain words, and the confirm control. A second
-  capture should show the panel posing a clarifying question with the
-  operator's short reply in the same box.}
-  \caption[Commanding a task in English]{The instruction panel. Nothing is
-  commanded until the operator has seen the interpretation and confirmed it,
-  and the instruction is passed to the runner verbatim so the record of what
-  was asked cannot diverge from what was done. Checked by
-  \repo{scripts/verify\_prompt\_panel.py}.}
+  \includegraphics[width=0.72\linewidth]{gui/sim_scene_front.png}
+  \caption[The scene an instruction is resolved against]{The scene an
+  instruction is resolved against. The operator types a sentence; before
+  anything moves, the window shows the parsed interpretation, the detections
+  the plan was formed from with the classifier's own hue margin for each, and
+  the intention in plain words, and waits for a confirmation. The
+  instruction is then handed to the runner verbatim, so the record of what
+  was asked cannot diverge from what was done, and that is what the
+  verification script checks: that the argument vector the runner receives
+  carries the task, the mode, the detections it was planned from, and the
+  sentence unaltered.}
   \label{fig:instruct}
 \end{figure}
 

@@ -189,6 +189,47 @@ is that the perception work moved the bottleneck from \emph{not knowing where
 things are} to \emph{not knowing where the camera is}, and the second is a
 calibration with a known method, which is a better position to be in.
 
+\subsection{What the real cameras changed about that assessment}
+
+\Cref{ch:vision} is the first evidence that the geometry behaves on real
+sensors, and it changes the assessment in three specific ways.
+
+\emph{The surface-fitting stage transfers.} A support plane at
+\SI{1.43}{\milli\metre} root mean square with \SI{74}{\percent} inlier support
+at a working distance of \SI{0.278}{\metre}, on a real table under laboratory
+lighting, is within a factor of three of what the same code achieves against a
+renderer. That is the one component of the perception chain that can now be
+said to work outside simulation, and it is the component the pick path leans
+on hardest.
+
+\emph{The scene camera is a different instrument and should not be used as a
+work-surface sensor.} At a median range of \SI{4.7}{\metre} it returns depth
+on \SI{14.5}{\percent} of its pixels and its best-supported plane holds
+\SI{3.8}{\percent} of the points it does return. The design documents treated
+it as a wide-angle equivalent of a wrist camera; it is not, and every quantity
+that depends on a support plane must come from a wrist camera. This is a
+limitation of the arrangement rather than of the device: there is no dominant
+plane in a room.
+
+\emph{The learned components contributed nothing that the classical ones did
+not.} The open-vocabulary detector returned no instance of the prompt it was
+given on any of the four cameras, while the colour-and-geometry path found the
+objects and measured them. This is a single scene and a single prompt, so it
+is not a general claim about the models; but it does mean that no result in
+this thesis rests on a learned detector, which is worth knowing given that
+\cref{ch:method} argues the models were adopted for open vocabulary rather
+than for accuracy.
+
+The uncomfortable part of \cref{ch:vision} is not any of those. It is that
+pointing an instrumented pipeline at the hardware for the first time
+immediately found a constant that three files asserted, none measured, and
+which had silently inverted every scene figure the project had recorded. The
+defect was undetectable by any metric the pipeline computed, because a
+consistently applied rotation preserves every distance. It was detectable only
+by comparing one camera's picture against another's. The general lesson is the
+one \cref{ch:instrument} has been accumulating: the quantities most likely to
+be wrong are the ones nobody thought were quantities.
+
 \section{Threats to validity}
 
 \subsection{Simulation is not the arm}
@@ -247,7 +288,6 @@ are specific.
   \item \textbf{Ethics approval for a two-person protocol}, which differs from
     a single-participant protocol in that one participant bears a physical
     risk arising from another participant's actions.
-    \todo{CONFIRM: current status of the ethics application with Dr.\ Zhang.}
   \item \textbf{A detection rate measured on real images.} The synthetic
     figure characterises the renderer.
   \item \textbf{A hand-eye calibration for the wrist camera.} The transform is

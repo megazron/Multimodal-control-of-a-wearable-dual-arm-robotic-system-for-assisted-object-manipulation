@@ -1,57 +1,63 @@
-% MODE 1 -- DIRECT TELEOPERATION FROM THE MANNEQUIN MASTER.
-% Explicit coordinates rather than relative placement: the four mode diagrams
-% share a grid so they can be compared stage by stage across pages.
-% Red = a stage that can stop the arm. Dashed red = a failure exit.
-\begin{tikzpicture}[x=34mm, y=13mm]
+% MODE 01 -- DIRECT TELEOPERATION FROM THE MANNEQUIN MASTER.
+%
+% Drawn as a VERTICAL spine because the four mode figures are meant to be
+% compared stage by stage, and a horizontal chain of eleven stages does not
+% fit a portrait page: the earlier landscape version had to be scaled to
+% \textheight, which collided the failure labels with the boxes they
+% annotate. The grid is shared by all four mode figures:
+%
+%     x = -52 mm   what happens when a stage refuses  (dashed red, leftwards)
+%     x =   0 mm   the command spine, top to bottom
+%     x = +52 mm   guards and side inputs             (solid, rightwards)
+%
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize,
+  spine/.style   = {proc,   text width=40mm},
+  guardn/.style  = {safety, text width=38mm},
+  sensen/.style  = {sensor, text width=30mm},
+  sinkn/.style   = {draw, dashed, rounded corners=2pt, red!60!black,
+                    fill=red!3, text width=34mm, align=center,
+                    font=\scriptsize, inner sep=3pt},
+  outn/.style    = {actuator, text width=40mm}]
 
-% ---- row 0: sensing
-\node[sensor] (pots)   at (0, 3.0) {14 potentiometers\\12-bit ADC};
-\node[sensor] (imu)    at (0, 1.7) {2 MPU-6050\\accel $+$ gyro};
-\node[sensor] (btn)    at (0, 0.4) {2 buttons\\2 FSRs};
+% ---- sensing ---------------------------------------------------------
+\node[sensen] (pots) at (-46,  10) {14 potentiometers\\12-bit ADC};
+\node[sensen] (imu)  at (  0,  10) {2 $\times$ MPU-6050\\accelerometer, gyroscope};
+\node[sensen] (btn)  at ( 46,  10) {2 buttons, 2 FSRs\\clutch and grip};
 
-\node[proc]   (teensy) at (1, 1.7) {Teensy 4.1\\EMA, clamp,\\frame @ \SI{100}{\hertz}};
-\node[proc]   (serial) at (2, 1.7) {USB serial\\exclusive \texttt{flock}};
-\node[proc]   (chan)   at (2, 3.3) {channel manager\\per-channel verdict};
-\node[proc]   (degr)   at (3, 3.3) {degraded mode\\freeze incoherent,\\j7 radial fallback};
+% ---- the spine -------------------------------------------------------
+\node[spine] (teensy) at (0, -10) {Teensy 4.1\\exponential smoothing, clamp\\frame at \SI{100}{\hertz}};
+\node[spine] (serial) at (0, -28) {USB serial\\exclusive \texttt{flock}};
+\node[spine] (chan)   at (0, -46) {channel manager\\one verdict per channel,\\over \emph{distinct} updates};
+\node[guardn](valid)  at (0, -64) {frame validation\\scoped to the channels the\\active mode consumes};
+\node[spine] (sph)    at (0, -84) {spherical decomposition\\$\theta\!\leftarrow\!$ gravity, $\phi\!\leftarrow\!$ j1,
+                                   $r\!\leftarrow\!$ FK};
+\node[spine] (scale)  at (0,-104) {scale and anchor\\$\mathbf{p}=\mathbf{p}_0+s(\mathbf{d}-\mathbf{d}_{\mathrm{ref}})$};
+\node[guardn](ik)     at (0,-124) {collision-aware IK\\redundancy re-seeded on refusal};
+\node[guardn](guard)  at (0,-144) {step guard\\slews, never discards};
+\node[outn]  (traj)   at (0,-162) {joint trajectory controller\\Kinova Gen3, \SI{100}{\hertz}};
 
-\node[safety] (valid)  at (3, 1.7) {frame validation\\mode-scoped};
-\node[proc, text width=30mm] (sph) at (4, 1.7)
-      {spherical form\\az $\leftarrow$ j1, el $\leftarrow$ IMU,\\reach $\leftarrow$ FK};
-\node[proc]   (clutch) at (4, 0.1) {clutch\\quasi-static gate,\\anchor re-latch};
-\node[proc]   (scale)  at (5, 1.7) {scale $+$ anchor\\$p_0 + s\,(d - d_{\mathrm{ref}})$};
-\node[safety] (estop)  at (5, 3.3) {e-stop\\dead-man on the\\\emph{source} timestamp};
+% ---- guards and side inputs, to the right ----------------------------
+\node[spine, text width=36mm] (degr)  at (62, -46) {degraded mode\\freeze incoherent channels,\\j7 radial fallback};
+\node[spine, text width=36mm] (clutch)at (62, -84) {clutch\\quasi-static gate,\\anchor re-latch};
+\node[guardn,text width=36mm] (estop) at (62,-104) {emergency stop\\dead-man on the \emph{source}\\timestamp};
+\node[guardn,text width=36mm] (floor) at (62,-124) {clearance floor\\\SI{150}{\milli\metre} to the wearer,\\measured geometrically};
 
-\node[safety] (ik)     at (6, 1.7) {collision-aware IK\\redundancy re-seed};
-\node[safety] (clear)  at (6, 0.1) {clearance floor\\\SI{0.12}{\metre} to wearer};
-\node[safety] (guard)  at (7, 0.1) {step guard\\slew, never discard};
-\node[actuator](traj)  at (7, 1.7) {joint trajectory\\controller};
-\node[actuator](arm)   at (7, 3.3) {Kinova Gen3\\high-level velocity};
+% ---- refusal sinks, to the left --------------------------------------
+\node[sinkn] (hold)  at (-62, -64) {invalid frame:\\\textbf{hold the last pose}};
+\node[sinkn] (nosol) at (-62,-124) {no solution:\\\textbf{hold, and say so}};
+\node[sinkn] (park)  at (-62,-104) {latched:\\\textbf{park, then talk}};
 
 \draw[flow] (pots) -- (teensy);
 \draw[flow] (imu)  -- (teensy);
 \draw[flow] (btn)  -- (teensy);
-\draw[flow] (teensy) -- (serial);
-\draw[flow] (serial) -- (chan);
-\draw[flow] (chan)   -- (degr);
-\draw[flow] (serial) -- (valid);
-\draw[flow] (degr)   -- (valid);
-\draw[flow] (valid)  -- (sph);
-\draw[flow] (clutch) -- (sph);
-\draw[flow] (sph)    -- (scale);
-\draw[flow] (scale)  -- (ik);
-\draw[flow] (ik)     -- (traj);
-\draw[flow] (traj)   -- (arm);
-\draw[flow] (clear)  -- (ik);
-\draw[flow] (clear)  -- (guard);
-\draw[flow] (guard)  -- (traj);
-\draw[flow] (estop)  -- (scale);
-
-\draw[fail] (valid.north west) -- node[faillbl, left, pos=0.5] {invalid:\\hold last} (chan.south);
-\draw[fail] (ik.south) -- node[faillbl, right] {no IK: hold} (clear.north);
-\draw[fail] (estop.east) -- node[faillbl, above, pos=0.4] {latched: park} (arm.west);
-
-\node[font=\scriptsize\itshape, anchor=west] at (0, -1.1)
-  {blue = sensing \quad grey = processing \quad
-   \textcolor{red!60!black}{red = can stop the arm} \quad
-   \textcolor{green!45!black}{green = commands motion}};
+\foreach \a/\b in {teensy/serial, serial/chan, chan/valid, valid/sph,
+                   sph/scale, scale/ik, ik/guard, guard/traj}
+  {\draw[flow] (\a) -- (\b);}
+\draw[flow] (degr.west)   -- (chan.east);
+\draw[flow] (clutch.west) -- (sph.east);
+\draw[flow] (estop.west)  -- (scale.east);
+\draw[flow] (floor.west)  -- (ik.east);
+\draw[fail] (valid.west) -- (hold.east);
+\draw[fail] (ik.west)    -- (nosol.east);
+\draw[fail] (estop.south) to[out=270,in=0] (park.east);
 \end{tikzpicture}

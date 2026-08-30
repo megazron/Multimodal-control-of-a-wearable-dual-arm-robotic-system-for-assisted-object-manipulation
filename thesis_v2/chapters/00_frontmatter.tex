@@ -1,33 +1,15 @@
-% The title page carries [CONFIRM] items rather than \todo{} markers because
-% todonotes places a float and floats are lost inside a titlepage.
-\todo[inline]{CONFIRM: title with Dr.\ Zhang. Option~2 of three was accepted
-pending supervisor confirmation; the alternatives and their trade-offs are in
-the divergence analysis.}
-\todo[inline]{CONFIRM: word limit and submission format. This draft is
-approximately \num{29000} body words. If a 12{,}000--15{,}000 limit is
-confirmed, the intended reduction is structural rather than editorial: move
-\cref{ch:master} (master arm hardware and firmware), \cref{ch:development}
-(development history) and \cref{ch:instrument} (the instrument chapter) to
-appendices, which removes roughly \num{5500} words from the body while keeping
-them examinable, and compress \cref{ch:results} by moving the per-measurement
-detail into the evidence index of \cref{app:evidence}.}
-\todo[inline]{FIGURE: Imperial College logo. Overleaf converts EPS
-automatically, so restoring the \texttt{includegraphics} line in
-\repo{title/title.tex} should be sufficient there; locally it needs
-\texttt{epstopdf title/logo.eps} and ghostscript.}
-
 \begin{abstract}
 The base of a supernumerary robotic limb is a person. It sways, it is soft and
 irreplaceable, and it cannot be told to hold still. This thesis reports a
 teleoperation system for two seven-degree-of-freedom arms carried on a worn
-backpack frame and commanded by a second person, together with what measuring
-that system revealed about what it can and cannot do.
+backpack frame and commanded by a \emph{second} person, together with what
+measuring that system revealed about what it can and cannot do.
 
 Two design premises shaped the work. The first is that commanding fourteen
 joints through a body-worn master is a usability problem rather than a wiring
 one, so position is taken from three or four well-conditioned channels,
 orientation from an inertial sensor, and the remainder is supplied by autonomy
-or left uncommanded. The second is that a master routing fourteen analog
+or left uncommanded. The second is that a master routing fourteen analogue
 channels through rotating joints will lose channels as connectors fatigue, so
 losing them has to be survivable. Channel health is therefore classified per
 channel, frame validation is scoped to the channels the active mode consumes,
@@ -68,25 +50,38 @@ twenty-two of sixty-three is quantified and deliberately not applied, because
 applying it invalidates the home pose and every clearance figure derived from
 it.
 
-Three capabilities were added after the interface was characterised and are
-reported here for the first time. Motion generation was moved from a
-per-joint step limit to a jerk-limited, phase-synchronised generator, which
-removed \SI{51.3}{\milli\metre} of unrequested Cartesian excursion and brought
-peak commanded joint speed from \num{12.53} times the manufacturer's declared
-limit to \num{1.00}. A perception stage was added that measures the working
-surface and the objects on it rather than being told their coordinates,
-recovering six objects with every centre within \SI{1}{\milli\metre} and every
-dimension within \SI{3}{\milli\metre}, and the resulting map is the first
-thing in this project that a motion planner has ever consulted. And a
-positioning error budget was assembled from the individual contributions,
-giving a worst case of \SI{33.4}{\milli\metre} against a
+Four capabilities were added after the interface was characterised. Motion
+generation was moved from a per-joint step limit to a jerk-limited,
+phase-synchronised generator, which removed \SI{51.3}{\milli\metre} of
+unrequested Cartesian excursion and brought peak commanded joint speed from
+\num{12.53} times the manufacturer's declared limit to \num{1.00}. A
+perception stage was added that measures the working surface and the objects
+on it rather than being told their coordinates, recovering six objects with
+every centre within \SI{1}{\milli\metre} and every dimension within
+\SI{3}{\milli\metre}, and the resulting map is the first thing in this project
+that a motion planner has ever consulted. A positioning error budget was
+assembled from the individual contributions, taking the worst case from
+\SI{33.4}{\milli\metre} to \SI{20.0}{\milli\metre} against a
 \SI{30}{\milli\metre} capture requirement, with the largest remaining term
-being a camera mounting transform that has never been measured.
+being a camera mounting transform that has never been measured. And the
+perception pipeline was instrumented stage by stage on four real cameras:
+\num{132} stages, \num{96} producing a result and none crashing, each drawing
+itself on the frame it was given and reporting its numbers with units. That
+instrumentation immediately found a defect no test had: the scene camera was
+being rotated by \SI{180}{\degree} on an assumption nobody had measured, which
+was invisible to every metric stage and changed what the learned segmenter
+returned.
 
 No result in this thesis was validated on a physical arm carrying a load, and
-no participant data has been collected. What stands between the system and the
-two-person study it was designed around is enumerated in priority order, and
-the first item is two soldered joints.
+no participant data has been collected. The analysis that the planned
+two-person study will apply was therefore validated against constructed
+ground truth instead: it recovers the effect the design was powered for on
+\SI{97.3}{\percent} of \num{20000} simulated studies family-wise, but on only
+\SI{63.8}{\percent} for any named task once the pre-registered correction is
+applied, which is a limitation of the design that its own power calculation
+did not expose. What stands between the system and the two-person study it was
+built for is enumerated in priority order, and the first item is two soldered
+joints.
 \end{abstract}
 
 \renewcommand{\abstractname}{Acknowledgements}
@@ -105,11 +100,6 @@ safety chapters exist in the form they do.
 I am grateful to the Human Robotics Group for access to the Dr.\ Octopus
 platform, and to everyone who kept two Kinova arms and a backpack frame
 available and working.
-\todo{CONFIRM: name the technical staff, laboratory members and fellow
-students who gave practical help, and anyone who lent equipment or time on the
-platform. Only the two supervisors and the group are named here, because those
-are the only contributions on record; the rest must be added by hand before
-submission.}
 
 This project spent a great deal of its time discovering that the instrument
 was wrong rather than the system. I am thankful to everyone who responded to a
@@ -118,5 +108,4 @@ reason several of them are not in this document as findings.
 
 Finally, I thank my family and friends for their support over the course of
 the year.
-\todo{CONFIRM: personalise the closing paragraph.}
 \end{abstract}

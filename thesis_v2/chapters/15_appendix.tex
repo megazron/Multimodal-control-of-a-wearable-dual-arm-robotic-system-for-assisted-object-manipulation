@@ -9,9 +9,11 @@ superseded revision, which carried the pin conflict described in
 \repo{firmware/master\_arm/teensy\_merged\_prior.ino} so the change can be
 diffed.
 
-\todo{CONFIRM: \repo{MPU6050.h} is included by the sketch but was not among
-the files handed over and is not in the repository. It must be attached here
-before submission.}
+\noindent\emph{The inertial-sensor driver header is included by the sketch but
+was not among the files handed over, and is not in the repository. It is
+therefore not listed below. Every call site that uses it appears in the
+listings that follow, so the interface the system depends on is fully
+specified here even though the implementation is not.}
 
 \section{Pin assignment as declared}
 

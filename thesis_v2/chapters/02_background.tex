@@ -36,13 +36,18 @@ implies for session design.
 
 \begin{figure}[htbp]
   \centering
-  \reprodplaceholder{45mm}{Parietti and Asada's bracing configuration, showing
-  the limbs anchored against the work surface to close the kinematic chain
-  through the environment. Source: \cite{parietti2014bracing}, Fig.~1.}
-  \caption[Bracing supernumerary limbs (reproduced)]{The bracing
-  configuration that established the mechanical framing of the field. To be
-  reproduced from \cite{parietti2014bracing} once permission is obtained.}
-  \label{fig:repro-bracing}
+  \input{figures/diagrams/bracing_vs_worn.tex}
+  \caption[Two load paths for a supernumerary limb]{Two load paths, drawn
+  from the mechanical argument rather than reproduced. In the bracing
+  configuration that established the field~\cite{parietti2014bracing} the
+  limb anchors against the work surface, so the kinematic chain closes
+  through the environment and the reaction load leaves the body. In the
+  arrangement studied here the arms are free in space, so the chain closes
+  through the wearer and every reaction load is carried by a person who is
+  not the person commanding the motion. This difference, and not the control
+  law, is what makes the wearer's clearance the binding constraint of
+  \cref{ch:workspace}.}
+  \label{fig:bracing}
 \end{figure}
 
 \section{The operator and the wearer as different people}
@@ -131,14 +136,19 @@ is a manipulator moving toward someone who did not command it.
 
 \begin{figure}[htbp]
   \centering
-  \reprodplaceholder{42mm}{The policy-blending arbitration function, showing
-  assistance weight against prediction confidence, and the region in which
-  blending degrades performance relative to pure teleoperation. Source:
-  \cite{dragan2013policyblending}.}
-  \caption[Policy blending arbitration (reproduced)]{Arbitration as a function
-  of prediction confidence. To be reproduced from
-  \cite{dragan2013policyblending} once permission is obtained.}
-  \label{fig:repro-blending}
+  \input{figures/diagrams/arbitration.tex}
+  \caption[Arbitration against prediction confidence]{Arbitration as a
+  function of prediction confidence, plotted from this system's own
+  constants. Policy blending in its original form~\cite{dragan2013policyblending}
+  raises the assistance weight $\alpha$ continuously with confidence, which
+  means that at low confidence the arm is already moving somewhere the
+  operator did not ask for. The rule implemented here is a threshold: below
+  $\theta$ the assistance weight is exactly zero, and a tie between two
+  adjacent candidates holds $P = \num{0.5}$ and is therefore never assisted.
+  The distinction matters on this platform because the cost of assisting
+  toward the wrong candidate is not a slower trial but a manipulator moving
+  toward a person who did not command it.}
+  \label{fig:arbitration}
 \end{figure}
 
 \section{Measuring embodiment, workload and trust}
@@ -196,12 +206,16 @@ session with two people in it.
 
 \begin{figure}[htbp]
   \centering
-  \imgplaceholder{50mm}{Annotated photograph of the assembled platform:
-  backpack frame with both Gen3 arms mounted, worn by one person, with the
-  master arm held by a second person standing outside the arms' reach. Must
-  show both people in frame, the emergency stop within the wearer's reach, and
-  the tether routing.}
-  \caption[The two-person configuration]{The configuration this thesis
-  addresses. Photograph required before submission.}
-  \label{fig:twoperson-photo}
+  \includegraphics[width=0.86\linewidth]{photos/platform_scene_hd.png}
+  \caption[The platform as built]{The platform as built, photographed by the
+  scene camera during the vision session of 2026-08-30. Two Kinova Gen3 arms
+  are carried on a backpack frame on a torso mannequin; the wearer's own arms
+  are absent from this photograph because the frame is instrumented rather
+  than worn during a bench session. The two teal columns are the laboratory's
+  fixed manipulators and are not part of this system. This is a
+  $\num{1280}\times\num{720}$ frame from the uncalibrated HD webcam of
+  \cref{ch:perception}, reproduced here because it is the only view that
+  shows the mount, the arms and the work surface in one frame at the geometry
+  every measurement in this thesis was taken at.}
+  \label{fig:platform}
 \end{figure}

@@ -1,0 +1,64 @@
+{
+  "source": "scene_rs",
+  "stage": "region_mean",
+  "num": 8,
+  "title": "The region-MEAN ratio test, and its near-black guard",
+  "status": "ok",
+  "formula": "green  <=>  mean_G > 1.25 * mean_B  and  mean_G > 1.8 * mean_R,  refused outright when max(B,G,R) < 25",
+  "measurements": [
+    {
+      "quantity": "regions tested",
+      "value": 1,
+      "unit": "count"
+    },
+    {
+      "quantity": "regions passing",
+      "value": 1,
+      "unit": "count"
+    },
+    {
+      "quantity": "regions rejected as near-black",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "quantity": "blue ratio threshold",
+      "value": 1.25,
+      "unit": "-"
+    },
+    {
+      "quantity": "red ratio threshold",
+      "value": 1.8,
+      "unit": "-"
+    },
+    {
+      "quantity": "near-black floor",
+      "value": 25.0,
+      "unit": "0-255"
+    }
+  ],
+  "tables": {
+    "region means and verdicts": {
+      "headers": [
+        "region",
+        "area px",
+        "mean B",
+        "mean G",
+        "mean R",
+        "near black",
+        "passes green"
+      ],
+      "rows": [
+        [
+          1,
+          172,
+          80.0,
+          122.6,
+          38.6,
+          false,
+          true
+        ]
+      ]
+    }
+  }
+}

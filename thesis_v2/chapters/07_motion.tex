@@ -97,6 +97,34 @@ settles.
 The desynchronisation is proportional to the travel, so it survives any step
 size. It is a property of the algorithm rather than of its parameter.
 
+\subsection{Why a per-joint clamp cannot stay on the line}
+\label{sec:clamp-maths}
+
+The limiter it replaced applied, once per control cycle and independently to
+each joint $i$,
+
+\begin{equation}
+  \label{eq:clamp}
+  q_i^{(k+1)} = q_i^{(k)}
+    + \operatorname{clip}\!\bigl(q_i^{\star} - q_i^{(k)},\;
+                                 -\Delta,\; +\Delta\bigr),
+\end{equation}
+
+with one step bound $\Delta$ shared by all seven joints. The defect is
+structural rather than a matter of tuning. Write the required joint
+displacement as $\mathbf{e} = \mathbf{q}^{\star} - \mathbf{q}^{(k)}$. What the
+straight line in joint space requires is that the applied step be
+\emph{parallel} to $\mathbf{e}$; \cref{eq:clamp} applies
+$\operatorname{clip}(\mathbf{e}, -\Delta, +\Delta)$ component-wise, which is
+parallel to $\mathbf{e}$ only when every component is inside the bound or
+every component is outside it with the same magnitude. In every other case the
+saturated joints advance at $\Delta$ while the unsaturated ones advance at
+$e_i$, the direction of travel rotates, and the end effector leaves the
+Cartesian path the inverse-kinematics solution implies. The excursion is
+therefore a property of \cref{eq:clamp} and not of the value of $\Delta$,
+which is why sweeping $\Delta$ makes the excursion settle at
+\SI{68}{\milli\metre} rather than approach zero.
+
 \section{What replaced it}
 
 Ruckig~\cite{berscheid2021ruckig} was adopted: time-optimal, jerk-limited,
@@ -111,9 +139,33 @@ Three implementation properties are load-bearing.
 
 \emph{Phase synchronisation rather than time synchronisation.} Both make every
 joint arrive together; only phase synchronisation keeps them on the straight
-line between the endpoints, and that line is the entire point. Measured on the
-same case: phase \SI{0.02}{\milli\metre} of path deviation, time
-\SI{9.5}{\milli\metre}, clamp \SI{51.3}{\milli\metre}.
+line between the endpoints, and that line is the entire point. The generator
+solves, for each joint, the time-optimal profile subject to
+
+\begin{equation}
+  \label{eq:ruckig-limits}
+  |\dot{q}_i| \le v_i^{\max}, \qquad
+  |\ddot{q}_i| \le a_i^{\max}, \qquad
+  |\dddot{q}_i| \le j_i^{\max},
+\end{equation}
+
+and then, rather than merely stretching each profile to the slowest joint's
+duration, drives every joint from a single scalar phase
+$\sigma(t) \in [0,1]$:
+
+\begin{equation}
+  \label{eq:phase-sync}
+  \mathbf{q}(t) = \mathbf{q}^{(k)}
+    + \sigma(t)\,\bigl(\mathbf{q}^{\star} - \mathbf{q}^{(k)}\bigr),
+  \qquad \sigma(0) = 0,\; \sigma(T) = 1 .
+\end{equation}
+
+Because the same $\sigma$ multiplies the whole displacement vector, the
+commanded configuration is by construction on the segment between the
+endpoints for every $t$, which is exactly the property \cref{eq:clamp}
+lacks. Measured on the same case: phase \SI{0.02}{\milli\metre} of path
+deviation, time synchronisation \SI{9.5}{\milli\metre}, clamp
+\SI{51.3}{\milli\metre}.
 
 \emph{The velocity limits are the robot's; the acceleration and jerk limits
 are assumed and say so.} \repo{joint\_limits.yaml} declares
@@ -200,12 +252,33 @@ identifies it as a terminal offset rather than as noise. At the end effector
 it is \SI{7.2}{\milli\metre} RMS on a \SI{100}{\milli\metre} move, on both
 arms.
 
-Two candidate models are distinguishable only at short travel. A constant
-terminal offset and a proportional gain error predict the same Cartesian error
-at \SI{100}{\milli\metre} and differ by a factor of five at
-\SI{20}{\milli\metre}. Propagating the recorded joint errors through the
-Jacobian reproduces the measured Cartesian error to \SI{90}{\percent} with
-$r = \num{0.923}$, which selects the offset model. A single scalar per arm,
+Two candidate models are distinguishable only at short travel. Writing the
+commanded displacement of joint $i$ as $\delta_i = q_i^{\star} - q_i^{0}$, the
+two are
+
+\begin{equation}
+  \label{eq:two-models}
+  \underbrace{q_i^{\text{ach}} = q_i^{\star}
+    - \varepsilon_i \operatorname{sgn}(\delta_i)}_{\text{terminal offset}},
+  \qquad
+  \underbrace{q_i^{\text{ach}} = q_i^{0}
+    + (1 - g_i)\,\delta_i}_{\text{proportional gain error}} .
+\end{equation}
+
+They coincide when $\varepsilon_i = g_i |\delta_i|$, so at a single travel
+distance no amount of data separates them; at
+$|\delta| = \SI{100}{\milli\metre}$ they predict the same Cartesian error and
+at \SI{20}{\milli\metre} they differ by a factor of five. Propagating the
+recorded joint errors to the end effector through the manipulator Jacobian,
+
+\begin{equation}
+  \label{eq:jacobian}
+  \Delta\mathbf{x} = \mathbf{J}(\mathbf{q})\,\Delta\mathbf{q},
+\end{equation}
+
+reproduces the measured Cartesian error to \SI{90}{\percent} with
+$r = \num{0.923}$ under the first model and not the second, which selects the
+terminal offset. A single scalar per arm,
 applied as an overshoot in the direction of travel, removes \SI{74}{\percent}
 and \SI{76}{\percent} of it, held out on an axis it was never fitted on, where
 a full Cartesian $3\times3$ correction scores \SI{93.5}{\milli\metre}. No
@@ -245,21 +318,42 @@ decides whether a grasp closes on an object or beside it.
   \input{figures/tikz/budget.tex}
   \caption[Positioning error budget]{Contributions to positioning error at
   closure, each measured separately by
-  \repo{scripts/measure\_control\_budget.py}. Terms marked corrected are
-  available and switched off. Combined in quadrature the measured terms give
-  \SI{18.6}{\milli\metre}; added, as systematic terms may be, they give
-  \SI{33.4}{\milli\metre} against a \SI{30}{\milli\metre} requirement. The
-  orange bar is the transform between the camera frame in the robot
-  description and the physical camera module, which has never been measured
-  and is now the largest unknown in the budget.}
+  \repo{scripts/measure\_control\_budget.py}, before and after the correction
+  applied to it. The camera mounting row is drawn as an open outline with no
+  length: the transform between the camera frame in the kinematic description
+  and the physical camera module has never been measured, there is no
+  mechanical model of the module in this project, and giving that row a bar
+  would be inventing a number. It is the largest remaining unknown in the
+  budget and \cref{sec:hardware-session} shows it is not small.}
   \label{fig:budget}
 \end{figure}
 
-Two of the three largest terms already have corrections written and disabled:
-using the measured support plane removes the shell bias entirely, and the
-terminal overshoot reduces the joint term to \SI{1.88}{\milli\metre}. With
-both enabled the worst case falls to approximately \SI{17}{\milli\metre},
-which is inside the requirement, \emph{provided} the unmeasured term is small.
+The terms are combined two ways, because which is appropriate depends on
+whether they are independent. Independent contributions add in quadrature and
+systematic ones add directly, so with $m$ measured terms $b_1 \dots b_m$,
+
+\begin{equation}
+  \label{eq:budget}
+  \sigma_{\text{RSS}} = \sqrt{\textstyle\sum_{i} b_i^2},
+  \qquad
+  \sigma_{\text{worst}} = \textstyle\sum_{i} b_i ,
+\end{equation}
+
+and the honest figure to compare against the \SI{30}{\milli\metre} capture
+gate is $\sigma_{\text{worst}}$, because the two largest terms are declared
+constants rather than noise and therefore do not average out.
+
+Applying the corrections moves both. The declared grasp offset is now derived
+from a forward-kinematic measurement rather than asserted, taking it from
+\SI{13.45}{\milli\metre} to \SI{0.05}{\milli\metre}; the shell bias is removed
+by using the measured support plane; and the terminal overshoot reduces the
+joint term from \SI{7.24}{\milli\metre} to \SI{1.88}{\milli\metre}. Together
+these take the budget from \SI{18.64}{\milli\metre} to
+\SI{12.91}{\milli\metre} in quadrature and from \SI{33.39}{\milli\metre} to
+\SI{19.99}{\milli\metre} in the worst case, which is inside the requirement
+for the first time --- \emph{provided} the unmeasured term is small. The pad
+row is computed from the constants rather than transcribed, so reverting the
+derivation makes the budget report the reversion.
 
 There is now direct evidence that it is not. The first sustained attempt to
 drive a physical arm from its own wrist camera measured the table normal from

@@ -22,15 +22,28 @@ INTRINSICS ARE READ FROM THE DEVICE, never assumed.  Measured on this unit:
 depth fx=382.72 cx=321.58 cy=240.60, colour fx=603.02 cx=318.87 cy=231.22.
 The colour principal point is 8.8 px above centre, which is small but real.
 
+WHICH WAY UP IS ASKED, NOT ASSUMED.  This node used to rotate nothing while
+two offline tools rotated by 180 degrees on the hard-coded assumption that
+the camera is mounted upside down, so the topics and the figures disagreed
+and neither side knew.  The mounting was measured on 2026-08-30 against the
+HD webcam (see `scene_rs_orientation`): the camera is the right way up.  The
+answer now lives in `config/scene_rs_orientation.json` and all three read it,
+and when it says rotate, the principal point is rotated with the image.
+
 DEPTH IS ALIGNED TO COLOUR before publishing, so a pixel in the colour image
 and the same pixel in the depth image are the same ray.  Without that the two
 sensors are 15 mm apart and every detection is thrown by the disparity, which
 at 3 m is small but at the 0.5 m end of the workspace is not.
 """
+import os
 import sys
 import time
 
 import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import scene_rs_orientation as _rs_orient   # noqa: E402
+
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
@@ -43,8 +56,11 @@ DEPTH_FRAME = "scene_rs_color_frame"   # depth is ALIGNED to colour, so same fra
 
 class RealSenseNode(Node):
     def __init__(self, width=640, height=480, fps=30,
-                 depth_only=False):
+                 depth_only=False, rotate180=None):
         super().__init__("srl_realsense")
+        self.orient = _rs_orient.load_orientation()
+        self.rotate180 = (bool(self.orient["rotate180"]) if rotate180 is None
+                          else bool(rotate180))
         import pyrealsense2 as rs
         self.rs = rs
         self.pub_c = self.create_publisher(Image, "/scene/rs/color/image_raw",
@@ -85,10 +101,22 @@ class RealSenseNode(Node):
         strm = (rs.stream.depth if depth_only else rs.stream.color)
         self.k_color = prof.get_stream(strm) \
             .as_video_stream_profile().get_intrinsics()
+        # THE PUBLISHED K IS THE K OF THE PUBLISHED IMAGE. If the frame is
+        # rotated, the principal point is rotated with it -- publishing the
+        # device's own cx beside a rotated image puts every deprojected ray
+        # on the wrong side of the optical axis, which is 2.6 px here and
+        # invisible in a picture.
+        self.K = _rs_orient.rotate_K(
+            (self.k_color.fx, self.k_color.fy,
+             self.k_color.ppx, self.k_color.ppy),
+            self.k_color.width, self.k_color.height) if self.rotate180 else (
+            self.k_color.fx, self.k_color.fy,
+            self.k_color.ppx, self.k_color.ppy)
         self.get_logger().info(
             "colour K fx=%.2f fy=%.2f cx=%.2f cy=%.2f  depth_scale=%.6f m/unit"
-            % (self.k_color.fx, self.k_color.fy, self.k_color.ppx,
-               self.k_color.ppy, self.depth_scale))
+            "  rotate180=%s (%s)"
+            % (self.K[0], self.K[1], self.K[2], self.K[3], self.depth_scale,
+               self.rotate180, self.orient["source"]))
         self._w, self._h, self._fps = width, height, fps
         self.n = 0
         self.t0 = time.time()
@@ -102,9 +130,10 @@ class RealSenseNode(Node):
         m.width, m.height = k.width, k.height
         m.distortion_model = "plumb_bob"
         m.d = [float(x) for x in k.coeffs]
-        m.k = [k.fx, 0.0, k.ppx, 0.0, k.fy, k.ppy, 0.0, 0.0, 1.0]
+        fx, fy, cx, cy = self.K          # rotated with the image, or not
+        m.k = [fx, 0.0, cx, 0.0, fy, cy, 0.0, 0.0, 1.0]
         m.r = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
-        m.p = [k.fx, 0.0, k.ppx, 0.0, 0.0, k.fy, k.ppy, 0.0, 0.0, 0.0, 1.0, 0.0]
+        m.p = [fx, 0.0, cx, 0.0, 0.0, fy, cy, 0.0, 0.0, 0.0, 1.0, 0.0]
         return m
 
     def tick(self):
@@ -150,6 +179,8 @@ class RealSenseNode(Node):
         dep = np.asanyarray(df.get_data())
         col = (np.zeros((dep.shape[0], dep.shape[1], 3), np.uint8)
                if self.depth_only else np.asanyarray(cf.get_data()))
+        if self.rotate180:
+            col, dep, _, _ = _rs_orient.rotate(col, dep, None, None, apply=True)
         # Publish depth in MILLIMETRES as 16UC1 -- the same units and encoding
         # the Kinova wrist camera uses, so one reader handles both.
         if abs(self.depth_scale - 0.001) > 1e-6:
@@ -214,9 +245,11 @@ class RealSenseNode(Node):
     def report(self):
         dt = time.time() - self.t0
         self.pub_s.publish(String(
-            data='{"frames": %d, "hz": %.2f, "restarts": %d, "misses": %d}'
+            data='{"frames": %d, "hz": %.2f, "restarts": %d, "misses": %d, '
+                 '"rotate180": %s}'
                  % (self.n, self.n / max(dt, 1e-6),
-                    getattr(self, "_restarts", 0), getattr(self, "_misses", 0))))
+                    getattr(self, "_restarts", 0), getattr(self, "_misses", 0),
+                    "true" if self.rotate180 else "false")))
 
     def destroy_node(self):
         try:
@@ -233,10 +266,14 @@ def main():
     ap.add_argument("--width", type=int, default=640)
     ap.add_argument("--height", type=int, default=480)
     ap.add_argument("--fps", type=int, default=30)
+    ap.add_argument("--rotate", choices=("auto", "on", "off"), default="auto",
+                    help="180 deg image rotation. 'auto' reads the measured "
+                         "mounting from config/scene_rs_orientation.json.")
     a = ap.parse_args()
     rclpy.init()
     try:
-        node = RealSenseNode(a.width, a.height, a.fps, a.depth_only)
+        node = RealSenseNode(a.width, a.height, a.fps, a.depth_only,
+                             {"auto": None, "on": True, "off": False}[a.rotate])
     except Exception as e:                           # noqa: BLE001
         print("RealSense would not start: %s\n"
               "  - is it attached?  usbipd attach --wsl --busid 3-3\n"

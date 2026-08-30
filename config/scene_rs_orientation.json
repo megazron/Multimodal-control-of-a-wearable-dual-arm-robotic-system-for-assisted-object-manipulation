@@ -1,0 +1,7 @@
+{
+  "rotate180": false,
+  "measured_on": "2026-08-30",
+  "method": "agreement with the HD webcam, which watches the same scene from the same side of the room and is rotated by nothing",
+  "evidence": "recordings/vision_thesis/{20260830_070258,20260830_070529,20260830_071516,20260830_073141}: the un-rotated RealSense frame agrees with the webcam at r=0.66-0.70, the 180-degree-rotated one at r=0.27-0.34. Four independent captures, same verdict, a factor of 2.4 apart.",
+  "note": "This is a fact about how the camera is BOLTED DOWN. If the mount is changed, re-measure with `python3 scripts/scene_rs_orientation.py --check recordings/vision_thesis/<a run with both cameras>` and edit this file; do not edit a default in a script."
+}

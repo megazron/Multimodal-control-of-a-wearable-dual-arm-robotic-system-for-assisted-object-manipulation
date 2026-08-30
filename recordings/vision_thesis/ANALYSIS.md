@@ -164,3 +164,82 @@ pick pose".
 **`scene_hd` remains 2-D only.** 8 stages refuse for want of intrinsics; it
 has never been calibrated in this repository. `scripts/calibrate_scene_camera.py`
 is all that stands between it and the full set.
+
+---
+
+# The scene camera was upside down, and nothing could see it
+
+Found 2026-08-30 while reading these runs for the thesis.
+
+## What was wrong
+
+Three places decided independently whether the scene RealSense is mounted
+upside down. `cv_pickpose_visuals.grab_scene_rs` carried `rotate180=True` and
+the sentence "the camera is mounted upside down"; so did
+`real_calibration.scene_cameras.SceneRealSense`; and `srl_realsense_node`, the
+node that publishes to the rest of the system, rotated nothing at all. **Nobody
+had measured it.** So the recorded figures and the live topics disagreed and
+neither side knew.
+
+## How it was settled
+
+Not by looking. The HD webcam watches the same scene from the same side of the
+room and is rotated by nothing, so it is a reference that needs no convention.
+Each frame is reduced to a 64x64 grey signature, z-scored, and correlated
+against the webcam in both orientations:
+
+| run | as saved | rotated 180 | verdict |
+| --- | --- | --- | --- |
+| `20260830_070258` | +0.336 | **+0.698** | UPSIDE DOWN |
+| `20260830_070529` | +0.271 | **+0.661** | UPSIDE DOWN |
+| `20260830_071516` | +0.272 | **+0.662** | UPSIDE DOWN |
+| `20260830_073141` | +0.269 | **+0.662** | UPSIDE DOWN |
+
+Four independent captures, the same verdict every time, a factor of 2.4 apart.
+**The camera is mounted the right way up.** The live node was the only one of
+the three that was right.
+
+## What was done
+
+`scripts/scene_rs_orientation.py` is the one owner now:
+`config/scene_rs_orientation.json` records the measured mounting with the
+evidence that set it, one function rotates the image AND the intrinsics
+together so half a rotation cannot be applied, and all three consumers read
+the file. `--check` reports; `--repair` turns an already-recorded frame the
+right way up; `--self-test` is 12 known-answer checks.
+`src/srl_perception/test/test_scene_rs_is_the_right_way_up.py` fails on an
+upside-down recording, which is the test that would have caught this on the
+day.
+
+    .venv_vision/bin/python scripts/scene_rs_orientation.py --check recordings/vision_thesis
+
+## What the defect did and did not corrupt
+
+The rotation was applied CONSISTENTLY to the image and to `cx, cy`, so the
+recovered cloud was an exact reflection through the optical axis: X and Y
+negated, Z untouched, **every distance, extent, angle and residual preserved**.
+Checked, not assumed -- the deprojected extents are exactly negated.
+
+Two things changed anyway.
+
+* **FastSAM is not rotation-invariant.** 92 regions upside down, **96** the
+  right way up, different largest region, different median area. A geometric
+  pipeline can be immune to an orientation error while the learned component
+  beside it is not, and only the learned component shows it.
+* **The RANSAC plane changed, because its support is 3.8%.** Candidate triples
+  are drawn in raster order and rotating the image reverses that order, so a
+  different sequence is examined. On the wrist cameras (74.0% inliers) it makes
+  no difference. On the scene camera it picked a different plane entirely:
+  2.68 m from the camera before, 4.35 m after. **That is not the orientation
+  bug. That is what pointing a plane-finder at a ROOM looks like**, and the
+  orientation change only made it visible.
+
+## Which directory to use
+
+`20260830_073141_upright` is the canonical run: the same capture, replayed
+through `--replay` after the correction, 96 of 132 stages, 0 crashed. The four
+older directories have had their **raw** frames corrected in place, but their
+`stages/` figures were drawn before the fix and are still inverted. Redraw any
+of them with:
+
+    .venv_vision/bin/python scripts/cv_pickpose_visuals.py --replay recordings/vision_thesis/<run> --out <newdir>

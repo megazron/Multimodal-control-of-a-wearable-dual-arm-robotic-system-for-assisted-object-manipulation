@@ -106,6 +106,18 @@ available control interface.
     in a way that rotates with the wrist, and it is the reason no open-loop
     grasp has landed inside the capture gate. It needs the hardware and a
     target, and it is the cheapest high-value measurement remaining.
+  \item \textbf{Calibrate the scene colour camera}, which has never been
+    calibrated in this project and whose eight refusing stages
+    (\cref{ch:vision}) all refuse for the same missing intrinsics. It is a
+    half-hour with a printed board and it converts a camera that can only
+    report pixels into one that can report metres.
+  \item \textbf{Re-run the stage-by-stage vision session with the arms
+    actually at the pick pose.} The session of \cref{ch:vision} measured the
+    arms at \SI{10.67}{\degree} and \SI{13.53}{\degree} from the reference
+    configuration, so none of its figures may be captioned as a picture of
+    the pick pose, and the numbers describe a viewpoint near it rather than
+    the one the task uses. Nothing needs to be built; the arms need to be
+    parked and the same command re-run.
   \item \textbf{Make the clearance check measure link geometry.} At present it
     samples link origins and returns a comfortable number for a pose in which
     the arm is touching the mannequin. This is a safety defect rather than an

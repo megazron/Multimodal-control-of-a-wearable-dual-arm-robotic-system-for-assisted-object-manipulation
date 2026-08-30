@@ -1,0 +1,85 @@
+{
+  "effect": {
+    "trials": 20000,
+    "true_effect_d": 0.73,
+    "family_wise_rate": 0.97315,
+    "per_contrast_rate": 0.63758,
+    "single_contrast_uncorrected": 0.77725
+  },
+  "null": {
+    "trials": 20000,
+    "true_effect_d": 0.0,
+    "family_wise_rate": 0.04955,
+    "per_contrast_rate": 0.01012,
+    "single_contrast_uncorrected": 0.05155
+  },
+  "power_curve": [
+    {
+      "dyads": 8,
+      "uncorrected": 0.4275,
+      "corrected": 0.18593333333333334,
+      "family_wise": 0.5835
+    },
+    {
+      "dyads": 10,
+      "uncorrected": 0.5427,
+      "corrected": 0.2985333333333333,
+      "family_wise": 0.767
+    },
+    {
+      "dyads": 12,
+      "uncorrected": 0.6335333333333333,
+      "corrected": 0.4059333333333333,
+      "family_wise": 0.8641666666666666
+    },
+    {
+      "dyads": 14,
+      "uncorrected": 0.7150333333333333,
+      "corrected": 0.5293,
+      "family_wise": 0.9325
+    },
+    {
+      "dyads": 16,
+      "uncorrected": 0.7809666666666667,
+      "corrected": 0.6398,
+      "family_wise": 0.9686666666666667
+    },
+    {
+      "dyads": 18,
+      "uncorrected": 0.8289,
+      "corrected": 0.7239333333333333,
+      "family_wise": 0.9871666666666666
+    },
+    {
+      "dyads": 20,
+      "uncorrected": 0.8762666666666666,
+      "corrected": 0.8028666666666666,
+      "family_wise": 0.9956666666666667
+    },
+    {
+      "dyads": 24,
+      "uncorrected": 0.9286333333333333,
+      "corrected": 0.8995666666666666,
+      "family_wise": 0.9996666666666667
+    },
+    {
+      "dyads": 28,
+      "uncorrected": 0.9581333333333333,
+      "corrected": 0.9467666666666666,
+      "family_wise": 1.0
+    },
+    {
+      "dyads": 32,
+      "uncorrected": 0.9788666666666667,
+      "corrected": 0.9748,
+      "family_wise": 1.0
+    }
+  ],
+  "design": {
+    "dyads": 16,
+    "contrasts": 5,
+    "alpha": 0.05,
+    "effect_d": 0.73,
+    "correction": "Holm-Bonferroni, pre-registered"
+  }
+}

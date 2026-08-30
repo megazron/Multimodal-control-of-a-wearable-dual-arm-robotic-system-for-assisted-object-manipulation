@@ -249,6 +249,10 @@ class VrPoseMapper(Node):
         # every grasping task.
         self.pfilt = {h: self._make_pfilt() for h in HANDS}
         self.qfilt = {h: self._make_qfilt() for h in HANDS}
+        # The key the filters above were built from, so `_smooth_sync` can
+        # tell a changed parameter from an unchanged one.
+        self._smooth_cur = self._smooth_key()
+        self._smooth_bad = None
         self.last_cmd = {h: None for h in HANDS}
         self.tracking_ok = False
         # PER-HAND tracking, separate from the global stream watchdog.
@@ -315,6 +319,66 @@ class VrPoseMapper(Node):
 
     # --------------------------------------------------------------- reset
     # ----------------------------------------------------------- smoothing
+    #: THE PARAMETERS A SMOOTHING FILTER IS BUILT FROM. Named as one tuple
+    #: because they have to be re-read TOGETHER: the filters are rebuilt when
+    #: any of them changes, and a list that drifts out of step with
+    #: `_make_pfilt` is a slider that silently stops working.
+    SMOOTHING_PARAMS = ('smoothing', 'ema_alpha', 'min_cutoff_hz', 'beta',
+                        'd_cutoff_hz', 'smooth_orientation',
+                        'rot_min_cutoff_hz', 'rot_beta', 'rot_d_cutoff_hz')
+
+    def _smooth_key(self):
+        """The current value of every smoothing parameter, as one key."""
+        return tuple(self.get_parameter(n).value
+                     for n in self.SMOOTHING_PARAMS)
+
+    def _smooth_sync(self):
+        """Rebuild the filters if any smoothing parameter has changed.
+
+        WITHOUT THIS THE SLIDERS ARE DECORATION. These constants used to be
+        read only when a filter was CONSTRUCTED, and nothing constructed one
+        again after start-up, so `ros2 param set min_cutoff_hz` -- and the
+        window's steadiness slider on top of it -- set a number this node had
+        already copied and would never look at again. That is the same defect
+        as the START REAL ARM TELEOP button that set a parameter nothing
+        read: a control that reports success and changes nothing.
+
+        Rebuilding rather than mutating is deliberate. A filter's state is
+        only meaningful under the law that produced it, so a law change must
+        re-seed. An unknown name is REFUSED by `smooth.make`; that refusal is
+        caught here so a typo mid-session costs the operator a log line
+        rather than the node, and the filters in force stay in force.
+        """
+        try:
+            key = self._smooth_key()
+        except Exception as exc:                             # noqa: BLE001
+            self.get_logger().error(
+                '[SMOOTH] could not read the smoothing parameters (%s); '
+                'keeping the filters in force.' % exc)
+            return False
+        if key == getattr(self, '_smooth_cur', None):
+            return False
+        if key == getattr(self, '_smooth_bad', None):
+            return False                    # already refused, already said so
+        try:
+            pos = {h: self._make_pfilt() for h in HANDS}
+            rot = {h: self._make_qfilt() for h in HANDS}
+        except ValueError as exc:
+            self._smooth_bad = key
+            self.get_logger().error(
+                '[SMOOTH] %s -- keeping the filters in force. Fix the '
+                'parameter and they will rebuild.' % exc)
+            return False
+        if getattr(self, '_smooth_cur', None) is not None:
+            self.get_logger().info(
+                '[SMOOTH] parameters changed -- filters re-seeded (%s)'
+                % ', '.join('%s=%s' % (n, v)
+                            for n, v in zip(self.SMOOTHING_PARAMS, key)))
+        self.pfilt, self.qfilt = pos, rot
+        self._smooth_cur = key
+        self._smooth_bad = None
+        return True
+
     def _make_pfilt(self):
         """The position smoother named by the `smoothing` parameter.
 
@@ -653,6 +717,9 @@ class VrPoseMapper(Node):
             yaw = float(self.get_parameter('align_yaw_deg').value)
             R = yaw_matrix(yaw)
             p_cmd = self.p_anchor[hand] + self.scale * (R @ d)
+            # Live: the smoothing sliders take effect on the next sample,
+            # not on the next run.
+            self._smooth_sync()
             if self.filt[hand] is None:
                 self.filt[hand] = p_cmd.copy()
                 self.pfilt[hand].reset()

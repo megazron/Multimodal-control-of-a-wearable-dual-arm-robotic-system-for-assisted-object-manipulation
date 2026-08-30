@@ -127,6 +127,17 @@ class SimToRealBridge(Node):
         self.home = list(home_positions.load_home_radians(self.arm))
 
         self.sim_hist = deque(maxlen=4000)     # (t, [q7]) sim history
+        # THE DEQUE IS BOUNDED, SO AN APPEND EVICTS, AND AN EVICTION DURING
+        # A SCAN RAISES. `on_sim` appends on the ROS executor thread while
+        # `sim_delayed` is scanned from the auto-enable thread; measured on
+        # the rig 2026-08-29 as `RuntimeError: deque mutated during
+        # iteration`, which killed the ONLY thread that will ever enable
+        # this relay. The refusals it had been printing were asking the
+        # operator to bring the arm to home, and after they did, nothing was
+        # left alive to notice. The relay looked healthy and was permanently
+        # dead. Reader takes a snapshot; writer honours the same lock, since
+        # a snapshot under a lock only helps if the writer takes it too.
+        self._hist_lock = threading.Lock()
         self.real_js = {}
         self.last_cmd = None
         self.enabled = False
@@ -205,33 +216,71 @@ class SimToRealBridge(Node):
         last = ""
         nagged = 0.0
         while time.monotonic() < deadline:
-            if self.real_current() is not None and len(self.sim_hist) > 10:
-                ok, msg = self.enable()
-                # Say WHY it is not enabling, every few seconds. A silent
-                # refusal is indistinguishable from a hung node, and the
-                # operator is the one who has to fix it (by bringing the
-                # master back towards home).
-                if not ok and time.monotonic() - nagged > 5.0:
-                    nagged = time.monotonic()
-                    self.get_logger().warn("waiting to enable: %s" % msg)
+            # THE ATTEMPT IS WRAPPED, AND THE LOOP CONTINUES. Catching and
+            # then falling out of the loop would be the same defect with a
+            # log line in front of it: this loop is the only thing that will
+            # ever enable the relay, so an exception here must cost one
+            # attempt, not the session.
+            try:
+                ok, msg = self._enable_attempt()
+            except Exception as exc:                         # noqa: BLE001
+                self.get_logger().error(
+                    "auto-enable attempt raised (%s: %s) -- the relay is "
+                    "still DISABLED and this loop is still retrying."
+                    % (type(exc).__name__, exc))
+                time.sleep(1.0)
+                continue
+            # ok is None when the inputs are not ready yet. That is a
+            # PRECONDITION, not a refusal: printing it as one, or storing it
+            # as `last`, would report "no sim /joint_states" as the reason a
+            # relay gave up ten minutes later.
+            if ok is not None:
                 if ok:
                     self.get_logger().info(msg)
                     print("\n" + "=" * 62)
                     print("  REAL ARMS LIVE - move the master arm.")
                     print("=" * 62 + "\n", flush=True)
                     return
+                # Say WHY it is not enabling, every few seconds. A silent
+                # refusal is indistinguishable from a hung node, and the
+                # operator is the one who has to fix it (by bringing the
+                # master back towards home).
+                if time.monotonic() - nagged > 5.0:
+                    nagged = time.monotonic()
+                    self.get_logger().warn(
+                        "waiting to enable, still DISABLED: %s" % msg)
                 last = msg
             time.sleep(1.0)
         self.get_logger().error(
-            "bridge auto-enable GAVE UP after %.0f s. Last refusal: %s"
-            % (float(self.get_parameter("auto_enable_timeout_s").value), last))
+            "bridge auto-enable GAVE UP after %.0f s; the relay is still "
+            "DISABLED. Last refusal: %s"
+            % (float(self.get_parameter("auto_enable_timeout_s").value),
+               last or "the inputs never became ready"))
+
+    def _enable_attempt(self):
+        """One try, with the preconditions separated from the refusals.
+
+        Returns (None, None) when the inputs are not ready yet -- no real
+        joint states, or not enough sim history to have anything to replay.
+        That is not the same thing as a refusal and the caller must not
+        report it as one. Otherwise returns whatever `enable()` returned.
+        """
+        if self.real_current() is None:
+            return (None, None)
+        with self._hist_lock:
+            have = len(self.sim_hist)
+        if have <= 10:
+            return (None, None)
+        return self.enable()
 
     # ---------------- inputs ----------------
 
     def on_sim(self, m):
         d = dict(zip(m.name, m.position))
         if all(n in d for n in self.names):
-            self.sim_hist.append((time.monotonic(), [d[n] for n in self.names]))
+            with self._hist_lock:
+                self.sim_hist.append(
+                    (time.monotonic(), [d[n] for n in self.names]))
 
     def on_real(self, m):
         for n, p in zip(m.name, m.position):
@@ -244,11 +293,16 @@ class SimToRealBridge(Node):
 
     def sim_delayed(self):
         """The sim sample from preview_delay_s ago."""
-        if not self.sim_hist:
+        # SNAPSHOT, taken under the lock, then iterated outside it. Copying
+        # a few thousand tuples is far cheaper than holding a lock across a
+        # scan that a 50 Hz subscriber is waiting on.
+        with self._hist_lock:
+            hist = list(self.sim_hist)
+        if not hist:
             return None
         want = time.monotonic() - self.delay
         best = None
-        for t, q in self.sim_hist:
+        for t, q in hist:
             if t <= want:
                 best = q
             else:
@@ -256,7 +310,7 @@ class SimToRealBridge(Node):
         # Before enough history has accumulated, hold at the oldest sample
         # rather than jumping to the present -- the present is exactly what
         # the delay exists to avoid commanding.
-        return best if best is not None else self.sim_hist[0][1]
+        return best if best is not None else hist[0][1]
 
     # ---------------- enable / disable ----------------
 

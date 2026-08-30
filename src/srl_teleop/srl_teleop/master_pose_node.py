@@ -53,6 +53,7 @@ from srl_teleop import master_calibration as mc
 from srl_teleop.serial_port import (find_port, claim_exclusive,
                                     PortNotFound, candidates)
 from srl_teleop import degraded_mode as dg
+from srl_teleop import smoothing as sm
 import tf_transformations  # quaternion helpers (roll,pitch,yaw -> quaternion)
 import re as _re
 
@@ -257,10 +258,48 @@ class MasterPoseNode(Node):
         # this many consecutive rejections. One visible jump beats a
         # silently frozen arm.
         self.declare_parameter("force_resync_after", 25)
-        # EMA on tip position. alpha=1.0 disables filtering; smaller is
-        # smoother but laggier. Re-read every frame so `ros2 param set`
-        # takes effect live.
+        # ---- TIP SMOOTHING ---------------------------------------------
+        # This was a fixed EMA at alpha=0.3, applied inline in read_serial,
+        # and a fixed alpha cannot win both halves of the trade: high alpha
+        # passes the operator's tremor to the arm, low alpha puts a constant
+        # position offset behind a hand moving at constant speed. They are
+        # not the same signal -- tremor is high frequency at low amplitude,
+        # motion is low frequency at high amplitude -- so no single alpha
+        # fixes both. The 1-Euro filter's cutoff RISES WITH SPEED, which
+        # takes it off the fixed filter's trade-off curve entirely.
+        #
+        # The maths lives in `srl_teleop.smoothing` and is shared with the
+        # VR path, so the two inputs cannot drift apart, and it is tested
+        # against constructed signals rather than through a node.
+        #
+        #   one_euro  the delivered law
+        #   ema       the EXACT pre-2026-08-27 arithmetic, kept so recordings
+        #             made before the change still reproduce bit for bit
+        #   none      passthrough, for isolating the filter as a cause
+        self.declare_parameter("smoothing", "one_euro")
+        # alpha of the legacy EMA. Only read when smoothing:=ema.
         self.declare_parameter("ema_alpha", 0.3)
+        # Cutoff in Hz with the master held still. Lower is steadier at rest
+        # and costs lag only at low speed, where lag is cheap.
+        self.declare_parameter("min_cutoff_hz", 0.5)
+        # How fast the cutoff opens with speed, in Hz per metre per second.
+        # MIND THE UNITS: the 1-Euro paper's examples are in PIXELS, so a
+        # beta copied from it leaves the cutoff pinned at min_cutoff and the
+        # filter degenerates into a heavy fixed low pass. See smoothing.py.
+        self.declare_parameter("beta", 100.0)
+        # Cutoff of the low pass on the SPEED ESTIMATE, which is a finite
+        # difference and so noisier than the signal it is derived from.
+        self.declare_parameter("d_cutoff_hz", 0.2)
+        # Orientation smoothing is off by default: in the delivered
+        # orientation modes the commanded wrist is either pinned to the
+        # anchor or built from a gravity estimate that is already
+        # gated on quasi-static acceleration, so there is little left to
+        # filter. Its constants are NOT exposed as parameters: rotation speed
+        # is in rad/s where position speed is in m/s, so beta does not carry
+        # across, and no rotation-smoothing constant has been measured on
+        # this path. A knob whose value has never been measured and which no
+        # test exercises is worse than the documented default.
+        self.declare_parameter("smooth_orientation", False)
         # POSITION MODE.
         #   "spherical" (default) -- direction from the wrist IMU + j1, reach
         #       magnitude from the j2/j4 bends. Survives dead j3/j5/j6/j7.
@@ -533,7 +572,18 @@ class MasterPoseNode(Node):
         # Timestamp of that frame -- the step tolerance is scaled by how
         # long ago it was, so a dropout cannot deadlock the gate.
         self.last_good_time = {a: None for a in self.arms}
-        self.tip_filt = {a: None for a in self.arms}   # EMA state (local FK metres)
+        # Tip smoothing state. One filter object per arm -- sharing one
+        # would blend one arm's velocity estimate into the other's adaptive
+        # cutoff, and the two arms move independently.
+        self.tip_filt = {}
+        self.quat_filt = {}
+        self._smooth_key = None
+        self._smooth_rejected = None
+        self.tip_filter_sync()
+        # Time of the last sample each filter saw. The filter is dt-correct,
+        # so this is part of its state and is cleared with it.
+        self.filt_t = {a: None for a in self.arms}
+        self.last_filt_dt = {a: 0.0 for a in self.arms}
         self.frames = {a: 0 for a in self.arms}
         self.rejects = {a: 0 for a in self.arms}
         self.resyncs = {a: 0 for a in self.arms}
@@ -1055,6 +1105,133 @@ class MasterPoseNode(Node):
 
     # ---------------- clutch ----------------
 
+    # ------------------------------------------------------- tip smoothing
+    def _smooth_params(self):
+        """The parameters the filters are built from, as one hashable key.
+
+        Read through get_parameter every time rather than cached, because
+        the old fixed alpha was re-read every frame and `ros2 param set`
+        during a session is how the feel of this rig gets tuned at all.
+        """
+        return (
+            str(self.get_parameter("smoothing").value),
+            float(self.get_parameter("ema_alpha").value),
+            float(self.get_parameter("min_cutoff_hz").value),
+            float(self.get_parameter("beta").value),
+            float(self.get_parameter("d_cutoff_hz").value),
+            bool(self.get_parameter("smooth_orientation").value),
+        )
+
+    def tip_filter_sync(self):
+        """Rebuild the per-arm filters if any smoothing parameter changed.
+
+        Called once from __init__ and once per smoothed sample. Rebuilding
+        rather than mutating is deliberate: a filter's state is only
+        meaningful under the law that produced it, so changing the law
+        mid-session must re-seed rather than reinterpret the state it holds.
+
+        AN UNKNOWN LAW IS REFUSED, NOT SUBSTITUTED. `smoothing.make` raises
+        on a name it does not know; catching that here keeps the filters the
+        session already had, says so once, and does not retry until the
+        parameter changes again. A typo silently selecting a different
+        control law is how a session gets spent comparing two conditions
+        that were the same one.
+        """
+        try:
+            key = self._smooth_params()
+        except Exception as exc:                             # noqa: BLE001
+            self.get_logger().error(
+                "[SMOOTH] could not read the smoothing parameters (%s); "
+                "keeping the filters in force." % exc)
+            return False
+        if key == self._smooth_key and self.tip_filt:
+            return False
+        if key == self._smooth_rejected:
+            return False                    # already refused, already said so
+        kind, alpha, mc, beta, dc, smooth_q = key
+        try:
+            pos = {a: sm.make(kind, alpha=alpha, min_cutoff=mc, beta=beta,
+                              d_cutoff=dc) for a in self.arms}
+        except ValueError as exc:
+            self._smooth_rejected = key
+            self.get_logger().error(
+                "[SMOOTH] %s -- keeping %s. The filters in force are "
+                "unchanged; fix the parameter and they will rebuild."
+                % (exc, self._smooth_key[0] if self._smooth_key else "nothing"))
+            return False
+        rot = {a: (sm.OneEuroQuat() if smooth_q and kind != "none" else None)
+               for a in self.arms}
+        if self._smooth_key is not None:
+            self.get_logger().info(
+                "[SMOOTH] %s -> %s, filters re-seeded"
+                % (self._smooth_key[0], kind))
+        self.tip_filt = pos
+        self.quat_filt = rot
+        self._smooth_key = key
+        self._smooth_rejected = None
+        # A rebuilt filter has no history, so it has no sample time either.
+        for a in self.arms:
+            if getattr(self, "filt_t", None) is not None:
+                self.filt_t[a] = None
+        return True
+
+    def reset_tip_filter(self, arm):
+        """Drop everything the smoother is carrying for one arm.
+
+        Position, the velocity estimate that drives the adaptive cutoff, the
+        orientation filter, and the sample CLOCK. The clock matters as much
+        as the state: leaving it set makes the first dt after a re-engage
+        span the whole disengaged period, which is an arbitrary number of
+        seconds and drives the cutoff to whatever that implies.
+
+        This is the master-path form of the carried-state defect that cost
+        mode 02 every grasping task, where the VR mapper's rate limiter kept
+        integrating across runs.
+        """
+        f = self.tip_filt.get(arm)
+        if f is not None:
+            f.reset()
+        q = self.quat_filt.get(arm)
+        if q is not None:
+            q.reset()
+        if getattr(self, "filt_t", None) is not None:
+            self.filt_t[arm] = None
+            self.last_filt_dt[arm] = 0.0
+
+    def smooth_tip(self, arm, tip, t):
+        """One smoothed tip sample, in the master's own metres.
+
+        `t` is a wall time in seconds; dt is measured from the previous
+        sample of THIS arm rather than assumed from the nominal frame rate,
+        because the serial frame arrives at whatever rate the board and the
+        USB stack manage and a dt-blind filter's response then depends on
+        the machine's load rather than on the filter.
+        """
+        self.tip_filter_sync()
+        prev = self.filt_t.get(arm)
+        dt = 0.0 if prev is None else float(t) - float(prev)
+        if dt < 0.0:
+            # A clock that went backwards is not a short step. Treat it as a
+            # fresh start rather than feeding a negative dt into alpha_for.
+            dt = 0.0
+        self.filt_t[arm] = float(t)
+        self.last_filt_dt[arm] = dt
+        return self.tip_filt[arm](np.asarray(tip, dtype=float), dt)
+
+    def smooth_quat(self, arm, quat, t):
+        """The commanded orientation, smoothed, when that is enabled.
+
+        Returns `quat` unchanged when `smooth_orientation` is false, which
+        is the default: this is a passthrough by configuration rather than a
+        method nobody calls.
+        """
+        q = self.quat_filt.get(arm)
+        if q is None:
+            return np.asarray(quat, dtype=float)
+        prev = self.filt_t.get(arm)
+        dt = 0.0 if prev is None else max(0.0, float(t) - float(prev))
+        return q(np.asarray(quat, dtype=float), dt)
+
     def update_clutch(self, arm, btn_values, frame_valid, d_now):
         """btn_values is (btn1, btn2). The buttons are firmware toggles, so
         we act on CHANGES to the reported value, one flip per press."""
@@ -1150,10 +1327,12 @@ class MasterPoseNode(Node):
             self.pending_engage[arm] = False
             self.clutch_on[arm] = True
             self.d_ref[arm] = ref
-            # RESET the EMA. It still holds pre-disengage state, so without
-            # this the first frames after engage blend a stale position into
-            # the command -- the third cause of the glitch.
-            self.tip_filt[arm] = None
+            # RESET the smoother. It still holds pre-disengage state, so
+            # without this the first frames after engage blend a stale
+            # position into the command -- the third cause of the glitch --
+            # and the adaptive cutoff inherits a velocity estimate taken
+            # while the operator was walking the master somewhere else.
+            self.reset_tip_filter(arm)
             # RESET the integrated azimuth at every engage. Bounded segments
             # are what make gyro integration usable at all -- drift only ever
             # accumulates from the most recent engage, never across a session.
@@ -1301,14 +1480,10 @@ class MasterPoseNode(Node):
                     continue
             else:
                 tip = np.asarray(mc.fk(joints_rad), dtype=float)
-            alpha = float(self.get_parameter("ema_alpha").value)
-            alpha = min(max(alpha, 0.0), 1.0)
-            if self.tip_filt[a] is None:
-                self.tip_filt[a] = tip
-            else:
-                self.tip_filt[a] = alpha * tip + (1.0 - alpha) * self.tip_filt[a]
+            tip_s = self.smooth_tip(
+                a, tip, self.get_clock().now().nanoseconds / 1e9)
 
-            _p = mc.to_robot_frame(self.tip_filt[a]) - self.neutral
+            _p = mc.to_robot_frame(tip_s) - self.neutral
 
             # ---- stage 3: clutch ----
             # Scale is re-read EVERY FRAME so `ros2 param set` takes effect

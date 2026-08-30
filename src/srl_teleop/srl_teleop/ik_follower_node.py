@@ -444,6 +444,32 @@ class IKFollowerNode(Node):
         self.create_subscription(Bool, "/cascade_active_%s" % self.arm,
                                  self.on_cascade, 10)
 
+        # ---- TWO WRITERS ON ONE TOPIC ----------------------------------
+        # Reported from the rig on 2026-08-29 as "the pose panel doesn't
+        # work when teleoperation is running". The buttons were not dead,
+        # they were OUTVOTED: this node publishes trajectories at the
+        # tracking rate onto /<arm>_arm_controller/joint_trajectory, and
+        # with the mapper holding the arm's own live pose while idle that
+        # is roughly twenty messages a second saying "stay where you are"
+        # against three saying "go home". The GO HOME target was overwritten
+        # inside 50 ms and the arm never moved.
+        #
+        # Publishing harder would be a race rather than a design, and
+        # whichever side won would win by accident. So the mover CLAIMS the
+        # topic and this node stands down for the duration. The mapper keeps
+        # publishing throughout, which is the point of `hold_when_idle` and
+        # is what stops /master_arm_pose_<arm> going stale and latching the
+        # dead-man.
+        #
+        # DELIBERATELY VOLATILE, matching the publisher. A latched claim
+        # would be inherited by a follower that starts later, which drops
+        # every teleop command from its first breath -- that is the failure
+        # the GUI-side comment records, and it presents as "the real arms
+        # are not moving at all" with a stack that looks perfect.
+        self.pose_move_active = False
+        self.create_subscription(Bool, "/pose_move_active",
+                                 self.on_pose_move_claim, 10)
+
         self.ik_client = self.create_client(GetPositionIK, "/compute_ik")
         self.get_logger().info("Waiting for /compute_ik service...")
         while not self.ik_client.wait_for_service(timeout_sec=2.0):
@@ -649,6 +675,28 @@ class IKFollowerNode(Node):
             % ("ACTIVE" if new else "OFF", self.max_vel, self.max_step,
                self.max_step * self.cascade_rate, self.cascade_rate))
 
+    def on_pose_move_claim(self, msg):
+        """Somebody else is driving the arm controller. Stand down, loudly.
+
+        Announced on every CHANGE rather than on every message, because a
+        follower that silently stops commanding is indistinguishable from a
+        follower that has crashed -- which is the observation that started
+        this whole investigation.
+        """
+        new = bool(msg.data)
+        if new == self.pose_move_active:
+            return
+        self.pose_move_active = new
+        if new:
+            self.get_logger().warn(
+                "[CLAIM] /pose_move_active -- another mover has taken "
+                "/%s_arm_controller/joint_trajectory. Teleop commands are "
+                "DROPPED until it releases." % self.arm)
+        else:
+            self.get_logger().warn(
+                "[CLAIM] released -- resuming tracking on "
+                "/%s_arm_controller/joint_trajectory." % self.arm)
+
     def _refuse(self):
         """A command was generated and is NOT being published. Stop cleanly."""
         if self.gen is not None:
@@ -840,6 +888,21 @@ class IKFollowerNode(Node):
         if not self.joint_state_seen:
             self.get_logger().info(
                 "Waiting for /joint_states before startup wind-up check...",
+                throttle_duration_sec=5.0)
+            return
+
+        if self.pose_move_active:
+            # An unwind is a second publisher on the same arm-controller
+            # topic, and it fires ONCE, with a multi-second path, at the
+            # worst possible moment: into the middle of somebody else's pose
+            # move. Deferred rather than dropped -- this check runs on a
+            # repeating timer, and the timer is deliberately NOT cancelled
+            # here, so the unwind simply happens on the next tick after the
+            # claim is released. Returning below the cancel would disable
+            # tracking permanently, because nothing else re-arms it.
+            self.get_logger().warn(
+                "[UNWIND] deferred -- /pose_move_active is held by another "
+                "mover; retrying after it releases.",
                 throttle_duration_sec=5.0)
             return
 
@@ -1474,6 +1537,19 @@ class IKFollowerNode(Node):
         pt.positions = positions
         pt.time_from_start = _duration(time_from_start)
         traj.points = [pt]
+        if self.pose_move_active:
+            # DROPPED, not queued. By the time the pose move finishes this
+            # target describes where the operator's hand was seconds ago and
+            # the arm is somewhere else entirely; publishing it on release
+            # would be a jump.
+            #
+            # The resync is the half that is easy to miss. The generator has
+            # already taken its step, so it believes it commanded a position
+            # that was never published, while the arm is being driven
+            # elsewhere. Without this the first command after the release is
+            # computed from a pose the arm was never in.
+            self._refuse()
+            return
         self.pub.publish(traj)
         self.redundancy_try = 0
 

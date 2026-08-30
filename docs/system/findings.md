@@ -7696,3 +7696,75 @@ session in `recordings/sessions/` from this window carries `input_mode=none`,
 so the trail columns that only populate under VR (`vrc_*`, `hmd_*`) are still
 unexercised. The next VR run should record, so the thesis has the data as
 well as the log.
+
+---
+
+## 2026-08-31 — The scene camera was never upside down, and no metric could see it
+
+**Symptom.** Every scene-camera figure in `recordings/vision_thesis` was
+inverted. Read for the thesis and spotted by eye, not by any check.
+
+**Cause.** Three files each carried their own answer to "which way up is this
+camera mounted", and none of the three had measured it:
+
+| file | said | right? |
+| --- | --- | --- |
+| `cv_pickpose_visuals.grab_scene_rs` | `rotate180=True` | no |
+| `real_calibration.scene_cameras.SceneRealSense` | `rotate180=True` | no |
+| `srl_realsense_node` | rotated nothing at all | **yes, by accident** |
+
+So the recorded figures and the live topics disagreed and neither side could
+tell. There was no single place to be wrong, therefore no single place to
+check, and nothing ever compared an artefact across the three.
+
+**How it was settled.** Not by looking at a picture. The HD webcam watches the
+same room from the same side and is rotated by nothing, so it is a reference
+that needs no sign convention. Each frame reduced to a 64×64 grey signature,
+z-scored so exposure does not matter, correlated in both orientations:
+
+| run | as saved | rotated 180 | verdict |
+| --- | --- | --- | --- |
+| `20260830_070258` | +0.336 | **+0.698** | upside down |
+| `20260830_070529` | +0.271 | **+0.661** | upside down |
+| `20260830_071516` | +0.272 | **+0.662** | upside down |
+| `20260830_073141` | +0.269 | **+0.662** | upside down |
+
+Four independent captures, the same verdict every time, a factor of 2.4 apart.
+Undoing the rotation restored the intrinsics to the device's own reported
+`cx=318.87, cy=231.22` exactly, which is independent confirmation the map went
+the right way.
+
+**Why nothing caught it.** A 180° rotation applied CONSISTENTLY to the image
+and to the principal point is an exact reflection of the point cloud through
+the optical axis: X and Y negate, Z is untouched, and every distance, extent,
+angle and residual is preserved. Checked rather than assumed — the deprojected
+extents come back exactly negated. There is no metric the pipeline computes
+that could have differed.
+
+Two classes of stage changed anyway:
+
+* **FastSAM returned 92 regions upside down and 96 the right way up**, with a
+  different largest region and a different median area. A CNN is not
+  rotation-invariant and was never trained to be. A geometric pipeline can be
+  immune to an orientation error while the learned component beside it is not,
+  and only the learned component will show it.
+* **The RANSAC plane moved from 2.68 m to 4.35 m.** Candidate triples are
+  drawn in raster order, and rotating the image reverses that order. On the
+  wrist cameras (74.0% inliers) it changes nothing. On the scene camera it
+  picks a different plane entirely — because its best plane holds **3.8%** of
+  the points. That is not the orientation bug. That is what pointing a
+  plane-finder at a ROOM looks like, and the rotation only made it visible.
+
+**Fix, and why it is structural rather than diligent.**
+`config/scene_rs_orientation.json` is the one owner and records the
+measurement that set it. `scene_rs_orientation.rotate()` takes the image AND
+the intrinsics and returns both, so half a rotation cannot be applied — the
+error would be 2.6 px, or 29 mm at 1 m, and invisible in a picture. All three
+consumers read the file. `--repair` corrects an already-recorded frame (the
+map is an involution), `--self-test` is 12 known-answer checks, and
+`test_scene_rs_is_the_right_way_up.py` fails on an upside-down recording.
+
+**The general lesson**, and it is a new mechanism for the instrument chapter:
+a constant asserted in more than one place and measured in none. It is not one
+of the four mechanisms already listed there, and it is the one this project is
+most likely to repeat.

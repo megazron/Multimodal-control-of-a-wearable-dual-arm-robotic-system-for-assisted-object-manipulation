@@ -73,10 +73,33 @@ class TestTheFollowerStandsDown(unittest.TestCase):
                         "resync BEFORE returning, or it never happens")
 
     def test_the_unwind_publish_is_gated_too(self):
-        # Unwind is a second publisher on the same topic and would fight the
-        # move just as hard, once, at the worst possible moment.
-        i = IKF.index("build_unwind_trajectory(current, target)")
-        self.assertIn("pose_move_active", IKF[i:i + 400])
+        """Unwind is a second publisher on the same topic and would fight the
+        move just as hard, once, at the worst possible moment.
+
+        ANCHORED ON THE WHOLE METHOD, not on a byte window after the
+        trajectory is built. The first version of this check read 400
+        characters past `build_unwind_trajectory` -- which is the same
+        mistake `test_the_tracking_publish_is_gated` records above, and it
+        bites harder here, because the CORRECT place for this guard is not
+        beside the publish at all. `startup_check` cancels its own repeating
+        timer on the way past; a guard below that cancel would return with
+        nothing left to re-arm it and disable tracking permanently. The guard
+        therefore has to sit ABOVE the cancel, where the timer simply comes
+        round again once the claim is released.
+        """
+        body = IKF[IKF.index("    def startup_check(self):"):
+                   IKF.index("    def build_unwind_trajectory(self")]
+        self.assertIn("if self.pose_move_active:", body,
+                      "the unwind path does not check the claim at all")
+        self.assertLess(
+            body.index("self.pose_move_active"),
+            body.index("self.startup_timer.cancel()"),
+            "the guard is below the timer cancel, so a deferred unwind can "
+            "never be retried and tracking stays disabled for ever")
+        self.assertLess(
+            body.index("self.pose_move_active"),
+            body.index("self.pub.publish(traj)"),
+            "the claim is checked after the trajectory has already gone out")
 
 
 class TestTheMoverClaimsAndHolds(unittest.TestCase):

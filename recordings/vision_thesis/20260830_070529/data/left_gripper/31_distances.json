@@ -1,0 +1,202 @@
+{
+  "source": "left_gripper",
+  "stage": "distances",
+  "num": 31,
+  "title": "How far apart everything is",
+  "status": "ok",
+  "formula": "range = |centre| (the camera is the origin); height = n.c + d; separation = |c_i - c_j|; free gap subtracts each object's half-width",
+  "measurements": [
+    {
+      "quantity": "objects measured",
+      "value": 6,
+      "unit": "count"
+    },
+    {
+      "quantity": "nearest object",
+      "value": 0.5355,
+      "unit": "m"
+    },
+    {
+      "quantity": "furthest object",
+      "value": 0.8474,
+      "unit": "m"
+    },
+    {
+      "quantity": "closest pair",
+      "value": 0.0012,
+      "unit": "m"
+    },
+    {
+      "quantity": "tightest free gap",
+      "value": 0.0,
+      "unit": "m"
+    },
+    {
+      "quantity": "what the origin IS",
+      "value": "the wrist camera, so range is distance from the HAND",
+      "unit": "-"
+    }
+  ],
+  "tables": {
+    "each object": {
+      "headers": [
+        "#",
+        "range from camera m",
+        "height above the surface mm",
+        "x m",
+        "y m",
+        "z m"
+      ],
+      "rows": [
+        [
+          0,
+          0.6785,
+          33.5,
+          -0.0972,
+          0.0011,
+          0.6715
+        ],
+        [
+          1,
+          0.5355,
+          29.9,
+          0.0545,
+          0.0252,
+          0.5321
+        ],
+        [
+          2,
+          0.835,
+          29.3,
+          -0.3119,
+          0.0202,
+          0.7743
+        ],
+        [
+          3,
+          0.8353,
+          28.1,
+          -0.3116,
+          0.0212,
+          0.7747
+        ],
+        [
+          4,
+          0.8474,
+          30.3,
+          -0.1725,
+          -0.0446,
+          0.8284
+        ],
+        [
+          5,
+          0.749,
+          31.2,
+          -0.2409,
+          0.0275,
+          0.7087
+        ]
+      ]
+    },
+    "between objects": {
+      "headers": [
+        "object A",
+        "object B",
+        "centre to centre m",
+        "free gap m"
+      ],
+      "rows": [
+        [
+          0,
+          1,
+          0.2074,
+          0.0581
+        ],
+        [
+          0,
+          2,
+          0.2388,
+          0.0833
+        ],
+        [
+          0,
+          3,
+          0.2388,
+          0.0833
+        ],
+        [
+          0,
+          4,
+          0.18,
+          0.0379
+        ],
+        [
+          0,
+          5,
+          0.1507,
+          0.0092
+        ],
+        [
+          1,
+          2,
+          0.4392,
+          0.4114
+        ],
+        [
+          1,
+          3,
+          0.4392,
+          0.4114
+        ],
+        [
+          1,
+          4,
+          0.3797,
+          0.3654
+        ],
+        [
+          1,
+          5,
+          0.3441,
+          0.3302
+        ],
+        [
+          2,
+          3,
+          0.0012,
+          0.0
+        ],
+        [
+          2,
+          4,
+          0.163,
+          0.1425
+        ],
+        [
+          2,
+          5,
+          0.097,
+          0.0769
+        ],
+        [
+          3,
+          4,
+          0.163,
+          0.1425
+        ],
+        [
+          3,
+          5,
+          0.097,
+          0.0769
+        ],
+        [
+          4,
+          5,
+          0.1556,
+          0.149
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "source": "left_gripper",
+  "stage": "self_view",
+  "num": 33,
+  "title": "The robot in the picture, and what is NOT detected",
+  "status": "ok",
+  "formula": "{ pixels with 0 < depth < 0.08 m } -- nearer than anything the arm works on",
+  "measurements": [
+    {
+      "quantity": "pixels nearer than the gate",
+      "value": 0,
+      "unit": "px"
+    },
+    {
+      "quantity": "that fraction",
+      "value": 0.0,
+      "unit": "%"
+    },
+    {
+      "quantity": "nearest return of all",
+      "value": 0.363,
+      "unit": "m"
+    },
+    {
+      "quantity": "blobs of near return",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "quantity": "this camera is on the hand",
+      "value": true,
+      "unit": "-"
+    }
+  ],
+  "tables": {
+    "near-field blobs": {
+      "headers": [
+        "area px",
+        "nearest m",
+        "median m",
+        "box x",
+        "box y"
+      ],
+      "rows": []
+    }
+  }
+}

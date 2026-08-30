@@ -1,0 +1,52 @@
+{
+  "source": "scene_hd",
+  "stage": "minarearect",
+  "num": 9,
+  "title": "Rotated box, in-image yaw, and the degeneracy gate",
+  "status": "ok",
+  "formula": "minAreaRect -> ((cx,cy), (w,h), angle);  yaw is published as q = (0, 0, sin(angle/2), cos(angle/2)) ONLY when max(w,h)/min(w,h) >= 1.15",
+  "measurements": [
+    {
+      "quantity": "contours measured",
+      "value": 1,
+      "unit": "count"
+    },
+    {
+      "quantity": "aspect gate for publishing yaw",
+      "value": 1.15,
+      "unit": "-"
+    },
+    {
+      "quantity": "yaws published",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "quantity": "yaws withheld as degenerate",
+      "value": 1,
+      "unit": "count"
+    }
+  ],
+  "tables": {
+    "rotated boxes": {
+      "headers": [
+        "area px",
+        "w px",
+        "h px",
+        "angle deg",
+        "aspect",
+        "yaw published"
+      ],
+      "rows": [
+        [
+          470.0,
+          22.0,
+          22.0,
+          90.0,
+          1.0,
+          false
+        ]
+      ]
+    }
+  }
+}

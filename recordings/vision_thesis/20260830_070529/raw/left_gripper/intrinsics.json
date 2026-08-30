@@ -1,0 +1,30 @@
+{
+  "name": "left_gripper",
+  "provenance": "Kinova vision module on the left arm, over ROS topics /left_camera/{color,depth} (driver: kinova_vision_node, started by bringup_arm.sh), ROS_DOMAIN_ID=42",
+  "notes": [
+    "intrinsics read from the published camera_info, not assumed: colour cx=620.9 cy=238.3 on a 1280x720 image -- the principal point is not the image centre and assuming it is throws every ray"
+  ],
+  "K_colour": [
+    1297.672904,
+    1298.631344,
+    620.914026,
+    238.280325
+  ],
+  "K_depth": [
+    360.01333,
+    360.013366699,
+    243.87228,
+    137.9218444
+  ],
+  "depth_is_aligned": false,
+  "no_depth_reason": "",
+  "colour_shape": [
+    720,
+    1280,
+    3
+  ],
+  "depth_shape": [
+    270,
+    480
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "name": "scene_rs",
+  "provenance": "RealSense D435i across the room, depth 480x270@15 + colour 640x480@15, USB 2.1, negotiated against what the device reports it has. Depth is aligned to colour by librealsense and averaged over 12 frames, valid pixels only.",
+  "notes": [
+    "rotated 180 deg: the camera is mounted upside down and the principal point is rotated WITH the image (cx'=W-1-cx)",
+    "liveness: 12 frames, 12 distinct depth images, 12 distinct frame numbers, 28% of pixels valid"
+  ],
+  "K_colour": [
+    603.0215454101562,
+    603.1287841796875,
+    320.125244140625,
+    247.78213500976562
+  ],
+  "K_depth": [
+    603.0215454101562,
+    603.1287841796875,
+    320.125244140625,
+    247.78213500976562
+  ],
+  "depth_is_aligned": true,
+  "no_depth_reason": "",
+  "colour_shape": [
+    480,
+    640,
+    3
+  ],
+  "depth_shape": [
+    480,
+    640
+  ]
+}

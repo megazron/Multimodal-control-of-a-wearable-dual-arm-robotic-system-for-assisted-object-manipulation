@@ -1,0 +1,61 @@
+{
+  "source": "scene_rs",
+  "stage": "raw_colour",
+  "num": 1,
+  "title": "The frame, as the camera delivered it",
+  "status": "ok",
+  "formula": "none -- this is the input every later stage is a function of",
+  "measurements": [
+    {
+      "quantity": "frame width",
+      "value": 640,
+      "unit": "px"
+    },
+    {
+      "quantity": "frame height",
+      "value": 480,
+      "unit": "px"
+    },
+    {
+      "quantity": "focus, variance of Laplacian",
+      "value": 417.2,
+      "unit": "-"
+    },
+    {
+      "quantity": "pixels clipped white",
+      "value": 0.133,
+      "unit": "%"
+    },
+    {
+      "quantity": "pixels crushed black",
+      "value": 0.0,
+      "unit": "%"
+    },
+    {
+      "quantity": "mean blue",
+      "value": 103.14,
+      "unit": "0-255"
+    },
+    {
+      "quantity": "mean green",
+      "value": 115.87,
+      "unit": "0-255"
+    },
+    {
+      "quantity": "mean red",
+      "value": 98.12,
+      "unit": "0-255"
+    },
+    {
+      "quantity": "median grey",
+      "value": 115.0,
+      "unit": "0-255"
+    },
+    {
+      "quantity": "grey std",
+      "value": 64.7,
+      "unit": "0-255"
+    }
+  ],
+  "tables": {}
+}

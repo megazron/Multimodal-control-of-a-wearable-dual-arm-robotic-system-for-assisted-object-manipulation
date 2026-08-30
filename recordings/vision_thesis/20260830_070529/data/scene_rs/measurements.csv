@@ -1,0 +1,113 @@
+source,stage_num,stage,quantity,value,unit
+scene_rs,1,raw_colour,frame width,640,px
+scene_rs,1,raw_colour,frame height,480,px
+scene_rs,1,raw_colour,"focus, variance of Laplacian",417.2,-
+scene_rs,1,raw_colour,pixels clipped white,0.133,%
+scene_rs,1,raw_colour,pixels crushed black,0,%
+scene_rs,1,raw_colour,mean blue,103.14,0-255
+scene_rs,1,raw_colour,mean green,115.87,0-255
+scene_rs,1,raw_colour,mean red,98.12,0-255
+scene_rs,1,raw_colour,median grey,115,0-255
+scene_rs,1,raw_colour,grey std,64.7,0-255
+scene_rs,2,intrinsics,fx,603.0215,px
+scene_rs,2,intrinsics,fy,603.1288,px
+scene_rs,2,intrinsics,cx,320.1252,px
+scene_rs,2,intrinsics,cy,247.7821,px
+scene_rs,2,intrinsics,image centre u,320,px
+scene_rs,2,intrinsics,image centre v,240,px
+scene_rs,2,intrinsics,principal point offset from centre,7.78,px
+scene_rs,2,intrinsics,that offset at 1 m range,12.9,mm
+scene_rs,2,intrinsics,horizontal field of view,55.906,deg
+scene_rs,2,intrinsics,vertical field of view,43.398,deg
+scene_rs,2,intrinsics,ground sample distance at 1 m,1.6583,mm/px
+scene_rs,3,hsv,median hue,68,0-179
+scene_rs,3,hsv,median saturation,43,0-255
+scene_rs,3,hsv,median value,125,0-255
+scene_rs,3,hsv,pixels below S=80,76.294,%
+scene_rs,3,hsv,pixels below V=40,15.678,%
+scene_rs,3,hsv,pixels above V=200,9.814,%
+scene_rs,4,green_threshold,hue low,40,0-179
+scene_rs,4,green_threshold,hue high,85,0-179
+scene_rs,4,green_threshold,saturation floor,80,0-255
+scene_rs,4,green_threshold,value floor,40,0-255
+scene_rs,4,green_threshold,pixels selected,13120,px
+scene_rs,4,green_threshold,fraction of the frame,4.2708,%
+scene_rs,4,green_threshold,median S of the selected,89,0-255
+scene_rs,4,green_threshold,median V of the selected,47,0-255
+scene_rs,5,morphology,kernel,9x9,px
+scene_rs,5,morphology,pixels before,13120,px
+scene_rs,5,morphology,pixels after,4430,px
+scene_rs,5,morphology,pixels removed,8690,px
+scene_rs,5,morphology,removed,66.235,%
+scene_rs,5,morphology,blobs before,838,count
+scene_rs,5,morphology,blobs after,11,count
+scene_rs,6,components,components over 40 px,11,count
+scene_rs,6,components,largest area,1678,px
+scene_rs,6,components,total area kept,4430,px
+scene_rs,6,components,median area,190,px
+scene_rs,7,vocabulary,colour terms tested,11,count
+scene_rs,7,vocabulary,terms with any pixels,6,count
+scene_rs,7,vocabulary,largest term,black,-
+scene_rs,7,vocabulary,its pixel count,53204,px
+scene_rs,8,region_mean,regions tested,8,count
+scene_rs,8,region_mean,regions passing,1,count
+scene_rs,8,region_mean,regions rejected as near-black,0,count
+scene_rs,8,region_mean,blue ratio threshold,1.25,-
+scene_rs,8,region_mean,red ratio threshold,1.8,-
+scene_rs,8,region_mean,near-black floor,25,0-255
+scene_rs,9,minarearect,contours measured,2,count
+scene_rs,9,minarearect,aspect gate for publishing yaw,1.15,-
+scene_rs,9,minarearect,yaws published,2,count
+scene_rs,9,minarearect,yaws withheld as degenerate,0,count
+scene_rs,10,size_at_range,fx used,603.022,px
+scene_rs,10,size_at_range,assumed object width,40,mm
+scene_rs,10,size_at_range,near limit of the window,0.25,m
+scene_rs,10,size_at_range,far limit of the window,1.5,m
+scene_rs,10,size_at_range,blobs tested,2,count
+scene_rs,10,size_at_range,blobs accepted,2,count
+scene_rs,10,size_at_range,blobs rejected,0,count
+scene_rs,11,fastsam,regions returned,80,count
+scene_rs,11,fastsam,largest region,76896,px
+scene_rs,11,fastsam,largest as a fraction of the frame,25.03,%
+scene_rs,11,fastsam,smallest region,78,px
+scene_rs,11,fastsam,median region,586,px
+scene_rs,11,fastsam,inference time,1.46,s
+scene_rs,11,fastsam,input size,1024,px
+scene_rs,11,fastsam,confidence threshold,0.25,-
+scene_rs,11,fastsam,NMS IoU,0.7,-
+scene_rs,11,fastsam,device,cpu,-
+scene_rs,12,area_filter,regions in,80,count
+scene_rs,12,area_filter,kept,80,count
+scene_rs,12,area_filter,rejected as noise,0,count
+scene_rs,12,area_filter,rejected as too large,0,count
+scene_rs,12,area_filter,lower bound,60,px
+scene_rs,12,area_filter,upper bound,107520,px
+scene_rs,12,area_filter,upper bound as a fraction,0.35,-
+scene_rs,13,segment_match,colour word parsed,green,-
+scene_rs,13,segment_match,regions considered,80,count
+scene_rs,13,segment_match,regions matched,2,count
+scene_rs,13,segment_match,regions rejected on colour,78,count
+scene_rs,13,segment_match,best score,0.089,0-1
+scene_rs,15,raw_depth,depth width,640,px
+scene_rs,15,raw_depth,depth height,480,px
+scene_rs,15,raw_depth,pixels with a return,85061,px
+scene_rs,15,raw_depth,that fraction,27.69,%
+scene_rs,15,raw_depth,median range,3.8358,m
+scene_rs,15,raw_depth,5th percentile,2.997,m
+scene_rs,15,raw_depth,95th percentile,12.4542,m
+scene_rs,15,raw_depth,nearest return,1.692,m
+scene_rs,15,raw_depth,furthest return,65.535,m
+scene_rs,15,raw_depth,returns inside the working gate,0,px
+scene_rs,15,raw_depth,gate near,0.08,m
+scene_rs,15,raw_depth,gate far,1.5,m
+scene_rs,16,alignment,re-projection needed,no,-
+scene_rs,16,alignment,aligner,librealsense rs.align,-
+scene_rs,32,people,people detected,1,count
+scene_rs,32,people,landmarks per person,33,count
+scene_rs,32,people,inference time,2.66,s
+scene_rs,32,people,depth attached to landmarks,yes,-
+scene_rs,33,self_view,pixels nearer than the gate,0,px
+scene_rs,33,self_view,that fraction,0,%
+scene_rs,33,self_view,nearest return of all,1.692,m
+scene_rs,33,self_view,blobs of near return,0,count
+scene_rs,33,self_view,this camera is on the hand,no,-

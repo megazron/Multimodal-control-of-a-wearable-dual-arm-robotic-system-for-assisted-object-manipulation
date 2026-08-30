@@ -114,6 +114,28 @@ from srl_teleop.motion_generator import CONTINUOUS_IDX     # noqa: E402,F401
 NJ = 7
 
 
+def _gripper_pos_from_feedback(fb):
+    """Normalised 0..1 gripper position (0 open, 1 closed), or None.
+
+    The Kortex feedback reports a PERCENTAGE on the gripper's own motor, and
+    reports it in the same `RefreshFeedback` the arm angles come from -- so
+    this costs no extra round trip (HARD CONSTRAINT 4 is about the cyclic
+    WRITE path and is untouched).
+
+    Returns None rather than 0.0 when the field is absent, because a gripper
+    that is not reporting and a gripper that is fully open are opposite
+    situations and 0.0 would render them identically. That conflation is this
+    project's own listed failure mode -- "a gap that is not a gap".
+    """
+    try:
+        motors = fb.interconnect.gripper_feedback.motor
+        if not motors:
+            return None
+        return max(0.0, min(1.0, float(motors[0].position) / 100.0))
+    except Exception:                                          # noqa: BLE001
+        return None
+
+
 def clip(v, lo, hi):
     return lo if v < lo else (hi if v > hi else v)
 
@@ -152,7 +174,31 @@ class KortexHighLevelBridge(Node):
         # spread, and this is a bound. But the value has NOT been tried on
         # hardware, so it is a live parameter and the first real session must
         # watch for dither and raise it if it appears.
-        self.declare_parameter("deadband_deg", 0.10)
+        # RAISED 0.10 -> 0.25 ON 2026-08-30, BY THE INSTRUCTION ABOVE.
+        #
+        # "The value has NOT been tried on hardware, so it is a live
+        # parameter and the first real session must watch for dither and
+        # raise it if it appears." The first real session was 2026-08-29/30
+        # and the operator's report was exact: "they are lagging and creating
+        # vibrations and not accepting commands smoothly".
+        #
+        # At 0.10 deg the proportional term is essentially never switched
+        # off, so every joint chases encoder noise -- and it chases it
+        # through a loop running at 12 Hz per arm with a network round trip
+        # in it, which is how a correction arrives late enough to become an
+        # oscillation instead of a correction.
+        #
+        # 0.25 deg is still FOUR TIMES narrower than the 1.0 deg this
+        # replaced, and it sits just under the 0.305 deg residual that
+        # motivated the change, so the proportional term stays alive through
+        # most of the region joints were parking in. The parking cost scales
+        # with the band: 1.0 deg cost 7.2 mm at the end effector, so this is
+        # of order 1.8 mm -- which is the right trade against an arm that
+        # buzzes, because a buzzing arm is unusable at any accuracy.
+        #
+        # STILL LIVE, and now on a slider in the operations window. Raise it
+        # until the buzz stops and record what it took.
+        self.declare_parameter("deadband_deg", 0.25)
         self.declare_parameter("watchdog_s", 0.5)
         # Full travel of the driven knuckle in radians, matching
         # fsr_gripper_node's CLOSED_RAD. The Kortex gripper takes a
@@ -317,6 +363,17 @@ class KortexHighLevelBridge(Node):
         self._grip_target = None       # normalised 0..1, None = never commanded
         self._grip_sent = None
         self._grip_fail = 0
+        # WHAT THE GRIPPER ACTUALLY DID. None until the first feedback frame
+        # carries it; see _gripper_pos_from_feedback for why None and not 0.
+        self._grip_measured = None
+        # When the current target was first sent, and the measured position at
+        # that moment -- the two facts `_check_gripper_moved` needs to say
+        # "commanded X, still at Y after Z seconds".
+        self._grip_sent_t = 0.0
+        self._grip_at_send = None
+        self._grip_complained = False
+        self.grip_pub = self.create_publisher(
+            Float64MultiArray, "/real/gripper_%s" % self.arm, 10)
         self._session_ok = True
         self._session_err = ""
         self._recoveries = 0
@@ -461,6 +518,22 @@ class KortexHighLevelBridge(Node):
                 tel = at.from_feedback(fb, kortex_deg_to_ros_rad)
                 tel.t = time.monotonic()
                 self._tel = tel
+                # THE GRIPPER, WHICH WAS WRITE-ONLY UNTIL 2026-08-25.
+                #
+                # `interconnect.gripper_feedback.motor[0].position` is a
+                # percentage, 0 open to 100 closed, and it has been arriving
+                # in THIS SAME already-paid-for round trip the whole time --
+                # nothing read it. So `_send_gripper` set `_grip_sent` the
+                # instant SendGripperCommand returned, no consumer could
+                # compare that with reality, and "the gripper never closes"
+                # was not falsifiable from any topic. Every statement about
+                # the hand in every recording in this repository up to this
+                # date is a statement about what was COMMANDED.
+                #
+                # Stored as normalised 0..1 to match `_grip_target`, so the
+                # two are directly comparable and `_check_gripper_moved` can
+                # subtract them without a unit conversion in between.
+                self._grip_measured = _gripper_pos_from_feedback(fb)
                 return list(tel.position)
             except Exception as exc:                          # noqa: BLE001
                 if not self._cyclic_warned:
@@ -530,6 +603,12 @@ class KortexHighLevelBridge(Node):
             self.base.SendGripperCommand(cmd)
             self._grip_sent = t
             self._grip_fail = 0
+            # Remember WHEN, and where the fingers were at the time, so a
+            # command that returns cleanly and does nothing can still be
+            # caught. Before this, a clean return WAS the success criterion.
+            self._grip_sent_t = time.monotonic()
+            self._grip_at_send = self._grip_measured
+            self._grip_complained = False
         except Exception as e:                                  # noqa: BLE001
             # Do NOT let a gripper fault take down the arm loop: the arm is
             # the safety-relevant path and must keep being commanded.
@@ -539,6 +618,87 @@ class KortexHighLevelBridge(Node):
                     "gripper command failed (%d): %s. The ARM loop is "
                     "unaffected; grippers are on the internal bus of this "
                     "same session." % (self._grip_fail, e))
+
+    # How long a gripper has to move before we call it stuck, and how far it
+    # has to move to count as moving. The Robotiq 2F-85 traverses its full
+    # stroke in roughly 1 s at default speed, so 2.0 s is generous; 0.02
+    # normalised is 1.7 mm of stroke, comfortably above sensor noise and well
+    # below any grip anybody would command deliberately.
+    GRIP_STUCK_S = 2.0
+    GRIP_MOVED = 0.02
+
+    def _publish_gripper(self):
+        """[target, measured, error] as normalised 0..1. NaN where unknown.
+
+        NaN rather than a filler number, so a subscriber cannot mistake "not
+        reporting" for "open". A reader that wants a scalar can test for NaN;
+        a reader that plots it gets a gap, which is the truth.
+        """
+        t = self._grip_target
+        m = self._grip_measured
+        nan = float("nan")
+        msg = Float64MultiArray()
+        msg.data = [nan if t is None else float(t),
+                    nan if m is None else float(m),
+                    nan if (t is None or m is None) else float(m - t)]
+        self.grip_pub.publish(msg)
+
+    def _check_gripper_moved(self):
+        """Complain, ONCE per command, when the fingers ignore an order.
+
+        THE FAILURE THIS EXISTS FOR, measured on 2026-08-25: a full pick ran
+        to completion -- descent to a 20.0 mm gap, CLOSE, lift -- and the cube
+        was never held. `SendGripperCommand` had returned cleanly every time,
+        so `_grip_sent` was updated, no exception was logged, and both of this
+        node's log files contained ZERO lines mentioning the gripper across
+        the entire session. The only signal that anything was wrong was a
+        human looking at the hand.
+
+        A command that returns success and achieves nothing is the worst case
+        in this project's own instrument-failure table -- "feature present but
+        does nothing" -- and the gripper is the joint that decides whether a
+        pick worked.
+
+        It reports and does NOT act: refusing here would take the arm down for
+        a gripper fault, and the arm is the safety-relevant path. The caller
+        decides what a stuck gripper means for its task.
+        """
+        if self._grip_sent is None or self._grip_at_send is None:
+            return
+        if self._grip_complained:
+            return
+        m = self._grip_measured
+        if m is None:
+            return
+        if time.monotonic() - self._grip_sent_t < self.GRIP_STUCK_S:
+            return
+        asked = abs(self._grip_sent - self._grip_at_send)
+        moved = abs(m - self._grip_at_send)
+        # Only a command that asked for real travel can be judged: a 1 mm
+        # nudge that does not register says nothing about the hardware.
+        if asked < self.GRIP_MOVED:
+            self._grip_complained = True
+            return
+        if moved < self.GRIP_MOVED:
+            self._grip_complained = True
+            self.get_logger().error(
+                "GRIPPER DID NOT MOVE. Commanded %.3f (from %.3f), still "
+                "reading %.3f after %.1f s. SendGripperCommand returned "
+                "SUCCESS, so this is not a comms failure -- the usual causes "
+                "are the fingers already against an object, a gripper fault "
+                "bank set, or the gripper not being powered on the arm's "
+                "internal bus. Watch /real/gripper_%s."
+                % (self._grip_sent, self._grip_at_send, m,
+                   time.monotonic() - self._grip_sent_t, self.arm))
+        elif moved < asked * 0.5:
+            self._grip_complained = True
+            self.get_logger().warn(
+                "gripper stopped short: asked for %.3f of travel, moved "
+                "%.3f and settled at %.3f. That is what closing on an object "
+                "looks like -- and also what a jammed finger looks like."
+                % (asked, moved, m))
+        else:
+            self._grip_complained = True
 
     def _send_speeds_rad(self, speeds_rad):
         """rad/s -> Kortex deg/s. Returns send latency in ms."""
@@ -658,6 +818,13 @@ class KortexHighLevelBridge(Node):
                 touch, why_t = tel.in_contact(self._contact_baseline)
                 d.update(arm=self.arm, faulted=fault, fault_why=why_f,
                          heat=heat, heat_why=why_h,
+                         # The hand, on the same line as everything else the
+                         # arm knows. `gripper_cmd` is what we asked for and
+                         # `gripper_pos` is what the fingers report; a reader
+                         # that sees only one of them cannot tell a working
+                         # gripper from a dead one.
+                         gripper_cmd=self._grip_target,
+                         gripper_pos=self._grip_measured,
                          in_contact=touch, contact_why=why_t,
                          baseline=(None if self._contact_baseline is None
                                    else self._contact_baseline.as_dict()))
@@ -810,6 +977,12 @@ class KortexHighLevelBridge(Node):
             # _send_gripper() is a no-op unless the target actually changed,
             # so a still hand costs nothing on the wire.
             self._send_gripper()
+            # SAY WHAT THE GRIPPER IS DOING, and complain when it does not do
+            # it. Both are new on 2026-08-25; before them the gripper was
+            # write-only and a dead one was indistinguishable from a working
+            # one on every topic this node publishes.
+            self._publish_gripper()
+            self._check_gripper_moved()
 
             if reason and reason != "no target yet":
                 self.get_logger().warn("zero speed: %s" % reason,

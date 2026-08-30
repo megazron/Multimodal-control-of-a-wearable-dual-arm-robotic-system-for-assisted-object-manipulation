@@ -2217,6 +2217,14 @@ class Gui(QMainWindow):
          "NEVER keep up, the error accumulates and the lag monitor trips on "
          "a limit rather than a fault -- that is what 0.15 did on "
          "2026-08-25. 0.40 is 29% of the joint limit."),
+        ("anti-buzz deadband  (deg)", "/kortex_highlevel_bridge_%s",
+         "deadband_deg", 0.05, 1.50, 2, 0.25,
+         "THE VIBRATION KNOB. Inside this band the proportional term is "
+         "switched OFF. Too narrow and every joint chases encoder noise "
+         "through a 12 Hz loop with a network round trip in it -- a "
+         "correction that arrives late becomes an oscillation, which is the "
+         "buzz. Too wide and joints park short: 1.0 deg cost 7.2 mm at the "
+         "end effector. RAISE THIS FIRST if the arm vibrates."),
         ("tracking stiffness  (kp)", "/kortex_highlevel_bridge_%s", "kp",
          0.10, 1.50, 2, 0.50,
          "How hard the arm closes the gap to its setpoint. Higher tracks "

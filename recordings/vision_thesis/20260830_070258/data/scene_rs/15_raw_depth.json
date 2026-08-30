@@ -1,0 +1,71 @@
+{
+  "source": "scene_rs",
+  "stage": "raw_depth",
+  "num": 15,
+  "title": "The depth frame, and where it has no answer",
+  "status": "ok",
+  "formula": "one 16-bit value per pixel, in MILLIMETRES on the wire, divided by 1000 here. 0 means 'no return' and is NOT a distance of zero.",
+  "measurements": [
+    {
+      "quantity": "depth width",
+      "value": 640,
+      "unit": "px"
+    },
+    {
+      "quantity": "depth height",
+      "value": 480,
+      "unit": "px"
+    },
+    {
+      "quantity": "pixels with a return",
+      "value": 85137,
+      "unit": "px"
+    },
+    {
+      "quantity": "that fraction",
+      "value": 27.71,
+      "unit": "%"
+    },
+    {
+      "quantity": "median range",
+      "value": 3.8297,
+      "unit": "m"
+    },
+    {
+      "quantity": "5th percentile",
+      "value": 2.997,
+      "unit": "m"
+    },
+    {
+      "quantity": "95th percentile",
+      "value": 12.689,
+      "unit": "m"
+    },
+    {
+      "quantity": "nearest return",
+      "value": 0.741,
+      "unit": "m"
+    },
+    {
+      "quantity": "furthest return",
+      "value": 65.535,
+      "unit": "m"
+    },
+    {
+      "quantity": "returns inside the working gate",
+      "value": 12,
+      "unit": "px"
+    },
+    {
+      "quantity": "gate near",
+      "value": 0.08,
+      "unit": "m"
+    },
+    {
+      "quantity": "gate far",
+      "value": 1.5,
+      "unit": "m"
+    }
+  ],
+  "tables": {}
+}

@@ -1,0 +1,61 @@
+{
+  "source": "left_gripper",
+  "stage": "size_at_range",
+  "num": 10,
+  "title": "The size-at-range gate",
+  "status": "ok",
+  "formula": "z = fx * object_width / px_across;  accept iff 0.25 <= z <= 1.50 m.  With depth the honest form is used instead: compare px against fx * size / measured_depth, tolerance 0.55 to 1.80",
+  "measurements": [
+    {
+      "quantity": "fx used",
+      "value": 1297.673,
+      "unit": "px"
+    },
+    {
+      "quantity": "assumed object width",
+      "value": 40.0,
+      "unit": "mm"
+    },
+    {
+      "quantity": "near limit of the window",
+      "value": 0.25,
+      "unit": "m"
+    },
+    {
+      "quantity": "far limit of the window",
+      "value": 1.5,
+      "unit": "m"
+    },
+    {
+      "quantity": "blobs tested",
+      "value": 1,
+      "unit": "count"
+    },
+    {
+      "quantity": "blobs accepted",
+      "value": 0,
+      "unit": "count"
+    },
+    {
+      "quantity": "blobs rejected",
+      "value": 1,
+      "unit": "count"
+    }
+  ],
+  "tables": {
+    "implied range per blob": {
+      "headers": [
+        "px across",
+        "implied range m",
+        "accepted"
+      ],
+      "rows": [
+        [
+          210.5,
+          0.2466,
+          false
+        ]
+      ]
+    }
+  }
+}

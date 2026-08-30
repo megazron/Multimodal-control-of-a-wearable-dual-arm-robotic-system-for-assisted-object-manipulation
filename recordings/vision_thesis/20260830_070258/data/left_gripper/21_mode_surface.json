@@ -1,0 +1,71 @@
+{
+  "source": "left_gripper",
+  "stage": "mode_surface",
+  "num": 21,
+  "title": "The surface height as a MODE, not a mean",
+  "status": "ok",
+  "formula": "bin at 2 mm; take the fullest bin; require it to hold >= 20% of the points; refine as the mean of everything within +/-6 mm of it",
+  "measurements": [
+    {
+      "quantity": "bin width",
+      "value": 2.0,
+      "unit": "mm"
+    },
+    {
+      "quantity": "points binned",
+      "value": 54620,
+      "unit": "count"
+    },
+    {
+      "quantity": "share in the fullest bin",
+      "value": 38.68,
+      "unit": "%"
+    },
+    {
+      "quantity": "share required",
+      "value": 20.0,
+      "unit": "%"
+    },
+    {
+      "quantity": "modal bin centre",
+      "value": -0.29441,
+      "unit": "m"
+    },
+    {
+      "quantity": "refined estimate",
+      "value": -0.29508,
+      "unit": "m"
+    },
+    {
+      "quantity": "spread of the inliers",
+      "value": 1.431,
+      "unit": "mm"
+    },
+    {
+      "quantity": "inlier band",
+      "value": 6.0,
+      "unit": "mm"
+    },
+    {
+      "quantity": "a plain mean would say",
+      "value": -0.3015,
+      "unit": "m"
+    },
+    {
+      "quantity": "that mean's error",
+      "value": 6.42,
+      "unit": "mm"
+    },
+    {
+      "quantity": "RANSAC's own offset",
+      "value": -0.29514,
+      "unit": "m"
+    },
+    {
+      "quantity": "the two estimators differ by",
+      "value": 0.057,
+      "unit": "mm"
+    }
+  ],
+  "tables": {}
+}

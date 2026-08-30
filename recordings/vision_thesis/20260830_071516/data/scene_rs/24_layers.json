@@ -1,0 +1,75 @@
+{
+  "source": "scene_rs",
+  "stage": "layers",
+  "num": 24,
+  "title": "Splitting a cube from the pad it stands on",
+  "status": "ok",
+  "formula": "find the MODAL height bin (5 mm bins); cut 12 mm above it; recurse on what is left, twice",
+  "measurements": [
+    {
+      "quantity": "region area",
+      "value": 76164,
+      "unit": "px"
+    },
+    {
+      "quantity": "points lifted from it",
+      "value": 19853,
+      "unit": "count"
+    },
+    {
+      "quantity": "points above the plane",
+      "value": 8539,
+      "unit": "count"
+    },
+    {
+      "quantity": "pixels removed by the 1 px erosion",
+      "value": 4970,
+      "unit": "px"
+    },
+    {
+      "quantity": "layers found",
+      "value": 3,
+      "unit": "count"
+    },
+    {
+      "quantity": "lowest point",
+      "value": 4.02,
+      "unit": "mm"
+    },
+    {
+      "quantity": "highest point",
+      "value": 1324.61,
+      "unit": "mm"
+    }
+  ],
+  "tables": {
+    "height layers": {
+      "headers": [
+        "layer",
+        "from mm",
+        "to mm",
+        "points"
+      ],
+      "rows": [
+        [
+          1,
+          4.02,
+          91.02,
+          4317
+        ],
+        [
+          2,
+          91.03,
+          103.03,
+          514
+        ],
+        [
+          3,
+          103.1,
+          1324.61,
+          3708
+        ]
+      ]
+    }
+  }
+}

@@ -184,60 +184,17 @@ class VrPoseMapper(Node):
         self.declare_parameter('ema_alpha', 0.6)
         # Position, in metres. beta is Hz PER METRE PER SECOND -- the 1-Euro
         # paper's example values are for PIXELS and are ~1000x too small here.
-        # RAISED 0.5 -> 1.0 on 2026-08-30. This is the 1-Euro floor: the
-        # cutoff used when the hand is nearly still, so it sets how much lag
-        # there is in slow, precise work -- which is most of what teleoperation
-        # IS. 0.5 Hz is heavy enough that fine positioning felt like wading.
-        # 1.0 Hz is the usual starting point for hand tracking and halves that
-        # lag; `beta` above still opens the filter wide the moment the hand
-        # moves, so tremor rejection at rest is not what pays for it.
-        self.declare_parameter('min_cutoff_hz', 1.0)
-        # LOWERED 100.0 -> 10.0 on 2026-08-30, against the 1-Euro author's
-        # own tuning guidance rather than by feel.
-        #
-        # The cutoff is fc = mincutoff + beta * |dx/dt|. This signal is
-        # POSITION IN METRES sampled at rate_hz = 100, so hand speeds during
-        # ordinary teleoperation are 0.1-1.0 m/s. At beta = 100 that gives
-        # fc = 1 + 100*0.5 = 51 Hz at half a metre per second -- ABOVE THE
-        # NYQUIST FREQUENCY of a 100 Hz sampler. The filter was therefore
-        # completely transparent the moment the hand moved: raw controller
-        # noise straight through to the arm, while still being heavily damped
-        # at rest. That is exactly the operator's report -- jitter and
-        # vibration while moving, sluggishness while not.
-        #
-        # gery.casiez.net/1euro: "do not hesitate to start with values like
-        # 0.001 or 0.0001. You can first multiply and divide beta by factor 10
-        # until you notice an effect on latency when moving quickly." Published
-        # implementations cluster at 0.1 (npm 1eurofilter, OneEuroFilterArduino)
-        # up to 20 for motion capture. 100 is far outside that range.
-        #
-        # 10.0 gives fc = 6 Hz at 0.5 m/s and 11 Hz at 1.0 m/s: still well
-        # inside the band, so fast moves stay responsive, but the filter is
-        # actually doing something while the hand is in motion, which is when
-        # the operator is trying to be precise. Tune it by the author's
-        # method -- factors of 10 -- not by small nudges.
-        self.declare_parameter('beta', 10.0)
-        # RAISED 0.2 -> 1.0, the value every reference implementation uses.
-        # This is the cutoff on the SPEED ESTIMATE that drives beta. Set too
-        # low, the filter's idea of how fast the hand is moving lags the hand
-        # itself, so it stays smooth into the start of a fast move and stays
-        # open into the end of one -- late to respond and late to settle,
-        # which reads as the arm not tracking intent.
-        self.declare_parameter('d_cutoff_hz', 1.0)
+        self.declare_parameter('min_cutoff_hz', 0.5)
+        self.declare_parameter('beta', 100.0)
+        self.declare_parameter('d_cutoff_hz', 0.2)
         # ORIENTATION WAS NOT FILTERED AT ALL until 2026-08-26: the raw
         # controller quaternion went straight to IK while position got an EMA.
         # Wrist tremor therefore reached the arm unattenuated, and it is the
         # wrist that the pads hang off. beta here is Hz per (rad/s).
         self.declare_parameter('smooth_orientation', True)
-        # The same floor for orientation, raised for the same reason: wrist
-        # lag is what makes a grasp refuse to line up.
-        self.declare_parameter('rot_min_cutoff_hz', 1.0)
-        # LOWERED 8.0 -> 3.0 by the same arithmetic. Orientation is in
-        # RADIANS and wrist rates run 1-3 rad/s, so beta = 8 gave
-        # fc = 1 + 16 = 17 Hz mid-turn -- transparent again, and wrist jitter
-        # is what stops a grasp lining up. 3.0 gives about 7 Hz at 2 rad/s.
-        self.declare_parameter('rot_beta', 3.0)
-        self.declare_parameter('rot_d_cutoff_hz', 1.0)
+        self.declare_parameter('rot_min_cutoff_hz', 0.5)
+        self.declare_parameter('rot_beta', 8.0)
+        self.declare_parameter('rot_d_cutoff_hz', 0.5)
         self.declare_parameter('rate_hz', 100.0)
         # THE RATE LIMIT WAS THE OTHER HALF OF "SLOW". 0.35 m/s is slower
         # than an ordinary reach, so any brisk hand movement hit the limiter
@@ -246,15 +203,7 @@ class VrPoseMapper(Node):
         # mode 02 every grasping task. Raised to 1.20 m/s: still well under
         # the follower's own limit, so the follower and not this node remains
         # the thing that bounds arm speed.
-        # RAISED 1.20 -> 2.00 on 2026-08-30. At 1.20 an ordinary brisk
-        # reach clipped the limiter, and a clipped step CANNOT be given back
-        # while the motion continues -- that is the accumulating `lag_m` this
-        # file already documents, the one that grew 27, 41 then 50 mm across a
-        # single run and reads to the operator as teleoperation "slowing down
-        # after a while". The limiter is meant to catch a hand that has been
-        # thrown, not a hand that is reaching. 2.00 m/s is still well under
-        # the follower's own limit, which is what actually bounds arm speed.
-        self.declare_parameter('max_speed_mps', 2.00)
+        self.declare_parameter('max_speed_mps', 1.20)
         self.declare_parameter('quiet_engage_m', 0.020)
         self.declare_parameter('quiet_window_s', 0.10)
         # FEED THE DEAD-MAN WHILE NOT DRIVING. On a real-arm launch
@@ -347,7 +296,6 @@ class VrPoseMapper(Node):
         self.create_service(Trigger, '/vr/reset', self._srv_reset)
         self.create_subscription(Empty, '/vr/reset_request',
                                  lambda _m: self.reset('/vr/reset_request'), 10)
-        self.add_on_set_parameters_callback(self._on_param)
         self.create_timer(1.0 / float(self.get_parameter('rate_hz').value), self._tick)
         # A HEARTBEAT WHILE DISENGAGED, at 2 Hz.
         #
@@ -367,61 +315,6 @@ class VrPoseMapper(Node):
 
     # --------------------------------------------------------------- reset
     # ----------------------------------------------------------- smoothing
-    #: Parameters whose new value only reaches the operator through a REBUILT
-    #: filter. `_make_pfilt` / `_make_qfilt` read them when they construct,
-    #: and nothing constructs again on its own, so a `ros2 param set` -- or a
-    #: slider in the operations window -- changed a number that the running
-    #: filter had already copied. Dropping the filters makes the next sample
-    #: rebuild them, which is the same path a re-grip takes.
-    SMOOTHING_PARAMS = (
-        'smoothing', 'ema_alpha', 'min_cutoff_hz', 'beta', 'd_cutoff_hz',
-        'smooth_orientation', 'rot_min_cutoff_hz', 'rot_beta',
-        'rot_d_cutoff_hz')
-
-    def _on_param(self, params):
-        """Live-tune the smoothing law, and SAY the filter was rebuilt.
-
-        The filters carry state -- a 1-Euro filter's whole job is to remember
-        the last sample and its derivative -- so a change takes effect on the
-        next sample rather than instantly, and the first sample after it is
-        unsmoothed. That is a re-grip's worth of transient, which is why this
-        drops the filter rather than mutating one in flight: a filter whose
-        cutoff changes between its own samples has no defined behaviour.
-        """
-        from rcl_interfaces.msg import SetParametersResult
-        # `scale` IS NOT A SMOOTHING PARAMETER AND WAS NOT LIVE AT ALL.
-        # It is copied into self.scale at construction and refreshed only on a
-        # rebase, so setting the parameter -- from a slider or anywhere else --
-        # changed a number the mapping had already taken a copy of. Reported
-        # 2026-08-30 as "those sliders don't work", and for this one that was
-        # exactly right. `_set_scale` is the correct path: it moves the anchor
-        # to compensate, so the commanded pose does not jump when the gain
-        # under it changes mid-session.
-        for prm in params:
-            if prm.name == 'scale':
-                try:
-                    self._set_scale(self.hands[0], float(prm.value))
-                except Exception as e:                        # noqa: BLE001
-                    self.get_logger().warn(
-                        'scale %r refused: %r' % (prm.value, e))
-        touched = [p.name for p in params if p.name in self.SMOOTHING_PARAMS]
-        if touched and hasattr(self, 'pfilt'):
-            # EXACTLY WHAT `reset` DOES, and for the same reason. `pfilt` and
-            # `qfilt` are the filter OBJECTS and are rebuilt from the
-            # parameters; `filt` is the primed FLAG and is cleared so the next
-            # sample re-primes. Setting `qfilt` to None instead would not
-            # rebuild it -- None is a legitimate value there meaning
-            # "orientation smoothing off" -- so it would silently turn a
-            # smoother off while reporting that it had been retuned.
-            for h in HANDS:
-                self.pfilt[h] = self._make_pfilt()
-                self.qfilt[h] = self._make_qfilt()
-                self.filt[h] = None
-            self.get_logger().warn(
-                'smoothing changed live (%s) -- filters dropped; they rebuild '
-                'on the next controller sample' % ', '.join(touched))
-        return SetParametersResult(successful=True)
-
     def _make_pfilt(self):
         """The position smoother named by the `smoothing` parameter.
 

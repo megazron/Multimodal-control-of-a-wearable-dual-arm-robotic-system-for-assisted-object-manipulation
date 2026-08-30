@@ -1,0 +1,66 @@
+{
+  "source": "right_gripper",
+  "stage": "min_width",
+  "num": 25,
+  "title": "Rotating calipers, against the two controls",
+  "status": "ok",
+  "formula": "width = min over theta of [ max(p.u(theta)) - min(p.u(theta)) ],  u(theta) = (cos, sin) in the support plane, swept at 0.25 deg",
+  "measurements": [
+    {
+      "quantity": "instance points",
+      "value": 7729,
+      "unit": "count"
+    },
+    {
+      "quantity": "minimum width, rotating calipers",
+      "value": 190.05,
+      "unit": "mm"
+    },
+    {
+      "quantity": "at this angle in the plane",
+      "value": 169.5,
+      "unit": "deg"
+    },
+    {
+      "quantity": "PCA short axis, THE CONTROL",
+      "value": 211.4,
+      "unit": "mm"
+    },
+    {
+      "quantity": "axis-aligned box, THE CONTROL",
+      "value": 239.4,
+      "unit": "mm"
+    },
+    {
+      "quantity": "PCA overstates by",
+      "value": 21.36,
+      "unit": "mm"
+    },
+    {
+      "quantity": "long axis",
+      "value": 389.43,
+      "unit": "mm"
+    },
+    {
+      "quantity": "height",
+      "value": 59.93,
+      "unit": "mm"
+    },
+    {
+      "quantity": "jaw span",
+      "value": 85.0,
+      "unit": "mm"
+    },
+    {
+      "quantity": "graspable as it lies",
+      "value": false,
+      "unit": "-"
+    },
+    {
+      "quantity": "sweep step",
+      "value": 0.5,
+      "unit": "deg"
+    }
+  ],
+  "tables": {}
+}

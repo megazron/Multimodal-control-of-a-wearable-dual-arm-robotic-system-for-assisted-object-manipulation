@@ -1,0 +1,59 @@
+{
+  "source": "scene_rs",
+  "stage": "segment_match",
+  "num": 13,
+  "title": "Segment everything, then pick the one that matches",
+  "status": "ok",
+  "formula": "for each region: mean BGR over the MASK, then the ratio test of stage 08; score = min(1, area/2000)",
+  "measurements": [
+    {
+      "quantity": "colour word parsed",
+      "value": "green",
+      "unit": "-"
+    },
+    {
+      "quantity": "regions considered",
+      "value": 83,
+      "unit": "count"
+    },
+    {
+      "quantity": "regions matched",
+      "value": 1,
+      "unit": "count"
+    },
+    {
+      "quantity": "regions rejected on colour",
+      "value": 82,
+      "unit": "count"
+    },
+    {
+      "quantity": "best score",
+      "value": 0.089,
+      "unit": "0-1"
+    }
+  ],
+  "tables": {
+    "matched regions": {
+      "headers": [
+        "area px",
+        "centre u",
+        "centre v",
+        "mean B",
+        "mean G",
+        "mean R",
+        "score"
+      ],
+      "rows": [
+        [
+          179,
+          320.5,
+          195.9,
+          78.8,
+          126.4,
+          31.8,
+          0.089
+        ]
+      ]
+    }
+  }
+}

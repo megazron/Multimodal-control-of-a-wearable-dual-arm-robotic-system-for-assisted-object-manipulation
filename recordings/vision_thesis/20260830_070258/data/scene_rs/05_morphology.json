@@ -1,0 +1,46 @@
+{
+  "source": "scene_rs",
+  "stage": "morphology",
+  "num": 5,
+  "title": "What the 9x9 opening removes",
+  "status": "ok",
+  "formula": "open(M) = dilate(erode(M, K), K),  K = ones(9, 9).  Erode deletes anything thinner than the kernel; dilate restores what survived to its original size.",
+  "measurements": [
+    {
+      "quantity": "kernel",
+      "value": "9x9",
+      "unit": "px"
+    },
+    {
+      "quantity": "pixels before",
+      "value": 1733,
+      "unit": "px"
+    },
+    {
+      "quantity": "pixels after",
+      "value": 187,
+      "unit": "px"
+    },
+    {
+      "quantity": "pixels removed",
+      "value": 1546,
+      "unit": "px"
+    },
+    {
+      "quantity": "removed",
+      "value": 89.209,
+      "unit": "%"
+    },
+    {
+      "quantity": "blobs before",
+      "value": 234,
+      "unit": "count"
+    },
+    {
+      "quantity": "blobs after",
+      "value": 1,
+      "unit": "count"
+    }
+  ],
+  "tables": {}
+}

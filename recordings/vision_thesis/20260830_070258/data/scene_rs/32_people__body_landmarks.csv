@@ -1,0 +1,9 @@
+person,landmark,u px,v px,visibility,range m
+0,left shoulder,274,303,1,3.2605
+0,right shoulder,305,302,1,3.4977
+0,left elbow,260,279,0.903,3.2795
+0,right elbow,317,276,0.921,3.5539
+0,left wrist,262,302,0.885,3.2991
+0,right wrist,325,288,0.923,3.5918
+0,left hip,279,236,0.998,3.3065
+0,right hip,294,236,0.997,3.4832

@@ -91,13 +91,13 @@ class SimToRealBridge(Node):
         # operator, which is strictly worse than a looser one that fires only
         # on a real divergence. 0.5 rad = 28.6 deg is still far short of any
         # pose the arm could reach before the clearance floor catches it.
-        self.declare_parameter("lag_trip_rad", 1.4)   # TEMP 2026-08-27: widened from 0.5 at operator request; RESTORE TO 0.5
+        self.declare_parameter("lag_trip_rad", 0.5)
         # ENABLE GATE, separate from the TRIP threshold on purpose. Enabling
         # at exactly the trip limit means the very first monitor tick after
         # the grace period trips. Enabling requires the gap to be inside
         # `enable_gap_rad`, leaving (lag_trip - enable_gap) of headroom for
         # the transient the enable itself causes.
-        self.declare_parameter("enable_gap_rad", 1.0)   # TEMP 2026-08-27: widened from 0.3 at operator request; RESTORE TO 0.3
+        self.declare_parameter("enable_gap_rad", 0.3)
         self.declare_parameter("min_clearance_m", 0.12)
         self.declare_parameter("rate_hz", 20.0)
         self.declare_parameter("enabled", False)
@@ -127,20 +127,6 @@ class SimToRealBridge(Node):
         self.home = list(home_positions.load_home_radians(self.arm))
 
         self.sim_hist = deque(maxlen=4000)     # (t, [q7]) sim history
-        # ONE LOCK, AND IT IS NOT DECORATION.
-        #
-        # `sim_hist` is appended by `on_sim` on the ROS executor thread and
-        # READ by `sim_delayed()`, which `_auto_enable` calls from a thread
-        # of its own. A bounded deque evicts as it appends, so an append
-        # landing mid-iteration raises `RuntimeError: deque mutated during
-        # iteration` -- which is not a warning, it is the END of the
-        # `_auto_enable` thread. Observed on the rig 2026-08-29 in
-        # .scratch/launch_real_cascade.log: eight "waiting to enable"
-        # refusals, then the traceback, then silence. The relay then NEVER
-        # retried, so homing the arm afterwards -- the exact fix the
-        # refusals were asking for -- could not make it enable. The operator
-        # sees a relay that is running, correct, and permanently dead.
-        self._hist_lock = threading.Lock()
         self.real_js = {}
         self.last_cmd = None
         self.enabled = False
@@ -219,22 +205,8 @@ class SimToRealBridge(Node):
         last = ""
         nagged = 0.0
         while time.monotonic() < deadline:
-            # A RETRY LOOP THAT DIES IS WORSE THAN ONE THAT NEVER RAN. This
-            # thread is the only thing that will ever enable the relay on the
-            # gated path, and an exception escaping it ends the retries with
-            # nothing in the node's own state to say so -- the traceback goes
-            # to a launch log nobody is reading while the panel shows a
-            # healthy, running, permanently disabled relay. Catch, SAY SO,
-            # and keep retrying.
-            try:
-                ok, msg = self._enable_attempt()
-            except Exception as e:                            # noqa: BLE001
-                self.get_logger().error(
-                    "auto-enable attempt raised (%r) -- RETRYING. The relay "
-                    "is still DISABLED and nothing is reaching the arm." % e)
-                time.sleep(1.0)
-                continue
-            if ok is not None:
+            if self.real_current() is not None and len(self.sim_hist) > 10:
+                ok, msg = self.enable()
                 # Say WHY it is not enabling, every few seconds. A silent
                 # refusal is indistinguishable from a hung node, and the
                 # operator is the one who has to fix it (by bringing the
@@ -254,31 +226,12 @@ class SimToRealBridge(Node):
             "bridge auto-enable GAVE UP after %.0f s. Last refusal: %s"
             % (float(self.get_parameter("auto_enable_timeout_s").value), last))
 
-    def _enable_attempt(self):
-        """One enable attempt, or (None, None) if the inputs are not there yet.
-
-        Split out of the retry loop so the loop can wrap exactly this in a
-        try/except without swallowing anything else -- and so the
-        precondition ("no real feed yet", "not enough sim history") stays
-        distinguishable from a refusal, which is a different thing and gets
-        reported differently.
-        """
-        if self.real_current() is None:
-            return (None, None)
-        with self._hist_lock:
-            n = len(self.sim_hist)
-        if n <= 10:
-            return (None, None)
-        return self.enable()
-
     # ---------------- inputs ----------------
 
     def on_sim(self, m):
         d = dict(zip(m.name, m.position))
         if all(n in d for n in self.names):
-            with self._hist_lock:
-                self.sim_hist.append(
-                    (time.monotonic(), [d[n] for n in self.names]))
+            self.sim_hist.append((time.monotonic(), [d[n] for n in self.names]))
 
     def on_real(self, m):
         for n, p in zip(m.name, m.position):
@@ -290,19 +243,12 @@ class SimToRealBridge(Node):
         return [self.real_js[n] for n in self.names]
 
     def sim_delayed(self):
-        """The sim sample from preview_delay_s ago.
-
-        ITERATES A SNAPSHOT. Callers are on two different threads (the ROS
-        executor via `tick`, and `_auto_enable`'s own), and the writer is a
-        bounded deque that evicts as it appends. See `_hist_lock`.
-        """
-        with self._hist_lock:
-            hist = list(self.sim_hist)
-        if not hist:
+        """The sim sample from preview_delay_s ago."""
+        if not self.sim_hist:
             return None
         want = time.monotonic() - self.delay
         best = None
-        for t, q in hist:
+        for t, q in self.sim_hist:
             if t <= want:
                 best = q
             else:
@@ -310,7 +256,7 @@ class SimToRealBridge(Node):
         # Before enough history has accumulated, hold at the oldest sample
         # rather than jumping to the present -- the present is exactly what
         # the delay exists to avoid commanding.
-        return best if best is not None else hist[0][1]
+        return best if best is not None else self.sim_hist[0][1]
 
     # ---------------- enable / disable ----------------
 
@@ -446,28 +392,7 @@ class SimToRealBridge(Node):
             return float("inf"), None
         return self.clearance.clearance(pts, REAL_ROBOT_PAD_M)
 
-    def _refresh_tuning(self):
-        """Re-read the FEEL parameters every tick, so a slider is real.
-
-        `delay`, `max_vel` and `max_step` were read once in __init__, so
-        `ros2 param set` -- and therefore any control in the operations
-        window -- changed a number nobody looked at again. That is the same
-        "feature present but does nothing" shape as the real-arm gate, and
-        it would have made a smoothness panel a panel of decorations.
-
-        `lag_trip` is DELIBERATELY NOT HERE. It is the safety trip, not a
-        feel knob, and a guard that can be widened from a slider while the
-        arm is moving is not a guard. It stays a launch parameter.
-        """
-        try:
-            self.delay = float(self.get_parameter("preview_delay_s").value)
-            self.max_vel = float(self.get_parameter("max_vel_rad_s").value)
-            self.max_step = float(self.get_parameter("max_step_rad").value)
-        except Exception:                                     # noqa: BLE001
-            pass
-
     def tick(self):
-        self._refresh_tuning()
         if not self.enabled:
             return
         if self.estopped:

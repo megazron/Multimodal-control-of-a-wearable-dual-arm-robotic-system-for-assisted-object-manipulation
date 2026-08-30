@@ -1,0 +1,41 @@
+{
+  "source": "right_gripper",
+  "stage": "height_map",
+  "num": 20,
+  "title": "Height above the plane",
+  "status": "ok",
+  "formula": "h(P) = n . P + d,  signed;  positive is off the surface, toward the camera",
+  "measurements": [
+    {
+      "quantity": "height threshold",
+      "value": 5.0,
+      "unit": "mm"
+    },
+    {
+      "quantity": "points above it",
+      "value": 20366,
+      "unit": "count"
+    },
+    {
+      "quantity": "that fraction",
+      "value": 47.289,
+      "unit": "%"
+    },
+    {
+      "quantity": "tallest point",
+      "value": 357.48,
+      "unit": "mm"
+    },
+    {
+      "quantity": "lowest point",
+      "value": -13.63,
+      "unit": "mm"
+    },
+    {
+      "quantity": "median height",
+      "value": 2.22,
+      "unit": "mm"
+    }
+  ],
+  "tables": {}
+}

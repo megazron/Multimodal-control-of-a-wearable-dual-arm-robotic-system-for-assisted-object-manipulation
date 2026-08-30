@@ -1,0 +1,81 @@
+{
+  "source": "scene_rs",
+  "stage": "deprojection",
+  "num": 17,
+  "title": "Pixels and depth become a cloud",
+  "status": "ok",
+  "formula": "X = (u - cx) Z / fx,   Y = (v - cy) Z / fy,   Z = depth",
+  "measurements": [
+    {
+      "quantity": "points lifted",
+      "value": 73768,
+      "unit": "count"
+    },
+    {
+      "quantity": "fx",
+      "value": 603.022,
+      "unit": "px"
+    },
+    {
+      "quantity": "fy",
+      "value": 603.129,
+      "unit": "px"
+    },
+    {
+      "quantity": "cx",
+      "value": 320.125,
+      "unit": "px"
+    },
+    {
+      "quantity": "cy",
+      "value": 247.782,
+      "unit": "px"
+    },
+    {
+      "quantity": "X minimum",
+      "value": -3.0097,
+      "unit": "m"
+    },
+    {
+      "quantity": "X maximum",
+      "value": 1.7588,
+      "unit": "m"
+    },
+    {
+      "quantity": "Y minimum",
+      "value": -1.9883,
+      "unit": "m"
+    },
+    {
+      "quantity": "Y maximum",
+      "value": 2.9925,
+      "unit": "m"
+    },
+    {
+      "quantity": "Z minimum",
+      "value": 0.36,
+      "unit": "m"
+    },
+    {
+      "quantity": "Z maximum",
+      "value": 7.9962,
+      "unit": "m"
+    },
+    {
+      "quantity": "centroid X",
+      "value": -0.1199,
+      "unit": "m"
+    },
+    {
+      "quantity": "centroid Y",
+      "value": -0.0875,
+      "unit": "m"
+    },
+    {
+      "quantity": "centroid Z",
+      "value": 3.7266,
+      "unit": "m"
+    }
+  ],
+  "tables": {}
+}

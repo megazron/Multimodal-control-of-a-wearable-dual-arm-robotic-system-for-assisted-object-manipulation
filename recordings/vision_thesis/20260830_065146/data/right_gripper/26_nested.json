@@ -1,0 +1,209 @@
+{
+  "source": "right_gripper",
+  "stage": "nested",
+  "num": 26,
+  "title": "Dropping masks that are unions of finer ones",
+  "status": "ok",
+  "formula": "voxelise each instance at 5 mm; accept smallest first; reject one whose claimed-voxel overlap exceeds 0.55",
+  "measurements": [
+    {
+      "quantity": "instances in",
+      "value": 23,
+      "unit": "count"
+    },
+    {
+      "quantity": "kept",
+      "value": 19,
+      "unit": "count"
+    },
+    {
+      "quantity": "dropped as already explained",
+      "value": 4,
+      "unit": "count"
+    },
+    {
+      "quantity": "voxel size",
+      "value": 5.0,
+      "unit": "mm"
+    },
+    {
+      "quantity": "overlap fraction that rejects",
+      "value": 0.55,
+      "unit": "-"
+    }
+  ],
+  "tables": {
+    "per instance": {
+      "headers": [
+        "instance",
+        "points",
+        "area px",
+        "claimed overlap",
+        "verdict"
+      ],
+      "rows": [
+        [
+          22,
+          33,
+          1206,
+          0.0,
+          "kept"
+        ],
+        [
+          19,
+          41,
+          27698,
+          0.0,
+          "kept"
+        ],
+        [
+          20,
+          41,
+          1153,
+          0.0,
+          "kept"
+        ],
+        [
+          18,
+          48,
+          4926,
+          0.0,
+          "kept"
+        ],
+        [
+          17,
+          73,
+          2534,
+          0.0,
+          "kept"
+        ],
+        [
+          16,
+          81,
+          6314,
+          0.0,
+          "kept"
+        ],
+        [
+          15,
+          178,
+          13096,
+          0.0,
+          "kept"
+        ],
+        [
+          14,
+          180,
+          49110,
+          0.0,
+          "kept"
+        ],
+        [
+          13,
+          196,
+          166324,
+          0.0,
+          "kept"
+        ],
+        [
+          12,
+          251,
+          8489,
+          0.105,
+          "kept"
+        ],
+        [
+          11,
+          293,
+          8987,
+          0.167,
+          "kept"
+        ],
+        [
+          10,
+          368,
+          7114,
+          0.0,
+          "kept"
+        ],
+        [
+          9,
+          405,
+          16739,
+          0.0,
+          "kept"
+        ],
+        [
+          8,
+          586,
+          8119,
+          0.194,
+          "kept"
+        ],
+        [
+          7,
+          734,
+          60470,
+          0.014,
+          "kept"
+        ],
+        [
+          5,
+          975,
+          17506,
+          0.23,
+          "kept"
+        ],
+        [
+          3,
+          2189,
+          52507,
+          0.102,
+          "kept"
+        ],
+        [
+          2,
+          2829,
+          203250,
+          0.114,
+          "kept"
+        ],
+        [
+          1,
+          3470,
+          78915,
+          0.037,
+          "kept"
+        ],
+        [
+          21,
+          35,
+          2337,
+          0.941,
+          "dropped"
+        ],
+        [
+          6,
+          773,
+          99837,
+          0.964,
+          "dropped"
+        ],
+        [
+          4,
+          1293,
+          25580,
+          1.0,
+          "dropped"
+        ],
+        [
+          0,
+          7729,
+          251248,
+          0.749,
+          "dropped"
+        ]
+      ]
+    }
+  }
+}

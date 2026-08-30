@@ -1,0 +1,2723 @@
+{
+  "started": "2026-08-30T07:15:16",
+  "stamp": "20260830_071516",
+  "argv": [
+    "scripts/cv_pickpose_visuals.py",
+    "--fix"
+  ],
+  "interpreter": "/home/gausms/kortex_ws/.venv_vision/bin/python",
+  "out": "/home/gausms/kortex_ws/recordings/vision_thesis/20260830_071516",
+  "prompt": "the green cube",
+  "sources": [
+    {
+      "name": "left_gripper",
+      "error": "after attempting the driver is running and the arm is serving RTSP, so this is a graph problem: the node is probably on a different ROS_DOMAIN_ID from this terminal (0).; ping ok, port 554 open, port 10000 open, driver running -- it still refuses: only 0 of 4 topics answered on /left_camera within 12 s (missing: c, ck, d, dk), on ROS_DOMAIN_ID=0. Either the camera driver is not up -- `bash scripts/bringup_arm.sh left` -- or this terminal is on a different domain from the one it was started on.  --- then the direct RTSP fallback also failed: no colour frame from rtsp://192.168.1.10/color. The arm must be powered and on the network, and Kinova allows only two simultaneous connections per stream."
+    },
+    {
+      "name": "right_gripper",
+      "error": "after attempting the driver is running and the arm is serving RTSP, so this is a graph problem: the node is probably on a different ROS_DOMAIN_ID from this terminal (0).; ping ok, port 554 open, port 10000 open, driver running -- it still refuses: only 0 of 4 topics answered on /right_camera within 12 s (missing: c, ck, d, dk), on ROS_DOMAIN_ID=0. Either the camera driver is not up -- `bash scripts/bringup_arm.sh right` -- or this terminal is on a different domain from the one it was started on.  --- then the direct RTSP fallback also failed: no colour frame from rtsp://192.168.1.9/color. The arm must be powered and on the network, and Kinova allows only two simultaneous connections per stream."
+    },
+    {
+      "name": "scene_rs",
+      "provenance": "RealSense D435i across the room, depth 480x270@6 + colour 640x480@6, USB 2.1, negotiated against what the device reports it has. Depth is aligned to colour by librealsense and averaged over 12 frames, valid pixels only.",
+      "notes": [
+        "rotated 180 deg: the camera is mounted upside down and the principal point is rotated WITH the image (cx'=W-1-cx)",
+        "liveness: 12 frames, 12 distinct depth images, 12 distinct frame numbers, 28% of pixels valid"
+      ],
+      "colour_shape": [
+        480,
+        640,
+        3
+      ],
+      "has_depth": true,
+      "K_colour": [
+        603.0215454101562,
+        603.1287841796875,
+        320.125244140625,
+        247.78213500976562
+      ],
+      "K_depth": [
+        603.0215454101562,
+        603.1287841796875,
+        320.125244140625,
+        247.78213500976562
+      ],
+      "raw": "raw/scene_rs",
+      "stages": [
+        {
+          "num": 1,
+          "slug": "raw_colour",
+          "title": "The frame, as the camera delivered it",
+          "status": "ok",
+          "seconds": 0.07,
+          "figure": "stages/scene_rs/01_raw_colour.png",
+          "formula": "none -- this is the input every later stage is a function of",
+          "provenance": "RealSense D435i across the room, depth 480x270@6 + colour 640x480@6, USB 2.1, negotiated against what the device reports it has. Depth is aligned to colour by librealsense and averaged over 12 frames, valid pixels only.",
+          "numbers": "640 x 480 px | focus (variance of Laplacian) 425 | 0.18% of pixels clipped white, 0.00% crushed black",
+          "note": "rotated 180 deg: the camera is mounted upside down and the principal point is rotated WITH the image (cx'=W-1-cx); liveness: 12 frames, 12 distinct depth images, 12 distinct frame numbers, 28% of pixels valid",
+          "data": [
+            {
+              "quantity": "frame width",
+              "value": 640,
+              "unit": "px"
+            },
+            {
+              "quantity": "frame height",
+              "value": 480,
+              "unit": "px"
+            },
+            {
+              "quantity": "focus, variance of Laplacian",
+              "value": 425.5,
+              "unit": "-"
+            },
+            {
+              "quantity": "pixels clipped white",
+              "value": 0.181,
+              "unit": "%"
+            },
+            {
+              "quantity": "pixels crushed black",
+              "value": 0.0,
+              "unit": "%"
+            },
+            {
+              "quantity": "mean blue",
+              "value": 105.67,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "mean green",
+              "value": 116.53,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "mean red",
+              "value": 100.44,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "median grey",
+              "value": 117.0,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "grey std",
+              "value": 65.41,
+              "unit": "0-255"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 2,
+          "slug": "intrinsics",
+          "title": "Intrinsics and the ray each pixel stands for",
+          "status": "ok",
+          "seconds": 0.03,
+          "figure": "stages/scene_rs/02_intrinsics.png",
+          "formula": "bearing = ((u - cx)/fx, (v - cy)/fy);  X = bearing * Z",
+          "provenance": "RealSense D435i across the room, depth 480x270@6 + colour 640x480@6, USB 2.1, negotiated against what the device reports it has. Depth is aligned to colour by librealsense and averaged over 12 frames, valid pixels only.",
+          "numbers": "fx 603.02  fy 603.13  cx 320.13  cy 247.78 | field of view 55.9 x 43.4 deg | principal point is 7.8 px from the image centre, which is 13 mm of sideways error at 1 m if you assume the centre",
+          "data": [
+            {
+              "quantity": "fx",
+              "value": 603.0215,
+              "unit": "px"
+            },
+            {
+              "quantity": "fy",
+              "value": 603.1288,
+              "unit": "px"
+            },
+            {
+              "quantity": "cx",
+              "value": 320.1252,
+              "unit": "px"
+            },
+            {
+              "quantity": "cy",
+              "value": 247.7821,
+              "unit": "px"
+            },
+            {
+              "quantity": "image centre u",
+              "value": 320.0,
+              "unit": "px"
+            },
+            {
+              "quantity": "image centre v",
+              "value": 240.0,
+              "unit": "px"
+            },
+            {
+              "quantity": "principal point offset from centre",
+              "value": 7.78,
+              "unit": "px"
+            },
+            {
+              "quantity": "that offset at 1 m range",
+              "value": 12.9,
+              "unit": "mm"
+            },
+            {
+              "quantity": "horizontal field of view",
+              "value": 55.906,
+              "unit": "deg"
+            },
+            {
+              "quantity": "vertical field of view",
+              "value": 43.398,
+              "unit": "deg"
+            },
+            {
+              "quantity": "ground sample distance at 1 m",
+              "value": 1.6583,
+              "unit": "mm/px"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 3,
+          "slug": "hsv",
+          "title": "BGR to HSV, the space the colour tests live in",
+          "status": "ok",
+          "seconds": 0.08,
+          "figure": "stages/scene_rs/03_hsv.png",
+          "formula": "V = max(B,G,R);  S = (V - min(B,G,R))/V;  H = the sector of the RGB hexagon, 0..179 in OpenCV (not 0..359)",
+          "provenance": "RealSense D435i across the room, depth 480x270@6 + colour 640x480@6, USB 2.1, negotiated against what the device reports it has. Depth is aligned to colour by librealsense and averaged over 12 frames, valid pixels only.",
+          "numbers": "median H 69  S 39  V 126 | 83.7% of pixels are below S=80 and cannot satisfy any colour term in this repository",
+          "note": "Hue is why colour is done here and not in BGR: brightness moves B, G and R together and leaves H alone, so a shadow does not change what colour something is -- until V collapses, which is what the value floors in each term exist to catch.",
+          "data": [
+            {
+              "quantity": "median hue",
+              "value": 69.0,
+              "unit": "0-179"
+            },
+            {
+              "quantity": "median saturation",
+              "value": 39.0,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "median value",
+              "value": 126.0,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "pixels below S=80",
+              "value": 83.669,
+              "unit": "%"
+            },
+            {
+              "quantity": "pixels below V=40",
+              "value": 16.058,
+              "unit": "%"
+            },
+            {
+              "quantity": "pixels above V=200",
+              "value": 10.189,
+              "unit": "%"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 4,
+          "slug": "green_threshold",
+          "title": "The pick path's own green threshold",
+          "status": "ok",
+          "seconds": 0.07,
+          "figure": "stages/scene_rs/04_green_threshold.png",
+          "formula": "mask(u,v) = 1 iff  40 <= H <= 85  and  80 <= S <= 255  and  40 <= V <= 255",
+          "provenance": "constants from scripts/servo_pick_left.py:measure -- the thresholds the live pick actually runs on",
+          "numbers": "3099 px selected (1.009% of the frame) | of those, median S 88 and median V 47",
+          "note": "A threshold is a hard decision with no confidence attached, which is why colour is a FALLBACK in this repository and capped below any AprilTag: it fails by being confidently wrong under changed light, and nothing downstream can tell.",
+          "data": [
+            {
+              "quantity": "hue low",
+              "value": 40,
+              "unit": "0-179"
+            },
+            {
+              "quantity": "hue high",
+              "value": 85,
+              "unit": "0-179"
+            },
+            {
+              "quantity": "saturation floor",
+              "value": 80,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "value floor",
+              "value": 40,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "pixels selected",
+              "value": 3099,
+              "unit": "px"
+            },
+            {
+              "quantity": "fraction of the frame",
+              "value": 1.0088,
+              "unit": "%"
+            },
+            {
+              "quantity": "median S of the selected",
+              "value": 88.0,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "median V of the selected",
+              "value": 47.0,
+              "unit": "0-255"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 5,
+          "slug": "morphology",
+          "title": "What the 9x9 opening removes",
+          "status": "ok",
+          "seconds": 0.07,
+          "figure": "stages/scene_rs/05_morphology.png",
+          "formula": "open(M) = dilate(erode(M, K), K),  K = ones(9, 9).  Erode deletes anything thinner than the kernel; dilate restores what survived to its original size.",
+          "provenance": "9x9 is the pick path's kernel (servo_pick_left); prompt_detector and colour_shape_detector both use 5x5",
+          "numbers": "3099 px in, 359 px out, 2740 px removed (88.4%) | 412 separate blobs before, 2 after",
+          "note": "The kernel size IS a decision about the smallest object that can survive: at this range a 9 px feature is deleted whatever colour it is.",
+          "data": [
+            {
+              "quantity": "kernel",
+              "value": "9x9",
+              "unit": "px"
+            },
+            {
+              "quantity": "pixels before",
+              "value": 3099,
+              "unit": "px"
+            },
+            {
+              "quantity": "pixels after",
+              "value": 359,
+              "unit": "px"
+            },
+            {
+              "quantity": "pixels removed",
+              "value": 2740,
+              "unit": "px"
+            },
+            {
+              "quantity": "removed",
+              "value": 88.416,
+              "unit": "%"
+            },
+            {
+              "quantity": "blobs before",
+              "value": 412,
+              "unit": "count"
+            },
+            {
+              "quantity": "blobs after",
+              "value": 2,
+              "unit": "count"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 6,
+          "slug": "components",
+          "title": "Connected components, and their statistics",
+          "status": "ok",
+          "seconds": 0.07,
+          "figure": "stages/scene_rs/06_components.png",
+          "formula": "8-connectivity flood label; per label: area, bounding box, centroid = (1/A) * sum of member pixel coordinates",
+          "provenance": "RealSense D435i across the room, depth 480x270@6 + colour 640x480@6, USB 2.1, negotiated against what the device reports it has. Depth is aligned to colour by librealsense and averaged over 12 frames, valid pixels only.",
+          "numbers": "2 components over 40 px | largest 190 px | this is where a MASK becomes a set of candidate OBJECTS",
+          "note": "A centroid is not an object's centre: it is the centre of the pixels that happened to pass the threshold, so a partly shadowed cube reports a centroid shifted into its lit half.",
+          "data": [
+            {
+              "quantity": "components over 40 px",
+              "value": 2,
+              "unit": "count"
+            },
+            {
+              "quantity": "largest area",
+              "value": 190,
+              "unit": "px"
+            },
+            {
+              "quantity": "total area kept",
+              "value": 359,
+              "unit": "px"
+            },
+            {
+              "quantity": "median area",
+              "value": 179.5,
+              "unit": "px"
+            }
+          ],
+          "tables": {
+            "every component": {
+              "rows": 2,
+              "csv": "data/scene_rs/06_components__every_component.csv",
+              "headers": [
+                "#",
+                "area px",
+                "box x",
+                "box y",
+                "box w",
+                "box h",
+                "centroid u",
+                "centroid v"
+              ]
+            }
+          }
+        },
+        {
+          "num": 7,
+          "slug": "vocabulary",
+          "title": "The whole colour vocabulary, swept",
+          "status": "ok",
+          "seconds": 0.38,
+          "figure": "stages/scene_rs/07_vocabulary.png",
+          "formula": "one inRange per band, OR-ed across bands (red needs two: it wraps the hue circle at 0/179), then a 5x5 opening",
+          "provenance": "srl_perception/prompt_detector.py:COLOUR_TERMS -- the colour backend's entire vocabulary, stated so its limit is visible rather than discovered",
+          "numbers": "black 54726 | white 30945 | cyan 10617 | green 5359 | orange 4776 | yellow 128",
+          "note": "THE THREE GREENS ARE NOT THE SAME: servo_pick_left (the live pick) H40-85 S>=80 V>=40 open 9: 359 px; prompt_detector.COLOUR_TERMS H36-85 S>=80 V>=25 open 5: 5359 px; colour_shape_detector.DEFAULT H40-85 S>=80 V>=60 open 5: 412 px. They differ in the value floor (25 / 40 / 60) and in the opening kernel, so the same cube in the same frame gives three different pixel counts depending on which module is asking.",
+          "data": [
+            {
+              "quantity": "colour terms tested",
+              "value": 11,
+              "unit": "count"
+            },
+            {
+              "quantity": "terms with any pixels",
+              "value": 6,
+              "unit": "count"
+            },
+            {
+              "quantity": "largest term",
+              "value": "black",
+              "unit": "-"
+            },
+            {
+              "quantity": "its pixel count",
+              "value": 54726,
+              "unit": "px"
+            }
+          ],
+          "tables": {
+            "pixels per colour term": {
+              "rows": 11,
+              "csv": "data/scene_rs/07_vocabulary__pixels_per_colour_term.csv",
+              "headers": [
+                "colour term",
+                "pixels",
+                "fraction of frame %"
+              ]
+            },
+            "the three definitions of green": {
+              "rows": 3,
+              "csv": "data/scene_rs/07_vocabulary__the_three_definitions_of_green.csv",
+              "headers": [
+                "module",
+                "H low",
+                "H high",
+                "S floor",
+                "V floor",
+                "open kernel",
+                "pixels"
+              ]
+            }
+          }
+        },
+        {
+          "num": 8,
+          "slug": "region_mean",
+          "title": "The region-MEAN ratio test, and its near-black guard",
+          "status": "ok",
+          "seconds": 0.06,
+          "figure": "stages/scene_rs/08_region_mean.png",
+          "formula": "green  <=>  mean_G > 1.25 * mean_B  and  mean_G > 1.8 * mean_R,  refused outright when max(B,G,R) < 25",
+          "provenance": "srl_perception/prompt_detector.py:_colour_matches",
+          "numbers": "1 of 2 regions pass",
+          "note": "Per-pixel hue picked the room's teal robots three times: their shadowed hue is 76 against the target cube's 74, two apart and inside noise. Region MEANS separate them, because teal carries far more blue. The near-black guard exists because a region measuring (4.1, 8.8, 3.9) -- visually black -- satisfies the ratios on sensor noise alone and was reported as the cube.",
+          "data": [
+            {
+              "quantity": "regions tested",
+              "value": 2,
+              "unit": "count"
+            },
+            {
+              "quantity": "regions passing",
+              "value": 1,
+              "unit": "count"
+            },
+            {
+              "quantity": "regions rejected as near-black",
+              "value": 0,
+              "unit": "count"
+            },
+            {
+              "quantity": "blue ratio threshold",
+              "value": 1.25,
+              "unit": "-"
+            },
+            {
+              "quantity": "red ratio threshold",
+              "value": 1.8,
+              "unit": "-"
+            },
+            {
+              "quantity": "near-black floor",
+              "value": 25.0,
+              "unit": "0-255"
+            }
+          ],
+          "tables": {
+            "region means and verdicts": {
+              "rows": 2,
+              "csv": "data/scene_rs/08_region_mean__region_means_and_verdicts.csv",
+              "headers": [
+                "region",
+                "area px",
+                "mean B",
+                "mean G",
+                "mean R",
+                "near black",
+                "passes green"
+              ]
+            }
+          }
+        },
+        {
+          "num": 9,
+          "slug": "minarearect",
+          "title": "Rotated box, in-image yaw, and the degeneracy gate",
+          "status": "refused",
+          "seconds": 0.02,
+          "figure": "stages/scene_rs/09_minarearect.png",
+          "reason": "no contour over the 400 px floor in this frame, so there is no rotated box to fit",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 10,
+          "slug": "size_at_range",
+          "title": "The size-at-range gate",
+          "status": "refused",
+          "seconds": 0.01,
+          "figure": "stages/scene_rs/10_size_at_range.png",
+          "reason": "no blob over 400 px to test",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 11,
+          "slug": "fastsam",
+          "title": "FastSAM: every region in the picture, no prompt",
+          "status": "ok",
+          "seconds": 12.5,
+          "figure": "stages/scene_rs/11_fastsam.png",
+          "formula": "object-agnostic instance masks; no class, no prompt, no scene knowledge -- 'what are the regions', not 'where is the green cube'",
+          "provenance": "FastSAM-s.pt (~11M parameters) via ultralytics, imgsz=1024 conf=0.25 iou=0.7 on the cpu, 7.3 s for this frame",
+          "numbers": "79 regions | largest 76164 px (24.8% of frame), smallest 78 px",
+          "note": "This is what replaced clustering. Two 40 mm cubes on a 60 mm pitch are 20 mm apart, which is the cluster distance itself, so depth-clustering fused them into one object 140 mm across the jaws and refused it. In the PICTURE they are not remotely ambiguous. Masks decide WHAT is an object; depth decides WHERE it is.",
+          "data": [
+            {
+              "quantity": "regions returned",
+              "value": 79,
+              "unit": "count"
+            },
+            {
+              "quantity": "largest region",
+              "value": 76164,
+              "unit": "px"
+            },
+            {
+              "quantity": "largest as a fraction of the frame",
+              "value": 24.79,
+              "unit": "%"
+            },
+            {
+              "quantity": "smallest region",
+              "value": 78,
+              "unit": "px"
+            },
+            {
+              "quantity": "median region",
+              "value": 579.0,
+              "unit": "px"
+            },
+            {
+              "quantity": "inference time",
+              "value": 7.33,
+              "unit": "s"
+            },
+            {
+              "quantity": "input size",
+              "value": 1024,
+              "unit": "px"
+            },
+            {
+              "quantity": "confidence threshold",
+              "value": 0.25,
+              "unit": "-"
+            },
+            {
+              "quantity": "NMS IoU",
+              "value": 0.7,
+              "unit": "-"
+            },
+            {
+              "quantity": "device",
+              "value": "cpu",
+              "unit": "-"
+            }
+          ],
+          "tables": {
+            "the twenty largest regions": {
+              "rows": 20,
+              "csv": "data/scene_rs/11_fastsam__the_twenty_largest_regions.csv",
+              "headers": [
+                "rank",
+                "area px",
+                "fraction of frame %"
+              ]
+            }
+          }
+        },
+        {
+          "num": 12,
+          "slug": "area_filter",
+          "title": "The area filter: noise below, the table above",
+          "status": "ok",
+          "seconds": 0.44,
+          "figure": "stages/scene_rs/12_area_filter.png",
+          "formula": "keep iff  60 px <= area <= 0.35 * W * H  (= 107520 px here)",
+          "provenance": "srl_perception/segment_lift.py: MIN_AREA_PX, MAX_AREA_FRAC",
+          "numbers": "79 in, 79 kept, 0 too small, 0 too large",
+          "note": "The upper bound is not tidiness. A segmenter returns the table and the room as legitimate regions, and a region covering a third of the frame is never a thing to be picked up.",
+          "data": [
+            {
+              "quantity": "regions in",
+              "value": 79,
+              "unit": "count"
+            },
+            {
+              "quantity": "kept",
+              "value": 79,
+              "unit": "count"
+            },
+            {
+              "quantity": "rejected as noise",
+              "value": 0,
+              "unit": "count"
+            },
+            {
+              "quantity": "rejected as too large",
+              "value": 0,
+              "unit": "count"
+            },
+            {
+              "quantity": "lower bound",
+              "value": 60,
+              "unit": "px"
+            },
+            {
+              "quantity": "upper bound",
+              "value": 107520,
+              "unit": "px"
+            },
+            {
+              "quantity": "upper bound as a fraction",
+              "value": 0.35,
+              "unit": "-"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 13,
+          "slug": "segment_match",
+          "title": "Segment everything, then pick the one that matches",
+          "status": "ok",
+          "seconds": 0.44,
+          "figure": "stages/scene_rs/13_segment_match.png",
+          "formula": "for each region: mean BGR over the MASK, then the ratio test of stage 08; score = min(1, area/2000)",
+          "provenance": "srl_perception/prompt_detector.py:_segment -- the backend that actually found the target on this rig",
+          "numbers": "179 px at (320, 196), mean BGR [76.9, 127.0, 29.4]",
+          "note": "Naming the cube failed at every confidence -- it is ~19 px and dark, and an open-vocabulary detector cannot recognise it as anything. Segmenting it is trivial: 89 regions, exactly one green-dominant, no false positives. The MASK is the other win: a colour threshold gives whatever pixels passed, a segment gives the object's actual extent, which is what a width measurement needs.",
+          "data": [
+            {
+              "quantity": "colour word parsed",
+              "value": "green",
+              "unit": "-"
+            },
+            {
+              "quantity": "regions considered",
+              "value": 79,
+              "unit": "count"
+            },
+            {
+              "quantity": "regions matched",
+              "value": 1,
+              "unit": "count"
+            },
+            {
+              "quantity": "regions rejected on colour",
+              "value": 78,
+              "unit": "count"
+            },
+            {
+              "quantity": "best score",
+              "value": 0.089,
+              "unit": "0-1"
+            }
+          ],
+          "tables": {
+            "matched regions": {
+              "rows": 1,
+              "csv": "data/scene_rs/13_segment_match__matched_regions.csv",
+              "headers": [
+                "area px",
+                "centre u",
+                "centre v",
+                "mean B",
+                "mean G",
+                "mean R",
+                "score"
+              ]
+            }
+          }
+        },
+        {
+          "num": 14,
+          "slug": "yoloworld",
+          "title": "YOLO-World: open-vocabulary naming",
+          "status": "refused",
+          "seconds": 14.76,
+          "figure": "stages/scene_rs/14_yoloworld.png",
+          "reason": "YOLO-World ran in 14.7 s over classes ['green cube'] at conf 0.05 and found NOTHING. This is the measured behaviour on this rig, not a misconfiguration: it finds a person at 0.725 and a laptop at 0.739 in the same room and cannot see the small dark cube at any confidence. It is why the backend order is segment first, naming second, colour as the floor.",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 15,
+          "slug": "raw_depth",
+          "title": "The depth frame, and where it has no answer",
+          "status": "ok",
+          "seconds": 0.09,
+          "figure": "stages/scene_rs/15_raw_depth.png",
+          "formula": "one 16-bit value per pixel, in MILLIMETRES on the wire, divided by 1000 here. 0 means 'no return' and is NOT a distance of zero.",
+          "provenance": "RealSense D435i across the room, depth 480x270@6 + colour 640x480@6, USB 2.1, negotiated against what the device reports it has. Depth is aligned to colour by librealsense and averaged over 12 frames, valid pixels only.",
+          "numbers": "640 x 480 | 27.9% of pixels have a return | median 3.808 m, 5th-95th 2.974-12.689 m | 73768 px between the 0.15 and 8.00 m gate the pick path uses",
+          "note": "A hole is not a far surface. Averaging a hole in as 0 drags every edge pixel toward the camera, which is why the RealSense average is taken over VALID pixels only.",
+          "data": [
+            {
+              "quantity": "depth width",
+              "value": 640,
+              "unit": "px"
+            },
+            {
+              "quantity": "depth height",
+              "value": 480,
+              "unit": "px"
+            },
+            {
+              "quantity": "pixels with a return",
+              "value": 85727,
+              "unit": "px"
+            },
+            {
+              "quantity": "that fraction",
+              "value": 27.91,
+              "unit": "%"
+            },
+            {
+              "quantity": "median range",
+              "value": 3.8075,
+              "unit": "m"
+            },
+            {
+              "quantity": "5th percentile",
+              "value": 2.974,
+              "unit": "m"
+            },
+            {
+              "quantity": "95th percentile",
+              "value": 12.689,
+              "unit": "m"
+            },
+            {
+              "quantity": "nearest return",
+              "value": 0.36,
+              "unit": "m"
+            },
+            {
+              "quantity": "furthest return",
+              "value": 65.535,
+              "unit": "m"
+            },
+            {
+              "quantity": "returns inside this camera's working band",
+              "value": 73768,
+              "unit": "px"
+            },
+            {
+              "quantity": "band near",
+              "value": 0.15,
+              "unit": "m"
+            },
+            {
+              "quantity": "band far",
+              "value": 8.0,
+              "unit": "m"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 16,
+          "slug": "alignment",
+          "title": "Depth put into the colour frame",
+          "status": "ok",
+          "seconds": 0.11,
+          "figure": "stages/scene_rs/16_alignment.png",
+          "formula": "P = ((u-cx_d)z/fx_d, (v-cy_d)z/fy_d, z);  P' = P + t;  u' = fx_c X'/Z' + cx_c,  v' = fy_c Y'/Z' + cy_c",
+          "provenance": "aligned by librealsense (rs.align to colour); no re-projection done here",
+          "numbers": "no re-projection was needed",
+          "note": "The rotation between the two sensors is taken as IDENTITY here, because a recorded translation is all this program has. The live pick path uses the URDF FK between camera_depth_frame and camera_color_frame instead -- and that extrinsic is known to be ~8.5 deg wrong and to rotate with the wrist, which is why the pick servos in the camera frame rather than planning through it.",
+          "data": [
+            {
+              "quantity": "re-projection needed",
+              "value": false,
+              "unit": "-"
+            },
+            {
+              "quantity": "aligner",
+              "value": "librealsense rs.align",
+              "unit": "-"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 17,
+          "slug": "deprojection",
+          "title": "Pixels and depth become a cloud",
+          "status": "ok",
+          "seconds": 0.84,
+          "figure": "stages/scene_rs/17_deprojection.png",
+          "formula": "X = (u - cx) Z / fx,   Y = (v - cy) Z / fy,   Z = depth",
+          "provenance": "rgbd_grasp.deproject / servo_pick_left.measure, with fx 603.02 fy 603.13 cx 320.13 cy 247.78",
+          "numbers": "73768 points in the 0.15-8.00 m band | extent X -3.010 to 1.759, Y -1.988 to 2.992, Z 0.360 to 7.996 m",
+          "note": "This is the whole of 'depth decides WHERE'. Everything after it is geometry on these points, in the CAMERA's frame -- no robot transform is involved yet, which is exactly why the pick measures its error here.",
+          "data": [
+            {
+              "quantity": "points lifted",
+              "value": 73768,
+              "unit": "count"
+            },
+            {
+              "quantity": "fx",
+              "value": 603.022,
+              "unit": "px"
+            },
+            {
+              "quantity": "fy",
+              "value": 603.129,
+              "unit": "px"
+            },
+            {
+              "quantity": "cx",
+              "value": 320.125,
+              "unit": "px"
+            },
+            {
+              "quantity": "cy",
+              "value": 247.782,
+              "unit": "px"
+            },
+            {
+              "quantity": "X minimum",
+              "value": -3.0097,
+              "unit": "m"
+            },
+            {
+              "quantity": "X maximum",
+              "value": 1.7588,
+              "unit": "m"
+            },
+            {
+              "quantity": "Y minimum",
+              "value": -1.9883,
+              "unit": "m"
+            },
+            {
+              "quantity": "Y maximum",
+              "value": 2.9925,
+              "unit": "m"
+            },
+            {
+              "quantity": "Z minimum",
+              "value": 0.36,
+              "unit": "m"
+            },
+            {
+              "quantity": "Z maximum",
+              "value": 7.9962,
+              "unit": "m"
+            },
+            {
+              "quantity": "centroid X",
+              "value": -0.1199,
+              "unit": "m"
+            },
+            {
+              "quantity": "centroid Y",
+              "value": -0.0875,
+              "unit": "m"
+            },
+            {
+              "quantity": "centroid Z",
+              "value": 3.7266,
+              "unit": "m"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 18,
+          "slug": "ransac",
+          "title": "RANSAC: the support plane",
+          "status": "ok",
+          "seconds": 10.98,
+          "figure": "stages/scene_rs/18_ransac.png",
+          "formula": "draw 3 points -> n = (b-a) x (c-a) / |...|,  d = -n.a;  score = #{ |n.P + d| < 6 mm };  keep the best of 400 draws",
+          "provenance": "scripts/servo_pick_left.py:fit_plane, imported; fitted on 60000 of 73768 points",
+          "numbers": "normal (0.6491, -0.0495, -0.7591), offset 2.6383 m | 3494 of 73768 points are inliers (4.7%) | RMS 3.42 mm | 40.6 deg between the plane normal and the camera's optical axis",
+          "note": "A plane with too few inliers is not a plane. The pick refuses below 200 inliers rather than returning a geometry whose RMS is NaN -- everything downstream would treat that as a fix and the arm would move on it.",
+          "data": [
+            {
+              "quantity": "normal x",
+              "value": 0.64905,
+              "unit": "-"
+            },
+            {
+              "quantity": "normal y",
+              "value": -0.049547,
+              "unit": "-"
+            },
+            {
+              "quantity": "normal z",
+              "value": -0.75913,
+              "unit": "-"
+            },
+            {
+              "quantity": "offset d",
+              "value": 2.638266,
+              "unit": "m"
+            },
+            {
+              "quantity": "points fitted",
+              "value": 60000,
+              "unit": "count"
+            },
+            {
+              "quantity": "points scored",
+              "value": 73768,
+              "unit": "count"
+            },
+            {
+              "quantity": "inliers",
+              "value": 3494,
+              "unit": "count"
+            },
+            {
+              "quantity": "inlier fraction",
+              "value": 4.74,
+              "unit": "%"
+            },
+            {
+              "quantity": "residual RMS",
+              "value": 3.416,
+              "unit": "mm"
+            },
+            {
+              "quantity": "inlier tolerance",
+              "value": 6.0,
+              "unit": "mm"
+            },
+            {
+              "quantity": "RANSAC iterations",
+              "value": 400,
+              "unit": "count"
+            },
+            {
+              "quantity": "angle to the optical axis",
+              "value": 40.61,
+              "unit": "deg"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 19,
+          "slug": "pca_refine",
+          "title": "The PCA refinement, and the NaN it once produced",
+          "status": "ok",
+          "seconds": 0.16,
+          "figure": "stages/scene_rs/19_pca_refine.png",
+          "formula": "C = cov(Q - mean(Q)) for inliers Q;  n = eigvec(C)[:, argmin];  d = -n . mean(Q)   <-- BOTH halves, together",
+          "provenance": "scripts/servo_pick_left.py:fit_plane, imported",
+          "numbers": "the normal moved 0.000 deg | RMS 3.42 mm -> 3.42 mm | mixing the refined normal with the RANSAC offset selects 3494 inliers instead of 3494",
+          "note": "That last number is the bug this stage exists to show. The function once returned the REFINED normal with the OLD offset; those describe different planes, the inlier mask could select ZERO points, and mean() of an empty slice is NaN. The pick printed 'plane RMS nan mm' and 'FOUND' in the same breath, then closed 540 mm blind on a centre computed against that plane.",
+          "data": [
+            {
+              "quantity": "normal moved",
+              "value": 0.0,
+              "unit": "deg"
+            },
+            {
+              "quantity": "RMS before refinement",
+              "value": 3.416,
+              "unit": "mm"
+            },
+            {
+              "quantity": "RMS after refinement",
+              "value": 3.416,
+              "unit": "mm"
+            },
+            {
+              "quantity": "inliers with the matched pair",
+              "value": 3494,
+              "unit": "count"
+            },
+            {
+              "quantity": "inliers with a mixed normal and offset",
+              "value": 3494,
+              "unit": "count"
+            },
+            {
+              "quantity": "inliers lost by mixing",
+              "value": 0,
+              "unit": "count"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 20,
+          "slug": "height_map",
+          "title": "Height above the plane",
+          "status": "ok",
+          "seconds": 0.05,
+          "figure": "stages/scene_rs/20_height_map.png",
+          "formula": "h(P) = n . P + d,  signed;  positive is off the surface, toward the camera",
+          "provenance": "servo_pick_left.measure -- the same expression the live pick uses to separate the cube from the table",
+          "numbers": "23185 of 73768 points stand more than 5 mm off the plane (31.43%) | tallest 2267.5 mm",
+          "note": "The floor is 5 mm because the plane RMS is under 1 mm on this sensor. Set it below the depth noise and the table itself becomes an object; set it far above and a flat item is missed.",
+          "data": [
+            {
+              "quantity": "height threshold",
+              "value": 5.0,
+              "unit": "mm"
+            },
+            {
+              "quantity": "points above it",
+              "value": 23185,
+              "unit": "count"
+            },
+            {
+              "quantity": "that fraction",
+              "value": 31.43,
+              "unit": "%"
+            },
+            {
+              "quantity": "tallest point",
+              "value": 2267.54,
+              "unit": "mm"
+            },
+            {
+              "quantity": "lowest point",
+              "value": -5039.37,
+              "unit": "mm"
+            },
+            {
+              "quantity": "median height",
+              "value": -47.779,
+              "unit": "mm"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 21,
+          "slug": "mode_surface",
+          "title": "The surface height as a MODE, not a mean",
+          "status": "ok",
+          "seconds": 0.11,
+          "figure": "stages/scene_rs/21_mode_surface.png",
+          "formula": "bin at 2 mm; take the fullest bin; require it to hold >= 20% of the points; refine as the mean of everything within +/-6 mm of it",
+          "provenance": "srl_perception/surface_from_depth.py, applied along the fitted plane normal because this program has no camera-to-world transform; the node applies it to world z",
+          "numbers": "modal bin holds 0.9% of 73768 points (floor 20%) | refined -2.6426 m, spread 3.44 mm | a plain MEAN would say -2.9025 m, which is 259.9 mm out | RANSAC's own offset is -2.6383 m, 4.31 mm from this",
+          "note": "Two independent estimators of one surface, so they can be compared: RANSAC votes on inliers, this votes on the fullest histogram bin. A mean is dragged up by everything standing on the table and down by every hole, and it MOVES as the objects move -- the 'measurement' would change between trials on a motionless table.",
+          "data": [
+            {
+              "quantity": "bin width",
+              "value": 2.0,
+              "unit": "mm"
+            },
+            {
+              "quantity": "points binned",
+              "value": 73768,
+              "unit": "count"
+            },
+            {
+              "quantity": "share in the fullest bin",
+              "value": 0.87,
+              "unit": "%"
+            },
+            {
+              "quantity": "share required",
+              "value": 20.0,
+              "unit": "%"
+            },
+            {
+              "quantity": "modal bin centre",
+              "value": -2.64264,
+              "unit": "m"
+            },
+            {
+              "quantity": "refined estimate",
+              "value": -2.64258,
+              "unit": "m"
+            },
+            {
+              "quantity": "spread of the inliers",
+              "value": 3.442,
+              "unit": "mm"
+            },
+            {
+              "quantity": "inlier band",
+              "value": 6.0,
+              "unit": "mm"
+            },
+            {
+              "quantity": "a plain mean would say",
+              "value": -2.90247,
+              "unit": "m"
+            },
+            {
+              "quantity": "that mean's error",
+              "value": 259.89,
+              "unit": "mm"
+            },
+            {
+              "quantity": "RANSAC's own offset",
+              "value": -2.63827,
+              "unit": "m"
+            },
+            {
+              "quantity": "the two estimators differ by",
+              "value": 4.315,
+              "unit": "mm"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 22,
+          "slug": "on_surface",
+          "title": "What is standing on the surface",
+          "status": "ok",
+          "seconds": 9.84,
+          "figure": "stages/scene_rs/22_on_surface.png",
+          "formula": "{ pixels whose lifted point has h > 5 mm }, 8-connected",
+          "provenance": "the plane of stage 18 fitted in the colour frame; heights from the aligned depth of stage 16",
+          "numbers": "7500 px, 7291 pts, top 456 mm | 6531 px, 6467 pts, top 162 mm | 3307 px, 3262 pts, top 224 mm | 2059 px, 2016 pts, top 408 mm | 1699 px, 1684 pts, top 1414 mm | 494 px, 470 pts, top 89 mm",
+          "note": "This is the pre-2020 method on its own -- threshold above a plane, then cluster what is left. It is exactly what fails when two 40 mm cubes sit 20 mm apart: connectivity fuses them into one object 140 mm across. Compare this figure with stage 11.",
+          "data": [
+            {
+              "quantity": "pieces standing on the surface",
+              "value": 21,
+              "unit": "count"
+            },
+            {
+              "quantity": "height threshold",
+              "value": 5.0,
+              "unit": "mm"
+            },
+            {
+              "quantity": "largest piece",
+              "value": 7500,
+              "unit": "px"
+            },
+            {
+              "quantity": "tallest piece",
+              "value": 2267.5,
+              "unit": "mm"
+            }
+          ],
+          "tables": {
+            "pieces above the plane": {
+              "rows": 21,
+              "csv": "data/scene_rs/22_on_surface__pieces_above_the_plane.csv",
+              "headers": [
+                "area px",
+                "points",
+                "top mm",
+                "median height mm",
+                "box x",
+                "box y",
+                "box w",
+                "box h"
+              ]
+            }
+          }
+        },
+        {
+          "num": 23,
+          "slug": "cube_measurement",
+          "title": "The measurement the pick actually acts on",
+          "status": "refused",
+          "seconds": 0.03,
+          "figure": "stages/scene_rs/23_cube_measurement.png",
+          "reason": "only 0 points are both green-coloured AND more than 5 mm above the plane (the pick needs 60 and returns None below that). 190 points are coloured but ON the plane; 23185 stand off the plane but are not the colour.",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 24,
+          "slug": "layers",
+          "title": "Splitting a cube from the pad it stands on",
+          "status": "ok",
+          "seconds": 0.37,
+          "figure": "stages/scene_rs/24_layers.png",
+          "formula": "find the MODAL height bin (5 mm bins); cut 12 mm above it; recurse on what is left, twice",
+          "provenance": "srl_perception/segment_lift.py:_layers",
+          "numbers": "layer 1: 4-91 mm, 4317 points | layer 2: 91-103 mm, 514 points | layer 3: 103-1325 mm, 3708 points",
+          "note": "Appearance decides what is SIDE BY SIDE; height decides what is STACKED. A blue cube on a blue pad is correctly ONE region -- same colour, touching, no edge between them. And the split cannot look for an empty band, because there is none: the cube RESTS on the pad, so its sides fill every bin. What is there is a MODE -- the support's top face is a large flat area and dominates the histogram.",
+          "data": [
+            {
+              "quantity": "region area",
+              "value": 76164,
+              "unit": "px"
+            },
+            {
+              "quantity": "points lifted from it",
+              "value": 19853,
+              "unit": "count"
+            },
+            {
+              "quantity": "points above the plane",
+              "value": 8539,
+              "unit": "count"
+            },
+            {
+              "quantity": "pixels removed by the 1 px erosion",
+              "value": 4970,
+              "unit": "px"
+            },
+            {
+              "quantity": "layers found",
+              "value": 3,
+              "unit": "count"
+            },
+            {
+              "quantity": "lowest point",
+              "value": 4.02,
+              "unit": "mm"
+            },
+            {
+              "quantity": "highest point",
+              "value": 1324.61,
+              "unit": "mm"
+            }
+          ],
+          "tables": {
+            "height layers": {
+              "rows": 3,
+              "csv": "data/scene_rs/24_layers__height_layers.csv",
+              "headers": [
+                "layer",
+                "from mm",
+                "to mm",
+                "points"
+              ]
+            }
+          }
+        },
+        {
+          "num": 25,
+          "slug": "min_width",
+          "title": "Rotating calipers, against the two controls",
+          "status": "ok",
+          "seconds": 9.96,
+          "figure": "stages/scene_rs/25_min_width.png",
+          "formula": "width = min over theta of [ max(p.u(theta)) - min(p.u(theta)) ],  u(theta) = (cos, sin) in the support plane, swept at 0.25 deg",
+          "provenance": "srl_perception/segment_lift.py:_min_width and rgbd_grasp.min_width_frame",
+          "numbers": "calipers 1737.5 mm | PCA's short axis 1821.3 mm | axis-aligned box 1817.8 mm | long axis 2621.3 mm, height 1320.6 mm | jaws close on 85 mm, so this is TOO WIDE",
+          "note": "The two controls are here because both were used and both were wrong. The principal axes of a SQUARE are degenerate -- equal variance in both directions -- so SVD returns the diagonal and a 40 mm cube measures 40*sqrt(2) = 53 mm; against an 85 mm jaw that refuses a 60 mm object as ungraspable. The error that matters is not the 13 mm, it is the DIRECTION: a jaw told to close across a diagonal approaches the corner and the object rolls out.",
+          "data": [
+            {
+              "quantity": "instance points",
+              "value": 8539,
+              "unit": "count"
+            },
+            {
+              "quantity": "minimum width, rotating calipers",
+              "value": 1737.48,
+              "unit": "mm"
+            },
+            {
+              "quantity": "at this angle in the plane",
+              "value": 76.0,
+              "unit": "deg"
+            },
+            {
+              "quantity": "PCA short axis, THE CONTROL",
+              "value": 1821.34,
+              "unit": "mm"
+            },
+            {
+              "quantity": "axis-aligned box, THE CONTROL",
+              "value": 1817.79,
+              "unit": "mm"
+            },
+            {
+              "quantity": "PCA overstates by",
+              "value": 83.86,
+              "unit": "mm"
+            },
+            {
+              "quantity": "long axis",
+              "value": 2621.28,
+              "unit": "mm"
+            },
+            {
+              "quantity": "height",
+              "value": 1320.58,
+              "unit": "mm"
+            },
+            {
+              "quantity": "jaw span",
+              "value": 85.0,
+              "unit": "mm"
+            },
+            {
+              "quantity": "graspable as it lies",
+              "value": false,
+              "unit": "-"
+            },
+            {
+              "quantity": "sweep step",
+              "value": 0.5,
+              "unit": "deg"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 26,
+          "slug": "nested",
+          "title": "Dropping masks that are unions of finer ones",
+          "status": "ok",
+          "seconds": 0.32,
+          "figure": "stages/scene_rs/26_nested.png",
+          "formula": "voxelise each instance at 5 mm; accept smallest first; reject one whose claimed-voxel overlap exceeds 0.55",
+          "provenance": "srl_perception/segment_lift.py:_suppress_nested",
+          "numbers": "31 instances in, 23 kept, 8 dropped | overlaps: 1.00, 1.00, 0.78, 0.90, 0.85, 0.87",
+          "note": "FastSAM returns a HIERARCHY, not a partition: for one picture it hands back the cube, the pad, and a region covering both. All three are legitimate. Lifted, they became three objects in the same space and the merge absorbed a 40 mm cube -- measured EXACT at 40.3 mm against a 40 mm truth -- into a 148 mm blob that was then refused as ungraspable. Volume, not pixels: two masks that overlap in the image can be a metre apart in depth.",
+          "data": [
+            {
+              "quantity": "instances in",
+              "value": 31,
+              "unit": "count"
+            },
+            {
+              "quantity": "kept",
+              "value": 23,
+              "unit": "count"
+            },
+            {
+              "quantity": "dropped as already explained",
+              "value": 8,
+              "unit": "count"
+            },
+            {
+              "quantity": "voxel size",
+              "value": 5.0,
+              "unit": "mm"
+            },
+            {
+              "quantity": "overlap fraction that rejects",
+              "value": 0.55,
+              "unit": "-"
+            }
+          ],
+          "tables": {
+            "per instance": {
+              "rows": 31,
+              "csv": "data/scene_rs/26_nested__per_instance.csv",
+              "headers": [
+                "instance",
+                "points",
+                "area px",
+                "claimed overlap",
+                "verdict"
+              ]
+            }
+          }
+        },
+        {
+          "num": 27,
+          "slug": "grasp",
+          "title": "The parallel-jaw grasp",
+          "status": "refused",
+          "seconds": 0.14,
+          "figure": "stages/scene_rs/27_grasp.png",
+          "reason": "the grasp planner refused, which is an ANSWER: object is 1696 mm across its narrowest axis; the Robotiq 85 opens 75 mm usable. It cannot be grasped as it lies.",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 28,
+          "slug": "apriltag",
+          "title": "Fiducials: the primary detector",
+          "status": "refused",
+          "seconds": 0.08,
+          "figure": "stages/scene_rs/28_apriltag.png",
+          "reason": "no AprilTag of family 36h11, 25h9 or 16h5 is in this frame. That is an answer, not a failure: a tag either decodes or it does not, which is exactly why this is the PRIMARY detector and colour is the capped fallback. Detector used: cv2.aruco.ArucoDetector (OpenCV 4.11.0).",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 29,
+          "slug": "table",
+          "title": "The support surface, as an object",
+          "status": "ok",
+          "seconds": 0.14,
+          "figure": "stages/scene_rs/29_table.png",
+          "formula": "fit the plane, keep its inliers, span them in the plane's own basis; extent taken at the 2nd and 98th percentile so one stray return cannot stretch it",
+          "provenance": "the plane of stage 18, expressed as a rectangle in the camera frame",
+          "numbers": "1.725 x 1.735 m of surface, 2.638 m away, flat to 3.42 mm",
+          "note": "This is a MEASURED surface, not the declared one. srl_experiments/work_surface.py has had set_measured() since it was written and nothing ever called it, so a table 20 mm out would have been absorbed silently into every grasp.",
+          "data": [
+            {
+              "quantity": "points on the surface",
+              "value": 3494,
+              "unit": "count"
+            },
+            {
+              "quantity": "surface extent along its first axis",
+              "value": 1.7251,
+              "unit": "m"
+            },
+            {
+              "quantity": "surface extent along its second axis",
+              "value": 1.7353,
+              "unit": "m"
+            },
+            {
+              "quantity": "area spanned",
+              "value": 2.9935,
+              "unit": "m2"
+            },
+            {
+              "quantity": "perpendicular distance from the camera",
+              "value": 2.6383,
+              "unit": "m"
+            },
+            {
+              "quantity": "distance to the middle of that extent",
+              "value": 3.5586,
+              "unit": "m"
+            },
+            {
+              "quantity": "nearest point on the surface",
+              "value": 2.7232,
+              "unit": "m"
+            },
+            {
+              "quantity": "furthest point on the surface",
+              "value": 4.4824,
+              "unit": "m"
+            },
+            {
+              "quantity": "tilt from the optical axis",
+              "value": 40.61,
+              "unit": "deg"
+            },
+            {
+              "quantity": "flatness, RMS of the inliers",
+              "value": 3.416,
+              "unit": "mm"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 30,
+          "slug": "boxes3d",
+          "title": "Every object, as an oriented 3-D box",
+          "status": "ok",
+          "seconds": 2.5,
+          "figure": "stages/scene_rs/30_boxes3d.png",
+          "formula": "centre = mid-extent ACROSS the surface + (foot + top/2) ALONG the normal; axes = (minimum-width direction, its perpendicular, the plane normal); size = the spans along them",
+          "provenance": "segment_lift._measure for the horizontal centre and rgbd_grasp.shell_corrected_centre's reasoning for the vertical -- the combination is checked to 2 mm against a constructed cube in --self-test",
+          "numbers": "12 objects, 2.634 to 4.291 m away",
+          "note": "These coordinates are in the CAMERA's frame. Putting them in the robot's frame needs the camera extrinsic, which on the wrist is measured at ~8.5 deg wrong and rotates with the joint -- 34 mm of error at 0.23 m. That is why the pick servos on an error measured HERE rather than planning through that transform.",
+          "data": [
+            {
+              "quantity": "objects posed",
+              "value": 12,
+              "unit": "count"
+            },
+            {
+              "quantity": "nearest object",
+              "value": 2.6336,
+              "unit": "m"
+            },
+            {
+              "quantity": "furthest object",
+              "value": 4.2909,
+              "unit": "m"
+            },
+            {
+              "quantity": "largest footprint",
+              "value": 2621.3,
+              "unit": "mm"
+            },
+            {
+              "quantity": "tallest object",
+              "value": 1324.6,
+              "unit": "mm"
+            },
+            {
+              "quantity": "graspable within the 85 mm jaw",
+              "value": 6,
+              "unit": "count"
+            }
+          ],
+          "tables": {
+            "every object, in the camera frame": {
+              "rows": 12,
+              "csv": "data/scene_rs/30_boxes3d__every_object__in_the_camera_frame.csv",
+              "headers": [
+                "#",
+                "points",
+                "area px",
+                "x m",
+                "y m",
+                "z m",
+                "range m",
+                "length mm",
+                "width mm",
+                "height mm",
+                "yaw deg",
+                "graspable"
+              ]
+            }
+          }
+        },
+        {
+          "num": 31,
+          "slug": "distances",
+          "title": "How far apart everything is",
+          "status": "ok",
+          "seconds": 1.92,
+          "figure": "stages/scene_rs/31_distances.png",
+          "formula": "range = |centre| (the camera is the origin); height = n.c + d; separation = |c_i - c_j|; free gap subtracts each object's half-width",
+          "provenance": "the poses of stage 30, all in the camera's own frame",
+          "numbers": "10 objects, nearest 2.634 m, closest pair 0.002 m",
+          "note": "On a WRIST camera the origin is the hand, so 'range' is already the distance the arm has to close -- that is the quantity the servo loop nulls. On the scene camera it is the distance from the camera, and turning that into a distance from the ARM needs the scene-camera-to-robot calibration, which this repository does not have measured.",
+          "data": [
+            {
+              "quantity": "objects measured",
+              "value": 10,
+              "unit": "count"
+            },
+            {
+              "quantity": "nearest object",
+              "value": 2.6336,
+              "unit": "m"
+            },
+            {
+              "quantity": "furthest object",
+              "value": 4.2909,
+              "unit": "m"
+            },
+            {
+              "quantity": "closest pair",
+              "value": 0.0015,
+              "unit": "m"
+            },
+            {
+              "quantity": "tightest free gap",
+              "value": 0.0,
+              "unit": "m"
+            },
+            {
+              "quantity": "what the origin IS",
+              "value": "the scene camera across the room",
+              "unit": "-"
+            }
+          ],
+          "tables": {
+            "each object": {
+              "rows": 10,
+              "csv": "data/scene_rs/31_distances__each_object.csv",
+              "headers": [
+                "#",
+                "range from camera m",
+                "height above the surface mm",
+                "x m",
+                "y m",
+                "z m"
+              ]
+            },
+            "between objects": {
+              "rows": 45,
+              "csv": "data/scene_rs/31_distances__between_objects.csv",
+              "headers": [
+                "object A",
+                "object B",
+                "centre to centre m",
+                "free gap m"
+              ]
+            }
+          }
+        },
+        {
+          "num": 32,
+          "slug": "people",
+          "title": "People in the picture",
+          "status": "ok",
+          "seconds": 5.81,
+          "figure": "stages/scene_rs/32_people.png",
+          "formula": "markerless pose landmarks; each landmark's range read from the depth at its own pixel (median of a 9x9 window)",
+          "provenance": "MediaPipe PoseLandmarker (full), num_poses=4, run in .venv_pose as a separate interpreter -- the same model srl_perception/wearer_tracker_node.py uses, 5.7 s",
+          "numbers": "1 person(s)",
+          "note": "This is the wearer-tracking path. The rule the whole safety case rests on: a camera may only ever make the modelled body BIGGER -- fuse() keeps whichever of the tracked and mannequin primitive is CLOSER to the robot, per part, so a body measured further away changes nothing and a lost track falls back rather than shrinking the person.",
+          "data": [
+            {
+              "quantity": "people detected",
+              "value": 1,
+              "unit": "count"
+            },
+            {
+              "quantity": "landmarks per person",
+              "value": 33,
+              "unit": "count"
+            },
+            {
+              "quantity": "inference time",
+              "value": 5.73,
+              "unit": "s"
+            },
+            {
+              "quantity": "depth attached to landmarks",
+              "value": true,
+              "unit": "-"
+            }
+          ],
+          "tables": {
+            "body landmarks": {
+              "rows": 8,
+              "csv": "data/scene_rs/32_people__body_landmarks.csv",
+              "headers": [
+                "person",
+                "landmark",
+                "u px",
+                "v px",
+                "visibility",
+                "range m"
+              ]
+            }
+          }
+        },
+        {
+          "num": 33,
+          "slug": "self_view",
+          "title": "The robot in the picture, and what is NOT detected",
+          "status": "ok",
+          "seconds": 0.07,
+          "figure": "stages/scene_rs/33_self_view.png",
+          "formula": "{ pixels with 0 < depth < 0.15 m } -- nearer than anything this camera works on",
+          "provenance": "RealSense D435i across the room, depth 480x270@6 + colour 640x480@6, USB 2.1, negotiated against what the device reports it has. Depth is aligned to colour by librealsense and averaged over 12 frames, valid pixels only.",
+          "numbers": "0 px nearer than 0.15 m",
+          "note": "THE ROBOT ITSELF IS NOT DETECTED IN THE IMAGE, and no stage in this program claims to. Nothing in this repository finds an arm in a picture: the robot's pose comes from its own encoders through the URDF, and drawing it into a camera image needs the camera-to-robot extrinsic -- measured at ~8.5 deg wrong on the wrist, and never measured at all for the scene cameras. On a wrist camera the near-field blobs above are usually the gripper's own fingers entering the bottom of the frame, which is also why the last ~80 mm of a grasp is completed from the last good fix rather than from live vision.",
+          "data": [
+            {
+              "quantity": "pixels nearer than the gate",
+              "value": 0,
+              "unit": "px"
+            },
+            {
+              "quantity": "that fraction",
+              "value": 0.0,
+              "unit": "%"
+            },
+            {
+              "quantity": "nearest return of all",
+              "value": 0.36,
+              "unit": "m"
+            },
+            {
+              "quantity": "blobs of near return",
+              "value": 0,
+              "unit": "count"
+            },
+            {
+              "quantity": "this camera is on the hand",
+              "value": false,
+              "unit": "-"
+            },
+            {
+              "quantity": "near edge of this camera's band",
+              "value": 0.15,
+              "unit": "m"
+            }
+          ],
+          "tables": {
+            "near-field blobs": {
+              "rows": 0,
+              "csv": "data/scene_rs/33_self_view__near_field_blobs.csv",
+              "headers": [
+                "area px",
+                "nearest m",
+                "median m",
+                "box x",
+                "box y"
+              ]
+            }
+          }
+        }
+      ],
+      "sheet": "sheet_scene_rs.png"
+    },
+    {
+      "name": "scene_hd",
+      "provenance": "HD USB webcam /dev/video6 (HD USB CAMERA: HD USB CAMERA 32e4:0317), MJPG 1280x720",
+      "notes": [
+        "NO INTRINSICS: this camera has never been calibrated in this repository, so every stage that needs fx, fy, cx, cy refuses rather than assuming cx = w/2. Calibrate it with scripts/calibrate_scene_camera.py."
+      ],
+      "colour_shape": [
+        720,
+        1280,
+        3
+      ],
+      "has_depth": false,
+      "K_colour": null,
+      "K_depth": null,
+      "raw": "raw/scene_hd",
+      "stages": [
+        {
+          "num": 1,
+          "slug": "raw_colour",
+          "title": "The frame, as the camera delivered it",
+          "status": "ok",
+          "seconds": 0.11,
+          "figure": "stages/scene_hd/01_raw_colour.png",
+          "formula": "none -- this is the input every later stage is a function of",
+          "provenance": "HD USB webcam /dev/video6 (HD USB CAMERA: HD USB CAMERA 32e4:0317), MJPG 1280x720",
+          "numbers": "1280 x 720 px | focus (variance of Laplacian) 1162 | 9.15% of pixels clipped white, 1.91% crushed black",
+          "note": "NO INTRINSICS: this camera has never been calibrated in this repository, so every stage that needs fx, fy, cx, cy refuses rather than assuming cx = w/2. Calibrate it with scripts/calibrate_scene_camera.py.",
+          "data": [
+            {
+              "quantity": "frame width",
+              "value": 1280,
+              "unit": "px"
+            },
+            {
+              "quantity": "frame height",
+              "value": 720,
+              "unit": "px"
+            },
+            {
+              "quantity": "focus, variance of Laplacian",
+              "value": 1162.4,
+              "unit": "-"
+            },
+            {
+              "quantity": "pixels clipped white",
+              "value": 9.148,
+              "unit": "%"
+            },
+            {
+              "quantity": "pixels crushed black",
+              "value": 1.907,
+              "unit": "%"
+            },
+            {
+              "quantity": "mean blue",
+              "value": 132.6,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "mean green",
+              "value": 132.38,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "mean red",
+              "value": 129.2,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "median grey",
+              "value": 138.0,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "grey std",
+              "value": 89.86,
+              "unit": "0-255"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 2,
+          "slug": "intrinsics",
+          "title": "Intrinsics and the ray each pixel stands for",
+          "status": "refused",
+          "seconds": 0.03,
+          "figure": "stages/scene_hd/02_intrinsics.png",
+          "reason": "this camera has no intrinsics in this repository, and this stage is arithmetic on fx, fy, cx, cy. Assuming cx = w/2 is exactly the error that throws a ray by 122 px on the Kinova module -- 94 mm at 1 m, three times the grasp tolerance. Calibrate it: scripts/calibrate_scene_camera.py",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 3,
+          "slug": "hsv",
+          "title": "BGR to HSV, the space the colour tests live in",
+          "status": "ok",
+          "seconds": 0.27,
+          "figure": "stages/scene_hd/03_hsv.png",
+          "formula": "V = max(B,G,R);  S = (V - min(B,G,R))/V;  H = the sector of the RGB hexagon, 0..179 in OpenCV (not 0..359)",
+          "provenance": "HD USB webcam /dev/video6 (HD USB CAMERA: HD USB CAMERA 32e4:0317), MJPG 1280x720",
+          "numbers": "median H 75  S 6  V 148 | 81.3% of pixels are below S=80 and cannot satisfy any colour term in this repository",
+          "note": "Hue is why colour is done here and not in BGR: brightness moves B, G and R together and leaves H alone, so a shadow does not change what colour something is -- until V collapses, which is what the value floors in each term exist to catch.",
+          "data": [
+            {
+              "quantity": "median hue",
+              "value": 75.0,
+              "unit": "0-179"
+            },
+            {
+              "quantity": "median saturation",
+              "value": 6.0,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "median value",
+              "value": 148.0,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "pixels below S=80",
+              "value": 81.345,
+              "unit": "%"
+            },
+            {
+              "quantity": "pixels below V=40",
+              "value": 21.447,
+              "unit": "%"
+            },
+            {
+              "quantity": "pixels above V=200",
+              "value": 33.336,
+              "unit": "%"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 4,
+          "slug": "green_threshold",
+          "title": "The pick path's own green threshold",
+          "status": "ok",
+          "seconds": 0.15,
+          "figure": "stages/scene_hd/04_green_threshold.png",
+          "formula": "mask(u,v) = 1 iff  40 <= H <= 85  and  80 <= S <= 255  and  40 <= V <= 255",
+          "provenance": "constants from scripts/servo_pick_left.py:measure -- the thresholds the live pick actually runs on",
+          "numbers": "1343 px selected (0.146% of the frame) | of those, median S 122 and median V 92",
+          "note": "A threshold is a hard decision with no confidence attached, which is why colour is a FALLBACK in this repository and capped below any AprilTag: it fails by being confidently wrong under changed light, and nothing downstream can tell.",
+          "data": [
+            {
+              "quantity": "hue low",
+              "value": 40,
+              "unit": "0-179"
+            },
+            {
+              "quantity": "hue high",
+              "value": 85,
+              "unit": "0-179"
+            },
+            {
+              "quantity": "saturation floor",
+              "value": 80,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "value floor",
+              "value": 40,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "pixels selected",
+              "value": 1343,
+              "unit": "px"
+            },
+            {
+              "quantity": "fraction of the frame",
+              "value": 0.1457,
+              "unit": "%"
+            },
+            {
+              "quantity": "median S of the selected",
+              "value": 122.0,
+              "unit": "0-255"
+            },
+            {
+              "quantity": "median V of the selected",
+              "value": 92.0,
+              "unit": "0-255"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 5,
+          "slug": "morphology",
+          "title": "What the 9x9 opening removes",
+          "status": "ok",
+          "seconds": 0.18,
+          "figure": "stages/scene_hd/05_morphology.png",
+          "formula": "open(M) = dilate(erode(M, K), K),  K = ones(9, 9).  Erode deletes anything thinner than the kernel; dilate restores what survived to its original size.",
+          "provenance": "9x9 is the pick path's kernel (servo_pick_left); prompt_detector and colour_shape_detector both use 5x5",
+          "numbers": "1343 px in, 500 px out, 843 px removed (62.8%) | 113 separate blobs before, 1 after",
+          "note": "The kernel size IS a decision about the smallest object that can survive: at this range a 9 px feature is deleted whatever colour it is.",
+          "data": [
+            {
+              "quantity": "kernel",
+              "value": "9x9",
+              "unit": "px"
+            },
+            {
+              "quantity": "pixels before",
+              "value": 1343,
+              "unit": "px"
+            },
+            {
+              "quantity": "pixels after",
+              "value": 500,
+              "unit": "px"
+            },
+            {
+              "quantity": "pixels removed",
+              "value": 843,
+              "unit": "px"
+            },
+            {
+              "quantity": "removed",
+              "value": 62.77,
+              "unit": "%"
+            },
+            {
+              "quantity": "blobs before",
+              "value": 113,
+              "unit": "count"
+            },
+            {
+              "quantity": "blobs after",
+              "value": 1,
+              "unit": "count"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 6,
+          "slug": "components",
+          "title": "Connected components, and their statistics",
+          "status": "ok",
+          "seconds": 0.08,
+          "figure": "stages/scene_hd/06_components.png",
+          "formula": "8-connectivity flood label; per label: area, bounding box, centroid = (1/A) * sum of member pixel coordinates",
+          "provenance": "HD USB webcam /dev/video6 (HD USB CAMERA: HD USB CAMERA 32e4:0317), MJPG 1280x720",
+          "numbers": "1 components over 40 px | largest 500 px | this is where a MASK becomes a set of candidate OBJECTS",
+          "note": "A centroid is not an object's centre: it is the centre of the pixels that happened to pass the threshold, so a partly shadowed cube reports a centroid shifted into its lit half.",
+          "data": [
+            {
+              "quantity": "components over 40 px",
+              "value": 1,
+              "unit": "count"
+            },
+            {
+              "quantity": "largest area",
+              "value": 500,
+              "unit": "px"
+            },
+            {
+              "quantity": "total area kept",
+              "value": 500,
+              "unit": "px"
+            },
+            {
+              "quantity": "median area",
+              "value": 500.0,
+              "unit": "px"
+            }
+          ],
+          "tables": {
+            "every component": {
+              "rows": 1,
+              "csv": "data/scene_hd/06_components__every_component.csv",
+              "headers": [
+                "#",
+                "area px",
+                "box x",
+                "box y",
+                "box w",
+                "box h",
+                "centroid u",
+                "centroid v"
+              ]
+            }
+          }
+        },
+        {
+          "num": 7,
+          "slug": "vocabulary",
+          "title": "The whole colour vocabulary, swept",
+          "status": "ok",
+          "seconds": 0.74,
+          "figure": "stages/scene_hd/07_vocabulary.png",
+          "formula": "one inRange per band, OR-ed across bands (red needs two: it wraps the hue circle at 0/179), then a 5x5 opening",
+          "provenance": "srl_perception/prompt_detector.py:COLOUR_TERMS -- the colour backend's entire vocabulary, stated so its limit is visible rather than discovered",
+          "numbers": "white 299807 | black 191057 | cyan 45796 | red 10137 | green 535 | yellow 440",
+          "note": "THE THREE GREENS ARE NOT THE SAME: servo_pick_left (the live pick) H40-85 S>=80 V>=40 open 9: 500 px; prompt_detector.COLOUR_TERMS H36-85 S>=80 V>=25 open 5: 535 px; colour_shape_detector.DEFAULT H40-85 S>=80 V>=60 open 5: 505 px. They differ in the value floor (25 / 40 / 60) and in the opening kernel, so the same cube in the same frame gives three different pixel counts depending on which module is asking.",
+          "data": [
+            {
+              "quantity": "colour terms tested",
+              "value": 11,
+              "unit": "count"
+            },
+            {
+              "quantity": "terms with any pixels",
+              "value": 8,
+              "unit": "count"
+            },
+            {
+              "quantity": "largest term",
+              "value": "white",
+              "unit": "-"
+            },
+            {
+              "quantity": "its pixel count",
+              "value": 299807,
+              "unit": "px"
+            }
+          ],
+          "tables": {
+            "pixels per colour term": {
+              "rows": 11,
+              "csv": "data/scene_hd/07_vocabulary__pixels_per_colour_term.csv",
+              "headers": [
+                "colour term",
+                "pixels",
+                "fraction of frame %"
+              ]
+            },
+            "the three definitions of green": {
+              "rows": 3,
+              "csv": "data/scene_hd/07_vocabulary__the_three_definitions_of_green.csv",
+              "headers": [
+                "module",
+                "H low",
+                "H high",
+                "S floor",
+                "V floor",
+                "open kernel",
+                "pixels"
+              ]
+            }
+          }
+        },
+        {
+          "num": 8,
+          "slug": "region_mean",
+          "title": "The region-MEAN ratio test, and its near-black guard",
+          "status": "ok",
+          "seconds": 0.06,
+          "figure": "stages/scene_hd/08_region_mean.png",
+          "formula": "green  <=>  mean_G > 1.25 * mean_B  and  mean_G > 1.8 * mean_R,  refused outright when max(B,G,R) < 25",
+          "provenance": "srl_perception/prompt_detector.py:_colour_matches",
+          "numbers": "1 of 1 regions pass",
+          "note": "Per-pixel hue picked the room's teal robots three times: their shadowed hue is 76 against the target cube's 74, two apart and inside noise. Region MEANS separate them, because teal carries far more blue. The near-black guard exists because a region measuring (4.1, 8.8, 3.9) -- visually black -- satisfies the ratios on sensor noise alone and was reported as the cube.",
+          "data": [
+            {
+              "quantity": "regions tested",
+              "value": 1,
+              "unit": "count"
+            },
+            {
+              "quantity": "regions passing",
+              "value": 1,
+              "unit": "count"
+            },
+            {
+              "quantity": "regions rejected as near-black",
+              "value": 0,
+              "unit": "count"
+            },
+            {
+              "quantity": "blue ratio threshold",
+              "value": 1.25,
+              "unit": "-"
+            },
+            {
+              "quantity": "red ratio threshold",
+              "value": 1.8,
+              "unit": "-"
+            },
+            {
+              "quantity": "near-black floor",
+              "value": 25.0,
+              "unit": "0-255"
+            }
+          ],
+          "tables": {
+            "region means and verdicts": {
+              "rows": 1,
+              "csv": "data/scene_hd/08_region_mean__region_means_and_verdicts.csv",
+              "headers": [
+                "region",
+                "area px",
+                "mean B",
+                "mean G",
+                "mean R",
+                "near black",
+                "passes green"
+              ]
+            }
+          }
+        },
+        {
+          "num": 9,
+          "slug": "minarearect",
+          "title": "Rotated box, in-image yaw, and the degeneracy gate",
+          "status": "ok",
+          "seconds": 0.09,
+          "figure": "stages/scene_hd/09_minarearect.png",
+          "formula": "minAreaRect -> ((cx,cy), (w,h), angle);  yaw is published as q = (0, 0, sin(angle/2), cos(angle/2)) ONLY when max(w,h)/min(w,h) >= 1.15",
+          "provenance": "srl_perception/colour_shape_detector.py",
+          "numbers": "21 x 22 px, 90.0 deg, aspect 1.05, identity (not measured)",
+          "note": "Rotation about the OPTICAL AXIS is exactly what this measures; out-of-plane tilt is what it cannot see. The detector published identity for months while measuring the angle into a debug string, so an object at 30 deg got a square grasp and no check could tell that from a square object. A near-square blob still gets identity, because minAreaRect's angle is degenerate there and publishing it would be inventing a direction.",
+          "data": [
+            {
+              "quantity": "contours measured",
+              "value": 1,
+              "unit": "count"
+            },
+            {
+              "quantity": "aspect gate for publishing yaw",
+              "value": 1.15,
+              "unit": "-"
+            },
+            {
+              "quantity": "yaws published",
+              "value": 0,
+              "unit": "count"
+            },
+            {
+              "quantity": "yaws withheld as degenerate",
+              "value": 1,
+              "unit": "count"
+            }
+          ],
+          "tables": {
+            "rotated boxes": {
+              "rows": 1,
+              "csv": "data/scene_hd/09_minarearect__rotated_boxes.csv",
+              "headers": [
+                "area px",
+                "w px",
+                "h px",
+                "angle deg",
+                "aspect",
+                "yaw published"
+              ]
+            }
+          }
+        },
+        {
+          "num": 10,
+          "slug": "size_at_range",
+          "title": "The size-at-range gate",
+          "status": "refused",
+          "seconds": 0.02,
+          "figure": "stages/scene_hd/10_size_at_range.png",
+          "reason": "this camera has no intrinsics in this repository, and this stage is arithmetic on fx, fy, cx, cy. Assuming cx = w/2 is exactly the error that throws a ray by 122 px on the Kinova module -- 94 mm at 1 m, three times the grasp tolerance. Calibrate it: scripts/calibrate_scene_camera.py",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 11,
+          "slug": "fastsam",
+          "title": "FastSAM: every region in the picture, no prompt",
+          "status": "ok",
+          "seconds": 4.73,
+          "figure": "stages/scene_hd/11_fastsam.png",
+          "formula": "object-agnostic instance masks; no class, no prompt, no scene knowledge -- 'what are the regions', not 'where is the green cube'",
+          "provenance": "FastSAM-s.pt (~11M parameters) via ultralytics, imgsz=1024 conf=0.25 iou=0.7 on the cpu, 2.5 s for this frame",
+          "numbers": "109 regions | largest 239438 px (26.0% of frame), smallest 61 px",
+          "note": "This is what replaced clustering. Two 40 mm cubes on a 60 mm pitch are 20 mm apart, which is the cluster distance itself, so depth-clustering fused them into one object 140 mm across the jaws and refused it. In the PICTURE they are not remotely ambiguous. Masks decide WHAT is an object; depth decides WHERE it is.",
+          "data": [
+            {
+              "quantity": "regions returned",
+              "value": 109,
+              "unit": "count"
+            },
+            {
+              "quantity": "largest region",
+              "value": 239438,
+              "unit": "px"
+            },
+            {
+              "quantity": "largest as a fraction of the frame",
+              "value": 25.98,
+              "unit": "%"
+            },
+            {
+              "quantity": "smallest region",
+              "value": 61,
+              "unit": "px"
+            },
+            {
+              "quantity": "median region",
+              "value": 1388.0,
+              "unit": "px"
+            },
+            {
+              "quantity": "inference time",
+              "value": 2.47,
+              "unit": "s"
+            },
+            {
+              "quantity": "input size",
+              "value": 1024,
+              "unit": "px"
+            },
+            {
+              "quantity": "confidence threshold",
+              "value": 0.25,
+              "unit": "-"
+            },
+            {
+              "quantity": "NMS IoU",
+              "value": 0.7,
+              "unit": "-"
+            },
+            {
+              "quantity": "device",
+              "value": "cpu",
+              "unit": "-"
+            }
+          ],
+          "tables": {
+            "the twenty largest regions": {
+              "rows": 20,
+              "csv": "data/scene_hd/11_fastsam__the_twenty_largest_regions.csv",
+              "headers": [
+                "rank",
+                "area px",
+                "fraction of frame %"
+              ]
+            }
+          }
+        },
+        {
+          "num": 12,
+          "slug": "area_filter",
+          "title": "The area filter: noise below, the table above",
+          "status": "ok",
+          "seconds": 1.35,
+          "figure": "stages/scene_hd/12_area_filter.png",
+          "formula": "keep iff  60 px <= area <= 0.35 * W * H  (= 322559 px here)",
+          "provenance": "srl_perception/segment_lift.py: MIN_AREA_PX, MAX_AREA_FRAC",
+          "numbers": "109 in, 109 kept, 0 too small, 0 too large",
+          "note": "The upper bound is not tidiness. A segmenter returns the table and the room as legitimate regions, and a region covering a third of the frame is never a thing to be picked up.",
+          "data": [
+            {
+              "quantity": "regions in",
+              "value": 109,
+              "unit": "count"
+            },
+            {
+              "quantity": "kept",
+              "value": 109,
+              "unit": "count"
+            },
+            {
+              "quantity": "rejected as noise",
+              "value": 0,
+              "unit": "count"
+            },
+            {
+              "quantity": "rejected as too large",
+              "value": 0,
+              "unit": "count"
+            },
+            {
+              "quantity": "lower bound",
+              "value": 60,
+              "unit": "px"
+            },
+            {
+              "quantity": "upper bound",
+              "value": 322560,
+              "unit": "px"
+            },
+            {
+              "quantity": "upper bound as a fraction",
+              "value": 0.35,
+              "unit": "-"
+            }
+          ],
+          "tables": {}
+        },
+        {
+          "num": 13,
+          "slug": "segment_match",
+          "title": "Segment everything, then pick the one that matches",
+          "status": "ok",
+          "seconds": 1.31,
+          "figure": "stages/scene_hd/13_segment_match.png",
+          "formula": "for each region: mean BGR over the MASK, then the ratio test of stage 08; score = min(1, area/2000)",
+          "provenance": "srl_perception/prompt_detector.py:_segment -- the backend that actually found the target on this rig",
+          "numbers": "598 px at (612, 442), mean BGR [109.2, 141.7, 75.9]",
+          "note": "Naming the cube failed at every confidence -- it is ~19 px and dark, and an open-vocabulary detector cannot recognise it as anything. Segmenting it is trivial: 89 regions, exactly one green-dominant, no false positives. The MASK is the other win: a colour threshold gives whatever pixels passed, a segment gives the object's actual extent, which is what a width measurement needs.",
+          "data": [
+            {
+              "quantity": "colour word parsed",
+              "value": "green",
+              "unit": "-"
+            },
+            {
+              "quantity": "regions considered",
+              "value": 109,
+              "unit": "count"
+            },
+            {
+              "quantity": "regions matched",
+              "value": 1,
+              "unit": "count"
+            },
+            {
+              "quantity": "regions rejected on colour",
+              "value": 108,
+              "unit": "count"
+            },
+            {
+              "quantity": "best score",
+              "value": 0.299,
+              "unit": "0-1"
+            }
+          ],
+          "tables": {
+            "matched regions": {
+              "rows": 1,
+              "csv": "data/scene_hd/13_segment_match__matched_regions.csv",
+              "headers": [
+                "area px",
+                "centre u",
+                "centre v",
+                "mean B",
+                "mean G",
+                "mean R",
+                "score"
+              ]
+            }
+          }
+        },
+        {
+          "num": 14,
+          "slug": "yoloworld",
+          "title": "YOLO-World: open-vocabulary naming",
+          "status": "refused",
+          "seconds": 11.87,
+          "figure": "stages/scene_hd/14_yoloworld.png",
+          "reason": "YOLO-World ran in 11.8 s over classes ['green cube'] at conf 0.05 and found NOTHING. This is the measured behaviour on this rig, not a misconfiguration: it finds a person at 0.725 and a laptop at 0.739 in the same room and cannot see the small dark cube at any confidence. It is why the backend order is segment first, naming second, colour as the floor.",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 15,
+          "slug": "raw_depth",
+          "title": "The depth frame, and where it has no answer",
+          "status": "by_design",
+          "seconds": 0.02,
+          "figure": "stages/scene_hd/15_raw_depth.png",
+          "reason": "the HD USB webcam is a colour camera; it has no depth sensor. This is a by-design absence, not a fault -- the RealSense is the depth scene camera.",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 16,
+          "slug": "alignment",
+          "title": "Depth put into the colour frame",
+          "status": "by_design",
+          "seconds": 0.02,
+          "figure": "stages/scene_hd/16_alignment.png",
+          "reason": "the HD USB webcam is a colour camera; it has no depth sensor. This is a by-design absence, not a fault -- the RealSense is the depth scene camera.",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 17,
+          "slug": "deprojection",
+          "title": "Pixels and depth become a cloud",
+          "status": "by_design",
+          "seconds": 0.01,
+          "figure": "stages/scene_hd/17_deprojection.png",
+          "reason": "the HD USB webcam is a colour camera; it has no depth sensor. This is a by-design absence, not a fault -- the RealSense is the depth scene camera.",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 18,
+          "slug": "ransac",
+          "title": "RANSAC: the support plane",
+          "status": "by_design",
+          "seconds": 0.01,
+          "figure": "stages/scene_hd/18_ransac.png",
+          "reason": "the HD USB webcam is a colour camera; it has no depth sensor. This is a by-design absence, not a fault -- the RealSense is the depth scene camera.",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 19,
+          "slug": "pca_refine",
+          "title": "The PCA refinement, and the NaN it once produced",
+          "status": "by_design",
+          "seconds": 0.02,
+          "figure": "stages/scene_hd/19_pca_refine.png",
+          "reason": "the HD USB webcam is a colour camera; it has no depth sensor. This is a by-design absence, not a fault -- the RealSense is the depth scene camera.",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 20,
+          "slug": "height_map",
+          "title": "Height above the plane",
+          "status": "by_design",
+          "seconds": 0.01,
+          "figure": "stages/scene_hd/20_height_map.png",
+          "reason": "the HD USB webcam is a colour camera; it has no depth sensor. This is a by-design absence, not a fault -- the RealSense is the depth scene camera.",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 21,
+          "slug": "mode_surface",
+          "title": "The surface height as a MODE, not a mean",
+          "status": "by_design",
+          "seconds": 0.03,
+          "figure": "stages/scene_hd/21_mode_surface.png",
+          "reason": "the HD USB webcam is a colour camera; it has no depth sensor. This is a by-design absence, not a fault -- the RealSense is the depth scene camera.",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 22,
+          "slug": "on_surface",
+          "title": "What is standing on the surface",
+          "status": "by_design",
+          "seconds": 0.03,
+          "figure": "stages/scene_hd/22_on_surface.png",
+          "reason": "the HD USB webcam is a colour camera; it has no depth sensor. This is a by-design absence, not a fault -- the RealSense is the depth scene camera.",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 23,
+          "slug": "cube_measurement",
+          "title": "The measurement the pick actually acts on",
+          "status": "refused",
+          "seconds": 0.01,
+          "figure": "stages/scene_hd/23_cube_measurement.png",
+          "reason": "this camera has no intrinsics in this repository, and this stage is arithmetic on fx, fy, cx, cy. Assuming cx = w/2 is exactly the error that throws a ray by 122 px on the Kinova module -- 94 mm at 1 m, three times the grasp tolerance. Calibrate it: scripts/calibrate_scene_camera.py",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 24,
+          "slug": "layers",
+          "title": "Splitting a cube from the pad it stands on",
+          "status": "by_design",
+          "seconds": 0.02,
+          "figure": "stages/scene_hd/24_layers.png",
+          "reason": "the HD USB webcam is a colour camera; it has no depth sensor. This is a by-design absence, not a fault -- the RealSense is the depth scene camera.",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 25,
+          "slug": "min_width",
+          "title": "Rotating calipers, against the two controls",
+          "status": "by_design",
+          "seconds": 0.01,
+          "figure": "stages/scene_hd/25_min_width.png",
+          "reason": "the HD USB webcam is a colour camera; it has no depth sensor. This is a by-design absence, not a fault -- the RealSense is the depth scene camera.",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 26,
+          "slug": "nested",
+          "title": "Dropping masks that are unions of finer ones",
+          "status": "by_design",
+          "seconds": 0.01,
+          "figure": "stages/scene_hd/26_nested.png",
+          "reason": "the HD USB webcam is a colour camera; it has no depth sensor. This is a by-design absence, not a fault -- the RealSense is the depth scene camera.",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 27,
+          "slug": "grasp",
+          "title": "The parallel-jaw grasp",
+          "status": "by_design",
+          "seconds": 0.02,
+          "figure": "stages/scene_hd/27_grasp.png",
+          "reason": "the HD USB webcam is a colour camera; it has no depth sensor. This is a by-design absence, not a fault -- the RealSense is the depth scene camera.",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 28,
+          "slug": "apriltag",
+          "title": "Fiducials: the primary detector",
+          "status": "refused",
+          "seconds": 0.24,
+          "figure": "stages/scene_hd/28_apriltag.png",
+          "reason": "no AprilTag of family 36h11, 25h9 or 16h5 is in this frame. That is an answer, not a failure: a tag either decodes or it does not, which is exactly why this is the PRIMARY detector and colour is the capped fallback. Detector used: cv2.aruco.ArucoDetector (OpenCV 4.11.0).",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 29,
+          "slug": "table",
+          "title": "The support surface, as an object",
+          "status": "refused",
+          "seconds": 0.02,
+          "figure": "stages/scene_hd/29_table.png",
+          "reason": "this camera has no intrinsics in this repository, and this stage is arithmetic on fx, fy, cx, cy. Assuming cx = w/2 is exactly the error that throws a ray by 122 px on the Kinova module -- 94 mm at 1 m, three times the grasp tolerance. Calibrate it: scripts/calibrate_scene_camera.py",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 30,
+          "slug": "boxes3d",
+          "title": "Every object, as an oriented 3-D box",
+          "status": "refused",
+          "seconds": 0.02,
+          "figure": "stages/scene_hd/30_boxes3d.png",
+          "reason": "this camera has no intrinsics in this repository, and this stage is arithmetic on fx, fy, cx, cy. Assuming cx = w/2 is exactly the error that throws a ray by 122 px on the Kinova module -- 94 mm at 1 m, three times the grasp tolerance. Calibrate it: scripts/calibrate_scene_camera.py",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 31,
+          "slug": "distances",
+          "title": "How far apart everything is",
+          "status": "refused",
+          "seconds": 0.01,
+          "figure": "stages/scene_hd/31_distances.png",
+          "reason": "this camera has no intrinsics in this repository, and this stage is arithmetic on fx, fy, cx, cy. Assuming cx = w/2 is exactly the error that throws a ray by 122 px on the Kinova module -- 94 mm at 1 m, three times the grasp tolerance. Calibrate it: scripts/calibrate_scene_camera.py",
+          "data": [],
+          "tables": {}
+        },
+        {
+          "num": 32,
+          "slug": "people",
+          "title": "People in the picture",
+          "status": "ok",
+          "seconds": 4.8,
+          "figure": "stages/scene_hd/32_people.png",
+          "formula": "markerless pose landmarks; each landmark's range read from the depth at its own pixel (median of a 9x9 window)",
+          "provenance": "MediaPipe PoseLandmarker (full), num_poses=4, run in .venv_pose as a separate interpreter -- the same model srl_perception/wearer_tracker_node.py uses, 4.7 s",
+          "numbers": "1 person(s)",
+          "note": "This is the wearer-tracking path. The rule the whole safety case rests on: a camera may only ever make the modelled body BIGGER -- fuse() keeps whichever of the tracked and mannequin primitive is CLOSER to the robot, per part, so a body measured further away changes nothing and a lost track falls back rather than shrinking the person.",
+          "data": [
+            {
+              "quantity": "people detected",
+              "value": 1,
+              "unit": "count"
+            },
+            {
+              "quantity": "landmarks per person",
+              "value": 33,
+              "unit": "count"
+            },
+            {
+              "quantity": "inference time",
+              "value": 4.66,
+              "unit": "s"
+            },
+            {
+              "quantity": "depth attached to landmarks",
+              "value": false,
+              "unit": "-"
+            }
+          ],
+          "tables": {
+            "body landmarks": {
+              "rows": 8,
+              "csv": "data/scene_hd/32_people__body_landmarks.csv",
+              "headers": [
+                "person",
+                "landmark",
+                "u px",
+                "v px",
+                "visibility",
+                "range m"
+              ]
+            }
+          }
+        },
+        {
+          "num": 33,
+          "slug": "self_view",
+          "title": "The robot in the picture, and what is NOT detected",
+          "status": "by_design",
+          "seconds": 0.01,
+          "figure": "stages/scene_hd/33_self_view.png",
+          "reason": "the HD USB webcam is a colour camera; it has no depth sensor. This is a by-design absence, not a fault -- the RealSense is the depth scene camera.",
+          "data": [],
+          "tables": {}
+        }
+      ],
+      "sheet": "sheet_scene_hd.png"
+    }
+  ],
+  "commanded_motion": false,
+  "motion_note": "This program contains no publisher, service client or Kortex session. The arms were not moved.",
+  "pose": {
+    "measured": true,
+    "distinct_stamps": 745,
+    "arms": {
+      "left": {
+        "reference": "config/pick_pose_ideal_left.txt",
+        "joints": [
+          {
+            "joint": "joint_1",
+            "live_deg": 72.535,
+            "want_deg": 97.743,
+            "delta_deg": -25.208
+          },
+          {
+            "joint": "joint_2",
+            "live_deg": 38.856,
+            "want_deg": 37.529,
+            "delta_deg": 1.327
+          },
+          {
+            "joint": "joint_3",
+            "live_deg": 159.629,
+            "want_deg": 134.368,
+            "delta_deg": 25.261
+          },
+          {
+            "joint": "joint_4",
+            "live_deg": -84.071,
+            "want_deg": -87.339,
+            "delta_deg": 3.267
+          },
+          {
+            "joint": "joint_5",
+            "live_deg": -94.143,
+            "want_deg": -18.818,
+            "delta_deg": -75.324
+          },
+          {
+            "joint": "joint_6",
+            "live_deg": -72.354,
+            "want_deg": -28.989,
+            "delta_deg": -43.365
+          },
+          {
+            "joint": "joint_7",
+            "live_deg": -61.83,
+            "want_deg": -128.712,
+            "delta_deg": 66.881
+          }
+        ],
+        "worst_deviation_deg": 75.324,
+        "at_pick_pose": false,
+        "n_joints_read": 7
+      },
+      "right": {
+        "reference": "config/pick_pose_ideal_right.txt",
+        "joints": [
+          {
+            "joint": "joint_1",
+            "live_deg": 112.796,
+            "want_deg": 134.916,
+            "delta_deg": -22.12
+          },
+          {
+            "joint": "joint_2",
+            "live_deg": -73.14,
+            "want_deg": -66.576,
+            "delta_deg": -6.565
+          },
+          {
+            "joint": "joint_3",
+            "live_deg": 92.494,
+            "want_deg": 25.867,
+            "delta_deg": 66.627
+          },
+          {
+            "joint": "joint_4",
+            "live_deg": -82.549,
+            "want_deg": -31.455,
+            "delta_deg": -51.095
+          },
+          {
+            "joint": "joint_5",
+            "live_deg": 149.0,
+            "want_deg": 161.696,
+            "delta_deg": -12.697
+          },
+          {
+            "joint": "joint_6",
+            "live_deg": 8.06,
+            "want_deg": 71.186,
+            "delta_deg": -63.126
+          },
+          {
+            "joint": "joint_7",
+            "live_deg": 146.249,
+            "want_deg": 153.932,
+            "delta_deg": -7.683
+          }
+        ],
+        "worst_deviation_deg": 66.627,
+        "at_pick_pose": false,
+        "n_joints_read": 7
+      }
+    }
+  },
+  "finished": "2026-08-30T07:19:48"
+}

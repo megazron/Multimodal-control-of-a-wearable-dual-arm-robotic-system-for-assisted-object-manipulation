@@ -1,0 +1,51 @@
+{
+  "source": "scene_hd",
+  "stage": "green_threshold",
+  "num": 4,
+  "title": "The pick path's own green threshold",
+  "status": "ok",
+  "formula": "mask(u,v) = 1 iff  40 <= H <= 85  and  80 <= S <= 255  and  40 <= V <= 255",
+  "measurements": [
+    {
+      "quantity": "hue low",
+      "value": 40,
+      "unit": "0-179"
+    },
+    {
+      "quantity": "hue high",
+      "value": 85,
+      "unit": "0-179"
+    },
+    {
+      "quantity": "saturation floor",
+      "value": 80,
+      "unit": "0-255"
+    },
+    {
+      "quantity": "value floor",
+      "value": 40,
+      "unit": "0-255"
+    },
+    {
+      "quantity": "pixels selected",
+      "value": 1343,
+      "unit": "px"
+    },
+    {
+      "quantity": "fraction of the frame",
+      "value": 0.1457,
+      "unit": "%"
+    },
+    {
+      "quantity": "median S of the selected",
+      "value": 122.0,
+      "unit": "0-255"
+    },
+    {
+      "quantity": "median V of the selected",
+      "value": 92.0,
+      "unit": "0-255"
+    }
+  ],
+  "tables": {}
+}

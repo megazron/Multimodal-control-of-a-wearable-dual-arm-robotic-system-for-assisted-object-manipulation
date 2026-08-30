@@ -1,0 +1,136 @@
+{
+  "source": "scene_hd",
+  "stage": "vocabulary",
+  "num": 7,
+  "title": "The whole colour vocabulary, swept",
+  "status": "ok",
+  "formula": "one inRange per band, OR-ed across bands (red needs two: it wraps the hue circle at 0/179), then a 5x5 opening",
+  "measurements": [
+    {
+      "quantity": "colour terms tested",
+      "value": 11,
+      "unit": "count"
+    },
+    {
+      "quantity": "terms with any pixels",
+      "value": 8,
+      "unit": "count"
+    },
+    {
+      "quantity": "largest term",
+      "value": "white",
+      "unit": "-"
+    },
+    {
+      "quantity": "its pixel count",
+      "value": 299807,
+      "unit": "px"
+    }
+  ],
+  "tables": {
+    "pixels per colour term": {
+      "headers": [
+        "colour term",
+        "pixels",
+        "fraction of frame %"
+      ],
+      "rows": [
+        [
+          "white",
+          299807,
+          32.5311
+        ],
+        [
+          "black",
+          191057,
+          20.731
+        ],
+        [
+          "cyan",
+          45796,
+          4.9692
+        ],
+        [
+          "red",
+          10137,
+          1.0999
+        ],
+        [
+          "green",
+          535,
+          0.0581
+        ],
+        [
+          "yellow",
+          440,
+          0.0477
+        ],
+        [
+          "orange",
+          419,
+          0.0455
+        ],
+        [
+          "blue",
+          234,
+          0.0254
+        ],
+        [
+          "purple",
+          0,
+          0.0
+        ],
+        [
+          "magenta",
+          0,
+          0.0
+        ],
+        [
+          "pink",
+          0,
+          0.0
+        ]
+      ]
+    },
+    "the three definitions of green": {
+      "headers": [
+        "module",
+        "H low",
+        "H high",
+        "S floor",
+        "V floor",
+        "open kernel",
+        "pixels"
+      ],
+      "rows": [
+        [
+          "servo_pick_left (the live pick)",
+          40,
+          85,
+          80,
+          40,
+          "9x9",
+          500
+        ],
+        [
+          "prompt_detector.COLOUR_TERMS",
+          36,
+          85,
+          80,
+          25,
+          "5x5",
+          535
+        ],
+        [
+          "colour_shape_detector.DEFAULT",
+          40,
+          85,
+          80,
+          60,
+          "5x5",
+          505
+        ]
+      ]
+    }
+  }
+}

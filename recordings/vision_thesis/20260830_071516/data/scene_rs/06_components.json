@@ -1,0 +1,66 @@
+{
+  "source": "scene_rs",
+  "stage": "components",
+  "num": 6,
+  "title": "Connected components, and their statistics",
+  "status": "ok",
+  "formula": "8-connectivity flood label; per label: area, bounding box, centroid = (1/A) * sum of member pixel coordinates",
+  "measurements": [
+    {
+      "quantity": "components over 40 px",
+      "value": 2,
+      "unit": "count"
+    },
+    {
+      "quantity": "largest area",
+      "value": 190,
+      "unit": "px"
+    },
+    {
+      "quantity": "total area kept",
+      "value": 359,
+      "unit": "px"
+    },
+    {
+      "quantity": "median area",
+      "value": 179.5,
+      "unit": "px"
+    }
+  ],
+  "tables": {
+    "every component": {
+      "headers": [
+        "#",
+        "area px",
+        "box x",
+        "box y",
+        "box w",
+        "box h",
+        "centroid u",
+        "centroid v"
+      ],
+      "rows": [
+        [
+          2,
+          190,
+          314,
+          189,
+          14,
+          14,
+          320.4,
+          195.4
+        ],
+        [
+          1,
+          169,
+          601,
+          127,
+          17,
+          11,
+          609.1,
+          132.0
+        ]
+      ]
+    }
+  }
+}

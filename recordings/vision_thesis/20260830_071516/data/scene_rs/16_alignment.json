@@ -1,0 +1,21 @@
+{
+  "source": "scene_rs",
+  "stage": "alignment",
+  "num": 16,
+  "title": "Depth put into the colour frame",
+  "status": "ok",
+  "formula": "P = ((u-cx_d)z/fx_d, (v-cy_d)z/fy_d, z);  P' = P + t;  u' = fx_c X'/Z' + cx_c,  v' = fy_c Y'/Z' + cy_c",
+  "measurements": [
+    {
+      "quantity": "re-projection needed",
+      "value": false,
+      "unit": "-"
+    },
+    {
+      "quantity": "aligner",
+      "value": "librealsense rs.align",
+      "unit": "-"
+    }
+  ],
+  "tables": {}
+}

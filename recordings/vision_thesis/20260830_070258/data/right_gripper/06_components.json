@@ -1,0 +1,56 @@
+{
+  "source": "right_gripper",
+  "stage": "components",
+  "num": 6,
+  "title": "Connected components, and their statistics",
+  "status": "ok",
+  "formula": "8-connectivity flood label; per label: area, bounding box, centroid = (1/A) * sum of member pixel coordinates",
+  "measurements": [
+    {
+      "quantity": "components over 40 px",
+      "value": 1,
+      "unit": "count"
+    },
+    {
+      "quantity": "largest area",
+      "value": 12258,
+      "unit": "px"
+    },
+    {
+      "quantity": "total area kept",
+      "value": 12258,
+      "unit": "px"
+    },
+    {
+      "quantity": "median area",
+      "value": 12258.0,
+      "unit": "px"
+    }
+  ],
+  "tables": {
+    "every component": {
+      "headers": [
+        "#",
+        "area px",
+        "box x",
+        "box y",
+        "box w",
+        "box h",
+        "centroid u",
+        "centroid v"
+      ],
+      "rows": [
+        [
+          1,
+          12258,
+          636,
+          282,
+          132,
+          128,
+          702.3,
+          341.1
+        ]
+      ]
+    }
+  }
+}

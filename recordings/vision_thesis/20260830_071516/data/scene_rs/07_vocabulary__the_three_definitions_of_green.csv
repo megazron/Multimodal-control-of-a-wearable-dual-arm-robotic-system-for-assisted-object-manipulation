@@ -1,0 +1,4 @@
+module,H low,H high,S floor,V floor,open kernel,pixels
+servo_pick_left (the live pick),40,85,80,40,9x9,359
+prompt_detector.COLOUR_TERMS,36,85,80,25,5x5,5359
+colour_shape_detector.DEFAULT,40,85,80,60,5x5,412

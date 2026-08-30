@@ -1,0 +1,72 @@
+source,stage_num,stage,quantity,value,unit
+scene_hd,1,raw_colour,frame width,640,px
+scene_hd,1,raw_colour,frame height,480,px
+scene_hd,1,raw_colour,"focus, variance of Laplacian",1690,-
+scene_hd,1,raw_colour,pixels clipped white,10.659,%
+scene_hd,1,raw_colour,pixels crushed black,2.059,%
+scene_hd,1,raw_colour,mean blue,139.86,0-255
+scene_hd,1,raw_colour,mean green,140.06,0-255
+scene_hd,1,raw_colour,mean red,138,0-255
+scene_hd,1,raw_colour,median grey,166,0-255
+scene_hd,1,raw_colour,grey std,90.45,0-255
+scene_hd,3,hsv,median hue,83,0-179
+scene_hd,3,hsv,median saturation,6,0-255
+scene_hd,3,hsv,median value,170,0-255
+scene_hd,3,hsv,pixels below S=80,83.236,%
+scene_hd,3,hsv,pixels below V=40,20.806,%
+scene_hd,3,hsv,pixels above V=200,36.761,%
+scene_hd,4,green_threshold,hue low,40,0-179
+scene_hd,4,green_threshold,hue high,85,0-179
+scene_hd,4,green_threshold,saturation floor,80,0-255
+scene_hd,4,green_threshold,value floor,40,0-255
+scene_hd,4,green_threshold,pixels selected,280,px
+scene_hd,4,green_threshold,fraction of the frame,0.0911,%
+scene_hd,4,green_threshold,median S of the selected,132,0-255
+scene_hd,4,green_threshold,median V of the selected,139,0-255
+scene_hd,5,morphology,kernel,9x9,px
+scene_hd,5,morphology,pixels before,280,px
+scene_hd,5,morphology,pixels after,218,px
+scene_hd,5,morphology,pixels removed,62,px
+scene_hd,5,morphology,removed,22.143,%
+scene_hd,5,morphology,blobs before,14,count
+scene_hd,5,morphology,blobs after,1,count
+scene_hd,6,components,components over 40 px,1,count
+scene_hd,6,components,largest area,218,px
+scene_hd,6,components,total area kept,218,px
+scene_hd,6,components,median area,218,px
+scene_hd,7,vocabulary,colour terms tested,11,count
+scene_hd,7,vocabulary,terms with any pixels,6,count
+scene_hd,7,vocabulary,largest term,white,-
+scene_hd,7,vocabulary,its pixel count,110628,px
+scene_hd,8,region_mean,regions tested,1,count
+scene_hd,8,region_mean,regions passing,1,count
+scene_hd,8,region_mean,regions rejected as near-black,0,count
+scene_hd,8,region_mean,blue ratio threshold,1.25,-
+scene_hd,8,region_mean,red ratio threshold,1.8,-
+scene_hd,8,region_mean,near-black floor,25,0-255
+scene_hd,11,fastsam,regions returned,83,count
+scene_hd,11,fastsam,largest region,85395,px
+scene_hd,11,fastsam,largest as a fraction of the frame,27.8,%
+scene_hd,11,fastsam,smallest region,40,px
+scene_hd,11,fastsam,median region,624,px
+scene_hd,11,fastsam,inference time,3.89,s
+scene_hd,11,fastsam,input size,1024,px
+scene_hd,11,fastsam,confidence threshold,0.25,-
+scene_hd,11,fastsam,NMS IoU,0.7,-
+scene_hd,11,fastsam,device,cpu,-
+scene_hd,12,area_filter,regions in,83,count
+scene_hd,12,area_filter,kept,82,count
+scene_hd,12,area_filter,rejected as noise,1,count
+scene_hd,12,area_filter,rejected as too large,0,count
+scene_hd,12,area_filter,lower bound,60,px
+scene_hd,12,area_filter,upper bound,107520,px
+scene_hd,12,area_filter,upper bound as a fraction,0.35,-
+scene_hd,13,segment_match,colour word parsed,green,-
+scene_hd,13,segment_match,regions considered,83,count
+scene_hd,13,segment_match,regions matched,1,count
+scene_hd,13,segment_match,regions rejected on colour,82,count
+scene_hd,13,segment_match,best score,0.134,0-1
+scene_hd,32,people,people detected,1,count
+scene_hd,32,people,landmarks per person,33,count
+scene_hd,32,people,inference time,3.33,s
+scene_hd,32,people,depth attached to landmarks,no,-

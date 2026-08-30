@@ -7480,3 +7480,98 @@ it, never widen it. Status chips in that column are not word-wrapped and must
 stay at most as long as the existing longest (`reachable, NO BRIDGE`); detail
 belongs in the word-wrapped note line or the banner. Back to 247 checks,
 247 PASS, column 514 px — identical to the pre-change baseline.
+
+## 2026-08-30 — the smoothness session: five layers, and one number from outside
+
+Operator reports, in the order they arrived: teleoperation works but "not
+smooth enough", "some of the directions are not working", "after sometime the
+smoothness slows down", the pose panel "doesn't work when teleoperation", "they
+are lagging and creating vibrations", and the headset panel is so large "the
+user is unable to keep his headset properly".
+
+Six complaints, six different mechanisms. None of them was the one I would have
+guessed.
+
+**THE POSE BUTTONS WERE OUTVOTED, NOT DEAD.** `vr_pose_mapper` runs
+`hold_when_idle` -- while alive but not driving it publishes the arm's OWN live
+pose at 20 Hz so a clutch release cannot let `/master_arm_pose_<arm>` go stale
+and latch the dead-man. `ik_follower` turns that into trajectories. GO HOME
+published its target three times onto the same topic; twenty messages a second
+saying "stay where you are" beat three saying "go home", and the target was
+gone inside 50 ms. Fixed with a claim on `/pose_move_active` that makes the
+follower stand down, not by publishing harder -- that would be a race, and
+whichever side won would win by accident. The mapper is untouched, so the
+dead-man stays fed; only the arm-controller topic changes hands. The claim is
+released in the hold loop rather than at the call site, because a move can end
+on arrival, on the ceiling or on an e-stop and only the loop sees all three.
+
+**THE VIBRATION WAS PREDICTED IN THIS REPOSITORY, BY NAME.** The
+`kortex_highlevel_bridge` deadband was narrowed 1.0 deg -> 0.10 deg to fix a
+parking residual, with the note: "the value has NOT been tried on hardware, so
+it is a live parameter and the first real session must watch for dither and
+raise it if it appears." This was the first real session. Inside the deadband
+the proportional term is switched off; at 0.10 deg it is essentially never off,
+so every joint chased encoder noise through a 12 Hz loop with a network round
+trip in it, and a correction that arrives late is an oscillation. 0.25 deg,
+still four times narrower than the 1.0 it replaced.
+
+**TELEOP COULD ONLY START FROM HOME, FOR TWO SEPARATE REASONS.** First the
+relay: `require_homed` demands the arm be within 2.9 deg of home, which is a far
+stronger claim than `enable_gap_rad`, the pose-agnostic check that actually
+keeps the seam safe. Fixed -- and the arm STILL homed, because
+**`start_real.sh` had no `home:=` argument at all**. `real_arms_highlevel
+.launch.py` has had one since it was written; the script never passed it. Two
+gates in series, and fixing the visible one left the invisible one doing the
+same job.
+
+**"SOME DIRECTIONS DON'T WORK" HAD AN ANSWER NOBODY COLLECTED.** `ik_follower`
+maintains named blockers -- clearance_floor, flip_reject, ik_inflight,
+motion_disarmed, state_unknown -- and the window has an indicator for them.
+`blocking_aggregator`, the node that collects them onto `/blocking_summary`,
+was never started by `teleop.launch.py`; `gui_launch_specs` carried "teleop
+.launch.py does not start it" as a statement of fact rather than a bug. So the
+precise answer was being computed per arm, several times a second, and
+discarded. It starts with the stack now. NOT FIXED, MADE VISIBLE -- the actual
+directional limit is still unmeasured.
+
+**AND THE FILTER WAS NOT FILTERING.** This one needed a source outside the
+repository. The 1-Euro cutoff is `fc = mincutoff + beta*|dx/dt|`, over position
+in METRES at 100 Hz:
+
+```
+    hand speed        0.05      0.2      0.5      1.0 m/s
+    beta 100 (was)   6.0 Hz  21.0 Hz  51.0 Hz  101.0 Hz   <- Nyquist is 50 Hz
+    beta  10 (now)   1.5 Hz   3.0 Hz   6.0 Hz   11.0 Hz
+```
+
+Above half a metre per second the cutoff was past the sampler's Nyquist
+frequency: **mathematically inert exactly while the hand was moving**, passing
+raw controller noise to the arm, while staying heavily damped at rest. That is
+"jitter while moving, sluggish while still" in one line. The filter's author
+(gery.casiez.net/1euro) prescribes starting beta at 0.001-0.0001 and tuning in
+FACTORS OF TEN; published implementations sit between 0.1 and 20. 100 is an
+order of magnitude outside that, and our own comments described it as a
+considered choice with a unit rationale attached -- which is exactly why
+reading the code could not find it. **When a constant has a confident comment
+and the behaviour still contradicts it, check the constant against the
+literature, not the comment.**
+
+**THE HEADSET PANEL WAS 45 DEGREES OF THE FIELD.** 0.84 m x 0.42 m at one
+metre, centred 10 deg BELOW the eye line -- where an operator looks to see
+their own hands -- and head-locked, so it could not be looked around. The
+operator's only move was to shift the headset on their face, which is a
+tracking problem as well as a comfort one. First wired to shrink while
+driving; the operator corrected that to the A button, and was right: the clutch
+is a continuous signal that changes many times a minute, so the panel would
+flicker while working, and the moment you most want telemetry is often
+mid-reach with the grip closed. Visibility is a decision made once.
+
+**PROCESS NOTE, because it produced a false result.** A background pytest run
+was reading `vr_pose_mapper.py` and `srl_gui.py` while those files were being
+edited, and reported five failures that did not exist. Re-run clean, all 45
+passed. Do not edit source while a background suite is reading it; the number
+it returns is about the filesystem, not the code.
+
+Final state: button audit 252 checks / 252 PASS, 682 unit tests passing, the
+only failures the two allowlisted style suites. Commits 844ee08, 6121af2,
+19417f8, 1ba88ff, 7a2eac8.

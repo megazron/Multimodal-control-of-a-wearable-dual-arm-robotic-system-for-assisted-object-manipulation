@@ -482,6 +482,44 @@ def summarise(outdir):
     return s
 
 
+def _bag_stop(bagp, grace=25.0):
+    """SIGINT the bag's process group, escalate, and VERIFY it is gone.
+
+    SIGINT first and generously: it is what closes the mcap cleanly, and a
+    12 GB file takes time to flush. Only then TERM, and only then KILL, each
+    on the GROUP -- `ros2 bag record` is a python wrapper and signalling the
+    wrapper alone leaves the recorder writing.
+
+    Returns True if the recorder is gone. The caller prints the answer either
+    way, because "I asked it to stop" is not the same fact as "it stopped".
+    """
+    def alive():
+        try:
+            os.kill(bagp.pid, 0)
+            return True
+        except OSError:
+            return False
+
+    for sig, wait in ((signal.SIGINT, grace),
+                      (signal.SIGTERM, 10.0),
+                      (signal.SIGKILL, 5.0)):
+        if not alive():
+            return True
+        try:
+            os.killpg(os.getpgid(bagp.pid), sig)
+        except Exception:                                     # noqa: BLE001
+            try:
+                os.kill(bagp.pid, sig)
+            except Exception:                                 # noqa: BLE001
+                pass
+        t0 = time.monotonic()
+        while time.monotonic() - t0 < wait:
+            if not alive():
+                return True
+            time.sleep(0.25)
+    return not alive()
+
+
 # ---------------------------------------------------------------------- main
 def do_stop():
     if not os.path.exists(CURRENT):
@@ -532,6 +570,9 @@ def main():
     ap.add_argument("--rate", type=float, default=20.0, help="trail sample Hz")
     ap.add_argument("--no-bag", action="store_true",
                     help="skip `ros2 bag record -a` (images are large)")
+    ap.add_argument("--full-images", action="store_true",
+                    help="record RAW camera frames too. ~10 GB per minute; "
+                         "the compressed topics are kept either way")
     ap.add_argument("--no-arms", action="store_true",
                     help="skip reading the real arms over Kortex")
     ap.add_argument("--stop", action="store_true")
@@ -602,11 +643,45 @@ def main():
 
     bagp = None
     if not a.no_bag:
+        # THE RAW IMAGE TOPICS ARE 99% OF THE BAG AND ADD NOTHING.
+        #
+        # Measured 2026-08-30: a 4.3 second recording produced 4.87 GB, and
+        # the same session left running reached 12 GB. That is 1121 MB/s, and
+        # essentially all of it is uncompressed camera frames -- one wrist
+        # camera at 1280x720 bgr8 30 Hz is 83 MB/s on its own, and there are
+        # two of them plus the scene camera plus depth.
+        #
+        # Every one of those cameras ALSO publishes `.../compressed`, which
+        # is the same picture at 174 kB a frame instead of 2.7 MB. So the raw
+        # topics are excluded and the compressed ones kept: the recording
+        # still contains every camera, and the arithmetic changes completely.
+        #
+        #     two wrist cameras, raw        166 MB/s     10 GB per minute
+        #     the same, compressed           10 MB/s    0.6 GB per minute
+        #
+        # A ten minute run goes from 100 GB -- which does not fit anywhere and
+        # would have filled this disk -- to 6 GB. Nothing else is dropped:
+        # joint states, TF, the master arm, VR, autonomy and every detection
+        # are small and are all still recorded by `-a`.
+        #
+        # `--full-images` puts the raw frames back for the rare case that
+        # needs pixel-exact data, and says what it will cost.
+        excl = [] if a.full_images else [
+            "--exclude-regex", r"^/.*/image_raw$",
+            "--exclude-regex", r"^/.*/image_raw/compressedDepth$",
+            "--exclude-regex", r"^/.*/image_raw/theora$",
+            "--exclude-regex", r"^/scene_camera/image_raw$",
+        ]
         bagp = subprocess.Popen(
-            ["ros2", "bag", "record", "-a", "-o", os.path.join(outdir, "bag")],
+            ["ros2", "bag", "record", "-a",
+             "--compression-mode", "file", "--compression-format", "zstd"]
+            + excl + ["-o", os.path.join(outdir, "bag")],
             stdout=open(os.path.join(outdir, "bag_record.log"), "w"),
             stderr=subprocess.STDOUT, preexec_fn=os.setsid)
-        print("  ros2 bag record -a  (pid %d)" % bagp.pid)
+        print("  ros2 bag record -a  (pid %d)%s"
+              % (bagp.pid, "  RAW IMAGES INCLUDED -- expect ~10 GB/min"
+                 if a.full_images else
+                 "  compressed images only (~0.6 GB/min)"))
 
     stop_flag = [False]
     armt = None
@@ -646,16 +721,34 @@ def main():
         except Exception:                                     # noqa: BLE001
             pass
         if bagp is not None:
-            try:
-                os.killpg(os.getpgid(bagp.pid), signal.SIGINT)
-                bagp.wait(timeout=25)
-            except Exception:                                 # noqa: BLE001
-                try:
-                    bagp.kill()
-                except Exception:                             # noqa: BLE001
-                    pass
+            # STOP IT, THEN CHECK THAT IT STOPPED.
+            #
+            # THE DEFECT, 2026-08-30: the operator pressed STOP RECORDING,
+            # the summary and the graphs were written, the marker was
+            # removed, the window said "not recording" -- and `ros2 bag
+            # record` WAS STILL RUNNING. It went on writing at 58 MB/s and
+            # the bag grew from 4.9 GB to 12 GB while everything on screen
+            # said the session had ended. On a 1 TB disk that is a few hours
+            # from full, silently.
+            #
+            # The old code sent SIGINT to the group, waited, and on timeout
+            # called `bagp.kill()` -- which signals the WRAPPER PID only, not
+            # the group, so the recorder underneath it survived. And nothing
+            # ever checked: the failure had no way to be noticed.
+            #
+            # HARD CONSTRAINT 9 is the rule this broke -- kill the process
+            # GROUP, `ros2 bag record` is a wrapper. Escalate on the group,
+            # verify at each step, and SAY SO if it is still alive, because a
+            # recorder nobody knows about is worse than one that refuses to
+            # start.
+            _bag_stop(bagp)
         if armt is not None:
             armt.join(timeout=8)
+        if bagp is not None and not _bag_stop(bagp, grace=0.0):
+            print("\n  WARNING: `ros2 bag record` (pid %d) IS STILL RUNNING "
+                  "after SIGINT, SIGTERM and SIGKILL. It is still writing to "
+                  "the bag. Kill it by hand:  kill -9 -%d"
+                  % (bagp.pid, bagp.pid))
         made = make_figures(outdir)
         s = summarise(outdir)
         if os.path.exists(CURRENT):

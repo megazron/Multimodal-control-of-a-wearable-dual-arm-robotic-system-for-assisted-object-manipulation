@@ -1,0 +1,2 @@
+{"label": "realarm_smoketest", "mode": "01_master_teleop", "shared_autonomy": "off", "kind": "session_start", "t": 0.0071, "wall": 1788018419.3495774}
+{"kind": "session_stop", "t": 13.4919, "wall": 1788018432.8344054}

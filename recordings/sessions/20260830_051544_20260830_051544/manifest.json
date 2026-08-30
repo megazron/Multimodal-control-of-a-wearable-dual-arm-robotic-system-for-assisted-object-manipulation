@@ -1,0 +1,20 @@
+{
+  "label": "20260830_051544",
+  "mode": "unspecified",
+  "shared_autonomy": "off",
+  "participant": "",
+  "started": 1788063344.3442423,
+  "started_iso": "2026-08-30T05:15:44",
+  "git_rev": "29bde33c4a7ecc57a42e0d27d5e57016d91fa4b1",
+  "git_branch": "presentation",
+  "git_dirty": true,
+  "ros_domain_id": "0",
+  "rmw": "rmw_fastrtps_cpp",
+  "arm_ips": {
+    "left": "192.168.1.10",
+    "right": "192.168.1.9"
+  },
+  "trail_rate_hz": 20.0,
+  "bag": true,
+  "arms_polled": true
+}

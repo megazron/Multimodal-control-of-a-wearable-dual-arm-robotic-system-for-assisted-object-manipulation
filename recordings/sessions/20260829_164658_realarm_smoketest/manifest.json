@@ -1,0 +1,20 @@
+{
+  "label": "realarm_smoketest",
+  "mode": "01_master_teleop",
+  "shared_autonomy": "off",
+  "participant": "",
+  "started": 1788018418.8668752,
+  "started_iso": "2026-08-29T16:46:58",
+  "git_rev": "38bdc1c9f2ccec5cc06a20a7ce8c1b79ddc4cfb3",
+  "git_branch": "presentation",
+  "git_dirty": true,
+  "ros_domain_id": "",
+  "rmw": "",
+  "arm_ips": {
+    "left": "192.168.1.10",
+    "right": "192.168.1.9"
+  },
+  "trail_rate_hz": 20.0,
+  "bag": true,
+  "arms_polled": true
+}

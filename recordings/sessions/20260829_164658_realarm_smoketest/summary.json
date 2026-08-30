@@ -1,0 +1,24 @@
+{
+  "session": "20260829_164658_realarm_smoketest",
+  "trail_rows": 269,
+  "duration_s": 13.46,
+  "channels_live": [],
+  "channels_DEAD": [
+    "sim_left",
+    "real_left",
+    "master_left",
+    "sim_right",
+    "real_right",
+    "master_right",
+    "vr_left",
+    "vr_right"
+  ],
+  "n_events": 2,
+  "events_by_kind": {
+    "session_start": 1,
+    "session_stop": 1
+  },
+  "bag_info": "\nFiles:             bag_0.mcap\nBag size:          17.2 KiB\nStorage id:        mcap\nROS Distro:        jazzy\nDuration:          13.465602141s\nStart:             Aug 29 2026 16:46:59.375105911 (1788018419.375105911)\nEnd:               Aug 29 2026 16:47:12.840708052 (1788018432.840708052)\nMessages:          10\nTopic information: Topic: /events/write_split | Type: rosbag2_interfaces/msg/WriteSplitEvent | Count: 0 | Serialization Format: cdr\n                   Topic: /parameter_events | Type: rcl_interfaces/msg/ParameterEvent | Count: 0 | Serialization Format: cdr\n                   Topic: /rosout | Type: rcl_interfaces/msg/Log | Count: 10 | Serialization Format: cdr\nService:           0\nService information: \n",
+  "bag_bytes": 17618,
+  "arm_samples": 47
+}

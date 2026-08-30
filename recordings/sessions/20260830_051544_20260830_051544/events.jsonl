@@ -1,0 +1,24 @@
+{"label": "20260830_051544", "mode": "unspecified", "shared_autonomy": "off", "kind": "session_start", "t": 0.2343, "wall": 1788063348.1529496}
+{"hand": "right", "engaged": true, "kind": "clutch", "t": 10.9675, "wall": 1788063358.8860998}
+{"hand": "left", "engaged": true, "kind": "clutch", "t": 10.981, "wall": 1788063358.8995905}
+{"hand": "left", "engaged": false, "kind": "clutch", "t": 27.7837, "wall": 1788063375.702286}
+{"hand": "right", "engaged": false, "kind": "clutch", "t": 27.7841, "wall": 1788063375.702727}
+{"hand": "left", "engaged": true, "kind": "clutch", "t": 28.08, "wall": 1788063375.9985826}
+{"hand": "left", "engaged": false, "kind": "clutch", "t": 29.7753, "wall": 1788063377.6938915}
+{"hand": "left", "reason": "hand moving at engage - hold still", "kind": "clutch_refused", "t": 29.7754, "wall": 1788063377.693977}
+{"hand": "left", "engaged": true, "kind": "clutch", "t": 29.8736, "wall": 1788063377.792231}
+{"hand": "left", "engaged": false, "kind": "clutch", "t": 32.2867, "wall": 1788063380.205277}
+{"hand": "left", "engaged": true, "kind": "clutch", "t": 34.0585, "wall": 1788063381.9771364}
+{"hand": "right", "engaged": true, "kind": "clutch", "t": 34.1309, "wall": 1788063382.049465}
+{"hand": "left", "engaged": false, "kind": "clutch", "t": 39.2925, "wall": 1788063387.2110612}
+{"hand": "right", "engaged": false, "kind": "clutch", "t": 40.2786, "wall": 1788063388.1971784}
+{"hand": "left", "engaged": true, "kind": "clutch", "t": 43.0449, "wall": 1788063390.9635136}
+{"hand": "left", "engaged": false, "kind": "clutch", "t": 46.8194, "wall": 1788063394.7380517}
+{"hand": "right", "engaged": true, "kind": "clutch", "t": 46.8807, "wall": 1788063394.7992563}
+{"hand": "right", "engaged": false, "kind": "clutch", "t": 49.815, "wall": 1788063397.733613}
+{"hand": "right", "engaged": true, "kind": "clutch", "t": 49.9485, "wall": 1788063397.8671553}
+{"hand": "right", "engaged": false, "kind": "clutch", "t": 67.3036, "wall": 1788063415.2222385}
+{"hand": "right", "reason": "hand moving at engage - hold still", "kind": "clutch_refused", "t": 67.3038, "wall": 1788063415.222364}
+{"hand": "right", "engaged": true, "kind": "clutch", "t": 67.325, "wall": 1788063415.243602}
+{"hand": "right", "engaged": false, "kind": "clutch", "t": 71.2981, "wall": 1788063419.216746}
+{"kind": "session_stop", "t": 87.0835, "wall": 1788063435.0020773}

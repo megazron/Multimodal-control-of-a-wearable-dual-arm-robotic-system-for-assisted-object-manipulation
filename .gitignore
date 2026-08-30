@@ -144,3 +144,15 @@ recordings/baselines/scene_reference.npz
 # (contact_sheet.png IS committed -- it is the "look at it" artefact)
 docs/presentation/preview/slide_*.png
 docs/presentation/.build/
+
+# ------------------------------------------------- session recordings
+# `recordings/sessions/*/bag/` holds one rosbag2 per RECORD EVERYTHING
+# session. They are multi-gigabyte .mcap files -- one 4.3 second recording
+# reached 12 GB before 2026-08-30, when the recorder still captured
+# UNCOMPRESSED camera frames at 1121 MB/s -- and GitHub refuses any file over
+# 100 MB. The analysis beside them is small and IS tracked: trail.csv,
+# summary.json, events.jsonl, manifest.json, arms.jsonl and the figures.
+# `docs/RECORDINGS.md` indexes every session so the bags are not needed to
+# see what was captured.
+recordings/sessions/*/bag/
+recordings/vr_teleop/*/*.mcap

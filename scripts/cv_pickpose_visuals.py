@@ -3670,7 +3670,7 @@ PROMPTED = {"segment_match", "yoloworld"}
 _STARTED = []
 
 
-def running_domains():
+def running_domains(only=None):
     """Which ROS_DOMAIN_ID the arm's own processes are on, read from /proc.
 
     ASKED, NOT ASSUMED. Measured on this rig 2026-08-30: both camera drivers
@@ -3680,7 +3680,7 @@ def running_domains():
     suspect when a healthy stack has no topics.
     """
     found = {}
-    for pat in ("kinova_vision_node", "kortex_highlevel_bridge"):
+    for pat in (only or ("kinova_vision_node", "kortex_highlevel_bridge")):
         rc, out = _sh("pgrep -f %s || true" % pat)
         for pid in out.split():
             try:
@@ -4479,16 +4479,46 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     print(BANNER)
+    # TWO DIFFERENT QUESTIONS, AND THEY CAN HAVE DIFFERENT ANSWERS.
+    #
+    # The camera topics come from kinova_vision_node; the joint states come
+    # from kortex_highlevel_bridge. Measured on this rig 2026-08-30: the
+    # cameras were on domain 42 while a freshly started pair of bridges was on
+    # domain 0. Picking ONE domain for both loses whichever half it does not
+    # pick -- and the first version of this picked by sorting the domains as
+    # STRINGS, so "0" beat "42" and it silently chose the half with no
+    # cameras. Each half is now asked of the processes that actually serve it,
+    # and a split is reported rather than resolved by luck.
+    pose_domain = None
     if str(args.domain).lower() == "auto":
-        live = running_domains()
-        if live:
-            args.domain = int(sorted(live)[0])
-            print("ROS_DOMAIN_ID=%d, read from the arm's own processes (%s)"
-                  % (args.domain, "; ".join(v[0] for v in live.values())))
+        cams = running_domains(only=("kinova_vision_node",))
+        brs = running_domains(only=("kortex_highlevel_bridge",))
+        if cams:
+            args.domain = int(sorted(cams, key=lambda d: -len(cams[d]))[0])
+            print("ROS_DOMAIN_ID=%d for the cameras, read from the camera "
+                  "drivers themselves (%s)"
+                  % (args.domain, "; ".join(cams[str(args.domain)][:2])))
+        elif brs:
+            args.domain = int(sorted(brs, key=lambda d: -len(brs[d]))[0])
+            print("no camera driver is running; using ROS_DOMAIN_ID=%d from "
+                  "the bridges" % args.domain)
         else:
             args.domain = int(os.environ.get("ROS_DOMAIN_ID", "7"))
             print("no arm process is running, so ROS_DOMAIN_ID=%d is a guess "
                   "from the environment" % args.domain)
+        if brs:
+            pose_domain = int(sorted(brs, key=lambda d: -len(brs[d]))[0])
+        if cams and brs and set(cams) != set(brs):
+            print("\n  *** THE STACK IS SPLIT ACROSS DOMAINS ***")
+            print("      camera drivers on %s; bridges on %s."
+                  % (", ".join(sorted(cams)), ", ".join(sorted(brs))))
+            print("      Nothing on one domain can see the other, and neither")
+            print("      half reports the other as missing. Reading the "
+                  "cameras on %d" % args.domain)
+            print("      and the joint states on %d for this run, but the "
+                  "stack should be" % (pose_domain if pose_domain is not None
+                                       else args.domain))
+            print("      brought up on ONE domain.\n")
     else:
         args.domain = int(args.domain)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -4515,8 +4545,11 @@ def main(argv=None):
         run["pose"] = dict(measured=False, why="--no-pose was given"
                            if args.no_pose else "replay of saved frames")
     else:
-        print("reading the arms' joint states (subscribe only) ...")
-        run["pose"] = measure_pose(args.domain)
+        pd = pose_domain if pose_domain is not None else args.domain
+        print("reading the arms' joint states on ROS_DOMAIN_ID=%d "
+              "(subscribe only) ..." % pd)
+        run["pose"] = measure_pose(pd)
+        run["pose"]["domain"] = pd
         p = run["pose"]
         if p.get("measured"):
             for arm, a in p["arms"].items():

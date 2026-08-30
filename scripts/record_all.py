@@ -67,11 +67,37 @@ def _trail_columns():
         c += ["real_%s_j%d" % (a, i) for i in range(1, 8)]
         c += ["master_%s_%s" % (a, k) for k in ("x", "y", "z", "qx", "qy", "qz", "qw")]
         c += ["cmd_%s_%s" % (a, k) for k in ("x", "y", "z")]
-        c += ["sim_%s_fresh" % a, "real_%s_fresh" % a, "master_%s_fresh" % a]
+        # THE END EFFECTOR, MEASURED. The pre-registration is explicit:
+        # "No experiment may use commanded pose as a proxy for end-effector
+        # pose. All position dependent variables must be measured from tf2 on
+        # <arm>_end_effector_link." Without these columns every position DV in
+        # E1-E4 is uncomputable, and the moving-master gain matrix the
+        # document calls a prerequisite cannot be produced at all.
+        c += ["ee_%s_%s" % (a, k)
+              for k in ("x", "y", "z", "qx", "qy", "qz", "qw")]
+        # WAS THE RELAY EVEN ON. Without this, "the arm tracked badly" and
+        # "the arm was not connected" are the same numbers: the 2026-08-30
+        # session computes 1.0-1.8 rad of sim-vs-real error purely because the
+        # relay was disabled and the two arms were in different poses.
+        c += ["cascade_%s" % a]
+        c += ["sim_%s_fresh" % a, "real_%s_fresh" % a, "master_%s_fresh" % a,
+              "ee_%s_fresh" % a]
     for h in ARMS:
         c += ["vr_%s_engaged" % h, "vr_%s_grip" % h, "vr_%s_refused" % h,
               "vr_%s_disp_m" % h, "vr_%s_lag_m" % h, "vr_%s_cutoff_hz" % h,
               "vr_%s_tracked" % h, "vr_%s_fresh" % h]
+    # THE PREDICTOR, SAMPLE BY SAMPLE. E5 needs the ranked goal and its
+    # probability over time -- H5.1 is accuracy at the commitment point and
+    # H5.2 bins accuracy at 20/40/60/80% of the reach. The arbiter already
+    # publishes all of it on /autonomy/arbiter_<arm> and nothing recorded it.
+    for a in ARMS:
+        c += ["pred_%s_top" % a, "pred_%s_p" % a, "pred_%s_ambiguous" % a,
+              "pred_%s_dist_m" % a]
+    # THE TRIAL, which is what turns a recording into data. Completion time
+    # is undefined without a boundary, so H2.1 cannot be computed; Fitts'
+    # index of difficulty needs the target's width and distance.
+    c += ["trial_id", "trial_phase", "goal_truth", "target_id",
+          "target_w_m", "target_d_m"]
     c += ["estop", "n_detections", "autonomy_left", "autonomy_right"]
     return c
 
@@ -103,6 +129,13 @@ class Recorder:
         self.estop = None
         self.n_det = 0
         self.autonomy = {a: None for a in ARMS}
+        self.pred = {a: {} for a in ARMS}          # arbiter JSON, per arm
+        self.cascade = {a: None for a in ARMS}     # is the relay ENABLED
+        self.ee = {a: None for a in ARMS}          # measured EE pose from tf2
+        # The trial the operator declared. Written by `--trial`, so a task
+        # script marks its own boundaries and the trail carries them.
+        self.trial = dict(trial_id="", trial_phase="", goal_truth="",
+                          target_id="", target_w_m="", target_d_m="")
         # Freshness counters: incremented on ARRIVAL, compared per row. This
         # is what tells a dead channel from a genuinely constant one.
         self.seen = {}
@@ -127,10 +160,28 @@ class Recorder:
             node.create_subscription(
                 String, "/vr/mapper_%s" % a,
                 lambda m, h=a: (self._vr(h, m), bump("vr_%s" % h)), 20)
+            node.create_subscription(
+                String, "/autonomy/arbiter_%s" % a,
+                lambda m, a=a: self._pred(a, m), 10)
+            node.create_subscription(
+                Bool, "/cascade_active_%s" % a,
+                lambda m, a=a: self.cascade.__setitem__(a, bool(m.data)), 10)
         node.create_subscription(Bool, "/estop_state",
                                  lambda m: self._estop(m), 10)
         node.create_subscription(String, "/perception/objects_info",
                                  lambda m: self._det(m), 10)
+
+        # THE END EFFECTOR, FROM tf2 AND NOTHING ELSE. This is the one
+        # measurement the pre-registration names as mandatory and forbids
+        # substituting: commanded pose is not a proxy for where the hand went.
+        try:
+            import tf2_ros
+            self.tf_buf = tf2_ros.Buffer()
+            self.tf_lis = tf2_ros.TransformListener(self.tf_buf, node)
+        except Exception as e:                                # noqa: BLE001
+            self.tf_buf = None
+            print("  WARNING: no tf2 (%s) -- ee_* columns will be EMPTY and "
+                  "every position DV is uncomputable from this run." % e)
 
         self.last_seen = dict(self.seen)
         node.create_timer(1.0 / rate_hz, self.tick)
@@ -160,6 +211,30 @@ class Recorder:
         if self.estop is not None and bool(m.data) != self.estop:
             self.event("estop", tripped=bool(m.data))
         self.estop = bool(m.data)
+
+    def _pred(self, arm, msg):
+        """The arbiter's own JSON: state, top goal, its probability, and
+        whether the intent was ambiguous. Kept raw-ish so the offline replay
+        can re-derive anything without re-running the session."""
+        try:
+            self.pred[arm] = json.loads(msg.data)
+        except Exception:                                     # noqa: BLE001
+            self.pred[arm] = {}
+
+    def _read_ee(self, arm):
+        """Measured end-effector pose, or None. NEVER falls back to the
+        commanded pose -- a silent substitution here would put an unmeasured
+        number into a dependent variable, which is the one thing the
+        pre-registration rules out by name."""
+        if self.tf_buf is None:
+            return None
+        try:
+            import rclpy.time
+            t = self.tf_buf.lookup_transform(
+                "world", "%s_end_effector_link" % arm, rclpy.time.Time())
+            return t.transform
+        except Exception:                                     # noqa: BLE001
+            return None
 
     def _det(self, m):
         try:
@@ -212,8 +287,45 @@ class Recorder:
             r["vr_%s_fresh" % a] = int(
                 self.seen.get("vr_%s" % a, 0) > self.last_seen.get("vr_%s" % a, 0))
             r["autonomy_%s" % a] = self.autonomy[a] or ""
+            # measured end effector, from tf2
+            tr = self._read_ee(a)
+            if tr is not None:
+                for k, v in zip(("x", "y", "z"),
+                                (tr.translation.x, tr.translation.y,
+                                 tr.translation.z)):
+                    r["ee_%s_%s" % (a, k)] = round(float(v), 6)
+                for k, v in zip(("qx", "qy", "qz", "qw"),
+                                (tr.rotation.x, tr.rotation.y,
+                                 tr.rotation.z, tr.rotation.w)):
+                    r["ee_%s_%s" % (a, k)] = round(float(v), 6)
+            r["ee_%s_fresh" % a] = int(tr is not None)
+            r["cascade_%s" % a] = ("" if self.cascade[a] is None
+                                   else int(self.cascade[a]))
+            # the predictor, for E5
+            pd = self.pred[a] or {}
+            r["pred_%s_top" % a] = pd.get("top") or ""
+            r["pred_%s_p" % a] = pd.get("top_p", "")
+            r["pred_%s_ambiguous" % a] = ("" if pd.get("ambiguous") is None
+                                          else int(bool(pd.get("ambiguous"))))
+            r["pred_%s_dist_m" % a] = pd.get("distance_m", "")
         r["estop"] = "" if self.estop is None else int(self.estop)
         r["n_detections"] = self.n_det
+        # The declared trial, carried on every row so a slice of the CSV is
+        # self-describing -- you can cut on trial_id without joining anything.
+        #
+        # Re-read at most twice a second: `--trial` is a separate process
+        # writing a file, and polling it is what lets a task script mark
+        # boundaries without this node exposing a service.
+        now = time.monotonic()
+        if now - getattr(self, "_trial_t", 0.0) > 0.5:
+            self._trial_t = now
+            try:
+                with open(os.path.join(self.outdir, "trial.json")) as fh:
+                    self.trial.update(json.load(fh))
+            except Exception:                                 # noqa: BLE001
+                pass
+        for k, v in self.trial.items():
+            r[k] = v
         self.last_seen = dict(self.seen)
         self.w.writerow(r)
         self.n_rows += 1
@@ -521,6 +633,38 @@ def _bag_stop(bagp, grace=25.0):
 
 
 # ---------------------------------------------------------------------- main
+def do_trial(a):
+    """Write a trial marker into the live session.
+
+    Goes to `events.jsonl` AND to a small `trial.json` the recorder polls, so
+    the boundary survives in two places: the event stream keeps the exact
+    timestamp, and the poll file is what puts the fields on every subsequent
+    row.
+    """
+    if not os.path.exists(CURRENT):
+        print("no live session -- start one before marking trials")
+        return 1
+    info = json.load(open(CURRENT))
+    outdir = info["outdir"]
+    rec = dict(kind="trial_%s" % a.trial, t=time.time(),
+               trial_id=a.trial_id, trial_phase=a.trial_phase,
+               goal_truth=a.goal, target_id=a.target_id,
+               target_w_m=a.target_w, target_d_m=a.target_d,
+               condition=a.condition)
+    with open(os.path.join(outdir, "events.jsonl"), "a") as fh:
+        fh.write(json.dumps(rec) + "\n")
+    live = dict(trial_id=a.trial_id if a.trial == "start" else "",
+                trial_phase=a.trial_phase if a.trial == "start" else "",
+                goal_truth=a.goal if a.trial == "start" else "",
+                target_id=a.target_id if a.trial == "start" else "",
+                target_w_m=a.target_w if a.trial == "start" else "",
+                target_d_m=a.target_d if a.trial == "start" else "")
+    with open(os.path.join(outdir, "trial.json"), "w") as fh:
+        json.dump(live, fh)
+    print("trial %s: %s" % (a.trial, a.trial_id or "(unnamed)"))
+    return 0
+
+
 def do_stop():
     if not os.path.exists(CURRENT):
         print("no live session")
@@ -570,15 +714,48 @@ def main():
     ap.add_argument("--rate", type=float, default=20.0, help="trail sample Hz")
     ap.add_argument("--no-bag", action="store_true",
                     help="skip `ros2 bag record -a` (images are large)")
+    ap.add_argument("--max-gb", type=float, default=20.0,
+                    help="stop recording once the bag reaches this size "
+                         "(default 20 GB). 0 disables the cap")
+    ap.add_argument("--max-minutes", type=float, default=0.0,
+                    help="stop after this many minutes (0 = no limit)")
     ap.add_argument("--full-images", action="store_true",
                     help="record RAW camera frames too. ~10 GB per minute; "
                          "the compressed topics are kept either way")
     ap.add_argument("--no-arms", action="store_true",
                     help="skip reading the real arms over Kortex")
     ap.add_argument("--stop", action="store_true")
+    # THE TRIAL BOUNDARY, declarable from anywhere.
+    #
+    # A recording without one is not data: completion time has no definition,
+    # so H2.1 cannot be computed, and Fitts' index of difficulty needs the
+    # target's width and distance which nothing was recording either. This
+    # writes into the LIVE session, so a task script marks its own boundaries
+    # while the recorder runs:
+    #
+    #   record_all.py --trial start --trial-id t07 --goal red_cube \
+    #                 --target-id cube_a --target-w 0.04 --target-d 0.35
+    #   ... the operator does the reach ...
+    #   record_all.py --trial end --trial-id t07
+    #
+    # The fields ride on EVERY row from then on, so a slice of the CSV is
+    # self-describing -- cut on trial_id and you need to join nothing.
+    ap.add_argument("--trial", choices=("start", "end"),
+                    help="mark a trial boundary in the LIVE session")
+    ap.add_argument("--trial-id", default="")
+    ap.add_argument("--trial-phase", default="")
+    ap.add_argument("--goal", default="", help="GROUND TRUTH goal for E5")
+    ap.add_argument("--target-id", default="")
+    ap.add_argument("--target-w", default="", help="target width, m (Fitts)")
+    ap.add_argument("--target-d", default="", help="target distance, m (Fitts)")
+    ap.add_argument("--condition", default="",
+                    help="direct | timid | aggressive -- E2 needs three "
+                         "levels, not a shared-autonomy on/off flag")
     ap.add_argument("--status", action="store_true")
     a = ap.parse_args()
 
+    if a.trial:
+        return do_trial(a)
     if a.stop:
         return do_stop()
     if a.status:
@@ -594,7 +771,21 @@ def main():
         os.remove(CURRENT)
 
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    safe = "".join(ch for ch in a.label if ch.isalnum() or ch in "-_") or "session"
+    # THE SAME RULE THE WINDOW SHOWS THE OPERATOR. Spaces become
+    # underscores rather than vanishing: deleting them turned
+    # "E2 aggressive run 3" into "E2aggressiverun3", and a name nobody can
+    # read in a listing is not a name. `srl_gui._rec_label` applies this
+    # identically so what is typed is what appears on disk.
+    _s, _prev = [], ""
+    for _c in (a.label or ""):
+        _c = "_" if (_c.isspace() or _c in "/\\.:") else _c
+        if not (_c.isalnum() or _c in "-_"):
+            continue
+        if _c == "_" and _prev == "_":
+            continue
+        _s.append(_c)
+        _prev = _c
+    safe = "".join(_s).strip("_-") or "session"
     outdir = os.path.join(SESSIONS, "%s_%s" % (stamp, safe))
     os.makedirs(outdir, exist_ok=True)
     os.makedirs(SESSIONS, exist_ok=True)
@@ -698,8 +889,47 @@ def main():
         rec = Recorder(node, outdir, a.rate)
         rec.event("session_start", **{k: manifest[k] for k in
                                       ("label", "mode", "shared_autonomy")})
-        print("  trail + events running. Ctrl-C or --stop to finish.\n")
-        rclpy.spin(node)
+        print("  trail + events running. Ctrl-C or --stop to finish.")
+        if a.max_gb:
+            print("  size cap %.0f GB, then it stops itself." % a.max_gb)
+        if a.max_minutes:
+            print("  time cap %.0f min." % a.max_minutes)
+        print("")
+        # A CAP, BECAUSE A RECORDER THAT NEVER STOPS FILLS THE DISK.
+        #
+        # On 2026-08-30 a session was left running and the bag reached 12 GB
+        # while every indicator said it had stopped. Even with raw images now
+        # excluded, a long session is unbounded, and "unbounded" on a 1 TB
+        # disk means an afternoon. So the recorder watches its own output and
+        # ENDS THE SESSION cleanly when it hits either cap -- a clean stop
+        # writes the summary and the figures, which a disk-full crash does
+        # not.
+        _t0 = time.monotonic()
+        _bagdir = os.path.join(outdir, "bag")
+
+        def _too_big():
+            if a.max_minutes and (time.monotonic() - _t0) > a.max_minutes * 60:
+                return "the %.0f minute cap" % a.max_minutes
+            if a.max_gb and os.path.isdir(_bagdir):
+                try:
+                    n = sum(os.path.getsize(os.path.join(_bagdir, f))
+                            for f in os.listdir(_bagdir)
+                            if os.path.isfile(os.path.join(_bagdir, f)))
+                except OSError:
+                    return None
+                if n > a.max_gb * 1e9:
+                    return "the %.0f GB cap (%.1f GB written)" % (
+                        a.max_gb, n / 1e9)
+            return None
+
+        while rclpy.ok():
+            rclpy.spin_once(node, timeout_sec=0.5)
+            why = _too_big()
+            if why:
+                print("\n  STOPPING: reached %s. The session is being closed "
+                      "cleanly, so the summary and figures are still written."
+                      % why)
+                break
     except KeyboardInterrupt:
         print("\nstopping...")
     except Exception as e:                                    # noqa: BLE001

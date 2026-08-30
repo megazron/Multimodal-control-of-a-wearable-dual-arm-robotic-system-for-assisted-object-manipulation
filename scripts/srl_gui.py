@@ -389,6 +389,16 @@ class Bus(Node):
                      ("/vr/bridge_status", "vrbridge"),
                      ("/vr/mapper_left", "vrmap_left"),
                      ("/vr/mapper_right", "vrmap_right"),
+                     # SHARED AUTONOMY, WHICH WAS INVISIBLE. The arbiter
+                     # publishes everything needed to judge it -- the state,
+                     # the REASON it is in that state, the distance to the
+                     # grasp, the top object and its probability, whether the
+                     # intent is ambiguous, and who owns position versus
+                     # orientation -- and nothing displayed a byte of it. So
+                     # "does shared autonomy work" could only be answered by
+                     # watching the arm and guessing, which is not a test.
+                     ("/autonomy/arbiter_left", "arb_left"),
+                     ("/autonomy/arbiter_right", "arb_right"),
                      # WHY THE ARM IS NOT MOVING, in the window. The safety
                      # node has always published its freeze and the reason on
                      # /vr/safety; the window never read it, so a frozen
@@ -1055,6 +1065,25 @@ class Bus(Node):
         # No cascade (a bare bridge from CONNECT) -> drive /real/ and hold it,
         # because then nothing else is feeding the bridge's watchdog.
         cascade = self._cascade_running()
+        # THE SIMULATION MUST NOT OUTRUN THE METAL IT IS DRIVING.
+        #
+        # THE DEFECT, reported 2026-08-30: going to the PICK POSE while the
+        # relay was live tripped the e-stop. It is not a bug in the pose
+        # button and it is not a flaky arm -- it is arithmetic.
+        # `sim_to_real_bridge` compares the DELAYED simulation against the
+        # real arm and trips when they differ by more than `lag_trip_rad`.
+        # The sim reaches the target in `secs`, the real arm can only travel
+        # at `max_vel_rad_s`, so on a long move the arm falls behind by the
+        # whole distance and the monitor fires -- correctly. It is reporting
+        # exactly what is true: the arm is not keeping up.
+        #
+        # The cure is to ask the simulation for a move the arm can actually
+        # follow. With the relay live, stretch `secs` so the sim's own speed
+        # stays under the relay's cap, with margin for the ramp. Without the
+        # relay there is nothing downstream to outrun and the caller's own
+        # timing is kept.
+        if cascade:
+            secs = max(secs, self._pose_secs_for(arm, q, secs))
         order = (sim, real) if cascade else (real, sim)
         pub = chosen = None
         for topic in order:
@@ -1128,6 +1157,33 @@ class Bus(Node):
         """True when a claim has been held longer than it should be."""
         t = getattr(self, "_claim_t", 0.0)
         return bool(t) and (time.time() - t) > self.POSE_CLAIM_MAX_S
+
+    #: How much longer than the theoretical minimum a relayed pose move is
+    #: given. The relay rate-limits AND step-limits, and starts from rest, so
+    #: the achievable average is well under the cap.
+    POSE_RELAY_MARGIN = 1.8
+
+    def _pose_secs_for(self, arm, q, secs):
+        """Seconds this move needs so the relay can keep up with it.
+
+        Read from the RELAY'S OWN `max_vel_rad_s`, not a constant here, so
+        moving that slider cannot leave this stale -- a second copy of a
+        speed limit is a second thing to forget.
+        """
+        import numpy as _np
+        try:
+            names = ["%s_joint_%d" % (arm, i) for i in range(1, 8)]
+            cur = getattr(self, "_real_q", {}) or {}
+            have = [cur.get(n) for n in names]
+            if not all(v is not None for v in have):
+                return secs
+            d = _np.abs((_np.array(have, float) - _np.array(q, float)
+                         + _np.pi) % (2 * _np.pi) - _np.pi)
+            travel = float(d.max())
+            vmax = float(getattr(self, "_relay_vmax", 0.0)) or 0.30
+            return (travel / vmax) * self.POSE_RELAY_MARGIN
+        except Exception:                                     # noqa: BLE001
+            return secs
 
     @staticmethod
     def _cascade_running():
@@ -1531,6 +1587,20 @@ class Gui(QMainWindow):
         # ~200 of them and the next one added would be missed.
         self._make_text_selectable()
         QTimer.singleShot(400, self.start_rviz)
+        # THE CAMERA WATCHDOG, STARTED WITHOUT BEING ASKED.
+        #
+        # usbipd hands each USB camera across the WSL boundary and drops them
+        # on its own -- the service stops, a device re-enumerates, a hub
+        # sleeps. `usb_cameras.py --fix` repairs that beautifully, ONCE, when
+        # somebody notices and presses something. The operator's report on
+        # 2026-08-30 was "the cameras are constantly disconnected", which is
+        # the same fault on a timer with nobody watching for it, and a repair
+        # you have to remember to run is not a fix for a recurring fault.
+        #
+        # 5 s in, so the window is drawn first: this shells out to
+        # usbipd.exe across the Windows boundary and the first call is the
+        # slow one.
+        QTimer.singleShot(5000, self._ensure_camera_watchdog)
         # And again after RViz embeds, because the panels rebuilt around it.
         QTimer.singleShot(3000, self._make_text_selectable)
         # AFTER the first layout pass, when viewports are real. Before it,
@@ -2087,6 +2157,7 @@ class Gui(QMainWindow):
         vv.addWidget(self.vr_shared)
         vv.addWidget(self._vr_panel())
         vv.addWidget(self._feel_panel())
+        vv.addWidget(self._shared_panel())
         tabs.addTab(vt, "VR")
 
         # ------------------------------------------------- FULL AUTONOMY
@@ -2234,6 +2305,97 @@ class Gui(QMainWindow):
          "Raise it in small steps and watch for buzz at the wrist."),
     ]
 
+    def _shared_panel(self):
+        """WHAT THE ARBITER IS DOING, AND WHY -- the only way to test it.
+
+        `handover_arbiter` is a DISCRETE handover: DIRECT -> ASSIST ->
+        GRASPED. It never blends position; in every state the operator keeps
+        100% position authority, and ASSIST servos ORIENTATION only, over
+        ~0.5 s, by SLERP. It enters ASSIST only when the intent probability
+        is over threshold AND the end effector is inside the distance
+        threshold AND the intent is not ambiguous -- all three, never any.
+
+        That design is defensible precisely BECAUSE it is conditional, and a
+        conditional system you cannot see is indistinguishable from one that
+        does nothing. Every field below is already published on
+        /autonomy/arbiter_<arm>; the window simply never read it. So the
+        operator's question -- "how do we test shared autonomy" -- had no
+        answer that did not involve watching the arm and guessing.
+
+        The three refusal reasons are the interesting ones, and they are
+        shown by name: too far, not confident enough, or ambiguous between
+        two objects.
+        """
+        # SHORT TITLE. A QGroupBox title is NOT word-wrapped, so it sets a
+        # floor under the whole column's width -- "SHARED AUTONOMY -- what the
+        # robot is doing, and why" pushed scroll page 2 to 524 px against a
+        # 496 px viewport and the audit's cut-off check caught it. The
+        # explanation goes in the note below, which wraps.
+        g = QGroupBox("SHARED AUTONOMY")
+        g.setFont(helvetica(11, True))
+        v = QVBoxLayout(g)
+        note = QLabel(
+            "What the robot is doing, and why. "
+            "Tick 'robot helps' above BEFORE pressing START. The robot never "
+            "takes position -- it only turns the wrist towards a grasp, and "
+            "only when it is close, confident and unambiguous. It closes the "
+            "gripper NEVER; that is always your trigger.")
+        note.setWordWrap(True)
+        note.setFont(helvetica(9))
+        note.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(note)
+        self.arb_lbl = {}
+        for a in ARMS:
+            row = QLabel("%s: arbiter not running" % a.upper())
+            row.setWordWrap(True)
+            row.setFont(helvetica(9))
+            row.setStyleSheet("color:%s" % C_UNKNOWN)
+            self.arb_lbl[a] = row
+            v.addWidget(row)
+        return g
+
+    def _refresh_shared(self, s):
+        """One line per arm: the state, and the reason it is not the next one."""
+        if not hasattr(self, "arb_lbl"):
+            return
+        for a in ARMS:
+            raw = s.get("arb_%s" % a)
+            lbl = self.arb_lbl[a]
+            if raw is None:
+                lbl.setText("%s: arbiter not running -- tick 'robot helps' "
+                            "before START" % a.upper())
+                lbl.setStyleSheet("color:%s" % C_UNKNOWN)
+                continue
+            try:
+                d = json.loads(raw[0])
+            except Exception:                                 # noqa: BLE001
+                lbl.setText("%s: arbiter said something unparsable" % a.upper())
+                lbl.setStyleSheet("color:%s" % C_WARN)
+                continue
+            st = str(d.get("state", "?"))
+            col = {"DIRECT": C_MUTED, "ASSIST": C_OK,
+                   "GRASPED": C_OK}.get(st, C_WARN)
+            dist = d.get("distance_m")
+            top, p = d.get("top"), d.get("top_p")
+            bits = ["%s: %s" % (a.upper(), st)]
+            if d.get("reason"):
+                bits.append(str(d["reason"]))
+            if dist is not None:
+                bits.append("%.0f mm from the grasp" % (float(dist) * 1000.0))
+            if top:
+                bits.append("wants %s%s" % (
+                    top, "" if p is None else " (%.0f%%)" % (float(p) * 100.0)))
+            if d.get("ambiguous"):
+                bits.append("AMBIGUOUS -- will not assist between two objects")
+            # WHO HAS THE ARM. Stated every line, because it is the property
+            # the whole design rests on and the operator should never have to
+            # remember it.
+            bits.append("position: %s / wrist: %s"
+                        % (d.get("position_authority", "?"),
+                           d.get("orientation_authority", "?")))
+            lbl.setText("   |   ".join(bits))
+            lbl.setStyleSheet("color:%s" % col)
+
     def _feel_panel(self):
         """SLIDERS FOR THE THINGS THAT DECIDE WHETHER THIS IS USABLE.
 
@@ -2312,6 +2474,14 @@ class Gui(QMainWindow):
                      % (label, prm), bad=True)
             return
 
+        # KEEP THE POSE PACING IN STEP WITH THIS SLIDER. `send_joint_pose`
+        # stretches a relayed move so the simulation cannot outrun the arm,
+        # and it needs the relay's speed cap to do the arithmetic. Recording
+        # it here means moving the slider cannot leave that stale -- a second
+        # copy of a speed limit is a second thing to forget.
+        if prm == "max_vel_rad_s":
+            self.bus._relay_vmax = float(value)
+
         def go():
             for t in targets:
                 self.bus.set_param(t, prm, float(value))
@@ -2339,6 +2509,45 @@ class Gui(QMainWindow):
             self.log("%s: shared autonomy %s for the next START"
                      % (who, "ON" if on else "off"))))
         return b
+
+    def _ensure_camera_watchdog(self):
+        """Keep `usb_cameras.py --watch` running for this window's lifetime.
+
+        ONE INSTANCE, and it is checked rather than assumed: two watchdogs
+        would race to detach-and-attach the same camera, which is a way to
+        make a working camera fail. Started detached so it survives a busy
+        Qt thread, and its output goes to the scratch directory rather than
+        into the window, because it is deliberately silent when nothing is
+        wrong and its log is the record of how often "nothing" was not true.
+        """
+        try:
+            if getattr(self, "_camwatch", None) is not None \
+                    and self._camwatch.poll() is None:
+                return
+            script = os.path.join(_WS, "scripts", "usb_cameras.py")
+            if not os.path.exists(script):
+                return
+            try:
+                out = subprocess.run(
+                    ["pgrep", "-f", "usb_cameras.py --watc[h]"],
+                    capture_output=True, text=True, timeout=5).stdout
+                if out.strip():
+                    self.log("camera watchdog already running (pid %s)"
+                             % out.split()[0])
+                    return
+            except Exception:                                 # noqa: BLE001
+                pass
+            log = open(os.path.join(_scratch(), "usb_camera_watchdog.log"),
+                       "ab", buffering=0)
+            self._camwatch = subprocess.Popen(
+                [sys.executable, script, "--watch"],
+                stdout=log, stderr=subprocess.STDOUT,
+                start_new_session=True)
+            self.log("camera watchdog started (pid %d) -- it re-attaches the "
+                     "USB cameras whenever usbipd drops them"
+                     % self._camwatch.pid)
+        except Exception as e:                                # noqa: BLE001
+            self.log("camera watchdog did not start: %r" % (e,), bad=True)
 
     def _ensure_virtual_teensy(self):
         """A master input with no hardware: scripts/virtual_teensy.py, a pty
@@ -2414,11 +2623,30 @@ class Gui(QMainWindow):
             self.start_mode(["sim"], "MASTER TELEOP")
 
     def on_start_vr_clicked(self):
-        if self.vr_shared.isChecked():
-            self.start_mode(["autonomy_nomaster", "vr"],
-                            "SHARED AUTONOMY (VR)")
-        else:
-            self.on_vr_start()
+        """START VR TELEOP, with or without the robot helping.
+
+        BOTH ROUTES NOW TAKE THE CHECKED BRING-UP. They did not: with the
+        toggle off this called `on_vr_start`, which is `vr_bringup` -- twelve
+        steps, each verified, each with a named repair. With the toggle ON it
+        called `start_mode(["autonomy_nomaster", "vr"])` instead, which
+        launches two specs and checks nothing. So the mode with MORE moving
+        parts got the LESS careful start, and every bring-up defect this
+        session found in the plain path was live and unwatched in the shared
+        one. It also meant `_sim_argv`'s master:=false fix -- the one that
+        stopped the stack dying -- applied only to plain VR.
+
+        Now the bring-up is the same either way, and shared autonomy is a
+        LAYER added on top of it once it has succeeded: perception plus the
+        arbiter, with `teleop:=false` so it brings no second stack of its own.
+        HARD CONSTRAINT 3 is the reason that argument matters -- the old path
+        worked only because `start_mode` adopts what is already running, which
+        is a property of the sequencer rather than of this launch.
+        """
+        self._vr_want_shared = bool(self.vr_shared.isChecked())
+        if self._vr_want_shared:
+            self.log("SHARED AUTONOMY (VR): the checked bring-up first, then "
+                     "the arbiter on top of it")
+        self.on_vr_start()
 
     def on_flow_full(self):
         self.start_mode(["autonomy_nomaster"], "FULL AUTONOMY")
@@ -2917,6 +3145,69 @@ class Gui(QMainWindow):
         except Exception:                                     # noqa: BLE001
             pass
 
+    def on_fix_cameras(self):
+        """Run the camera doctor and show what it found. OFF the Qt thread.
+
+        It pings arms, probes RTSP and subscribes to topics; inline that is
+        tens of seconds with the window frozen, which is the defect already
+        fixed twice in this file (`arm status`, `START SCENE CAMERA`).
+        """
+        try:
+            self.cam_fix_lbl.setText("checking every camera, layer by "
+                                     "layer -- up to a minute...")
+            self.cam_fix_lbl.setStyleSheet("color:%s" % C_MUTED)
+            self._cam_fix_out = None
+            # ITS OWN THREAD, NOT `bus.submit`. THE AUDIT CAUGHT THIS AND IT
+            # WAS THE WORST KIND OF DEFECT.
+            #
+            # The bus queue is drained SERIALLY by a 0.05 s timer, and the
+            # E-STOP's publish goes through that same queue. This work is a
+            # subprocess with a 300 s timeout -- pings, RTSP probes, topic
+            # subscriptions -- so putting it on the bus queued the e-stop
+            # behind it for up to five minutes. `verify_gui_buttons` failed
+            # "e-stop reaches /estop" on BOTH e-stop buttons, which is
+            # exactly what that check exists to catch.
+            #
+            # The bus is for short ROS actions. Anything that shells out
+            # belongs on a thread of its own, and the result comes back
+            # through the same polled label the rest of this panel uses.
+            self.bus.note("camera doctor: checking every camera, layer by "
+                          "layer")
+            threading.Thread(target=self._fix_cameras_go,
+                             daemon=True).start()
+            QTimer.singleShot(1500, self._fix_cameras_render)
+        except Exception as e:                                # noqa: BLE001
+            self.log("camera doctor: %r" % (e,), bad=True)
+
+    def _fix_cameras_go(self):
+        try:
+            r = subprocess.run(
+                [sys.executable,
+                 os.path.join(_WS, "scripts", "camera_doctor.py"), "--fix"],
+                capture_output=True, text=True, timeout=300)
+            lines = [ln.strip() for ln in (r.stdout or "").splitlines()
+                     if ln.strip() and not ln.startswith("==")]
+            self._cam_fix_out = lines or ["the doctor said nothing"]
+            for ln in lines:
+                self.bus.note("cameras: %s" % ln, bad=("BROKEN" in ln))
+        except Exception as e:                                # noqa: BLE001
+            self._cam_fix_out = ["camera doctor failed: %r" % (e,)]
+
+    def _fix_cameras_render(self, tries=60):
+        out = getattr(self, "_cam_fix_out", None)
+        if out is None:
+            if tries > 0:
+                QTimer.singleShot(1000,
+                                  lambda: self._fix_cameras_render(tries - 1))
+            else:
+                self.cam_fix_lbl.setText("the camera check did not finish "
+                                         "-- see the event log")
+            return
+        bad = any("BROKEN" in ln for ln in out)
+        self.cam_fix_lbl.setText("   |   ".join(out))
+        self.cam_fix_lbl.setStyleSheet("color:%s" % (C_BAD if bad else C_OK))
+        self._cam_fix_out = None
+
     def on_real_one(self):
         """The whole real-arm sequence, as one press, skipping what is done.
 
@@ -2929,6 +3220,10 @@ class Gui(QMainWindow):
 
     def _real_one_go(self):
         live = self._kortex_arms()
+        if self._real_one_stage == "match" and live:
+            self._real_one_stage = "idle"
+            self._real_one_match(live)
+            return
         if self._real_one_stage == "home" and live:
             # The operator has pressed a second time on a button that says
             # it will move the arm. That is the consent; take it and reset
@@ -3009,19 +3304,74 @@ class Gui(QMainWindow):
             return
         # A refusal that names home is the one case this button can fix, and
         # fixing it MOVES THE ARM. So it asks again rather than doing it.
-        if any("home" in m for _, m in bad):
-            self._real_one_stage = "home"
+        if any(("home" in m) or ("gap" in m) or ("rad" in m)
+               for _, m in bad):
+            # MOVE THE SIMULATION TO THE ARM, NOT THE ARM TO THE SIMULATION.
+            #
+            # THE OPERATOR'S REPORT, 2026-08-30: "it asks for home pose by
+            # default but I need the pickup pose."
+            #
+            # The relay refuses because the sim and the arm disagree, and
+            # ANY way of making them agree satisfies it -- the gap check is
+            # pose-agnostic. Homing was the expensive way round: it drives
+            # real metal across the workspace, takes the arm away from
+            # wherever the operator deliberately put it, and on a long move
+            # trips the lag monitor on the way.
+            #
+            # The cheap way is the other direction. The simulation is free to
+            # move; the arm is not. Matching the sim to the arm's CURRENT
+            # pose closes the same gap, moves NO metal, takes about a second,
+            # and leaves the arm exactly where the operator parked it -- at
+            # the pick pose, the scan pose, or anywhere else.
+            #
+            # Homing stays available as its own button for when the arm is
+            # somewhere it should not be. It is no longer the price of
+            # starting.
+            self._real_one_stage = "match"
             self.real_one_btn.setText(
-                "\u25b6  HOME THE ARMS  --  THIS MOVES THEM")
+                "\u25b6  MATCH THE SIM TO THE ARM  --  nothing moves")
             self._one_say(
-                "%s  --  press again to home the arm(s) and then arm. THE "
-                "ARM WILL MOVE. Hand on the e-stop."
+                "%s  --  press again to bring the SIMULATION to where the "
+                "arm actually is. No metal moves, and you keep the pose you "
+                "parked in. (To move the ARM instead, use HOME.)"
                 % "; ".join("%s: %s" % (a, m.replace("\n", " "))
                             for a, m in bad), bad=True)
             return
         self._real_one_stage = "idle"
         self._one_say("; ".join("%s: %s" % (a, m.replace("\n", " "))
                                 for a, m in bad), bad=True)
+
+    def _real_one_match(self, arms):
+        """Drive the SIMULATION to where each real arm actually is.
+
+        Nothing physical moves. `send_joint_pose` takes the arm-controller
+        topic through `/pose_move_active` for the duration, so the mapper
+        cannot fight it, and the relay's gap check then passes wherever the
+        arm happens to be standing.
+        """
+        moved = []
+        for a in arms:
+            names = ["%s_joint_%d" % (a, i) for i in range(1, 8)]
+            cur = getattr(self.bus, "_real_q", {}) or {}
+            q = [cur.get(n) for n in names]
+            if not all(v is not None for v in q):
+                self._one_say(
+                    "cannot read the %s arm's joints, so there is nothing to "
+                    "match the simulation to. Is the Kortex bridge "
+                    "publishing?" % a, bad=True)
+                continue
+            ok, topic = self.bus.send_joint_pose(a, [float(v) for v in q],
+                                                 secs=2.0)
+            if ok:
+                moved.append(a)
+        if not moved:
+            return
+        self.real_one_btn.setText("\u25b6  MOVE THE REAL ARMS")
+        self._one_say(
+            "matching the simulation to %s. Nothing physical is moving. "
+            "Trying to arm again in 6 s." % ", ".join(moved))
+        QTimer.singleShot(6000, lambda: self._real_guard(
+            "move the real arms", self._real_one_go))
 
     def _real_one_home(self, arms):
         """Second press: home, then come back and try to arm again."""
@@ -3837,6 +4187,38 @@ class Gui(QMainWindow):
         self.rec_all_btn.clicked.connect(self.on_record_all_toggle)
         self.buttons["record_everything"] = self.rec_all_btn
         v.addWidget(self.rec_all_btn)
+
+        # NAME THE RUN BEFORE YOU RECORD IT.
+        #
+        # The session directory is `<timestamp>_<label>`, and the label was
+        # whatever the experiment panel happened to hold -- which for a
+        # free-driving session is nothing, so every run landed as
+        # `20260830_051727_20260830_051726`: a timestamp twice, and no way to
+        # tell one from another afterwards without opening each summary.
+        # `docs/RECORDINGS.md` exists because that was already painful.
+        #
+        # A name typed HERE, next to the button that starts the run, is the
+        # cheapest possible fix: `20260830_051727_pick_left_timid` sorts, and
+        # says what it is. Empty is still allowed and still works.
+        nrow = QHBoxLayout()
+        nrow.setSpacing(4)
+        ncap = QLabel("name this run")
+        ncap.setFont(helvetica(9))
+        ncap.setStyleSheet("color:%s" % C_MUTED)
+        nrow.addWidget(ncap)
+        self.rec_name = QLineEdit()
+        self.rec_name.setFont(helvetica(9))
+        self.rec_name.setPlaceholderText(
+            "e.g. pick_left_timid  --  optional, but it is how you find it "
+            "again")
+        self.rec_name.setToolTip(
+            "Goes into the folder name: recordings/sessions/"
+            "<date>_<time>_<name>. Letters, numbers, - and _ are kept and "
+            "anything else is dropped, so the name is always a safe "
+            "directory. Set it BEFORE pressing record; renaming afterwards "
+            "means renaming a directory by hand.")
+        nrow.addWidget(self.rec_name, 1)
+        v.addLayout(nrow)
         self.rec_all_lbl = QLabel("not recording")
         self.rec_all_lbl.setFont(helvetica(9))
         self.rec_all_lbl.setWordWrap(True)
@@ -3884,6 +4266,41 @@ class Gui(QMainWindow):
         self.buttons["move_the_real_arms"] = self.real_one_btn
         self.mode_btn["__real__"] = self.real_one_btn
         v.addWidget(self.real_one_btn)
+        # ONE BUTTON FOR EVERY CAMERA, because after a WSL restart NOTHING
+        # starts them. The USB devices come back on their own (the watchdog
+        # re-attaches them from Windows) and no camera NODE does: not the
+        # scene camera, not either wrist. The operator's question on
+        # 2026-08-30 was exactly "if i shutdown wsl and turn it back again
+        # will the cameras still work", and the honest answer was "the
+        # devices yes, the nodes no". This is the missing half.
+        #
+        # It runs `camera_doctor.py --fix`, which walks the layers IN ORDER
+        # and stops at the first one that is wrong -- stale shared memory,
+        # device not attached, device held by something else, node not
+        # running, no frames at the publisher's QoS -- because a fault low
+        # down makes every answer above it meaningless. It repairs the three
+        # that need no human and NAMES the two that do: a wedged vision
+        # module needs the arm power-cycled, and a device held by another
+        # process needs that process to let go.
+        self.cam_fix_btn = QPushButton("FIX THE CAMERAS")
+        self.cam_fix_btn.setFont(helvetica(10, True))
+        self.cam_fix_btn.setMinimumHeight(28)
+        self.cam_fix_btn.setToolTip(
+            "Checks the scene camera and both wrist cameras layer by layer "
+            "and repairs what it can: clears stale shared memory (only with "
+            "nothing running), re-attaches a USB camera from Windows, and "
+            "starts a node that is not running. It will not power-cycle an "
+            "arm or take a device away from another process -- it says which "
+            "and why instead. Safe to press at any time.")
+        self.cam_fix_btn.clicked.connect(self.on_fix_cameras)
+        self.buttons["fix_the_cameras"] = self.cam_fix_btn
+        v.addWidget(self.cam_fix_btn)
+        self.cam_fix_lbl = QLabel("cameras not checked yet")
+        self.cam_fix_lbl.setFont(helvetica(9))
+        self.cam_fix_lbl.setWordWrap(True)
+        self.cam_fix_lbl.setStyleSheet("color:%s" % C_MUTED)
+        v.addWidget(self.cam_fix_lbl)
+
         self.real_one_lbl = QLabel("the real arms are not started")
         self.real_one_lbl.setFont(helvetica(9))
         self.real_one_lbl.setWordWrap(True)
@@ -4117,15 +4534,54 @@ class Gui(QMainWindow):
         if self._record_all_live():
             self._stop_record_all()
         else:
-            lbl = "manual"
+            # THE TYPED NAME WINS. The experiment panel's session id is the
+            # right label when a scripted trial is running; for the free
+            # driving that most recordings actually are, it is a second
+            # timestamp. A name the operator typed beats both.
+            lbl = ""
             try:
-                lbl = self._exp_session() or "manual"
+                lbl = self._rec_label()
             except Exception:                                 # noqa: BLE001
                 pass
+            if not lbl:
+                try:
+                    lbl = self._exp_session() or "manual"
+                except Exception:                             # noqa: BLE001
+                    lbl = "manual"
             self._start_record_all(label=lbl)
+
+    def _rec_label(self):
+        """The operator's name for this run, made safe for a directory.
+
+        Sanitised HERE as well as in `record_all.py`, which does the same
+        thing to the same characters. Two copies of one rule is usually a
+        defect, and this is the exception that earns it: the operator has to
+        SEE what their name will become before they press record, and the
+        recorder has to be safe when it is called from a terminal with no
+        window in front of it.
+        """
+        if not hasattr(self, "rec_name"):
+            return ""
+        raw = self.rec_name.text().strip()
+        # SPACES BECOME UNDERSCORES, they are not deleted. Dropping them
+        # turned "E2 aggressive run 3" into "E2aggressiverun3", which is a
+        # safe directory name and an unreadable one -- and the whole point of
+        # the field is to be able to read it in a listing six weeks later.
+        out, prev = [], ""
+        for c in raw:
+            c = "_" if (c.isspace() or c in "/\\.:") else c
+            if not (c.isalnum() or c in "-_"):
+                continue
+            if c == "_" and prev == "_":
+                continue
+            out.append(c)
+            prev = c
+        return "".join(out).strip("_-")
 
     def _rec_pose_refresh(self, info):
         """The POSE panel's copy of the recording state."""
+        # The POSE panel's duplicate is gone; this guard is what lets the
+        # same refresh serve whichever record controls still exist.
         if not hasattr(self, "rec_pose_btn"):
             return
         if info:
@@ -4549,7 +5005,7 @@ class Gui(QMainWindow):
         self.force_clutch = QCheckBox("force clutch ENGAGED")
         self.force_clutch.stateChanged.connect(self.on_force_clutch)
         row.addWidget(self.force_clutch)
-        b = QPushButton("re-base anchor")
+        b = QPushButton("re-centre on my hand")
         b.setToolTip("/master_rebase -- the next VALID frame becomes the "
                      "reference. The bridge calls this when it enables.")
         b.clicked.connect(lambda: self.bus.submit(
@@ -4967,35 +5423,14 @@ class Gui(QMainWindow):
         # ===================================================================
         # RECORD EVERYTHING -- here, because every control mode passes here
         # ===================================================================
-        # The copy in the DATA panel is tied to the experiment settings, which
-        # made it feel like a VR/trial control. Recording is not specific to a
-        # mode: master teleop, VR, shared autonomy and a bare hand-driven
-        # session all produce data worth keeping, and most of what an operator
-        # wants captured happens during set-up and free driving rather than
-        # inside a scripted trial. Both buttons drive the SAME recorder and
-        # the SAME live-session marker, so pressing either one stops the other
-        # -- there is one recording, not two.
-        self.rec_pose_btn = QPushButton("\u25cf  RECORD EVERYTHING")
-        self.rec_pose_btn.setFont(helvetica(11, True))
-        self.rec_pose_btn.setMinimumHeight(34)
-        self.rec_pose_btn.setToolTip(
-            "Captures the WHOLE session under any control mode: every ROS "
-            "topic via `ros2 bag record -a` (both wrist cameras, the scene "
-            "camera, detections, TF, joint states, master, VR, autonomy), a "
-            "uniform trail.csv, an events log with the clutch and its refusal "
-            "reasons, and BOTH real arms read straight off the Kortex API. "
-            "Graphs and a summary are written when you stop, and the summary "
-            "NAMES any channel that never published so a recording cannot "
-            "come out quietly empty.")
-        self.rec_pose_btn.clicked.connect(self.on_record_all_toggle)
-        self.buttons["record_everything_pose"] = self.rec_pose_btn
-        v.addWidget(self.rec_pose_btn)
-        self.rec_pose_lbl = QLabel("not recording")
-        self.rec_pose_lbl.setFont(helvetica(9))
-        self.rec_pose_lbl.setWordWrap(True)
-        self.rec_pose_lbl.setStyleSheet("color:%s" % C_MUTED)
-        v.addWidget(self.rec_pose_lbl)
-
+        # ONE RECORD BUTTON, NOT TWO. There used to be a second copy here,
+        # and the comment defending it argued that recording is not specific
+        # to a mode so it should be reachable from wherever you are. That is
+        # true and it was still wrong: the operator's report on 2026-08-30 was
+        # "so much jargon in the gui ... remove repetitive buttons", and two
+        # identical buttons that drive the same recorder read as two
+        # recordings until you learn otherwise. The one beside
+        # MOVE THE REAL ARMS is the one that stays.
         # ------------------------------------------------- THE WHOLE JOB
         # The operator asked for the sequence as buttons: home, pick pose,
         # scan pose, scan, back, pick. Each step is its own button because
@@ -5756,7 +6191,7 @@ class Gui(QMainWindow):
         # design (poses keep flowing, so the ordinary unfreeze is true the
         # whole time it is wrong) and until now the service existed with no
         # control anywhere in the window.
-        b3 = QPushButton("accept moved reference")
+        b3 = QPushButton("accept the headset's new position")
         b3.setFont(helvetica(9))
         b3.setToolTip(
             "The headset (the tracking reference) moved and everything "
@@ -5940,6 +6375,27 @@ class Gui(QMainWindow):
         self._vr_busy = False
         self.vr_btn.setEnabled(True)
         state, head = vrb.verdict([r for _k, r in out], keyed=out)
+        # THE ARBITER GOES ON TOP, AND ONLY ONTO A STACK THAT CAME UP.
+        # Starting the autonomy layer over a failed bring-up would put a
+        # second thing to diagnose on top of the first, and the operator
+        # would be reading arbiter states from a chain that never ran.
+        if getattr(self, "_vr_want_shared", False):
+            self._vr_want_shared = False
+            if state == vrb.OK:
+                self._run_raw(
+                    "shared_autonomy",
+                    ["ros2", "launch", "srl_autonomy",
+                     "shared_autonomy.launch.py", "teleop:=false"])
+                self.log("SHARED AUTONOMY: perception and the arbiter "
+                         "launching on top of the VR chain (teleop:=false -- "
+                         "no second stack). The arbiter's state is in the "
+                         "SHARED AUTONOMY panel; it needs ~15 s.")
+            else:
+                self.log("SHARED AUTONOMY NOT STARTED: the VR bring-up did "
+                         "not come up clean, and an arbiter over a broken "
+                         "chain is a second fault stacked on the first. Fix "
+                         "what the steps above name, then press START again.",
+                         bad=True)
         col = {vrb.OK: C_OK, vrb.FAILED: C_BAD,
                vrb.UNKNOWN: C_UNKNOWN}.get(state, C_UNKNOWN)
         self.vr_head.setText(head.upper())
@@ -6570,9 +7026,10 @@ class Gui(QMainWindow):
         # the top. Kept because a stuck session sometimes needs exactly one
         # piece relaunched -- but labelled as what it is, below the work.
         self._spec_group(v, "mode", "Advanced  --  launch one piece by hand")
-        b = QPushButton("stop all launched jobs")
-        b.clicked.connect(self.on_stop_jobs)
-        v.addWidget(b)
+        # NO SECOND STOP BUTTON HERE. `STOP everything this window launched`
+        # at the top of the mode panel is the same call to `on_stop_jobs`,
+        # and a second one at the bottom of an Advanced group is a control
+        # the operator has to decide between for no reason.
         return g
 
     # Plain words for the five clip-tree modes, in the clip tree's order.
@@ -6741,7 +7198,7 @@ class Gui(QMainWindow):
         self.budget_lbl.setStyleSheet("color:%s" % C_MUTED)
         v.addWidget(self.budget_lbl)
 
-        b = QPushButton("CHECK DEPENDENCIES")
+        b = QPushButton("check what is installed")
         b.setFont(helvetica(9, True))
         b.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         b.setToolTip("Imports each environment's modules together in one "
@@ -7130,7 +7587,7 @@ class Gui(QMainWindow):
         self.inst_seed.setFont(mono(9))
         self.inst_seed.setMaximumWidth(46)
         row.addWidget(self.inst_seed)
-        self.inst_look = QPushButton("LOOK (observe + detect)")
+        self.inst_look = QPushButton("LOOK AT THE TABLE")
         self.inst_look.setFont(helvetica(9, True))
         self.inst_look.clicked.connect(self.on_instruct_look)
         row.addWidget(self.inst_look)
@@ -7997,7 +8454,7 @@ class Gui(QMainWindow):
         b = QPushButton("reset e-stop")
         b.clicked.connect(self.on_estop_reset)
         bar.addWidget(b)
-        b = QPushButton("SELF-TEST indicators")
+        b = QPushButton("test the indicator lights")
         b.setToolTip("Drive synthetic bad data through the real formatters "
                      "and require every indicator to change. Proves 'all "
                      "clear' is a reading and not a stuck widget.")
@@ -8556,8 +9013,25 @@ class Gui(QMainWindow):
     # ------------------------------------------------------------- actions
     # ------------------------------------------------------------- actions
     def on_estop(self):
+        """The bottom-bar E-STOP. LABELLED, so the press is on record AT ONCE.
+
+        This was the one `bus.submit` in the file with no label, and it was
+        the worst possible one to leave out. `submit` notes the label
+        IMMEDIATELY and queues the action; without a label nothing is written
+        until the 0.05 s drain timer runs, which under load is hundreds of
+        milliseconds. `submit`'s own docstring names the consequence: "a
+        press with no trace cannot be told from a disconnected signal, which
+        is the whole bug class the button audit exists for."
+
+        Caught by that audit on a loaded machine -- `click: E-STOP, 0 log
+        entries` -- having passed on an idle one, which is the shape that
+        works in testing and fails on a lab day. The publish itself was never
+        broken; the RECORD of it was late, and for a stop control the record
+        is half the point.
+        """
         self.bus.submit(lambda: (self.bus.publish_once(Bool, "/estop", True),
-                                 self.bus.note("E-STOP published")))
+                                 self.bus.note("E-STOP published")),
+                        label="E-STOP pressed")
 
     def on_estop_reset(self):
         # /estop_reset IS A SERVICE, NOT A TOPIC. Publishing a Bool at it once
@@ -9193,6 +9667,7 @@ class Gui(QMainWindow):
         self._refresh_vr_link(s)
         self._refresh_vr_smoothing(s)
         self._refresh_vr_safety(s)
+        self._refresh_shared(s)
         self._refresh_scene_cv(s)
         self._refresh_scene_view(s)
         self._rviz_keepalive()

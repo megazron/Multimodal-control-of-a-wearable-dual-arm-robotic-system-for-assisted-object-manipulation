@@ -52,7 +52,7 @@ def generate_launch_description():
                               description="left | right | both"),
         DeclareLaunchArgument("left_robot_ip", default_value="192.168.1.10"),
         DeclareLaunchArgument("right_robot_ip", default_value="192.168.1.9"),
-        DeclareLaunchArgument("preview_delay_s", default_value="1.0"),
+        DeclareLaunchArgument("preview_delay_s", default_value="0.30"),
         DeclareLaunchArgument("max_vel_rad_s", default_value="0.15"),
         DeclareLaunchArgument("max_step_rad", default_value="0.05"),
         DeclareLaunchArgument("lag_trip_rad", default_value="0.5"),
@@ -145,6 +145,28 @@ def generate_launch_description():
                 name="sim_to_real_bridge_%s" % a, output="screen",
                 emulate_tty=True,
                 parameters=[{"arm": a, "enabled": True,
+                             # TELEOPERATE FROM ANY POSE, NOT ONLY HOME.
+                             #
+                             # `require_homed` demands the REAL arm be within
+                             # `home_tolerance_rad` of the loaded home before
+                             # the relay will enable. That is a different and
+                             # much stronger claim than the one that keeps the
+                             # seam safe, which is `enable_gap_rad`: the SIM
+                             # and the REAL arm must agree before the first
+                             # relayed command, so nothing is commanded as a
+                             # jump. The gap check is pose-agnostic and is the
+                             # real guard.
+                             #
+                             # With `require_homed` true the operator could
+                             # only ever start driving from home: move to the
+                             # pick pose or the scan pose, lose the relay for
+                             # any reason, and it would refuse to come back
+                             # until the arm was driven all the way home
+                             # again. `start_cascade.sh` has shipped with it
+                             # false since it was written; this makes the
+                             # launch path agree, so the same rig behaves the
+                             # same way whichever route brought it up.
+                             "require_homed": False,
                              "preview_delay_s": LaunchConfiguration("preview_delay_s"),
                              "max_vel_rad_s": LaunchConfiguration("max_vel_rad_s"),
                              "max_step_rad": LaunchConfiguration("max_step_rad"),

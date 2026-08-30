@@ -298,9 +298,26 @@ def generate_launch_description():
                      "serial_port": LaunchConfiguration("serial_port"),
                      "expect_real_stack": LaunchConfiguration("real_arms")}])
 
+    # THE THING THAT SAYS WHY THE ARM IS NOT MOVING, AND IT WAS NEVER STARTED.
+    #
+    # `ik_follower_node` maintains a set of named BLOCKERS -- clearance_floor,
+    # flip_reject, ik_inflight, motion_disarmed, home_gate, state_unknown --
+    # and each one is the answer to a real operator question. The window has
+    # an indicator for them. `blocking_aggregator` is what collects them onto
+    # /blocking_summary, and `gui_launch_specs` carried the note "teleop
+    # .launch.py does not start it" as a statement of fact rather than a bug.
+    #
+    # So the indicator read "blocking_aggregator not running" for every
+    # session, and the operator's "some directions don't work" had a precise
+    # answer being computed, per arm, several times a second, that nothing
+    # collected and nothing displayed. It costs one small node.
+    blocking = Node(package="srl_teleop", executable="blocking_aggregator",
+                    name="blocking_aggregator", output="log")
+
     delayed = TimerAction(period=LaunchConfiguration("startup_delay"),
                           actions=[master, *followers, monitor, dash, estop,
-                                   grippers, recovery, selftest, gate])
+                                   grippers, recovery, selftest, gate,
+                                   blocking])
 
     return LaunchDescription(args + [
         _mount_guard(),moveit, delayed, real_stack])

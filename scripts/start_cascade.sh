@@ -62,6 +62,12 @@ export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 export FASTDDS_BUILTIN_TRANSPORTS=SHM
 
 MAXV="${CASCADE_MAX_VEL:-0.30}"
+# THE SAME 0.30 s start_real.sh uses. The node's own default is 1.0 s, so
+# leaving this unset gave the adopt path a full second of dead time while the
+# launch path had 0.30 -- the same rig feeling different depending on which
+# route brought it up, which is the class of difference nobody thinks to
+# check. See the header of start_real.sh for what the delay buys.
+PREVIEW_DELAY="${PREVIEW_DELAY:-0.30}"
 # The homing law's own speed. `start_real.sh` passes 0.15 explicitly and
 # records why: the banner used to print the BRIDGE's max_vel while nothing
 # forwarded anything to the homing node at all.
@@ -162,6 +168,7 @@ for arm in "${WANT[@]}"; do
     -p arm:="${arm}" \
     -p enabled:=true \
     -p require_homed:=false \
+    -p preview_delay_s:="${PREVIEW_DELAY}" \
     -p max_vel_rad_s:="${MAXV}" \
     -p rate_hz:=20.0 &
   PIDS+=("$!")

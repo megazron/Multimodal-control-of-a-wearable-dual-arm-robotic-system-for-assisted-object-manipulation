@@ -50,8 +50,46 @@ case "$ARM" in
   *) echo "arm must be left, right or both (got '$ARM')"; exit 2 ;;
 esac
 if [ "$ARM" = both ]; then ARMS="left right"; else ARMS="$ARM"; fi
-PREVIEW_DELAY=1.0
-MAX_VEL=0.15
+# HOW FAR THE METAL RUNS BEHIND THE SIMULATION.
+#
+# 1.0 s was the shipped value and it is most of why teleoperation felt
+# indirect: the operator steers something a full second in the past, so every
+# correction is made against a view of the arm that is already wrong, and they
+# over-correct and oscillate. Reported 2026-08-30 as "quite laggy and not
+# stable".
+#
+# WHAT THE DELAY BUYS, so the trade is on the record: `sim_to_real_bridge`
+# compares the DELAYED sim against the real arm, so the delay is the window in
+# which a divergence can be seen and refused BEFORE the arm has committed to
+# it. Shorter window, less warning. It does not weaken the trip itself --
+# `lag_trip_rad` still e-stops on the same divergence -- it shortens the notice.
+#
+# 0.30 s keeps roughly four bridge cycles at 12 Hz of that window, which is
+# enough for the monitor to see a real divergence build, and takes 700 ms of
+# dead time out of the operator's hands. Override with PREVIEW_DELAY=<s>.
+PREVIEW_DELAY="${PREVIEW_DELAY:-0.30}"
+# BRIDGE REPLAY SPEED. This was 0.15 rad/s and that is BELOW WHAT THE SIM
+# COMMANDS, which makes the lag monitor a scheduled failure rather than a
+# safety net.
+#
+# Measured 2026-08-25 on both real arms. `vision_grasp` stages its moves with
+# `secs=3.0`, and the observe pose is 1-2 rad from home, so the simulation
+# demands 0.33-0.66 rad/s. The bridge could replay 0.15. The real arm can
+# therefore NEVER catch up -- the error is not a transient, it accumulates
+# monotonically -- and at 0.506 rad on joint_6 it crossed the 0.50 rad trip:
+#
+#   LAG MONITOR TRIPPING E-STOP: |sim_delayed - real| = 0.506 rad on joint_6
+#
+# The e-stop then LATCHED, `estop_node` took the arm-controller topic, and
+# every trajectory after that was overridden. The workspace sweep went on
+# printing "reaching cell N of 120" for 26 more cells against a halted arm,
+# because nothing in that loop checks the e-stop or checks arrival.
+#
+# 0.40 rad/s is still 29% of the 1.3963 rad/s joint limit in
+# joint_limits.yaml, and it is above the fastest thing the sim asks for, so
+# the lag monitor goes back to meaning "the arm is not keeping up" instead of
+# "the arm was never able to keep up".
+MAX_VEL=0.40
 # Homing speed, passed explicitly. The banner used to print $MAX_VEL --
 # the BRIDGE parameter -- while nothing passed anything to the homing node.
 HOMING_VMAX=0.15

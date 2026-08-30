@@ -2192,6 +2192,14 @@ class Gui(QMainWindow):
          "How much the filter opens up when you move FAST. HIGHER means "
          "less lag on quick moves while keeping the tremor rejection above. "
          "This is the knob that buys you both."),
+        ("hand speed limit  (m/s)", "/vr_pose_mapper", "max_speed_mps",
+         0.30, 3.00, 2, 1.20,
+         "THE ONE THAT DEGRADES OVER TIME. When your hand outruns this, the "
+         "limiter clips the step -- and it CANNOT give the distance back "
+         "while the motion continues, so the command falls further behind "
+         "the longer you drive. That is the miss that grew 27, 41 then 50 mm "
+         "across one run. Raise it until ordinary reaching stops triggering "
+         "it; releasing and re-gripping clears what has accumulated."),
         ("wrist steadiness", "/vr_pose_mapper", "rot_min_cutoff_hz",
          0.10, 5.00, 2, 0.50,
          "The same floor for ORIENTATION. Wrist jitter is the usual reason "
@@ -7760,34 +7768,57 @@ class Gui(QMainWindow):
                 # Windows still believes the device is attached and a plain
                 # `attach` REFUSES, so the repair has to detach first. That is
                 # what usb_cameras.py --fix does.
+                # OFF THE Qt THREAD. `usb_cameras.py --fix` talks to
+                # usbipd.exe across the WSL boundary and is given 120 s to do
+                # it. Run inline, that is up to two minutes with the WHOLE
+                # WINDOW frozen -- the e-stop included, because it is drawn by
+                # the same event loop. The button audit's slow-press check
+                # caught it at 24.1 s on a loaded machine and passed on an
+                # idle one, which is the worse failure: it works in testing
+                # and stops working on a lab day. Exactly the defect already
+                # fixed once for `arm status`; this is the second site.
                 self.scene_cam_note.setText(
                     "no /dev/video* -- attaching the cameras from Windows...")
                 self.log("scene camera: no /dev/video*, running "
-                         "usb_cameras.py --fix")
-                try:
-                    r = subprocess.run(
-                        [sys.executable,
-                         os.path.join(_WS, "scripts", "usb_cameras.py"),
-                         "--fix"],
-                        capture_output=True, text=True, timeout=120)
-                    for ln in (r.stdout or "").strip().splitlines():
-                        self.log("  %s" % ln.strip())
-                except Exception as e:                        # noqa: BLE001
-                    self.log("usb_cameras.py failed: %r" % e, bad=True)
-                if not glob.glob("/dev/video*"):
-                    msg = ("STILL no /dev/video*. If usbipd says its service "
-                           "is stopped, that needs ONE administrator command "
-                           "and it also explains a missing master arm: "
-                           "Start-Service usbipd")
-                    self.log(msg, bad=True)
-                    self.scene_cam_note.setText(msg)
-                    return
-                self.log("cameras attached -- starting the scene camera")
+                         "usb_cameras.py --fix (in the background)")
+                self.bus.submit(self._scene_cam_attach,
+                                label="attaching the USB cameras")
+                QTimer.singleShot(2500, self._scene_cam_refresh)
+                return
             self._run_raw("scene_camera_node",
                           ["ros2", "run", "srl_perception", "scene_camera_node"])
             self.log("scene camera: START requested")
             self.scene_cam_note.setText("starting...")
         QTimer.singleShot(2500, self._scene_cam_refresh)
+
+    def _scene_cam_attach(self):
+        """Attach the USB cameras, then start the node. NOT on the Qt thread.
+
+        Runs on the bus worker, so the window -- and the e-stop on it -- stay
+        live for the whole two-minute budget. The result comes back through
+        the same refresh timer the rest of the panel uses, so there is one
+        path that reports what happened rather than two.
+        """
+        import glob as _glob
+        try:
+            r = subprocess.run(
+                [sys.executable,
+                 os.path.join(_WS, "scripts", "usb_cameras.py"), "--fix"],
+                capture_output=True, text=True, timeout=120)
+            for ln in (r.stdout or "").strip().splitlines():
+                self.bus.note("  %s" % ln.strip())
+        except Exception as e:                                # noqa: BLE001
+            self.bus.note("usb_cameras.py failed: %r" % (e,), bad=True)
+            return
+        if not _glob.glob("/dev/video*"):
+            self.bus.note(
+                "STILL no /dev/video*. If usbipd says its service is stopped, "
+                "that needs ONE administrator command and it also explains a "
+                "missing master arm: Start-Service usbipd", bad=True)
+            return
+        self.bus.note("cameras attached -- starting the scene camera")
+        self._run_raw("scene_camera_node",
+                      ["ros2", "run", "srl_perception", "scene_camera_node"])
 
     def _scene_cam_refresh(self):
         if not hasattr(self, "scene_cam_btn"):

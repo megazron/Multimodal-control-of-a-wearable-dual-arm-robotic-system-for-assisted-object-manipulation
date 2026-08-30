@@ -368,7 +368,8 @@ const VS = 'attribute vec2 a;varying vec2 v;uniform mat4 mvp;' +
            'void main(){v=vec2(a.x*0.5+0.5,0.5-a.y*0.5);' +
            'gl_Position=mvp*vec4(a,0.0,1.0);}';
 const FS = 'precision mediump float;varying vec2 v;uniform sampler2D t;' +
-           'void main(){vec4 c=texture2D(t,v);gl_FragColor=c;}';
+           'uniform float alpha;' +
+           'void main(){vec4 c=texture2D(t,v);gl_FragColor=vec4(c.rgb,c.a*alpha);}';
 
 function compile(g, type, src){
   const s = g.createShader(type); g.shaderSource(s, src); g.compileShader(s);
@@ -392,10 +393,42 @@ function initGL(){
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 }
 
+// HOW BIG THE PANEL IS, AND WHEN.
+//
+// THE DEFECT, reported from the headset 2026-08-30: "that pass through panel
+// has such a huge banner the user is unable to keep his headset properly,
+// affecting the teleoperation".
+//
+// It was 0.84 m wide and 0.42 m tall at one metre -- about 45 degrees of the
+// horizontal field, centred 10 degrees BELOW the eye line, which is exactly
+// where an operator looks to see their own hands and the arm they are
+// driving. And it is HEAD-LOCKED, so it cannot be looked around: turning to
+// see past it brings it along. The operator's only remaining move is to shift
+// the headset on their face, which is what they were doing.
+//
+// A telemetry panel earns its space while you are SETTING UP and costs you
+// while you are REACHING. So it is full size when idle and shrinks out of the
+// way the moment the clutch is squeezed -- to a quarter of the width, pushed
+// down to the bottom of the field and faded, still readable with a glance
+// down, no longer in front of the work.
+//
+// A FREEZE IS EXEMPT AND ALWAYS FULL SIZE. The file already says why:
+// freeze_reason is "the only field an operator who cannot see the arm must
+// never miss". Shrinking that to get a better view would be trading the one
+// thing the panel exists for.
+const PANEL_IDLE  = {w: 0.42, h: 0.21, y: -0.18, a: 1.00};
+const PANEL_DRIVE = {w: 0.15, h: 0.075, y: -0.42, a: 0.55};
+
+function panelGeom(){
+  if(state.frozen || state.instruction) return PANEL_IDLE;
+  return driving ? PANEL_DRIVE : PANEL_IDLE;
+}
+
 // Head-locked panel: the model matrix is expressed in VIEW space, so the
 // view matrix is deliberately NOT applied. mvp = projection * model.
 function panelMvp(proj){
-  const w = 0.42, h = 0.21, z = -1.0, yoff = -0.18;
+  const g = panelGeom();
+  const w = g.w, h = g.h, z = -1.0, yoff = g.y;
   const model = new Float32Array([
     w,0,0,0,  0,h,0,0,  0,0,1,0,  0,yoff,z,1]);
   const out = new Float32Array(16);
@@ -421,12 +454,22 @@ function renderOverlay(view, layer){
   gl.uniform1i(gl.getUniformLocation(quadProg, 't'), 0);
   gl.uniformMatrix4fv(gl.getUniformLocation(quadProg, 'mvp'), false,
                       panelMvp(view.projectionMatrix));
+  gl.uniform1f(gl.getUniformLocation(quadProg, 'alpha'), panelGeom().a);
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
   gl.drawArrays(gl.TRIANGLES, 0, 6);
 }
 
 let panelTick = 0;
+// WHETHER THE OPERATOR IS DRIVING, read from the LOCAL gamepad rather than
+// from the robot state that comes back over the socket. The panel has to
+// clear the view in the same frame the grip closes; waiting for the mapper to
+// tell us it engaged puts a network round trip between squeezing and being
+// able to see, which is the opposite of the fix. 0.6 is the same threshold
+// `vr_pose_mapper._on_joy` uses, so the panel and the clutch agree.
+let driving = false;
+const GRIP_ENGAGED = 0.6;
+
 function onXRFrame(t, frame){
   const s = frame.session;
   s.requestAnimationFrame(onXRFrame);
@@ -446,6 +489,7 @@ function onXRFrame(t, frame){
 
   // Panel texture at ~20 Hz; the pose stream must never wait on a canvas.
   if(++panelTick % 4 === 0){
+    driving = (L.grip > GRIP_ENGAGED) || (R.grip > GRIP_ENGAGED);
     drawPanel(L, R);
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);

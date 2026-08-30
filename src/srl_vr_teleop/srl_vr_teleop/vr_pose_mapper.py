@@ -203,7 +203,15 @@ class VrPoseMapper(Node):
         # mode 02 every grasping task. Raised to 1.20 m/s: still well under
         # the follower's own limit, so the follower and not this node remains
         # the thing that bounds arm speed.
-        self.declare_parameter('max_speed_mps', 1.20)
+        # RAISED 1.20 -> 2.00 on 2026-08-30. At 1.20 an ordinary brisk
+        # reach clipped the limiter, and a clipped step CANNOT be given back
+        # while the motion continues -- that is the accumulating `lag_m` this
+        # file already documents, the one that grew 27, 41 then 50 mm across a
+        # single run and reads to the operator as teleoperation "slowing down
+        # after a while". The limiter is meant to catch a hand that has been
+        # thrown, not a hand that is reaching. 2.00 m/s is still well under
+        # the follower's own limit, which is what actually bounds arm speed.
+        self.declare_parameter('max_speed_mps', 2.00)
         self.declare_parameter('quiet_engage_m', 0.020)
         self.declare_parameter('quiet_window_s', 0.10)
         # FEED THE DEAD-MAN WHILE NOT DRIVING. On a real-arm launch

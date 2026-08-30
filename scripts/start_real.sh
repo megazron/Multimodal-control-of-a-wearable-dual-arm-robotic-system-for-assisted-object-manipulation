@@ -32,6 +32,7 @@ for a in "$@"; do
   case "$a" in
     --mock) MOCK=1 ;;
     arm:=*) ARM_ARG="${a#arm:=}" ;;
+    home:=*) HOME_ARG="${a#home:=}" ;;
     --arm) NEXT_IS_ARM=1 ;;
     -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
     *)
@@ -50,6 +51,31 @@ case "$ARM" in
   *) echo "arm must be left, right or both (got '$ARM')"; exit 2 ;;
 esac
 if [ "$ARM" = both ]; then ARMS="left right"; else ARMS="$ARM"; fi
+# HOMING IS NOT COMPULSORY, and forcing it is why teleoperation could only
+# ever start from the home pose.
+#
+# `real_arms_highlevel.launch.py` has had a `home` argument since it was
+# written; this script never passed it, so every route through here drove the
+# arm to the config home before anything else could happen. Reported
+# 2026-08-30: "that start real arms button still forces for home pose and
+# doesn't let pick up pose to start teleop".
+#
+# Homing exists to close the gap between the simulation and the metal, and it
+# is the right thing to do when they disagree. But `enable_gap_rad` is what
+# actually decides whether the relay may start, and it is POSE-AGNOSTIC: if
+# the arm and the sim already agree -- at the pick pose, the scan pose,
+# anywhere -- there is nothing for homing to fix and driving across the
+# workspace first is pure cost, and a hazard of its own.
+#
+# So the default stays true for a bare terminal run, where homing to a known
+# pose is the safe way to start from nothing, and the window passes
+# home:=false because its sequencer asks the relay first and only homes if the
+# relay refuses on the gap. Override with home:=false.
+HOME_REAL="${HOME_ARG:-true}"
+case "$HOME_REAL" in
+  true|false) ;;
+  *) echo "home must be true or false (got '$HOME_REAL')"; exit 2 ;;
+esac
 # HOW FAR THE METAL RUNS BEHIND THE SIMULATION.
 #
 # 1.0 s was the shipped value and it is most of why teleoperation felt
@@ -407,6 +433,7 @@ else
     preview_delay_s:="$PREVIEW_DELAY" \
     max_vel_rad_s:="$MAX_VEL" \
     homing_vmax:="$HOMING_VMAX" \
+    home:="$HOME_REAL" \
     rate_hz:="$KORTEX_RATE" \
     max_step_rad:="$MAX_STEP" \
     lag_trip_rad:="$LAG_TRIP" >"$LOG" 2>&1 &

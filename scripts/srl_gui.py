@@ -2183,17 +2183,19 @@ class Gui(QMainWindow):
          "gets three times the hand travel to do it in. Takes effect on the "
          "next re-grip."),
         ("steadiness  (min cutoff Hz)", "/vr_pose_mapper", "min_cutoff_hz",
-         0.10, 5.00, 2, 0.50,
+         0.10, 5.00, 2, 1.00,
          "The 1-Euro filter's floor. LOWER is steadier when your hand is "
          "nearly still -- it is what kills tremor -- and adds lag. Raise it "
          "if the arm feels like it is wading."),
         ("follow-through  (beta)", "/vr_pose_mapper", "beta",
-         0.0, 300.0, 0, 100.0,
-         "How much the filter opens up when you move FAST. HIGHER means "
-         "less lag on quick moves while keeping the tremor rejection above. "
-         "This is the knob that buys you both."),
+         0.0, 60.0, 1, 10.0,
+         "How much the filter opens up when you move FAST -- the cutoff is "
+         "steadiness + this x hand speed. Too HIGH and it opens past the "
+         "sampling limit and stops filtering at all while you move, which "
+         "is jitter, not responsiveness. The 1-Euro author says tune it in "
+         "FACTORS OF TEN, not small nudges."),
         ("hand speed limit  (m/s)", "/vr_pose_mapper", "max_speed_mps",
-         0.30, 3.00, 2, 1.20,
+         0.30, 3.00, 2, 2.00,
          "THE ONE THAT DEGRADES OVER TIME. When your hand outruns this, the "
          "limiter clips the step -- and it CANNOT give the distance back "
          "while the motion continues, so the command falls further behind "
@@ -2201,11 +2203,11 @@ class Gui(QMainWindow):
          "across one run. Raise it until ordinary reaching stops triggering "
          "it; releasing and re-gripping clears what has accumulated."),
         ("wrist steadiness", "/vr_pose_mapper", "rot_min_cutoff_hz",
-         0.10, 5.00, 2, 0.50,
+         0.10, 5.00, 2, 1.00,
          "The same floor for ORIENTATION. Wrist jitter is the usual reason "
          "a grasp will not line up; lower this before lowering the scale."),
         ("arm lag behind you  (s)", "/sim_to_real_bridge_%s",
-         "preview_delay_s", 0.10, 2.00, 2, 1.00,
+         "preview_delay_s", 0.10, 2.00, 2, 0.30,
          "How far the METAL runs behind the simulation. 1.0 s is a big part "
          "of why teleoperation feels indirect -- you are steering something "
          "a second in the past. Lower it for directness; the delay is what "
@@ -2941,11 +2943,17 @@ class Gui(QMainWindow):
         if not live:
             self._one_say(
                 "no Kortex session -- connecting the arms. This opens one "
-                "session per arm and homes them, so THE ARMS WILL MOVE. "
-                "Watch them; the e-stop is above.")
+                "session per arm and does NOT home them: if the arm and the "
+                "simulation already agree, wherever they are, driving starts "
+                "from there. Nothing moves yet.")
+            # home:=false. THE ARM IS NOT DRIVEN ACROSS THE WORKSPACE JUST
+            # TO START. This sequencer asks the relay whether it can enable
+            # where the arm actually is, and only offers homing -- as an
+            # explicit second press -- if the relay refuses on the gap. So a
+            # rig sitting at the pick pose starts driving from the pick pose.
             self._run_raw("start_real.sh",
                           ["bash", os.path.join(_WS, "scripts/start_real.sh"),
-                           "arm:=both"])
+                           "arm:=both", "home:=false"])
             QTimer.singleShot(25000, lambda: self._real_guard(
                 "move the real arms", self._real_one_go))
             return

@@ -416,12 +416,15 @@ function initGL(){
 // freeze_reason is "the only field an operator who cannot see the arm must
 // never miss". Shrinking that to get a better view would be trading the one
 // thing the panel exists for.
-const PANEL_IDLE  = {w: 0.42, h: 0.21, y: -0.18, a: 1.00};
-const PANEL_DRIVE = {w: 0.15, h: 0.075, y: -0.42, a: 0.55};
+const PANEL_IDLE = {w: 0.42, h: 0.21, y: -0.18, a: 1.00};
+// Hidden, not merely small. The operator asked for it GONE, and a shrunken
+// panel is still a thing in the way -- alpha 0 with the quad kept means one
+// branch, no special case in the renderer, and it comes straight back.
+const PANEL_OFF  = {w: 0.42, h: 0.21, y: -0.18, a: 0.00};
 
 function panelGeom(){
   if(state.frozen || state.instruction) return PANEL_IDLE;
-  return driving ? PANEL_DRIVE : PANEL_IDLE;
+  return panelHidden ? PANEL_OFF : PANEL_IDLE;
 }
 
 // Head-locked panel: the model matrix is expressed in VIEW space, so the
@@ -461,14 +464,23 @@ function renderOverlay(view, layer){
 }
 
 let panelTick = 0;
-// WHETHER THE OPERATOR IS DRIVING, read from the LOCAL gamepad rather than
-// from the robot state that comes back over the socket. The panel has to
-// clear the view in the same frame the grip closes; waiting for the mapper to
-// tell us it engaged puts a network round trip between squeezing and being
-// able to see, which is the opposite of the fix. 0.6 is the same threshold
-// `vr_pose_mapper._on_joy` uses, so the panel and the clutch agree.
-let driving = false;
-const GRIP_ENGAGED = 0.6;
+// SHOW/HIDE IS THE A BUTTON, NOT THE CLUTCH.
+//
+// It was first wired to the clutch -- shrink while driving, restore on
+// release -- and the operator's correction was immediate: "make it disappear
+// when A is pressed, not the clutch button". They are right, and the reason
+// is that the two are not the same question. The clutch is a CONTINUOUS
+// signal that changes many times a minute, so tying the view to it means the
+// panel appears and vanishes constantly while working; and the moment you
+// most want to check telemetry is often mid-reach, with the grip closed.
+// Visibility is a DECISION the operator makes once, so it belongs on a
+// button press, latched until pressed again.
+//
+// buttons[4] is A on a Quest controller -- `sampleInput` already reads it as
+// `out.a`, and the bridge already forwards it. Edge-triggered: a held button
+// must toggle once, not sixty times a second.
+let panelHidden = false;
+let aWasDown = false;
 
 function onXRFrame(t, frame){
   const s = frame.session;
@@ -489,7 +501,12 @@ function onXRFrame(t, frame){
 
   // Panel texture at ~20 Hz; the pose stream must never wait on a canvas.
   if(++panelTick % 4 === 0){
-    driving = (L.grip > GRIP_ENGAGED) || (R.grip > GRIP_ENGAGED);
+    // A on EITHER controller toggles the panel, on the rising edge only.
+    // A guided step owns the panel and its own "press A when finished", so
+    // the toggle stands aside there rather than fighting it for the button.
+    const aDown = !!(L.a || R.a);
+    if(aDown && !aWasDown && !state.instruction) panelHidden = !panelHidden;
+    aWasDown = aDown;
     drawPanel(L, R);
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);

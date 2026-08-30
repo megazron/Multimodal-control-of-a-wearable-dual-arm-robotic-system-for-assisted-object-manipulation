@@ -184,17 +184,60 @@ class VrPoseMapper(Node):
         self.declare_parameter('ema_alpha', 0.6)
         # Position, in metres. beta is Hz PER METRE PER SECOND -- the 1-Euro
         # paper's example values are for PIXELS and are ~1000x too small here.
-        self.declare_parameter('min_cutoff_hz', 0.5)
-        self.declare_parameter('beta', 100.0)
-        self.declare_parameter('d_cutoff_hz', 0.2)
+        # RAISED 0.5 -> 1.0 on 2026-08-30. This is the 1-Euro floor: the
+        # cutoff used when the hand is nearly still, so it sets how much lag
+        # there is in slow, precise work -- which is most of what teleoperation
+        # IS. 0.5 Hz is heavy enough that fine positioning felt like wading.
+        # 1.0 Hz is the usual starting point for hand tracking and halves that
+        # lag; `beta` above still opens the filter wide the moment the hand
+        # moves, so tremor rejection at rest is not what pays for it.
+        self.declare_parameter('min_cutoff_hz', 1.0)
+        # LOWERED 100.0 -> 10.0 on 2026-08-30, against the 1-Euro author's
+        # own tuning guidance rather than by feel.
+        #
+        # The cutoff is fc = mincutoff + beta * |dx/dt|. This signal is
+        # POSITION IN METRES sampled at rate_hz = 100, so hand speeds during
+        # ordinary teleoperation are 0.1-1.0 m/s. At beta = 100 that gives
+        # fc = 1 + 100*0.5 = 51 Hz at half a metre per second -- ABOVE THE
+        # NYQUIST FREQUENCY of a 100 Hz sampler. The filter was therefore
+        # completely transparent the moment the hand moved: raw controller
+        # noise straight through to the arm, while still being heavily damped
+        # at rest. That is exactly the operator's report -- jitter and
+        # vibration while moving, sluggishness while not.
+        #
+        # gery.casiez.net/1euro: "do not hesitate to start with values like
+        # 0.001 or 0.0001. You can first multiply and divide beta by factor 10
+        # until you notice an effect on latency when moving quickly." Published
+        # implementations cluster at 0.1 (npm 1eurofilter, OneEuroFilterArduino)
+        # up to 20 for motion capture. 100 is far outside that range.
+        #
+        # 10.0 gives fc = 6 Hz at 0.5 m/s and 11 Hz at 1.0 m/s: still well
+        # inside the band, so fast moves stay responsive, but the filter is
+        # actually doing something while the hand is in motion, which is when
+        # the operator is trying to be precise. Tune it by the author's
+        # method -- factors of 10 -- not by small nudges.
+        self.declare_parameter('beta', 10.0)
+        # RAISED 0.2 -> 1.0, the value every reference implementation uses.
+        # This is the cutoff on the SPEED ESTIMATE that drives beta. Set too
+        # low, the filter's idea of how fast the hand is moving lags the hand
+        # itself, so it stays smooth into the start of a fast move and stays
+        # open into the end of one -- late to respond and late to settle,
+        # which reads as the arm not tracking intent.
+        self.declare_parameter('d_cutoff_hz', 1.0)
         # ORIENTATION WAS NOT FILTERED AT ALL until 2026-08-26: the raw
         # controller quaternion went straight to IK while position got an EMA.
         # Wrist tremor therefore reached the arm unattenuated, and it is the
         # wrist that the pads hang off. beta here is Hz per (rad/s).
         self.declare_parameter('smooth_orientation', True)
-        self.declare_parameter('rot_min_cutoff_hz', 0.5)
-        self.declare_parameter('rot_beta', 8.0)
-        self.declare_parameter('rot_d_cutoff_hz', 0.5)
+        # The same floor for orientation, raised for the same reason: wrist
+        # lag is what makes a grasp refuse to line up.
+        self.declare_parameter('rot_min_cutoff_hz', 1.0)
+        # LOWERED 8.0 -> 3.0 by the same arithmetic. Orientation is in
+        # RADIANS and wrist rates run 1-3 rad/s, so beta = 8 gave
+        # fc = 1 + 16 = 17 Hz mid-turn -- transparent again, and wrist jitter
+        # is what stops a grasp lining up. 3.0 gives about 7 Hz at 2 rad/s.
+        self.declare_parameter('rot_beta', 3.0)
+        self.declare_parameter('rot_d_cutoff_hz', 1.0)
         self.declare_parameter('rate_hz', 100.0)
         # THE RATE LIMIT WAS THE OTHER HALF OF "SLOW". 0.35 m/s is slower
         # than an ordinary reach, so any brisk hand movement hit the limiter
@@ -346,6 +389,21 @@ class VrPoseMapper(Node):
         cutoff changes between its own samples has no defined behaviour.
         """
         from rcl_interfaces.msg import SetParametersResult
+        # `scale` IS NOT A SMOOTHING PARAMETER AND WAS NOT LIVE AT ALL.
+        # It is copied into self.scale at construction and refreshed only on a
+        # rebase, so setting the parameter -- from a slider or anywhere else --
+        # changed a number the mapping had already taken a copy of. Reported
+        # 2026-08-30 as "those sliders don't work", and for this one that was
+        # exactly right. `_set_scale` is the correct path: it moves the anchor
+        # to compensate, so the commanded pose does not jump when the gain
+        # under it changes mid-session.
+        for prm in params:
+            if prm.name == 'scale':
+                try:
+                    self._set_scale(self.hands[0], float(prm.value))
+                except Exception as e:                        # noqa: BLE001
+                    self.get_logger().warn(
+                        'scale %r refused: %r' % (prm.value, e))
         touched = [p.name for p in params if p.name in self.SMOOTHING_PARAMS]
         if touched and hasattr(self, 'pfilt'):
             # EXACTLY WHAT `reset` DOES, and for the same reason. `pfilt` and

@@ -41,25 +41,38 @@ def _geom(name):
                 y=float(m.group(3)), a=float(m.group(4)))
 
 
-class TestItShrinksWhileDriving(unittest.TestCase):
+class TestTheAButtonHidesIt(unittest.TestCase):
+    """SHOW/HIDE IS A DECISION, NOT A CONTINUOUS SIGNAL.
 
-    def test_the_driving_panel_is_much_smaller(self):
-        idle, drive = _geom("PANEL_IDLE"), _geom("PANEL_DRIVE")
-        self.assertLess(drive["w"], idle["w"] / 2.0,
-                        "halving is not enough to clear the field an "
-                        "operator reaches through")
-        self.assertLess(drive["h"], idle["h"] / 2.0)
+    It was first wired to the clutch -- shrink while driving -- and the
+    operator corrected it the same day: "make it disappear when A is pressed,
+    not the clutch button". They are right. The clutch changes many times a
+    minute, so tying the view to it makes the panel flicker in and out while
+    working, and the moment you most want telemetry is often mid-reach with
+    the grip closed. Visibility is decided once and stays decided.
+    """
 
-    def test_it_moves_out_of_the_eye_line(self):
-        idle, drive = _geom("PANEL_IDLE"), _geom("PANEL_DRIVE")
-        self.assertLess(drive["y"], idle["y"],
-                        "further DOWN, not up -- the work is straight ahead")
+    def test_hidden_means_hidden(self):
+        self.assertEqual(_geom("PANEL_OFF")["a"], 0.0,
+                         "the operator asked for it GONE -- a shrunken panel "
+                         "is still a thing in the way")
 
-    def test_it_fades(self):
-        self.assertLess(_geom("PANEL_DRIVE")["a"], 1.0)
-        self.assertGreater(_geom("PANEL_DRIVE")["a"], 0.2,
-                           "still readable at a glance; invisible telemetry "
-                           "is the opposite problem")
+    def test_the_toggle_is_edge_triggered(self):
+        self.assertIn("aDown && !aWasDown", HTML,
+                      "a held button must toggle ONCE, not sixty times a "
+                      "second")
+
+    def test_the_clutch_no_longer_controls_visibility(self):
+        self.assertNotIn("PANEL_DRIVE", HTML)
+        self.assertNotIn("GRIP_ENGAGED", HTML,
+                         "the clutch threshold has no business in a "
+                         "visibility decision any more")
+
+    def test_a_guided_step_keeps_its_own_use_of_A(self):
+        self.assertIn("!state.instruction) panelHidden", HTML,
+                      "a guided step owns the panel and prints 'press A when "
+                      "finished'; the toggle must stand aside there rather "
+                      "than fight it for the button")
 
     def test_the_alpha_actually_reaches_the_shader(self):
         self.assertIn("uniform float alpha", HTML)
@@ -71,21 +84,18 @@ class TestItShrinksWhileDriving(unittest.TestCase):
 
 
 class TestItReactsInTheSameFrame(unittest.TestCase):
-    """Read the LOCAL gamepad, not the robot state coming back."""
+    """Read the LOCAL gamepad, not the robot state coming back over the
+    socket. The panel must respond in the frame the button is pressed;
+    waiting for the bridge to echo the button back puts a network round trip
+    between pressing and seeing."""
 
-    def test_driving_comes_from_the_local_grip(self):
-        self.assertIn("driving = (L.grip > GRIP_ENGAGED)", HTML,
-                      "waiting for the mapper to report engagement puts a "
-                      "network round trip between squeezing and being able "
-                      "to see, which is the opposite of the fix")
+    def test_the_toggle_reads_the_local_buttons(self):
+        self.assertIn("const aDown = !!(L.a || R.a);", HTML)
 
-    def test_the_threshold_matches_the_clutch(self):
-        m = re.search(r"const GRIP_ENGAGED = ([\d.]+)", HTML)
-        self.assertIsNotNone(m)
-        self.assertEqual(float(m.group(1)), 0.6,
-                         "vr_pose_mapper._on_joy engages at 0.6; a panel "
-                         "that clears at a different threshold than the "
-                         "clutch is a panel that lies about the clutch")
+    def test_either_hand_works(self):
+        # The operator's other hand is often holding something, or the
+        # controller is the one not currently clutched.
+        self.assertIn("L.a || R.a", HTML)
 
 
 class TestAFreezeIsNeverShrunk(unittest.TestCase):
@@ -96,9 +106,10 @@ class TestAFreezeIsNeverShrunk(unittest.TestCase):
                   HTML.index("// Head-locked panel")]
         self.assertIn("state.frozen", fn)
         self.assertIn("return PANEL_IDLE", fn)
-        self.assertLess(fn.index("state.frozen"), fn.index("driving ?"),
-                        "the freeze test must come FIRST, or a driving "
-                        "operator gets a shrunken freeze banner")
+        self.assertLess(fn.index("state.frozen"), fn.index("panelHidden ?"),
+                        "the freeze test must come FIRST, or an operator who "
+                        "hid the panel never sees the one message they must "
+                        "not miss")
 
     def test_a_guided_instruction_is_also_full_size(self):
         fn = HTML[HTML.index("function panelGeom()"):

@@ -4,7 +4,11 @@
   <version>0.1.0</version>
   <description>Meta Quest teleoperation for the SRL rig. A SEPARATE input
   modality from the mannequin master: full 6-DOF including yaw. Depends on
-  srl_perception and srl_moveit_config; NEVER on srl_teleop.</description>
+  srl_perception, and on srl_teleop -- that arrow is legal (HARD CONSTRAINT 7
+  only forbids the reverse) and was already real but UNDECLARED: this package
+  imported srl_teleop from vr_gripper_node.py:30 and vr_safety_node.py:136
+  before the depend below was added on 2026-08-27, when vr_smoothing became a
+  shim over srl_teleop.smoothing.</description>
   <maintainer email="gmsayyadsvc4@gmail.com">gausms</maintainer>
   <license>Apache-2.0</license>
   <depend>rclpy</depend>
@@ -16,6 +20,7 @@
   <depend>moveit_msgs</depend>
   <depend>tf2_ros</depend>
   <depend>srl_perception</depend>
+  <depend>srl_teleop</depend>
   <test_depend>python3-pytest</test_depend>
   <export><build_type>ament_python</build_type></export>
 </package>

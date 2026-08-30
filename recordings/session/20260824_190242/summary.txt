@@ -1,0 +1,29 @@
+a whole session, 20260824_190242
+
+full scan exit 0, reference exit 0, pick exit 0, quick check exit 0
+18 narration sentence(s), 236 s end to end
+
+arms swept        ['left', 'right']
+bounds from       FOUND by a coarse probe before the sweep
+table found at    z = 1.2489 m, tilt 0.51 deg
+                  x -0.840..0.926  y 0.369..0.650
+cells reachable   5 of 24, 4 photographed
+stillness refusals 0
+surface measured  1.2502 m
+objects           5
+    0  [  0.290   0.500   1.260]    140 mm  too wide
+    1  [ -0.290   0.500   1.260]    140 mm  too wide
+    2  [  0.480   0.449   1.282]     40 mm  graspable
+    3  [ -0.480   0.450   1.278]     41 mm  graspable
+    4  [ -0.420   0.449   1.280]     41 mm  graspable
+
+1_full_scan.mp4    mean pixel 66.3
+2_pick.mp4         mean pixel 69.3
+3_quick_check.mp4  mean pixel 69.2
+
+WHAT THIS IS AND IS NOT
+  The arm is SIMULATED and the depth is RENDERED by mock_rgbd_camera. NO
+  CAMERA HAS EVER BEEN ATTACHED TO THIS HOST, so this films the pipeline and
+  not the room.
+  What IS real: the sweep order, the deprojection, the segmentation, the
+  fusion, the plane fit, the IK, the approach-angle search, and every refusal.

@@ -58,6 +58,10 @@ class FakeWorld(V.World):
             beats=10, pose_beats=30, bridge_dies=False,
             nodes_direct=["/move_group"],
             spawn_ok=True,
+            # RViz IS DRAWN by default. A fake that says no
+            # window exists makes every start wait out the
+            # RViz bound for nothing.
+            rviz_windows=1,
             sim_starts=True)
         base.update(kw)
         self.k = base
@@ -91,6 +95,9 @@ class FakeWorld(V.World):
 
     def joint_beats(self, window_s=2.0):
         return self.k["joint_beats"]
+
+    def rviz_windows(self):
+        return self.k["rviz_windows"]
 
     def observer_bypass(self):
         return self.k["bypass"]
@@ -763,6 +770,126 @@ def test_ready_also_refuses_a_listed_but_silent_simulation():
     out = V.step_ready(FakeWorld(joint_beats=0))
     assert out.state == V.FAILED, out
     assert "dash" in out.plain, out.plain
+
+
+def test_a_simulation_that_is_still_coming_up_is_waited_for_not_condemned():
+    """The operator's report, 2026-08-29: press RESTART SIMULATION, and the
+    check says the simulation is not up while it is plainly starting.
+
+    `/joint_states` is advertised early in the launch and the first joint
+    update is not, so between the two this step declared the simulation
+    broken and offered to restart the thing that was starting. If a launch
+    is in the process table, wait for it.
+    """
+    w = FakeWorld(joint_beats=0,
+                  procs={"run_teleop": [(7, "bash scripts/run_teleop.sh")]})
+
+    # It comes good while we wait: the beats arrive on the third look.
+    seen = {"n": 0}
+
+    def beats(window_s=2.0):
+        seen["n"] += 1
+        return 0 if seen["n"] < 3 else 30
+    w.joint_beats = beats
+    out = V.step_sim_stack(w)
+    assert out.state == V.OK, out
+    assert w.slept > 0, "it returned a verdict without waiting at all"
+
+
+def test_a_starting_simulation_is_never_given_a_SECOND_stack():
+    """HARD CONSTRAINT 3, reached through the repair button.
+
+    `move_group` is late in the launch, so for the first tens of seconds of
+    a start there is no `move_group` to find and no `/joint_states` to list
+    -- byte for byte what a machine with no simulation looks like. This step
+    spawned on that, on top of a launch that was already coming up.
+    """
+    w = FakeWorld(topics=[],
+                  procs={"run_teleop": [(7, "bash scripts/run_teleop.sh")]})
+    # The launch that is already up comes good on its own, as it would.
+    seen = {"n": 0}
+
+    def topics(timeout_s=10):
+        seen["n"] += 1
+        return [] if seen["n"] < 3 else ["/joint_states"]
+    w.topics = topics
+    out = V.step_sim_stack(w)
+    assert out.state == V.OK, out
+    assert not w.started, (
+        "started a second simulation on top of one that was coming up: %r"
+        % (w.started,))
+
+
+def test_the_simulation_is_not_believed_the_instant_it_is_listed():
+    """Listed is not reporting, and reporting is not loaded. There is a
+    settle window between the topic appearing and the count being taken."""
+    w = FakeWorld(topics=[])
+    V.step_sim_stack(w)
+    assert w.slept >= V.SIM_SETTLE_S, (
+        "asked for a count %.0f s after the topic appeared; the controllers "
+        "and RViz are still coming up there" % w.slept)
+
+
+def test_restarting_the_simulation_WAITS_for_it():
+    """A repair that returns before it has repaired anything.
+
+    `fix_restart_sim` spawned the launch and returned "press the button
+    again when it settles" -- and the window did not wait for the operator,
+    it re-ran the whole sequence 400 ms later. So the repair reported
+    success and the sequence reported the simulation absent, both on screen
+    at once, with RViz still grey.
+    """
+    w = FakeWorld(topics=[])
+    ok, msg = V.fix_restart_sim(w)
+    assert ok, msg
+    assert w.slept >= V.SIM_SETTLE_S, (
+        "returned %.0f s after starting a launch that takes a minute" % w.slept)
+    assert "waited" in msg.lower(), msg
+
+
+def test_a_restart_that_never_comes_up_reports_FAILURE():
+    """The control. Without it, a repair that always returns True after a
+    long sleep passes the test above."""
+    w = FakeWorld(topics=[], sim_starts=False)
+    ok, msg = V.fix_restart_sim(w)
+    assert not ok, msg
+    assert "still not saying where the robot is" in msg, msg
+
+
+def test_rviz_is_waited_for_and_is_never_a_gate():
+    """A missing RViz window is reported, not fatal: `use_rviz:=false` and a
+    headless box are both legitimate."""
+    w = FakeWorld(topics=[], rviz_windows=0)
+    out = V.step_sim_stack(w)
+    assert out.state == V.OK, out
+    assert "no RViz window" in out.detail, out.detail
+    w2 = FakeWorld(topics=[], rviz_windows=1)
+    assert "RViz drawn" in V.step_sim_stack(w2).detail
+
+
+def test_the_step_and_the_repair_start_THE_SAME_simulation():
+    """Two spawn sites, one command. They drifted apart once already."""
+    import inspect
+    for fn in (V.step_sim_stack, V.fix_restart_sim):
+        assert "_sim_argv" in inspect.getsource(fn), fn
+
+
+def test_the_window_can_stop_the_launch_opening_a_second_rviz():
+    """The 2026-08-27 "two RVizs" finding, on the path it missed."""
+    import os
+    w = FakeWorld()
+    old = os.environ.get("SRL_VR_SIM_RVIZ")
+    try:
+        os.environ["SRL_VR_SIM_RVIZ"] = "false"
+        assert "use_rviz:=false" in V._sim_argv(w)
+        os.environ.pop("SRL_VR_SIM_RVIZ")
+        assert "use_rviz:=false" not in V._sim_argv(w), (
+            "a terminal run has no window to embed in and must keep its own")
+    finally:
+        if old is None:
+            os.environ.pop("SRL_VR_SIM_RVIZ", None)
+        else:
+            os.environ["SRL_VR_SIM_RVIZ"] = old
 
 
 def test_restarting_the_simulation_is_offered_as_its_own_repair():

@@ -164,7 +164,6 @@ class PromptDetector:
         if want in ("auto", "yoloworld"):
             try:
                 from ultralytics import YOLOWorld       # noqa: F401
-                return "yoloworld"
             except Exception:
                 if want == "yoloworld":
                     raise RuntimeError(
@@ -172,6 +171,21 @@ class PromptDetector:
                         "installed. Install it, or use backend='colour', "
                         "which needs nothing.")
                 return "colour"
+            # ASKED FOR BY NAME MEANS ONLY THAT ONE. `auto` means the union.
+            #
+            # THIS RETURNED "yoloworld" FOR BOTH, AND THE UNION BELOW WAS
+            # UNREACHABLE CODE. The `return "yoloworld"` sat inside the `try`,
+            # so every path out of this branch returned before reaching it --
+            # the reasoning was written, committed, and never ran once.
+            #
+            # It cost exactly what the comment below predicts. Measured
+            # 2026-08-25 on the live rig: `find_object.py "the green cube"`
+            # printed `backend yoloworld` and `0 match(es)` against a frame
+            # with the cube plainly in it, while `--backend colour` on the
+            # same frame found it. The fallback that exists for this case
+            # could not fire.
+            if want == "yoloworld":
+                return "yoloworld"
             # BOTH, BECAUSE THEY FAIL AT DIFFERENT THINGS.
             #
             # Measured on this rig 2026-08-21, same frame: YOLO-World finds a

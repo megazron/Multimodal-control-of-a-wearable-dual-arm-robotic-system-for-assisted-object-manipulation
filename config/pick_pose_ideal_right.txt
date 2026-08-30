@@ -1,0 +1,19 @@
+# IDEAL PICK POSE, BOTH ARMS -- captured 2026-08-25 from the REAL arms.
+#
+# The operator hand-guided BOTH arms to this pose and asked for it to be saved
+# as the ideal pick-up pose.  Source is /real/joint_states from each arm's own
+# encoders via kortex_highlevel_bridge, on ROS_DOMAIN_ID=7.
+#
+# The distinct-source-stamp count is recorded because an earlier capture was
+# taken from a leftover real_homing_node republishing a FROZEN snapshot; it
+# reported a pose the arm was no longer in.
+#
+# THIS IS NOT HOME.  config/home_positions_*.txt remains the source for home.
+# ---- RIGHT arm ----
+joint_1: 134.9158    # kortex 134.9158 deg
+joint_2: -66.5755    # kortex 293.4245 deg
+joint_3: 25.8670    # kortex 25.8670 deg
+joint_4: -31.4546    # kortex 328.5454 deg
+joint_5: 161.6965    # kortex 161.6965 deg
+joint_6: 71.1858    # kortex 71.1858 deg
+joint_7: 153.9316    # kortex 153.9316 deg

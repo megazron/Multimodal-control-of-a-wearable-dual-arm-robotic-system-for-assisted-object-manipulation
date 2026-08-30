@@ -145,8 +145,54 @@ class Vision(Node):
     def names(self):
         return ["%s_joint_%d" % (self.arm, i) for i in range(1, 8)]
 
-    def stage(self, q, secs=3.0, timeout=20.0, tol=0.02):
-        """Command the arm and VERIFY ARRIVAL off /joint_states."""
+    # HOW FAST THE SIMULATION MAY BE ASKED TO MOVE WHEN A REAL ARM IS
+    # CASCADING OFF IT. Below `start_real.sh`'s bridge vmax, with margin.
+    STAGE_JOINT_SPEED_RAD_S = 0.18
+
+    def _staging_secs(self, q, floor=3.0):
+        """Long enough that the REAL arm can still be where the sim is.
+
+        `secs` was a hardcoded 3.0 whatever the distance, and that is a
+        scheduled e-stop rather than a move. The bridge replays the sim onto
+        the real arm 1.0 s late and capped at `vmax`; the lag monitor trips
+        at 0.50 rad. So a 3 s command that moves a joint 2.5 rad asks the sim
+        for 0.83 rad/s, the real arm delivers its cap, and the error GROWS
+        MONOTONICALLY -- it is not a transient and it never recovers.
+
+        Measured on both real arms 2026-08-25, twice, at two different bridge
+        speeds:
+            vmax 0.15 -> LAG MONITOR TRIPPING E-STOP: 0.506 rad on joint_6
+            vmax 0.40 -> LAG MONITOR TRIPPING E-STOP: 0.501 rad on joint_3
+        Raising vmax cannot fix it: at 0.40 rad/s the 1.0 s replay delay is
+        already 0.40 rad of standing lag, 80% of the trip, before any
+        tracking error at all. The command has to get slower, not the arm
+        faster.
+
+        Scaling the duration by the LARGEST joint delta keeps every joint
+        under STAGE_JOINT_SPEED_RAD_S, so the lag stays bounded by the replay
+        delay alone and the monitor goes back to meaning what it says.
+        """
+        cur = [self.js.get(k) for k in self.names()]
+        if any(v is None for v in cur):
+            return floor
+        far = max(abs(((a - b + math.pi) % (2 * math.pi)) - math.pi)
+                  for a, b in zip(cur, q))
+        return max(floor, far / self.STAGE_JOINT_SPEED_RAD_S)
+
+    def stage(self, q, secs=None, timeout=None, tol=0.02):
+        """Command the arm and VERIFY ARRIVAL off /joint_states.
+
+        `secs=None` means "work it out from how far this actually is" --
+        see `_staging_secs`. An explicit value is still honoured.
+        """
+        if secs is None:
+            secs = self._staging_secs(q)
+        if timeout is None:
+            # THE TIMEOUT HAS TO OUTLAST THE MOVE. It was a fixed 20 s beside
+            # a fixed 3 s move; now the move can legitimately take longer
+            # than that, and a timeout shorter than the trajectory reports a
+            # perfectly good move as a failure to arrive.
+            timeout = max(20.0, secs * 2.5 + 8.0)
         m = JointTrajectory()
         m.joint_names = self.names()
         p = JointTrajectoryPoint()
@@ -154,16 +200,45 @@ class Vision(Node):
         p.time_from_start.sec = int(secs)
         p.time_from_start.nanosec = int((secs % 1.0) * 1e9)
         m.points = [p]
+        # PUBLISH ONCE, THEN WAIT. RE-PUBLISHING IS WHAT STOPPED IT ARRIVING.
+        #
+        # This republished `m` every 0.6 s for the whole timeout. A
+        # JointTrajectory with one point and `time_from_start = secs` means
+        # "be at q in secs, starting from where you are NOW", so every
+        # republish threw away the progress made and restarted a fresh
+        # interpolation from the current position. The move stops being
+        # linear and becomes an exponential decay: each 0.6 s window covers
+        # 0.6/secs of the REMAINING distance, so the arm creeps toward the
+        # target and never reaches `tol`.
+        #
+        # Measured 2026-08-25 on the live stack: commanding home with a 10 s
+        # trajectory, republished this way, went 1.582 -> 0.094 rad in 45
+        # SECONDS and was still converging. The controller was never the
+        # problem and neither was the arm; the command was being cancelled
+        # and reissued 75 times.
+        #
+        # It also means a LONGER `secs` arrives SLOWER, which is the opposite
+        # of what the staging fix above needs -- the two changes together
+        # would have made this worse, not better.
+        #
+        # One publish, then poll. The keepalive re-publish stays, but at a
+        # multiple of the trajectory duration rather than inside it, so it
+        # can only ever act as a retry for a dropped message and never as an
+        # interruption of a move in progress.
+        self.pub.publish(m)
         end = time.monotonic() + timeout
+        last_pub = time.monotonic()
         while time.monotonic() < end:
-            self.pub.publish(m)
-            self.spin(0.6)
+            self.spin(0.2)
             cur = [self.js.get(k) for k in self.names()]
             if all(v is not None for v in cur):
                 err = max(abs(((a - b + math.pi) % (2 * math.pi)) - math.pi)
                           for a, b in zip(cur, q))
                 if err <= tol:
                     return True, err
+            if time.monotonic() - last_pub > max(secs * 1.5, 5.0):
+                self.pub.publish(m)
+                last_pub = time.monotonic()
         cur = [self.js.get(k) for k in self.names()]
         if any(v is None for v in cur):
             return False, None

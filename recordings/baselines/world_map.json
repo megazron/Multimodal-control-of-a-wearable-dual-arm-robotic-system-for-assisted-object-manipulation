@@ -1,302 +1,117 @@
 {
+  "bounds": {
+    "left": {
+      "x": [
+        0.325,
+        0.75
+      ],
+      "y": [
+        0.15,
+        0.65
+      ]
+    },
+    "right": {
+      "x": [
+        -0.75,
+        -0.45
+      ],
+      "y": [
+        0.15,
+        0.65
+      ]
+    }
+  },
+  "bounds_source": "the constant in calibrate_environment.py",
   "camera": {
     "left": {
       "camera_link_note": "the camera pose is forward kinematics, exact given the URDF, and the URDF's camera_link has never been checked against the physical module",
       "camera_link_verified_against_hardware": false,
-      "caveat": "SYNTHETIC: the depth was rendered by mock_rgbd_camera, so this map tests the pipeline and not the room",
-      "is_mock": true,
-      "mock_publishers": [
-        "mock_rgbd_camera",
-        "mock_rgbd_camera",
-        "mock_rgbd_camera"
-      ],
-      "pose_source": "render_pose",
-      "pose_source_note": "render_pose: the camera pose travelled WITH each frame, so the deprojection used the pose the frame was taken from",
+      "caveat": "depth came from a non-mock publisher",
+      "is_mock": false,
+      "mock_publishers": [],
+      "pose_source": "tf",
+      "pose_source_note": "tf: the pose was looked up separately and describes where the camera was when the lookup happened, NOT when the frame was taken. Every point in this map carries that error.",
       "topic": "/left_camera/depth/image_raw"
-    },
-    "right": {
-      "camera_link_note": "the camera pose is forward kinematics, exact given the URDF, and the URDF's camera_link has never been checked against the physical module",
-      "camera_link_verified_against_hardware": false,
-      "caveat": "SYNTHETIC: the depth was rendered by mock_rgbd_camera, so this map tests the pipeline and not the room",
-      "is_mock": true,
-      "mock_publishers": [
-        "mock_rgbd_camera",
-        "mock_rgbd_camera",
-        "mock_rgbd_camera"
-      ],
-      "pose_source": "render_pose",
-      "pose_source_note": "render_pose: the camera pose travelled WITH each frame, so the deprojection used the pose the frame was taken from",
-      "topic": "/right_camera/depth/image_raw"
     }
   },
-  "coverage": 0.6697,
-  "heights": [
-    {
-      "frac": 0.7744,
-      "n": 746895,
-      "z_m": 1.245
-    },
-    {
-      "frac": 0.0974,
-      "n": 93917,
-      "z_m": 1.255
-    }
-  ],
-  "n_points": 964420,
+  "coverage": 0.0167,
+  "heights": [],
+  "n_points": 12362,
   "objects": [
     {
       "centre": [
-        0.28987,
-        0.49886,
-        1.26016
+        -0.18785,
+        0.18378,
+        1.08733
       ],
       "extents": [
-        0.16148,
-        0.13869,
-        0.00754
+        0.27721,
+        0.09484,
+        0.1433
       ],
       "graspable": false,
       "mean_bgr": [
-        229.0,
-        76.0,
-        25.0
+        196.5,
+        190.6,
+        190.5
       ],
-      "n_points": 15404,
+      "n_points": 3213,
       "seen_by": [
-        "relook_left_01",
-        "relook_left_03",
-        "relook_right_02"
+        "left_p1_c01"
       ],
       "top_seen": true,
-      "why": "139 mm across its narrowest axis and the jaws close on 85 mm",
-      "width_m": 0.13869
+      "why": "95 mm across its narrowest axis and the jaws close on 85 mm",
+      "width_m": 0.09484
     },
     {
       "centre": [
-        -0.32465,
-        0.49894,
-        1.25969
+        0.08698,
+        0.19189,
+        1.08567
       ],
       "extents": [
-        0.23188,
-        0.13994,
-        0.01294
-      ],
-      "graspable": false,
-      "mean_bgr": [
-        51.7,
-        229.1,
-        25.8
-      ],
-      "n_points": 10936,
-      "seen_by": [
-        "relook_left_01",
-        "relook_left_03",
-        "relook_right_02"
-      ],
-      "top_seen": true,
-      "why": "140 mm across its narrowest axis and the jaws close on 85 mm",
-      "width_m": 0.13994
-    },
-    {
-      "centre": [
-        0.41983,
-        0.4497,
-        1.28328
-      ],
-      "extents": [
-        0.04159,
-        0.04048,
-        0.03769
+        0.30092,
+        0.08459,
+        0.15822
       ],
       "graspable": true,
       "mean_bgr": [
-        229.0,
-        76.0,
-        25.0
+        201.1,
+        195.6,
+        196.2
       ],
-      "n_points": 8577,
+      "n_points": 3144,
       "seen_by": [
-        "relook_left_01",
-        "relook_left_03"
+        "left_p1_c03"
       ],
       "top_seen": true,
       "why": "",
-      "width_m": 0.04048
-    },
-    {
-      "centre": [
-        -0.47973,
-        0.44957,
-        1.27809
-      ],
-      "extents": [
-        0.04157,
-        0.04056,
-        0.03683
-      ],
-      "graspable": true,
-      "mean_bgr": [
-        51.0,
-        229.0,
-        25.0
-      ],
-      "n_points": 2541,
-      "seen_by": [
-        "relook_left_03",
-        "relook_right_02"
-      ],
-      "top_seen": true,
-      "why": "",
-      "width_m": 0.04056
-    },
-    {
-      "centre": [
-        0.48037,
-        0.44927,
-        1.27934
-      ],
-      "extents": [
-        0.04022,
-        0.03967,
-        0.03755
-      ],
-      "graspable": true,
-      "mean_bgr": [
-        229.0,
-        76.0,
-        25.0
-      ],
-      "n_points": 2081,
-      "seen_by": [
-        "relook_left_01",
-        "relook_left_03"
-      ],
-      "top_seen": true,
-      "why": "",
-      "width_m": 0.03967
-    },
-    {
-      "centre": [
-        -0.41976,
-        0.44939,
-        1.28431
-      ],
-      "extents": [
-        0.04159,
-        0.04014,
-        0.02066
-      ],
-      "graspable": true,
-      "mean_bgr": [
-        51.0,
-        229.0,
-        25.0
-      ],
-      "n_points": 1224,
-      "seen_by": [
-        "relook_left_03",
-        "relook_right_02"
-      ],
-      "top_seen": true,
-      "why": "",
-      "width_m": 0.04014
+      "width_m": 0.08459
     }
   ],
   "provenance": {
     "discarded_views": [],
-    "n_views": 73,
+    "n_views": 2,
     "object_finder": "segment_lift: instances cut from each PICTURE by FastSAM and lifted through the depth",
     "objects_per_view": [
-      4,
-      6,
       3,
-      2,
-      2,
-      4,
-      7,
-      6,
-      6,
-      6,
-      4,
-      2,
-      8,
-      6,
-      5,
-      1,
-      4,
-      5,
-      3,
-      6,
-      5,
-      5,
-      4,
-      6,
-      8,
-      8,
-      7,
-      7,
-      4,
-      9,
-      7,
-      2,
-      5,
-      2,
-      3,
-      6,
-      6,
-      8,
-      5,
-      8,
-      7,
-      6,
-      7,
-      3,
-      2,
-      0,
-      2,
-      2,
-      6,
-      5,
-      3,
-      5,
-      6,
-      2,
-      4,
-      6,
-      8,
-      4,
-      2,
-      2,
-      5,
-      8,
-      6,
-      6,
-      4,
-      5,
-      6,
-      6,
-      7,
-      6,
-      7,
-      8,
-      7
+      2
     ],
     "observe_set": [
       {
-        "cells": 255,
-        "new_cells": 255,
-        "source": "left_p1_c24",
+        "cells": 50,
+        "new_cells": 50,
+        "source": "left_p1_c01",
         "viewpoint": {
           "arm": "left",
           "cam": [
-            0.84167,
-            0.03906,
-            1.67
+            0.59285,
+            -0.10782,
+            1.55
           ],
           "elev_deg": 38.9,
           "facing_deg": -25.0,
-          "layer": 1,
+          "layer": 0,
           "quat": [
             -0.3532041586675156,
             0.8302039632740638,
@@ -306,36 +121,14 @@
         }
       },
       {
-        "cells": 180,
-        "new_cells": 74,
-        "source": "right_p3_c30",
-        "viewpoint": {
-          "arm": "right",
-          "cam": [
-            -0.86785,
-            0.14218,
-            1.55
-          ],
-          "elev_deg": 38.9,
-          "facing_deg": 25.0,
-          "layer": 0,
-          "quat": [
-            0.3532041586675156,
-            0.8302039632740638,
-            0.3968632044926548,
-            0.168842525993397
-          ]
-        }
-      },
-      {
-        "cells": 180,
-        "new_cells": 7,
-        "source": "left_p1_c13",
+        "cells": 44,
+        "new_cells": 28,
+        "source": "left_p1_c03",
         "viewpoint": {
           "arm": "left",
           "cam": [
             0.87618,
-            0.26718,
+            -0.10782,
             1.55
           ],
           "elev_deg": 38.9,
@@ -350,420 +143,104 @@
         }
       }
     ],
-    "observe_set_cover": 0.9882,
-    "observe_set_note": "the fewest viewpoints covering 99% of the surface this sweep saw. Every one was reached and returned points, so it is not a prediction.",
+    "observe_set_cover": 1.0,
+    "observe_set_note": "the fewest viewpoints covering 100% of the surface this sweep saw. Every one was reached and returned points, so it is not a prediction.",
     "points_per_view": [
-      7644,
-      7644,
-      7644,
-      7644,
-      11912,
-      11912,
-      11912,
-      11912,
-      18247,
-      18247,
-      18247,
-      18246,
-      23403,
-      23403,
-      23403,
-      23729,
-      23729,
-      20003,
-      20003,
-      18822,
-      18821,
-      18822,
-      15281,
-      15281,
-      15281,
-      11015,
-      11016,
-      11015,
-      7901,
-      7901,
-      7901,
-      5356,
-      5355,
-      5356,
-      10220,
-      10220,
-      10219,
-      16288,
-      16288,
-      14445,
-      10546,
-      6583,
-      6583,
-      2020,
-      2020,
-      16857,
-      2020,
-      5356,
-      5355,
-      10220,
-      10220,
-      16288,
-      6583,
-      7644,
-      7644,
-      7644,
-      11912,
-      11912,
-      11912,
-      18245,
-      18247,
-      18247,
-      23403,
-      23403,
-      23729,
-      20003,
-      18822,
-      18821,
-      15281,
-      15281,
-      11015,
-      11015,
-      7901
+      6216,
+      6146
     ],
     "single_view_caveat": false,
     "sources": [
-      "left_p1_c02",
-      "left_p1_c03",
-      "left_p1_c04",
-      "left_p1_c05",
-      "left_p1_c06",
-      "left_p1_c07",
-      "left_p1_c08",
-      "left_p1_c09",
-      "left_p1_c10",
-      "left_p1_c11",
-      "left_p1_c12",
-      "left_p1_c13",
-      "left_p1_c14",
-      "left_p1_c15",
-      "left_p1_c16",
-      "left_p1_c17",
-      "left_p1_c18",
-      "left_p1_c19",
-      "left_p1_c20",
-      "left_p1_c21",
-      "left_p1_c22",
-      "left_p1_c23",
-      "left_p1_c24",
-      "left_p1_c25",
-      "left_p1_c26",
-      "left_p1_c27",
-      "left_p1_c28",
-      "left_p1_c29",
-      "left_p1_c30",
-      "left_p1_c31",
-      "left_p2_c32",
-      "left_p2_c33",
-      "left_p2_c34",
-      "left_p2_c35",
-      "left_p2_c36",
-      "left_p2_c37",
-      "left_p2_c38",
-      "left_p2_c39",
-      "left_p2_c40",
-      "left_p2_c41",
-      "left_p2_c42",
-      "left_p2_c43",
-      "left_p3_c44",
-      "left_p3_c45",
-      "left_p3_c46",
-      "right_p1_c01",
-      "right_p2_c17",
-      "right_p2_c18",
-      "right_p2_c19",
-      "right_p2_c20",
-      "right_p2_c21",
-      "right_p2_c22",
-      "right_p3_c23",
-      "right_p3_c24",
-      "right_p3_c25",
-      "right_p3_c26",
-      "right_p3_c27",
-      "right_p3_c28",
-      "right_p3_c29",
-      "right_p3_c30",
-      "right_p3_c31",
-      "right_p3_c32",
-      "right_p3_c33",
-      "right_p3_c34",
-      "right_p3_c35",
-      "right_p3_c36",
-      "right_p3_c37",
-      "right_p3_c38",
-      "right_p3_c39",
-      "right_p3_c40",
-      "right_p3_c41",
-      "right_p3_c42",
-      "right_p3_c43"
+      "left_p1_c01",
+      "left_p1_c03"
     ],
     "surface_z_m": "MEASURED from the fused cloud",
     "weak_detections": [
       {
         "centre": [
-          0.13504,
-          0.44205,
-          1.25023
+          0.09361,
+          0.12669,
+          1.08353
         ],
         "extents": [
-          0.11197,
-          0.02614,
-          0.003
+          0.07667,
+          0.00783,
+          0.03596
         ],
         "graspable": true,
         "mean_bgr": [
-          255.0,
-          255.0,
-          255.0
+          69.1,
+          67.8,
+          64.3
         ],
-        "n_points": 906,
+        "n_points": 171,
         "seen_by": [
-          "left_p3_c45"
-        ],
-        "top_seen": false,
-        "why": "",
-        "width_m": 0.02614
-      },
-      {
-        "centre": [
-          -0.2024,
-          0.46058,
-          1.25128
-        ],
-        "extents": [
-          0.07612,
-          0.03199,
-          0.00622
-        ],
-        "graspable": true,
-        "mean_bgr": [
-          159.4,
-          242.8,
-          147.2
-        ],
-        "n_points": 175,
-        "seen_by": [
-          "left_p2_c34"
+          "left_p1_c03"
         ],
         "top_seen": true,
         "why": "",
-        "width_m": 0.03199
+        "width_m": 0.00783
       },
       {
         "centre": [
-          -0.39962,
-          0.44868,
-          1.26548
+          -0.17725,
+          0.11623,
+          1.09034
         ],
         "extents": [
-          0.04099,
-          0.00956,
-          0.01287
+          0.04128,
+          0.00532,
+          0.01972
         ],
         "graspable": true,
         "mean_bgr": [
-          51.0,
-          229.0,
-          25.0
+          74.6,
+          64.4,
+          64.4
         ],
-        "n_points": 169,
+        "n_points": 96,
         "seen_by": [
-          "left_p1_c10",
-          "left_p2_c43",
-          "left_p3_c45"
+          "left_p1_c01"
         ],
         "top_seen": true,
         "why": "",
-        "width_m": 0.00956
-      },
-      {
-        "centre": [
-          0.20983,
-          0.4588,
-          1.25424
-        ],
-        "extents": [
-          0.06225,
-          0.01283,
-          0.00622
-        ],
-        "graspable": true,
-        "mean_bgr": [
-          229.0,
-          76.0,
-          25.0
-        ],
-        "n_points": 79,
-        "seen_by": [
-          "right_p2_c19"
-        ],
-        "top_seen": true,
-        "why": "",
-        "width_m": 0.01283
-      },
-      {
-        "centre": [
-          0.39945,
-          0.46396,
-          1.27859
-        ],
-        "extents": [
-          0.00838,
-          0.00094,
-          0.01964
-        ],
-        "graspable": true,
-        "mean_bgr": [
-          229.0,
-          76.0,
-          25.0
-        ],
-        "n_points": 31,
-        "seen_by": [
-          "right_p3_c40"
-        ],
-        "top_seen": true,
-        "why": "",
-        "width_m": 0.00094
+        "width_m": 0.00532
       }
     ],
     "weak_rule": "under 200 points or seen by fewer than 2 views. Kept, not deleted -- a scene where everything is weak is worth seeing."
   },
-  "relook": {
-    "carried_forward": 0,
-    "cells_remeasured": 276,
-    "diff": {
-      "appeared": [],
-      "gone": [],
-      "moved": [
-        {
-          "centre": [
-            -0.32465,
-            0.49894,
-            1.25969
-          ],
-          "from_centre": [
-            -0.28954,
-            0.49956,
-            1.25997
-          ],
-          "moved_mm": 35.1
-        }
-      ],
-      "unchanged": [
-        {
-          "centre": [
-            0.28987,
-            0.49886,
-            1.26016
-          ],
-          "from_centre": [
-            0.2899,
-            0.49947,
-            1.26012
-          ],
-          "moved_mm": 0.6
-        },
-        {
-          "centre": [
-            0.41983,
-            0.4497,
-            1.28328
-          ],
-          "from_centre": [
-            0.41989,
-            0.44952,
-            1.28155
-          ],
-          "moved_mm": 1.7
-        },
-        {
-          "centre": [
-            -0.47973,
-            0.44957,
-            1.27809
-          ],
-          "from_centre": [
-            -0.47987,
-            0.4495,
-            1.2795
-          ],
-          "moved_mm": 1.4
-        },
-        {
-          "centre": [
-            0.48037,
-            0.44927,
-            1.27934
-          ],
-          "from_centre": [
-            0.47984,
-            0.44943,
-            1.28039
-          ],
-          "moved_mm": 1.2
-        },
-        {
-          "centre": [
-            -0.41976,
-            0.44939,
-            1.28431
-          ],
-          "from_centre": [
-            -0.41989,
-            0.44957,
-            1.2807
-          ],
-          "moved_mm": 3.6
-        }
-      ]
-    },
-    "of_observe_set": null,
-    "plane": "the full sweep's, not re-fitted",
-    "regions": null,
-    "seconds": 38.2,
-    "viewpoints": 3,
-    "views_used": 3
-  },
   "surface": {
-    "inliers": 694455,
+    "inliers": 3665,
     "normal": [
-      -9e-05,
-      -0.00062,
-      1.0
+      -0.45964,
+      0.02341,
+      0.8878
     ],
-    "tilt_deg": 0.036,
-    "z_m": 1.25026
+    "tilt_deg": 27.402,
+    "z_m": 1.17862
   },
   "sweep": {
     "arms": [
-      "left",
-      "right"
+      "left"
     ],
-    "cells": 109,
-    "cells_outside_envelope": 35,
-    "cells_reachable": 74,
-    "coverage": 0.6697,
-    "coverage_of_reachable": 0.9865,
+    "cells": 120,
+    "cells_outside_envelope": 110,
+    "cells_reachable": 10,
+    "coverage": 0.0167,
+    "coverage_of_reachable": 0.2,
     "per_arm": [
       {
         "arm": "left",
-        "cells": 66,
-        "cells_dropped_as_unreachable": 54,
+        "cells": 120,
+        "cells_dropped_as_unreachable": 0,
         "cells_missed": [
           {
             "at": [
-              0.59285,
+              0.73452,
               -0.10782,
               1.55
             ],
-            "cell": 1,
+            "cell": 2,
             "facing": -25.0,
             "layer": 0,
             "pass_": 1,
@@ -771,461 +248,1414 @@
           },
           {
             "at": [
-              1.26754,
-              0.70525,
-              1.67
-            ],
-            "cell": 47,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              1.12587,
-              0.70525,
-              1.67
-            ],
-            "cell": 48,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              0.98421,
-              0.70525,
-              1.67
-            ],
-            "cell": 49,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              0.84254,
-              0.70525,
-              1.67
-            ],
-            "cell": 50,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              0.84254,
-              0.58025,
-              1.67
-            ],
-            "cell": 51,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              0.98421,
-              0.58025,
-              1.67
-            ],
-            "cell": 52,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              1.12587,
-              0.58025,
-              1.67
-            ],
-            "cell": 53,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              1.26754,
-              0.58025,
-              1.67
-            ],
-            "cell": 54,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              1.26754,
-              0.45525,
-              1.67
-            ],
-            "cell": 55,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              1.12587,
-              0.45525,
-              1.67
-            ],
-            "cell": 56,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              0.98421,
-              0.45525,
-              1.67
-            ],
-            "cell": 57,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              0.84254,
-              0.45525,
-              1.67
-            ],
-            "cell": 58,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              0.84254,
-              0.33025,
-              1.67
-            ],
-            "cell": 59,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              0.98421,
-              0.33025,
-              1.67
-            ],
-            "cell": 60,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              1.12587,
-              0.33025,
-              1.67
-            ],
-            "cell": 61,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              1.26754,
-              0.33025,
-              1.67
-            ],
-            "cell": 62,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              1.26754,
-              0.20525,
-              1.67
-            ],
-            "cell": 63,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              1.12587,
-              0.20525,
-              1.67
-            ],
-            "cell": 64,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              0.98421,
-              0.20525,
-              1.67
-            ],
-            "cell": 65,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              0.84254,
-              0.20525,
-              1.67
-            ],
-            "cell": 66,
-            "facing": 25.0,
-            "layer": 1,
-            "pass_": 3,
-            "why": "outside this arm's envelope at this attitude"
-          }
-        ],
-        "cells_outside_envelope": 20,
-        "cells_reachable": 46,
-        "cols": 4,
-        "coverage": 0.6818,
-        "coverage_of_reachable": 0.9783,
-        "elev_deg": 38.9,
-        "facings_deg": [
-          -25.0,
-          0.0,
-          25.0
-        ],
-        "guess_surface_z": 1.25,
-        "layers_m": [
-          0.3,
-          0.42
-        ],
-        "order": "serpentine",
-        "passes": 3,
-        "planned_from_measurement": true,
-        "rows": 5,
-        "step_m": 0.13,
-        "stillness_refusals": 0,
-        "travel_m": 9.2935,
-        "views_used": 45
-      },
-      {
-        "arm": "right",
-        "cells": 43,
-        "cells_dropped_as_unreachable": 47,
-        "cells_missed": [
-          {
-            "at": [
-              -0.96754,
-              0.70525,
-              1.67
-            ],
-            "cell": 2,
-            "facing": -25.0,
-            "layer": 1,
-            "pass_": 1,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              -1.11754,
-              0.70525,
-              1.67
-            ],
-            "cell": 3,
-            "facing": -25.0,
-            "layer": 1,
-            "pass_": 1,
-            "why": "outside this arm's envelope at this attitude"
-          },
-          {
-            "at": [
-              -1.26754,
-              0.70525,
-              1.67
+              1.01785,
+              -0.10782,
+              1.55
             ],
             "cell": 4,
             "facing": -25.0,
-            "layer": 1,
+            "layer": 0,
             "pass_": 1,
-            "why": "outside this arm's envelope at this attitude"
+            "why": "pose not reached"
           },
           {
             "at": [
-              -1.26754,
-              0.58025,
-              1.67
+              1.01785,
+              0.01718,
+              1.55
             ],
             "cell": 5,
             "facing": -25.0,
-            "layer": 1,
+            "layer": 0,
             "pass_": 1,
-            "why": "outside this arm's envelope at this attitude"
+            "why": "pose not reached"
           },
           {
             "at": [
-              -1.11754,
-              0.58025,
-              1.67
+              0.87618,
+              0.01718,
+              1.55
             ],
             "cell": 6,
             "facing": -25.0,
-            "layer": 1,
+            "layer": 0,
             "pass_": 1,
-            "why": "outside this arm's envelope at this attitude"
+            "why": "arm still moving: worst joint 0.1620 rad over the window"
           },
           {
             "at": [
-              -0.96754,
-              0.58025,
-              1.67
+              0.73452,
+              0.01718,
+              1.55
             ],
             "cell": 7,
             "facing": -25.0,
-            "layer": 1,
+            "layer": 0,
             "pass_": 1,
-            "why": "outside this arm's envelope at this attitude"
+            "why": "no usable frame from this pose"
           },
           {
             "at": [
-              -0.96754,
-              0.45525,
-              1.67
+              0.59285,
+              0.01718,
+              1.55
             ],
             "cell": 8,
             "facing": -25.0,
-            "layer": 1,
+            "layer": 0,
             "pass_": 1,
-            "why": "outside this arm's envelope at this attitude"
+            "why": "arm still moving: worst joint 0.1794 rad over the window"
           },
           {
             "at": [
-              -1.11754,
-              0.45525,
-              1.67
+              0.59285,
+              0.14218,
+              1.55
             ],
             "cell": 9,
             "facing": -25.0,
-            "layer": 1,
+            "layer": 0,
             "pass_": 1,
-            "why": "outside this arm's envelope at this attitude"
+            "why": "arm still moving: worst joint 0.0841 rad over the window"
           },
           {
             "at": [
-              -1.26754,
-              0.45525,
-              1.67
+              0.73452,
+              0.14218,
+              1.55
             ],
             "cell": 10,
             "facing": -25.0,
-            "layer": 1,
+            "layer": 0,
             "pass_": 1,
-            "why": "outside this arm's envelope at this attitude"
+            "why": "pose not reached"
           },
           {
             "at": [
-              -1.26754,
-              0.33025,
-              1.67
+              0.87618,
+              0.14218,
+              1.55
             ],
             "cell": 11,
             "facing": -25.0,
-            "layer": 1,
+            "layer": 0,
             "pass_": 1,
             "why": "outside this arm's envelope at this attitude"
           },
           {
             "at": [
-              -1.11754,
-              0.33025,
-              1.67
+              1.01785,
+              0.14218,
+              1.55
             ],
             "cell": 12,
             "facing": -25.0,
-            "layer": 1,
+            "layer": 0,
             "pass_": 1,
             "why": "outside this arm's envelope at this attitude"
           },
           {
             "at": [
-              -0.96754,
-              0.33025,
-              1.67
+              1.01785,
+              0.26718,
+              1.55
             ],
             "cell": 13,
             "facing": -25.0,
-            "layer": 1,
+            "layer": 0,
             "pass_": 1,
             "why": "outside this arm's envelope at this attitude"
           },
           {
             "at": [
-              -0.96754,
-              0.20525,
-              1.67
+              0.87618,
+              0.26718,
+              1.55
             ],
             "cell": 14,
             "facing": -25.0,
-            "layer": 1,
+            "layer": 0,
             "pass_": 1,
             "why": "outside this arm's envelope at this attitude"
           },
           {
             "at": [
-              -1.11754,
-              0.20525,
-              1.67
+              0.73452,
+              0.26718,
+              1.55
             ],
             "cell": 15,
             "facing": -25.0,
+            "layer": 0,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.59285,
+              0.26718,
+              1.55
+            ],
+            "cell": 16,
+            "facing": -25.0,
+            "layer": 0,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.59285,
+              0.39218,
+              1.55
+            ],
+            "cell": 17,
+            "facing": -25.0,
+            "layer": 0,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.73452,
+              0.39218,
+              1.55
+            ],
+            "cell": 18,
+            "facing": -25.0,
+            "layer": 0,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.87618,
+              0.39218,
+              1.55
+            ],
+            "cell": 19,
+            "facing": -25.0,
+            "layer": 0,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.01785,
+              0.39218,
+              1.55
+            ],
+            "cell": 20,
+            "facing": -25.0,
+            "layer": 0,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.125,
+              0.28906,
+              1.67
+            ],
+            "cell": 21,
+            "facing": -25.0,
             "layer": 1,
             "pass_": 1,
             "why": "outside this arm's envelope at this attitude"
           },
           {
             "at": [
-              -1.26754,
-              0.20525,
+              0.98333,
+              0.28906,
               1.67
             ],
-            "cell": 16,
+            "cell": 22,
             "facing": -25.0,
             "layer": 1,
             "pass_": 1,
             "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.84167,
+              0.28906,
+              1.67
+            ],
+            "cell": 23,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.7,
+              0.28906,
+              1.67
+            ],
+            "cell": 24,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.7,
+              0.16406,
+              1.67
+            ],
+            "cell": 25,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.84167,
+              0.16406,
+              1.67
+            ],
+            "cell": 26,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.98333,
+              0.16406,
+              1.67
+            ],
+            "cell": 27,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.125,
+              0.16406,
+              1.67
+            ],
+            "cell": 28,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.125,
+              0.03906,
+              1.67
+            ],
+            "cell": 29,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.98333,
+              0.03906,
+              1.67
+            ],
+            "cell": 30,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.84167,
+              0.03906,
+              1.67
+            ],
+            "cell": 31,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.7,
+              0.03906,
+              1.67
+            ],
+            "cell": 32,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.7,
+              -0.08594,
+              1.67
+            ],
+            "cell": 33,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.84167,
+              -0.08594,
+              1.67
+            ],
+            "cell": 34,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.98333,
+              -0.08594,
+              1.67
+            ],
+            "cell": 35,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.125,
+              -0.08594,
+              1.67
+            ],
+            "cell": 36,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.125,
+              -0.21094,
+              1.67
+            ],
+            "cell": 37,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.98333,
+              -0.21094,
+              1.67
+            ],
+            "cell": 38,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.84167,
+              -0.21094,
+              1.67
+            ],
+            "cell": 39,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.7,
+              -0.21094,
+              1.67
+            ],
+            "cell": 40,
+            "facing": -25.0,
+            "layer": 1,
+            "pass_": 1,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.67672,
+              0.02954,
+              1.55
+            ],
+            "cell": 41,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.81839,
+              0.02954,
+              1.55
+            ],
+            "cell": 42,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.96005,
+              0.02954,
+              1.55
+            ],
+            "cell": 43,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.10172,
+              0.02954,
+              1.55
+            ],
+            "cell": 44,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.10172,
+              0.15454,
+              1.55
+            ],
+            "cell": 45,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.96005,
+              0.15454,
+              1.55
+            ],
+            "cell": 46,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.81839,
+              0.15454,
+              1.55
+            ],
+            "cell": 47,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.67672,
+              0.15454,
+              1.55
+            ],
+            "cell": 48,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.67672,
+              0.27954,
+              1.55
+            ],
+            "cell": 49,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.81839,
+              0.27954,
+              1.55
+            ],
+            "cell": 50,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.96005,
+              0.27954,
+              1.55
+            ],
+            "cell": 51,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.10172,
+              0.27954,
+              1.55
+            ],
+            "cell": 52,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.10172,
+              0.40454,
+              1.55
+            ],
+            "cell": 53,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.96005,
+              0.40454,
+              1.55
+            ],
+            "cell": 54,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.81839,
+              0.40454,
+              1.55
+            ],
+            "cell": 55,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.67672,
+              0.40454,
+              1.55
+            ],
+            "cell": 56,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.67672,
+              0.52954,
+              1.55
+            ],
+            "cell": 57,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.81839,
+              0.52954,
+              1.55
+            ],
+            "cell": 58,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.96005,
+              0.52954,
+              1.55
+            ],
+            "cell": 59,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.10172,
+              0.52954,
+              1.55
+            ],
+            "cell": 60,
+            "facing": 0.0,
+            "layer": 0,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.2424,
+              0.48135,
+              1.67
+            ],
+            "cell": 61,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.10073,
+              0.48135,
+              1.67
+            ],
+            "cell": 62,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.95907,
+              0.48135,
+              1.67
+            ],
+            "cell": 63,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.8174,
+              0.48135,
+              1.67
+            ],
+            "cell": 64,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.8174,
+              0.35635,
+              1.67
+            ],
+            "cell": 65,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.95907,
+              0.35635,
+              1.67
+            ],
+            "cell": 66,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.10073,
+              0.35635,
+              1.67
+            ],
+            "cell": 67,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.2424,
+              0.35635,
+              1.67
+            ],
+            "cell": 68,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.2424,
+              0.23135,
+              1.67
+            ],
+            "cell": 69,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.10073,
+              0.23135,
+              1.67
+            ],
+            "cell": 70,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.95907,
+              0.23135,
+              1.67
+            ],
+            "cell": 71,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.8174,
+              0.23135,
+              1.67
+            ],
+            "cell": 72,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.8174,
+              0.10635,
+              1.67
+            ],
+            "cell": 73,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.95907,
+              0.10635,
+              1.67
+            ],
+            "cell": 74,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.10073,
+              0.10635,
+              1.67
+            ],
+            "cell": 75,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.2424,
+              0.10635,
+              1.67
+            ],
+            "cell": 76,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.2424,
+              -0.01865,
+              1.67
+            ],
+            "cell": 77,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.10073,
+              -0.01865,
+              1.67
+            ],
+            "cell": 78,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.95907,
+              -0.01865,
+              1.67
+            ],
+            "cell": 79,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.8174,
+              -0.01865,
+              1.67
+            ],
+            "cell": 80,
+            "facing": 0.0,
+            "layer": 1,
+            "pass_": 2,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.69467,
+              0.18947,
+              1.55
+            ],
+            "cell": 81,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.83634,
+              0.18947,
+              1.55
+            ],
+            "cell": 82,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.978,
+              0.18947,
+              1.55
+            ],
+            "cell": 83,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.11967,
+              0.18947,
+              1.55
+            ],
+            "cell": 84,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.11967,
+              0.31447,
+              1.55
+            ],
+            "cell": 85,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.978,
+              0.31447,
+              1.55
+            ],
+            "cell": 86,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.83634,
+              0.31447,
+              1.55
+            ],
+            "cell": 87,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.69467,
+              0.31447,
+              1.55
+            ],
+            "cell": 88,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.69467,
+              0.43947,
+              1.55
+            ],
+            "cell": 89,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.83634,
+              0.43947,
+              1.55
+            ],
+            "cell": 90,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.978,
+              0.43947,
+              1.55
+            ],
+            "cell": 91,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.11967,
+              0.43947,
+              1.55
+            ],
+            "cell": 92,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.11967,
+              0.56447,
+              1.55
+            ],
+            "cell": 93,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.978,
+              0.56447,
+              1.55
+            ],
+            "cell": 94,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.83634,
+              0.56447,
+              1.55
+            ],
+            "cell": 95,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.69467,
+              0.56447,
+              1.55
+            ],
+            "cell": 96,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.69467,
+              0.68947,
+              1.55
+            ],
+            "cell": 97,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.83634,
+              0.68947,
+              1.55
+            ],
+            "cell": 98,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.978,
+              0.68947,
+              1.55
+            ],
+            "cell": 99,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.11967,
+              0.68947,
+              1.55
+            ],
+            "cell": 100,
+            "facing": 25.0,
+            "layer": 0,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.26754,
+              0.70525,
+              1.67
+            ],
+            "cell": 101,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.12587,
+              0.70525,
+              1.67
+            ],
+            "cell": 102,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.98421,
+              0.70525,
+              1.67
+            ],
+            "cell": 103,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.84254,
+              0.70525,
+              1.67
+            ],
+            "cell": 104,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.84254,
+              0.58025,
+              1.67
+            ],
+            "cell": 105,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.98421,
+              0.58025,
+              1.67
+            ],
+            "cell": 106,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.12587,
+              0.58025,
+              1.67
+            ],
+            "cell": 107,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.26754,
+              0.58025,
+              1.67
+            ],
+            "cell": 108,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.26754,
+              0.45525,
+              1.67
+            ],
+            "cell": 109,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.12587,
+              0.45525,
+              1.67
+            ],
+            "cell": 110,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.98421,
+              0.45525,
+              1.67
+            ],
+            "cell": 111,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.84254,
+              0.45525,
+              1.67
+            ],
+            "cell": 112,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.84254,
+              0.33025,
+              1.67
+            ],
+            "cell": 113,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.98421,
+              0.33025,
+              1.67
+            ],
+            "cell": 114,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.12587,
+              0.33025,
+              1.67
+            ],
+            "cell": 115,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.26754,
+              0.33025,
+              1.67
+            ],
+            "cell": 116,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.26754,
+              0.20525,
+              1.67
+            ],
+            "cell": 117,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              1.12587,
+              0.20525,
+              1.67
+            ],
+            "cell": 118,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.98421,
+              0.20525,
+              1.67
+            ],
+            "cell": 119,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
+          },
+          {
+            "at": [
+              0.84254,
+              0.20525,
+              1.67
+            ],
+            "cell": 120,
+            "facing": 25.0,
+            "layer": 1,
+            "pass_": 3,
+            "why": "outside this arm's envelope at this attitude"
           }
         ],
-        "cells_outside_envelope": 15,
-        "cells_reachable": 28,
-        "cols": 3,
-        "coverage": 0.6512,
-        "coverage_of_reachable": 1.0,
+        "cells_outside_envelope": 110,
+        "cells_reachable": 10,
+        "cols": 4,
+        "coverage": 0.0167,
+        "coverage_of_reachable": 0.2,
         "elev_deg": 38.9,
         "facings_deg": [
           -25.0,
@@ -1239,16 +1669,16 @@
         ],
         "order": "serpentine",
         "passes": 3,
-        "planned_from_measurement": true,
+        "planned_from_measurement": false,
         "rows": 5,
         "step_m": 0.13,
-        "stillness_refusals": 0,
-        "travel_m": 6.3223,
-        "views_used": 28
+        "stillness_refusals": 3,
+        "travel_m": 16.11,
+        "views_used": 2
       }
     ],
-    "stillness_refusals": 0,
-    "travel_m": 15.6158,
-    "views_used": 73
+    "stillness_refusals": 3,
+    "travel_m": 16.11,
+    "views_used": 2
   }
 }

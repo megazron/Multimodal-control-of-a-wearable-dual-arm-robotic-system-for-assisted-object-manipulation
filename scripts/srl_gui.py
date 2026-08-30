@@ -1145,7 +1145,25 @@ class Bus(Node):
         happen before or after a follower restart. TRANSIENT_LOCAL means a
         follower that joins late still learns the topic is claimed.
         """
-        self.publish_once(Bool, "/pose_move_active", bool(on))
+        # NOT LATCHED, AND NOT `publish_once`. THIS DISABLED TELEOPERATION.
+        #
+        # `publish_once` publishes TRANSIENT_LOCAL depth 1 -- deliberately,
+        # so a node that subscribes after an E-STOP still learns the system
+        # is stopped. For a STOP that is exactly right. For this claim it is
+        # a trap: the retained sample means an `ik_follower_node` that starts
+        # later immediately receives `pose_move_active = True` and drops
+        # EVERY teleop command from its first breath, silently, for as long
+        # as the window lives. The operator's report on 2026-08-30 was "the
+        # real arms are not moving at all" with a stack that looked perfect.
+        #
+        # A claim is about NOW. It must not outlive the mover that made it,
+        # and a subscriber that joins late must default to "nobody is
+        # claiming" rather than inherit a stale yes.
+        if not hasattr(self, "_claim_pub"):
+            self._claim_pub = self.create_publisher(
+                Bool, "/pose_move_active", 10)          # VOLATILE, on purpose
+            time.sleep(0.2)                              # let discovery settle
+        self._claim_pub.publish(Bool(data=bool(on)))
         if on:
             self._claim_t = time.time()
             self.note("pose move: took /<arm>_arm_controller/joint_trajectory "
@@ -3208,6 +3226,57 @@ class Gui(QMainWindow):
         self.cam_fix_lbl.setStyleSheet("color:%s" % (C_BAD if bad else C_OK))
         self._cam_fix_out = None
 
+    def on_real_master(self):
+        """Drive the real arms from the MASTER MANNEQUIN.
+
+        Reuses `_real_one_go` for everything after the input, because
+        everything after the input IS the same: both master_pose_node and
+        vr_pose_mapper publish /master_arm_pose_<arm>, the followers consume
+        that, and the relay carries the result to the metal. Duplicating the
+        sequence here would be a second copy to keep in step with the first.
+        """
+        self._real_guard("move the real arms with the mannequin",
+                         self._real_master_go)
+
+    def _real_master_go(self):
+        import glob as _glob
+        # 1. THE BOARD. Without it master_pose_node has nothing to read, and
+        #    it does not fail loudly -- it retries and parks, so the arm
+        #    simply never moves.
+        if not (_glob.glob("/dev/ttyACM*") or _glob.glob("/dev/ttyUSB*")):
+            self._one_say(
+                "REFUSED: no /dev/ttyACM* -- the Teensy is not attached, so "
+                "the mannequin has no way to send anything. Attach it from "
+                "Windows (FIX THE CAMERAS does it: usbipd owns the board and "
+                "both cameras together), then press this again.", bad=True)
+            return
+        # 2. THE NODE. A rig brought up for VR runs `master:=false` on
+        #    purpose, so this is absent rather than broken, and nothing in
+        #    the window said so.
+        # Asked directly rather than through `_arms_running`, which formats
+        # an arm name into its pattern: master_pose_node is ONE node for both
+        # arms, so there is no per-arm name to look for.
+        try:
+            up = subprocess.run(
+                ["pgrep", "-f", "srl_teleop/master_pose_node"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                timeout=5).returncode == 0
+        except Exception:                                     # noqa: BLE001
+            up = False
+        if not up:
+            self._one_say(
+                "REFUSED: master_pose_node is not running. The VR modes "
+                "start the stack with master:=false deliberately -- with no "
+                "board on the bus that node respawns for ever and starves "
+                "the controller manager. Restart the stack WITH the master "
+                "arm: ros2 launch srl_teleop teleop.launch.py gate:=false "
+                "master:=true use_rviz:=false", bad=True)
+            return
+        self._one_say(
+            "Teensy attached and master_pose_node running. Bringing the real "
+            "arms up on the mannequin -- same sequence as the button above.")
+        self._real_one_go()
+
     def on_real_one(self):
         """The whole real-arm sequence, as one press, skipping what is done.
 
@@ -4300,6 +4369,39 @@ class Gui(QMainWindow):
         self.cam_fix_lbl.setWordWrap(True)
         self.cam_fix_lbl.setStyleSheet("color:%s" % C_MUTED)
         v.addWidget(self.cam_fix_lbl)
+
+        # THE SAME SEQUENCE, DRIVEN BY THE MANNEQUIN INSTEAD OF THE HEADSET.
+        #
+        # Everything downstream of the input is identical -- master_pose_node
+        # and vr_pose_mapper both publish /master_arm_pose_<arm>, the
+        # followers turn that into joint trajectories, and the relay carries
+        # those to the metal. So this button does NOT duplicate the real-arm
+        # sequence; it checks the two things the mannequin path needs that
+        # the VR path does not, and then hands over to exactly the same
+        # sequencer.
+        #
+        # Those two things are the whole difference: the Teensy has to be
+        # attached, and master_pose_node has to be running. The VR modes
+        # start the stack with `master:=false` on purpose -- with no board on
+        # the bus that node dies and respawns for ever and starves the
+        # controller manager -- so a rig brought up for VR has no master node
+        # at all, and the mannequin then moves nothing with no explanation.
+        self.real_master_btn = QPushButton(
+            "\u25b6  MOVE THE REAL ARMS WITH MASTER MANNEQUIN")
+        self.real_master_btn.setFont(helvetica(11, True))
+        self.real_master_btn.setMinimumHeight(34)
+        self.real_master_btn.setStyleSheet(
+            "color:%s;border:1px solid %s" % (C_OK, C_OK))
+        self.real_master_btn.setToolTip(
+            "The same real-arm sequence as the button above, for the MASTER "
+            "MANNEQUIN instead of the VR controllers. It first checks the "
+            "two things the mannequin needs and the headset does not: the "
+            "Teensy attached at /dev/ttyACM*, and master_pose_node running. "
+            "It refuses by name if either is missing rather than arming a "
+            "path with no input on it.")
+        self.real_master_btn.clicked.connect(self.on_real_master)
+        self.buttons["move_real_arms_master"] = self.real_master_btn
+        v.addWidget(self.real_master_btn)
 
         self.real_one_lbl = QLabel("the real arms are not started")
         self.real_one_lbl.setFont(helvetica(9))
@@ -8495,15 +8597,38 @@ class Gui(QMainWindow):
         alive = [p for _k, p in procs if p.poll() is None]
         if alive and not getattr(self, "_rviz_prestack", False):
             return
+        # KILL THE RVIZ PROCESS, NOT ITS GROUP. THIS WAS KILLING THE WINDOW.
+        #
+        # THE BUG, found 2026-08-30 and mis-attributed for days. RViz is
+        # spawned with `preexec_fn=_die_with_parent`, which sets a
+        # parent-death signal and does NOT call setsid -- so rviz2 stays in
+        # THE GUI'S OWN PROCESS GROUP. `os.killpg(os.getpgid(p.pid), 15)`
+        # therefore sent SIGTERM to that group: the window signalled ITSELF,
+        # and every stack it had launched with it.
+        #
+        # It fires exactly when `_stack_pids() > 0`, which is the moment a
+        # stack comes up. That is the whole of "the GUI's ROS context dies if
+        # a simulation comes up under it" -- recorded as a mysterious rclpy
+        # ExternalShutdownException, blamed on transports and start order,
+        # and worked around by launching the stack first. It was never a ROS
+        # problem. Pressing START MASTER TELEOP made the window kill itself,
+        # and the launch log shows the stack shutting down CLEANLY on SIGINT
+        # a moment later because its parent had gone.
+        #
+        # A group kill is right for `ros2 launch` and `ros2 run`, which are
+        # wrappers with children (HARD CONSTRAINT 9). rviz2 is a single
+        # process and needs no group -- and taking the group here is only
+        # safe if the child is in one of its own, which this one is not.
         for _k, p in procs:
             if p.poll() is None:
                 try:
-                    os.killpg(os.getpgid(p.pid), 15)
-                except Exception:                             # noqa: BLE001
+                    p.terminate()                     # this pid, nothing else
                     try:
-                        p.terminate()
-                    except Exception:                         # noqa: BLE001
-                        pass
+                        p.wait(timeout=5)
+                    except Exception:                 # noqa: BLE001
+                        p.kill()
+                except Exception:                     # noqa: BLE001
+                    pass
         self.rviz = []
         self.log("the simulation is up -- restarting the COMMANDED view "
                  "so it can see the robot"

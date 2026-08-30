@@ -38,6 +38,11 @@ the original bug lived in.
 """
 import os
 import subprocess
+
+#: Every process a button tried to start during an audit, refused and
+#: recorded. Module level because the check that reports it runs in a
+#: different function from the one that installs the block.
+blocked_popen = []
 import sys
 import threading
 import time
@@ -175,6 +180,55 @@ def level2_click():
     #
     # An audit that can move a robot is not an audit. Same principle as
     # above: the whole click path runs, only the final Popen is replaced.
+    # AND EVERY OTHER Popen, BECAUSE FAKING TWO NAMED PATHS IS NOT ENOUGH.
+    #
+    # `_spawn` and `_run_raw` were the two launch paths when this was
+    # written. They are no longer the only ones: the camera watchdog and the
+    # camera doctor shell out directly, and on 2026-08-30 an audit run
+    # therefore started REAL nodes on its own ROS_DOMAIN_ID -- including
+    # `kortex_highlevel_bridge`, which OPENED A SESSION ON EACH REAL ARM.
+    # The arm permits exactly one (HARD CONSTRAINT 2), so the operator's own
+    # stack could not connect and the arms would not move, for the better
+    # part of an hour, while every diagnosis pointed at the teleoperation
+    # chain.
+    #
+    # Naming the paths to block is a list that goes stale the moment somebody
+    # adds a third. Blocking the SYSCALL cannot: anything that tries to start
+    # a process during an audit is recorded and refused, whoever calls it and
+    # whenever it was added. The audit still exercises the whole click path;
+    # only the fork is replaced.
+    global blocked_popen
+    blocked_popen = []
+    _real_popen = subprocess.Popen
+
+    class _RefusedPopen:
+        """Stands in for a process that was never started."""
+
+        def __init__(self, argv, *a, **k):
+            blocked_popen.append(" ".join(map(str, argv))
+                                 if isinstance(argv, (list, tuple))
+                                 else str(argv))
+            self.pid = -1
+            self.args = argv
+
+        def poll(self):
+            return 0
+
+        def wait(self, timeout=None):
+            return 0
+
+        def kill(self):
+            return None
+
+        def terminate(self):
+            return None
+
+        def communicate(self, *a, **k):
+            return (b"", b"")
+
+    subprocess.Popen = _RefusedPopen
+    srl_gui.subprocess.Popen = _RefusedPopen
+
     raw_launched = []
 
     def fake_run_raw(self, label, argv):
@@ -1060,6 +1114,11 @@ def level3_controls_fail_loudly(launched):
     print("\n-- LEVEL 3: with no stack up, controls must fail BY NAME")
     refusals = [d for k, st, d in launched if st == "refused"]
     named = [d for d in refusals if d and len(d) > 10]
+    if blocked_popen:
+        uniq = sorted(set(blocked_popen))
+        check("2", "no button started a real process during the audit",
+              True,
+              "%d refused: %s" % (len(uniq), "; ".join(u[:60] for u in uniq[:3])))
     check("3", "every refusal carries a reason", len(named) == len(refusals),
           "%d refusals, %d with a stated reason"
           % (len(refusals), len(named)))

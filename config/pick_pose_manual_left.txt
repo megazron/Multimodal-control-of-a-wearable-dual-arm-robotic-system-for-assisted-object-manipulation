@@ -1,0 +1,34 @@
+# MANUALLY SET PICK-AND-PLACE POSE, captured 2026-08-25 from the REAL ARMS.
+#
+# PROVENANCE: the operator positioned the physical arms by hand and asked for
+# this pose to be saved as the ideal pick-and-place pose. Captured by reading
+# /real_status_{arm} (published by kortex_highlevel_bridge_{arm}) -- the REAL
+# encoder values, not the sim's /joint_states, which disagreed by up to 0.64
+# rad on joint 6 at capture time.
+#
+# 40 samples per arm, max spread 0.000000 rad -- the arms were stationary.
+#
+# THIS FILE IS NOT HOME AND MUST NOT BECOME HOME.
+# config/home_positions_*.txt remains the single source for home
+# (HARD CONSTRAINT 1). Nothing reads this file yet; it is a record.
+#
+# WHAT WAS ACTUALLY MOVED, measured against home:
+#   LEFT  : joint_4 -44.85 deg and joint_6 -55.91 deg from home; every other
+#           joint within 0.86 deg. This is the look-down pick pose -- the
+#           gripper camera shows the green cube centred on the table.
+#   RIGHT : max deviation 0.887 deg on joint_3, every other joint under 0.4.
+#           THE RIGHT ARM WAS NOT MOVED. It is still at home. Its gripper
+#           camera shows the table and a cardboard box, with the cube only
+#           clipped at the extreme right edge of frame.
+#
+# Degrees are SIGNED, matching config/home_positions_*.txt. Kortex degrees
+# (0-360, as the arm reports them) are given alongside for hardware entry.
+
+# ---- LEFT arm ----
+joint_1: 66.5722    # kortex 66.5722 deg, +0.292 deg from home
+joint_2: 57.1460    # kortex 57.1459 deg, +0.846 deg from home
+joint_3: 127.0439    # kortex 127.0439 deg, -0.856 deg from home
+joint_4: -139.1657    # kortex 220.8343 deg, -44.846 deg from home
+joint_5: -152.9734    # kortex 207.0266 deg, +0.807 deg from home
+joint_6: -120.3217    # kortex 239.6783 deg, -55.912 deg from home
+joint_7: -7.4950    # kortex 352.5050 deg, -0.655 deg from home

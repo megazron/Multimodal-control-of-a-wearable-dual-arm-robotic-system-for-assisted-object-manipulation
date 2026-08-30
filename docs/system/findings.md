@@ -7575,3 +7575,124 @@ it returns is about the filesystem, not the code.
 Final state: button audit 252 checks / 252 PASS, 682 unit tests passing, the
 only failures the two allowlisted style suites. Commits 844ee08, 6121af2,
 19417f8, 1ba88ff, 7a2eac8.
+
+## 2026-08-30 (later) — five ways a topic publishes and delivers nothing
+
+Reported: "the scene cameras and gripper cameras are still not working". Every
+one of these presented IDENTICALLY -- a node at 20-30% CPU, a topic with
+`Publisher count: 1`, and a blank panel -- and each had a different cause.
+Recorded because telling them apart by hand took hours.
+
+**1. THE WRIST CAMERAS HAD NO GUI PATH AT ALL.** `grep kinova_vision` over
+`gui_launch_specs.py` and `srl_gui.py` returned NOTHING. That launch, six
+frame-id arguments per arm, existed only in a terminal somebody had typed it
+into. They were never broken; they had no way to start. Now
+`scripts/wrist_cameras.sh` and a `wrist_cams` spec.
+
+**2. A WEDGED VISION MODULE ON THE ARM.** `ping` and HTTP 200 prove the arm's
+network stack and say NOTHING about its camera. `kinova_vision` responds by
+retrying for ever and publishing a topic with no frames on it. Only cure
+found: power-cycle the arm; 75 s of waiting did not help. `rtsp_probe.py`
+tells this apart in a second.
+
+**3. MY OWN PROBE LIED, AND BLOCKED A WORKING CAMERA.** The first RTSP check
+ran `gst-launch-1.0 rtspsrc location=... ! fakesink`, which can NEVER reach
+PLAYING because rtspsrc exposes its pads dynamically and cannot link
+statically. It reported "not serving" for a healthy camera and refused to
+start it: a gate inventing the fault it was written to detect. **A check that
+cannot pass is worse than no check.** Prove a new probe against a KNOWN GOOD
+device before trusting a negative.
+
+**4. 214 STALE `/dev/shm` SEGMENTS.** From my own `kill -9`s. Nodes decoded at
+25% CPU and no subscriber received anything. Cleared with nothing running and
+all three cameras came straight up. SIGINT, never SIGKILL.
+
+**5. QoS MISMATCH, AND IT FOOLED ME.** Camera topics are BEST_EFFORT
+(`qos_profile_sensor_data`). A default RELIABLE subscriber -- including
+`ros2 topic hz` -- receives ZERO and reports "does not appear to be published
+yet". I diagnosed a healthy scene camera as dead this way. DDS does warn,
+once: `incompatible QoS ... Last incompatible policy: RELIABILITY`.
+
+**AND TWO DESIGN FAULTS UNDERNEATH THEM.**
+
+`quest_bridge_node` held `/dev/video0` while `scene_camera_node` wanted it; a
+V4L2 device cannot be opened twice and the loser gets nothing, silently. The
+bridge yields now -- and MY FIRST FIX DEADLOCKED: it released the device only
+when the other node was PUBLISHING, which it could not do while blocked. The
+condition could never become true by yielding's own absence. It yields on the
+PUBLISHER EXISTING, which is created at construction, before any device is
+opened.
+
+`video_devices.order()` ranked "the camera that worked last time" ABOVE "what
+the caller asked for", so a remembered device was an OVERRIDE rather than a
+default. `scene_camera_node` was changed to prefer the HD USB camera by
+VID:PID and still opened the RealSense, held it, and logged `select() timeout`
+while the camera it had been told to use reported "delivers YES" with nobody
+using it. Swapped: an explicit preference leads WHEN IT NAMES SOMETHING
+PLUGGED IN; memory still leads otherwise.
+
+**A CORRECTION.** Midway I concluded `FASTDDS_BUILTIN_TRANSPORTS=SHM` was
+silently dropping 2.7 MB camera frames, and built an XML transport profile
+around it. **That was wrong.** The measurement came from a run while the arm's
+vision module was still booting. Under plain SHM the same camera delivers 419
+frames in 14 s. The profile was deleted; HARD CONSTRAINT 5 is untouched. I
+nearly changed a hard constraint on a false premise, and what caught it was
+re-testing the claim rather than building on it.
+
+**WHAT NOW AUTO-FIXES IT.** `scripts/camera_doctor.py` walks the layers in
+order and stops at the first wrong one, because a fault low down makes every
+answer above it meaningless: stale shared memory, device attached, device
+free, node running, frames AT THE PUBLISHER'S QoS. `--fix` repairs the three
+that need no human; it NAMES the two that do. `FIX THE CAMERAS` in the window
+runs it.
+
+Two properties it has because I made both mistakes myself: it probes on the
+rig's own transport (without SHM it could not see the publishers and declared
+three healthy cameras broken), and it reports **CANNOT TELL**, never BROKEN,
+when the probe itself could not run.
+
+**AND THE AUDIT CAUGHT ME.** The first version of `FIX THE CAMERAS` used
+`bus.submit`, whose queue is drained serially by a 0.05 s timer -- the same
+queue the E-STOP's publish goes through. A 300 s subprocess on it queued the
+e-stop behind five minutes of pings. `verify_gui_buttons` failed "e-stop
+reaches /estop" on BOTH buttons. **The bus is for short ROS actions; anything
+that shells out gets its own thread.** Third instance of this shape in one
+file: `arm status` and `START SCENE CAMERA` froze the Qt thread, this one
+froze the ROS thread.
+
+Verified on hardware: scene camera 13.9 Hz 640x480 on /dev/video0, both wrist
+cameras 30.0 Hz 1280x720. Button audit 252 checks, 252 PASS.
+
+## VR TELEOPERATION: VERIFIED WORKING, 2026-08-30 04:59:39 -> 05:16:58
+
+The run that settles it, from the nodes' own logs
+(`~/.ros/log/python3_7295_1788062378355.log`, `python3_7170_1788062371943.log`):
+
+| | |
+|---|---|
+| Wall clock | 2026-08-30 04:59:39 -> 05:16:58 |
+| Continuous operation | 17.3 min |
+| Clutch engagements | 78 (left 52, right 26) |
+| Clutch releases | 77 |
+| Safety freezes | **0** |
+| Errors from the mapper | 1 (shutdown) |
+
+Two regressions are closed by those numbers rather than by assertion.
+
+**Both arms drive.** The complaint was "only the left arm is working, not the
+right". The right arm engaged 26 times in this run. It is no longer one-sided.
+
+**The freezes are gone.** The immediately preceding run at 04:49
+(`python3_98551_1788061757725.log`) logged 2 `safety FREEZE - clutch dropped`
+events. This run logged none across 78 engagements. The freezes were dropped
+clutch packets, not the arm refusing.
+
+`quest_bridge_node` served the headset over WebXR at
+`https://192.168.1.25:8765/` with the scene camera on `/dev/video0` at
+640x480, published to `/camera.jpg` for the passthrough panel.
+
+**What this run does NOT cover.** No bag was recorded during it -- every
+session in `recordings/sessions/` from this window carries `input_mode=none`,
+so the trail columns that only populate under VR (`vrc_*`, `hmd_*`) are still
+unexercised. The next VR run should record, so the thesis has the data as
+well as the log.

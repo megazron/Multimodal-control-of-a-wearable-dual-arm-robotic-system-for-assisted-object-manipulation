@@ -39,6 +39,22 @@ class _Fake:
                                      warn=self._logged.append,
                                      error=self._logged.append)
 
+    def _repair_usb(self):
+        """Recorded, never performed.
+
+        The node calls this from `_maybe_reopen` when a re-probe found no
+        device, and it shells out to usbipd to detach and re-attach a real
+        camera. A stand-in that actually did that would make these tests
+        disruptive to whatever else on the machine is holding a camera.
+
+        It was missing entirely, so all three tests here died with
+        `AttributeError: '_Fake' object has no attribute '_repair_usb'` --
+        the node grew a recovery step and its stand-in did not follow. The
+        count is kept because "did the back-off stop us reaching the
+        expensive repair" is exactly what these tests are about.
+        """
+        self.repairs = getattr(self, "repairs", 0) + 1
+
     def _open(self):
         self.opens += 1
         if self._reopen_ok:

@@ -60,6 +60,7 @@ from geometry_msgs.msg import Quaternion
 from moveit_msgs.msg import PositionIKRequest, RobotState
 from moveit_msgs.srv import GetPositionIK
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from geometry_msgs.msg import PoseStamped
 from visualization_msgs.msg import Marker, MarkerArray
 from sensor_msgs.msg import CameraInfo, Image, JointState
@@ -106,21 +107,57 @@ class ProbeNode(Node):
         self.info = {}
         self.render_pose = {}
         self.pose_source = {}
+        # WHERE THE JOINTS ARE READ FROM MUST FOLLOW WHERE COMMANDS GO.
+        #
+        # This subscribed to the bare `/joint_states` unconditionally, while
+        # `real_ns` redirected only the COMMAND topics. So with
+        # `--drive-real` and no simulation running, `wait_ready` waited for
+        # `left_joint_1..7` on a topic with no publisher, timed out after
+        # 120 s, and NEVER COMMANDED ANYTHING. Measured 2026-08-26: the
+        # bridge reported "zero speed: watchdog (1158 s since last target)"
+        # -- nineteen minutes without a single command -- while the sweep sat
+        # in wait_ready and the operator watched a stationary arm.
+        #
+        # BOTH are subscribed, because the two are not alternatives: a
+        # sim+real cascade publishes both, a bare bridge publishes only
+        # /real/joint_states, and a simulation alone publishes only the bare
+        # one. Taking whichever arrives is correct in all three, and joint
+        # names are arm-prefixed so the two cannot be confused.
         self.create_subscription(JointState, "/joint_states", self._on_js, 20)
+        if self.real_ns:
+            self.create_subscription(
+                JointState, "%s/joint_states" % self.real_ns, self._on_js, 20)
+        # SENSOR QoS ON EVERY CAMERA TOPIC, AND IT IS NOT A PREFERENCE.
+        #
+        # These were plain depth ints, which means the rclpy DEFAULT, which is
+        # RELIABLE. Real camera drivers publish BEST_EFFORT -- `kinova_vision`
+        # and `scene_camera_node` both do -- and a RELIABLE subscriber is
+        # INCOMPATIBLE with a BEST_EFFORT publisher, so not one message is
+        # ever delivered. DDS does not error; it declines to match.
+        #
+        # Measured 2026-08-25 with all four cameras verified publishing
+        # (colour 12.5 and 18.7 Hz, depth 30 Hz, scene 32 Hz):
+        #     REFUSING after 120 s. Still missing: left: depth on
+        #     /left_camera, camera_info on /left_camera, colour on
+        #     /left_camera; right: ...
+        # That is FULL SCAN reporting no cameras while every camera is live,
+        # which reads to the operator as "the button does nothing" -- and it
+        # is what the mock never caught, because the mock publishes RELIABLE.
+        qos_cam = qos_profile_sensor_data
         for arm in ("left", "right"):
             base = "/%s_camera" % arm
             self.create_subscription(
                 Image, base + "/depth/image_raw",
-                lambda m, a=arm: self._on_depth(a, m), 5)
+                lambda m, a=arm: self._on_depth(a, m), qos_cam)
             # THE COLOUR FRAME, because object identity comes from the
             # PICTURE now and not from clustering the depth. See
             # `srl_perception.segment_lift`.
             self.create_subscription(
                 Image, base + "/color/image_raw",
-                lambda m, a=arm: self.color.__setitem__(a, m), 5)
+                lambda m, a=arm: self.color.__setitem__(a, m), qos_cam)
             self.create_subscription(
                 CameraInfo, base + "/color/camera_info",
-                lambda m, a=arm: self.info.__setitem__(a, m), 5)
+                lambda m, a=arm: self.info.__setitem__(a, m), qos_cam)
             self.create_subscription(
                 PoseStamped, base + "/render_pose",
                 lambda m, a=arm: self.render_pose.setdefault(a, []).append(m),
@@ -134,11 +171,12 @@ class ProbeNode(Node):
         self.scene_topic = None
         for t in ("/scene_camera/image_raw", "/scene_camera/color/image_raw"):
             self.create_subscription(
-                Image, t, lambda m, t=t: self._on_scene(t, m), 5)
+                Image, t, lambda m, t=t: self._on_scene(t, m), qos_cam)
         for t in ("/scene_camera/camera_info",
                   "/scene_camera/color/camera_info"):
             self.create_subscription(
-                CameraInfo, t, lambda m: setattr(self, "scene_info", m), 5)
+                CameraInfo, t, lambda m: setattr(self, "scene_info", m),
+                qos_cam)
         self.pub = {a: self.create_publisher(
             JointTrajectory,
             "%s/%s_arm_controller/joint_trajectory" % (self.real_ns, a), 5)

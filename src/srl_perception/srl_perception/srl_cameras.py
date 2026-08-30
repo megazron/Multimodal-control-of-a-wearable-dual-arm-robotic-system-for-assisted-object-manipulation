@@ -44,15 +44,166 @@ class CameraError(RuntimeError):
     """Raised with a reason and, where possible, the fix."""
 
 
-class SceneCamera:
-    """The USB webcam looking at the rig from across the room."""
+SCENE_CAMERA_ENV = "SRL_SCENE_CAMERA_INDEX"
 
-    def __init__(self, index=0, width=640, height=480):
+
+def video_indices():
+    """Every /dev/videoN on this host, ascending."""
+    import glob
+    import re
+    out = []
+    for p in glob.glob("/dev/video*"):
+        m = re.search(r"(\d+)$", p)
+        if m:
+            out.append(int(m.group(1)))
+    return sorted(out)
+
+
+# USB identity of the scene webcam on this rig, read from sysfs.
+# 32e4:0317 is the "HD USB CAMERA". The RealSense is 8086:0b3a and must NEVER
+# be chosen as the scene camera even though it delivers frames perfectly.
+SCENE_VIDPID = ("32e4:0317",)
+EXCLUDE_VIDPID = ("8086:0b3a",)        # RealSense: driven by pyrealsense2
+
+
+def video_identity(index):
+    """(card name, 'vid:pid') for /dev/videoN, from sysfs. ('', '') if absent.
+
+    THE DEVICE NUMBER IS NOT AN IDENTITY. Detaching and re-attaching over
+    usbipd renumbers every node: measured on this rig, the same two cameras
+    came back as video1..video8 having previously been video0..video7, so the
+    webcam stopped being index 0 without anything changing physically.
+    Anything that remembers an index is wrong after the next reboot, unplug,
+    or usbipd attach -- and it fails by silently opening the WRONG CAMERA,
+    which is far worse than failing to open one.
+    """
+    base = "/sys/class/video4linux/video%d" % index
+    try:
+        with open(base + "/name") as fh:
+            name = fh.read().strip()
+    except OSError:
+        return "", ""
+    vid = pid = ""
+    d = os.path.realpath(base)
+    for _ in range(6):                 # walk up to the USB device node
+        d = os.path.dirname(d)
+        try:
+            with open(os.path.join(d, "idVendor")) as fh:
+                vid = fh.read().strip()
+            with open(os.path.join(d, "idProduct")) as fh:
+                pid = fh.read().strip()
+            break
+        except OSError:
+            continue
+    return name, ("%s:%s" % (vid, pid) if vid and pid else "")
+
+
+def scene_camera_candidates():
+    """Every /dev/videoN that could be the scene webcam, best first.
+
+    Ordered by how sure we are of the identification:
+      1. USB VID:PID matches the known scene camera
+      2. the card name looks like a webcam and is NOT an excluded device
+      3. anything left that is not excluded
+    The RealSense is excluded by VID:PID at every level -- it opens cleanly
+    and returns frames, so a probe that only asks "does this deliver pixels?"
+    will happily choose its colour stream and then the scene view is a
+    close-up of whatever the depth camera is pointed at.
+    """
+    tier1, tier2, tier3 = [], [], []
+    for i in video_indices():
+        name, vidpid = video_identity(i)
+        if vidpid in EXCLUDE_VIDPID:
+            continue
+        if vidpid in SCENE_VIDPID:
+            tier1.append(i)
+        elif name and "realsense" not in name.lower():
+            tier2.append(i)
+        else:
+            tier3.append(i)
+    return tier1 + tier2 + tier3
+
+
+def probe_scene_camera(width=640, height=480):
+    """The first /dev/videoN that actually DELIVERS an MJPG frame.
+
+    NOT the first that OPENS. This defaulted to index 0 for the life of the
+    file, which was right on the rig it was written for and is wrong the
+    moment anything else claims a lower node: a RealSense presents SIX
+    /dev/video* nodes, of which the depth and metadata ones open cleanly and
+    return nothing for ever. That is this module's own documented failure
+    mode -- "the device opens, every call succeeds, and read() returns False
+    forever" -- and it was reachable through the default argument.
+
+    So the probe is a READ, not an open, and it returns (index, tried) so a
+    failure can name every node it rejected rather than blaming the one it
+    happened to try first.
+    """
+    import cv2
+    tried = []
+    cands = scene_camera_candidates()
+    if not cands:
+        return None, ["no non-RealSense video node exists; only the depth "
+                      "camera is attached"]
+    for i in cands:
+        cap = cv2.VideoCapture(i, cv2.CAP_V4L2)
+        try:
+            if not cap.isOpened():
+                tried.append("%d: will not open" % i)
+                continue
+            cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+            ok, frame = cap.read()
+            if ok and frame is not None:
+                return i, tried
+            nm, vp = video_identity(i)
+            tried.append("%d (%s %s): opens, delivers no frame"
+                         % (i, nm or "?", vp or "?"))
+        finally:
+            cap.release()
+    return None, tried
+
+
+class SceneCamera:
+    """The USB webcam looking at the rig from across the room.
+
+    `index=None` (the default) resolves at open() time: the environment
+    variable SRL_SCENE_CAMERA_INDEX if set, otherwise the first node that
+    delivers a frame. An explicit index is always honoured as given.
+    """
+
+    def __init__(self, index=None, width=640, height=480):
         self.index, self.width, self.height = index, width, height
         self._cap = None
 
+    def _resolve(self):
+        if self.index is not None:
+            return
+        env = os.environ.get(SCENE_CAMERA_ENV, "").strip()
+        if env:
+            try:
+                self.index = int(env)
+                return
+            except ValueError:
+                raise CameraError(
+                    "%s is %r, which is not a device index. Set it to the N "
+                    "of the /dev/videoN you want, or unset it to let the "
+                    "camera be found." % (SCENE_CAMERA_ENV, env))
+        found, tried = probe_scene_camera(self.width, self.height)
+        if found is None:
+            raise CameraError(
+                "no /dev/video* delivered a frame. Tried: %s. Either nothing "
+                "is attached (usbipd attach --wsl --busid <id>), this user is "
+                "not in the 'video' group, or another process holds the "
+                "device -- V4L2 allows one capture client, and the VR bridge "
+                "takes it when the headset page is open."
+                % ("; ".join(tried) if tried else "no /dev/video* at all"))
+        self.index = found
+
     def open(self):
         import cv2
+        self._resolve()
         cap = cv2.VideoCapture(self.index, cv2.CAP_V4L2)
         if not cap.isOpened():
             raise CameraError(

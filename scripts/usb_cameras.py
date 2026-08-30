@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """
-usb_cameras.py -- get the USB cameras into WSL, and REPAIR the stale case.
+usb_cameras.py -- get the USB devices into WSL, and REPAIR the stale case.
+
+  Despite the name this covers EVERY device usbipd is responsible for on this
+  rig: both cameras and the TEENSY master arm. They are together because
+  their failure is together -- when the usbipd service stops it takes all
+  three at once, and on 2026-08-30 that presented as three unrelated faults
+  (no scene camera, no RealSense, no /dev/ttyACM*). One command should bring
+  back everything one service owns.
 
     python3 scripts/usb_cameras.py            # check and report
     python3 scripts/usb_cameras.py --fix      # attach / re-attach what is missing
@@ -46,9 +53,20 @@ USBIPD = "/mnt/c/Program Files/usbipd-win/usbipd.exe"
 #: The devices this rig wants in WSL, by USB VID:PID. Keyed by VID:PID
 #: because a busid changes when a cable moves to a different port, and a
 #: script that hardcodes "2-9" breaks the first time somebody replugs.
+#: Devices this rig wants in WSL, by USB VID:PID, with the KIND of device
+#: each one is -- because "is it working" is a different question for a
+#: camera and a serial board, and asking the wrong one is how a healthy
+#: Teensy gets reported as absent.
+#:
+#: THE TEENSY IS IN HERE, and it is not a camera. It is added because
+#: usbipd's failure mode is shared: when the service stops it takes the
+#: cameras AND the master arm with it, and on 2026-08-30 that presented as
+#: three unrelated faults. One command should bring back everything usbipd
+#: is responsible for, which is what this list now is.
 WANTED = {
-    "32e4:0317": "HD USB CAMERA (scene camera)",
-    "8086:0b3a": "Intel RealSense D435i",
+    "32e4:0317": ("HD USB CAMERA (scene camera)", "video"),
+    "8086:0b3a": ("Intel RealSense D435i", "video"),
+    "16c0:0483": ("Teensy 4.1 (master arm)", "serial"),
 }
 
 
@@ -86,6 +104,219 @@ def video_nodes():
     return sorted(glob.glob("/dev/video*"))
 
 
+# ==========================================================================
+#  HEALTH IS "IT DELIVERS A FRAME", NOT "THE DEVICE NODE EXISTS"
+# ==========================================================================
+# THE CASE THIS EXISTS FOR, measured 2026-08-29. The RealSense dropped off
+# the usbip bus mid-session and came back WRONG: `usbipd list` said
+# `Attached`, all six /dev/video* nodes were present, and not one of them
+# delivered a frame. This script said "Nothing to do -- the cameras are in
+# WSL" while the scene camera could not see the room.
+#
+# That is CLAUDE.md's own instrument row -- "feature present but does
+# nothing" -- and its own standing rule, PREFER A PROBE OVER A FIND: asking
+# whether a process or a device node exists is a proxy for asking whether
+# the thing works, and the proxy and the answer came apart here.
+#
+# The repair is detach-then-attach, and it was measured to work: after it,
+# /dev/video6 delivered 640x480 again on the first read.
+
+def nodes_of(vidpid):
+    """The /dev/video* belonging to one USB device, by VID:PID."""
+    try:
+        sys.path.insert(0, os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "src", "srl_perception"))
+        from srl_perception import video_devices as vd
+    except Exception:                                         # noqa: BLE001
+        return []
+    return [d for d in vd.devices() if d.vid_pid.lower() == vidpid.lower()]
+
+
+def delivers(path, width=640, height=480):
+    """Does this node hand over one frame? The only question that counts.
+
+    A device somebody else has open is reported as BUSY rather than dead --
+    `quest_bridge_node` holds the wide-view camera whenever VR is running,
+    and detaching a camera that is in use to "repair" it would break the
+    thing that is working.
+    """
+    try:
+        sys.path.insert(0, os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "src", "srl_perception"))
+        from srl_perception import video_devices as vd
+        if vd.users(path):
+            return "busy"
+        import cv2
+    except Exception:                                         # noqa: BLE001
+        return "unknown"
+    cap = None
+    try:
+        cap = cv2.VideoCapture(path, cv2.CAP_V4L2)
+        if not cap.isOpened():
+            return "no"
+        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        ok, frame = cap.read()
+        return "yes" if (ok and frame is not None) else "no"
+    except Exception:                                         # noqa: BLE001
+        return "no"
+    finally:
+        if cap is not None:
+            try:
+                cap.release()
+            except Exception:                                 # noqa: BLE001
+                pass
+
+
+def serial_nodes(vidpid):
+    """/dev/ttyACM* or ttyUSB* belonging to this VID:PID, from sysfs.
+
+    Matched on the USB ID rather than the path: the Teensy moves between
+    ACM0 and ACM1 on every attach, which is recorded in serial_port.py as
+    the reason nothing here may hardcode a number.
+    """
+    out = []
+    for path in sorted(glob.glob("/dev/ttyACM*") + glob.glob("/dev/ttyUSB*")):
+        node = "/sys/class/tty/%s/device" % os.path.basename(path)
+        d = os.path.realpath(node)
+        for _ in range(6):
+            vid = os.path.join(d, "idVendor")
+            pid = os.path.join(d, "idProduct")
+            if os.path.exists(vid) and os.path.exists(pid):
+                try:
+                    got = "%s:%s" % (open(vid).read().strip(),
+                                     open(pid).read().strip())
+                except OSError:
+                    break
+                if got.lower() == vidpid.lower():
+                    out.append(path)
+                break
+            d = os.path.dirname(d)
+    return out
+
+
+def serial_health(vidpid):
+    """('yes'|'absent', detail) for a serial board.
+
+    PRESENCE ONLY, deliberately. Opening the port to prove it talks would
+    take it away from `master_pose_node`, which claims it exclusively --
+    serial_port.claim_exclusive exists precisely because two readers on one
+    Teensy is a silent corruption. A probe that breaks the thing it is
+    probing is not a probe.
+    """
+    devs = serial_nodes(vidpid)
+    if not devs:
+        return "absent", "no /dev/ttyACM* or ttyUSB* belongs to %s" % vidpid
+    return "yes", "present at %s (not opened -- the master node claims it)" % (
+        ", ".join(devs))
+
+
+def health(vidpid):
+    """('yes'|'busy'|'no'|'absent', detail) for one wanted camera.
+
+    'yes' as soon as ANY of its nodes delivers -- a multi-function camera
+    has depth and infrared nodes that never will, and requiring all of them
+    would condemn every working RealSense.
+    """
+    devs = nodes_of(vidpid)
+    if not devs:
+        return "absent", "no /dev/video* belongs to %s" % vidpid
+    seen = []
+    busy = False
+    for d in devs:
+        v = delivers(d.path)
+        seen.append("%s=%s" % (d.path, v))
+        if v == "yes":
+            return "yes", "%s delivers (%s)" % (d.path, ", ".join(seen))
+        if v == "busy":
+            busy = True
+    if busy:
+        return "busy", "in use by something else (%s)" % ", ".join(seen)
+    return "no", "%d node(s), none delivered: %s" % (len(devs),
+                                                     ", ".join(seen))
+
+
+def _run_fix():
+    """Run the one-shot repair exactly as `--fix` does."""
+    import sys as _sys
+    argv, _sys.argv = _sys.argv, [_sys.argv[0], "--fix"]
+    try:
+        return main()
+    finally:
+        _sys.argv = argv
+
+
+def watch(interval):
+    """Keep the cameras attached, for as long as this runs.
+
+    WHY A ONE-SHOT REPAIR WAS NEVER GOING TO BE ENOUGH. usbipd hands each
+    camera across the WSL boundary, and it drops them on its own -- the
+    service stops, a device re-enumerates, Windows sleeps a hub. `--fix`
+    repairs that beautifully, ONCE, at the moment somebody notices and presses
+    something. The operator's report on 2026-08-30 was "the cameras are
+    constantly disconnected", which is the same fault happening on a timer
+    while nobody is watching for it.
+
+    So this is the same repair on a loop. It re-uses `health()` rather than
+    inventing a second opinion about what "connected" means, and the answer
+    it acts on is whether a camera DELIVERS A FRAME -- not whether a device
+    node exists, because a stale attach leaves the node there and the camera
+    dead, which is exactly the case that wastes an afternoon.
+
+    IT SAYS WHEN IT REPAIRS, AND HOW OFTEN. A watchdog that silently patches
+    a fault forever hides a degrading cable or a failing hub: the count is the
+    measurement that tells you whether this is a nuisance or a hardware
+    problem. It is deliberately quiet when nothing is wrong.
+
+    NEVER TOUCHES A HEALTHY CAMERA. A detach-attach cycle on a camera that is
+    working would drop the frame a node is mid-read on, so `busy` -- in use by
+    something else -- counts as healthy here. The repair only ever runs for a
+    camera that is absent or not delivering.
+    """
+    fixes = 0
+    started = time.time()
+    print("== USB CAMERA WATCHDOG == checking every %.0f s. Repairs are "
+          "reported; silence means the cameras are up." % interval,
+          flush=True)
+    while True:
+        try:
+            bad = []
+            for vidpid, (label, kind) in WANTED.items():
+                st, detail = (serial_health(vidpid) if kind == "serial"
+                              else health(vidpid))
+                if st in ("absent", "no"):
+                    bad.append((label, detail))
+            if bad:
+                fixes += 1
+                mins = (time.time() - started) / 60.0
+                print("[%s] CAMERAS DOWN after %.0f min: %s -- repairing "
+                      "(repair #%d)"
+                      % (time.strftime("%H:%M:%S"), mins,
+                         "; ".join("%s: %s" % b for b in bad), fixes),
+                      flush=True)
+                # THE SAME REPAIR THE OPERATOR WOULD RUN, not a second
+                # implementation of it. `--fix` is one function call away and
+                # already handles the stale case, the unshared case and the
+                # stopped service, each with its own message.
+                rc = _run_fix()
+                print("[%s] repair returned %s"
+                      % (time.strftime("%H:%M:%S"), rc), flush=True)
+            time.sleep(interval)
+        except KeyboardInterrupt:
+            print("\n  watchdog stopped after %d repair(s)." % fixes,
+                  flush=True)
+            return 0
+        except Exception as e:                                # noqa: BLE001
+            # A watchdog that dies on one bad poll is a watchdog that was
+            # only ever going to help until the first surprise.
+            print("[%s] watchdog poll failed (%r) -- continuing"
+                  % (time.strftime("%H:%M:%S"), e), flush=True)
+            time.sleep(interval)
+
+
 def main():
     ap = argparse.ArgumentParser(
         description=__doc__,
@@ -94,7 +325,15 @@ def main():
                     help="attach what is missing, and detach-then-attach "
                          "anything Windows thinks is already attached")
     ap.add_argument("--quiet", action="store_true")
+    ap.add_argument("--watch", action="store_true",
+                    help="stay running and repair the cameras whenever they "
+                         "drop, instead of once")
+    ap.add_argument("--interval", type=float, default=20.0,
+                    help="seconds between checks in --watch mode")
     a = ap.parse_args()
+
+    if a.watch:
+        return watch(a.interval)
 
     before = video_nodes()
     say = (lambda *x: None) if a.quiet else print
@@ -113,7 +352,7 @@ def main():
         return 2
 
     missing, stale, unshared = [], [], []
-    for vidpid, label in WANTED.items():
+    for vidpid, (label, kind) in WANTED.items():
         info = devs.get(vidpid)
         if info is None:
             say("  %-34s NOT PRESENT on the host (unplugged?)" % label)
@@ -124,9 +363,12 @@ def main():
         if "not shared" in low:
             unshared.append((busid, label))
         elif "attached" in low:
-            # Windows says attached. If Linux has no video node at all, that
-            # belief is stale and `attach` will refuse rather than repair.
-            if not before:
+            # WINDOWS SAYS ATTACHED. That is a claim about Windows, not
+            # about whether a camera works. Ask the camera.
+            hs, detail = (serial_health(vidpid) if kind == "serial"
+                          else health(vidpid))
+            say("      %s -- %s" % (hs.upper(), detail))
+            if hs in ("no", "absent"):
                 stale.append((busid, label))
         else:
             missing.append((busid, label))
@@ -139,7 +381,7 @@ def main():
     todo = missing + stale
     if not todo:
         if before:
-            say("\n  Nothing to do -- the cameras are in WSL.")
+            say("\n  Nothing to do -- the cameras are in WSL and delivering.")
             return 0
         say("\n  No camera is attached and none is shared. See the bind step "
             "above.")
@@ -151,8 +393,8 @@ def main():
 
     say("")
     for busid, label in stale:
-        say("  REPAIRING STALE %s (%s): Windows says attached, WSL has "
-            "nothing." % (busid, label))
+        say("  REPAIRING %s (%s): Windows says attached and the camera is "
+            "not delivering." % (busid, label))
         rc, out = usbipd("detach", "--busid", busid)
         say("    detach: %s" % (out.strip().splitlines()[-1]
                                 if out.strip() else "ok"))
@@ -162,18 +404,33 @@ def main():
         last = out.strip().splitlines()[-1] if out.strip() else "ok"
         say("  attach %s (%s): %s" % (busid, label, last))
 
-    # THE ONLY ANSWER THAT COUNTS is whether Linux can see them now.
+    # THE ONLY ANSWER THAT COUNTS is whether a camera delivers a frame now.
+    # Not whether a device node reappeared: that is what was already true
+    # while nothing worked.
     for _ in range(10):
         time.sleep(1.0)
-        after = video_nodes()
-        if after and after != before:
+        if video_nodes():
             break
     after = video_nodes()
-    say("\n  /dev/video* now: %s" % (", ".join(after) if after else "STILL NONE"))
+    say("\n  /dev/video* now: %s"
+        % (", ".join(after) if after else "STILL NONE"))
     if not after:
         say("  The attach reported success and Linux still has no device. "
             "That is usually the service having been restarted under a live "
             "attach; unplug the camera and plug it back in.")
+        return 1
+    bad = []
+    for vidpid, (label, kind) in WANTED.items():
+        if vidpid not in devs:
+            continue
+        hs, detail = (serial_health(vidpid) if kind == "serial"
+                      else health(vidpid))
+        say("  %-34s %s -- %s" % (label, hs.upper(), detail))
+        if hs in ("no", "absent"):
+            bad.append(label)
+    if bad:
+        say("\n  STILL NOT DELIVERING: %s. Unplug it and plug it back in."
+            % ", ".join(bad))
         return 1
     return 0
 

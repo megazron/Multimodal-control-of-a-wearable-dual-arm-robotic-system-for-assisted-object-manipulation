@@ -52,31 +52,37 @@
   <xacro:include filename="$(find kortex_description)/grippers/robotiq_2f_85/urdf/robotiq_2f_85_macro.xacro"/>
 
   <!-- LEFT arm.
-       initial_positions == THE SOLVED PRESENTATION POSE (set 2026-08-16).
-       Kortex 59.59/103.34/275.80/80.76/352.85/326.88/71.97.
+       initial_positions == THE MANUALLY SET PICK POSE (set 2026-08-25).
+       Kortex 66.57/57.15/127.04/220.83/207.03/239.68/352.51.
        Mirrors config/home_positions_left.txt; KEEP THE TWO IN STEP.
        One updated without the other is a documented trap in this project.
 
-       SOLVED, NOT CHOSEN. scripts/solve_home_pose.py states the pose as nine
-       geometric constraints (forearm forward, elbow below the shoulder, wrist
-       level, wrist FACING FORWARD, gripper camera on top, hands in front of
-       the chest, wearer clearance, mirror symmetry) and searches the joint space for them. The
-       achieved value of every one is in config/home_positions_left.txt and in
-       recordings/baselines/home_solved.json.
+       MEASURED FROM THE HARDWARE, not solved. The operator positioned the
+       physical left arm by hand and asked for this pose to be home. Captured
+       from /real_status_left - the REAL encoder values published by
+       kortex_highlevel_bridge_left - 40 samples, max spread 0.000000 rad.
+       Raw capture: recordings/baselines/pick_pose_manual.json.
 
-       THE CONSTRAINT THAT WAS MISSING FOR THREE ATTEMPTS was the ROLL about
-       the approach axis. "Wrists level" was measured as the tool AXIS
-       elevation and was genuinely 0.00 deg, while the roll went unconstrained
-       and put the wrist camera 56.4 mm BELOW the fingertips on both arms. A
-       level axis says nothing about which way up the hand is.
+       IT REPLACES THE SOLVED PRESENTATION POSE (2026-08-16), which is not
+       lost: recordings/baselines/home_solved.json holds it with every
+       achieved constraint value, and git revision 3d33f8a holds the files.
 
-       SIM AND REAL DISAGREE, DELIBERATELY AND TEMPORARILY. The real arm is
-       still parked at the legacy Kortex home
-       259.03/277.69/267.74/286.14/194.10/27.48/55.26, so enabling the sim to real bridge is NOT a no-op. It is not a
-       jump either: sim_to_real_bridge.enable() checks the real arm against
-       home_positions_left.txt and REFUSES, naming the joint and the size. The
-       pose is captured on the hardware next lab session (see
-       docs/NEXT_SESSION.md); until then the refusal is the design.
+       WHY IT CHANGED. The presentation pose holds the wrist LEVEL, so the
+       gripper camera looks ACROSS THE ROOM. Photographed from the real left
+       wrist camera at that pose on 2026-08-25, the frame holds a hoist, a
+       lighting truss and the far wall - no table, no cube. This pose is the
+       same posture with joint_4 and joint_6 tipped down 44.85 and 55.91 deg,
+       and the cube is centred in frame.
+
+       SIM AND REAL NOW AGREE, for the first time in this project. Both are
+       at this pose. sim_to_real_bridge.enable() compares the real arm against
+       config/home_positions_left.txt, and the comparison now passes rather
+       than refusing - because the file was written FROM the arm.
+
+       WEARER CLEARANCE was measured before this was adopted, through the
+       same Scorer.clearance_parts the guard uses: moving chain 0.3045 m to
+       L-upperarm against a 0.150 m floor. The whole-chain 0.2202 m is the
+       immobile mount cap and binds nothing. HARD CONSTRAINT 11.
 
        This value is baked at LAUNCH, so a colcon build is required before the
        sim arms start here. Text files changed without a rebuild leave the
@@ -105,23 +111,34 @@
       moveit_active="true"/>
 
   <!-- RIGHT arm.
-       initial_positions == THE SOLVED PRESENTATION POSE, same solver run and
-       same constraint set as the left.
-       Kortex 309.20/108.48/91.24/82.52/212.63/36.52/233.54.
+       initial_positions == CAPTURED FROM THE REAL ARM (set 2026-08-25).
+       Kortex 122.10/307.36/58.67/266.25/160.44/320.42/160.29.
        Mirrors config/home_positions_right.txt; KEEP THE TWO IN STEP.
 
-       Every continuous joint (1/3/5/7) is inside +/-pi as stored, so there is
-       no hand wrapping to remember this time: the solver's search box for a
-       continuous joint IS +/-pi, so a pose outside it cannot be returned.
+       THE RIGHT ARM WAS NOT MOVED BY HAND. When the operator set the left arm
+       to the pick pose, the right stayed where it was - the solved
+       presentation pose. So this is the SAME posture carrying the values the
+       HARDWARE reports rather than the ones the solver asked for: joint_3
+       differs by 0.887 deg, every other joint by under 0.4.
 
-       THE TWO ARMS CANNOT MIRROR EXACTLY. Reflecting the LEFT mount through
-       x = 0 leaves it 168.00 deg of roll from the RIGHT mount, measured off
-       this file. The whole-chain mirror residual is 0.0272 m, against 0.2826
-       for the pose this replaces.
+       THAT DIFFERENCE IS THE POINT. HARD CONSTRAINT 1 says the real arm's
+       angles are the ones that count, and until this capture the right arm's
+       home had NEVER been read from hardware - the text this replaces said
+       so itself. This is the first reading ever taken from the right arm.
 
-       The real arm is still at the legacy Kortex home
-       303.65/77.06/98.57/58.57/317.14/36.39/154.71; the bridge refuses on the difference rather than commanding
-       it. No reading has ever been taken from the right arm at all. -->
+       Every continuous joint (1/3/5/7) is inside +/-pi as stored; the
+       tightest seam margin is joint_5 at 0.341 rad.
+
+       HOME IS DELIBERATELY ASYMMETRIC NOW. The left arm is tipped to look at
+       the table and this one is not, so the mirror residual that the previous
+       pose was solved for no longer describes home. The rig could not mirror
+       exactly in any case: reflecting the LEFT mount through x = 0 leaves it
+       168.00 deg of roll from the RIGHT mount, measured off this file.
+
+       WEARER CLEARANCE, measured before adoption: moving chain 0.4032 m to
+       R-upperarm against a 0.150 m floor, unchanged to four decimals from the
+       pose it replaces - which is what a sub-degree correction should do and
+       is a check on the capture. HARD CONSTRAINT 11. -->
   <xacro:load_arm
       parent="right_mount"
       prefix="right_"

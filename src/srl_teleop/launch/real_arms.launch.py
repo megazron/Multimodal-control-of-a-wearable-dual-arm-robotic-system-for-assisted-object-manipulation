@@ -44,7 +44,7 @@ def generate_launch_description():
         DeclareLaunchArgument("preview_delay_s", default_value="1.0"),
         DeclareLaunchArgument("max_vel_rad_s", default_value="0.15"),
         DeclareLaunchArgument("max_step_rad", default_value="0.05"),
-        DeclareLaunchArgument("lag_trip_rad", default_value="0.5"),
+        DeclareLaunchArgument("lag_trip_rad", default_value="1.4"),   # TEMP 2026-08-27: was 0.5; RESTORE
         DeclareLaunchArgument("homing_kp", default_value="0.5"),
         DeclareLaunchArgument("homing_vmax", default_value="0.05"),
         # Bring the driver and controllers up WITHOUT moving anything. Used to

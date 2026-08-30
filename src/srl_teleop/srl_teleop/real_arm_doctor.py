@@ -329,7 +329,17 @@ def check_discovery(p, fixes=None):
     """1. Do this window and the running stack agree about how to find
     each other?"""
     mine = p.my_env()
-    pids = p.stack_pids()
+    pids = list(p.stack_pids() or [])
+    # THE ARM BRIDGES COUNT AS "SOMETHING RUNNING". On 2026-08-26 the arms
+    # and their two kortex bridges were up on domain 7 with no sim stack,
+    # and this check -- which compared against STACK processes only -- said
+    # "nothing else is running yet, this window's settings are right" while
+    # the window, on domain 0, could not see a single joint state. The
+    # operator read five other faults, none of which named the actual one.
+    try:
+        pids += [pid for pid, _ in (p.kortex_procs() or [])]
+    except Exception:                                         # noqa: BLE001
+        pass
     missing = [k for k in ("FASTDDS_BUILTIN_TRANSPORTS",)
                if mine.get(k, "") != EXPECTED[k]]
     if not pids:

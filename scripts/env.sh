@@ -53,9 +53,48 @@ source "$SRL_WS/install/setup.bash" >/dev/null 2>&1 || {
 unset _srl_had_u
 
 # ---------------------------------------------------------------- domain
-# Pinned explicitly rather than left to default so that "both shells are on
-# domain 0" is a fact you can read, not an accident you have to infer.
-export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-0}"
+# Pinned explicitly rather than left to default so that the domain is a fact
+# you can read, not an accident you have to infer.
+#
+# AND IT FOLLOWS THE RIG THAT IS ALREADY RUNNING. This was a flat `:-0`, and
+# on 2026-08-26 that opened the operations window on domain 0 against a stack
+# and two arm bridges on domain 7. Every panel drew: no arms, no joint
+# states, no cameras, connection check "5 things to fix". Nothing was wrong
+# with any of them -- the window was simply on a different bus, and DDS has
+# no way to say so. From the operator's side that is indistinguishable from
+# the software being broken, and it is the second time a domain mismatch has
+# been diagnosed as a dead feature.
+#
+# So: an explicit ROS_DOMAIN_ID in the environment always wins, then the
+# domain of a RUNNING stack or arm bridge, then 0. The running domain is read
+# from the process's own /proc/<pid>/environ, which is what it is actually
+# using -- not from a config file that may since have been edited.
+_srl_running_domain() {
+    local pid d
+    for pid in $(pgrep -f 'lib/moveit_ros_move_group/move_group' 2>/dev/null) \
+               $(pgrep -f 'kortex_highlevel_bridge' 2>/dev/null) \
+               $(pgrep -f 'lib/controller_manager/ros2_control_node' 2>/dev/null); do
+        d=$(tr '\0' '\n' < "/proc/$pid/environ" 2>/dev/null \
+            | sed -n 's/^ROS_DOMAIN_ID=//p' | head -1)
+        # An unset ROS_DOMAIN_ID in a running process means domain 0, which
+        # is a real answer and not a missing one.
+        [ -n "$d" ] || d=0
+        case "$d" in ''|*[!0-9]*) continue ;; esac
+        echo "$d"
+        return 0
+    done
+    return 1
+}
+if [ -n "${ROS_DOMAIN_ID:-}" ]; then
+    export ROS_DOMAIN_ID
+else
+    _srl_dom="$(_srl_running_domain || true)"
+    if [ -n "${_srl_dom:-}" ] && [ "${_srl_dom}" != "0" ]; then
+        echo "scripts/env.sh: joining the RUNNING rig on ROS_DOMAIN_ID=${_srl_dom}" >&2
+    fi
+    export ROS_DOMAIN_ID="${_srl_dom:-0}"
+    unset _srl_dom
+fi
 export RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
 export ROS_AUTOMATIC_DISCOVERY_RANGE="${ROS_AUTOMATIC_DISCOVERY_RANGE:-SUBNET}"
 # THE ONE HARD CONSTRAINT 5 CALLS MANDATORY, AND IT WAS NOT IN HERE.

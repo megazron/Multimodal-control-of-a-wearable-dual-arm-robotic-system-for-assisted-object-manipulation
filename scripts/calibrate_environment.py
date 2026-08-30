@@ -135,22 +135,63 @@ class Calibrator:
         self.n = node
         self.viewpoint = None
 
-    def look_from(self, xyz, quat, settle_s=1.2, solution=None):
-        """Command the arm to a viewing pose and wait for it to actually be there.
+    #: Joint speed the per-cell moves are timed at, rad/s. The sweep steps
+    #: 0.13 m between neighbouring cells, which is a few degrees of joint
+    #: travel -- timing that as a flat 2 s makes the arm crawl and then sit,
+    #: and 110 cells of crawl-and-sit is what "so slow, moves then stops"
+    #: is. The follower's own limit is 1.3963 rad/s (joint_limits.yaml), so
+    #: this stays well inside it.
+    MOVE_SPEED_RAD_S = 0.75
+    MOVE_MIN_S = 0.20
+    MOVE_MAX_S = 2.0
+
+    def look_from(self, xyz, quat, settle_s=0.20, solution=None):
+        """Command the arm to a viewing pose and wait for it to BE there.
 
         Returns True when the arm ARRIVED. A capture taken while the arm is
         still moving is a cloud smeared across two poses, and nothing
         downstream can tell -- `check_frame_still` exists in `vision_grasp`
         for exactly this and the same discipline applies here.
+
+        THE TIME IS PROPORTIONAL TO THE DISTANCE, NOT A CONSTANT.
+        ---------------------------------------------------------
+        Every cell used to be commanded as a flat 2.0 s trajectory followed
+        by a flat 1.2 s settle, whatever the step. Neighbouring cells are
+        0.13 m apart -- a few degrees of joint travel -- so the arm spent two
+        seconds easing through a move it could make in a third of that, then
+        froze for over a second, 110 times. Measured per cell: ~3.5 s, of
+        which most was waiting.
+
+        THE SETTLE IS STILL REAL, JUST NOT PADDED. It is what keeps the depth
+        frame from being smeared across two poses, and `capture()` already
+        REFUSES a stale frame on top of it -- so the settle only has to cover
+        mechanical ring-down, not frame latency. Cut to 0.35 s; the stale-frame
+        refusal is what guarantees correctness, and it is unchanged.
         """
         j = solution if solution is not None else self.n.solve(
             self.arm, list(xyz), quat)
         if j is None:
             return False
-        self.n.send(self.arm, j, 2.0)
+        cur = [self.n.js.get(n) for n in self.n.names(self.arm)]
+        if all(v is not None for v in cur):
+            span = max(abs(((a - b + math.pi) % (2 * math.pi)) - math.pi)
+                       for a, b in zip(cur, j))
+            secs = min(self.MOVE_MAX_S,
+                       max(self.MOVE_MIN_S, span / self.MOVE_SPEED_RAD_S))
+        else:
+            secs = 2.0
+        self.n.send(self.arm, j, secs)
+        # FEED THE BRIDGE WHILE THE MOVE RUNS. kortex_highlevel_bridge
+        # commands ZERO SPEED if no target arrives within watchdog_s (0.5 s),
+        # so a single send followed by a polling loop is a move that stalls
+        # half a second in and creeps the rest of the way on re-sends it
+        # never gets. Re-sending the same setpoint is what "keep going" means
+        # to a proportional controller.
         t0 = time.time()
-        while time.time() - t0 < 6.0:
-            self.n.spin(0.1)
+        deadline = max(6.0, secs * 3.0)
+        while time.time() - t0 < deadline:
+            self.n.send(self.arm, j, max(0.15, secs - (time.time() - t0)))
+            self.n.spin(0.05)
             if self.n.at(self.arm, j, tol=0.02):
                 self.n.spin(settle_s)
                 return True
@@ -842,6 +883,17 @@ def main():
                     help="write each view's deprojected cloud here, so a "
                          "single view can be scored before the fusion is "
                          "blamed for the map")
+    # WHERE THE COMMANDS GO. Without this the sweep drives the SIMULATION
+    # and the metal never moves -- `env_probe.ProbeNode` publishes to the
+    # bare `/<arm>_arm_controller/joint_trajectory`, and
+    # `kortex_highlevel_bridge` subscribes under `/real`. `pick_from_map`
+    # already had this flag; this file did not, so "scan the table" ran a
+    # complete, correct sweep of a simulated arm while the operator watched
+    # a stationary robot. Nothing errored, which is what made it hard to see.
+    ap.add_argument("--drive-real", action="store_true",
+                    help="publish where the REAL-ARM BRIDGE listens (/real/) "
+                         "instead of the simulated controller. Without it "
+                         "this sweep moves the SIMULATION ONLY.")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--require-real-camera", action="store_true",
                     help="refuse to run against mock_rgbd_camera")
@@ -853,7 +905,11 @@ def main():
     from env_probe import ProbeNode          # local import: needs rclpy
     import rclpy
     rclpy.init()
-    node = ProbeNode()
+    node = ProbeNode(real_ns="/real" if a.drive_real else "")
+    print("commands go to %s"
+          % ("/real/... -- THE REAL ARM BRIDGE" if a.drive_real
+             else "the bare topics -- THE SIMULATION ONLY "
+                  "(pass --drive-real to move the metal)"))
     try:
         if not all(node.wait_ready(x, 120.0) for x in arms):
             print("REFUSING after 120 s. Still missing: %s"

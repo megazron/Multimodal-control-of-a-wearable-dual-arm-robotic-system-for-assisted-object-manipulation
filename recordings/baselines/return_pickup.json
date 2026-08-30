@@ -1,0 +1,22 @@
+{
+ "plan": [
+  {
+   "name": "PICKUP",
+   "q": [
+    1.7059335094629509,
+    0.6549963474636639,
+    2.3451655411699996,
+    -1.5243454710617346,
+    -0.3284396677562022,
+    -0.5059617249631401,
+    -2.246439496399672
+   ],
+   "grip": 0.0,
+   "pos_err_mm": 0.0,
+   "rot_err_deg": 0.0,
+   "pad_above_table_mm": 0.0
+  }
+ ],
+ "ok": true,
+ "note": "recovery: return to the saved pickup pose, force guard armed"
+}

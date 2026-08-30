@@ -1,0 +1,16 @@
+{
+  "name": "scene_hd",
+  "provenance": "HD USB webcam /dev/video0 (HD USB CAMERA: HD USB CAMERA 32e4:0317), MJPG 1280x720",
+  "notes": [
+    "NO INTRINSICS: this camera has never been calibrated in this repository, so every stage that needs fx, fy, cx, cy refuses rather than assuming cx = w/2. Calibrate it with scripts/calibrate_scene_camera.py."
+  ],
+  "K_colour": null,
+  "K_depth": null,
+  "depth_is_aligned": false,
+  "no_depth_reason": "the HD USB webcam is a colour camera; it has no depth sensor. This is a by-design absence, not a fault -- the RealSense is the depth scene camera.",
+  "colour_shape": [
+    720,
+    1280,
+    3
+  ]
+}

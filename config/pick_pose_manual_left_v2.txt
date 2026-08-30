@@ -1,0 +1,21 @@
+# LEFT ARM -- MANUALLY SET PICK POSE v2, captured 2026-08-25 from the REAL arm.
+#
+# The operator hand-guided the arm to this pose so the gripper camera sees the
+# cube, and asked for it to be saved before any planning.
+#
+# SOURCE: /real/joint_states, published by kortex_highlevel_bridge_left from
+# the arm's own encoders. 60 samples, 60 DISTINCT source stamps,
+# max spread 0.000001 rad -- live data, arm stationary.
+#
+# The stamp count matters: the v1 capture was read from /real_status_left,
+# which a leftover real_homing_node was republishing from a FROZEN snapshot
+# after its input died. It reported a pose the arm was no longer in.
+#
+# THIS IS NOT HOME. config/home_positions_*.txt remains the source for home.
+joint_1: 97.8872    # kortex 97.8872 deg
+joint_2: 43.0528    # kortex 43.0528 deg
+joint_3: 127.3104    # kortex 127.3104 deg
+joint_4: -99.2353    # kortex 260.7647 deg
+joint_5: -65.1318    # kortex 294.8682 deg
+joint_6: 23.6794    # kortex 23.6794 deg
+joint_7: -83.4063    # kortex 276.5937 deg

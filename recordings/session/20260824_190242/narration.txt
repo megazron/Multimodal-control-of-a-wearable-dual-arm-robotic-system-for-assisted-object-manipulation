@@ -1,0 +1,18 @@
+    4.5 s  STARTING     both arm: starting up calibrating the environment before anything is planned
+    4.5 s  CALIBRATING  left+right arm: calibrating: looking at the workspace finding the table before deciding where to sweep
+   70.7 s  CALIBRATING  left arm: calibrating: looking at the workspace 12 cells in 1 pass(es) of 1 layer(s), serpentine order, 1.86 m of travel -- the wrist holds one attitude per pass
+   70.7 s  CALIBRATING  left arm: calibrating: looking at the workspace pass 1 of 1, wrist fixed at +0 deg yaw / 38.9 deg down, 12 cells
+   71.7 s  REACHING     left arm: reaching cell 1 of 12 at (0.677, 0.248, 1.549)
+   76.5 s  REACHING     left arm: reaching cell 2 of 12 at (0.852, 0.248, 1.549)
+  101.0 s  REACHING     left arm: reaching cell 8 of 12 at (0.677, 0.389, 1.549)
+  116.6 s  CALIBRATING  right arm: calibrating: looking at the workspace 12 cells in 1 pass(es) of 1 layer(s), serpentine order, 1.45 m of travel -- the wrist holds one attitude per pass
+  116.6 s  CALIBRATING  right arm: calibrating: looking at the workspace pass 1 of 1, wrist fixed at +0 deg yaw / 38.9 deg down, 12 cells
+  121.6 s  REACHING     right arm: reaching cell 3 of 12 at (-0.932, 0.248, 1.549)
+  130.5 s  REACHING     right arm: reaching cell 4 of 12 at (-0.802, 0.248, 1.549)
+  153.5 s  MAPPING      left+right arm: building the map fusing 4 view(s) from 2 arm(s)
+  157.3 s  DONE         left+right arm: finished surface measured at 1.2502 m, 5 object(s) found, 4 of 5 REACHABLE cells contributed (80%)
+  169.2 s  PLANNING     left arm: planning a path object 2 at ['0.480', '0.449', '1.282'], 40 mm across, from the MEASURED map
+  223.6 s  REACHING     left arm: reaching at (0.555, 0.387, 1.491) pregrasp
+  226.0 s  GRASPING     left arm: closing on the object at (0.516, 0.419, 1.382) grasp
+  229.3 s  CARRYING     left arm: carrying at (0.516, 0.419, 1.482) lift
+  231.7 s  DONE         left arm: finished object 2 moved

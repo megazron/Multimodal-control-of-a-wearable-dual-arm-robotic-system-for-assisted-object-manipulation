@@ -1,0 +1,16 @@
+{
+  "name": "scene_hd",
+  "provenance": "HD USB webcam through scene_camera_node's own topic /scene_camera/image_raw on ROS_DOMAIN_ID=42 -- the node holds /dev/video*, and V4L2 allows one client",
+  "notes": [
+    "NO INTRINSICS: the node published a zero camera_info, which it does deliberately until it is calibrated. Stages needing fx, fy, cx, cy refuse rather than assume cx = w/2."
+  ],
+  "K_colour": null,
+  "K_depth": null,
+  "depth_is_aligned": false,
+  "no_depth_reason": "the HD USB webcam is a colour camera; it has no depth sensor. This is a by-design absence, not a fault -- the RealSense is the depth scene camera.",
+  "colour_shape": [
+    480,
+    640,
+    3
+  ]
+}

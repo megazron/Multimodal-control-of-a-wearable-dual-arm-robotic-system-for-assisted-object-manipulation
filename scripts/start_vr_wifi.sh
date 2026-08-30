@@ -24,6 +24,15 @@
 set -uo pipefail
 
 WS_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+# ONE BUS. This script never set the domain, so it inherited whatever shell
+# launched it -- and on 2026-08-26 that meant the whole VR stack came up on
+# domain 0 while the arms and their bridges ran on domain 7. RViz followed
+# the hand beautifully; the metal heard nothing, because nothing it needed
+# was on its bus. env.sh joins the RUNNING rig's domain (explicit
+# ROS_DOMAIN_ID still wins) and sets the mandatory transports.
+# shellcheck disable=SC1091
+source "$WS_DIR/scripts/env.sh"
 PORT="${VR_PORT:-8765}"
 CERT_DIR="${VR_CERT_DIR:-$HOME/.srl_vr_cert}"
 CRT="$CERT_DIR/vr.crt"
@@ -127,8 +136,17 @@ fi
 PIDS=()
 start() { local n="${!#}"; "$@" >/dev/null 2>&1 & PIDS+=($!); echo "  $n (pid ${PIDS[-1]})"; }
 
+# THE LINK WATCHDOG MUST OUTLAST THE LINK'S OWN MEASURED STALLS. The real
+# wifi session ran 81 Hz with a median gap of 9 ms -- and ONE stall of
+# 1.14 s (VR_REAL_ARM_AS_RUN.md). The default stale_timeout_s of 0.2 turned
+# every such stall into /vr/tracking_ok=false, which drops the operator's
+# clutch mid-motion for a reason they cannot see inside a headset. 0.6 is
+# the value the as-run doc prescribes; the arm is still protected -- a
+# genuinely dead link freezes 0.6 s in, and the mapper commands
+# hold-in-place from the first frozen tick.
 ros2 run srl_vr_teleop quest_bridge_node --ros-args \
-  -p port:=$PORT -p certfile:="$CRT" -p keyfile:="$KEY" -p web_dir:="$WEB" &
+  -p port:=$PORT -p certfile:="$CRT" -p keyfile:="$KEY" -p web_dir:="$WEB" \
+  -p stale_timeout_s:="${VR_LINK_TIMEOUT:-0.6}" &
 PIDS+=($!)
 echo "  quest_bridge_node (pid ${PIDS[-1]})  https+wss on :$PORT"
 
@@ -136,7 +154,37 @@ if [ "$MODE" = "full" ]; then
   sleep 2
   start ros2 run srl_vr_teleop vr_pose_mapper
   start ros2 run srl_vr_teleop vr_gripper_node
-  start ros2 run srl_vr_teleop vr_safety_node
+  # THE SAFETY NODE'S GATES, SET AT LAUNCH RATHER THAN LEFT AT THE DEFAULTS.
+  #
+  # They default SHUT and that is right: `require_observer_estop` means a
+  # second person publishes a 5 Hz heartbeat confirming they are stood beside
+  # the wearer holding the physical e-stop, and an operator in a headset
+  # CANNOT SEE THE ARM. But this script started the node with the defaults
+  # and no way to change them, so on a rig with the arms connected the
+  # sequence was: press the button, everything launches, and the mapper is
+  # frozen for a reason no control in the window can clear. The operator's
+  # only route was to kill the node and relaunch it by hand -- which is how
+  # a safety interlock stops being one, because the workaround is to remove
+  # it entirely rather than to record that it was bypassed.
+  #
+  # So the three gates come from the environment, still shut by default, and
+  # the GUI sets them from the "I am working alone" tick it already logs to
+  # recordings/observer_bypass_log.jsonl. Bypassing is now a thing the window
+  # does on the record, not a thing you do around the window.
+  # tracking_timeout_s matches the bridge's stale_timeout_s above and for
+  # the same reason: two watchdogs on one link, and the tighter one decides.
+  # watch_tracking_reference guards a headset STANDING ON A SHELF (desk
+  # operation, the shipped setup): a knock announces nothing, so the first
+  # HMD pose is latched and 20 mm / 2 deg of drift freezes everything. On a
+  # WORN headset that same gate freezes the moment the operator turns their
+  # head -- stickily, clearable only by /vr/rebase_reference -- so the GUI's
+  # "headset is worn" tick sets VR_WATCH_REFERENCE=false before launch.
+  start ros2 run srl_vr_teleop vr_safety_node --ros-args \
+    -p require_observer_estop:="${VR_REQUIRE_OBSERVER:-true}" \
+    -p allow_real_arm:="${VR_ALLOW_REAL_ARM:-false}" \
+    -p allow_real_arm_without_observer:="${VR_ALLOW_REAL_NO_OBSERVER:-false}" \
+    -p watch_tracking_reference:="${VR_WATCH_REFERENCE:-true}" \
+    -p tracking_timeout_s:="${VR_TRACKING_TIMEOUT:-0.6}"
   start ros2 run srl_vr_teleop vr_feedback_node
 fi
 

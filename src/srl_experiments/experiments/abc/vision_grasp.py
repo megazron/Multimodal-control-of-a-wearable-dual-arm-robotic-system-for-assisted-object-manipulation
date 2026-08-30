@@ -342,8 +342,13 @@ def observe_and_detect(arm, node=None, settle_s=6.0, expect=None,
     try:
         n.spin(4.0)
         t0 = time.time()
-        ok1, _e1 = n.stage(q_via, secs=3.0)
-        ok2, e_obs = n.stage(q_obs, secs=3.0)
+        # NO EXPLICIT secs. `Vision.stage()` now sizes the move from how
+        # far the joints actually travel, so the simulation never asks for
+        # more than the sim->real bridge can replay. A hardcoded 3.0 s here
+        # tripped the lag monitor's e-stop on every attempt -- twice
+        # measured, at two different bridge speeds. See _staging_secs.
+        ok1, _e1 = n.stage(q_via)
+        ok2, e_obs = n.stage(q_obs)
         t["move_to_observe_s"] = round(time.time() - t0, 2)
         t["observe_arrival_rad"] = None if e_obs is None else round(e_obs, 5)
         if not (ok1 and ok2):
@@ -596,8 +601,8 @@ def observe_and_detect(arm, node=None, settle_s=6.0, expect=None,
         if return_home:
             t0 = time.time()
             try:
-                n.stage(q_via, secs=3.0)
-                n.stage(q_home, secs=3.0)
+                n.stage(q_via)
+                n.stage(q_home)
             except Exception:                                    # noqa: BLE001
                 pass
             t["return_home_s"] = round(time.time() - t0, 2)

@@ -53,6 +53,13 @@ setup(
             'measure_detector = srl_perception.measure_detector:main',
             # Legacy VLM locator, kept but not part of the study pipeline.
             'vlm_object_locator = srl_perception.vlm_object_locator:main',
+            # ALL FOUR CAMERAS through one vision pipeline, publishing what
+            # each one saw WITH provenance -- and refusing, by name, for the
+            # ones that cannot answer (no frames, zero K, no plane).
+            'scene_understanding_node = srl_perception.scene_understanding_node:main',
+            # The seam from measured objects to MoveIt: mapped_* ids only,
+            # add/grow only; removal is an explicit Trigger, never a timeout.
+            'map_obstacles_node = srl_perception.map_obstacles_node:main',
         ],
     },
 )

@@ -3,7 +3,8 @@
 
     ros2 run srl_perception scene_camera_node
     ros2 run srl_perception scene_camera_node --ros-args -p device:=/dev/video2
-    ros2 run srl_perception scene_camera_node --ros-args -p source:=file:/tmp/x.png
+    ros2 run srl_perception scene_camera_node \
+        --ros-args -p source:=file:/tmp/x.png
 
 Publishes:
     /scene_camera/image_raw      sensor_msgs/Image, bgr8
@@ -70,12 +71,65 @@ class SceneCamera(Node):
     def __init__(self):
         super().__init__("scene_camera")
         self.declare_parameter("device", "")
+        # WHICH CAMERA, NOT WHICH NUMBER. `/dev/videoN` is a position in a
+        # list that moves whenever a device is re-attached over usbip. This
+        # is matched against the driver's card name and the USB VID:PID --
+        # "realsense", "hd usb", "8086:0b3a" all work -- and it is a
+        # PREFERENCE, not a filter: everything is tried, in order, so a
+        # busy or absent favourite degrades to the next camera rather than
+        # to "no camera".
+        # PREFER THE HD USB CAMERA, NOT THE REALSENSE. Changed 2026-08-30.
+        #
+        # Two files disagreed about which device IS the scene camera:
+        # `usb_cameras.py` has always labelled 32e4:0317 "HD USB CAMERA
+        # (scene camera)", and this node preferred "realsense". So the node
+        # opened a RealSense node, held it, and the camera the rest of the
+        # system calls the scene camera sat free.
+        #
+        # And the RealSense is the WORSE choice over usbip, which is the only
+        # way it reaches WSL. Measured across this session: it runs about
+        # 5 Hz at 640x480, detaches on its own, and when it goes it goes like
+        # this --
+        #
+        #     VIDEOIO(V4L2:/dev/video6): select() timeout
+        #     scene camera delivered no frame. NOTHING is being published
+        #
+        # -- while /dev/video0 was sitting there reporting "YES delivers".
+        # The HD camera has been the reliable one all along.
+        #
+        # MATCHED ON VID:PID, NOT A NAME OR A NUMBER. `/dev/videoN` is a
+        # position in a list that moves on every usbip re-attach, and this
+        # camera presents TWO nodes (video0 and video1) under one identity.
+        # `Dev.matches` does a substring over name and vid_pid, so the USB ID
+        # is the one thing that survives a replug.
+        self.declare_parameter("prefer", "32e4:0317")
+        # FOUR OF THE REALSENSE'S SIX NODES ARE DEPTH OR INFRARED. They
+        # open, they deliver, and a grey picture of the right room passes
+        # any check that asks only whether a frame arrived.
+        self.declare_parameter("require_colour", True)
+        # SELF-REPAIR THE USB LINK, not just the V4L2 handle. Measured
+        # 2026-08-29: the RealSense dropped off the usbip bus mid-session
+        # and came back with `usbipd list` saying Attached, all six device
+        # nodes present, and nothing delivering. Re-opening the handle can
+        # never fix that; detach-then-attach does, and did on the first read.
+        self.declare_parameter("usbip_repair", True)
         self.declare_parameter("source", "v4l2")
-        self.declare_parameter("width", 1280)
-        self.declare_parameter("height", 720)
+        # 640x480 IS THE DEFAULT BECAUSE IT IS WHAT THE LINK CARRIES.
+        # Measured 2026-08-29: the RealSense over usbip delivers nothing at
+        # 1280x720 -- every read blocks until V4L2's select() times out, at
+        # about 11 s PER DEVICE, so asking for it cost the better part of a
+        # minute of probing before settling on the size that works anyway.
+        # Ask for more and it is still tried first; see `_sizes`.
+        self.declare_parameter("width", 640)
+        self.declare_parameter("height", 480)
         self.declare_parameter("fps", 30.0)
         self.declare_parameter("intrinsics", DEFAULT_INTRINSICS)
-        self.declare_parameter("stale_after_s", 0.5)
+        # 0.5 s WAS TIGHTER THAN THE LINK. Measured 2026-08-29 on the
+        # RealSense over usbip: ~5 Hz with gaps up to 0.93 s, so the panel
+        # flickered STALE on a camera the node itself called healthy. The
+        # threshold has to be looser than the transport's worst gap or it
+        # reports the transport as a fault.
+        self.declare_parameter("stale_after_s", 1.5)
 
         ws = os.environ.get("SRL_WS") or os.path.expanduser("~/kortex_ws")
         ip = self.get_parameter("intrinsics").value
@@ -90,6 +144,7 @@ class SceneCamera(Node):
         self.state_pub = self.create_publisher(String, "/scene_camera/state", 10)
 
         self.cap = None
+        self.dev = None
         self.last_ok = 0.0
         self.n_frames = 0
         self.n_fail = 0
@@ -103,11 +158,29 @@ class SceneCamera(Node):
 
     # -------------------------------------------------------------- open
     def _candidates(self):
-        import glob
+        """Devices to try, in order. An explicit `device` wins outright."""
+        from srl_perception import video_devices as vd
         d = self.get_parameter("device").value
         if d:
-            return [d]
-        return sorted(glob.glob("/dev/video*"))
+            for dev in vd.devices():
+                if dev.path == d:
+                    return [dev]
+            return [vd.Dev(d)]
+        return vd.order(str(self.get_parameter("prefer").value or ""))
+
+    def _sizes(self):
+        """The size asked for, then the one the usbip link can carry.
+
+        NOT A SILENT DOWNGRADE -- `reason` names the size that worked, and
+        the state message carries it, so a 640x480 picture is never reported
+        as the 1280x720 that was asked for.
+        """
+        w = int(self.get_parameter("width").value)
+        h = int(self.get_parameter("height").value)
+        sizes = [(w, h)]
+        if (w, h) != (640, 480):
+            sizes.append((640, 480))
+        return sizes
 
     def _open(self):
         src = str(self.get_parameter("source").value)
@@ -127,18 +200,34 @@ class SceneCamera(Node):
             self.reason = "file source %s (NOT A CAMERA)" % path
             return
         import cv2
+        from srl_perception import video_devices as vd
         cands = self._candidates()
         if not cands:
             self.reason = (
                 "no camera is attached to this machine. On WSL a USB camera "
                 "must be handed over from Windows first -- run "
-                "scripts/attach_scene_camera.sh, which prints the two "
-                "commands.")
+                "python3 scripts/usb_cameras.py --fix, which attaches them.")
             return
+        want_colour = bool(self.get_parameter("require_colour").value)
+        rejected = []
+        # ONE WALK OF /proc for the whole probe, not one per candidate.
+        open_now = vd.holders()
         for dev in cands:
-            cap = cv2.VideoCapture(dev, cv2.CAP_V4L2)
+            path = dev.path if hasattr(dev, "path") else dev
+            held = vd.users(path, open_now)
+            label = getattr(dev, "name", "") or path
+            if held:
+                # SAY WHOSE IT IS. `quest_bridge_node` claims the wide-view
+                # camera the moment the VR chain starts; a second reader
+                # gets an open that succeeds and frames that never come,
+                # which is indistinguishable from a broken camera.
+                rejected.append("%s in use by pid %s"
+                                % (path, ", ".join(str(p) for p in held)))
+                continue
+            cap = cv2.VideoCapture(path, cv2.CAP_V4L2)
             if not cap.isOpened():
                 cap.release()
+                rejected.append("%s will not open" % path)
                 continue
             # MJPG IS MANDATORY OVER USBIP, not a preference, and this
             # line was missing. The default uncompressed YUYV negotiates
@@ -149,28 +238,47 @@ class SceneCamera(Node):
             # camera and blamed "an IR or depth node", which sent the reader
             # to the wrong device entirely.
             cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
-            cap.set(cv2.CAP_PROP_FRAME_WIDTH,
-                    int(self.get_parameter("width").value))
-            cap.set(cv2.CAP_PROP_FRAME_HEIGHT,
-                    int(self.get_parameter("height").value))
             cap.set(cv2.CAP_PROP_FPS, float(self.get_parameter("fps").value))
-            # A DEVICE THAT OPENS IS NOT A DEVICE THAT DELIVERS. Several
-            # things on this machine present as /dev/video* and return
-            # nothing -- the IR sensor of this very webcam is one. So the
-            # candidate has to produce a frame before it is accepted.
-            ok, frame = cap.read()
-            if not ok or frame is None:
+            frame = None
+            for w, h in self._sizes():
+                cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
+                cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+                # A DEVICE THAT OPENS IS NOT A DEVICE THAT DELIVERS.
+                # Several things on this machine present as /dev/video* and
+                # return nothing -- the IR sensor of this very webcam is
+                # one. So the candidate has to produce a frame before it is
+                # accepted, AT A SIZE IT WILL ACTUALLY DELIVER: measured
+                # 2026-08-29, the RealSense over usbip delivers nothing at
+                # 1280x720 and 24.9 fps at 640x480, and the node reported
+                # that as "none of them delivered a frame" -- a working
+                # camera, refused for asking too much of the link.
+                ok, f = cap.read()
+                if ok and f is not None:
+                    frame = f
+                    break
+            if frame is None:
                 cap.release()
+                rejected.append("%s delivered no frame at %s"
+                                % (path, " or ".join("%dx%d" % s
+                                                     for s in self._sizes())))
+                continue
+            if want_colour and not vd.is_colour(frame):
+                cap.release()
+                rejected.append("%s is monochrome (depth or infrared)" % path)
                 continue
             self.cap = cap
-            self.dev = dev
-            self.reason = "open on %s, %dx%d" % (dev, frame.shape[1],
-                                                 frame.shape[0])
+            self.dev = path
+            # WRITE DOWN WHAT WORKED, so the next start does not pay for
+            # the probe again. Keyed on the device's own identity, never on
+            # the path -- see video_devices.remember.
+            if hasattr(dev, "key"):
+                vd.remember(dev)
+            self.reason = "open on %s (%s), %dx%d" % (
+                path, label, frame.shape[1], frame.shape[0])
             self.get_logger().info("scene camera %s" % self.reason)
             return
-        self.reason = ("found %s but none of them delivered a frame "
-                       "(an IR or depth node often presents as a camera and "
-                       "returns nothing)" % ", ".join(cands))
+        self.reason = ("no usable camera. Tried %d: %s"
+                       % (len(cands), "; ".join(rejected) or "nothing"))
 
     # -------------------------------------------------------------- tick
     def tick(self):
@@ -251,11 +359,47 @@ class SceneCamera(Node):
         except Exception as e:                                # noqa: BLE001
             self.reason = "re-probe failed: %s" % e
             return
+        if self.cap is None:
+            self._repair_usb()
         if self.cap is not None:
             self.n_fail = 0
             self.get_logger().info(
                 "scene camera RECOVERED: %s (was %s)"
                 % (self.reason, old_dev or "not open"))
+
+    REPAIR_EVERY_S = 60.0
+
+    def _repair_usb(self):
+        """Re-attach the cameras over usbip, then probe once more.
+
+        Rate-limited hard: a detach-attach is disruptive to anything else
+        holding a camera, so it happens at most once a minute and only when
+        no device delivered anything at all.
+        """
+        if not bool(self.get_parameter("usbip_repair").value):
+            return
+        now = time.monotonic()
+        if now - getattr(self, "_last_repair", 0.0) < self.REPAIR_EVERY_S:
+            return
+        self._last_repair = now
+        ws = os.environ.get("SRL_WS") or os.path.expanduser("~/kortex_ws")
+        script = os.path.join(ws, "scripts", "usb_cameras.py")
+        if not os.path.exists(script):
+            return
+        import subprocess
+        import sys as _sys
+        self.get_logger().warn(
+            "no camera delivered anything -- re-attaching over usbip")
+        try:
+            subprocess.run([_sys.executable, script, "--fix", "--quiet"],
+                           capture_output=True, timeout=180)
+        except Exception as e:                                # noqa: BLE001
+            self.reason = "%s; usbip repair failed: %r" % (self.reason, e)
+            return
+        try:
+            self._open()
+        except Exception as e:                                # noqa: BLE001
+            self.reason = "re-probe after usbip repair failed: %s" % e
 
     def _info(self, stamp, shape):
         ci = CameraInfo()
@@ -298,6 +442,10 @@ class SceneCamera(Node):
             live=bool(live),
             source=("file" if self._still is not None
                     else ("v4l2" if self.cap is not None else "none")),
+            # WHICH CAMERA, BY NAME. The path alone is not an answer: it
+            # moves between sessions, so a recording that says /dev/video6
+            # does not say which camera took it.
+            device=self.dev,
             reason=self.reason,
             frames=self.n_frames,
             consecutive_failures=self.n_fail,

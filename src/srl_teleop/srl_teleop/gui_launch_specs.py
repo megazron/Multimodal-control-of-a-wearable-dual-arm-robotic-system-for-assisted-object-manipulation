@@ -76,6 +76,48 @@ def _sh(*parts):
     return [os.path.join(WS, "scripts", parts[0])] + list(parts[1:])
 
 
+def have_adb():
+    """Is there an adb this machine can actually run?
+
+    Asked of the filesystem, not of the platform. `vr_connect.sh` searches
+    WSL's PATH and four Windows-side install locations; this mirrors that
+    list, because a route is available exactly when the script that takes it
+    can find its tool.
+    """
+    if any(os.access(os.path.join(d, "adb"), os.X_OK)
+           for d in os.environ.get("PATH", "").split(os.pathsep) if d):
+        return True
+    user = os.environ.get("USER", "")
+    for c in ("/mnt/c/platform-tools/adb.exe",
+              "/mnt/c/Users/%s/AppData/Local/Android/Sdk/platform-tools/"
+              "adb.exe" % user,
+              "/mnt/c/Users/Gausms/AppData/Local/Android/Sdk/platform-tools/"
+              "adb.exe",
+              "/mnt/c/Program Files/platform-tools/adb.exe"):
+        if os.access(c, os.X_OK):
+            return True
+    return False
+
+
+def _vr_spec():
+    """The VR transport spec, on the route this machine can take.
+
+    See the comment at the call site. USB needs adb; wifi needs neither adb
+    nor a sideloaded client, and is the route verified end to end here.
+    """
+    if have_adb():
+        return Spec("vr", "VR link (Quest, USB cable)", "mode",
+                    _sh("vr_connect.sh"), needs_stack=True,
+                    note="adb found: reverse tunnel over USB to the "
+                         "sideloaded client")
+    return Spec("vr", "VR link (Quest, over wifi)", "mode",
+                _sh("start_vr_wifi.sh"), needs_stack=True,
+                note="no adb on this host, so the WEBXR route: open "
+                     "https://<this machine>:8765/ in the headset's own "
+                     "browser. Starts the bridge, the mapper, the gripper, "
+                     "the safety node and feedback")
+
+
 def dispatcher_tasks():
     """The tasks `run_experiment.sh` ACTUALLY accepts, read from the script.
 
@@ -123,23 +165,87 @@ def dispatcher_tasks():
     return ok
 
 
+# use_rviz:=false ON EVERY STACK THE WINDOW LAUNCHES. The launch files
+# default to starting their OWN RViz, so a GUI-launched stack opened a
+# SECOND RViz window on top of the operations window (measured live,
+# 2026-08-27: pid 172013 moveit.rviz over pid 168895 embedded) -- the
+# operator reported "there is no rviz" while looking at the window the
+# extra RViz had covered. The GUI provides the one RViz; a terminal
+# launch keeps its own (the default is unchanged there).
 MODES = [
-    Spec("sim", "Sim teleop only", "mode",
-         _sh("run_teleop.sh", "gate:=false"), starts_stack=True,
+    Spec("sim", "Simulation -- you drive with the master arm", "mode",
+         _sh("run_teleop.sh", "gate:=false", "use_rviz:=false"),
+         starts_stack=True,
          motion_generator=True,
          note="MoveIt, RViz, master_pose_node, both followers, e-stop"),
-    Spec("autonomy", "+ perception and shared autonomy", "mode",
-         _sh("run_autonomy.sh"), starts_stack=True, motion_generator=True,
-         note="mode 4: adds vision, grasp generation, the arbiter"),
-    Spec("real", "Cascade to the REAL arms", "mode",
+    # THE TELEOP STACK WITHOUT THE MASTER ARM, for the modes whose operator
+    # is holding VR controllers. Same reasoning as `autonomy_nomaster` below:
+    # `master_pose_node` is respawn=True, so with no Teensy on the bus it
+    # dies and respawns for ever, and five live instances starved the
+    # controller manager until joint_state_broadcaster never came up. Mode 1
+    # keeps `sim` because the master arm IS its input; mode 2 must not.
+    Spec("sim_nomaster", "Simulation -- ready for VR (no master arm)", "mode",
+         _sh("run_teleop.sh", "gate:=false", "master:=false",
+             "use_rviz:=false"),
+         starts_stack=True, motion_generator=True,
+         note="mode 2: MoveIt, RViz, both followers, e-stop -- with "
+              "master_pose_node left out so an absent Teensy cannot starve "
+              "the controllers"),
+    Spec("autonomy", "Simulation + robot assistance (master arm)", "mode",
+         _sh("run_autonomy.sh", "use_rviz:=false"),
+         starts_stack=True, motion_generator=True,
+         note="mode 3: adds vision, grasp generation, the arbiter, over the "
+              "MASTER arm"),
+    # THE SAME STACK WITHOUT THE MASTER ARM.
+    #
+    # Full autonomy and VR-shared never read master_pose_node, and that node
+    # is respawn=True: with no Teensy on the bus it dies every 5 s for ever.
+    # Measured 2026-08-26 -- five live instances, load average 8-11, the
+    # controller manager overrunning, every spawner timing out, and
+    # joint_state_broadcaster never coming up. /joint_states then never
+    # published and the real-arm cascade refused with "Is the sim controller
+    # up?", which points at the simulation when the cause is a missing cable.
+    Spec("autonomy_nomaster", "Simulation + robot assistance (VR / autonomy)", "mode",
+         _sh("run_autonomy.sh", "master:=false", "use_rviz:=false"),
+         starts_stack=True,
+         motion_generator=True,
+         note="modes 4 and 6: the autonomy stack with master_pose_node left "
+              "out, so an absent Teensy cannot starve the controllers"),
+    Spec("real", "CONNECT THE REAL ARMS", "mode",
          _sh("start_real.sh"), needs_stack=True, needs_real=True,
          note="refuses unless the sim stack is up and homing succeeds"),
-    Spec("real_mock", "Cascade, MOCK hardware", "mode",
+    # THE SAME END STATE WHEN THE ARMS ARE ALREADY CONNECTED.
+    #
+    # `real` above brings the real side up from nothing, so it starts a
+    # `kortex_highlevel_bridge` per arm -- and the arm permits exactly ONE
+    # session (HARD CONSTRAINT 2). Against a rig whose bridges are already
+    # connected the second session is refused, the launch fails, and its own
+    # cleanup sweeps the WORKING bridges as orphans: pressing the button
+    # labelled "connect the real arms" DISCONNECTS them. `start_mode`
+    # substitutes this entry whenever it finds a live bridge, so the same
+    # SIM + REAL button reaches the same end state either way.
+    Spec("real_cascade", "Relay onto the already-connected arms", "mode",
+         _sh("start_cascade.sh"), needs_stack=True, needs_real=True,
+         note="relays the sim onto the Kortex sessions already open -- opens "
+              "no new one"),
+    Spec("real_mock", "Rehearse the real-arm sequence (mock hardware)", "mode",
          _sh("start_real.sh", "--mock"), needs_stack=True,
          note="the identical sequence against mock_real.launch.py"),
-    Spec("vr", "VR transport (Quest)", "mode",
-         _sh("vr_connect.sh"), needs_stack=True,
-         note="needs Android platform-tools on the WINDOWS side"),
+    # THE VR TRANSPORT, BY WHICHEVER ROUTE THIS MACHINE CAN ACTUALLY TAKE.
+    #
+    # `vr_connect.sh` is route A: a sideloaded Unity client reaching
+    # ws://127.0.0.1:8766 through `adb reverse` over USB. It dies on its
+    # first line with "adb is not installed" on a host without Android
+    # platform-tools -- which is this one, and which is why CLAUDE.md records
+    # "no adb" under Blocked on the lab. The button therefore appeared to do
+    # nothing: the process spawned, refused, and exited before anything drew.
+    #
+    # Route B is `start_vr_wifi.sh`: WebXR in the headset's own browser, page
+    # and socket from one TLS origin, no sideloading and no account. It is
+    # the route that has actually worked here (2026-08-19, verified end to
+    # end). So the spec RESOLVES the route at import instead of hard-coding
+    # the one that cannot run, and says which it picked.
+    _vr_spec(),
 ]
 
 DIAGNOSTICS = [
@@ -155,6 +261,37 @@ DIAGNOSTICS = [
          note="teleop.launch.py does not start it"),
     Spec("preflight", "Preflight", "diag",
          ["ros2", "run", "srl_teleop", "preflight"], needs_stack=True),
+    # THE UNIFIED VISION LAYER (2026-08-27). Every camera the rig models --
+    # both wrist RGB-D, the RealSense, the USB scene camera -- through one
+    # node that detects objects per camera and REFUSES by name for a camera
+    # that has never spoken. Its health line is in the vision panel.
+    Spec("scene_cv", "Scene vision (all cameras)", "diag",
+         ["ros2", "run", "srl_perception", "scene_understanding_node"],
+         note="one node, four cameras: plane, objects, colours, per-camera "
+              "health on /perception/scene/objects. Works camera by camera; "
+              "a camera with no frames is named, not invented"),
+    # THE GRIPPER CAMERAS, WHICH HAD NO ENTRY ANYWHERE.
+    #
+    # `grep kinova_vision` over this file and srl_gui.py returned nothing on
+    # 2026-08-30: the wrist cameras came up only when somebody typed the
+    # launch, with six frame-id arguments, into a terminal. The operator's
+    # report was "the gripper cameras are still not working" -- they were
+    # never started. THE GUI RULE: a capability reachable only by typing is
+    # one the person running the session does not have.
+    #
+    # These are Kinova's own cameras, on the ARM's network address. Nothing
+    # to do with usbipd, nothing to do with /dev/video*, and they cannot come
+    # up while the arm is off the network -- which the script says by name
+    # rather than letting a launch time out in a log nobody reads.
+    Spec("wrist_cams", "Gripper cameras (both wrists)", "diag",
+         _sh("wrist_cameras.sh"),
+         note="the cameras ON the arms, over the robot's network -- not USB, "
+              "and not affected by usbipd. Needs the arm powered and "
+              "reachable"),
+    Spec("map_obstacles", "Planner avoids what the cameras saw", "diag",
+         ["ros2", "run", "srl_perception", "map_obstacles_node"],
+         note="feeds measured objects to MoveIt as mapped_* obstacles. "
+              "Add-or-grow only: nothing it saw once is silently removed"),
 ]
 
 

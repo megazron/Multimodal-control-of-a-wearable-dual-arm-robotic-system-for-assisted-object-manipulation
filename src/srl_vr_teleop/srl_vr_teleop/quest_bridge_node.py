@@ -57,7 +57,7 @@ import numpy as np
 import rclpy
 from geometry_msgs.msg import PoseStamped, Vector3Stamped
 from rclpy.node import Node
-from sensor_msgs.msg import Joy
+from sensor_msgs.msg import Image, Joy
 from std_msgs.msg import Bool, Float64MultiArray, String
 
 DEFAULT_PORT = 8765
@@ -135,6 +135,13 @@ class QuestBridge(Node):
         self.camera_q = int(self.get_parameter('camera_quality').value)
         self.camera_fps = float(self.get_parameter('camera_fps').value)
         self.camera_enabled = bool(self.get_parameter('camera_enabled').value)
+        # THE SCENE CAMERA TOPIC, so this node can serve the headset WITHOUT
+        # owning /dev/video*. See `_camera_loop`: one V4L2 device, one
+        # opener. `scene_camera_node` publishes bgr8 on /scene_camera/image_raw.
+        self._scene_jpg = None
+        self._scene_t = 0.0
+        self.create_subscription(Image, '/scene_camera/image_raw',
+                                 self._on_scene_image, 5)
         self.stale = float(self.get_parameter('stale_timeout_s').value)
         self.certfile = str(self.get_parameter('certfile').value)
         self.keyfile = str(self.get_parameter('keyfile').value)
@@ -178,6 +185,18 @@ class QuestBridge(Node):
         # been started -- the crash is on line 1 of construction, so any single
         # run would have found it.
         self.ws_clients = set()
+        # THE ADDRESSES, so `/vr/bridge_status` can name the headset instead of
+        # counting anonymous sockets. Keyed by the socket so a disconnect
+        # removes the right one when two devices are connected.
+        self.client_addrs = {}
+        self.last_client_addr = None
+        self.last_client_t = 0.0
+        # WHERE THE HEADSET SHOULD BE POINTED. Computed once, here, because
+        # this node is the only thing that knows the scheme it ended up
+        # serving: whether a certificate was loaded decides https/wss, and an
+        # operator handed an http:// URL for a wss:// bridge gets a failure
+        # inside the headset with nothing shown on the machine.
+        self.serve_urls = []
         self.robot_state = {}
         self.create_subscription(String, '/vr/robot_state_json',
                                  lambda m: self.robot_state.update(json.loads(m.data)), 10)
@@ -191,6 +210,50 @@ class QuestBridge(Node):
                 'exercised, everything upstream is not.')
         else:
             threading.Thread(target=self._serve, daemon=True).start()
+
+    # --------------------------------------------------------------- who/where
+    @staticmethod
+    def _peer_of(ws):
+        """The client's IP, as a string, from whatever the library exposes.
+
+        `remote_address` is a (host, port) tuple on IPv4 and a 4-tuple on IPv6,
+        and on some versions it is None once the socket is closing. Every one
+        of those has been seen; returning a string in all cases keeps the
+        status message one shape.
+        """
+        try:
+            a = getattr(ws, 'remote_address', None)
+            if not a:
+                return 'unknown'
+            host = a[0]
+            # A v4 address arriving over a dual-stack socket comes through
+            # mapped, and "::ffff:192.168.1.30" is not what anybody wants to
+            # read off a screen.
+            if isinstance(host, str) and host.startswith('::ffff:'):
+                host = host[7:]
+            return str(host)
+        except Exception:                                     # noqa: BLE001
+            return 'unknown'
+
+    def _lan_ips(self):
+        """This machine's IPv4 addresses, the robot's network FIRST.
+
+        Same ordering rule as vr_bringup.lan_ips, and for the same reason: the
+        first address `hostname -I` returns on this box is 172.26.244.255, a
+        NAT interface, while the lab switch is 192.168.1.25. Handing the
+        operator the wrong one sends them to a page the headset cannot load,
+        and inside a headset that is indistinguishable from a bad certificate.
+        """
+        import subprocess
+        try:
+            out = subprocess.run(['hostname', '-I'], capture_output=True,
+                                 text=True, timeout=6).stdout
+        except Exception:                                     # noqa: BLE001
+            return []
+        ips = [t for t in out.split()
+               if t and '.' in t and ':' not in t and t[0].isdigit()
+               and not t.startswith('127.')]
+        return sorted(ips, key=lambda t: (not t.startswith('192.168.'), t))
 
     # ------------------------------------------------------------- transport
     def _serve(self):
@@ -219,6 +282,17 @@ class QuestBridge(Node):
             ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
             ctx.load_cert_chain(self.certfile, self.keyfile)
             scheme, wscheme = 'https', 'wss'
+
+        # THE ADDRESS TO TYPE INTO THE HEADSET, decided here where the scheme
+        # is known and published so the window can show it. Every address, not
+        # just the preferred one: the headset may be on either network, and
+        # one that does not work fails inside the headset where the operator
+        # cannot see why.
+        self.serve_urls = ['%s://%s:%d/' % (scheme, ip, self.port)
+                           for ip in self._lan_ips()]
+        self.get_logger().info(
+            'open this in the headset browser: %s'
+            % (', '.join(self.serve_urls) or 'no LAN address on this machine'))
 
         # ------------------------------------------------ scene camera
         # ONE JPEG ENDPOINT ON THE EXISTING ORIGIN, not a second server.
@@ -252,6 +326,49 @@ class QuestBridge(Node):
                 return
             cap = None
             while rclpy.ok():
+                # YIELD THE DEVICE TO THE SCENE CAMERA NODE.
+                #
+                # A V4L2 device cannot be opened twice for capture. This
+                # thread and `scene_camera_node` both want /dev/video0, so
+                # whichever started first won and the other silently got
+                # nothing -- which is why the scene camera "worked
+                # sometimes". Measured 2026-08-30: `fuser /dev/video0` named
+                # quest_bridge_node, and the scene camera reported BUSY.
+                #
+                # There is a correct owner and it is not this thread. The
+                # scene camera node PUBLISHES the frames, so everything --
+                # detection, the window, this headset endpoint -- can have
+                # them at once. This thread only ever needed the device
+                # because nothing else was providing them.
+                #
+                # So: if a publisher appears on the scene camera topic, RELEASE
+                # the device and serve from the topic. If it goes away, take
+                # the device back. The headset keeps its picture either way,
+                # and the two nodes stop fighting over a file handle.
+                if self._scene_topic_alive():
+                    if cap is not None:
+                        try:
+                            cap.release()
+                        except Exception:                     # noqa: BLE001
+                            pass
+                        cap = None
+                        self.get_logger().warn(
+                            'scene_camera_node is publishing -- released '
+                            '/dev/video%d to it and serving the headset from '
+                            'the topic instead. Two openers of one V4L2 '
+                            'device is one too many.' % self.camera_index)
+                    with cam_lock:
+                        jpg = self._scene_jpg
+                        if jpg is not None:
+                            cam_latest['jpg'] = jpg
+                            cam_latest['n'] += 1
+                            cam_latest['err'] = None
+                        else:
+                            cam_latest['err'] = (
+                                'scene_camera_node owns the device but has '
+                                'not published a frame yet')
+                    time.sleep(max(0.0, 1.0 / max(self.camera_fps, 1.0)))
+                    continue
                 if cap is None or not cap.isOpened():
                     cap = cv2.VideoCapture(self.camera_index, cv2.CAP_V4L2)
                     cap.set(cv2.CAP_PROP_FOURCC,
@@ -349,8 +466,20 @@ class QuestBridge(Node):
             return r
 
         async def handler(ws):
+            # WHO IS ON THE OTHER END, published rather than only logged.
+            #
+            # The bridge knew the peer address all along -- websockets carries
+            # it -- and threw it away, so `/vr/bridge_status` could say
+            # "clients: 1" and nothing else. In desk operation the operator is
+            # across the room and the headset is on a shelf; when two headsets
+            # are on the bench, or a phone has been left on the page from an
+            # earlier test, "1 client" is the same message whether or not it is
+            # the right device. The address is the only thing that
+            # distinguishes them, and it costs nothing to report.
+            peer = self._peer_of(ws)
             self.ws_clients.add(ws)
-            self.get_logger().info('Quest client connected')
+            self.client_addrs[ws] = peer
+            self.get_logger().info('Quest client connected from %s' % peer)
             try:
                 async for raw in ws:
                     t0 = time.monotonic()
@@ -361,9 +490,15 @@ class QuestBridge(Node):
                 self.get_logger().warn('client error: %s' % e)
             finally:
                 self.ws_clients.discard(ws)
+                self.client_addrs.pop(ws, None)
+                # REMEMBER THE LAST ONE. A disconnect is exactly when the
+                # operator wants to know which device dropped, and clearing the
+                # address on the way out is what would take it off the screen.
+                self.last_client_addr = peer
+                self.last_client_t = time.time()
                 self.get_logger().warn(
-                    'Quest client disconnected - the arm will FREEZE on the '
-                    'stale-pose watchdog.')
+                    'Quest client %s disconnected - the arm will FREEZE on '
+                    'the stale-pose watchdog.' % peer)
 
         async def main():
             async with websockets.serve(handler, '0.0.0.0', self.port,
@@ -500,7 +635,8 @@ class QuestBridge(Node):
         live = age < 1.0
         hz = 0.0
         if live and len(self.rate_win) > 5:
-            recent = [t for t in self.rate_win if now - t <= 2.0]
+            # the ws thread appends while this timer iterates; snapshot first
+            recent = [t for t in list(self.rate_win) if now - t <= 2.0]
             if len(recent) > 5:
                 span = recent[-1] - recent[0]
                 if span > 0:
@@ -514,11 +650,24 @@ class QuestBridge(Node):
                   float(self.n_dropped), float(self.n_frames)]
         self.lat_pub.publish(m)
         s = String()
+        addrs = sorted(set(self.client_addrs.values()))
         s.data = json.dumps(dict(rate_hz=round(hz, 1),
                                  # `clients` counts OPEN SOCKETS, which is not
                                  # the same as a client that is sending. Read
                                  # `live` instead.
                                  clients=len(self.ws_clients),
+                                 # WHO, not just how many. Empty while nobody
+                                 # is connected; `last_client` then says which
+                                 # device it was and how long ago, because a
+                                 # disconnect is exactly when that matters.
+                                 client_addrs=addrs,
+                                 headset_ip=(addrs[0] if addrs else None),
+                                 last_client=self.last_client_addr,
+                                 last_client_age_s=(
+                                     None if not self.last_client_t
+                                     else round(time.time() - self.last_client_t, 1)),
+                                 urls=self.serve_urls,
+                                 port=self.port,
                                  live=bool(live),
                                  age_s=(round(age, 2) if age != float('inf')
                                         else None),
@@ -535,6 +684,80 @@ class QuestBridge(Node):
             self.get_logger().warn(
                 'pose rate %.1f Hz is below the 60 Hz requirement' % hz,
                 throttle_duration_sec=10.0)
+
+
+    #: How stale a scene-camera frame may be and still count as "that node is
+    #: alive". Two seconds: long enough that a slow publisher is not mistaken
+    #: for a dead one, short enough that this node takes the device back
+    #: promptly when scene_camera_node stops.
+    SCENE_TOPIC_STALE_S = 2.0
+
+    def _on_scene_image(self, msg):
+        """Keep the latest scene frame, already JPEG-encoded.
+
+        Encoded HERE rather than in the serving thread because the HTTP
+        handler must never do work that can block -- the same reason the
+        device grab was moved off the asyncio loop in the first place.
+        """
+        try:
+            import cv2
+            import numpy as _np
+            buf = _np.frombuffer(bytes(msg.data), dtype=_np.uint8)
+            img = buf.reshape(msg.height, msg.width, -1)
+            ok, jpg = cv2.imencode(
+                '.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, self.camera_q])
+            if ok:
+                self._scene_jpg = jpg.tobytes()
+                self._scene_t = time.monotonic()
+        except Exception as e:                                # noqa: BLE001
+            self.get_logger().warn(
+                'scene frame from the topic could not be encoded (%r)' % (e,),
+                throttle_duration_sec=10.0)
+
+    def _scene_topic_alive(self):
+        """Is scene_camera_node THERE? Asked of the GRAPH, not of the frames.
+
+        THE FIRST VERSION OF THIS ASKED FOR FRAMES, AND DEADLOCKED. A V4L2
+        device cannot be opened twice, so:
+
+            this node holds /dev/video0
+              -> scene_camera_node cannot open it
+                -> it never publishes a frame
+                  -> "is it publishing?" is false
+                    -> this node keeps the device, for ever
+
+        The condition for yielding can never become true by yielding's own
+        absence. Measured 2026-08-30: `fuser /dev/video0` named this process,
+        scene_camera_node was not running, and the device read BUSY.
+
+        A PUBLISHER EXISTS AS SOON AS THE NODE CONSTRUCTS, before it opens
+        any device, so asking the graph breaks the cycle: the node starts,
+        this sees the publisher, releases the device, and the node then opens
+        it successfully and starts publishing.
+
+        The frame timestamp is still used -- for what it is actually good
+        for, which is telling the operator that scene_camera_node holds the
+        device and is producing nothing. That is a fault worth naming, but it
+        is NOT a reason to take the device back: doing so would restart the
+        deadlock from the other side.
+        """
+        try:
+            if self.count_publishers('/scene_camera/image_raw') > 0:
+                if (self._scene_jpg is None
+                        or (time.monotonic() - self._scene_t)
+                        > self.SCENE_TOPIC_STALE_S):
+                    self.get_logger().warn(
+                        'scene_camera_node owns /dev/video%d and is not '
+                        'publishing frames. The headset picture will stay '
+                        'blank until it does; this node will NOT take the '
+                        'device back, because that is how the two of us '
+                        'deadlocked in the first place.'
+                        % self.camera_index,
+                        throttle_duration_sec=15.0)
+                return True
+        except Exception:                                     # noqa: BLE001
+            pass
+        return False
 
 
 def main():

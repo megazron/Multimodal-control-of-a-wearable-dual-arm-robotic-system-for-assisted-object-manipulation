@@ -1,0 +1,49 @@
+{
+  "prompt": "the green cube",
+  "stamp": "20260829_184129",
+  "frames": [
+    "scene camera /dev/video0"
+  ],
+  "tiles": [
+    {
+      "backend": "colour",
+      "source": "scene camera /dev/video0",
+      "n": 1,
+      "seconds": 0.023,
+      "detections": [
+        {
+          "label": "green cube",
+          "score": 0.113,
+          "bbox": [
+            579,
+            438,
+            15,
+            16
+          ],
+          "centre_uv": [
+            586.1061946902655,
+            445.29646017699116
+          ],
+          "backend": "colour",
+          "depth_m": null,
+          "xyz_cam": null,
+          "area_px": 226
+        }
+      ]
+    },
+    {
+      "backend": "yoloworld",
+      "source": "scene camera /dev/video0",
+      "n": 0,
+      "seconds": 12.406,
+      "detections": []
+    },
+    {
+      "backend": "segment",
+      "source": "scene camera /dev/video0",
+      "n": 0,
+      "seconds": 1.301,
+      "detections": []
+    }
+  ]
+}

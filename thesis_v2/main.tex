@@ -161,21 +161,33 @@ Characterisation}
 \listoffigures
 \listoftables
 
+%% ---------------------------------------------------------------------------
+%% BODY. Introduction, Methods, Results, Discussion, Conclusion.
+%%
+%% Chapters 3-6 are the METHODS: what was designed and built. Chapters 7-9 are
+%% the RESULTS: what was measured, on the simulated platform, on four physical
+%% cameras and on the mounted geometry. Everything that describes work NOT
+%% done -- the route the design took, the protocol for a study that could not
+%% be run, and the case-by-case record behind the validity argument -- is in
+%% the appendices, because a final report is an account of what was done.
+%% ---------------------------------------------------------------------------
 \input{chapters/01_introduction.tex}
 \input{chapters/02_background.tex}
 \input{chapters/03_master.tex}
-\input{chapters/04_development.tex}
 \input{chapters/05_system.tex}
 \input{chapters/06_perception.tex}
-\input{chapters/07_vision.tex}
 \input{chapters/07_motion.tex}
-\input{chapters/08_instrument.tex}
 \input{chapters/09_results.tex}
+\input{chapters/07_vision.tex}
 \input{chapters/10_workspace.tex}
-\input{chapters/11_study.tex}
-\input{chapters/12_participant_results.tex}
 \input{chapters/13_discussion.tex}
 \input{chapters/14_conclusion.tex}
+
+\appendix
+\input{chapters/04_development.tex}
+\input{chapters/08_instrument.tex}
+\input{chapters/11_study.tex}
+\input{chapters/12_participant_results.tex}
 \input{chapters/15_appendix.tex}
 
 \bibliographystyle{plain}

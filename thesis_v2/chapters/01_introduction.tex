@@ -221,7 +221,8 @@ hardware.} \Cref{ch:discussion} explains why.
     family-wise but on only \SI{63.8}{\percent} for any named task once the
     correction is applied, while rejecting a true null at exactly the nominal
     rate. The design's own power calculation reports neither number.
-    \emph{Measured on constructed data;} \cref{ch:participant}.
+    \emph{Measured on constructed data;} \cref{sec:not-run},
+    \cref{app:analysis}.
 
   \item \textbf{A reproducible simulation campaign.} Every simulation this
     project can run, behind one command, in two declared tiers, with each
@@ -245,32 +246,44 @@ system failures turned out to be defects in the measuring tool on
 twenty-six separate occasions, and validating the instrument first caught
 errors that would otherwise have entered the record as findings. Two of them
 would have removed results that are now central to this thesis. It is the most
-transferable outcome of the work, and \cref{ch:instrument} reports the whole
-body of evidence rather than a selection.
+transferable outcome of the work. \Cref{sec:validity} states what it means for
+the measurements reported here, and \cref{app:instrument} is the whole body of
+evidence rather than a selection.
 
-\section{Thesis structure}
+\section{Report structure}
 
 \Cref{ch:background} reviews the field by theme and ends with the gap this
-work addresses. \Cref{ch:master} documents the master arm: its mechanical
-chain, its electronics and its firmware. \Cref{ch:development} records how the
-control approach reached its present form, including the routes that were
-tried and abandoned. \Cref{ch:method} describes the system as built.
-\Cref{ch:perception} covers the perception stage that replaced declared
-coordinates with measured ones, the planner that consults it, the
-natural-language route into the task layer, and the camera that observes the
-wearer. \Cref{ch:vision} then reports what that pipeline does on four
-physical cameras, stage by stage, and is together with
-\cref{sec:hardware-session} the only part of this thesis whose numbers come
-from hardware in the laboratory. \Cref{ch:motion} covers motion generation and what is known about
-transferring a joint command to a physical arm, and assembles the positioning
-and reaction budgets. \Cref{ch:instrument} is the methods contribution: every
-occasion on which the instrument rather than the system was at fault.
-\Cref{ch:results} reports what was measured, labelled throughout with the
-strength of evidence behind it. \Cref{ch:workspace} presents the workspace
-characterisation separately, because it is a chain of measurements whose
-consequences determine the shape of the task set. \Cref{ch:study} specifies
-the two-person study in full, and \cref{ch:participant} reports what can be
-established about that study without participants: the analysis written out,
-and a measurement of what it does to data whose answer is known. \Cref{ch:discussion} interprets the results and states the
-limitations, and \cref{ch:conclusion} sets out what would most improve the
-system, in the order it should be done.
+work addresses.
+
+\textbf{\Cref{ch:master,ch:method,ch:perception,ch:motion} are the methods:
+what was designed and built.} \Cref{ch:master} documents the master arm --- its
+mechanical chain, its electronics and its firmware. \Cref{ch:method}
+describes the delivered system: the command path, the degradation
+architecture, the six operating modes, the safety layer and the operating
+window. \Cref{ch:perception} covers the perception stage that replaced
+declared coordinates with measured ones, the planner that consults it, and
+the natural-language route into the task layer. \Cref{ch:motion} covers
+motion generation and what is known about transferring a joint command to a
+physical arm, and assembles the positioning and reaction budgets.
+
+\textbf{\Cref{ch:results,ch:vision,ch:workspace} are the results.}
+\Cref{ch:results} reports the simulation campaign and every measurement made
+of the system, each labelled with the strength of evidence behind it.
+\Cref{ch:vision} reports the perception pipeline exercised on four physical
+cameras, and is together with \cref{sec:hardware-session} the only part of
+this report whose numbers come from hardware in the laboratory.
+\Cref{ch:workspace} presents the workspace characterisation separately,
+because it is a chain of measurements whose consequences determine the shape
+of the task set.
+
+\Cref{ch:discussion} interprets those results, states what the measurements
+are worth (\cref{sec:validity}) and where they stop being trustworthy, and
+\cref{ch:conclusion} states what was achieved against the objectives above.
+
+The appendices carry what a final report should record but not argue from.
+\Cref{app:development} is the route the design took, including the approaches
+that were abandoned. \Cref{app:instrument} is the case-by-case evidence behind
+the validity argument. \Cref{app:study,app:analysis} are the protocol for the
+two-person study and the analysis that would evaluate it: the study was
+designed in full and could not be run, for the reasons in
+\cref{sec:not-run}.

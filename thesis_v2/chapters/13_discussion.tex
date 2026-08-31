@@ -230,7 +230,44 @@ by comparing one camera's picture against another's. The general lesson is the
 one \cref{ch:instrument} has been accumulating: the quantities most likely to
 be wrong are the ones nobody thought were quantities.
 
-\section{Threats to validity}
+\section{Validity of the measurements}
+\label{sec:validity}
+
+\subsection{The base rate of instrument error, and what caught it}
+
+Twenty-six times during this project a measurement was wrong and the system
+was not. That is a high enough base rate to change how the rest of this
+chapter should be read, so it is stated as a result rather than left in a
+methods note.
+
+The pattern across the twenty-six is more useful than any individual case.
+Sorted by mechanism they fall into five groups: an absence read as a value; a
+test harness that constructs the condition it is testing; state left over from
+a previous run; the order of operations inside the measurement itself; and ---
+added by this session --- a constant asserted in more than one place and
+measured in none. None is specific to robotics.
+
+Two numbers carry the argument. \textbf{Fifteen of the twenty-six were caught
+by an independently known quantity contradicting the reading}; five by
+inspecting the code, and six by looking at the raw artefact, usually an image.
+Care was not the defence that worked. Redundancy was. And \textbf{fourteen of
+the twenty-six were already answerable from something in hand} --- a
+published stroke, an arithmetic prediction, a quantity that is exact by
+construction --- which is the recommendation this project's experience
+supports: build the cross-check in rather than trying harder.
+
+The consequence for this thesis is specific and is applied throughout. Every
+reachability figure is reported with its repeat count because one solver call
+is one coin flip. Every stage of the simulation campaign of
+\cref{sec:campaign} carries controls that must \emph{fail}, and
+\cref{sec:sim-cv} reports those alongside the results they license. Where a
+quantity has never been measured, the text says so rather than offering an
+estimate --- the camera mounting transform in \cref{fig:budget} is drawn with
+no bar for exactly that reason. And any unreproduced single measurement in
+this document should be read as provisional.
+
+\Cref{app:instrument} is the full record: all twenty-six cases, what each
+actually was, and what revealed it.
 
 \subsection{Simulation is not the arm}
 
@@ -249,18 +286,6 @@ stages. It excludes the operator's reaction, the display, and the physical
 arm's response. Any end-to-end figure will be larger, and the reported values
 should be read as a floor.
 
-\subsection{The instrument failure rate}
-
-Twenty-five times, a result that looked like a system failure was a defect in
-the measuring tool, and fourteen of those were caught only because an
-independently known quantity contradicted the reading (\cref{ch:instrument}).
-The base rate is high enough that any unreproduced single measurement in this
-thesis should be treated as provisional. This is the reason the verification
-methodology exists, the reason the task-set figures are reported with their
-repeat count, and the reason several sentences in \cref{ch:results} end by
-stating that a quantity has never been measured rather than offering an
-estimate for it.
-
 \subsection{The one-stack constraint}
 
 Two instances of the master node split the serial stream between them and
@@ -269,10 +294,28 @@ prevented at the file-descriptor level, but it means that any measurement
 taken before that prevention was added carries a risk that cannot be
 retrospectively excluded.
 
-\section{What stands between this system and a two-person study}
+\section{The study the platform is not ready for}
+\label{sec:not-run}
 
-The study specified in \cref{ch:study} cannot be run today, and the blockers
-are specific.
+The two-person study this architecture was built to enable was designed in
+full and was not run. Both halves of that sentence are results, and they are
+reported here rather than as a chapter of their own, because a protocol that
+has not been executed is not a finding about supernumerary limbs.
+
+What was produced is a complete protocol (\cref{app:study}) and a measured
+property of the analysis that would evaluate it (\cref{app:analysis}). The
+second is worth stating in the body. Applied to \num{20000} constructed
+studies at the planned sixteen dyads, the pre-registered procedure recovers
+the effect the design was powered for on \SI{97.3}{\percent} of them
+family-wise, but on only \SI{63.8}{\percent} for any \emph{named} task once
+the correction is applied, while rejecting a true null at exactly the nominal
+rate. The design's own power calculation reports neither figure. So the study
+as designed is well powered for the question it asks --- whether shared
+autonomy changes performance on this platform --- and under-powered for a
+per-task claim, and a per-task null at $n = 16$ would have to be reported as
+an interval rather than as an absence.
+
+It was not run for reasons that are specific rather than administrative.
 
 \begin{enumerate}
   \item \textbf{Two master channels.} Left j2 and left j4. With both frozen

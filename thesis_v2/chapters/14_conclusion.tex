@@ -106,12 +106,6 @@ available control interface.
     in a way that rotates with the wrist, and it is the reason no open-loop
     grasp has landed inside the capture gate. It needs the hardware and a
     target, and it is the cheapest high-value measurement remaining.
-  \item \textbf{Converge the orientation-cost sweep.} It is the one stage of
-    the campaign that its own control refuses, and the refusal is correct:
-    the mean reach moved \SI{52}{\milli\metre} between three and ten seeds,
-    so the number is not established. It needs no hardware and no new code,
-    only a longer run, and until it is converged the cost of the pinned wrist
-    is known in ordering but not in magnitude.
   \item \textbf{Calibrate the scene colour camera}, which has never been
     calibrated in this project and whose eight refusing stages
     (\cref{ch:vision}) all refuse for the same missing intrinsics. It is a

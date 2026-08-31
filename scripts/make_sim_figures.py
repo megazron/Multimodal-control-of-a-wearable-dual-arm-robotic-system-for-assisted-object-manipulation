@@ -550,35 +550,49 @@ def orientation_convergence(camp, by, stamp):
             continue
         bad = _CTRL3_RE.search(txt)
         roll = _ROLL_RE.search(txt)
-        runs.append(dict(seeds=seeds, means=means,
+        # WHICH VERSION OF THE CONTROL RAN. Two runs share a seed count and
+        # differ only in whether capped walks are excluded from the
+        # monotonicity test, so the seed count alone does not identify a
+        # column. The corrected control announces its exclusions; the older
+        # one had nothing to announce.
+        fixed = "EXCLUDED because the tighter policy hit the search cap" in txt
+        runs.append(dict(seeds=seeds, means=means, fixed=fixed,
+                         skipped=len(re.findall(r"\(CAPPED\) vs", txt)),
                          bad=int(bad.group(1)) if bad else 0,
                          roll=int(roll.group(1)) if roll else None))
     if len(runs) < 2:
         raise Missing("fewer than two orientation sweeps on disk; the point "
                       "of this table is the difference between them")
-    runs.sort(key=lambda r: r["seeds"])
+    runs.sort(key=lambda r: (r["seeds"], r["fixed"]))
     label = [("pinned", "pinned to the anchor (delivered)"),
              ("spin", "roll free"),
-             ("cone15", "within a \\SI{15}{\\degree} cone"),
-             ("cone45", "within a \\SI{45}{\\degree} cone"),
+             ("cone15", "\\SI{15}{\\degree} cone"),
+             ("cone45", "\\SI{45}{\\degree} cone"),
              ("free", "position only")]
-    cols = " & ".join("%d seeds" % r["seeds"] for r in runs)
+    cols = " & ".join(
+        ("\\begin{tabular}{@{}c@{}}%d seeds\\\\\\scriptsize %s"
+         "\\end{tabular}") % (r["seeds"],
+                              "capped walks excluded" if r["fixed"]
+                              else "all walks compared")
+        for r in runs)
     body = []
     for key, nice in label:
         body.append("    %s & %s \\\\"
                     % (nice, " & ".join("\\num{%.3f}" % r["means"][key][0]
                                         for r in runs)))
     body.append("    \\midrule")
-    body.append("    what freeing the roll appears to buy & %s \\\\"
+    body.append("    what the roll appears to buy & %s \\\\"
                 % " & ".join(("$%+d$\\,mm" % r["roll"]) if r["roll"] is not None
                              else "---" for r in runs))
     body.append("    walks stopped by the wearer, of 28 & %s \\\\"
                 % " & ".join(str(r["means"]["pinned"][1]) for r in runs))
-    body.append("    walks where a looser policy reached \\emph{less} far & %s \\\\"
-                % " & ".join(("\\textbf{%d}" % r["bad"]) if r["bad"]
-                             else "\\textbf{0}" for r in runs))
+    body.append("    a looser policy reached \\emph{less} far & %s \\\\"
+                % " & ".join("\\textbf{%d}" % r["bad"] for r in runs))
+    body.append("    excluded as capped lower bounds & %s \\\\"
+                % " & ".join(("%d" % r["skipped"]) if r["fixed"] else "---"
+                             for r in runs))
     return (head(stamp, "the orientation sweep at every sampling density")
-            + "\\begin{tabular}{@{}l%s@{}}\n" % ("c" * len(runs))
+            + "\\footnotesize\n\\begin{tabular}{@{}l%s@{}}\n" % ("c" * len(runs))
             + "  \\toprule\n"
               "  & \\multicolumn{%d}{c}{mean reach over 28 walks, \\si{\\metre}} \\\\\n"
               % len(runs)

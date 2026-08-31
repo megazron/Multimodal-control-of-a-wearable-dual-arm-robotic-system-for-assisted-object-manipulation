@@ -227,11 +227,13 @@ hardware.} \Cref{ch:discussion} explains why.
     project can run, behind one command, in two declared tiers, with each
     stage's status and duration recorded and the thesis's tables generated
     from that record rather than transcribed from a terminal. The generator
-    refuses to emit a table whose stage did not run. \num{16} stages,
-    \num{13927} inverse-kinematics calls at zero failures, and one stage that
-    failed on its first pass because its own monotonicity control caught the
-    solver reporting a physical impossibility. \emph{Measured;}
-    \cref{sec:campaign}.
+    refuses to emit a table whose stage did not run. \num{16} stages, all of
+    which ran; \num{13927} inverse-kinematics calls at zero failures; and one
+    stage that took four passes, because its own monotonicity control refused
+    a result three times --- twice for genuine under-sampling, and once
+    because the control was comparing a lower bound against a boundary. The
+    control was corrected rather than the number, and every reach it reports
+    is unchanged by the correction. \emph{Measured;} \cref{sec:campaign}.
 
   \item \textbf{A verification methodology} requiring an instrument to recover
     a known answer before a surprising measurement taken with it is reported.

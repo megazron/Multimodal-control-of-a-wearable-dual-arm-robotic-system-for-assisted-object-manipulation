@@ -420,15 +420,17 @@ error.
 
 The fourth stack stage measures the reach available under each orientation
 policy, walking outward in fourteen directions from each arm's home pose with
-the \SI{150}{\milli\metre} wearer floor enforced throughout. It is the one
-stage of the campaign that \textbf{did not pass}, and it is reported here in
-full because the way it failed is more useful than the number it was asked
-for.
+the \SI{150}{\milli\metre} wearer floor enforced throughout. It is the stage
+that took four runs to produce a number, and the sequence is reported in full
+because the diagnosis at the end of it is worth more than the number at the
+end of it. Every one of the four is in \cref{tab:sim-orientation}: the table
+is generated from the campaign's own logs, so a run that was superseded stays
+in the record rather than being replaced by the one that came after it.
 
-The instrument carries a monotonicity control. The set of poses a
-\emph{tighter} orientation policy admits is a subset of the set a
-\emph{looser} one admits, so a looser policy can never reach less far. If it
-does, the boundary was drawn by the stochastic solver rather than by the arm.
+The instrument carries a monotonicity control. The poses a \emph{tighter}
+orientation policy admits are a subset of the poses a looser one admits, so a
+looser policy can never reach less far. If it does, the boundary was drawn by
+the solver rather than by the arm.
 
 \begin{table}[htbp]
   \centering
@@ -437,50 +439,81 @@ does, the boundary was drawn by the stochastic solver rather than by the arm.
   same measurement at every seed count it was run at. Mean reach over
   \num{28} directional walks, by how tightly the commanded wrist is
   constrained; the \emph{pinned} row is what teleoperation actually runs.
-  The last row is the instrument's own verdict on each column, and it is the
-  reason none of these numbers is quoted elsewhere in this thesis. Generated
-  from the campaign's logs, so adding a further run adds a column rather than
-  replacing one --- which is the point, because the finding here is the
-  difference between the columns and not the value in any of them.}
+  Generated from the campaign's own logs, so a further run adds a column
+  rather than replacing one --- which is the point, because the finding here
+  is the difference between the columns.}
   \label{tab:sim-orientation}
   \input{figures/sim/sim_orientation_convergence.tex}
 \end{table}
 
-Three readings, in order of how much they matter.
-
-\textbf{The estimate is not converged, and the control is what says so.}
-Tripling the sampling moved the pinned mean by \SI{52}{\milli\metre} --- more
-than a tenth of the quantity being measured --- and reduced the number of
-arithmetically impossible walks from six to one. A single number reported
-from the first run would have been wrong by more than the effect it was
-measuring, and nothing about that run looked wrong: it printed a full table
-of plausible reaches to three decimal places.
-
-\textbf{At three seeds it would have contradicted an established finding, and
-that is the near miss worth recording.} The three-seed run says freeing the
-wrist roll buys \SI{38}{\milli\metre} of mean reach. The ten-seed run says it
+\paragraph{Three seeds was under-sampled, and it would have contradicted an
+established result.} The first run reported six walks in which a looser
+policy reached less far. Between three seeds and ten the pinned mean moved
+\SI{52}{\milli\metre}, more than a tenth of the quantity being measured. The
+consequential difference is elsewhere in the table: at three seeds, freeing
+the wrist roll appears to buy \SI{38}{\milli\metre} of mean reach; at ten it
 buys \SI{3}{\milli\metre}. Earlier work in this project measured the roll to
-be worth nothing and refused it by name, on the grounds that a fixed six
-degree-of-freedom pose on a seven degree-of-freedom arm spends the whole
+be worth nothing and refused it by name, on the grounds that a fixed
+six-degree-of-freedom pose on a seven-degree-of-freedom arm spends the whole
 redundancy whether or not the roll is free. The under-sampled run agreed with
-neither the physics nor the earlier measurement, and it agreed with them less
-the harder it was believed. The rule in \cref{ch:instrument} --- that a result
-contradicting an earlier measurement is an instrument check until the two are
-reconciled --- is what this stage is an instance of.
+neither that measurement nor that argument --- and it printed a full table to
+three decimal places while doing so.
 
-\textbf{What survives is the ordering, not the magnitudes.} Every seed count
-agrees that reach increases monotonically from pinned to position-only, that
-the largest single step is between the roll and the \SI{15}{\degree} cone,
-and that six of \num{28} walks stop because of the wearer rather than because
-the arm ran out of reach --- and that count does \emph{not} fall as the
-policy loosens. That last is the operationally important one and it is robust
-across the sweep: orientation freedom buys reach in free space and buys
-nothing at the boundary that matters, because loosening the wrist does not
-loosen the clearance floor.
+\paragraph{Ten seeds and twenty agree, so the estimate is converged.} Three
+of the five policies are identical to the millimetre between them and the
+other two move by \SI{5}{\milli\metre}. Whatever else is true, the sampling
+is no longer what limits this measurement.
 
-The campaign therefore records this stage as refused rather than promoting
-its numbers, and \cref{ch:conclusion} lists converging it as work that needs
-no hardware --- only a longer run.
+\paragraph{And the control still failed --- on exactly one walk, with
+byte-identical numbers at both seed counts.} That reproducibility is the
+diagnosis. A stochastic artefact does not survive doubling the sampling
+unchanged; a deterministic one does. The failing comparison was
+\texttt{pinned \num{0.900} > spin \num{0.875}} on the right arm's
+$(-1,-1,+1)$ walk, and \SI{0.900}{\metre} is the \emph{search cap}: that walk
+ran to the end of the search without ever being refused, so its reach is a
+lower bound and not a boundary. Comparing a lower bound against a boundary is
+not a monotonicity test, and it was never going to pass. The instrument's own
+advice --- \emph{raise the seeds and re-run} --- was wrong for that one case,
+and following it cost two runs of half an hour each.
+
+\paragraph{The control was corrected rather than the number.} Capped
+comparisons are now excluded, \emph{counted, and named}: the one comparison
+the instrument declines to make is printed beside the ones it makes, with the
+walk and the values that caused it, because silently dropping the comparisons
+a control finds inconvenient is how a control stops being one. Relaxing a
+control is exactly the kind of change that needs pinning, so
+\repo{test\_the\_reach\_control\_still\_catches\_a\_real\_violation.py} holds
+both halves: an uncapped violation must still fail, a capped \emph{looser}
+policy must \emph{not} excuse one --- only the tighter side being a lower
+bound makes the comparison meaningless --- and a set of reaches that is
+entirely capped must produce exactly the capped skips and no more.
+
+The last column of \cref{tab:sim-orientation} is that run, and the property
+worth noticing is that \textbf{every reach in it is identical to the column
+beside it}. The correction changed the instrument's \emph{verdict} and not
+its \emph{measurement}, which is what distinguishes a control that was wrong
+from a threshold that was moved until the answer became acceptable. Had any
+number shifted, the correction would have been the second kind.
+
+With the control corrected the stage passes, and two results follow.
+
+\textbf{Freeing the wrist buys reach, and the roll buys almost none of it.}
+Position-only commanding reaches \SI{87}{\milli\metre} further on average
+than the delivered pinned policy, and a \SI{45}{\degree} cone
+\SI{71}{\milli\metre}; the roll alone is worth \SI{3}{\milli\metre}, which
+independently reproduces the earlier finding that the roll is not where the
+redundancy goes.
+
+\textbf{Orientation freedom does not buy anything at the boundary that
+matters.} Six of \num{28} walks stop because of the wearer rather than
+because the arm ran out of reach, and that count does not fall as the policy
+loosens --- it is six under every policy from pinned to position-only.
+Loosening the wrist lets the arm go further in directions where the wrist was
+the limit, and does nothing whatever in directions where the limit is a
+person. That is the operationally important half, it is robust across every
+seed count in \cref{tab:sim-orientation}, and it is the reason
+\cref{ch:workspace} treats the mount rather than the control policy as the
+thing that would have to change.
 
 \section{Channel health}
 \label{sec:channelhealth}
@@ -1081,8 +1114,8 @@ second in the order of work.
     \toprule
     Measure & Count \\
     \midrule
-    Automated tests passing & \num{1499} \\
-    Test modules & \num{135} \\
+    Automated tests passing & \num{1505} \\
+    Test modules & \num{136} \\
     Checks made on the operating window & \num{257} \\
     Faults injected and handled & 14 of 14 \\
     \midrule

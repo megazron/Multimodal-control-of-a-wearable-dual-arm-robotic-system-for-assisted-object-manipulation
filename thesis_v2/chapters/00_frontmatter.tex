@@ -1,103 +1,30 @@
 \begin{abstract}
-The base of a supernumerary robotic limb is a person. It sways, it is soft and
-irreplaceable, and it cannot be told to hold still. This thesis reports a
-teleoperation system for two seven-degree-of-freedom arms carried on a worn
-backpack frame and commanded by a \emph{second} person, together with what
-measuring that system revealed about what it can and cannot do.
+The base of a supernumerary robotic limb is a person. The aim of this project
+was to build a teleoperation system for two seven-degree-of-freedom arms
+carried on a worn backpack frame and commanded by a \emph{second} person, give
+it a safety layer appropriate to a manipulator standing beside somebody who is
+not commanding it, and characterise what it can and cannot do.
 
-Two design premises shaped the work. The first is that commanding fourteen
-joints through a body-worn master is a usability problem rather than a wiring
-one, so position is taken from three or four well-conditioned channels,
-orientation from an inertial sensor, and the remainder is supplied by autonomy
-or left uncommanded. The second is that a master routing fourteen analogue
-channels through rotating joints will lose channels as connectors fatigue, so
-losing them has to be survivable. Channel health is therefore classified per
-channel, frame validation is scoped to the channels the active mode consumes,
-and each channel can be disabled at run time with its cost published rather
-than inferred. When no well-conditioned channel remains, the system reports
-position unavailable instead of extrapolating one.
+A body-worn master supplies position from whichever sensor observes each
+component most directly, and classifies all fourteen of its channels so that a
+failing sensor degrades the system announcedly rather than silently. Sixteen
+simulations, run by one command, and four physical cameras measured the
+result.
 
-Position is decomposed so that each component comes from whichever sensor
-observes it most directly: elevation from the gravity vector, azimuth from a
-single shoulder joint, and radius from a forward-kinematic magnitude that
-tolerates a dead roll channel. Measured against \num{20430} recorded frames,
-the reduction from four sensed joints to one costs \SI{63.8}{\milli\metre} of
-commanded tip error. Six of fourteen channels met the health criterion, and
-classifying them correctly reversed two verdicts that had stood for weeks,
-both of which came from computing statistics across transmitted rows rather
-than distinct sensor updates. Replaying the failing channels with the
-operator's input held constant showed them injecting \SI{54.5}{\milli\metre}
-of commanded motion nobody asked for, against a master reach of
-\SI{272}{\milli\metre}.
+Six of fourteen master channels met the health criterion, and the failing ones
+injected \SI{54.5}{\milli\metre} of commanded motion nobody asked for.
+Vertical and fore-and-aft command track correctly; lateral does not, because
+directions intended to be \SI{90}{\degree} apart measure
+\SI{137.7}{\degree} apart, and no axis mapping makes a non-orthogonal triad
+orthogonal. The two arms share no reachable point, which blocks inter-arm
+handover for geometric reasons no control change addresses. The task set solves \num{13927} inverse-kinematics calls with no failures and
+no breach of the \SI{150}{\milli\metre} clearance floor around the wearer;
+replacing the motion generator removed \SI{51.3}{\milli\metre} of unrequested
+excursion; and measuring object positions rather than declaring them takes the
+autonomy layer from confidently wrong on half of trials to never.
 
-Vertical and fore-and-aft command track correctly on both arms. Lateral does
-not, and a rotation-invariant test settles why: directions intended to be
-\SI{90}{\degree} apart measure \SI{137.7}{\degree} apart, so the commanded
-directions are not an orthogonal triad and no axis mapping can make them one.
-Fourteen of fourteen injected faults were handled, two of them only after
-correcting which observable a safety mechanism was keyed on.
-
-Characterising the workspace produced a negative result with a quantified
-mechanical remedy. Under the as-built mount the two arms share no reachable
-cell of a sixty-three-cell frontal grid, separated by a \SI{0.25}{\metre} dead
-band, which blocks inter-arm handover for geometric reasons that no control or
-planning change can address. Searching for a working position in front of the
-wearer's own chest returns nothing at any table height or distance, and
-deleting the wearer's arms from the model moves the boundary by no more than
-\SI{75}{\milli\metre}, which identifies the torso rather than the limbs as the
-constraint. A buildable mount modification raising the shared count to
-twenty-two of sixty-three is quantified and deliberately not applied, because
-applying it invalidates the home pose and every clearance figure derived from
-it.
-
-Four capabilities were added after the interface was characterised. Motion
-generation was moved from a per-joint step limit to a jerk-limited,
-phase-synchronised generator, which removed \SI{51.3}{\milli\metre} of
-unrequested Cartesian excursion and brought peak commanded joint speed from
-\num{12.53} times the manufacturer's declared limit to \num{1.00}. A
-perception stage was added that measures the working surface and the objects
-on it rather than being told their coordinates, recovering six objects with
-every centre within \SI{1}{\milli\metre} and every dimension within
-\SI{3}{\milli\metre}, and the resulting map is the first thing in this project
-that a motion planner has ever consulted. A positioning error budget was
-assembled from the individual contributions, taking the worst case from
-\SI{33.4}{\milli\metre} to \SI{20.0}{\milli\metre} against a
-\SI{30}{\milli\metre} capture requirement, with the largest remaining term
-being a camera mounting transform that has never been measured. And the
-perception pipeline was instrumented stage by stage on four real cameras:
-\num{132} stages, \num{96} producing a result and none crashing, each drawing
-itself on the frame it was given and reporting its numbers with units. That
-instrumentation immediately found a defect no test had: the scene camera was
-being rotated by \SI{180}{\degree} on an assumption nobody had measured, which
-was invisible to every metric stage and changed what the learned segmenter
-returned.
-
-Every simulation in this thesis is run by one command and its tables are
-generated from that run's own record rather than transcribed: \num{16} stages
-across vision, teleoperation, the task set, shared autonomy, full autonomy
-and the study's own analysis. The task set solves \num{13927}
-inverse-kinematics calls over densified paths at ten repeats per pose with
-zero failures and zero clearance breaches. Two results from that campaign are
-new. Intent inference working from declared object coordinates becomes
-\emph{confidently wrong} on half of trials once the declaration is one object
-pitch out, while the same estimator working from measured coordinates stays
-at zero across the whole sweep --- which states the case for measuring the
-scene as a number rather than as a principle. And the replacement motion
-generator removes the excursion entirely at every step size, where the
-per-joint limiter it replaced settles at \SI{68}{\milli\metre} rather than
-tending to zero, establishing that the excursion was a property of the
-algorithm and never of its tuning.
-
-No result reported here was validated on a physical arm carrying a load, and
-no participant data was collected. The two-person study the architecture was
-built for was designed in full and could not be run: the direct-teleoperation
-condition it rests on depends on two master channels that a soldering fault
-has left incoherent. Its analysis was therefore characterised against
-constructed data instead of participants, and that characterisation is itself
-a result --- the procedure recovers the effect the design was powered for on
-\SI{97.3}{\percent} of \num{20000} constructed studies family-wise but on only
-\SI{63.8}{\percent} for any named task once the pre-registered correction is
-applied, a limitation the design's own power calculation does not expose.
+Nothing was validated on a loaded physical arm, and the two-person study the
+architecture was built for was designed in full but could not be run.
 \end{abstract}
 
 \renewcommand{\abstractname}{Acknowledgements}

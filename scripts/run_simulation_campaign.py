@@ -111,6 +111,16 @@ STAGES = [
           [PY, "scripts/measure_master_smoothing.py", "--self-test"],
           note="stillness and lag measured together, which is the pair a "
                "fixed alpha cannot win"),
+    Stage("teleop_replay",
+          "The smoother replayed over a recorded session",
+          "teleoperation", "recorded",
+          [PY, "scripts/measure_teleop_replay.py"],
+          produces=["recordings/baselines/teleop_replay.json"],
+          timeout=1200,
+          note="the same two quantities as the constructed test, on 20 440 "
+               "frames of a person actually driving the master. The INPUT is "
+               "a recording; what is simulated is the rest of the pipeline "
+               "run offline over it"),
     Stage("teleop_budget", "The positioning error budget",
           "teleoperation", "standalone",
           [PY, "scripts/measure_control_budget.py"],
@@ -120,9 +130,9 @@ STAGES = [
     Stage("teleop_orientation_cost", "What the pinned wrist costs",
           "teleoperation", "stack",
           [PY, "scripts/measure_orientation_cost.py", "--dirs", "14",
-           "--arm", "both", "--seeds", "10"],
+           "--arm", "both", "--seeds", "20"],
           produces=["recordings/baselines/orientation_cost.json"],
-          timeout=5400,
+          timeout=9000,
           note="mean reach per direction under each orientation policy"),
 
     # -------------------------------------------------------- robot tasks

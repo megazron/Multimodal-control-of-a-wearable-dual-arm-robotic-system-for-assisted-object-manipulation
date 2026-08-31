@@ -1,0 +1,65 @@
+{
+  "source": "recordings/teleop_20260731_133310.csv",
+  "arms": [
+    {
+      "source": "recordings/teleop_20260731_133310.csv",
+      "arm": "left",
+      "frames": 20440,
+      "seconds": 755.1,
+      "rate_hz": 27.1,
+      "still_segments": 60,
+      "still_frames": 15994,
+      "moving_segments": 8,
+      "moving_frames": 365,
+      "speed_p50_mps": 0.0,
+      "speed_p95_mps": 0.1187,
+      "rows": [
+        {
+          "law": "none (raw)",
+          "still_mm": 3.742,
+          "lag_mm": 0.0
+        },
+        {
+          "law": "ema(0.3)  [was]",
+          "still_mm": 3.547,
+          "lag_mm": 10.784
+        },
+        {
+          "law": "one_euro  [now]",
+          "still_mm": 3.4,
+          "lag_mm": 2.131
+        }
+      ]
+    },
+    {
+      "source": "recordings/teleop_20260731_133310.csv",
+      "arm": "right",
+      "frames": 20440,
+      "seconds": 755.1,
+      "rate_hz": 27.1,
+      "still_segments": 39,
+      "still_frames": 15530,
+      "moving_segments": 8,
+      "moving_frames": 356,
+      "speed_p50_mps": 0.0,
+      "speed_p95_mps": 0.1475,
+      "rows": [
+        {
+          "law": "none (raw)",
+          "still_mm": 2.229,
+          "lag_mm": 0.0
+        },
+        {
+          "law": "ema(0.3)  [was]",
+          "still_mm": 1.941,
+          "lag_mm": 10.273
+        },
+        {
+          "law": "one_euro  [now]",
+          "still_mm": 1.776,
+          "lag_mm": 3.533
+        }
+      ]
+    }
+  ]
+}

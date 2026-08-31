@@ -29,6 +29,13 @@ WS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(WS, "thesis_v2", "figures", "sim")
 
 
+#: THE CAMPAIGNS THIS RUN WAS GIVEN. Set by main() and by the self-test.
+#: Scoped rather than globbed, so a generator that reads ACROSS campaigns --
+#: `orientation_convergence` is the only one -- still refuses when it was
+#: handed nothing, which is the property the self-test checks.
+CAMPAIGNS = []
+
+
 class Missing(Exception):
     """A result this figure needs was not produced by the campaign."""
 
@@ -191,32 +198,50 @@ _STEP_RE = re.compile(r"max_step\s+([\d.]+) rad ->\s+(\d+) cycles,\s+([\d.]+) mm
 
 
 def teleop_stepsweep(camp, by, stamp):
+    """Excursion against step size, with the SHIPPED step marked.
+
+    The point of the figure is the left-hand plateau -- shrinking the step
+    does not shrink the excursion -- so the annotation sits on the plateau
+    and the shipped value is marked, rather than leaving a reader to work out
+    which end of a log axis the delivered system lives at.
+    """
     need(by, "teleop_motion")
     pts = _STEP_RE.findall(log_of(camp, "teleop_motion"))
     if len(pts) < 4:
         raise Missing("the step sweep did not parse")
-    coords = " ".join("(%s,%s)" % (s, mm) for s, _c, mm in pts)
+    pts = sorted(((float(s_), float(mm)) for s_, _c, mm in pts))
+    shipped = max(p[0] for p in pts)
+    coords = " ".join("(%g,%g)" % p for p in pts)
+    top = max(p[1] for p in pts)
     return (head(stamp, "the per-joint clamp against its own step size")
             + """\\begin{tikzpicture}
 \\begin{axis}[
-    width=0.78\\linewidth, height=52mm,
+    width=0.80\\linewidth, height=54mm,
     xmode=log, log basis x=10,
-    xlabel={per-joint step bound $\\Delta$ (\\si{\\radian})},
+    xmin=0.007, xmax=0.6, ymin=-4, ymax=%.0f,
+    xlabel={per-joint step bound $\\Delta$ (\\si{\\radian}), smaller to the left},
     ylabel={off-path excursion (\\si{\\milli\\metre})},
     xlabel style={font=\\scriptsize}, ylabel style={font=\\scriptsize},
     tick label style={font=\\scriptsize},
     axis lines*=left, grid=major, grid style={gray!18},
-    ymin=0, ymax=80,
 ]
-\\addplot[red!65!black, thick, mark=*, mark size=1.4pt] coordinates {%s};
-\\addplot[green!45!black, thick, dashed] coordinates {(0.008,0)(0.4,0)};
+\\addplot[red!65!black, thick, mark=*, mark size=1.5pt] coordinates {%s};
+\\addplot[green!45!black, very thick] coordinates {(0.007,0)(0.6,0)};
 \\node[font=\\tiny, green!45!black, anchor=south west]
-  at (axis cs:0.009,1) {jerk-limited, phase-synchronised: \\SI{0.0}{\\milli\\metre} at every step};
-\\node[font=\\tiny, red!65!black, anchor=north east, align=right]
-  at (axis cs:0.38,74) {it SETTLES, it does not\\\\tend to zero};
+  at (axis cs:0.0075,1.5)
+  {jerk-limited, phase-synchronised: \\SI{0.0}{\\milli\\metre} at every step};
+\\draw[black!55, dotted, thick]
+  (axis cs:%g,-4) -- (axis cs:%g,%.0f);
+\\node[font=\\tiny, anchor=north east, black!55, align=right]
+  at (axis cs:%g,%.0f) {the shipped\\\\step bound};
+\\node[font=\\tiny, red!65!black, anchor=north west, align=left]
+  at (axis cs:0.0105,%.0f)
+  {the excursion SETTLES here:\\\\a smaller step does not\\\\make it smaller. It is
+   the\\\\shape of the algorithm};
 \\end{axis}
 \\end{tikzpicture}
-""" % coords)
+""" % (top + 22, coords, shipped, shipped, top + 14,
+       shipped * 0.92, top + 14, top - 8))
 
 
 _SMOOTH_RE = re.compile(r"^(none \(raw\)|ema\(0\.3\)\s+\[was\]|one_euro\s+\[now\])\s+"
@@ -241,6 +266,42 @@ def teleop_smoothing(camp, by, stamp):
               "  \\toprule\n"
               "  Control law & stillness & lag \\\\\n"
               "  & \\si{\\milli\\metre} RMS & \\si{\\milli\\metre} \\\\\n"
+              "  \\midrule\n"
+            + "\n".join(body)
+            + "\n  \\bottomrule\n\\end{tabular}\n")
+
+
+def teleop_replay(camp, by, stamp):
+    """Stillness and lag on a real operator's hand, per arm."""
+    need(by, "teleop_replay")
+    root = camp.get("teleop_replay", "") if isinstance(camp, dict) else camp
+    p = os.path.join(WS, "recordings", "baselines", "teleop_replay.json")
+    if not os.path.exists(p):
+        raise Missing("teleop_replay produced no baseline")
+    d = json.load(open(p))
+    label = {"none (raw)": "no filter",
+             "ema(0.3)  [was]": "fixed EMA, $\\alpha=\\num{0.3}$ (was)",
+             "one_euro  [now]": "1-Euro, speed-adaptive (now)"}
+    arms = d["arms"]
+    body = []
+    for i, row in enumerate(arms[0]["rows"]):
+        cells = []
+        for a in arms:
+            r = a["rows"][i]
+            cells += ["%.2f" % r["still_mm"], "%.2f" % r["lag_mm"]]
+        body.append("    %s & %s \\\\"
+                    % (label.get(row["law"].strip().replace("  ", "  "),
+                                 _tex(row["law"])), " & ".join(cells)))
+    hdr = " & ".join("\\multicolumn{2}{c}{%s arm}" % a["arm"] for a in arms)
+    sub = " & ".join(["still & lag"] * len(arms))
+    n = arms[0]["frames"]
+    return (head(stamp, "the smoother over %d recorded frames" % n)
+            + "\\begin{tabular}{@{}l%s@{}}\n" % ("cc" * len(arms))
+            + "  \\toprule\n  & %s \\\\\n" % hdr
+            + "  \\cmidrule(lr){2-3}\\cmidrule(lr){4-5}\n"
+            + "  Control law & %s \\\\\n" % sub
+            + "  & \\si{\\milli\\metre} & \\si{\\milli\\metre}"
+              " & \\si{\\milli\\metre} & \\si{\\milli\\metre} \\\\\n"
               "  \\midrule\n"
             + "\n".join(body)
             + "\n  \\bottomrule\n\\end{tabular}\n")
@@ -453,6 +514,81 @@ def task_set(camp, by, stamp):
             + "\n  \\bottomrule\n\\end{tabular}\n")
 
 
+_MEAN_RE = re.compile(
+    r"^\s+(pinned|spin|cone15|cone45|free)\s+([\d.]+) m\s+\((\d+) walks?", re.M)
+_CTRL3_RE = re.compile(r"CONTROL 3 FAILED on (\d+) walk")
+_ROLL_RE = re.compile(r"unpinning the ROLL alone is worth ([+\-]\d+) mm")
+
+
+def orientation_convergence(camp, by, stamp):
+    """The same sweep at every sampling density it was run at.
+
+    Read from the LOGS of every campaign on disk rather than from the
+    baseline file, because each run overwrites that file and the point of
+    this table is the DIFFERENCE between runs. A single column would be a
+    number; the set of columns is the finding.
+    """
+    runs = []
+    for c in sorted(CAMPAIGNS):
+        lg = os.path.join(c, "logs", "teleop_orientation_cost.log")
+        cj = os.path.join(c, "campaign.json")
+        if not (os.path.exists(lg) and os.path.exists(cj)):
+            continue
+        txt = open(lg).read()
+        means = dict((k, (float(v), int(w))) for k, v, w in _MEAN_RE.findall(txt))
+        if len(means) != 5:
+            continue
+        argv = " ".join(json.load(open(cj)).get("argv", []))
+        st = [x for x in json.load(open(cj))["stages"]
+              if x["key"] == "teleop_orientation_cost"]
+        seeds = None
+        for x in st:
+            a = x.get("argv", [])
+            if "--seeds" in a:
+                seeds = int(a[a.index("--seeds") + 1])
+        if seeds is None:
+            continue
+        bad = _CTRL3_RE.search(txt)
+        roll = _ROLL_RE.search(txt)
+        runs.append(dict(seeds=seeds, means=means,
+                         bad=int(bad.group(1)) if bad else 0,
+                         roll=int(roll.group(1)) if roll else None))
+    if len(runs) < 2:
+        raise Missing("fewer than two orientation sweeps on disk; the point "
+                      "of this table is the difference between them")
+    runs.sort(key=lambda r: r["seeds"])
+    label = [("pinned", "pinned to the anchor (delivered)"),
+             ("spin", "roll free"),
+             ("cone15", "within a \\SI{15}{\\degree} cone"),
+             ("cone45", "within a \\SI{45}{\\degree} cone"),
+             ("free", "position only")]
+    cols = " & ".join("%d seeds" % r["seeds"] for r in runs)
+    body = []
+    for key, nice in label:
+        body.append("    %s & %s \\\\"
+                    % (nice, " & ".join("\\num{%.3f}" % r["means"][key][0]
+                                        for r in runs)))
+    body.append("    \\midrule")
+    body.append("    what freeing the roll appears to buy & %s \\\\"
+                % " & ".join(("$%+d$\\,mm" % r["roll"]) if r["roll"] is not None
+                             else "---" for r in runs))
+    body.append("    walks stopped by the wearer, of 28 & %s \\\\"
+                % " & ".join(str(r["means"]["pinned"][1]) for r in runs))
+    body.append("    walks where a looser policy reached \\emph{less} far & %s \\\\"
+                % " & ".join(("\\textbf{%d}" % r["bad"]) if r["bad"]
+                             else "\\textbf{0}" for r in runs))
+    return (head(stamp, "the orientation sweep at every sampling density")
+            + "\\begin{tabular}{@{}l%s@{}}\n" % ("c" * len(runs))
+            + "  \\toprule\n"
+              "  & \\multicolumn{%d}{c}{mean reach over 28 walks, \\si{\\metre}} \\\\\n"
+              % len(runs)
+            + "  \\cmidrule(l){2-%d}\n" % (len(runs) + 1)
+            + "  Orientation policy & %s \\\\\n" % cols
+            + "  \\midrule\n"
+            + "\n".join(body)
+            + "\n  \\bottomrule\n\\end{tabular}\n")
+
+
 def _tex(s):
     for a, b in (("\\", "\\textbackslash "), ("_", "\\_"), ("%", "\\%"),
                  ("&", "\\&"), ("#", "\\#"), ("$", "\\$")):
@@ -531,10 +667,12 @@ FIGURES = [
     ("sim_teleop_generators.tex", teleop_generators),
     ("sim_teleop_stepsweep.tex", teleop_stepsweep),
     ("sim_teleop_smoothing.tex", teleop_smoothing),
+    ("sim_teleop_replay.tex", teleop_replay),
     ("sim_autonomy_sweep.tex", autonomy_sweep),
     ("sim_autonomy_instructions.tex", autonomy_instructions),
     ("sim_task_accuracy.tex", task_accuracy),
     ("sim_task_set.tex", task_set),
+    ("sim_orientation_convergence.tex", orientation_convergence),
 ]
 
 
@@ -556,6 +694,7 @@ def self_test():
         empty = dict(stamp="none", stages=[])
         with open(os.path.join(d, "campaign.json"), "w") as fh:
             json.dump(empty, fh)
+        CAMPAIGNS[:] = [d]
         by, _homes, _st = load_many([d])
         refused = 0
         for _n, fn in FIGURES:
@@ -595,6 +734,7 @@ def main(argv=None):
         return self_test()
 
     camps = list(a.campaign) if a.campaign else [newest_campaign()]
+    CAMPAIGNS[:] = camps
     by, camp, stamp = load_many(camps)
     os.makedirs(a.out, exist_ok=True)
     print("campaign %s" % stamp)

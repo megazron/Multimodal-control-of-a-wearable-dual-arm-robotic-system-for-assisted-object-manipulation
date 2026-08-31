@@ -1,0 +1,40 @@
+{
+  "started": "2026-08-31T00:50:08",
+  "stamp": "20260831_005008",
+  "argv": [
+    "scripts/run_simulation_campaign.py",
+    "--only",
+    "teleop_replay"
+  ],
+  "out": "recordings/simulations/20260831_005008",
+  "interpreter": "/usr/bin/python3",
+  "stages": [
+    {
+      "key": "teleop_replay",
+      "title": "The smoother replayed over a recorded session",
+      "group": "teleoperation",
+      "tier": "recorded",
+      "argv": [
+        "/usr/bin/python3",
+        "scripts/measure_teleop_replay.py"
+      ],
+      "note": "the same two quantities as the constructed test, on 20 440 frames of a person actually driving the master. The INPUT is a recording; what is simulated is the rest of the pipeline run offline over it",
+      "produces": [
+        {
+          "path": "recordings/baselines/teleop_replay.json",
+          "exists": true,
+          "bytes": 1442
+        }
+      ],
+      "seconds": 0.9,
+      "exit": 0,
+      "status": "ok",
+      "tail": "THE SMOOTHER ON A REAL OPERATOR'S HAND, replayed offline\n\nleft arm: 20440 frames over 755 s (27.1 Hz), 60 still segments (15994 frames), 8 moving segments (365 frames)\n  commanded speed: median 0.000 m/s, 95th 0.119 m/s\n  law                      still_mm     lag_mm\n  none (raw)                   3.74       0.00\n  ema(0.3)  [was]              3.55      10.78\n  one_euro  [now]              3.40       2.13\n\nright arm: 20440 frames over 755 s (27.1 Hz), 39 still segments (15530 frames), 8 moving segments (356 frames)\n  commanded speed: median 0.000 m/s, 95th 0.147 m/s\n  law                      still_mm     lag_mm\n  none (raw)                   2.23       0.00\n  ema(0.3)  [was]              1.94      10.27\n  one_euro  [now]              1.78       3.53\n\nwrote recordings/baselines/teleop_replay.json",
+      "log": "recordings/simulations/20260831_005008/logs/teleop_replay.log"
+    }
+  ],
+  "finished": "2026-08-31T00:50:09",
+  "totals": {
+    "ok": 1
+  }
+}

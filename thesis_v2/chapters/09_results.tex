@@ -230,6 +230,49 @@ That is not a better setting of the same trade; it is off the fixed filter's
 trade-off curve, which is what an adaptive cutoff buys and the only reason to
 pay for one.
 
+That measurement is on constructed signals, which is the right input for
+establishing that the law does what its equations say, because the answer is
+known before the filter runs. It is not what a hand does: a person's tremor
+is not white, their reaches are not ramps, and the two are interleaved at a
+cadence nothing in the constructed test reproduces. The same two quantities
+were therefore measured again over \num{20440} frames of a recorded session
+with a person actually driving the master. The input is a real recording;
+what is simulated is the rest of the pipeline, run offline over it.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[The smoother over a recorded session]{The same two quantities on a
+  real operator's hand: \num{20440} recorded frames per arm over
+  \SI{755}{\second}. Still and moving segments are found once, from the
+  \emph{raw} commanded position, and the same segmentation is applied to
+  every filter --- deriving it from each filter's own output would let a
+  heavier filter classify more of the recording as still, which is the
+  quantity being measured, and every filter would then score well on its own
+  definition.}
+  \label{tab:sim-replay}
+  \input{figures/sim/sim_teleop_replay.tex}
+\end{table}
+
+The ordering survives contact with a real hand and the margins do not. On
+recorded data the adaptive filter is again steadier than the fixed one on
+both arms and again costs a fifth of its lag --- \SI{2.13}{\milli\metre}
+against \SI{10.78}{\milli\metre} on the left, \SI{3.53}{\milli\metre} against
+\SI{10.27}{\milli\metre} on the right --- but the stillness gain is a tenth
+of what the constructed test showed. The reason is visible in the
+segmentation: a hand that a person is holding still is not a stationary point
+plus noise, it drifts, and a filter that removed the drift would be removing
+the operator. The constructed test overstates what smoothing can buy because
+it constructs a stillness that a person does not have.
+
+One number in that table is not about smoothing at all. The recording carries
+\num{20440} frames over \SI{755}{\second}, which is \SI{27.1}{\hertz} of
+\emph{distinct} commanded poses against a serial frame emitted at
+\SI{100}{\hertz}. Three quarters of the frames the master sends carry a pose
+it has already sent. \Cref{ch:master} gives the candidate mechanism --- the
+firmware prints an integer, so a slow channel crosses a printable boundary
+only occasionally --- and records that it has not been isolated.
+
 \subsection{Shared autonomy: what the intent estimator is actually sensitive to}
 \label{sec:sim-shared}
 
@@ -373,58 +416,71 @@ is inside the \SI{30}{\milli\metre} capture gate and it is not zero, and
 \cref{ch:motion} treats it as a term in the budget rather than as a rounding
 error.
 
-\subsubsection{What the pinned wrist costs, measured against its own control}
+\subsubsection{What the pinned wrist costs, and what its own control caught}
 
 The fourth stack stage measures the reach available under each orientation
 policy, walking outward in fourteen directions from each arm's home pose with
-the \SI{150}{\milli\metre} wearer floor enforced throughout.
+the \SI{150}{\milli\metre} wearer floor enforced throughout. It is the one
+stage of the campaign that \textbf{did not pass}, and it is reported here in
+full because the way it failed is more useful than the number it was asked
+for.
+
+The instrument carries a monotonicity control. The set of poses a
+\emph{tighter} orientation policy admits is a subset of the set a
+\emph{looser} one admits, so a looser policy can never reach less far. If it
+does, the boundary was drawn by the stochastic solver rather than by the arm.
 
 \begin{table}[htbp]
   \centering
   \small
-  \caption[Reach against orientation policy]{Mean reach over \num{28}
-  directional walks, by how tightly the commanded wrist is constrained. The
-  \emph{pinned} row is what teleoperation actually runs. A walk is recorded
-  as wearer-bound when it stops because of the clearance floor rather than
-  because the arm ran out of reach, and that count is the reason the last
-  column matters: loosening the wrist does not loosen the floor.}
+  \caption[Reach against orientation policy, at each sampling density]{The
+  same measurement at every seed count it was run at. Mean reach over
+  \num{28} directional walks, by how tightly the commanded wrist is
+  constrained; the \emph{pinned} row is what teleoperation actually runs.
+  The last row is the instrument's own verdict on each column, and it is the
+  reason none of these numbers is quoted elsewhere in this thesis. Generated
+  from the campaign's logs, so adding a further run adds a column rather than
+  replacing one --- which is the point, because the finding here is the
+  difference between the columns and not the value in any of them.}
   \label{tab:sim-orientation}
-  \begin{tabular}{@{}lccl@{}}
-    \toprule
-    Orientation policy & mean reach & vs pinned & walks stopped \\
-    & \si{\metre} & \si{\milli\metre} & by the wearer \\
-    \midrule
-    pinned to the anchor (delivered) & \num{0.408} & --- & 4 of 28 \\
-    roll free & \num{0.446} & $+38$ & 6 of 28 \\
-    within a \SI{15}{\degree} cone & \num{0.479} & $+71$ & 6 of 28 \\
-    within a \SI{45}{\degree} cone & \num{0.519} & $+111$ & 6 of 28 \\
-    position only & \num{0.529} & $+121$ & 6 of 28 \\
-    \bottomrule
-  \end{tabular}
+  \input{figures/sim/sim_orientation_convergence.tex}
 \end{table}
 
-Two readings, and the second is the one that changes what should be built
-next.
+Three readings, in order of how much they matter.
 
-Freeing the wrist is worth up to \SI{121}{\milli\metre} of mean reach, which
-is a quarter of the arm's working radius and far from negligible. But the
-count of wearer-bound walks \emph{rises} from four to six as the policy
-loosens, which is the expected shape: a looser wrist lets the arm reach
-further in directions where the limit was the wrist, and in doing so it walks
-into the person in directions where the limit was never the wrist at all.
-Orientation freedom buys reach in free space and buys nothing at the boundary
-that matters.
+\textbf{The estimate is not converged, and the control is what says so.}
+Tripling the sampling moved the pinned mean by \SI{52}{\milli\metre} --- more
+than a tenth of the quantity being measured --- and reduced the number of
+arithmetically impossible walks from six to one. A single number reported
+from the first run would have been wrong by more than the effect it was
+measuring, and nothing about that run looked wrong: it printed a full table
+of plausible reaches to three decimal places.
 
-\textbf{This stage failed on its first run, and the failure is worth
-reporting.} At three random seeds per pose it reported six walks in which a
-\emph{looser} policy reached less far than a tighter one, which is
-arithmetically impossible: the tighter policy's solutions are a subset of the
-looser one's. That is not a property of the arm, it is the stochastic solver
-drawing a boundary in the wrong place, and the instrument said so in those
-words and refused to write a result. Raised to ten seeds it is monotone and
-the table above is the re-run. An instrument that had simply reported the
-first set of numbers would have published a physical impossibility, and
-nothing downstream would have queried it.
+\textbf{At three seeds it would have contradicted an established finding, and
+that is the near miss worth recording.} The three-seed run says freeing the
+wrist roll buys \SI{38}{\milli\metre} of mean reach. The ten-seed run says it
+buys \SI{3}{\milli\metre}. Earlier work in this project measured the roll to
+be worth nothing and refused it by name, on the grounds that a fixed six
+degree-of-freedom pose on a seven degree-of-freedom arm spends the whole
+redundancy whether or not the roll is free. The under-sampled run agreed with
+neither the physics nor the earlier measurement, and it agreed with them less
+the harder it was believed. The rule in \cref{ch:instrument} --- that a result
+contradicting an earlier measurement is an instrument check until the two are
+reconciled --- is what this stage is an instance of.
+
+\textbf{What survives is the ordering, not the magnitudes.} Every seed count
+agrees that reach increases monotonically from pinned to position-only, that
+the largest single step is between the roll and the \SI{15}{\degree} cone,
+and that six of \num{28} walks stop because of the wearer rather than because
+the arm ran out of reach --- and that count does \emph{not} fall as the
+policy loosens. That last is the operationally important one and it is robust
+across the sweep: orientation freedom buys reach in free space and buys
+nothing at the boundary that matters, because loosening the wrist does not
+loosen the clearance floor.
+
+The campaign therefore records this stage as refused rather than promoting
+its numbers, and \cref{ch:conclusion} lists converging it as work that needs
+no hardware --- only a longer run.
 
 \section{Channel health}
 \label{sec:channelhealth}

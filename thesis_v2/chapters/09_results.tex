@@ -417,6 +417,7 @@ is inside the \SI{30}{\milli\metre} capture gate and it is not zero, and
 error.
 
 \subsubsection{What the pinned wrist costs, and what its own control caught}
+\label{sec:sim-orientation}
 
 The fourth stack stage measures the reach available under each orientation
 policy, walking outward in fourteen directions from each arm's home pose with
@@ -1029,10 +1030,180 @@ line rather than counted as correct: a grammar that asks about everything must
 not be able to resemble one that understands everything.
 
 The evaluation scene is arithmetic rather than rendered, so its ground truth
-is constructed, which is the condition \cref{ch:instrument} places on
+is constructed, which is the condition \cref{app:instrument} places on
 synthetic data. \textbf{Whether the camera can identify four objects at
 working distance is a different measurement and remains unmeasured on
 hardware.}
+
+\subsection{Every language figure in this report is a parser score}
+\label{sec:voice-caveat}
+
+\emph{Measured on synthesised speech. Not evidence about real speakers.}
+
+The numbers above score the \emph{grammar}: what the system does with a
+sentence once it has the words. The spoken path was measured separately, and
+its result is why that distinction is drawn so heavily.
+
+Forty of the seventy-five cases were rendered to audio by a speech synthesiser
+and put through the transcriber. The word error rate is \SI{25.2}{\percent}
+and \textbf{not one of the forty transcripts was exact}. The parser then
+scored 14 correct, 5 asked, 21 refused and 0 misunderstood on those
+transcripts --- a worse distribution than the typed cases, and the difference
+is transcription rather than grounding.
+
+Two limitations make even that optimistic, and they are structural rather than
+incidental. The audio came from \emph{one synthetic voice}: no accent, no
+second speaker, no room acoustics, no background noise. And no better
+measurement is available on this machine, because \repo{/dev/snd} carries only
+a timer device --- no microphone can be opened at all under this kernel, so a
+real speaker has never been recorded.
+
+The consequence is stated rather than left implicit. \textbf{A voice figure in
+this report is a parser score, never a transcription score.} The demonstrated
+language capability is what the system does with a correctly transcribed
+sentence; what it does with a person speaking to it is unmeasured, and the one
+proxy available says a quarter of the words would be wrong.
+
+\section{Whose error is it? The pick, against what it believed}
+\label{sec:whose-error}
+
+\emph{Verified in simulation, eight picks planned from the measured map.}
+
+A grasp that misses can miss for two reasons that look identical in the
+recording: the machinery put the pads somewhere other than where it was aimed,
+or the machinery was exact and was aimed at the wrong place. They call for
+opposite work --- one is a control problem, the other a perception problem ---
+so separating them is worth a measurement of its own.
+
+For every pick planned from the map of \cref{sec:sim-tasks}, two quantities
+were recorded: the \emph{belief error}, the distance from where the map says
+the object is to where it actually is, and the \emph{pad miss}, the distance
+from the finger-pad midpoint at the commanded pose --- taken by forward
+kinematics on the inverse-kinematics solution, not assumed --- to the object.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Pad miss against belief error]{Eight picks planned from the
+  measured map. The two columns track each other to within
+  \SI{0.01}{\milli\metre} on every pick, including the four where the belief
+  was exact.}
+  \label{tab:whose-error}
+  \begin{tabular}{@{}lcc@{}}
+    \toprule
+    Arm & belief error & pad miss \\
+    & \si{\milli\metre} & \si{\milli\metre} \\
+    \midrule
+    left  & \num{13.28} & \num{13.27} \\
+    left  & \num{0.00}  & \num{0.00}  \\
+    left  & \num{9.38}  & \num{9.37}  \\
+    left  & \num{0.00}  & \num{0.01}  \\
+    right & \num{14.33} & \num{14.32} \\
+    right & \num{0.00}  & \num{0.01}  \\
+    right & \num{8.11}  & \num{8.10}  \\
+    right & \num{0.00}  & \num{0.00}  \\
+    \midrule
+    mean  & \num{5.64}  & \num{5.63}  \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The answer is unambiguous. \textbf{The pad miss equals the belief error to
+within \SI{0.01}{\milli\metre} on all eight picks}, and where the belief is
+exact the pads land on the object to within \SI{0.01}{\milli\metre}. The
+grasp machinery --- the approach geometry, the pad offset, the solver, the
+follower's wrist cone --- contributes nothing measurable. Every millimetre of
+error in these picks is the system being wrong about where the object is.
+
+That is a useful result and a narrow one. It says the remaining work on
+grasping is perception and calibration rather than control, and it says so
+against a \SI{30}{\milli\metre} capture gate that the worst of these picks
+uses less than half of. It does \emph{not} transfer to hardware: it is
+measured through forward kinematics on a simulated arm, so it excludes the
+terminal joint error of \cref{sec:sim-to-real} and the unmeasured camera
+transform, both of which are real and neither of which this experiment can
+see.
+
+\section{The pad midpoint is a curve, not a constant}
+\label{sec:pad-curve}
+
+\emph{Verified in simulation, from forward kinematics on the finger tips.}
+
+The distance from the wrist to the midpoint between the finger pads was
+treated for most of this project as a constant. It is not: the gripper's
+fingers swing on a four-bar linkage, so the pad midpoint moves along the tool
+axis as the hand opens.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Wrist-to-pad against gripper opening]{Wrist to pad-midpoint along
+  the tool axis, by commanded opening, measured by forward kinematics on the
+  two finger-tip links. Both arms agree to \SI{0.000}{\milli\metre}.}
+  \label{tab:pad-curve}
+  \begin{tabular}{@{}lcccccc@{}}
+    \toprule
+    opening (\si{\milli\metre}) & 0 & 20 & 40 & 60 & 80 & 85 \\
+    \midrule
+    wrist to pad (\si{\milli\metre})
+      & \num{98.33} & \num{111.79} & \num{109.76}
+      & \num{105.79} & \num{102.46} & \num{102.46} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The span is \SI{13.5}{\milli\metre}, which is \SI{45}{\percent} of the
+\SI{30}{\milli\metre} capture gate, and it reconciles two figures this project
+had previously argued about. A measurement of \SI{98.33}{\milli\metre} and a
+measurement of \SI{109.76}{\milli\metre} were both correct; they were taken at
+different gripper openings, and neither report said which. The constant was
+not wrong so much as under-specified, and the lesson generalises: a length
+measured on a mechanism with a degree of freedom in it is a function, and
+recording it as a scalar discards the argument.
+
+\section{What it costs to look before grasping}
+\label{sec:look-cost}
+
+\emph{Verified in simulation, one full look-then-grasp cycle.}
+
+Measuring the scene before acting on it is the change
+\cref{ch:perception} argues for. It is not free, and the cost is almost
+entirely in an unexpected place.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[The cost of one look]{One look-then-grasp cycle, left arm, four
+  objects. The perception is a rounding error; the cost is the arm walking to
+  a viewpoint and back.}
+  \label{tab:look-cost}
+  \begin{tabular}{@{}lr@{}}
+    \toprule
+    Stage & \si{\second} \\
+    \midrule
+    move home to the observe pose & \num{24.13} \\
+    detect and classify & \num{0.31} \\
+    verify the plan & \num{3.72} \\
+    move observe pose to home & \num{24.14} \\
+    \midrule
+    \textbf{added per look} & \textbf{\num{48.58}} \\
+    added per pick, over four picks & \num{12.14} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\SI{48.3}{\second} of the \SI{48.6}{\second} is the arm travelling.
+Perception takes \SI{0.31}{\second}. Any effort spent making the detector
+faster is spent on \SI{0.6}{\percent} of the cost, and the ways to make this
+cheaper are all geometric --- a viewpoint the arm need not leave the workspace
+to reach, a scene camera that does not require the arm to move at all, or
+looking once for several picks rather than once per pick.
+
+The look was also correct: four of four objects classified by colour with no
+misses and no spurious detections, and a worst localisation error of
+\SI{3.6}{\milli\metre}. And it changed the plan it was there to inform ---
+planning from the observed positions rather than the declared ones altered
+every waypoint, at zero inverse-kinematics failures.
 
 \section{The recorded demonstration set}
 

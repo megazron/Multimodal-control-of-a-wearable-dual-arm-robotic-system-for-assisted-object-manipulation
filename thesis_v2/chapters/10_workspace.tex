@@ -171,6 +171,76 @@ infeasibility of the wrist orientation rather than obstruction.
   \label{fig:lateral}
 \end{figure}
 
+\section{What the pinned wrist costs, at the point where the work happens}
+\label{sec:work-point}
+
+\Cref{sec:sim-orientation} measures reach under each orientation policy by
+walking outward from each arm's \emph{home} end-effector pose, and finds that
+freeing the wrist buys \SI{87}{\milli\metre} of mean reach. Walking from the
+home pose is the natural thing to do and it understates the cost badly,
+because home is in free space and the task is not.
+
+Repeating the walk from the point the task actually works at ---
+$(\num{0.4}, \num{0.175}, \SI{1.12}{\metre})$, on the working surface in front
+of the wearer --- and solving through the follower's own orientation policy
+rather than against a continuous bound, gives a different picture entirely.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Reach from home and from the work point]{Mean reach under each
+  orientation policy, from two start points, both with the
+  \SI{150}{\milli\metre} wearer floor enforced throughout. The two columns are
+  the same measurement of the same arms and they disagree by a factor of
+  seven, because a reach figure is meaningless without the point it was
+  measured from.}
+  \label{tab:work-point}
+  \begin{tabular}{@{}lcc@{}}
+    \toprule
+    Orientation policy & from \textsc{home} & from the \textsc{work point} \\
+    & \si{\metre} & \si{\metre} \\
+    \midrule
+    pinned to the anchor (delivered) & \num{0.460} & \textbf{\num{0.065}} \\
+    roll free                        & \num{0.463} & \num{0.065} \\
+    within a \SI{15}{\degree} cone   & \num{0.492} & \num{0.304} \\
+    within a \SI{45}{\degree} cone   & \num{0.530} & \num{0.325} \\
+    position only                    & \num{0.547} & \num{0.363} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\textbf{At the point where the work happens, the delivered policy leaves the
+arm \SI{65}{\milli\metre} of mean reach against \SI{363}{\milli\metre} with
+the wrist free --- a factor of \num{5.6}.} That is the honest size of the
+constraint this system operates under, and it is why the arms appear barely to
+move while every reachability figure taken at home looks comfortable.
+
+Three things follow.
+
+\emph{The mechanism is redundancy, not the wearer.} No walk from the work
+point stops because of the clearance floor; they stop because there is no
+solution. A fixed six-degree-of-freedom pose on a seven-degree-of-freedom arm
+spends the entire redundancy, and the redundancy is the joint that moves the
+elbow out of the way while the hand stays put. Near the body that joint is the
+only thing that makes a pose reachable at all, and pinning the wrist removes
+it.
+
+\emph{Freeing the roll alone buys nothing, in either column.} It is worth
+\SI{3}{\milli\metre} from home and \SI{0}{\milli\metre} from the work point.
+The redundancy does not live in the roll, so the cheapest-sounding relaxation
+is the one that is worth least --- which is a useful thing to know before
+spending a session on it.
+
+\emph{Almost all of the recovery comes from the first \SI{15}{\degree}.} A
+\SI{15}{\degree} cone recovers \SI{239}{\milli\metre} of the
+\SI{298}{\milli\metre} that separates pinned from free, or
+\SI{80}{\percent} of it. The follower already supplies a \SI{15}{\degree}
+cone when it plans, which is why the task set solves at all
+(\cref{sec:sim-tasks}) --- and it means the delivered system is not in fact
+operating in the \SI{0.065}{\metre} column. The pinned figure is what the
+\emph{commanded} orientation would cost if the follower did not quietly widen
+it, and stating that separation is the point of the table.
+
 \section{The centre of the working space, asked four ways}
 \label{sec:centre}
 

@@ -72,6 +72,28 @@ def test_the_live_branch_names_the_daemon_first():
         "the shared-memory sweep is suggested before the daemon restart"
 
 
+def test_it_decides_the_transport_rather_than_listing_it_as_an_option():
+    """The commonest cause is DECIDABLE from this process's own environment.
+
+    Measured 2026-09-01: a shell without FASTDDS_BUILTIN_TRANSPORTS saw 3
+    topics and 0 messages; the same shell with it saw 92 and 291. That is not
+    a candidate to be tried in order, it is a fact the preflight can read.
+    Offering it as item 2 of a numbered list is how the same twenty minutes
+    was lost three times.
+    """
+    body = SRC[SRC.index("BUT THE STACK IS RUNNING"):]
+    body = body[:body.index("No stack process is running either")]
+    assert 'os.environ.get("FASTDDS_BUILTIN_TRANSPORTS")' in body, \
+        "the preflight does not read its own transport setting"
+    assert "THIS IS THE CAUSE" in body, \
+        "there is no branch that states the transport IS the cause"
+    # And it must not claim that when the transport is fine.
+    assert 'shm != "SHM"' in body, \
+        "the diagnosis is not conditional on the value being wrong"
+    assert "set correctly" in body, \
+        "there is no branch for a correctly-set transport"
+
+
 def test_it_warns_against_clearing_shm_under_a_running_stack():
     body = SRC[SRC.index("BUT THE STACK IS RUNNING"):]
     body = body[:body.index("No stack process is running either")]

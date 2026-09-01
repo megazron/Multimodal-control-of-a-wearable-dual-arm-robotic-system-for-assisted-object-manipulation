@@ -513,7 +513,32 @@ def preflight(node):
                   % ", ".join("%s (pid %s)" % (k, v[0])
                               for k, v in sorted(procs.items())))
             print("  So this is NOT a dead stack and NOT the Teensy -- the")
-            print("  graph exists and this process cannot see it. In order:")
+            print("  graph exists and this process cannot see it.")
+            print()
+            # DIAGNOSE, DO NOT LIST CANDIDATES. This process can read its own
+            # environment, so the commonest cause is not a guess: measured on
+            # 2026-09-01, a shell without this variable saw 3 topics and 0
+            # messages against 92 and 291 for the same shell with it. Handing
+            # the operator a numbered list of things to try, when one of them
+            # is decidable here and now, is how the same twenty minutes gets
+            # lost three times.
+            shm = os.environ.get("FASTDDS_BUILTIN_TRANSPORTS")
+            if shm != "SHM":
+                print("  >>> THIS IS THE CAUSE: FASTDDS_BUILTIN_TRANSPORTS "
+                      "is %s, not SHM." % (repr(shm) if shm else "UNSET"))
+                print("      UDP discovery is dead on this host, so this")
+                print("      process joined no graph at all. Fix it with:")
+                print()
+                print("          cd ~/kortex_ws && source scripts/env.sh")
+                print()
+                print("      then re-run. env.sh is the one source of the")
+                print("      environment this rig needs; a bare login shell")
+                print("      does not have it.")
+                print()
+                print("  If that does not fix it, then in order:")
+            else:
+                print("  The transport is set correctly (SHM), so the likely")
+                print("  causes, in order:")
             print()
             print("    1. ros2 daemon stop && ros2 daemon start")
             print("       A wedged daemon caches an empty graph and hands it")
@@ -523,10 +548,12 @@ def preflight(node):
             print("       list` prints nothing, it is the daemon. This is the")
             print("       usual cause and it costs two seconds to rule out.")
             print()
-            print("    2. source scripts/env.sh")
-            print("       UDP discovery is dead on this host, so a shell")
-            print("       without FASTDDS_BUILTIN_TRANSPORTS=SHM joins")
-            print("       nothing. env.sh is the one source of that truth.")
+            print("    2. Check the domain matches the stack:")
+            print("       ROS_DOMAIN_ID here is %s; compare with"
+                  % os.environ.get("ROS_DOMAIN_ID", "unset (= 0)"))
+            print("           tr '\\0' '\\n' < /proc/%s/environ | grep "
+                  "ROS_DOMAIN_ID"
+                  % (sorted(procs.values())[0][0] if procs else "<pid>"))
             print()
             print("    3. Only if both fail: stop the stack, clear")
             print("       /dev/shm/fastrtps_*, and relaunch. Never clear it")

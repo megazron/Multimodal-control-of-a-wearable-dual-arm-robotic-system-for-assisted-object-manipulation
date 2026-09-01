@@ -446,6 +446,30 @@ def segment_blockers(node, arm, need_real, need_channels):
     return out
 
 
+def stack_processes():
+    """The stack's own processes, from the process table rather than the graph.
+
+    This deliberately does NOT go through ROS. The whole point is to have one
+    observation that is independent of discovery, so that "nothing is running"
+    can be told apart from "something is running and I cannot see it". Those
+    two look identical on every ROS topic and need opposite fixes.
+    """
+    import subprocess
+    want = ("master_pose_node", "ik_follower_node", "robot_state_publisher",
+            "move_group")
+    try:
+        ps = subprocess.run(["ps", "-eo", "pid,args"], capture_output=True,
+                            text=True, timeout=10).stdout
+    except Exception:                                        # noqa: BLE001
+        return {}
+    found = {}
+    for line in ps.splitlines():
+        for w in want:
+            if w in line and "grep" not in line:
+                found.setdefault(w, []).append(line.split()[0])
+    return found
+
+
 def preflight(node):
     hz = node.joint_states_hz()
     ok = True
@@ -470,6 +494,49 @@ def preflight(node):
         print("     a capture with dead /tf silently loses every EE column. "
               "Check `ros2 control list_controllers`.")
         ok = False
+    if not ok:
+        # WHICH FAILURE IS THIS? Everything above reads the ROS graph, so
+        # every one of those lines says NONE both when the stack is down and
+        # when the stack is up and discovery is broken. Measured on
+        # 2026-09-01: master_pose_node had been running for seven minutes,
+        # `ros2 topic list --no-daemon` returned 76 topics, and the ordinary
+        # `ros2 topic list` returned ZERO -- a wedged daemon caching an empty
+        # graph. The operator was told to check whether the Teensy was
+        # attached, twice, and it had been attached the whole time.
+        #
+        # The process table is the independent observation that separates
+        # them, and it costs one `ps`.
+        procs = stack_processes()
+        print()
+        if procs:
+            print("  BUT THE STACK IS RUNNING. Found: %s"
+                  % ", ".join("%s (pid %s)" % (k, v[0])
+                              for k, v in sorted(procs.items())))
+            print("  So this is NOT a dead stack and NOT the Teensy -- the")
+            print("  graph exists and this process cannot see it. In order:")
+            print()
+            print("    1. ros2 daemon stop && ros2 daemon start")
+            print("       A wedged daemon caches an empty graph and hands it")
+            print("       to every command. Confirm with:")
+            print("           ros2 topic list --no-daemon | wc -l")
+            print("       If that prints a large number and plain `ros2 topic")
+            print("       list` prints nothing, it is the daemon. This is the")
+            print("       usual cause and it costs two seconds to rule out.")
+            print()
+            print("    2. source scripts/env.sh")
+            print("       UDP discovery is dead on this host, so a shell")
+            print("       without FASTDDS_BUILTIN_TRANSPORTS=SHM joins")
+            print("       nothing. env.sh is the one source of that truth.")
+            print()
+            print("    3. Only if both fail: stop the stack, clear")
+            print("       /dev/shm/fastrtps_*, and relaunch. Never clear it")
+            print("       with the stack up -- that orphans the running")
+            print("       stack's own segments and guarantees a restart.")
+        else:
+            print("  No stack process is running either. Start one first:")
+            print("      bash scripts/run_teleop.sh")
+            print("  in its own terminal, and wait for the controllers to")
+            print("  activate before re-running this.")
     print()
     return ok
 

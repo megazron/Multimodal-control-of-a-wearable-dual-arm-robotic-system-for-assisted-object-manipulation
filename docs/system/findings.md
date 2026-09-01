@@ -7768,3 +7768,74 @@ map is an involution), `--self-test` is 12 known-answer checks, and
 a constant asserted in more than one place and measured in none. It is not one
 of the four mechanisms already listed there, and it is the one this project is
 most likely to repeat.
+
+---
+
+## 2026-08-30 — the trajectory capture gates on the arm you are MOVING, and the e-stop needed no bypass
+
+Two complaints in one sentence from the operator: *"why alternate buttons,
+keep the left button for left"*, and *"bypass e-stop as we are recording"*.
+They are different problems and only one of them was real.
+
+**The button. The operator is right and the old behaviour was a workaround.**
+`record_trajectories.py` gated each segment on the OPPOSITE arm's button,
+which means somebody holding the left master arm has to reach across and
+press with their right hand, for every one of 28 segments. It was not
+perversity: pressing an arm's own button toggles that arm's CLUTCH, so gating
+a left sweep on the left button disengaged the left clutch exactly when the
+sweep started. In the 2026-08-06 capture **41 of 42 directional segments
+recorded with the clutch OUT and the sim arm stationary** — 35 minutes of a
+still arm — and the opposite-arm gate was the cheapest thing that stopped it
+happening again.
+
+The real fix is to stop the button touching the clutch at all.
+`master_pose_node` already had `force_clutch_engaged`, which pins the clutch
+ON and ignores the buttons *for clutch purposes* while their values still
+reach `/master_fsr_buttons` for the gate to read. So:
+
+* `GATE_INDEX = {"left": 3, "right": 2}` — btn2 for the left arm, btn1 for
+  the right, which is each arm's own button. `--gate opposite` keeps the old
+  mapping for anyone who wants it.
+* `pin_clutch()` sets the parameter and **confirms two ways**: the parameter
+  reads back, AND the clutch is then observed ENGAGED in `/master_status_*`
+  on both arms. The capture **refuses to record** if it cannot confirm the
+  pin, because own-arm gating without the pin is precisely the defect above.
+* `clutch_was_out()` re-checks from the ROWS WRITTEN at the end of every
+  segment. Belt and braces: a segment that lost the clutch says so while the
+  operator is still standing at the rig, which costs one repeat, instead of
+  at the analysis, which costs the session.
+* The pin is released in `finally`, so Ctrl-C does not leave the next
+  operator's buttons dead with nothing saying why.
+
+**And `force_clutch_engaged` did not work.** It was copied into an attribute
+in `__init__` and never re-read, so `ros2 param set` reported SUCCESS and
+changed nothing — CLAUDE.md's own "feature present but does nothing" row, in
+the parameter the capture's whole safety argument rests on. Had the pin been
+built on it as found, the confirmation would have been a parameter agreeing
+with itself and the capture would have recorded another still arm. Both
+`force_clutch_engaged` and `clutch_enabled` are re-read every frame now, and
+the change is logged.
+
+**The prompt is derived from the same index it waits on.** `gate_word()`
+maps the gate index to the word printed. Previously the printed arm was a
+separate ternary — the metadata string had already stated the exact inverse
+of what the code did once. A prompt that names the wrong button is
+indistinguishable from a dead board: you press, nothing happens, and there is
+no way to tell which.
+
+**The e-stop. Nothing was bypassed, because nothing needed to be.** The
+operator's memory of the e-stop firing on gating taps is correct — it did,
+and it latched for all of block F and much of block E on 2026-08-06 — but
+that was fixed on 2026-08-24. `estop_node.on_buttons` required any two button
+EDGES within 0.4 s, and a RELEASE is an edge; it now requires **both buttons
+held DOWN TOGETHER for `both_hold_s` (0.30 s)**. Ordinary gating taps cannot
+trip it. What remains is that a latch left over from an earlier session
+refuses the preflight, so the preflight now prints the reset command and
+`--reset-estop` calls `/estop_reset` once at start-up. That CLEARS a latch;
+`/estop` stays live and still halts the arms. There is no switch that
+disables it and there should not be — HARD CONSTRAINT 11's neighbour.
+
+**The instrument lesson.** The safety argument for a change ("the pin makes
+own-arm gating safe") was resting on a parameter nobody had ever exercised at
+runtime. Verify the mechanism a safety argument depends on BEFORE building on
+it — and verify it behaviourally, not by reading back what you just wrote.

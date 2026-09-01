@@ -52,6 +52,12 @@ setup(
             'rviz_master = srl_teleop.rviz_master_node:main',
             # --- following ---
             'ik_follower_node = srl_teleop.ik_follower_node:main',
+            # THE NEW MASTER TELEOPERATION PATH, 2026-09-01. A DROP-IN
+            # REPLACEMENT for ik_follower_node, not an addition: it publishes
+            # the same JointTrajectory on the same controller topics, so run
+            # exactly one of the two. The follower is left untouched because
+            # it is the baseline condition of every experiment here.
+            'master_teleop = srl_teleop.master_teleop_node:main',
             'fsr_gripper_node = srl_teleop.fsr_gripper_node:main',
             'leader_follower_node = srl_teleop.leader_follower_node:main',
             'srl_teleop_node = srl_teleop.srl_teleop_node:main',

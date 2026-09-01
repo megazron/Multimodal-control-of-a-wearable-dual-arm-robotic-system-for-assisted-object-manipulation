@@ -5226,6 +5226,19 @@ class Gui(QMainWindow):
 
         row = QHBoxLayout()
         self.force_clutch = QCheckBox("force clutch ENGAGED")
+        # THIS BOX DID NOTHING UNTIL 2026-08-30. `master_pose_node` copied
+        # force_clutch_engaged into an attribute in __init__ and never
+        # re-read it, so the parameter set below succeeded, this box ticked,
+        # the log line printed -- and the clutch was unchanged. It is re-read
+        # every frame now. `/master_status_*` is the check: the clutch
+        # indicator must go ENGAGED on both arms within a second of ticking
+        # this, and if it does not, the running node is an older build.
+        self.force_clutch.setToolTip(
+            "Pin both clutches ENGAGED and ignore the master buttons for "
+            "clutch purposes. The button VALUES still publish, so the "
+            "trajectory capture can gate on the button of the arm you are "
+            "moving. Watch the clutch indicator: it must read ENGAGED on "
+            "both arms, or the parameter did not take.")
         self.force_clutch.stateChanged.connect(self.on_force_clutch)
         row.addWidget(self.force_clutch)
         b = QPushButton("re-centre on my hand")
@@ -9350,10 +9363,23 @@ class Gui(QMainWindow):
             label="%s scale -> %.2f" % (arm, v))
 
     def on_force_clutch(self, state):
+        """Pin the clutches, and say what to look at to know it took.
+
+        A parameter set that succeeds is not evidence the node honours it --
+        this exact control reported success and changed nothing until
+        2026-08-30. The only proof is the clutch state on /master_status_*,
+        which is already on screen, so the note points at it rather than
+        claiming the pin worked.
+        """
         on = bool(state)
         self.bus.submit(lambda: self.bus.set_param(
             "/master_pose_node", "force_clutch_engaged", on),
             label="force clutch engaged -> %s" % on)
+        self.bus.note(
+            "clutch pin %s -- CHECK the clutch indicator now: it must read "
+            "ENGAGED on both arms. If it does not, the running "
+            "master_pose_node predates 2026-08-30 and reads this parameter "
+            "once at start-up; restart the stack." % ("ON" if on else "OFF"))
 
     def on_release(self, arm):
         self.bus.submit(

@@ -95,7 +95,7 @@
       robot_ip="$(arg left_robot_ip)"
       use_fake_hardware="$(arg left_use_fake_hardware)"
       gripper="robotiq_2f_85"
-      gripper_joint_name="left_robotiq_85_left_knuckle_joint"
+      gripper_joint_name="robotiq_85_left_knuckle_joint"
       use_internal_bus_gripper_comm="true"
       initial_positions="${dict(joint_1=1.156804,joint_2=0.982620,joint_3=2.232276,joint_4=-1.646195,joint_5=-2.683967,joint_6=-1.124167,joint_7=-0.119381)}">
     <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -147,7 +147,7 @@
       robot_ip="$(arg right_robot_ip)"
       use_fake_hardware="$(arg right_use_fake_hardware)"
       gripper="robotiq_2f_85"
-      gripper_joint_name="right_robotiq_85_left_knuckle_joint"
+      gripper_joint_name="robotiq_85_left_knuckle_joint"
       use_internal_bus_gripper_comm="true"
       initial_positions="${dict(joint_1=2.130174,joint_2=-0.917694,joint_3=1.039518,joint_4=-1.640260,joint_5=2.793923,joint_6=-0.697434,joint_7=2.792003)}">
     <origin xyz="0 0 0" rpy="0 0 0"/>

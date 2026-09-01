@@ -13,16 +13,16 @@ advances. A press-and-release under `min_segment_s` DISCARDS the segment and
 re-prompts, and because rows are buffered and only committed on save, a
 discarded take leaves no trace in the data.
 
-TWO THINGS THAT ARE EASY TO GET WRONG HERE, both already paid for:
+USE THE BUTTON ON THE ARM YOU ARE MOVING. Left arm, left button; right arm,
+right button. That is only safe because the capture PINS THE CLUTCH for its
+duration -- an arm's own button normally toggles that arm's clutch, and
+gating a left sweep on the left button used to disengage it exactly when the
+sweep began. See GATE_INDEX below for what that cost and how the pin removes
+it. The capture refuses to start if it cannot confirm the pin.
 
-  * EVERY SEGMENT IS GATED BY THE **OPPOSITE** ARM'S BUTTON. An arm's own
-    button also toggles that arm's clutch, so gating a left sweep with the
-    left button disengages the clutch exactly when the sweep starts.
-    Measured mapping: left button -> btn2, right button -> btn1.
-
-  * DO NOT RUN THIS INSIDE THE LAUNCH. `ros2 launch` merges and line-prefixes
-    all stdout, so RViz and MoveIt bury the prompt and the prefixes break the
-    in-place redraw. Run it in its own terminal.
+DO NOT RUN THIS INSIDE THE LAUNCH. `ros2 launch` merges and line-prefixes all
+stdout, so RViz and MoveIt bury the prompt and the prefixes break the in-place
+redraw. Run it in its own terminal.
 
 BEFORE STARTING, this checks /joint_states is alive and both arm controllers
 are active. A capture with silent /tf produced 0/20440 EE rows once and the
@@ -41,6 +41,9 @@ from pathlib import Path
 import rclpy
 import rclpy.time
 from geometry_msgs.msg import PoseStamped
+from rcl_interfaces.msg import Parameter as ParameterMsg
+from rcl_interfaces.msg import ParameterType, ParameterValue
+from rcl_interfaces.srv import GetParameters, SetParameters
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
@@ -59,22 +62,39 @@ ARMS = ("left", "right")
 # sensor that cannot exceed 360. Rejected HERE so corrupt values never enter
 # the file; the count is recorded per row so the rejection is visible.
 POT_MIN_DEG, POT_MAX_DEG = 0.0, 360.0
-# MEASURED: left button -> btn2, right button -> btn1. The gate for an arm is
-# therefore the OTHER arm's button.
+# EACH ARM IS GATED BY ITS OWN BUTTON, AND THE CLUTCH IS PINNED SO THAT IS
+# SAFE.
+#
 # Message layout is [fsr1, fsr2, btn1, btn2], so index 2 = btn1 and 3 = btn2.
 # MEASURED: the LEFT arm's own clutch button is btn2, the RIGHT arm's is btn1.
-# The gate for an arm must therefore be the OTHER arm's button:
-#     left  segment -> btn1 -> index 2
-#     right segment -> btn2 -> index 3
+#     left  segment -> btn2 -> index 3
+#     right segment -> btn1 -> index 2
 #
-# THIS WAS INVERTED in the 2026-08-06 capture. Every segment was gated by the
-# button belonging to the arm under test, so starting and ending a sweep
-# toggled that arm's own clutch -- disengaging it for the duration of the
-# sweep. 41 of 42 directional segments recorded with the clutch OUT and the
-# sim arm therefore stationary, which made the whole capture unusable for
-# gain, repeatability and rate. Rapid button presses also tripped the
-# both-buttons-within-0.4s e-stop, latching it for all of block F.
-GATE_INDEX = {"left": 2, "right": 3}
+# WHY THIS USED TO BE THE OTHER ARM'S BUTTON. Pressing an arm's own button
+# toggles that arm's CLUTCH, so gating a left sweep on the left button
+# disengaged the left clutch exactly when the sweep started. In the
+# 2026-08-06 capture 41 of 42 directional segments recorded with the clutch
+# OUT and the sim arm stationary, which made the whole set unusable. Gating
+# on the opposite arm's button avoided that -- at the price of an operator
+# holding the left arm having to reach across and press with the right hand,
+# for every one of 28 segments.
+#
+# The real fix is to stop the button touching the clutch at all.
+# `master_pose_node` has `force_clutch_engaged`, which pins the clutch ON and
+# ignores the buttons for clutch purposes while leaving their VALUES on
+# /master_fsr_buttons for this gate to read. `pin_clutch()` sets it for the
+# duration of the capture and restores it afterwards, and REFUSES TO RECORD
+# if it cannot confirm the pin -- because own-arm gating without the pin is
+# precisely the defect above.
+#
+# Belt and braces: every row carries the clutch state, and `clutch_was_out()`
+# checks the recorded rows at the end of each segment. If the clutch dropped
+# for any reason the segment says so and can be redone, rather than the
+# operator discovering it at the analysis.
+GATE_INDEX = {"left": 3, "right": 2}
+#: The older mapping, still selectable with --gate opposite: it needs no
+#: clutch pin, at the price of reaching across for every segment.
+GATE_INDEX_OPPOSITE = {"left": 2, "right": 3}
 
 COLUMNS = (
     ["t", "segment", "block", "arm", "rep", "direction", "speed",
@@ -136,6 +156,7 @@ class Capture(Node):
     def __init__(self):
         super().__init__("trajectory_capture")
         self.lock = threading.Lock()
+        self.gate_index = dict(GATE_INDEX)      # overridden by --gate
         self.raw = {a: None for a in ARMS}
         self.status = {a: None for a in ARMS}
         self.pose = {a: None for a in ARMS}
@@ -273,12 +294,17 @@ class Capture(Node):
             return (None, None, None)
 
     def button(self, arm):
-        """The gate for `arm` is the OPPOSITE arm's button. See module docs."""
+        """The gate for `arm`, under whichever mapping is in force.
+
+        `gate_index` is set once from the --gate flag, so the mapping cannot
+        differ between the prompt the operator is shown and the button the
+        code waits on.
+        """
         with self.lock:
             f = list(self.fsr) if self.fsr else None
         if not f or len(f) < 4:
             return None
-        return bool(f[GATE_INDEX[arm]] > 0.5)
+        return bool(f[self.gate_index[arm]] > 0.5)
 
     def joint_states_hz(self):
         with self.lock:
@@ -385,29 +411,47 @@ class Capture(Node):
 
 
 class Gate:
-    """Rising-edge detector on one arm's gate button.
+    """CHANGE detector on one arm's gate button. One physical press = one True.
 
-    Edges, not levels: the press that STARTS a segment must not also end it,
-    and the operator's finger stays down for an unknown time. Each call to
-    rose() consumes at most one edge.
+    EDGES IN EITHER DIRECTION, NOT RISING EDGES, because the buttons are
+    firmware TOGGLES. `firmware/master_arm/teensy_final.ino` publishes a
+    LATCHED 0/1 that flips once per press and stays there, so the value is
+    the parity of how many times the button has ever been pressed, not
+    whether a finger is on it.
+
+    Waiting for a RISING edge therefore made every prompt depend on that
+    parity. If the toggle happened to be sitting at 1 -- which it is after
+    any odd number of presses, including presses from a previous session --
+    the first press flipped it 1->0 and STARTED NOTHING, and the operator had
+    to press twice with no indication why. Worse, it was systematic at the
+    end of a segment: the press that started recording left the toggle at 1,
+    so "press again to end" needed two presses, every segment, forever.
+
+    A flip in either direction is exactly one press, which is what the prompt
+    promises. Each call consumes at most one.
     """
 
     def __init__(self, node, arm):
         self.node, self.arm = node, arm
         self.prev = node.button(arm)
 
-    def rose(self):
+    def pressed(self):
         b = self.node.button(self.arm)
         if b is None:
             return False
-        r = bool(b and self.prev is False)
+        # `prev is None` means the buttons had not arrived when this Gate was
+        # built. Adopt the first value seen rather than counting it a press.
+        if self.prev is None:
+            self.prev = b
+            return False
+        r = bool(b != self.prev)
         self.prev = b
         return r
 
-    def wait_rise(self, timeout=None):
+    def wait_press(self, timeout=None):
         t0 = time.monotonic()
         while rclpy.ok():
-            if self.rose():
+            if self.pressed():
                 return True
             if timeout is not None and time.monotonic() - t0 > timeout:
                 return False
@@ -427,7 +471,19 @@ def segment_blockers(node, arm, need_real, need_channels):
     """
     out = []
     if node.estop:
-        out.append("E-STOP LATCHED - the arm cannot follow; reset it")
+        out.append("E-STOP LATCHED - the arm cannot follow. Clear it with\n"
+                   "      ros2 service call /estop_reset std_srvs/srv/Trigger\n"
+                   "      (or --reset-estop, which calls exactly that once at "
+                   "start-up).\n"
+                   "      If this latched the moment you pressed the gate "
+                   "button, the stack\n"
+                   "      predates the 2026-09-01 fix: estop_node read the "
+                   "TOGGLE buttons as\n"
+                   "      levels, so one button left latched on from an "
+                   "earlier session made\n"
+                   "      your very first gating press look like a "
+                   "two-handed squeeze.\n"
+                   "      Restart the stack to pick the fix up.")
     st = node.status.get(arm)
     if st is None:
         out.append("no /master_status_%s" % arm)
@@ -444,6 +500,235 @@ def segment_blockers(node, arm, need_real, need_channels):
     if dead:
         out.append("channel(s) %s disabled/dead on %s" % (",".join(dead), arm))
     return out
+
+
+MASTER_NODE = "/master_pose_node"
+
+
+#: Clients onto the master node's own parameter services, created once and
+#: reused. Built lazily against the Capture node, which is already spinning
+#: under the MultiThreadedExecutor, so these calls need no executor of their
+#: own.
+_PARAM_CLI = {}
+
+
+def _param_client(node, kind):
+    key = (kind, id(node))
+    cli = _PARAM_CLI.get(key)
+    if cli is None:
+        srv, path = ((SetParameters, MASTER_NODE + "/set_parameters")
+                     if kind == "set" else
+                     (GetParameters, MASTER_NODE + "/get_parameters"))
+        cli = node.create_client(srv, path)
+        _PARAM_CLI[key] = cli
+    return cli
+
+
+def _call(node, cli, req, timeout=8.0):
+    """One parameter call, with a real timeout and no subprocess.
+
+    THIS USED TO SHELL OUT TO `ros2 param`, and that is what made the
+    2026-09-01 capture unrecoverable rather than merely refused. Each call
+    spawned a CLI process that built its own node, joined the graph and ran
+    its own discovery -- ~2 s when it worked and a hard 20 s hang when it did
+    not, which is what "`ros2 param set` timed out after 20 seconds" was. The
+    same call sits in the `finally:` clean-up, so a Ctrl-C landed INSIDE
+    subprocess.communicate() and dumped a KeyboardInterrupt traceback over
+    the exit path, leaving the clutch pinned with only a stack trace to say so.
+
+    This process is already in the graph with a spinning executor. Asking the
+    master node's own parameter services directly is the same question
+    without a second discovery, and it is interruptible.
+    """
+    if not cli.wait_for_service(timeout_sec=timeout):
+        return None, ("no %s -- is master_pose_node running? (`ros2 node "
+                      "list | grep master_pose`)" % cli.srv_name)
+    fut = cli.call_async(req)
+    t0 = time.monotonic()
+    while not fut.done():
+        if time.monotonic() - t0 > timeout:
+            return None, ("%s did not answer within %.0f s" % (cli.srv_name,
+                                                               timeout))
+        if not rclpy.ok():
+            return None, "shutting down"
+        time.sleep(0.01)
+    return fut.result(), ""
+
+
+def _param_get(node, name):
+    """Read one bool parameter. Returns (value_or_None, why)."""
+    cli = _param_client(node, "get")
+    req = GetParameters.Request()
+    req.names = [name]
+    res, why = _call(node, cli, req)
+    if res is None:
+        return None, why
+    if not res.values:
+        return None, "%s does not declare %s" % (MASTER_NODE, name)
+    v = res.values[0]
+    if v.type != ParameterType.PARAMETER_BOOL:
+        return None, "%s is type %d, not bool" % (name, v.type)
+    return bool(v.bool_value), ""
+
+
+def _param_set(node, name, value):
+    """Set one bool parameter. Returns (ok, why)."""
+    cli = _param_client(node, "set")
+    pv = ParameterValue()
+    pv.type = ParameterType.PARAMETER_BOOL
+    pv.bool_value = bool(value)
+    req = SetParameters.Request()
+    req.parameters = [ParameterMsg(name=name, value=pv)]
+    res, why = _call(node, cli, req)
+    if res is None:
+        return False, why
+    if not res.results or not res.results[0].successful:
+        return False, (res.results[0].reason if res.results
+                       else "no result returned")
+    return True, ""
+
+
+def pin_clutch(on, node, arms=ARMS):
+    """Pin the clutch ENGAGED for the capture, and CONFIRM it took.
+
+    Own-arm gating is only safe while the buttons cannot toggle the clutch,
+    so this is a precondition and not a convenience. It returns (ok, why).
+
+    CONFIRMED TWO WAYS, because the parameter reading back is not evidence
+    that the node honours it -- `force_clutch_engaged` was copied into an
+    attribute at construction and never re-read, so for a long time setting
+    it reported success and changed nothing. The second check is behavioural:
+    the clutch must actually READ engaged on every arm afterwards.
+
+    AND THE TWO FAILURES ARE REPORTED SEPARATELY. This used to answer every
+    behavioural failure with "probably an older build that reads
+    force_clutch_engaged once at start-up", which is one specific diagnosis
+    for at least two causes. On 2026-09-01 the right arm was simply not
+    publishing /master_status_right -- the pre-capture check had printed
+    "master raw   left" one line above -- and the operator was sent to
+    rebuild and restart a stack whose build was fine. A silent arm and a
+    disengaged clutch are different faults with different fixes, and an
+    instrument that renders them identically is the fault this repo has hit
+    seventeen times.
+    """
+    ok, why = _param_set(node, "force_clutch_engaged", on)
+    if not ok:
+        return False, "could not set force_clutch_engaged: %s" % why
+    got, why = _param_get(node, "force_clutch_engaged")
+    if got is None:
+        return False, "could not read force_clutch_engaged back: %s" % why
+    if got != bool(on):
+        return False, ("the parameter did not take: %s reports "
+                       "force_clutch_engaged=%s after setting it to %s"
+                       % (MASTER_NODE, got, bool(on)))
+    if not on:
+        return True, ""
+    # Behavioural check: the clutch must now read engaged on every arm.
+    t0 = time.time()
+    silent, out_of = list(arms), []
+    while time.time() - t0 < 4.0:
+        st = {a: node.status.get(a) for a in arms}
+        silent = [a for a, v in st.items() if not v or len(v) == 0]
+        out_of = [a for a, v in st.items() if v and len(v) > 0 and v[0] <= 0.5]
+        if not silent and not out_of:
+            return True, ""
+        time.sleep(0.2)
+    if silent:
+        return False, ("%s -- not publishing, so the pin CANNOT be confirmed "
+                       "on %s.\n"
+                       "         THIS IS NOT A STALE BUILD, it is a SILENT "
+                       "ARM. Check that master_pose_node\n"
+                       "         is running for %s and that its Teensy is "
+                       "attached:\n"
+                       "             ros2 topic hz /master_status_%s"
+                       % (", ".join("no /master_status_%s" % a for a in silent),
+                          " or ".join(silent),
+                          " and ".join(silent), silent[0]))
+    return False, ("force_clutch_engaged is set and read back true, but the "
+                   "clutch still reads DISENGAGED on %s.\n"
+                   "         The running master_pose_node is an older build "
+                   "that reads the parameter\n"
+                   "         once at start-up. Restart the stack, or fall "
+                   "back to --gate opposite." % ", ".join(out_of))
+
+
+def gate_word(node, arm):
+    """The button to PRESS for `arm`, in the words the operator will use.
+
+    Derived from the same `gate_index` the code waits on, so the prompt
+    cannot disagree with the button. It printed the exact inverse once, and
+    an operator who trusts the prompt then presses a button that does
+    nothing has no way to tell that from a dead board.
+    """
+    # index 3 is btn2, the LEFT arm's own button; index 2 is btn1, the
+    # RIGHT arm's.
+    return "LEFT" if node.gate_index[arm] == 3 else "RIGHT"
+
+
+def _teardown(ex, node, thread=None):
+    """Shut down in the order rclpy requires, quietly.
+
+    Calling rclpy.shutdown() while the executor thread is still inside
+    wait_for_ready_callbacks raises RCLError out of that thread, and the
+    traceback lands on top of whatever message the caller was trying to
+    show the operator. Stop the executor, let the thread leave, THEN
+    shut the context down.
+    """
+    try:
+        ex.shutdown()
+    except Exception:                                    # noqa: BLE001
+        pass
+    if thread is not None and thread.is_alive():
+        thread.join(timeout=2.0)
+    try:
+        node.destroy_node()
+    except Exception:                                    # noqa: BLE001
+        pass
+    try:
+        if rclpy.ok():
+            rclpy.shutdown()
+    except Exception:                                    # noqa: BLE001
+        pass
+
+
+def reset_estop():
+    """Clear a LATCHED e-stop. This is not a bypass and there is no bypass.
+
+    /estop stays live throughout: this calls the node's own documented reset,
+    the same one a person would type. It exists because a latch left over
+    from a previous session refuses the preflight, and the fix should not be
+    a command the operator has to go and find.
+    """
+    import subprocess
+    try:
+        p = subprocess.run(["ros2", "service", "call", "/estop_reset",
+                            "std_srvs/srv/Trigger"],
+                           capture_output=True, text=True, timeout=15)
+    except Exception as e:                                # noqa: BLE001
+        return False, str(e)
+    if p.returncode != 0:
+        return False, (p.stderr or p.stdout or "").strip()[:200]
+    return "success=True" in p.stdout, p.stdout.strip()[-200:]
+
+
+def clutch_was_out(rows, arm):
+    """Did the clutch drop during this segment? Read from the rows written.
+
+    The pin is a precondition; this is the check that it HELD. A segment
+    recorded with the clutch out has a frozen commanded pose and is worthless
+    for the gain it was recorded to measure, and that is far cheaper to find
+    now than at the analysis.
+    """
+    col = "%s_clutch" % arm
+    seen = [r.get(col) for r in rows if r.get(col) not in ("", None)]
+    if not seen:
+        return False, ""
+    out = sum(1 for v in seen if str(v) == "0")
+    if not out:
+        return False, ""
+    return True, ("the %s clutch was OUT for %d of %d rows -- the commanded "
+                  "pose is frozen for those and the segment cannot measure a "
+                  "gain" % (arm, out, len(seen)))
 
 
 def stack_processes():
@@ -470,17 +755,42 @@ def stack_processes():
     return found
 
 
-def preflight(node):
+def preflight(node, need_arms=ARMS):
     hz = node.joint_states_hz()
     ok = True
     print("PRE-CAPTURE CHECK")
     print("  /joint_states     %.1f Hz %s" % (hz, "" if hz > 20 else "<-- TOO LOW"))
     ok &= hz > 20
+    # PER ARM, AND ONLY THE ARMS THIS RUN SWEEPS. This printed the arms it
+    # found and passed as long as there was at least one, so a run whose
+    # blocks sweep both arms started with one arm silent -- and the failure
+    # surfaced two steps later as the clutch pin blaming a stale build. The
+    # capture cannot record an arm that is not publishing, so refuse here,
+    # where the reason is still legible.
     have = [a for a in ARMS if node.raw.get(a)]
     print("  master raw        %s" % (", ".join(have) if have else "NONE"))
+    missing = [a for a in need_arms if a not in have]
     if not have:
         print("     no /master_arm_raw_* - is the Teensy attached and "
               "master_pose_node running?")
+        ok = False
+    elif missing:
+        print("     MISSING: %s. This run sweeps %s, so a silent arm means"
+              % (", ".join("/master_arm_raw_%s" % a for a in missing),
+                 " and ".join(need_arms)))
+        print("     every segment on %s would record a still arm."
+              % " and ".join(missing))
+        print("     Start master_pose_node for %s, or limit the run with "
+              "--blocks." % " and ".join(missing))
+        ok = False
+    st_have = [a for a in need_arms if node.status.get(a)]
+    print("  master status     %s" % (", ".join(st_have) if st_have else "NONE"))
+    if len(st_have) != len(need_arms):
+        print("     no /master_status_%s - the clutch state cannot be read, "
+              "so the pin\n"
+              "     cannot be confirmed and clutch_was_out() cannot check "
+              "the recorded rows."
+              % ",".join(a for a in need_arms if a not in st_have))
         ok = False
     if node.fsr is None:
         print("  buttons           NO /master_fsr_buttons - the gate cannot "
@@ -576,6 +886,18 @@ def main():
     ap.add_argument("--blocks", default="",
                     help="comma-separated subset, e.g. A,B")
     ap.add_argument("--rate", type=float, default=50.0)
+    ap.add_argument("--reset-estop", action="store_true",
+                    help="call /estop_reset once before the preflight. This "
+                         "CLEARS a latch, it does not disable the e-stop: "
+                         "/estop stays live and still halts the arms. There "
+                         "is no switch that disables it and there should not "
+                         "be.")
+    ap.add_argument("--gate", choices=("own", "opposite"), default="own",
+                    help="which button starts and ends a segment. 'own' (the "
+                         "default) is the button on the arm you are moving, "
+                         "and pins the clutch so the press cannot disengage "
+                         "it. 'opposite' is the older behaviour and needs no "
+                         "pin.")
     ap.add_argument("--min-segment-s", type=float, default=0.5,
                     help="a press shorter than this DISCARDS the segment")
     ap.add_argument("--dry-run", action="store_true")
@@ -600,8 +922,10 @@ def main():
 
     n, secs = estimate(segs)
     print("TRAJECTORY CAPTURE - %d segments, estimated %.0f min" % (n, secs / 60))
-    print("Each segment: press the OPPOSITE arm's button to start, again to "
-          "end. A press under %.1fs discards and re-prompts." % a.min_segment_s)
+    print("Each segment: press the button on the %s to start, again to end. "
+          "A press under %.1fs discards and re-prompts."
+          % ("ARM YOU ARE MOVING" if a.gate == "own" else "OPPOSITE arm",
+             a.min_segment_s))
     print()
     if a.dry_run:
         for s in segs:
@@ -611,25 +935,70 @@ def main():
     out = Path(a.out or (Path.home() / "kortex_ws" / "recordings" /
                          "trajectory_capture" /
                          time.strftime("capture_%Y%m%d_%H%M%S")))
-    out.mkdir(parents=True, exist_ok=True)
     master = out / "all_segments.csv"
 
     rclpy.init()
     node = Capture()
     ex = MultiThreadedExecutor(num_threads=4)
     ex.add_node(node)
-    threading.Thread(target=ex.spin, daemon=True).start()
+    spin_thread = threading.Thread(target=ex.spin, daemon=True)
+    spin_thread.start()
     time.sleep(3.0)
 
-    if not preflight(node):
+    # THE ARMS THIS RUN ACTUALLY SWEEPS, derived from the selected segments
+    # rather than assumed to be both. `--blocks G` sweeps both; a
+    # single-arm subset must not be refused for an arm it never touches.
+    need_arms = tuple(a for a in ARMS if any(x["arm"] == a for x in segs))
+
+    if not preflight(node, need_arms):
         print("PRE-CAPTURE CHECK FAILED - fix the above before recording. "
               "Nothing was written.")
-        ex.shutdown()
-        rclpy.shutdown()
+        _teardown(ex, node, spin_thread)
         return 1
+
+    # THE CLUTCH PIN. Own-arm gating is only safe while a button press
+    # cannot toggle the clutch, so this is a precondition, not a nicety.
+    node.gate_index = dict(GATE_INDEX if a.gate == "own"
+                           else GATE_INDEX_OPPOSITE)
+    if a.reset_estop:
+        ok_r, why_r = reset_estop()
+        print("e-stop reset" if ok_r else
+              "could not reset the e-stop: %s" % why_r)
+        t_r = time.time()
+        while node.estop and time.time() - t_r < 3.0:
+            time.sleep(0.1)
+    pinned = False
+    if a.gate == "own":
+        ok_pin, why = pin_clutch(True, node, need_arms)
+        if not ok_pin:
+            print("CANNOT PIN THE CLUTCH: %s" % why)
+            print()
+            print("Own-arm gating without the pin is the 2026-08-06 defect:")
+            print("every press would toggle the clutch of the arm being")
+            print("swept, and 41 of 42 segments recorded against a frozen")
+            print("arm. Refusing rather than recording that again.")
+            print()
+            print("Either restart the stack, or run with --gate opposite to")
+            print("use the OTHER arm's button, which needs no pin.")
+            _teardown(ex, node, spin_thread)
+            return 1
+        pinned = True
+        print("clutch PINNED engaged for this capture "
+              "(force_clutch_engaged=true, confirmed on both arms)")
+        print("press the button on the arm you are MOVING.")
+        print()
+
+    # NOTHING ON DISK UNTIL HERE. Every refusal above returns before the
+    # directory exists, so an aborted run leaves no trace at all. It used to
+    # create the directory first, and a refused run left a header-only
+    # all_segments.csv beside a manifest -- indistinguishable at the analysis
+    # from a session that ran and recorded nothing, which is a completely
+    # different fault.
+    out.mkdir(parents=True, exist_ok=True)
 
     meta = dict(started=time.strftime("%Y-%m-%dT%H:%M:%S"),
                 rate_hz=a.rate, segments=[s["label"] for s in segs],
+                gate_mode=a.gate, clutch_pinned=pinned,
                 # DERIVED FROM GATE_INDEX, not typed. The typed version of
                 # this string said "left arm gated by btn2, right arm by
                 # btn1" -- the exact inversion the constant exists to
@@ -637,10 +1006,15 @@ def main():
                 # capture unusable. Anyone reading a capture's metadata to
                 # check whether that recurred would have concluded it had.
                 gate_mapping="; ".join(
-                    "%s arm gated by btn%d" % (a, GATE_INDEX[a] - 1)
+                    "%s arm gated by btn%d" % (a, node.gate_index[a] - 1)
                     for a in ARMS)
-                + " (MEASURED); each arm is gated by the OPPOSITE button "
-                  "because its own also toggles its clutch",
+                + (" (MEASURED); each arm is gated by ITS OWN button, "
+                   "which is safe only because the clutch is PINNED "
+                   "engaged for this capture and the pin was confirmed"
+                   if a.gate == "own" else
+                   " (MEASURED); each arm is gated by the OPPOSITE arm's "
+                   "button, because its own also toggles its clutch and no "
+                   "pin is in force"),
                 pre_labelling="none - every channel recorded identically, no "
                               "expected_flat flag, so the live/dead verdict "
                               "comes from this capture alone")
@@ -665,15 +1039,15 @@ def main():
                     for x in blk:
                         print("      - %s" % x)
                     print("   fix it, then press the %s button to retry"
-                          % ("RIGHT" if s["arm"] == "left" else "LEFT"))
+                          % gate_word(node, s["arm"]))
                     g2 = Gate(node, s["arm"])
-                    if not g2.wait_rise():
+                    if not g2.wait_press():
                         raise KeyboardInterrupt
                     continue
                 print("   press the %s button to START"
-                      % ("RIGHT" if s["arm"] == "left" else "LEFT"))
+                      % gate_word(node, s["arm"]))
                 gate = Gate(node, s["arm"])
-                if not gate.wait_rise():
+                if not gate.wait_press():
                     raise KeyboardInterrupt
                 t0 = time.monotonic()
                 print("   RECORDING ... press again to end")
@@ -690,7 +1064,7 @@ def main():
                         if blk:
                             aborted = blk
                             break
-                    if gate.rose():
+                    if gate.pressed():
                         break
                     nxt += dt
                     time.sleep(max(0.0, nxt - time.monotonic()))
@@ -715,16 +1089,48 @@ def main():
                     sw.writerows(buf)
                 print("   saved %d rows, %.1fs -> %s"
                       % (len(buf), dur, seg_path.name))
+                # DID THE PIN HOLD? Checked from the rows just written rather
+                # than assumed from the parameter. A segment recorded with
+                # the clutch out has a frozen commanded pose and cannot
+                # measure the gain it exists to measure -- and finding that
+                # here costs one repeat, where finding it at the analysis
+                # costs the session.
+                bad, why = clutch_was_out(buf, s["arm"])
+                if bad:
+                    print("   *** %s" % why)
+                    print("   *** the file is kept, and it is MARKED. Redo "
+                          "this segment with --start-at %s" % s["label"])
                 done += 1
                 break
     except KeyboardInterrupt:
         print("\ninterrupted - %d segment(s) saved to %s" % (done, out))
     finally:
         fh.close()
-        ex.shutdown()
-        node.destroy_node()
-        if rclpy.ok():
-            rclpy.shutdown()
+        if pinned:
+            # RESTORE, on every exit path including Ctrl-C. Leaving the
+            # clutch pinned engaged after a capture means the next
+            # operator's button does nothing and nothing says why.
+            #
+            # AND A SECOND Ctrl-C MUST NOT ESCAPE THIS. The release used to
+            # shell out to `ros2 param set` with a 20 s timeout, so an
+            # impatient second interrupt landed inside subprocess.communicate
+            # and unwound the whole clean-up: the operator got a
+            # KeyboardInterrupt traceback instead of the one line telling
+            # them the clutch was still pinned. Whatever happens here, say
+            # what state the clutch was left in.
+            try:
+                okr, whyr = pin_clutch(False, node)
+            except KeyboardInterrupt:
+                okr, whyr = False, "interrupted before the release completed"
+            except Exception as exc:                        # noqa: BLE001
+                okr, whyr = False, str(exc)
+            print("clutch pin released" if okr else
+                  "WARNING: could not release the clutch pin: %s\n"
+                  "         set force_clutch_engaged=false by hand:\n"
+                  "             ros2 param set /master_pose_node "
+                  "force_clutch_engaged false\n"
+                  "         or restart the master node." % whyr)
+        _teardown(ex, node, spin_thread)
     print("\nDONE: %d/%d segments -> %s" % (done, len(segs), out))
     print("Analyse with:")
     print("  python3 src/srl_experiments/trajectory_capture/analyse_capture.py %s"

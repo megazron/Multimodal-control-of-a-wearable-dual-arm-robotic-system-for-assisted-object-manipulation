@@ -71,10 +71,29 @@ class EStop(Node):
         # like dead hardware and froze the whole sim. Require N CONSECUTIVE
         # stale checks before tripping.
         self.declare_parameter("deadman_consecutive", 5)
-        # How long both buttons must be held DOWN together to e-stop.
-        # Long enough that sequential gating taps cannot reach it, short
-        # enough to be an instinctive panic gesture.
-        self.declare_parameter("both_hold_s", 0.30)
+        # How close together the two button presses must be to e-stop.
+        # A WINDOW BETWEEN TWO EDGES, not a hold, because the firmware
+        # buttons are toggles and a hold is not observable. See on_buttons().
+        # Long enough to be an instinctive two-handed squeeze, short enough
+        # that two deliberate gating presses seconds apart cannot reach it.
+        # SET THIS <= 0 TO DISABLE THE BUTTON TRIGGER ENTIRELY.
+        #
+        # Trigger 2 is documented at the top of this file as a CONVENIENCE and
+        # explicitly not the primary path: the service, the topic and the
+        # dead-man are unaffected by this and remain the real e-stop. On a rig
+        # whose button wiring is faulty -- 2026-09-01, both channels flipping
+        # together with nobody touching them, latching mid-session twice --
+        # a convenience trigger that fires by itself is not a safety feature,
+        # it is an outage that teaches the operator to bypass the e-stop.
+        # Disabling it is therefore SAFER than leaving it armed, and it is a
+        # parameter rather than a code change so it can be re-armed the moment
+        # the wiring is fixed.
+        self.declare_parameter("both_window_s", 0.40)
+        # Silence longer than this on /master_fsr_buttons means the next
+        # message starts a NEW stream, and its values are history rather than
+        # edges. Comfortably longer than a dropped frame at 50 Hz, far
+        # shorter than any reattach. See on_buttons().
+        self.declare_parameter("btn_gap_s", 1.0)
         # DRIVER-LEVEL HALT. Publishing a hold-position trajectory only works
         # if an arm trajectory controller is loaded and active. On the real
         # stack it may not be (the read-only bring-up deliberately loads
@@ -92,7 +111,8 @@ class EStop(Node):
         self.deadman_n = int(self.get_parameter("deadman_consecutive").value)
         self.stale_count = {a: 0 for a in self.arms}
         self.hold = float(self.get_parameter("hold_period_s").value)
-        self.both_hold_s = float(self.get_parameter("both_hold_s").value)
+        self.both_window_s = float(self.get_parameter("both_window_s").value)
+        self.btn_gap_s = float(self.get_parameter("btn_gap_s").value)
 
         self.stopped = False
         self.reason = ""
@@ -106,9 +126,14 @@ class EStop(Node):
         # on history from before it was on.
         self.deadman_armed_t = None
         self._deadman_prev = False
+        # Per-button latched value and the time it last CHANGED. Both are
+        # per-button, so two edges on one bouncing button can never look
+        # like a two-handed squeeze. See on_buttons().
         self.btn_last = {1: None, 2: None}
         self.btn_edge = {1: None, 2: None}
-        self._both_since = None
+        #: When a button message last arrived. A GAP in this stream means the
+        #: values on either side of it are not comparable -- see on_buttons().
+        self.btn_rx = None
 
         self.traj_pub = {
             a: self.create_publisher(
@@ -202,32 +227,81 @@ class EStop(Node):
             self.trip("/estop topic")
 
     def on_buttons(self, m):
-        """BOTH BUTTONS HELD DOWN TOGETHER -- not merely two edges in a window.
+        """BOTH BUTTONS PRESSED TOGETHER, measured as two FRESH EDGES.
 
-        This used to trip on any two button EDGES within 0.4 s, and a release
-        counts as an edge. The trajectory capture gates each segment on a
-        button press, so ordinary gating taps on the two arms fired the
-        e-stop: it latched for the whole of block F and much of block E, and
-        35 minutes recorded against a stopped arm.
+        THE BUTTONS ARE FIRMWARE TOGGLES, NOT MOMENTARY CONTACTS.
+        `firmware/master_arm/teensy_final.ino` runs both through
+        updateButtonToggle(): the value published on /master_fsr_buttons is a
+        LATCHED 0/1 that flips once per physical press and then STAYS there
+        until the next press or a board reset. So "held down together" is not
+        an observable state at all -- a button toggled on an hour ago and a
+        finger resting on one right now publish the identical 1.
 
-        Requiring both to be DOWN SIMULTANEOUSLY for both_hold_s makes a tap
-        harmless while leaving the intended gesture -- squeeze both and hold
-        -- fully available. It is also strictly harder to trigger by
-        accident, so the safety path is not weakened by the change.
+        Reading those latches as levels is what broke the 2026-09-01 capture.
+        btn1 was still toggled on from an earlier session; the operator
+        pressed the LEFT button to start segment 1; both latches then read 1
+        and stayed there, so this tripped 0.30 s into the first recording and
+        LATCHED. Every retry afterwards refused before it started, and the
+        recorder's own message said the latch "came from somewhere else". It
+        had come from the gating press, every time.
+
+        An EDGE cannot go stale, which is the whole point: a toggle sitting
+        at 1 produces none. So a button left latched arms nothing, the
+        deliberate two-handed gesture trips from ANY starting state (each
+        press is an edge whichever way it flips), and bounce on a single
+        button is one button's edge and can never be two.
+
+        This is not the pre-2026-08-24 rule, which counted any two edges in a
+        window and so tripped on ONE arm's gating tap. The edges must be on
+        the two DIFFERENT buttons.
         """
         if len(m.data) < 4:
             return
+        if self.both_window_s <= 0.0:
+            return                      # button trigger disabled; see above
         now = self.get_clock().now().nanoseconds / 1e9
-        down = {idx: bool(m.data[1 + idx] > 0.5) for idx in (1, 2)}
-        if down[1] and down[2]:
-            if self._both_since is None:
-                self._both_since = now
-            elif now - self._both_since >= self.both_hold_s:
-                self._both_since = None
-                self.trip("both master buttons held together for %.2f s"
-                          % self.both_hold_s)
-        else:
-            self._both_since = None
+
+        # A GAP IN THE STREAM IS NOT A GESTURE.
+        #
+        # Measured 2026-09-01, on the fix above: the Teensy was detached and
+        # reattached to clear its dead IMUs. It came back with both toggles
+        # reset to 0 -- they had both been latched at 1 before -- so the first
+        # message after the gap carried TWO edges in one sample, and this
+        # tripped the e-stop on "both buttons pressed together". Nobody
+        # touched a button; the device had rebooted.
+        #
+        # Edges are only meaningful between two CONSECUTIVE observations of a
+        # live stream. Across a gap -- a reboot, a reattach, a restarted
+        # master node, a dropped USB link -- the previous value describes a
+        # device that no longer exists. So the first message after a gap is
+        # adopted as history, exactly as the very first message is.
+        gap = self.btn_rx is None or (now - self.btn_rx) > self.btn_gap_s
+        self.btn_rx = now
+        if gap:
+            for idx in (1, 2):
+                self.btn_last[idx] = bool(m.data[1 + idx] > 0.5)
+            self.btn_edge = {1: None, 2: None}
+            return
+
+        for idx in (1, 2):
+            val = bool(m.data[1 + idx] > 0.5)
+            if self.btn_last[idx] is None:
+                # FIRST SIGHT: record, do not act. Whatever the toggles
+                # happen to be latched at when this node starts is history,
+                # not a press, and treating it as one would trip the e-stop
+                # on the first message after every launch.
+                self.btn_last[idx] = val
+                continue
+            if val != self.btn_last[idx]:
+                self.btn_last[idx] = val
+                self.btn_edge[idx] = now
+        e1, e2 = self.btn_edge[1], self.btn_edge[2]
+        if e1 is not None and e2 is not None and abs(e1 - e2) <= self.both_window_s:
+            # CONSUME both edges, so one gesture is one trip and the pair
+            # cannot re-fire against a stale partner on the next message.
+            self.btn_edge = {1: None, 2: None}
+            self.trip("both master buttons pressed together within %.2f s"
+                      % self.both_window_s)
 
     def srv_stop(self, req, resp):
         self.trip("/estop service")
@@ -248,6 +322,12 @@ class EStop(Node):
         # guarantee it makes at every other moment.
         for a in self.arms:
             self.stale_count[a] = 0
+        # DROP ANY PENDING BUTTON EDGE. Without this the pair that tripped
+        # the e-stop is still sitting in btn_edge, so the very next
+        # /master_fsr_buttons message re-trips it and the operator cannot
+        # clear the latch -- the same unclearable-latch shape the stale
+        # counters above are reset to avoid.
+        self.btn_edge = {1: None, 2: None}
         self.deadman_armed_t = self.get_clock().now()
         self.get_logger().warn("E-STOP RESET -- motion permitted again.")
         resp.success = True

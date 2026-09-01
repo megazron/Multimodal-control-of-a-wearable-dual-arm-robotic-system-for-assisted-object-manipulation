@@ -52,6 +52,21 @@ def _arm_enabled(which):
         ["'", LaunchConfiguration("arm"), "' in ('both', '", which, "')"]))
 
 
+def _follower_enabled(which, want):
+    """True when this arm is selected AND `follower` names `want`.
+
+    ONE OR THE OTHER, NEVER BOTH. ik_follower_node and master_teleop_node
+    publish the same JointTrajectory on the same controller topics, so two
+    running at once is HARD CONSTRAINT 3's fault one level down: two
+    commanders on one topic, interleaving at whatever rate each happens to
+    tick. The condition is written so that a typo in `follower` starts
+    NEITHER -- which is loud -- rather than defaulting to both.
+    """
+    return IfCondition(PythonExpression(
+        ["'", LaunchConfiguration("arm"), "' in ('both', '", which,
+         "') and '", LaunchConfiguration("follower"), "' == '", want, "'"]))
+
+
 def _normalize_ros_env():
     """Force this launch onto the same discovery settings as scripts/env.sh.
 
@@ -152,6 +167,14 @@ def generate_launch_description():
         # clamp_towards shipped before 2026-08-23 and exists to reproduce an
         # older recording. See srl_teleop/motion_generator.py.
         DeclareLaunchArgument("motion_generator", default_value="ruckig"),
+        # WHICH FOLLOWER COMMANDS THE ARMS. 'ik' is ik_follower_node, the
+        # baseline condition of every experiment in this repo and therefore
+        # the default -- nothing that has been measured changes because this
+        # argument exists. 'master' is master_teleop_node, the 2026-09-01
+        # smoothness path: frame_valid gate, slew limit, one-euro, Ruckig.
+        # Exactly one of the two ever runs; see _follower_enabled().
+        DeclareLaunchArgument("follower", default_value="ik",
+                              choices=["ik", "master"]),
     ]
 
     moveit = IncludeLaunchDescription(
@@ -186,9 +209,28 @@ def generate_launch_description():
                           "real_robot": LaunchConfiguration("real_robot"),
                           "motion_generator":
                               LaunchConfiguration("motion_generator")}],
-             condition=_arm_enabled(side))
+             condition=_follower_enabled(side, "ik"))
         for side in ("left", "right")
     ]
+
+    # THE NEW PATH, follower:=master. ONE node for both arms rather than one
+    # per arm: the slew limit and the filters are per-arm state inside it, and
+    # a single node means a single control cycle, so the two arms cannot drift
+    # into different phases of the same 100 Hz tick.
+    #
+    # motion_enabled is FALSE here on purpose (HARD CONSTRAINT 8). Launching
+    # it does not command anything; it computes the whole path and reports it
+    # on /master_teleop/status so the operator can watch the numbers before
+    # anything moves, and `ros2 param set /master_teleop_node motion_enabled
+    # true` is the deliberate act that lets it drive.
+    master_teleop = Node(
+        package="srl_teleop", executable="master_teleop",
+        name="master_teleop_node", output="screen", emulate_tty=True,
+        parameters=[{"arms": LaunchConfiguration("arm"),
+                     "motion_enabled": False,
+                     "real_enabled": LaunchConfiguration("real_arms")}],
+        condition=IfCondition(PythonExpression(
+            ["'", LaunchConfiguration("follower"), "' == 'master'"])))
 
     # The dead-man is armed only when real hardware is in play. In mock-only
     # sim a stale master is a nuisance, not a hazard, and latching on it
@@ -315,7 +357,7 @@ def generate_launch_description():
                     name="blocking_aggregator", output="log")
 
     delayed = TimerAction(period=LaunchConfiguration("startup_delay"),
-                          actions=[master, *followers, monitor, dash, estop,
+                          actions=[master, *followers, master_teleop, monitor, dash, estop,
                                    grippers, recovery, selftest, gate,
                                    blocking])
 

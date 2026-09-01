@@ -70,6 +70,10 @@ def rig(**over):
         "min_cutoff_hz": 0.5, "beta": 100.0, "d_cutoff_hz": 0.2,
         "smooth_orientation": False,
         "left_clutch_button": 2, "right_clutch_button": 1,
+        # update_clutch re-reads these EVERY frame as of 2026-08-30, so the
+        # capture can pin the clutch without restarting the node. They are
+        # here rather than as attributes for the same reason.
+        "clutch_enabled": True, "force_clutch_engaged": False,
     }
     params.update(over)
     n.params = params
@@ -87,8 +91,8 @@ def rig(**over):
     n.filt_t = {a: None for a in n.arms}
     n.last_filt_dt = {a: 0.0 for a in n.arms}
     # clutch state, as __init__ builds it
-    n.clutch_enabled = True
-    n.force_clutch = False
+    n.clutch_enabled = params["clutch_enabled"]
+    n.force_clutch = params["force_clutch_engaged"]
     n.clutch_button = {"left": 2, "right": 1}
     n.btn_last = {a: None for a in n.arms}
     n.last_btn_edge_t = {a: 0.0 for a in n.arms}
@@ -289,3 +293,73 @@ def test_the_read_loop_uses_the_filter_and_the_clutch_resets_it():
     assert "self.reset_tip_filter(" in clutch
     init = inspect.getsource(mpn.MasterPoseNode.__init__)
     assert "self.tip_filter_sync()" in init
+
+
+# ---------------------------------------------- the clutch pin, made LIVE
+#
+# The trajectory capture gates each segment on the button of the arm being
+# moved, which is what an operator holding one arm can actually reach. That
+# is only safe while the button cannot toggle that arm's clutch, so the
+# capture pins the clutch with `force_clutch_engaged` for its duration.
+#
+# The pin has to be honoured WHILE THE NODE IS RUNNING. Until 2026-08-30 both
+# clutch parameters were copied into attributes in __init__ and never looked
+# at again, so `ros2 param set` reported success and changed nothing -- and
+# the capture's confirmation would have been a parameter read agreeing with
+# itself. These exercise the shipped `update_clutch`.
+
+def test_forcing_the_clutch_takes_effect_without_a_restart():
+    n = rig(clutch_enabled=True, force_clutch_engaged=False)
+    n.clutch_on["left"] = True
+    n.btn_last["left"] = 0.0
+    # a press, unpinned: the clutch toggles OUT -- the 2026-08-06 defect
+    n.update_clutch("left", (0.0, 1.0), True, np.zeros(3))
+    assert n.clutch_on["left"] is False, \
+        "an unpinned own-arm press no longer disengages the clutch; if that " \
+        "is a deliberate change the capture's pin can be simplified, but it " \
+        "is the premise the pin exists for"
+    # now pin it, the way `ros2 param set` would, mid-run
+    n.params["force_clutch_engaged"] = True
+    n.update_clutch("left", (0.0, 0.0), True, np.zeros(3))
+    assert n.clutch_on["left"] is True, \
+        "force_clutch_engaged was set at runtime and the clutch stayed out " \
+        "-- the parameter is read once at construction again"
+    # and further presses do nothing at all
+    for val in (1.0, 0.0, 1.0):
+        n.update_clutch("left", (0.0, val), True, np.zeros(3))
+        assert n.clutch_on["left"] is True, \
+            "a button press moved a PINNED clutch"
+
+
+def test_the_pin_does_not_silence_the_buttons_it_ignores():
+    """The capture reads the SAME buttons the pin tells the clutch to ignore.
+
+    If pinning also stopped /master_fsr_buttons being published the gate
+    would wait forever, and the operator would be pressing a button on a rig
+    that had gone deaf with nothing on screen saying so. The publish must sit
+    OUTSIDE the clutch logic, not inside a branch it can take.
+    """
+    src = inspect.getsource(mpn.MasterPoseNode.read_loop) \
+        if hasattr(mpn.MasterPoseNode, "read_loop") \
+        else inspect.getsource(mpn)
+    i = src.index("self.fsr_btn_pub.publish(")
+    before = src[:i]
+    assert "force_clutch" not in before.rsplit("fsr_btn = ", 1)[-1], \
+        "the button publish is downstream of the clutch pin"
+    # and it precedes update_clutch, so no clutch branch can skip it
+    j = src.find("update_clutch(", i)
+    assert j > i, \
+        "the buttons are published after the clutch update, so a return " \
+        "inside the clutch logic can suppress them"
+
+
+def test_disabling_the_clutch_at_runtime_is_also_live():
+    """The other half of the same defect, and the one a lab-day operator hits
+    first: `clutch_enabled:=false` to rule the clutch out as a cause."""
+    n = rig(clutch_enabled=True, force_clutch_engaged=False)
+    n.clutch_on["right"] = True
+    n.btn_last["right"] = 0.0
+    n.params["clutch_enabled"] = False
+    n.update_clutch("right", (1.0, 0.0), True, np.zeros(3))
+    assert n.clutch_on["right"] is True, \
+        "clutch_enabled=false was set at runtime and a press still toggled"

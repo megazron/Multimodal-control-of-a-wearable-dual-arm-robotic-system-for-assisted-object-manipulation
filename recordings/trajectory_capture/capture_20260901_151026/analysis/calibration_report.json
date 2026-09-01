@@ -1,0 +1,28 @@
+{
+  "rows": 22516,
+  "segments": 28,
+  "usable": [],
+  "unusable": [
+    "left_j1",
+    "left_j2",
+    "left_j3",
+    "left_j4",
+    "left_j5",
+    "left_j6",
+    "left_j7",
+    "right_j1",
+    "right_j2",
+    "right_j3",
+    "right_j4",
+    "right_j5",
+    "right_j6",
+    "right_j7"
+  ],
+  "recommended": {
+    "median_step_m": 7.681145747872677e-06,
+    "p95_step_m": 0.001228548199746542,
+    "pot_noise_deg": 0.0,
+    "ema_alpha": 0.23854260058213023,
+    "max_step_rad": 0.05
+  }
+}

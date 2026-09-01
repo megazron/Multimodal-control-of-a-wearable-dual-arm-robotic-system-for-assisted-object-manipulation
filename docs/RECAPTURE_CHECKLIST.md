@@ -33,6 +33,23 @@ right = btn1) before starting, so the clutch reference is latched at neutral.
 Do not restart `master_pose_node` to achieve this — closing the port resets
 the Teensy and drops it off WSL.
 
+**GATING, changed 2026-08-30: press the button on the arm you are MOVING.**
+Left arm, left button. It used to be the opposite arm's, because an arm's own
+button toggles that arm's clutch and gating a left sweep on the left button
+disengaged it exactly when the sweep started — 41 of 42 directional segments
+on 2026-08-06 recorded against a still arm. The capture now PINS the clutch
+(`force_clutch_engaged`) for its duration, confirms the pin two ways and
+**refuses to record** if it cannot; it releases the pin on every exit path,
+including Ctrl-C. `--gate opposite` restores the old mapping. The prompt
+always names the button it is actually waiting on.
+
+**The e-stop does not need bypassing.** It fired on gating taps until
+2026-08-24 — any two button *edges* within 0.4 s, and a release is an edge —
+and it now needs **both buttons held down together for 0.30 s**. If the
+preflight says `E-STOP LATCHED` the latch came from somewhere else; clear it
+with `--reset-estop` (which calls `/estop_reset`, the same thing you would
+type). `/estop` stays live throughout. There is no switch that disables it.
+
 ---
 
 ## 1. Lateral axis / gyro validation

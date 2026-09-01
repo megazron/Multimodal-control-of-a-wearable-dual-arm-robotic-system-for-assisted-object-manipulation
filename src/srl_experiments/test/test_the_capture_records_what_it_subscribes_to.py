@@ -103,26 +103,94 @@ def test_a_missing_status_field_stays_empty_rather_than_becoming_zero():
 
 # --------------------------------------------------------- the gate mapping
 def test_the_gate_metadata_is_derived_from_the_constant():
-    assert "GATE_INDEX[a]" in SRC.split("gate_mapping", 1)[1][:400], \
+    assert "node.gate_index[a]" in SRC.split("gate_mapping", 1)[1][:400], \
         "the gate mapping in the capture metadata is typed rather than " \
         "derived, which is how it came to state the exact inverse of what " \
         "the code does"
 
 
-def test_each_arm_is_gated_by_the_other_arms_button():
-    """An arm's own button toggles that arm's clutch, so gating a left sweep
-    with the left button disengages the clutch exactly when the sweep starts.
-    That happened, and it cost 41 of 42 directional segments."""
+def test_own_arm_gating_is_only_offered_with_the_clutch_pinned():
+    """The default gate is the button on the arm being MOVED, which is what
+    the operator asked for and what a person reaching across a rig actually
+    wants. It is only safe because the clutch is PINNED first.
+
+    Unpinned, an arm's own button toggles that arm's clutch, so a left sweep
+    started with the left button disengages the clutch exactly when the sweep
+    starts. That happened on 2026-08-06 and cost 41 of 42 directional
+    segments. So the invariant is not 'never use the own button' -- it is
+    'own-arm gating implies the pin, and a pin that cannot be confirmed
+    refuses the recording'.
+    """
     ns = {}
-    exec(SRC[SRC.index("GATE_INDEX = "):
-             SRC.index("\n", SRC.index("GATE_INDEX = "))], ns)
-    gate = ns["GATE_INDEX"]
+    for name in ("GATE_INDEX", "GATE_INDEX_OPPOSITE"):
+        i = SRC.index("%s = " % name)
+        exec(SRC[i:SRC.index("\n", i)], ns)
     # [fsr1, fsr2, btn1, btn2]: index 2 is btn1, index 3 is btn2.
     # Measured: the left arm's OWN button is btn2, the right arm's is btn1.
     own = {"left": 3, "right": 2}
+    assert ns["GATE_INDEX"] == own, \
+        "the default gate is no longer the arm's own button"
     for arm in ("left", "right"):
-        assert gate[arm] != own[arm], \
-            "%s segments are gated by the %s arm's OWN button" % (arm, arm)
+        assert ns["GATE_INDEX_OPPOSITE"][arm] != own[arm], \
+            "--gate opposite does not use the other arm's button"
+
+    body = SRC[SRC.index("def main("):]
+    assert 'a.gate == "own"' in body and "pin_clutch(True" in body, \
+        "own-arm gating does not pin the clutch"
+    pin = body[body.index('a.gate == "own"'):]
+    assert "return 1" in pin[:pin.index("meta = dict")], \
+        "a clutch pin that cannot be confirmed does not refuse to record"
+    assert "pin_clutch(False" in body, \
+        "the pin is never released, so the next session's buttons are dead"
+
+
+def test_the_pin_is_confirmed_on_the_node_and_not_just_requested():
+    """setting a parameter that does not exist returns SUCCESSFUL on some
+    paths, and `force_clutch_engaged` was read once at construction until
+    2026-08-30 -- so it could report success and change nothing. The pin is
+    only believable if the clutch is then OBSERVED engaged.
+    """
+    i = SRC.index("def pin_clutch(")
+    fn = SRC[i:SRC.index("\ndef ", i + 1)]
+    # 1. the parameter is read back, not just written
+    assert '_param_set(node, "force_clutch_engaged"' in fn, \
+        "pin_clutch does not set force_clutch_engaged"
+    assert '_param_get(node, "force_clutch_engaged")' in fn, \
+        "pin_clutch sets the parameter and never reads it back"
+    # 2. and the clutch is then OBSERVED engaged, which is the check that
+    #    survives a node that accepts the parameter and ignores it
+    assert "node.status" in fn, \
+        "pin_clutch never looks at the clutch state it claims to have set"
+    assert "DISENGAGED" in fn, \
+        "pin_clutch has no failure message for a clutch that stayed out"
+
+
+def test_a_segment_recorded_with_the_clutch_out_is_flagged():
+    """Belt and braces for the pin: the rows themselves carry the clutch
+    state, so a segment that lost it says so while the operator is still
+    standing at the rig."""
+    assert "clutch_was_out(buf" in SRC, \
+        "the recorded rows are never checked for a dropped clutch"
+    i = SRC.index("clutch_was_out(buf")
+    after = SRC[i:i + 600]
+    assert "redo" in after.lower() or "start-at" in after, \
+        "a dropped clutch is detected but the operator is not told to redo it"
+
+
+def test_the_printed_button_is_derived_from_the_gate_it_waits_on():
+    """A prompt that names the wrong button is indistinguishable from a dead
+    board: the operator presses, nothing happens, and there is no way to tell
+    which of the two it was. So the word and the index come from one place."""
+    assert "def gate_word(" in SRC, "no single source for the printed button"
+    i = SRC.index("def gate_word(")
+    fn = SRC[i:SRC.index("\ndef ", i + 1)]
+    assert "node.gate_index[arm]" in fn, \
+        "gate_word does not read the index the gate actually waits on"
+    body = SRC[SRC.index("def main("):]
+    for phrase in ('press the %s button to START', 'button to retry'):
+        j = body.index(phrase)
+        assert "gate_word(" in body[j:j + 200], \
+            "the %r prompt hard-codes an arm instead of deriving it" % phrase
 
 
 # ------------------------------------------------------------- the protocol

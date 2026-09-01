@@ -44,6 +44,8 @@ import time
 import math
 import numpy as np
 import rclpy
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float64MultiArray, String
@@ -762,7 +764,26 @@ class MasterPoseNode(Node):
         # EXCLUSIVE. A second reader silently splits the frame stream; see
         # serial_port.claim_exclusive(). This raises rather than degrading.
         claim_exclusive(self.ser, self.get_logger())
-        self.create_timer(0.02, self.read_serial)  # 50 Hz poll
+        # THE SERIAL POLL GETS ITS OWN CALLBACK GROUP, and main() spins a
+        # MULTI-THREADED executor.
+        #
+        # read_serial calls a BLOCKING readline() on a port opened with
+        # timeout=0.05, from a timer firing every 0.02 s. Under the
+        # single-threaded rclpy.spin() this node used until 2026-09-01 the
+        # executor was therefore never idle, and callbacks that are not
+        # timers never got a turn: `ros2 param list /master_pose_node` and
+        # `ros2 param set ... force_clutch_engaged` both TIMED OUT against a
+        # node that was healthily publishing poses at 100 Hz. That is the
+        # worst shape of fault -- every liveness check passes, and the one
+        # thing you need (setting a parameter while it runs) hangs.
+        #
+        # Mutually exclusive, so the serial callback still cannot re-enter
+        # itself and the parse/publish path keeps its single-writer
+        # assumption. What changes is only that the parameter services run on
+        # a different thread while readline() is blocked.
+        self.cb_serial = MutuallyExclusiveCallbackGroup()
+        self.create_timer(0.02, self.read_serial,
+                          callback_group=self.cb_serial)  # 50 Hz poll
         self.get_logger().info(
             f"Reading master {self.arm} arm from {port} @ {baud}")
 
@@ -1260,6 +1281,22 @@ class MasterPoseNode(Node):
     def update_clutch(self, arm, btn_values, frame_valid, d_now):
         """btn_values is (btn1, btn2). The buttons are firmware toggles, so
         we act on CHANGES to the reported value, one flip per press."""
+        # RE-READ LIVE, like the button mapping below. Both of these were
+        # copied into attributes in __init__ and never looked at again, so
+        # `ros2 param set /master_pose_node force_clutch_engaged true`
+        # reported success and changed nothing -- the same "feature present
+        # but does nothing" this file already guards against for the button
+        # index and the smoothing constants. The trajectory capture needs to
+        # pin the clutch for the duration of a recording, and it can only do
+        # that if the parameter is honoured while the node is running.
+        want_en = bool(self.get_parameter("clutch_enabled").value)
+        want_force = bool(self.get_parameter("force_clutch_engaged").value)
+        if want_en != self.clutch_enabled or want_force != self.force_clutch:
+            self.get_logger().warn(
+                "[CLUTCH] enabled %s -> %s, forced-engaged %s -> %s"
+                % (self.clutch_enabled, want_en,
+                   self.force_clutch, want_force))
+            self.clutch_enabled, self.force_clutch = want_en, want_force
         if not self.clutch_enabled:
             return
         if self.force_clutch:
@@ -1733,7 +1770,15 @@ def main(args=None):
                         "%d s" % (attempt, kind, delay))
                 time.sleep(delay)
         if node is not None:
-            rclpy.spin(node)
+            # MULTI-THREADED, so a blocking serial read cannot starve the
+            # parameter services. See the callback-group comment on the
+            # 0.02 s timer for what the single-threaded spin cost.
+            ex = MultiThreadedExecutor(num_threads=4)
+            ex.add_node(node)
+            try:
+                ex.spin()
+            finally:
+                ex.shutdown()
         else:
             # PARK. A node that exits is respawned; a node that spins doing
             # nothing is visible in the graph, costs nothing, and lets the

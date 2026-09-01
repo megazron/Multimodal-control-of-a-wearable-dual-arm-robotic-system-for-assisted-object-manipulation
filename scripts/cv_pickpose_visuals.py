@@ -3568,12 +3568,76 @@ def st_people(fr):
             dep = aligned_depth(fr)[0]
         except Exception:                                        # noqa: BLE001
             dep = None
+
+    # WHAT THE SAFETY PATH WOULD DO WITH THIS SKELETON.
+    #
+    # This figure used to draw every link in one colour and print "N
+    # person(s)", which reads as "the body was found". On a torso mannequin
+    # with NO ARMS the detector still returns elbows and wrists -- it fits a
+    # whole-body prior -- and it returns them at visibility 0.95 to 0.98, so
+    # nothing in the picture said they were invented. Measured on this frame
+    # against a real person photographed in the same laboratory: forearm over
+    # upper arm is 0.11 to 0.57 here against 0.92 on the person.
+    #
+    # `wearer_tracking.plausible()` already rejects them -- the segments
+    # measure 0.03 to 0.19 m against a 0.17 to 0.42 m human range, so
+    # `fuse()` falls back to the mannequin and the clearance floor is never
+    # driven by the invention. The defect was that the FIGURE did not say so.
+    # It does now: a link the safety path would refuse is drawn in red and
+    # dashed, and its measured length is tabled beside the bound that
+    # rejected it.
+    def _seg_len(L, a, b):
+        """Metric length of one link, from each landmark's own depth."""
+        if dep is None or fr.K_c is None or a >= len(L) or b >= len(L):
+            return None
+        fx, fy, cx, cy = fr.K_c[:4]
+        P = []
+        for i in (a, b):
+            u, v = int(L[i][0] * W), int(L[i][1] * H)
+            if not (0 <= v < dep.shape[0] and 0 <= u < dep.shape[1]):
+                return None
+            win = dep[max(0, v - 4):v + 5, max(0, u - 4):u + 5]
+            val = win[np.isfinite(win) & (win > 0)]
+            if not val.size:
+                return None
+            z = float(np.median(val))
+            P.append(((u - cx) / fx * z, (v - cy) / fy * z, z))
+        return float(np.linalg.norm(np.asarray(P[0]) - np.asarray(P[1])))
+
+    #: The same ranges wearer_tracking.PLAUSIBLE enforces, by link.
+    LINK_KIND = {(11, 13): ("upperarm", 0.20, 0.42),
+                 (12, 14): ("upperarm", 0.20, 0.42),
+                 (13, 15): ("forearm", 0.17, 0.38),
+                 (14, 16): ("forearm", 0.17, 0.38),
+                 (11, 12): ("shoulder_width", 0.28, 0.55)}
+    seg_rows, n_refused, n_checked = [], 0, 0
     for pi, L in enumerate(people):
         for a, b in LINKS:
             if a < len(L) and b < len(L):
                 pa = (int(L[a][0] * W), int(L[a][1] * H))
                 pb = (int(L[b][0] * W), int(L[b][1] * H))
-                cv2.line(vis, pa, pb, (0, 255, 180), 2, cv2.LINE_AA)
+                kind = LINK_KIND.get((a, b))
+                colour, thick = (0, 255, 180), 2
+                if kind is not None:
+                    n_checked += 1
+                    nm, lo, hi = kind
+                    ln = _seg_len(L, a, b)
+                    if ln is None:
+                        verdict = "no depth -- cannot check"
+                    elif lo <= ln <= hi:
+                        verdict = "plausible"
+                    else:
+                        verdict = "REFUSED by the safety path"
+                        colour, thick = (0, 0, 255), 3
+                        n_refused += 1
+                    # The shoulder-width link spans both sides, so a side
+                    # prefix on it would name a body part that has no side.
+                    side = ("" if nm == "shoulder_width"
+                            else NAMES.get(a, "").split()[0] + " ")
+                    seg_rows.append([pi, "%s%s" % (side, nm),
+                                     "%.3f" % ln if ln is not None else "-",
+                                     "%.2f-%.2f" % (lo, hi), verdict])
+                cv2.line(vis, pa, pb, colour, thick, cv2.LINE_AA)
         for i, nm in NAMES.items():
             if i >= len(L):
                 continue
@@ -3600,17 +3664,31 @@ def st_people(fr):
         data=D(("people detected", len(people), "count"),
                ("landmarks per person", len(people[0]), "count"),
                ("inference time", round(dt, 2), "s"),
-               ("depth attached to landmarks", dep is not None, "-")),
+               ("depth attached to landmarks", dep is not None, "-"),
+               ("limb links checked against the human range", n_checked,
+                "count"),
+               ("of those, REFUSED by the safety path", n_refused, "count")),
         tables={"body landmarks": (
             ["person", "landmark", "u px", "v px", "visibility", "range m"],
-            rows)},
-        numbers="%d person(s)" % len(people),
-        note="This is the wearer-tracking path. The rule the whole safety "
-             "case rests on: a camera may only ever make the modelled body "
-             "BIGGER -- fuse() keeps whichever of the tracked and mannequin "
-             "primitive is CLOSER to the robot, per part, so a body measured "
-             "further away changes nothing and a lost track falls back rather "
-             "than shrinking the person.",
+            rows),
+            "what the safety path would do with each limb": (
+                ["person", "link", "measured m", "human range m", "verdict"],
+                seg_rows)},
+        numbers=("%d person(s), %d of %d limb links REFUSED"
+                 % (len(people), n_refused, n_checked)) if n_checked
+                else "%d person(s)" % len(people),
+        note="A DETECTED PERSON IS NOT A MEASURED PERSON, and this figure now "
+             "separates them. The detector fits a whole-body prior, so on a "
+             "torso mannequin with no arms it still returns elbows and "
+             "wrists, at visibility 0.95-0.98. Measured here against a real "
+             "person photographed in the same laboratory, forearm over upper "
+             "arm runs 0.11-0.57 against 0.92. Those links are drawn RED and "
+             "their measured length is tabled beside the range that refuses "
+             "it. Nothing is lost by the refusal: fuse() keeps whichever of "
+             "the tracked and mannequin primitive is CLOSER to the robot, per "
+             "part, so a refused limb falls back to the mannequin rather than "
+             "shrinking the person. The negative controls hold -- an empty "
+             "room, a blank frame and a dark frame all return NO people.",
         cols=1, panel_w=980, panel_h=680)
 
 

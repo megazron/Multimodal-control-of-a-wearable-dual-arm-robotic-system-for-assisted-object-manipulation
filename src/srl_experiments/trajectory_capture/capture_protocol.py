@@ -54,6 +54,54 @@ JOINT_NAME = {1: "shoulder roll", 2: "shoulder bend", 3: "upper-arm roll",
               4: "elbow bend", 5: "forearm roll", 6: "wrist bend",
               7: "wrist roll"}
 
+# ---------------------------------------------------------------------------
+# BLOCK G: STATION, THEN SWEEP.  The block that targets the lateral defect.
+#
+# WHY A GRID AND NOT MORE SWEEPS.  Vertical and fore-and-aft command track
+# correctly; lateral does not.  The mechanism is known: azimuth is taken from
+# joint 1 alone, and joint 1 is a ROLL ABOUT THE ARM'S OWN AXIS, so how much
+# the tip moves sideways for a given joint-1 rotation depends on HOW BENT THE
+# ARM IS.  Two directions intended to be 90 deg apart were measured
+# 137.7 deg apart.
+#
+# That makes the error CONFIGURATION-DEPENDENT, and it is why the existing
+# directional block cannot settle it.  "Move left to the extreme and back"
+# sweeps through a whole range of arm extensions at once and returns one
+# number, which is consistent with two very different explanations:
+#
+#     a FIXED mis-orientation  -- one wrong rotation between the master frame
+#                                 and the robot frame, correctable by a matrix
+#     a CONFIGURATION-DEPENDENT gain -- the model is wrong about the geometry,
+#                                 and no fixed matrix can fix it
+#
+# The discriminating experiment is to run the SAME elementary motion at MANY
+# DIFFERENT arm configurations.  If the error is a fixed rotation it is the
+# same at every station.  If it grows with extension it is not, and the
+# decomposition needs replacing rather than re-calibrating.
+#
+# So: park at a station, hold still, then sweep ONE axis and return.  The hold
+# gives a clean per-station datum; the sweep gives the local gain.  Every
+# station is probed on the FAILING axis and on a WORKING one, because a
+# measurement of a broken axis with no working axis beside it cannot separate
+# "this axis is wrong" from "this session was wrong".
+# ---------------------------------------------------------------------------
+STATIONS = (
+    ("centre", "at the neutral resting pose, arm relaxed"),
+    ("near",   "hand pulled IN close to your chest, elbow well bent"),
+    ("far",    "arm reaching OUT, elbow nearly straight"),
+    ("front",  "hand FORWARD at about mid height"),
+    ("back",   "hand drawn BACK beside your body"),
+    ("high",   "hand raised ABOVE shoulder height"),
+    ("low",    "hand lowered toward your HIP"),
+)
+#: The probe swept at each station. `left_right` is the axis under
+#: investigation; `up_down` is the control, and it is not optional -- without
+#: it a bad session and a bad axis look the same.
+PROBES = (
+    ("left_right", "LEFT then RIGHT then back to the station"),
+    ("up_down",    "UP then DOWN then back to the station"),
+)
+
 DIRECTIONS = ("front", "back", "left", "right", "up", "down")
 COMBINATIONS = ("front_left", "front_right", "back_left", "back_right",
                 "up_front", "down_front", "up_back", "down_back")
@@ -125,6 +173,23 @@ def segments():
                                 "extreme and back. Match your earlier pace."
                                 % (rep + 1, arm.upper(), d.upper())))
 
+    # ---- G. STATION, THEN SWEEP ----------------------------------------
+    # The grid: park somewhere, hold, sweep one axis, return. See the
+    # STATIONS comment above for why this and not more directional sweeps.
+    for arm in ARMS:
+        for st, where in STATIONS:
+            for probe, how in PROBES:
+                out.append(dict(
+                    block="G", label="G_%s_%s_%s" % (arm, st, probe),
+                    arm=arm, rep=0, channel=None,
+                    direction=probe, station=st,
+                    instruction=(
+                        "%s arm. FIRST go to the station: %s. HOLD STILL "
+                        "there for about two seconds. THEN sweep %s. Move "
+                        "only that one axis -- try to keep the station's "
+                        "depth and height otherwise unchanged."
+                        % (arm.upper(), where, how))))
+
     # ---- F. SPEED VARIATION --------------------------------------------
     for arm in ARMS:
         for sp in SPEEDS:
@@ -152,7 +217,8 @@ def print_plan():
     names = {"A": "single joint isolation, all 14 channels",
              "B": "IMU sweeps", "C": "directional",
              "D": "combinational", "E": "repeatability (C x3)",
-             "F": "speed variation"}
+             "F": "speed variation",
+             "G": "station, then sweep (the lateral-axis grid)"}
     print("TRAJECTORY CAPTURE PROTOCOL")
     print()
     for b in sorted(by_block):

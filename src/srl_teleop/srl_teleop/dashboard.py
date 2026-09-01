@@ -32,6 +32,7 @@ from std_msgs.msg import Float64MultiArray
 from tf2_ros import Buffer, TransformListener
 
 from srl_teleop.master_pose_node import ZERO_CHECK_IDX, SPHERICAL_CHECK_IDX
+from srl_teleop.master_pose_node import ST_ACCEL_GATED
 
 R = "\033[0m"
 BOLD = "\033[1m"
@@ -153,7 +154,13 @@ class Dashboard(Node):
         ms = self.mstat[arm]
         if ms and len(ms) >= 8:
             clutch = c("ENGAGED", GRN) if ms[0] else c("DISENGAGED", YEL)
-            held = c(" elev HELD", YEL) if ms[7] else ""
+            # INDEX 8, not 7. This read index 7, which master_pose_node
+            # overwrites with the DATA AGE before publishing, so a stale
+            # master was reported here as "elev HELD" -- the wrong fault,
+            # under a label naming the other one. Guarded on length because a
+            # scripted operator publishes a shorter array.
+            held = (c(" elev HELD", YEL)
+                    if len(ms) > ST_ACCEL_GATED and ms[ST_ACCEL_GATED] else "")
             L.append("   state clutch=%s  scale=%.2f  elev=%+.1f deg  "
                      "azim=%+.1f deg  reach=%.3f m%s"
                      % (clutch, ms[1], ms[2], ms[3], ms[4], held))

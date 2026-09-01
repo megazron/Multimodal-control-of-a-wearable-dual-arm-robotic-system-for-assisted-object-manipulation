@@ -54,6 +54,26 @@ from srl_teleop.serial_port import (find_port, claim_exclusive,
                                     PortNotFound, candidates)
 from srl_teleop import degraded_mode as dg
 from srl_teleop import smoothing as sm
+
+# ---------------------------------------------------------------------------
+# THE LAYOUT OF /master_status_<arm>, IN ONE PLACE.
+#
+# It is written by TWO methods -- spherical_tip() during the position estimate
+# and read_serial() just before publication -- and read by the dashboard, the
+# curses window, the recorder and the experiment runner. It had no named
+# layout, and the predictable thing happened: `spherical_tip` wrote the
+# accelerometer gate into index 7 and `read_serial` overwrote index 7 with the
+# data age a few lines later, every frame, before anything was published. The
+# dashboard has been reading index 7 and printing "elev HELD" from it, so it
+# was reporting STALE DATA under the label ELEVATION HELD -- two different
+# faults, one indicator, and the indicator named the wrong one.
+#
+# Indices are named here and used by name on both sides. ACCEL_GATED is index
+# 8, which is free, and the array is nine long.
+# ---------------------------------------------------------------------------
+ST_CLUTCH, ST_SCALE, ST_ELEV_DEG, ST_AZIM_DEG, ST_REACH_M = 0, 1, 2, 3, 4
+ST_FRAME_VALID, ST_N_BAD, ST_DATA_AGE_S, ST_ACCEL_GATED = 5, 6, 7, 8
+ST_LEN = 9
 import tf_transformations  # quaternion helpers (roll,pitch,yaw -> quaternion)
 import re as _re
 
@@ -613,7 +633,7 @@ class MasterPoseNode(Node):
         self.last_btn_edge_t = {a: 0.0 for a in self.arms}
         # Latest per-frame diagnostics, republished on /master_status_<arm>
         # so a recorder can log clutch/scale/elevation without scraping logs.
-        self.status = {a: [0.0] * 8 for a in self.arms}
+        self.status = {a: [0.0] * ST_LEN for a in self.arms}
 
         # Clutch. Starts ENGAGED and tracks button CHANGES only, so
         # start-up behaviour is identical to before the clutch existed --
@@ -1086,10 +1106,15 @@ class MasterPoseNode(Node):
                             throttle_duration_sec=2.0)
             reach = self.rf_reach[arm]
 
-        self.status[arm][2] = math.degrees(elev)
-        self.status[arm][3] = math.degrees(azim)
-        self.status[arm][4] = reach
-        self.status[arm][7] = 0.0 if abs(mag - 1.0) < self.accel_gate else 1.0
+        self.status[arm][ST_ELEV_DEG] = math.degrees(elev)
+        self.status[arm][ST_AZIM_DEG] = math.degrees(azim)
+        self.status[arm][ST_REACH_M] = reach
+        # 1.0 when the accelerometer was OUTSIDE the quasi-static band, so
+        # gravity could not be isolated and the elevation above is the last
+        # trusted value rather than this frame's. It used to be written to
+        # index 7 and overwritten by the data age before anyone saw it.
+        self.status[arm][ST_ACCEL_GATED] = (
+            0.0 if abs(mag - 1.0) < self.accel_gate else 1.0)
 
         return mc.spherical_position(reach, elev, azim)
 
@@ -1634,13 +1659,13 @@ class MasterPoseNode(Node):
             raw_msg.data = list(joints_deg) + [ax, ay, az, gx, gy, gz]
             self.raw_pubs[a].publish(raw_msg)
 
-            self.status[a][0] = 1.0 if self.clutch_on[a] else 0.0
-            self.status[a][1] = scale
-            self.status[a][5] = 1.0 if ok else 0.0
-            self.status[a][6] = float(len(bad))
+            self.status[a][ST_CLUTCH] = 1.0 if self.clutch_on[a] else 0.0
+            self.status[a][ST_SCALE] = scale
+            self.status[a][ST_FRAME_VALID] = 1.0 if ok else 0.0
+            self.status[a][ST_N_BAD] = float(len(bad))
             # Age of the joint data behind the pose just published. 0.0 on a
             # good frame; grows while the master is substituting.
-            self.status[a][7] = data_age_s
+            self.status[a][ST_DATA_AGE_S] = data_age_s
             st = Float64MultiArray()
             st.data = list(self.status[a])
             self.status_pubs[a].publish(st)

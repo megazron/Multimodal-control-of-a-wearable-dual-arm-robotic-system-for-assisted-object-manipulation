@@ -78,7 +78,10 @@ GATE_INDEX = {"left": 2, "right": 3}
 
 COLUMNS = (
     ["t", "segment", "block", "arm", "rep", "direction", "speed",
-     "sample_index"]
+     # Block G parks the arm somewhere before sweeping, and the station is
+     # the independent variable the whole block exists to vary. Without it a
+     # G row is indistinguishable from a C row.
+     "station", "sample_index"]
     + ["l_j%d" % i for i in range(1, 8)]
     + ["r_j%d" % i for i in range(1, 8)]
     + ["l_ax", "l_ay", "l_az", "l_gx", "l_gy", "l_gz"]
@@ -90,6 +93,22 @@ COLUMNS = (
     + ["%s_joint_%d" % (a, i) for a in ARMS for i in range(1, 8)]
     + ["%s_clutch" % a for a in ARMS]
     + ["%s_scale" % a for a in ARMS]
+    # THE DECOMPOSITION'S OWN OUTPUTS. `/master_status_<arm>` carries the
+    # elevation, azimuth and reach that master_pose_node actually computed,
+    # and this recorder subscribed to that topic and threw all three away.
+    # Without them an analysis has to re-derive the decomposition from the raw
+    # joints, and a re-derivation that differs from the node's by a sign or a
+    # datum is indistinguishable from a finding. These are the three
+    # quantities the left/right defect lives in, so they are recorded as the
+    # NODE produced them.
+    + ["%s_elev_deg" % a for a in ARMS]
+    + ["%s_azim_deg" % a for a in ARMS]
+    + ["%s_reach_m" % a for a in ARMS]
+    # 1 when the accelerometer was outside the quasi-static band, so gravity
+    # could not be isolated and the elevation on that row is the last trusted
+    # value rather than a fresh measurement. An elevation analysis that does
+    # not exclude these rows is fitting held values.
+    + ["%s_elev_held" % a for a in ARMS]
     + ["%s_frame_valid" % a for a in ARMS]
     + ["%s_n_dropouts" % a for a in ARMS]
     + ["%s_data_age_s" % a for a in ARMS]
@@ -287,6 +306,7 @@ class Capture(Node):
         r.update(t="%.4f" % time.time(), segment=seg["label"],
                  block=seg["block"], arm=seg["arm"], rep=seg.get("rep", 0),
                  direction=seg.get("direction", ""), speed=seg.get("speed", ""),
+                 station=seg.get("station", ""),
                  sample_index=idx, estop=int(estop),
                  t_mono="%.4f" % time.monotonic(),
                  master_seq_left=seq.get("left", 0),
@@ -326,8 +346,16 @@ class Capture(Node):
             if s and len(s) >= 8:
                 r["%s_clutch" % a] = int(s[0] > 0.5)
                 r["%s_scale" % a] = "%.4f" % s[1]
+                r["%s_elev_deg" % a] = "%.4f" % s[2]
+                r["%s_azim_deg" % a] = "%.4f" % s[3]
+                r["%s_reach_m" % a] = "%.6f" % s[4]
                 r["%s_frame_valid" % a] = int(s[5] > 0.5)
                 r["%s_n_dropouts" % a] = int(s[6])
+                # Index 8, and only when it is there: a scripted operator
+                # publishes a shorter array, and a missing field must stay
+                # EMPTY rather than becoming a zero that reads as "not held".
+                if len(s) > 8:
+                    r["%s_elev_held" % a] = int(s[8] > 0.5)
                 r["%s_data_age_s" % a] = "%.4f" % s[7]
             k = ik.get(a)
             if k and len(k) >= 8:
@@ -508,9 +536,17 @@ def main():
 
     meta = dict(started=time.strftime("%Y-%m-%dT%H:%M:%S"),
                 rate_hz=a.rate, segments=[s["label"] for s in segs],
-                gate_mapping="left arm gated by btn2, right arm by btn1 "
-                             "(MEASURED); each arm is gated by the OPPOSITE "
-                             "button because its own also toggles its clutch",
+                # DERIVED FROM GATE_INDEX, not typed. The typed version of
+                # this string said "left arm gated by btn2, right arm by
+                # btn1" -- the exact inversion the constant exists to
+                # prevent, and the inversion that made the 2026-08-06
+                # capture unusable. Anyone reading a capture's metadata to
+                # check whether that recurred would have concluded it had.
+                gate_mapping="; ".join(
+                    "%s arm gated by btn%d" % (a, GATE_INDEX[a] - 1)
+                    for a in ARMS)
+                + " (MEASURED); each arm is gated by the OPPOSITE button "
+                  "because its own also toggles its clutch",
                 pre_labelling="none - every channel recorded identically, no "
                               "expected_flat flag, so the live/dead verdict "
                               "comes from this capture alone")

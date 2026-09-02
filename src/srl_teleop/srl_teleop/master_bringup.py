@@ -360,17 +360,6 @@ def clear_stale_shm():
     return True, "cleared %d stale Fast DDS segment(s)" % n
 
 
-def reset_daemon():
-    """Hard reset of the ros2 daemon. It HANGS rather than failing."""
-    subprocess.run(["bash", "-lc",
-                    "source scripts/env.sh >/dev/null 2>&1; "
-                    "timeout 15 ros2 daemon stop >/dev/null 2>&1; "
-                    "pkill -f 'ros2cli.daemon' >/dev/null 2>&1; sleep 1; "
-                    "timeout 25 ros2 daemon start >/dev/null 2>&1"],
-                   cwd=WS, capture_output=True, text=True, timeout=90)
-    return True, "ros2 daemon restarted"
-
-
 def running_stack_pids():
     """PIDs of an ALREADY-RUNNING srl_teleop stack, newest launch included."""
     try:
@@ -388,12 +377,10 @@ def running_stack_pids():
 def stop_existing_stack(timeout_s=30.0):
     """SIGINT any stack already running, so exactly ONE is launched.
 
-    HARD CONSTRAINT 3, and it is what broke this GUI's first two real runs.
-    Pressing the button while a stack was up launched a SECOND one, and on
-    the third attempt start_real.sh reported nine pids across three stacks.
-    Discovery then partitions and every daemon-backed query comes back empty,
-    which the script correctly diagnoses as a discovery problem and refuses
-    on -- a true statement about a condition this window created.
+    HARD CONSTRAINT 3, and it is what broke this GUI's first real runs.
+    Pressing the button while a stack was up launched a SECOND one; by the
+    third attempt start_real.sh reported nine pids across three stacks.
+    Discovery then partitions and every daemon-backed query comes back empty.
     """
     pids = running_stack_pids()
     if not pids:
@@ -404,14 +391,72 @@ def stop_existing_stack(timeout_s=30.0):
         except OSError:
             pass
     wait_for(lambda: not running_stack_pids(), timeout_s)
-    left = running_stack_pids()
-    for pid in left:
+    for pid in running_stack_pids():
         try:
             os.kill(pid, 9)
         except OSError:
             pass
     wait_for(lambda: not running_stack_pids(), 8.0)
     return True, "stopped %d process(es) of an existing stack" % len(pids)
+
+
+def daemon_sees_graph(timeout_s=25):
+    """Does the DAEMON-BACKED query return anything? The tiebreaker.
+
+    `ros2 node list` returning nothing is indistinguishable from an idle
+    graph unless you also ask without the daemon, which is why both are here.
+    """
+    try:
+        r = subprocess.run(
+            ["bash", "-lc",
+             "source scripts/env.sh >/dev/null 2>&1; "
+             "timeout %d ros2 node list 2>/dev/null | wc -l" % timeout_s],
+            cwd=WS, capture_output=True, text=True, timeout=timeout_s + 15)
+        return int((r.stdout or "0").strip() or 0)
+    except Exception:                                        # noqa: BLE001
+        return 0
+
+
+def reset_daemon(verify=True):
+    """Hard reset of the ros2 daemon, and CHECK that it worked.
+
+    THE PATTERN IS BRACKETED AND THE PID KILL IS EXPLICIT. The first version
+    of this ran `pkill -f 'ros2cli.daemon'` inside `bash -lc ...`, and that
+    command line CONTAINS the string it is matching -- so pkill killed its own
+    shell and `ros2 daemon start` never ran. The daemon stayed dead, every
+    daemon-backed query came back empty, and start_real.sh refused three
+    times with "DISCOVERY PROBLEM, not a missing stack". The diagnosis was
+    right; the repair had silently not happened.
+
+    Measured on the rig: daemon-backed `ros2 node list` returned 0 while
+    `--no-daemon` returned 30, and a correct restart returned 30 immediately.
+
+    `verify` re-queries afterwards, because a repair that reports success
+    without checking is how the above went unnoticed for three attempts.
+    """
+    subprocess.run(
+        ["bash", "-lc",
+         "source scripts/env.sh >/dev/null 2>&1; "
+         "timeout 15 ros2 daemon stop >/dev/null 2>&1; "
+         "for P in $(pgrep -f '[r]os2cli.daemon'); do kill -9 $P; done; "
+         "for i in $(seq 1 20); do "
+         "  pgrep -f '[r]os2cli.daemon' >/dev/null || break; sleep 0.5; done; "
+         "timeout 30 ros2 daemon start >/dev/null 2>&1; "
+         "for i in $(seq 1 20); do "
+         "  pgrep -f '[r]os2cli.daemon' >/dev/null && break; sleep 0.5; done"],
+        cwd=WS, capture_output=True, text=True, timeout=120)
+    if not verify:
+        return True, "ros2 daemon restarted"
+    n = daemon_sees_graph()
+    if n > 0:
+        return True, "ros2 daemon restarted -- it sees %d node(s)" % n
+    # Nothing running is a legitimate zero; only call it a failure when a
+    # stack IS up and the daemon still cannot see it.
+    if not running_stack_pids():
+        return True, "ros2 daemon restarted (no stack running yet)"
+    return False, ("daemon restarted but STILL sees no nodes while a stack is "
+                   "running -- this is the discovery partition, not a missing "
+                   "stack; try: ros2 daemon stop && ros2 daemon start")
 
 
 def kortex_session_leaked():

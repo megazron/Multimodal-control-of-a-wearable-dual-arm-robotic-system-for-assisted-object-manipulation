@@ -276,27 +276,10 @@ class MasterMannequinWindow(QWidget):
 
     def _stop_worker(self):
         self.log("STOP pressed -- latching /estop")
-        try:
-            import rclpy
-            from rclpy.node import Node
-            from std_srvs.srv import Trigger
-            own = not rclpy.ok()
-            if own:
-                rclpy.init()
-            n = Node("mm_gui_stop")
-            cli = n.create_client(Trigger, "/estop")
-            if cli.wait_for_service(timeout_sec=6.0):
-                fut = cli.call_async(Trigger.Request())
-                rclpy.spin_until_future_complete(n, fut, timeout_sec=6.0)
-                self.log("e-stop LATCHED")
-                self.sig_state.emit("E-STOP LATCHED", C_STOP)
-            else:
-                self.log("no /estop service -- is the stack up?")
-            n.destroy_node()
-            if own and rclpy.ok():
-                rclpy.shutdown()
-        except Exception as exc:                             # noqa: BLE001
-            self.log("stop failed: %s" % exc)
+        ok, why = mb.estop()
+        self.log(why)
+        if ok:
+            self.sig_state.emit("E-STOP LATCHED", C_STOP)
 
     def on_reset(self):
         threading.Thread(target=self._reset_worker, daemon=True).start()
@@ -539,29 +522,14 @@ class MasterMannequinWindow(QWidget):
     def _status_worker(self):
         """One shot read of /master_teleop/status.
 
-        Its own node each time and a short timeout, because a status panel
-        that wedges is worse than none: it reports the last thing it saw
-        forever and the operator trusts it.
+        Its own rclpy CONTEXT, not just its own node. Sharing the default
+        context with the bring-up thread is what failed the whole sequence at
+        step 6 with "Executor is already spinning" -- after the arms were
+        homed and both bridges were live.
         """
         try:
-            import rclpy
-            from rclpy.node import Node
-            from std_msgs.msg import String
-            own = not rclpy.ok()
-            if own:
-                rclpy.init()
-            n = Node("mm_gui_status")
-            got = []
-            n.create_subscription(String, "/master_teleop/status",
-                                  lambda m: got.append(m.data), 10)
-            t0 = time.monotonic()
-            while time.monotonic() - t0 < 1.5 and not got:
-                rclpy.spin_once(n, timeout_sec=0.1)
-            n.destroy_node()
-            if own and rclpy.ok():
-                rclpy.shutdown()
-            if got and self._running is False:
-                s = got[-1]
+            s = mb.teleop_status()
+            if s and not self._running:
                 col = C_OK if "FOLLOW" in s else (
                     C_STOP if "E-STOP" in s else C_WARN)
                 self.sig_state.emit(s[:150], col)

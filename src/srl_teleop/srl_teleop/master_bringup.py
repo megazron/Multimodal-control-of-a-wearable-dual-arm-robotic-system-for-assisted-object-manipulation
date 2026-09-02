@@ -708,6 +708,67 @@ def log_says(path, needle):
 
 # ------------------------------------------------------------- ROS helpers
 # Imported lazily so `--self-test` runs with no ROS on the path.
+#
+# EVERY HELPER GETS ITS OWN CONTEXT, and that is not tidiness.
+#
+# rclpy's default context has ONE executor. The GUI polls
+# /master_teleop/status on a background thread, so when the bring-up thread
+# called spin_until_future_complete on that same default context the second
+# caller got
+#
+#     BRING-UP STOPPED: Executor is already spinning
+#
+# at step 6 -- AFTER the arms were homed and both bridges were enabled, which
+# is the most expensive possible place to fail. From a terminal the identical
+# call works, because each command is its own process with its own context,
+# and that is exactly why this failed only in the GUI.
+#
+# An isolated Context per call cannot collide with anything, including
+# another copy of itself.
+
+class _Ctx:
+    """A private rclpy context, node and executor. Always use `with`."""
+
+    def __init__(self, name):
+        self.name = name
+
+    def __enter__(self):
+        import rclpy
+        from rclpy.node import Node
+        from rclpy.executors import SingleThreadedExecutor
+        self._rclpy = rclpy
+        self.ctx = rclpy.Context()
+        rclpy.init(context=self.ctx)
+        self.node = Node(self.name, context=self.ctx)
+        self.ex = SingleThreadedExecutor(context=self.ctx)
+        self.ex.add_node(self.node)
+        return self
+
+    def spin_until(self, future, timeout_s):
+        self.ex.spin_until_future_complete(future, timeout_sec=timeout_s)
+        return future.result()
+
+    def spin_for(self, seconds, stop=None):
+        t0 = time.monotonic()
+        while time.monotonic() - t0 < seconds:
+            self.ex.spin_once(timeout_sec=0.1)
+            if stop is not None and stop():
+                return
+    def __exit__(self, *a):
+        try:
+            self.ex.shutdown()
+        except Exception:                                    # noqa: BLE001
+            pass
+        try:
+            self.node.destroy_node()
+        except Exception:                                    # noqa: BLE001
+            pass
+        try:
+            self._rclpy.shutdown(context=self.ctx)
+        except Exception:                                    # noqa: BLE001
+            pass
+        return False
+
 
 def _ros():
     import rclpy
@@ -722,16 +783,11 @@ def set_bool_param(node_name, param, value, timeout_s=10.0):
     and on this host it hangs for its full timeout often enough that the
     2026-09-01 session lost an hour to it.
     """
-    import rclpy
-    from rclpy.node import Node
     from rcl_interfaces.srv import SetParameters
     from rcl_interfaces.msg import Parameter, ParameterValue, ParameterType
-    own = not rclpy.ok()
-    if own:
-        rclpy.init()
-    n = Node("master_bringup_param")
-    try:
-        cli = n.create_client(SetParameters, "%s/set_parameters" % node_name)
+    with _Ctx("master_bringup_param") as c:
+        cli = c.node.create_client(SetParameters,
+                                   "%s/set_parameters" % node_name)
         if not cli.wait_for_service(timeout_sec=timeout_s):
             return False, "no %s/set_parameters" % node_name
         pv = ParameterValue()
@@ -739,18 +795,12 @@ def set_bool_param(node_name, param, value, timeout_s=10.0):
         pv.bool_value = bool(value)
         req = SetParameters.Request()
         req.parameters = [Parameter(name=param, value=pv)]
-        fut = cli.call_async(req)
-        rclpy.spin_until_future_complete(n, fut, timeout_sec=timeout_s)
-        res = fut.result()
+        res = c.spin_until(cli.call_async(req), timeout_s)
         if res is None:
             return False, "%s did not answer" % node_name
         ok = bool(res.results and res.results[0].successful)
         return ok, ("" if ok else (res.results[0].reason if res.results
                                    else "no result"))
-    finally:
-        n.destroy_node()
-        if own and rclpy.ok():
-            rclpy.shutdown()
 
 
 def seed_sim_from_real(timeout_s=15.0):
@@ -760,33 +810,24 @@ def seed_sim_from_real(timeout_s=15.0):
     real side, so the bridge's enable gap never closed and it refused with a
     number that looked like a fault when both sides were individually fine.
     """
-    import rclpy
-    from rclpy.node import Node
     from sensor_msgs.msg import JointState
     from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
     from builtin_interfaces.msg import Duration
-    own = not rclpy.ok()
-    if own:
-        rclpy.init()
-    n = Node("master_bringup_seed")
-    try:
+    with _Ctx("master_bringup_seed") as c:
         real = {}
-        n.create_subscription(
+        c.node.create_subscription(
             JointState, "/real/joint_states",
             lambda m: real.update(dict(zip(m.name, m.position))), 20)
-        pubs = {a: n.create_publisher(
+        pubs = {a: c.node.create_publisher(
             JointTrajectory, "/%s_arm_controller/joint_trajectory" % a, 10)
             for a in ARMS}
-        t0 = time.monotonic()
-        while time.monotonic() - t0 < timeout_s:
-            rclpy.spin_once(n, timeout_sec=0.1)
-            if all("%s_joint_1" % a in real for a in ARMS):
-                break
+        c.spin_for(timeout_s,
+                   stop=lambda: all("%s_joint_1" % a in real for a in ARMS))
         sent = []
         for a in ARMS:
             names = ["%s_joint_%d" % (a, i) for i in range(1, DOF + 1)]
             pos = [real.get(nm) for nm in names]
-            if any(p is None for p in pos):
+            if any(v is None for v in pos):
                 continue
             t = JointTrajectory()
             t.joint_names = names
@@ -796,38 +837,24 @@ def seed_sim_from_real(timeout_s=15.0):
             t.points = [pt]
             pubs[a].publish(t)
             sent.append(a)
-        t0 = time.monotonic()
-        while time.monotonic() - t0 < 6.0:
-            rclpy.spin_once(n, timeout_sec=0.1)
+        c.spin_for(6.0)
         if not sent:
             return False, "no /real/joint_states -- are the real arms up?"
         return True, "seeded %s from the real arms" % ", ".join(sent)
-    finally:
-        n.destroy_node()
-        if own and rclpy.ok():
-            rclpy.shutdown()
 
 
 def enable_bridges(timeout_s=12.0):
     """Enable both sim->real bridges. Reports each arm's own answer."""
-    import rclpy
-    from rclpy.node import Node
     from std_srvs.srv import Trigger
-    own = not rclpy.ok()
-    if own:
-        rclpy.init()
-    n = Node("master_bringup_bridge")
-    try:
+    with _Ctx("master_bringup_bridge") as c:
         out, all_ok = [], True
         for a in ARMS:
-            cli = n.create_client(Trigger, "/bridge_enable_%s" % a)
+            cli = c.node.create_client(Trigger, "/bridge_enable_%s" % a)
             if not cli.wait_for_service(timeout_sec=timeout_s):
                 out.append("%s: no /bridge_enable_%s" % (a, a))
                 all_ok = False
                 continue
-            fut = cli.call_async(Trigger.Request())
-            rclpy.spin_until_future_complete(n, fut, timeout_sec=timeout_s)
-            r = fut.result()
+            r = c.spin_until(cli.call_async(Trigger.Request()), timeout_s)
             if r is None:
                 out.append("%s: no answer" % a)
                 all_ok = False
@@ -835,32 +862,38 @@ def enable_bridges(timeout_s=12.0):
                 out.append("%s: %s" % (a, r.message.strip()[:120]))
                 all_ok = all_ok and bool(r.success)
         return all_ok, " | ".join(out)
-    finally:
-        n.destroy_node()
-        if own and rclpy.ok():
-            rclpy.shutdown()
 
 
 def reset_estop(timeout_s=10.0):
-    import rclpy
-    from rclpy.node import Node
     from std_srvs.srv import Trigger
-    own = not rclpy.ok()
-    if own:
-        rclpy.init()
-    n = Node("master_bringup_estop")
-    try:
-        cli = n.create_client(Trigger, "/estop_reset")
+    with _Ctx("master_bringup_estop") as c:
+        cli = c.node.create_client(Trigger, "/estop_reset")
         if not cli.wait_for_service(timeout_sec=timeout_s):
             return False, "no /estop_reset"
-        fut = cli.call_async(Trigger.Request())
-        rclpy.spin_until_future_complete(n, fut, timeout_sec=timeout_s)
-        r = fut.result()
+        r = c.spin_until(cli.call_async(Trigger.Request()), timeout_s)
         return (bool(r.success), r.message) if r else (False, "no answer")
-    finally:
-        n.destroy_node()
-        if own and rclpy.ok():
-            rclpy.shutdown()
+
+
+def teleop_status(timeout_s=3.0):
+    """The newest /master_teleop/status line, or None."""
+    from std_msgs.msg import String
+    with _Ctx("master_bringup_status") as c:
+        got = []
+        c.node.create_subscription(String, "/master_teleop/status",
+                                   lambda m: got.append(m.data), 10)
+        c.spin_for(timeout_s, stop=lambda: bool(got))
+        return got[-1] if got else None
+
+
+def estop(timeout_s=8.0):
+    """Latch the e-stop."""
+    from std_srvs.srv import Trigger
+    with _Ctx("master_bringup_stop") as c:
+        cli = c.node.create_client(Trigger, "/estop")
+        if not cli.wait_for_service(timeout_sec=timeout_s):
+            return False, "no /estop service"
+        r = c.spin_until(cli.call_async(Trigger.Request()), timeout_s)
+        return (True, "e-stop LATCHED") if r else (False, "no answer")
 
 
 # ===========================================================================
@@ -1023,6 +1056,32 @@ BUSID  VID:PID    DEVICE                                          STATE
               any("detector failed" in x for x in rec2.lines))
     finally:
         AUTOFIXES[:] = saved
+
+    print("rclpy isolation")
+    # THE REGRESSION GUARD for "Executor is already spinning". Source-level,
+    # because reproducing it needs a live graph and a second thread, and the
+    # rule it protects is simply: never touch the default context.
+    #
+    # THE NEEDLES ARE BUILT, NOT WRITTEN. Spelt out as literals they appear in
+    # this file and the check matches ITSELF -- the same self-matching trap
+    # that made a pkill kill its own shell twice in this session.
+    import inspect as _i
+    src = _i.getsource(_i.getmodule(check_speeds))
+    bad_init = "rclpy." + "init()"
+    bad_spin = "rclpy." + "spin_until_future_complete("
+    bad_once = "rclpy." + "spin_once("
+    body = "\n".join(l for l in src.splitlines()
+                     if "bad_init" not in l and "bad_spin" not in l
+                     and "bad_once" not in l)
+    check("no helper initialises the DEFAULT rclpy context",
+          bad_init not in body,
+          "a default-context init collides with the GUI's status thread")
+    check("no helper spins the default context",
+          bad_spin not in body and bad_once not in body,
+          "spinning the default context is the collision itself")
+    check("every ROS helper goes through _Ctx",
+          body.count("with _Ctx(") >= 6,
+          "found %d _Ctx uses" % body.count("with _Ctx("))
 
     print("helpers")
     check("log_says on a missing file is 'not yet', not an error",

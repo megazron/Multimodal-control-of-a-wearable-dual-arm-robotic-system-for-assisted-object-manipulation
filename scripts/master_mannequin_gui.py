@@ -33,6 +33,7 @@ computing into the void, and only step 6 lets it drive. STOP is always live
 and calls the same /estop the rest of the rig uses.
 """
 import os
+import subprocess
 import sys
 import time
 import threading
@@ -43,8 +44,9 @@ sys.path.insert(0, os.path.join(WS, "src", "srl_teleop"))
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal                  # noqa: E402
 from PyQt5.QtGui import QFont                                    # noqa: E402
 from PyQt5.QtWidgets import (QApplication, QComboBox,            # noqa: E402
-                             QHBoxLayout, QLabel, QPlainTextEdit,
-                             QPushButton, QVBoxLayout, QWidget)
+                             QHBoxLayout, QLabel, QLineEdit,
+                             QPlainTextEdit, QPushButton,
+                             QVBoxLayout, QWidget)
 
 from srl_teleop import master_bringup as mb                      # noqa: E402
 
@@ -142,6 +144,62 @@ class MasterMannequinWindow(QWidget):
         self.reset.clicked.connect(self.on_reset)
         row.addWidget(self.reset)
         v.addLayout(row)
+
+        # ---------------------------------------------------- ARM IPs
+        ip_row = QHBoxLayout()
+        ip_row.addWidget(QLabel("left arm IP:"))
+        self.left_ip = QLineEdit(mb.DEFAULT_LEFT_IP)
+        self.left_ip.setMaximumWidth(150)
+        ip_row.addWidget(self.left_ip)
+        ip_row.addWidget(QLabel("right arm IP:"))
+        self.right_ip = QLineEdit(mb.DEFAULT_RIGHT_IP)
+        self.right_ip.setMaximumWidth(150)
+        ip_row.addWidget(self.right_ip)
+
+        self.ping_btn = QPushButton("CHECK ARMS")
+        self.ping_btn.setToolTip(
+            "Pings both addresses. A reachable arm is not a connected arm, "
+            "but an unreachable one cannot be connected at all, and this "
+            "says which before a five-minute bring-up finds out.")
+        self.ping_btn.clicked.connect(self.on_ping)
+        ip_row.addWidget(self.ping_btn)
+
+        self.connect_btn = QPushButton("CONNECT REAL ARMS")
+        self.connect_btn.setToolTip(
+            "Steps 3-6 only: Kortex session, homing, seed, bridges, arm. "
+            "Use when the sim stack and master arm are already up and only "
+            "the real side dropped -- it does not restart what is working.")
+        self.connect_btn.clicked.connect(self.on_connect_only)
+        ip_row.addWidget(self.connect_btn)
+        ip_row.addStretch(1)
+        v.addLayout(ip_row)
+
+        # ------------------------------------------------- extra controls
+        x_row = QHBoxLayout()
+        self.rec_btn = QPushButton("START RECORDING")
+        self.rec_btn.setToolTip(
+            "full_state_recorder: every channel this session can see, to "
+            "recordings/. Press again to stop and close the file.")
+        self.rec_btn.clicked.connect(self.on_record)
+        x_row.addWidget(self.rec_btn)
+
+        self.shared_btn = QPushButton("SHARED AUTONOMY")
+        self.shared_btn.setToolTip(
+            "Starts handover_arbiter on top of the running teleop: autonomy "
+            "and the operator share the pose. Teleop must already be "
+            "following.")
+        self.shared_btn.clicked.connect(self.on_shared)
+        x_row.addWidget(self.shared_btn)
+
+        self.stopall_btn = QPushButton("STOP EVERYTHING")
+        self.stopall_btn.setToolTip(
+            "SIGINT to the whole stack, in the order that closes the Kortex "
+            "session cleanly. A killed session leaks and the next connect is "
+            "refused.")
+        self.stopall_btn.clicked.connect(self.on_stop_all)
+        x_row.addWidget(self.stopall_btn)
+        x_row.addStretch(1)
+        v.addLayout(x_row)
 
         self.state = QLabel("idle")
         self.state.setStyleSheet(
@@ -244,8 +302,76 @@ class MasterMannequinWindow(QWidget):
         ok, why = mb.reset_estop()
         self.log("e-stop reset: %s" % (why or ok))
 
+    def on_ping(self):
+        threading.Thread(target=self._ping_worker, daemon=True).start()
+
+    def _ping_worker(self):
+        for side, box in (("left", self.left_ip), ("right", self.right_ip)):
+            ip = box.text().strip()
+            ok = mb.ping(ip)
+            self.log("%s arm %s: %s" % (side, ip,
+                                        "reachable" if ok else "NO REPLY"))
+
+    def on_connect_only(self):
+        """Steps 3-6 without restarting a stack that is already working.
+
+        The full button tears down and rebuilds; when only the real side has
+        dropped that costs five minutes and risks the parts that are fine.
+        """
+        if self._running:
+            return
+        self._running = True
+        self.connect_btn.setEnabled(False)
+        threading.Thread(target=self._run, kwargs={"from_step": 2},
+                         daemon=True).start()
+
+    def on_record(self):
+        if self._procs.get("record") and self._procs["record"].poll() is None:
+            self._procs["record"].terminate()
+            self._procs.pop("record", None)
+            self.rec_btn.setText("START RECORDING")
+            self.log("recording stopped -- file closed")
+            return
+        log = os.path.join(_scratch(), "recording.log")
+        self._procs["record"] = mb.spawn(
+            ["ros2", "run", "srl_teleop", "full_state_recorder"], log)
+        self.rec_btn.setText("STOP RECORDING")
+        self.log("recording started -> see %s for the file path" % log)
+
+    def on_shared(self):
+        """Shared autonomy ON TOP of a running teleop, never instead of it."""
+        if self._procs.get("shared") and self._procs["shared"].poll() is None:
+            self._procs["shared"].terminate()
+            self._procs.pop("shared", None)
+            self.shared_btn.setText("SHARED AUTONOMY")
+            self.log("shared autonomy stopped -- operator has the pose")
+            return
+        log = os.path.join(_scratch(), "shared.log")
+        self._procs["shared"] = mb.spawn(
+            ["ros2", "run", "srl_autonomy", "handover_arbiter"], log)
+        self.shared_btn.setText("STOP SHARED AUTONOMY")
+        self.log("shared autonomy started (handover_arbiter) -> %s" % log)
+
+    def on_stop_all(self):
+        threading.Thread(target=self._stop_all_worker, daemon=True).start()
+
+    def _stop_all_worker(self):
+        # ORDER MATTERS: the Kortex session first and with SIGINT, because a
+        # killed session leaks and the arm refuses the next connect.
+        self.log("stopping everything (Kortex session first, SIGINT)")
+        for pat in ("[s]tart_real.sh", "[k]ortex_highlevel_bridge",
+                    "[r]os2 launch srl_teleop", "[s]rl_teleop/lib",
+                    "controller_manager/[r]os2_control_node",
+                    "[m]oveit_ros_move_group"):
+            subprocess.run(["bash", "-lc",
+                            "for P in $(pgrep -f '%s'); do kill -INT $P; done"
+                            % pat], capture_output=True)
+            time.sleep(1.5)
+        self.log("stopped. Segments left: %d" % mb.stale_shm_count())
+        self.sig_state.emit("stopped", C_IDLE)
+
     # --------------------------------------------------------- the runner
-    def _run(self):
+    def _run(self, from_step=0):
         try:
             prof = mb.speed_profile(self.speed.currentData())
         except ValueError as exc:
@@ -276,39 +402,58 @@ class MasterMannequinWindow(QWidget):
                     "attached -- check the Teensy is plugged in")
 
             # 1 -------------------------------------------------- stack
-            self._step(0, "simulation stack")
-            t1 = os.path.join(sp, "stack.log")
-            self._procs["stack"] = mb.spawn(
-                ["ros2", "launch", "srl_teleop", "teleop.launch.py",
-                 "gate:=false", "follower:=master", "master:=false",
-                 # THE SPEED HAS TO GO IN HERE, not be set afterwards:
-                 # master_teleop_node reads both at construction.
-                 "master_vmax_rad_s:=%.3f" % prof["teleop_vmax"],
-                 "master_max_step_m:=%.4f" % prof["slew_m"]],
-                t1, env)
-            if not mb.wait_for(
-                    lambda: mb.log_says(t1, "Successful 'activate' of "
-                                            "hardware 'left_Kortex"), 180):
-                raise RuntimeError("controllers did not activate; see %s" % t1)
-            self._ok(0)
+            if from_step > 0:
+                self.log("skipping steps 1-%d (already up)" % from_step)
+            if from_step <= 0:
+                self._step(0, "simulation stack")
+                t1 = os.path.join(sp, "stack.log")
+                self._procs["stack"] = mb.spawn(
+                    ["ros2", "launch", "srl_teleop", "teleop.launch.py",
+                     "gate:=false", "follower:=master", "master:=false",
+                     # THE SPEED HAS TO GO IN HERE, not be set afterwards:
+                     # master_teleop_node reads both at construction.
+                     "master_vmax_rad_s:=%.3f" % prof["teleop_vmax"],
+                     "master_max_step_m:=%.4f" % prof["slew_m"]],
+                    t1, env)
+                if not mb.wait_for(
+                        lambda: mb.log_says(t1, "Successful 'activate' of "
+                                                "hardware 'left_Kortex"), 180):
+                    raise RuntimeError(
+                        "controllers did not activate; see %s" % t1)
+                self._ok(0)
 
             # 2 ------------------------------------------------- master
-            self._step(1, "master arm, clutch pinned")
-            m1 = os.path.join(sp, "master.log")
-            self._procs["master"] = mb.spawn(
-                ["ros2", "run", "srl_teleop", "master_pose_node", "--ros-args",
-                 "-r", "__node:=master_pose_node",
-                 "-p", "force_clutch_engaged:=true"], m1, env)
-            if not mb.wait_for(lambda: mb.log_says(m1, "ENGAGED (FORCED"), 60):
-                raise RuntimeError("master node did not pin the clutch; "
-                                   "see %s" % m1)
-            self._ok(1)
+            if from_step <= 1:
+                self._step(1, "master arm, clutch pinned")
+                m1 = os.path.join(sp, "master.log")
+                self._procs["master"] = mb.spawn(
+                    ["ros2", "run", "srl_teleop", "master_pose_node",
+                     "--ros-args", "-r", "__node:=master_pose_node",
+                     "-p", "force_clutch_engaged:=true"], m1, env)
+                if not mb.wait_for(
+                        lambda: mb.log_says(m1, "ENGAGED (FORCED"), 60):
+                    raise RuntimeError(
+                        "master node did not pin the clutch; see %s" % m1)
+                self._ok(1)
 
             # 3 --------------------------------------------------- real
+            # THE DAEMON MUST BE RESET AGAIN HERE, after the stack exists.
+            # It caches the graph it saw when it started, so the reset at
+            # preflight leaves it holding an EMPTY graph, and start_real.sh
+            # then refuses with "DISCOVERY PROBLEM, not a missing stack" --
+            # which is exactly what it did on the first run of this GUI.
+            self.log("  resetting the ros2 daemon now the stack exists")
+            mb.reset_daemon()
             self._step(2, "real arms (Kortex session + homing)")
             r1 = os.path.join(sp, "real.log")
+            renv = dict(env)
+            renv["LEFT_IP"] = self.left_ip.text().strip() or mb.DEFAULT_LEFT_IP
+            renv["RIGHT_IP"] = (self.right_ip.text().strip()
+                                or mb.DEFAULT_RIGHT_IP)
+            self.log("  arms at %s (left) and %s (right)"
+                     % (renv["LEFT_IP"], renv["RIGHT_IP"]))
             self._procs["real"] = mb.spawn(
-                ["bash", "scripts/start_real.sh", "arm:=both"], r1, env)
+                ["bash", "scripts/start_real.sh", "arm:=both"], r1, renv)
             if not mb.wait_for(
                     lambda: mb.log_says(r1, "REAL ARMS LIVE")
                     or mb.log_says(r1, "STOPPING"), 420):
@@ -370,6 +515,7 @@ class MasterMannequinWindow(QWidget):
     def _done(self, ok):
         self._running = False
         self.go.setEnabled(True)
+        self.connect_btn.setEnabled(True)
         self.go.setText("WORKING REAL ARM MASTER")
         if not ok:
             for i, lab in enumerate(self.step_labels):

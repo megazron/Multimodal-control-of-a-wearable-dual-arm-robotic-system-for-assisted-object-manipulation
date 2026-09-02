@@ -122,6 +122,10 @@ PREVIEW_DELAY="${PREVIEW_DELAY:-0.30}"
 # the lag monitor keeps meaning "the arm is not keeping up" rather than "the
 # arm was never able to keep up".
 MAX_VEL="${MAX_VEL:-0.40}"
+# ARM IP ADDRESSES, overridable so the GUI can offer them. The defaults are
+# real_arms_highlevel.launch.py's own and are the addresses on this rig.
+LEFT_IP="${LEFT_IP:-192.168.1.10}"
+RIGHT_IP="${RIGHT_IP:-192.168.1.9}"
 # Homing speed, passed explicitly. The banner used to print $MAX_VEL --
 # the BRIDGE parameter -- while nothing passed anything to the homing node.
 HOMING_VMAX=0.15
@@ -436,6 +440,8 @@ if [ "$MOCK" = "1" ]; then
 else
   setsid ros2 launch srl_teleop real_arms_highlevel.launch.py \
     arm:="$ARM" \
+    left_robot_ip:="$LEFT_IP" \
+    right_robot_ip:="$RIGHT_IP" \
     preview_delay_s:="$PREVIEW_DELAY" \
     max_vel_rad_s:="$MAX_VEL" \
     homing_vmax:="$HOMING_VMAX" \

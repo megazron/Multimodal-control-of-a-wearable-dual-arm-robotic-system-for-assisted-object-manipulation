@@ -142,6 +142,23 @@ def check_speeds(p):
 #: looks the device up by VID:PID and never remembers a number.
 TEENSY_VIDPID = "16c0:0483"
 
+#: The arm addresses on this rig, and real_arms_highlevel.launch.py's own
+#: defaults. Exposed in the GUI because an arm that has been re-addressed is
+#: otherwise a five-minute bring-up that fails at the last step.
+DEFAULT_LEFT_IP = "192.168.1.10"
+DEFAULT_RIGHT_IP = "192.168.1.9"
+
+
+def ping(host, timeout_s=2):
+    """Is the arm reachable at all? Reachable is not connected, but
+    unreachable cannot be connected, and knowing which is one second."""
+    try:
+        r = subprocess.run(["ping", "-c", "1", "-W", str(int(timeout_s)), host],
+                           capture_output=True, timeout=timeout_s + 3)
+        return r.returncode == 0
+    except Exception:                                        # noqa: BLE001
+        return False
+
 USBIPD = "/mnt/c/Program Files/usbipd-win/usbipd.exe"
 
 

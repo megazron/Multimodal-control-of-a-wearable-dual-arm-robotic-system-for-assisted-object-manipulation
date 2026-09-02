@@ -177,6 +177,17 @@ class MasterMannequinWindow(QWidget):
 
         # ------------------------------------------------- extra controls
         x_row = QHBoxLayout()
+        x_row.addWidget(QLabel("recording name:"))
+        self.rec_name = QLineEdit()
+        self.rec_name.setPlaceholderText("optional, e.g. pick_test_3")
+        self.rec_name.setMaximumWidth(210)
+        self.rec_name.setToolTip(
+            "Names the folder under recordings/sessions/. A timestamp is "
+            "ALWAYS appended and cannot be turned off -- two runs with the "
+            "same name would otherwise collide, and ros2 bag refuses an "
+            "existing directory rather than merging. Leave blank for "
+            "master_teleop_<timestamp>.")
+        x_row.addWidget(self.rec_name)
         self.rec_btn = QPushButton("START RECORDING")
         self.rec_btn.setToolTip(
             "full_state_recorder: every channel this session can see, to "
@@ -326,9 +337,12 @@ class MasterMannequinWindow(QWidget):
             self.rec_btn.setText("START RECORDING")
             self.log("recording STOPPED and closed -> %s" % out)
             return
-        stamp = time.strftime("%Y%m%d_%H%M%S")
-        self._rec_dir = os.path.join(
-            WS, "recordings", "sessions", "master_teleop_%s" % stamp)
+        typed = self.rec_name.text()
+        self._rec_dir = mb.recording_dir(typed)
+        slug = mb.safe_name(typed)
+        if typed.strip() and slug != typed.strip():
+            self.log("name %r -> %r (kept safe for a path)" % (typed.strip(),
+                                                               slug))
         log = os.path.join(_scratch(), "recording.log")
         # CHECK BEFORE RECORDING, not after. A bag records nothing for a
         # topic that does not exist and barely mentions it, so a session can

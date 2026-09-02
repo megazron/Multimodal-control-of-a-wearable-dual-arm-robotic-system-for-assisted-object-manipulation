@@ -697,6 +697,36 @@ RECORD_TOPICS = [
 ]
 
 
+def recording_dir(name="", stamp=None, root=None):
+    """Where a recording goes. The NAME is the operator's, the STAMP is not.
+
+    The timestamp is always appended and cannot be turned off: two runs called
+    "test" would otherwise overwrite each other, and `ros2 bag record` refuses
+    an existing directory rather than merging -- so the second press of the
+    button would fail with a path error instead of recording. A name is for
+    finding the file later; uniqueness is not the operator's job.
+    """
+    stamp = stamp or time.strftime("%Y%m%d_%H%M%S")
+    slug = safe_name(name)
+    base = ("%s_%s" % (slug, stamp)) if slug else ("master_teleop_%s" % stamp)
+    return os.path.join(root or os.path.join(WS, "recordings", "sessions"),
+                        base)
+
+
+def safe_name(name):
+    """A typed name reduced to something safe in a path. May return ''.
+
+    Anything that is not a letter, digit, dash or underscore becomes an
+    underscore, leading dots are dropped, and the result is capped. A session
+    name typed in a hurry should never be able to escape recordings/sessions
+    or collide with a shell.
+    """
+    import re
+    slug = re.sub(r"[^A-Za-z0-9_-]+", "_", (name or "").strip())
+    slug = slug.strip("._-")
+    return slug[:60]
+
+
 def record_command(out_dir):
     """`ros2 bag record`, and NOT either in-repo recorder.
 
@@ -1164,6 +1194,21 @@ BUSID  VID:PID    DEVICE                                          STATE
     check("and the safety state that explains any gap between them",
           "/estop_state" in cmd and "/master_teleop/status" in cmd)
     check("the output directory is passed through", "/tmp/x" in cmd)
+    check("a blank name still produces a unique directory",
+          recording_dir("", stamp="S").endswith("master_teleop_S"))
+    check("a typed name is used and the stamp is STILL appended",
+          recording_dir("pick test 3", stamp="S").endswith("pick_test_3_S"),
+          "without the stamp a second run collides and ros2 bag refuses")
+    check("a name cannot escape recordings/sessions",
+          ".." not in recording_dir("../../etc/passwd", stamp="S")
+          and recording_dir("../../etc/passwd",
+                            stamp="S").endswith("etc_passwd_S"))
+    check("punctuation and spaces are made path-safe",
+          recording_dir("left arm sweep!!", stamp="S")
+          .endswith("left_arm_sweep_S"))
+    check("a whitespace-only name falls back to the default",
+          recording_dir("   ", stamp="S").endswith("master_teleop_S"))
+
     # THE CHAIN, END TO END. Each stage of the signal must be in the bag or
     # a recording cannot answer "where did it stop".
     for stage, topic in (

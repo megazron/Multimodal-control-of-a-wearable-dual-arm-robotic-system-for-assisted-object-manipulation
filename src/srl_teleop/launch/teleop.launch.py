@@ -43,6 +43,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (LaunchConfiguration, PathJoinSubstitution,
                                   PythonExpression)
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -175,6 +176,21 @@ def generate_launch_description():
         # Exactly one of the two ever runs; see _follower_enabled().
         DeclareLaunchArgument("follower", default_value="ik",
                               choices=["ik", "master"]),
+        # SPEED OF THE MASTER PATH, passed at LAUNCH because
+        # master_teleop_node reads both at construction: vmax goes into the
+        # MotionGenerator's limits and the slew into the gate, and neither is
+        # re-read. Setting them with `ros2 param set` on a running node
+        # reports success and changes nothing, which is the failure mode this
+        # repo keeps re-learning. master_mannequin_gui.py passes these from
+        # master_bringup.SPEEDS.
+        #
+        # 0.0 means "the joint_limits.yaml value", which is correct for a sim
+        # run and TOO FAST when a real arm is following: the bridge replays at
+        # MAX_VEL (0.40 by default) and Ruckig at the 1.3963 rad/s joint limit
+        # outruns it monotonically until the lag monitor e-stops. Measured
+        # 2026-09-01: 0.502 rad on joint_5.
+        DeclareLaunchArgument("master_vmax_rad_s", default_value="0.0"),
+        DeclareLaunchArgument("master_max_step_m", default_value="0.006"),
     ]
 
     moveit = IncludeLaunchDescription(
@@ -228,7 +244,13 @@ def generate_launch_description():
         name="master_teleop_node", output="screen", emulate_tty=True,
         parameters=[{"arms": LaunchConfiguration("arm"),
                      "motion_enabled": False,
-                     "real_enabled": LaunchConfiguration("real_arms")}],
+                     "real_enabled": LaunchConfiguration("real_arms"),
+                     "vmax_rad_s": ParameterValue(
+                         LaunchConfiguration("master_vmax_rad_s"),
+                         value_type=float),
+                     "max_step_m": ParameterValue(
+                         LaunchConfiguration("master_max_step_m"),
+                         value_type=float)}],
         condition=IfCondition(PythonExpression(
             ["'", LaunchConfiguration("follower"), "' == 'master'"])))
 

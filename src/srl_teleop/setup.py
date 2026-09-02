@@ -58,6 +58,7 @@ setup(
             # exactly one of the two. The follower is left untouched because
             # it is the baseline condition of every experiment here.
             'master_teleop = srl_teleop.master_teleop_node:main',
+            'master_bringup = srl_teleop.master_bringup:main',
             'fsr_gripper_node = srl_teleop.fsr_gripper_node:main',
             'leader_follower_node = srl_teleop.leader_follower_node:main',
             'srl_teleop_node = srl_teleop.srl_teleop_node:main',

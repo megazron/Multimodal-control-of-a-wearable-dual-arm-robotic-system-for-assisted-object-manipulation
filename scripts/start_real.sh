@@ -115,7 +115,13 @@ PREVIEW_DELAY="${PREVIEW_DELAY:-0.30}"
 # joint_limits.yaml, and it is above the fastest thing the sim asks for, so
 # the lag monitor goes back to meaning "the arm is not keeping up" instead of
 # "the arm was never able to keep up".
-MAX_VEL=0.40
+# OVERRIDABLE with MAX_VEL=<rad/s>, which the master-mannequin GUI uses to
+# run the master teleop faster than the scripted-move default above. Raising
+# it is only safe while the COMMANDING side stays below it -- see
+# master_bringup.SPEEDS, which pins master_teleop's vmax under this value so
+# the lag monitor keeps meaning "the arm is not keeping up" rather than "the
+# arm was never able to keep up".
+MAX_VEL="${MAX_VEL:-0.40}"
 # Homing speed, passed explicitly. The banner used to print $MAX_VEL --
 # the BRIDGE parameter -- while nothing passed anything to the homing node.
 HOMING_VMAX=0.15

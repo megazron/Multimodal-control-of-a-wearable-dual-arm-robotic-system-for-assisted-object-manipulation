@@ -394,6 +394,9 @@ class MasterMannequinWindow(QWidget):
             # and the Teensy power-cycle needs the serial port free.
             self.log("preflight auto-fixes")
             fixer.run(keys=("daemon",), only_if_needed=False)
+            # dup_stack FIRST: a second stack partitions discovery, and the
+            # SHM sweep is gated on nothing running, so the order matters.
+            fixer.run(keys=("dup_stack",))
             fixer.run(keys=("shm", "teensy_absent", "teensy_imu",
                             "kortex_leak"))
             if mb.teensy_port() is None:

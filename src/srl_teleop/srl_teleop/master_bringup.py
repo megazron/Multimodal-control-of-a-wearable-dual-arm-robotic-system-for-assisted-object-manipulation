@@ -371,6 +371,49 @@ def reset_daemon():
     return True, "ros2 daemon restarted"
 
 
+def running_stack_pids():
+    """PIDs of an ALREADY-RUNNING srl_teleop stack, newest launch included."""
+    try:
+        r = subprocess.run(
+            ["pgrep", "-f",
+             "ros2 launch srl_teleop teleop.launch.py|"
+             "install/srl_teleop/lib|"
+             "opt/ros/jazzy/lib/(moveit_ros_move_group|controller_manager)"],
+            capture_output=True, text=True, timeout=15)
+        return [int(x) for x in r.stdout.split()]
+    except Exception:                                        # noqa: BLE001
+        return []
+
+
+def stop_existing_stack(timeout_s=30.0):
+    """SIGINT any stack already running, so exactly ONE is launched.
+
+    HARD CONSTRAINT 3, and it is what broke this GUI's first two real runs.
+    Pressing the button while a stack was up launched a SECOND one, and on
+    the third attempt start_real.sh reported nine pids across three stacks.
+    Discovery then partitions and every daemon-backed query comes back empty,
+    which the script correctly diagnoses as a discovery problem and refuses
+    on -- a true statement about a condition this window created.
+    """
+    pids = running_stack_pids()
+    if not pids:
+        return True, "no stack was running"
+    for pid in pids:
+        try:
+            os.kill(pid, 2)                                  # SIGINT
+        except OSError:
+            pass
+    wait_for(lambda: not running_stack_pids(), timeout_s)
+    left = running_stack_pids()
+    for pid in left:
+        try:
+            os.kill(pid, 9)
+        except OSError:
+            pass
+    wait_for(lambda: not running_stack_pids(), 8.0)
+    return True, "stopped %d process(es) of an existing stack" % len(pids)
+
+
 def kortex_session_leaked():
     """Is a Kortex bridge still holding a session from a previous run?
 
@@ -395,6 +438,12 @@ AUTOFIXES = [
     ("shm", "stale Fast DDS segments partitioning discovery",
      lambda: (not stack_is_up()) and stale_shm_count() > 0,
      clear_stale_shm, True),
+    # BEFORE ANYTHING ELSE. A second stack is not a degraded stack, it is a
+    # partitioned graph, and everything downstream then reports a discovery
+    # fault instead of the duplication that caused it.
+    ("dup_stack", "a stack is ALREADY running (a second one partitions "
+                  "discovery -- HARD CONSTRAINT 3)",
+     lambda: bool(running_stack_pids()), stop_existing_stack, True),
     ("teensy_absent", "master arm (Teensy) not attached to WSL",
      lambda: teensy_port() is None, attach_teensy, True),
     ("teensy_imu", "master arm IMUs reading all zeros",

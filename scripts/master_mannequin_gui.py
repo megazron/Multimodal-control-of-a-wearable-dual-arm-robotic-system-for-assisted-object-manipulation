@@ -260,7 +260,21 @@ class MasterMannequinWindow(QWidget):
         env.setdefault("RCUTILS_LOGGING_BUFFERED_STREAM", "0")
         env["MAX_VEL"] = "%.3f" % prof["bridge_vmax"]
 
+        fixer = mb.AutoFixer(self.log)
         try:
+            # 0 ------------------------------------------- PREFLIGHT FIXES
+            # BEFORE the stack, because two of these are only safe with it
+            # down: the /dev/shm sweep orphans a live stack's own segments,
+            # and the Teensy power-cycle needs the serial port free.
+            self.log("preflight auto-fixes")
+            fixer.run(keys=("daemon",), only_if_needed=False)
+            fixer.run(keys=("shm", "teensy_absent", "teensy_imu",
+                            "kortex_leak"))
+            if mb.teensy_port() is None:
+                raise RuntimeError(
+                    "no master arm on /dev/ttyACM* and it could not be "
+                    "attached -- check the Teensy is plugged in")
+
             # 1 -------------------------------------------------- stack
             self._step(0, "simulation stack")
             t1 = os.path.join(sp, "stack.log")
@@ -323,6 +337,13 @@ class MasterMannequinWindow(QWidget):
 
             # 6 ---------------------------------------------------- arm
             self._step(5, "arming the teleop")
+            # A LATCH LEFT FROM A PREVIOUS RUN would make step 6 report
+            # success while the arms sit still -- the teleop holds and every
+            # commander is overridden. Clear it here, where it is one line,
+            # rather than leaving the operator to find it.
+            ok_e, why_e = mb.reset_estop()
+            if ok_e:
+                self.log("  cleared a latched e-stop: %s" % why_e)
             ok, why = mb.set_bool_param("/master_teleop_node",
                                         "motion_enabled", True)
             if not ok:

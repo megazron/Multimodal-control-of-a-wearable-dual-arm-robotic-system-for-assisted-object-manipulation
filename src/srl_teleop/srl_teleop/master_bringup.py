@@ -117,6 +117,312 @@ def check_speeds(p):
             "would be over 2.5 m/s of commanded hand speed" % p["slew_m"])
 
 
+# ===========================================================================
+#  AUTO-FIXES
+#
+#  Every entry below is a fault this session actually hit, with the repair
+#  that actually worked. They are here rather than in the GUI so the list can
+#  be read and tested without Qt.
+#
+#  THE RULES, because an auto-fix that hides a fault is worse than no
+#  auto-fix:
+#    * each one is applied AT MOST ONCE per bring-up (`_applied`), so a fault
+#      that keeps coming back surfaces as a failure instead of an infinite
+#      repair loop;
+#    * each one SAYS what it did, in the log, every time;
+#    * none of them touches a real arm. The arms are moved only by homing and
+#      by the operator;
+#    * anything that cannot be repaired safely is REPORTED and not attempted
+#      -- see `leaked_kortex_session`, which needs a human at the power
+#      switch and says so rather than pretending.
+# ===========================================================================
+
+#: The Teensy's USB identity. The BUSID IS NOT STABLE -- it moved from 2-9 to
+#: 2-6 across a single detach/attach on 2026-09-01 -- so everything below
+#: looks the device up by VID:PID and never remembers a number.
+TEENSY_VIDPID = "16c0:0483"
+
+USBIPD = "/mnt/c/Program Files/usbipd-win/usbipd.exe"
+
+
+def usbipd_available():
+    return os.path.exists(USBIPD)
+
+
+def teensy_busid():
+    """The Teensy's CURRENT busid on the Windows side, or None.
+
+    Parsed from `usbipd list` by VID:PID. Never cached: see TEENSY_VIDPID.
+    """
+    if not usbipd_available():
+        return None
+    try:
+        out = subprocess.run([USBIPD, "list"], capture_output=True, text=True,
+                             timeout=25).stdout
+    except Exception:                                        # noqa: BLE001
+        return None
+    return parse_busid(out, TEENSY_VIDPID)
+
+
+def parse_busid(listing, vidpid):
+    """Pure: pull the busid for `vidpid` out of `usbipd list` output.
+
+    Split out from the subprocess call so the self-test can drive it with
+    recorded output instead of hardware.
+    """
+    for line in listing.splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and parts[1].lower() == vidpid.lower():
+            return parts[0]
+    return None
+
+
+def teensy_port():
+    """The serial device, or None. /dev/ttyACM* varies with enumeration."""
+    import glob
+    for pat in ("/dev/ttyACM*", "/dev/ttyUSB*"):
+        found = sorted(glob.glob(pat))
+        if found:
+            return found[0]
+    return None
+
+
+def attach_teensy(timeout_s=20.0):
+    """Attach the Teensy to WSL. Returns (ok, why)."""
+    bus = teensy_busid()
+    if bus is None:
+        return False, ("no %s device on the Windows side -- is the Teensy "
+                       "plugged in at all?" % TEENSY_VIDPID)
+    try:
+        r = subprocess.run([USBIPD, "attach", "--wsl", "--busid", bus],
+                           capture_output=True, text=True, timeout=40)
+    except Exception as exc:                                 # noqa: BLE001
+        return False, str(exc)
+    if not wait_for(lambda: teensy_port() is not None, timeout_s):
+        return False, ("usbipd attach on busid %s returned but no /dev/ttyACM* "
+                       "appeared: %s" % (bus, (r.stderr or r.stdout).strip()[:160]))
+    return True, "attached busid %s -> %s" % (bus, teensy_port())
+
+
+def detach_teensy():
+    bus = teensy_busid()
+    if bus is None:
+        return False, "no %s device to detach" % TEENSY_VIDPID
+    try:
+        subprocess.run([USBIPD, "detach", "--busid", bus],
+                       capture_output=True, text=True, timeout=40)
+    except Exception as exc:                                 # noqa: BLE001
+        return False, str(exc)
+    wait_for(lambda: teensy_port() is None, 15.0)
+    return True, "detached busid %s" % bus
+
+
+def power_cycle_teensy():
+    """Detach and reattach: the only reset available from this side.
+
+    THIS IS WHAT REVIVED THE DEAD IMUs on 2026-09-01. Both K1IMU and K2IMU
+    were sending 0.000 for accel AND gyro -- the I2C bus had not come up --
+    and master_pose_node cannot publish a pose without a gravity vector, so
+    nothing downstream had any input at all. A detach/attach power-cycles the
+    board and the IMUs re-init on boot. The busid changes across the cycle,
+    which is why the reattach looks it up again.
+    """
+    detach_teensy()
+    time.sleep(2.0)
+    return attach_teensy()
+
+
+def read_master_frames(seconds=4.0):
+    """Raw Teensy lines, straight off the wire. REQUIRES THE PORT FREE.
+
+    master_pose_node claims the port exclusively, so this only runs before
+    step 2. It is the only ground truth about the IMUs: the ROS topics carry
+    nothing at all when the frames fail validation, which reads identically
+    to a dead stack.
+    """
+    port = teensy_port()
+    if port is None:
+        return []
+    try:
+        import serial
+    except ImportError:
+        return []
+    try:
+        ser = serial.Serial(port, 115200, timeout=0.5)
+    except Exception:                                        # noqa: BLE001
+        return []
+    try:
+        time.sleep(0.5)
+        ser.reset_input_buffer()
+        lines, t0 = [], time.monotonic()
+        while time.monotonic() - t0 < seconds:
+            ln = ser.readline().decode("ascii", "replace").strip()
+            if ln:
+                lines.append(ln)
+        return lines
+    finally:
+        try:
+            ser.close()
+        except Exception:                                    # noqa: BLE001
+            pass
+
+
+def imu_is_dead(lines):
+    """Pure: are BOTH IMUs reporting all zeros?
+
+    A resting accelerometer reads ~1 g of gravity. Exactly 0.000 on every
+    axis of both IMUs is not a still arm, it is a bus that never came up.
+    Returns None when the frames do not carry IMU fields at all, which is a
+    different fault and must not be reported as this one.
+    """
+    seen = 0
+    for ln in lines:
+        if "K1IMU:" not in ln or "K2IMU:" not in ln:
+            continue
+        seen += 1
+        for tag in ("K1IMU:", "K2IMU:"):
+            body = ln.split(tag, 1)[1]
+            vals = body.split(",")[:6]
+            try:
+                nums = [abs(float(v)) for v in vals]
+            except ValueError:
+                return None
+            if any(n > 1e-6 for n in nums):
+                return False
+    if seen == 0:
+        return None
+    return True
+
+
+def stale_shm_count():
+    try:
+        import glob
+        return len(glob.glob("/dev/shm/fastrtps_*")) + \
+            len(glob.glob("/dev/shm/sem.fastrtps_*"))
+    except Exception:                                        # noqa: BLE001
+        return 0
+
+
+def stack_is_up():
+    """Any Fast DDS participant of ours still running?
+
+    Clearing /dev/shm under a LIVE stack orphans that stack's own segments and
+    is how a healthy rig was made deaf on 2026-08-20. So the sweep is gated on
+    this, and the gate is the point.
+    """
+    try:
+        r = subprocess.run(
+            ["pgrep", "-f",
+             "opt/ros/jazzy/lib/(moveit_ros_move_group|controller_manager|"
+             "robot_state_publisher)|install/srl_(teleop|vr_teleop|"
+             "experiments|autonomy|perception)/lib|kortex_highlevel_bridge"],
+            capture_output=True, text=True, timeout=15)
+        return bool(r.stdout.strip())
+    except Exception:                                        # noqa: BLE001
+        return True          # unknown means "do not sweep"
+
+
+def clear_stale_shm():
+    """Sweep Fast DDS segments. REFUSES while the stack is up."""
+    if stack_is_up():
+        return False, "stack is running -- NOT sweeping /dev/shm"
+    n = stale_shm_count()
+    if n == 0:
+        return True, "no stale segments"
+    subprocess.run(["bash", "-lc",
+                    "source scripts/env.sh >/dev/null 2>&1; "
+                    "srl_clear_stale_shm --force"],
+                   cwd=WS, capture_output=True, text=True, timeout=90)
+    return True, "cleared %d stale Fast DDS segment(s)" % n
+
+
+def reset_daemon():
+    """Hard reset of the ros2 daemon. It HANGS rather than failing."""
+    subprocess.run(["bash", "-lc",
+                    "source scripts/env.sh >/dev/null 2>&1; "
+                    "timeout 15 ros2 daemon stop >/dev/null 2>&1; "
+                    "pkill -f 'ros2cli.daemon' >/dev/null 2>&1; sleep 1; "
+                    "timeout 25 ros2 daemon start >/dev/null 2>&1"],
+                   cwd=WS, capture_output=True, text=True, timeout=90)
+    return True, "ros2 daemon restarted"
+
+
+def kortex_session_leaked():
+    """Is a Kortex bridge still holding a session from a previous run?
+
+    NOT auto-repaired. The arm permits exactly one session and a leaked one is
+    cleared by closing it properly or power-cycling the arm -- neither of
+    which should happen without a person deciding. Reported so the operator is
+    not left reading "connection refused" and guessing.
+    """
+    try:
+        r = subprocess.run(["pgrep", "-f", "kortex_highlevel_bridge"],
+                           capture_output=True, text=True, timeout=15)
+        return bool(r.stdout.strip())
+    except Exception:                                        # noqa: BLE001
+        return False
+
+
+#: (key, description, detect, fix, auto)
+#: `auto=False` means DETECT AND REPORT ONLY -- see kortex_session_leaked.
+AUTOFIXES = [
+    ("daemon", "wedged ros2 daemon",
+     None, reset_daemon, True),
+    ("shm", "stale Fast DDS segments partitioning discovery",
+     lambda: (not stack_is_up()) and stale_shm_count() > 0,
+     clear_stale_shm, True),
+    ("teensy_absent", "master arm (Teensy) not attached to WSL",
+     lambda: teensy_port() is None, attach_teensy, True),
+    ("teensy_imu", "master arm IMUs reading all zeros",
+     lambda: imu_is_dead(read_master_frames(3.0)) is True,
+     power_cycle_teensy, True),
+    ("kortex_leak", "a Kortex session is still open from a previous run",
+     kortex_session_leaked, None, False),
+]
+
+
+class AutoFixer:
+    """Applies each fix at most once and says what it did."""
+
+    def __init__(self, log=None):
+        self.log = log or (lambda s: None)
+        self._applied = set()
+        self.applied = []
+
+    def run(self, keys=None, only_if_needed=True):
+        """Returns a list of (key, ok, message) for what it touched."""
+        out = []
+        for key, desc, detect, fix, auto in AUTOFIXES:
+            if keys is not None and key not in keys:
+                continue
+            if key in self._applied:
+                continue
+            needed = True
+            if only_if_needed and detect is not None:
+                try:
+                    needed = bool(detect())
+                except Exception as exc:                     # noqa: BLE001
+                    self.log("  autofix %s: detector failed (%s)" % (key, exc))
+                    needed = False
+            if not needed:
+                continue
+            if not auto or fix is None:
+                self.log("  NOTE: %s -- not repaired automatically" % desc)
+                out.append((key, False, desc))
+                continue
+            self._applied.add(key)
+            self.log("  AUTO-FIX: %s" % desc)
+            try:
+                ok, why = fix()
+            except Exception as exc:                         # noqa: BLE001
+                ok, why = False, str(exc)
+            self.log("    -> %s%s" % ("ok" if ok else "FAILED",
+                                      (": " + why) if why else ""))
+            self.applied.append((key, ok, why))
+            out.append((key, ok, why))
+        return out
+
+
 # ---------------------------------------------------------------- the steps
 #: (key, human title, why it is here). The GUI renders this list; the runner
 #: below executes it. One list, so a step cannot be shown and not run.
@@ -393,6 +699,84 @@ def self_test(verbose=True):
           keys.index("stack") < keys.index("master"))
     check("the real arms come up before the seed",
           keys.index("real") < keys.index("seed"))
+
+    print("auto-fixes")
+    LISTING = """Connected:
+BUSID  VID:PID    DEVICE                                          STATE
+1-4    0b95:1790  ASIX USB to Gigabit Ethernet Family Adapter      Not shared
+2-6    16c0:0483  USB Serial Device (COM3)                         Shared
+2-9    046d:c52b  Logitech USB Input Device                        Not shared
+"""
+    check("the Teensy busid is found by VID:PID, not remembered",
+          parse_busid(LISTING, TEENSY_VIDPID) == "2-6",
+          "got %r" % parse_busid(LISTING, TEENSY_VIDPID))
+    check("a listing without the Teensy yields None",
+          parse_busid(LISTING.replace("16c0:0483", "1234:5678"),
+                      TEENSY_VIDPID) is None)
+    # The busid MOVED on 2026-09-01; a hardcoded one is the bug this prevents.
+    MOVED = LISTING.replace("2-6    16c0:0483", "2-9    16c0:0483").replace(
+        "2-9    046d:c52b", "2-6    046d:c52b")
+    check("and it follows the device when the busid moves",
+          parse_busid(MOVED, TEENSY_VIDPID) == "2-9")
+
+    DEAD = ("k1j1:153.9,k1j2:343.9,K1IMU:0.000,0.000,0.000,0.00,0.00,0.00,"
+            "K2IMU:0.000,0.000,0.000,0.00,0.00,0.00,fsr1:7.9,btn1:0")
+    ALIVE = ("k1j1:125.4,k1j2:343.7,K1IMU:-0.902,0.024,0.292,2.53,1.54,1.79,"
+             "K2IMU:-0.919,0.103,0.288,-1.21,-0.18,-0.64,fsr1:7.9,btn1:0")
+    check("all-zero IMUs on both arms is detected as DEAD",
+          imu_is_dead([DEAD] * 5) is True)
+    check("a real gravity vector is NOT called dead",
+          imu_is_dead([ALIVE] * 5) is False)
+    check("one live arm is enough to not call it dead",
+          imu_is_dead([DEAD, ALIVE]) is False)
+    check("frames without IMU fields are UNKNOWN, not dead",
+          imu_is_dead(["k1j1:153.9,fsr1:7.9"]) is None,
+          "a different fault must not be reported as this one")
+    check("no frames at all is UNKNOWN, not dead",
+          imu_is_dead([]) is None)
+
+    keys = [k for k, _, _, _, _ in AUTOFIXES]
+    check("every auto-fix has a unique key", len(keys) == len(set(keys)))
+    check("the leaked Kortex session is REPORTED, never auto-repaired",
+          not [a for k, _d, _det, _f, a in AUTOFIXES if k == "kortex_leak"][0],
+          "it needs a person at the power switch")
+    check("the SHM sweep is gated on the stack being down",
+          [det for k, _d, det, _f, _a in AUTOFIXES
+           if k == "shm"][0] is not None)
+
+    class _Rec:
+        def __init__(self): self.lines = []
+        def __call__(self, s): self.lines.append(s)
+
+    # AT MOST ONCE. A fix that keeps re-firing turns a fault into a loop.
+    calls = {"n": 0}
+
+    def _always():
+        return True
+
+    def _count():
+        calls["n"] += 1
+        return True, "fixed"
+    saved = list(AUTOFIXES)
+    try:
+        AUTOFIXES[:] = [("t", "test fault", _always, _count, True)]
+        rec = _Rec()
+        f = AutoFixer(rec)
+        f.run(); f.run(); f.run()
+        check("an auto-fix is applied at most once per bring-up",
+              calls["n"] == 1, "ran %d times" % calls["n"])
+        check("and it says what it did", any("AUTO-FIX" in x for x in rec.lines))
+
+        # A detector that raises must not take the bring-up down with it.
+        def _boom():
+            raise RuntimeError("detector exploded")
+        AUTOFIXES[:] = [("b", "boom", _boom, _count, True)]
+        rec2 = _Rec()
+        AutoFixer(rec2).run()
+        check("a detector that raises is survived and reported",
+              any("detector failed" in x for x in rec2.lines))
+    finally:
+        AUTOFIXES[:] = saved
 
     print("helpers")
     check("log_says on a missing file is 'not yet', not an error",

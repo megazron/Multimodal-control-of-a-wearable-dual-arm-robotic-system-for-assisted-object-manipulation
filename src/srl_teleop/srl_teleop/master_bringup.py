@@ -653,19 +653,46 @@ class AutoFixer:
 
 
 # ---------------------------------------------------------------- the steps
-#: EVERY TOPIC A TELEOP SESSION NEEDS TO BE RECONSTRUCTED AFTERWARDS: the
-#: master's raw channels and derived pose, the buttons, what the sim was
-#: commanded, what the sim did, what the REAL arms did, and the safety state
-#: that explains any gap between them.
+#: EVERY TOPIC A SESSION MUST BE RECONSTRUCTED FROM, in the order the signal
+#: actually travels: raw master -> derived pose -> IK/Ruckig command -> sim ->
+#: bridge -> real arm -> what the real arm did and how it felt.
+#:
+#: ENUMERATED AGAINST A LIVE GRAPH, not guessed. The first version of this
+#: list had 16 entries and silently omitted the four that matter most for
+#: telling the sim apart from the real arm: /real/*_arm_controller/
+#: joint_trajectory is WHAT THE BRIDGE ACTUALLY COMMANDED, and without it a
+#: bag cannot distinguish "the sim asked for something impossible" from "the
+#: real arm did not follow". /real/telemetry_* carries torque, current,
+#: temperature, the tool wrench and the fault banks -- the only record of how
+#: hard the arm was working. /master_channel_state says WHICH CHANNELS WERE
+#: FROZEN at the time, which on this rig changes the meaning of every master
+#: number in the file.
 RECORD_TOPICS = [
+    # --- master arm: raw, then everything derived from it
     "/master_arm_raw_left", "/master_arm_raw_right",
     "/master_status_left", "/master_status_right",
     "/master_arm_pose_left", "/master_arm_pose_right",
-    "/master_fsr_buttons",
-    "/joint_states", "/real/joint_states",
+    "/master_fsr_buttons", "/master_channel_state",
+    # --- what the teleop decided
+    "/master_teleop/status",
     "/left_arm_controller/joint_trajectory",
     "/right_arm_controller/joint_trajectory",
-    "/master_teleop/status", "/estop_state", "/mount_guard",
+    # --- the sim
+    "/joint_states", "/dynamic_joint_states",
+    # --- the bridge and the REAL arms
+    "/real/left_arm_controller/joint_trajectory",
+    "/real/right_arm_controller/joint_trajectory",
+    "/real/joint_states",
+    "/real/telemetry_left", "/real/telemetry_right",
+    "/real/session_state", "/real_status_left", "/real_status_right",
+    "/real/gripper_left", "/real/gripper_right",
+    # --- grippers on the sim side
+    "/left_gripper_controller/joint_trajectory",
+    "/right_gripper_controller/joint_trajectory",
+    "/gripper_reference",
+    # --- safety: the only thing that explains a gap between command and motion
+    "/estop", "/estop_state", "/estop_deadman", "/mount_guard",
+    # --- frames
     "/tf", "/tf_static",
 ]
 
@@ -688,6 +715,37 @@ def record_command(out_dir):
     topics rather than someone's idea of which fields will matter later.
     """
     return ["ros2", "bag", "record", "-o", out_dir] + RECORD_TOPICS
+
+
+def live_topics(timeout_s=40):
+    """Topic names the graph currently carries."""
+    try:
+        r = subprocess.run(
+            ["bash", "-lc",
+             "source scripts/env.sh >/dev/null 2>&1; "
+             "timeout %d ros2 topic list 2>/dev/null" % timeout_s],
+            cwd=WS, capture_output=True, text=True, timeout=timeout_s + 20)
+        return set(x.strip() for x in r.stdout.split() if x.strip())
+    except Exception:                                        # noqa: BLE001
+        return set()
+
+
+def check_record_topics():
+    """Which requested topics exist right now. Returns (present, missing).
+
+    CHECKED, NOT ASSUMED. `ros2 bag record` on a topic that does not exist
+    yet records nothing for it and says so only in passing, so a bag can come
+    back missing the real arm entirely and look fine. Reporting the gap
+    BEFORE the session is the difference between a short re-run and a lost
+    one -- which this rig has already paid for once today, with a recorder
+    that wrote no file at all.
+    """
+    live = live_topics()
+    if not live:
+        return [], []          # graph unreadable; do not claim either way
+    present = [t for t in RECORD_TOPICS if t in live]
+    missing = [t for t in RECORD_TOPICS if t not in live]
+    return present, missing
 
 
 #: (key, human title, why it is here). The GUI renders this list; the runner
@@ -1106,6 +1164,21 @@ BUSID  VID:PID    DEVICE                                          STATE
     check("and the safety state that explains any gap between them",
           "/estop_state" in cmd and "/master_teleop/status" in cmd)
     check("the output directory is passed through", "/tmp/x" in cmd)
+    # THE CHAIN, END TO END. Each stage of the signal must be in the bag or
+    # a recording cannot answer "where did it stop".
+    for stage, topic in (
+            ("raw master", "/master_arm_raw_left"),
+            ("master derived pose", "/master_arm_pose_left"),
+            ("which channels were frozen", "/master_channel_state"),
+            ("teleop decision", "/master_teleop/status"),
+            ("sim command", "/left_arm_controller/joint_trajectory"),
+            ("sim achieved", "/joint_states"),
+            ("REAL command", "/real/left_arm_controller/joint_trajectory"),
+            ("REAL achieved", "/real/joint_states"),
+            ("REAL effort/fault", "/real/telemetry_left"),
+            ("Kortex session", "/real/session_state"),
+            ("safety", "/estop_state")):
+        check("the bag covers: %s" % stage, topic in cmd, topic)
     check("no in-repo recorder is invoked",
           not any("recorder" in c for c in cmd),
           "teleop_recorder is button-gated and this rig's buttons are bypassed")

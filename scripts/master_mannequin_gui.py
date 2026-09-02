@@ -330,6 +330,20 @@ class MasterMannequinWindow(QWidget):
         self._rec_dir = os.path.join(
             WS, "recordings", "sessions", "master_teleop_%s" % stamp)
         log = os.path.join(_scratch(), "recording.log")
+        # CHECK BEFORE RECORDING, not after. A bag records nothing for a
+        # topic that does not exist and barely mentions it, so a session can
+        # come back missing the real arm entirely and look fine.
+        present, missing = mb.check_record_topics()
+        if missing:
+            self.log("WARNING: %d of %d topics are NOT on the graph and will "
+                     "be EMPTY in this bag:" % (len(missing),
+                                                len(mb.RECORD_TOPICS)))
+            for t in missing:
+                self.log("    %s" % t)
+            self.log("  (record anyway -- but bring the missing side up "
+                     "first if you need it)")
+        elif present:
+            self.log("all %d topics present on the graph" % len(present))
         self._procs["record"] = mb.spawn(mb.record_command(self._rec_dir), log)
         self.rec_btn.setText("STOP RECORDING")
         self.log("recording %d topics -> %s"

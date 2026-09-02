@@ -230,6 +230,9 @@ class MasterMannequinWindow(QWidget):
         self.status_timer = QTimer(self)
         self.status_timer.timeout.connect(self._poll_status)
         self.status_timer.start(2000)
+        _ch, _why = mb.ensure_env()
+        self.log(("adopted the workspace environment -- " + _why) if _ch
+                 else "environment OK (scripts/env.sh settings present)")
         self._status_thread = None
 
     # ----------------------------------------------------------- UI slots
@@ -567,6 +570,12 @@ class MasterMannequinWindow(QWidget):
 
 
 def main():
+    # BEFORE the window, because everything it spawns inherits os.environ and
+    # a GUI started from a bare shell would hand every node UDP discovery,
+    # which is dead on this host. This is why the window cannot be launched
+    # wrong, rather than a line in a README asking you to remember.
+    changed, why = mb.ensure_env()
+    print(("ENV: " + why) if changed else ("env: " + why))
     app = QApplication(sys.argv)
     w = MasterMannequinWindow()
     w.show()

@@ -360,6 +360,55 @@ def clear_stale_shm():
     return True, "cleared %d stale Fast DDS segment(s)" % n
 
 
+#: The variables scripts/env.sh exists to pin. A process missing these joins
+#: a DIFFERENT bus and sees nothing, which is indistinguishable from a dead
+#: stack -- CLAUDE.md HARD CONSTRAINT 5 and the whole reason env.sh exists.
+ENV_KEYS = ("ROS_DOMAIN_ID", "RMW_IMPLEMENTATION",
+            "FASTDDS_BUILTIN_TRANSPORTS", "ROS_AUTOMATIC_DISCOVERY_RANGE")
+
+
+def ensure_env():
+    """Make THIS process's environment the one scripts/env.sh defines.
+
+    Called at start-up so the window cannot be launched wrong. Everything the
+    GUI spawns inherits os.environ, so a GUI started from a bare shell would
+    hand every node UDP discovery -- which is dead on this host -- and the
+    stack would come up healthy and invisible. Rather than telling the
+    operator to remember a `source`, this reads env.sh's own output and adopts
+    it, and REPORTS what it changed so a surprise is never silent.
+
+    Returns (changed, description).
+    """
+    missing = [k for k in ENV_KEYS if not os.environ.get(k)]
+    if not missing and os.environ.get("FASTDDS_BUILTIN_TRANSPORTS") == "SHM":
+        return False, "environment already correct (%s)" % ", ".join(
+            "%s=%s" % (k, os.environ[k]) for k in ENV_KEYS)
+    try:
+        r = subprocess.run(
+            ["bash", "-lc",
+             "source scripts/env.sh >/dev/null 2>&1; env -0"],
+            cwd=WS, capture_output=True, timeout=60)
+        got = {}
+        for chunk in r.stdout.split(b"\0"):
+            if b"=" in chunk:
+                k, _, v = chunk.partition(b"=")
+                got[k.decode()] = v.decode()
+    except Exception as exc:                                 # noqa: BLE001
+        return False, "could not read scripts/env.sh: %s" % exc
+    changed = []
+    for k in ENV_KEYS:
+        if k in got and os.environ.get(k) != got[k]:
+            os.environ[k] = got[k]
+            changed.append("%s=%s" % (k, got[k]))
+    # The workspace overlay too, or `ros2 run srl_teleop ...` finds nothing.
+    for k in ("AMENT_PREFIX_PATH", "PYTHONPATH", "LD_LIBRARY_PATH", "PATH"):
+        if k in got:
+            os.environ[k] = got[k]
+    if not changed:
+        return False, "environment already correct"
+    return True, "adopted scripts/env.sh: " + ", ".join(changed)
+
+
 def running_stack_pids():
     """PIDs of an ALREADY-RUNNING srl_teleop stack, newest launch included."""
     try:

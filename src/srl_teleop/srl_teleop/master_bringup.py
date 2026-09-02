@@ -294,6 +294,13 @@ def imu_is_dead(lines):
     return True
 
 
+#: How many /dev/shm Fast DDS segments count as "about to run out". A healthy
+#: idle rig sits near 16; this session reached 469 before every new
+#: participant started failing open_and_lock_file. 250 is comfortably above
+#: normal operation and well below the failure point.
+SHM_WARN_AT = 250
+
+
 def stale_shm_count():
     try:
         import glob
@@ -378,6 +385,23 @@ AUTOFIXES = [
      power_cycle_teensy, True),
     ("kortex_leak", "a Kortex session is still open from a previous run",
      kortex_session_leaked, None, False),
+    # SEGMENT EXHAUSTION WITH THE STACK UP. The sweep above is gated on the
+    # stack being down and, when the gate holds, it says NOTHING -- which is
+    # how 469 segments accumulated overnight and every new participant then
+    # failed with
+    #     [RTPS_TRANSPORT_SHM Error] Failed init_port fastrtps_portNNNN:
+    #     open_and_lock_file failed
+    # while the stack itself kept running and looked fine. A silent refusal
+    # is the wrong answer to a condition the operator can fix in one command,
+    # so this entry exists purely to SAY SO. It is not auto-repaired for the
+    # same reason the sweep is gated: clearing under a live stack orphans
+    # that stack's own segments.
+    ("shm_exhausted",
+     ("%d Fast DDS segments with the stack UP -- new nodes will fail to open "
+      "ports. Stop the stack and press the button again, or run: "
+      "source scripts/env.sh && srl_clear_stale_shm" % SHM_WARN_AT),
+     lambda: stack_is_up() and stale_shm_count() >= SHM_WARN_AT,
+     None, False),
 ]
 
 
@@ -740,6 +764,14 @@ BUSID  VID:PID    DEVICE                                          STATE
     check("the leaked Kortex session is REPORTED, never auto-repaired",
           not [a for k, _d, _det, _f, a in AUTOFIXES if k == "kortex_leak"][0],
           "it needs a person at the power switch")
+    check("segment exhaustion under a LIVE stack is reported, not silent",
+          "shm_exhausted" in [k for k, _d, _det, _f, _a in AUTOFIXES],
+          "a silent refusal is how 469 segments accumulated overnight")
+    check("and it is reported rather than swept under a live stack",
+          not [a for k, _d, _det, _f, a in AUTOFIXES
+               if k == "shm_exhausted"][0])
+    check("the warning threshold is above normal and below the failure point",
+          16 < SHM_WARN_AT < 469, "SHM_WARN_AT=%d" % SHM_WARN_AT)
     check("the SHM sweep is gated on the stack being down",
           [det for k, _d, det, _f, _a in AUTOFIXES
            if k == "shm"][0] is not None)

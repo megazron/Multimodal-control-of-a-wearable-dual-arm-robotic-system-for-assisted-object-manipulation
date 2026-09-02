@@ -423,6 +423,42 @@ def running_stack_pids():
         return []
 
 
+def stop_real_session(timeout_s=45.0):
+    """Close a Kortex session left open by a previous run, with SIGINT.
+
+    SIGINT IS THE WHOLE POINT and is why this is safe to automate:
+    start_real.sh traps it and closes the session properly ("kortex session
+    closed cleanly"). It is SIGKILL that leaks a session and makes the arm
+    refuse the next connect, and nothing here sends one.
+
+    Without this, `dup_stack` stopped the stack but left the bridge holding
+    the arm, and step 3 then waited on hardware that was already claimed --
+    measured: the bring-up sat in homing and never finished.
+    """
+    pids = []
+    for pat in ("[s]tart_real.sh", "[k]ortex_highlevel_bridge",
+                "[s]rl_teleop/lib/srl_teleop/real_homing_node",
+                "[s]rl_teleop/lib/srl_teleop/sim_to_real_bridge"):
+        try:
+            r = subprocess.run(["pgrep", "-f", pat], capture_output=True,
+                               text=True, timeout=10)
+            pids += [int(x) for x in r.stdout.split()]
+        except Exception:                                    # noqa: BLE001
+            pass
+    if not pids:
+        return True, "no real-arm session was open"
+    for pid in pids:
+        try:
+            os.kill(pid, 2)                                  # SIGINT, never 9
+        except OSError:
+            pass
+    ok = wait_for(lambda: not kortex_session_leaked(), timeout_s)
+    return ok, ("closed the previous Kortex session cleanly (%d process(es))"
+                % len(pids) if ok else
+                "the previous Kortex session did NOT close within %.0fs -- "
+                "the arm may refuse the next connect" % timeout_s)
+
+
 def stop_existing_stack(timeout_s=30.0):
     """SIGINT any stack already running, so exactly ONE is launched.
 
@@ -431,9 +467,13 @@ def stop_existing_stack(timeout_s=30.0):
     third attempt start_real.sh reported nine pids across three stacks.
     Discovery then partitions and every daemon-backed query comes back empty.
     """
+    # THE REAL SESSION FIRST, and cleanly. Stopping the stack while the
+    # bridge still holds the arm leaves the hardware claimed, and the next
+    # bring-up then hangs in step 3 against an arm it cannot have.
+    _ok_r, why_r = stop_real_session()
     pids = running_stack_pids()
     if not pids:
-        return True, "no stack was running"
+        return True, why_r + "; no stack was running"
     for pid in pids:
         try:
             os.kill(pid, 2)                                  # SIGINT
@@ -446,7 +486,8 @@ def stop_existing_stack(timeout_s=30.0):
         except OSError:
             pass
     wait_for(lambda: not running_stack_pids(), 8.0)
-    return True, "stopped %d process(es) of an existing stack" % len(pids)
+    return True, "%s; stopped %d process(es) of an existing stack" % (
+        why_r, len(pids))
 
 
 def daemon_sees_graph(timeout_s=25):
@@ -543,8 +584,12 @@ AUTOFIXES = [
     ("teensy_imu", "master arm IMUs reading all zeros",
      lambda: imu_is_dead(read_master_frames(3.0)) is True,
      power_cycle_teensy, True),
+    # NOW AUTO-REPAIRED, because the repair is a SIGINT that start_real.sh
+    # traps and closes the session with. The reason this was report-only
+    # before was the fear of leaking a session -- which is what SIGKILL does,
+    # and nothing here sends one.
     ("kortex_leak", "a Kortex session is still open from a previous run",
-     kortex_session_leaked, None, False),
+     kortex_session_leaked, stop_real_session, True),
     # SEGMENT EXHAUSTION WITH THE STACK UP. The sweep above is gated on the
     # stack being down and, when the gate holds, it says NOTHING -- which is
     # how 469 segments accumulated overnight and every new participant then
@@ -921,9 +966,18 @@ BUSID  VID:PID    DEVICE                                          STATE
 
     keys = [k for k, _, _, _, _ in AUTOFIXES]
     check("every auto-fix has a unique key", len(keys) == len(set(keys)))
-    check("the leaked Kortex session is REPORTED, never auto-repaired",
-          not [a for k, _d, _det, _f, a in AUTOFIXES if k == "kortex_leak"][0],
-          "it needs a person at the power switch")
+    # The leak IS auto-repaired now, but only ever with SIGINT: start_real.sh
+    # traps it and closes the session properly. SIGKILL is what leaks one, so
+    # the check is that the repair never reaches for it.
+    import inspect
+    src_fix = inspect.getsource(stop_real_session)
+    check("the Kortex session is closed with SIGINT, never SIGKILL",
+          "os.kill(pid, 2)" in src_fix and "os.kill(pid, 9)" not in src_fix,
+          "SIGKILL leaks the session and the arm refuses the next connect")
+    check("stopping a stack closes the real session FIRST",
+          inspect.getsource(stop_existing_stack).index("stop_real_session")
+          < inspect.getsource(stop_existing_stack).index("running_stack_pids"),
+          "the bridge holding the arm makes the next step 3 hang")
     check("segment exhaustion under a LIVE stack is reported, not silent",
           "shm_exhausted" in [k for k, _d, _det, _f, _a in AUTOFIXES],
           "a silent refusal is how 469 segments accumulated overnight")

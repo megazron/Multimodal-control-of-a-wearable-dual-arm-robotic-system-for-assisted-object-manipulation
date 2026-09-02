@@ -653,6 +653,43 @@ class AutoFixer:
 
 
 # ---------------------------------------------------------------- the steps
+#: EVERY TOPIC A TELEOP SESSION NEEDS TO BE RECONSTRUCTED AFTERWARDS: the
+#: master's raw channels and derived pose, the buttons, what the sim was
+#: commanded, what the sim did, what the REAL arms did, and the safety state
+#: that explains any gap between them.
+RECORD_TOPICS = [
+    "/master_arm_raw_left", "/master_arm_raw_right",
+    "/master_status_left", "/master_status_right",
+    "/master_arm_pose_left", "/master_arm_pose_right",
+    "/master_fsr_buttons",
+    "/joint_states", "/real/joint_states",
+    "/left_arm_controller/joint_trajectory",
+    "/right_arm_controller/joint_trajectory",
+    "/master_teleop/status", "/estop_state", "/mount_guard",
+    "/tf", "/tf_static",
+]
+
+
+def record_command(out_dir):
+    """`ros2 bag record`, and NOT either in-repo recorder.
+
+    full_state_recorder is a GUIDED CALIBRATION capture: it prints 20 prompts
+    and waits on ENTER. Spawned from a button with no stdin it parks at
+    prompt 1 of 20 forever and writes NOTHING, which is what happened on
+    2026-09-02 -- the button said "recording started", two processes sat
+    blocked on a read that could never arrive, and no file was created. A
+    recorder that is silently not recording is the worst instrument in this
+    repo's catalogue of them.
+
+    teleop_recorder is wrong here too: it is BUTTON-GATED, and this rig's
+    buttons flip both channels together and are bypassed by the pinned clutch.
+
+    A bag needs no prompt, no button and no clutch, and it stores the raw
+    topics rather than someone's idea of which fields will matter later.
+    """
+    return ["ros2", "bag", "record", "-o", out_dir] + RECORD_TOPICS
+
+
 #: (key, human title, why it is here). The GUI renders this list; the runner
 #: below executes it. One list, so a step cannot be shown and not run.
 STEPS = [
@@ -1056,6 +1093,22 @@ BUSID  VID:PID    DEVICE                                          STATE
               any("detector failed" in x for x in rec2.lines))
     finally:
         AUTOFIXES[:] = saved
+
+    print("recording")
+    cmd = record_command("/tmp/x")
+    check("the recorder is `ros2 bag record`, not a prompting tool",
+          cmd[:3] == ["ros2", "bag", "record"],
+          "full_state_recorder blocks on ENTER and writes nothing when "
+          "spawned from a button")
+    check("it records the master, the sim AND the real arms",
+          all(t in cmd for t in ("/master_arm_raw_left", "/joint_states",
+                                 "/real/joint_states")))
+    check("and the safety state that explains any gap between them",
+          "/estop_state" in cmd and "/master_teleop/status" in cmd)
+    check("the output directory is passed through", "/tmp/x" in cmd)
+    check("no in-repo recorder is invoked",
+          not any("recorder" in c for c in cmd),
+          "teleop_recorder is button-gated and this rig's buttons are bypassed")
 
     print("rclpy isolation")
     # THE REGRESSION GUARD for "Executor is already spinning". Source-level,

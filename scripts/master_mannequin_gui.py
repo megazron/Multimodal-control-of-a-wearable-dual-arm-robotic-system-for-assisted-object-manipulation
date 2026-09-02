@@ -77,6 +77,7 @@ class MasterMannequinWindow(QWidget):
         self.setWindowTitle("MASTER MANNEQUIN GUI -- real arms from the master arm")
         self.resize(880, 640)
         self._procs = {}
+        self._rec_dir = None
         self._running = False
         self._abort = False
 
@@ -313,16 +314,26 @@ class MasterMannequinWindow(QWidget):
 
     def on_record(self):
         if self._procs.get("record") and self._procs["record"].poll() is None:
-            self._procs["record"].terminate()
+            # SIGINT, not terminate: ros2 bag closes and INDEXES the file on
+            # SIGINT. Killed harder it leaves an unindexed bag behind.
+            self._procs["record"].send_signal(2)
+            try:
+                self._procs["record"].wait(timeout=15)
+            except Exception:                                # noqa: BLE001
+                pass
+            out = self._rec_dir or "?"
             self._procs.pop("record", None)
             self.rec_btn.setText("START RECORDING")
-            self.log("recording stopped -- file closed")
+            self.log("recording STOPPED and closed -> %s" % out)
             return
+        stamp = time.strftime("%Y%m%d_%H%M%S")
+        self._rec_dir = os.path.join(
+            WS, "recordings", "sessions", "master_teleop_%s" % stamp)
         log = os.path.join(_scratch(), "recording.log")
-        self._procs["record"] = mb.spawn(
-            ["ros2", "run", "srl_teleop", "full_state_recorder"], log)
+        self._procs["record"] = mb.spawn(mb.record_command(self._rec_dir), log)
         self.rec_btn.setText("STOP RECORDING")
-        self.log("recording started -> see %s for the file path" % log)
+        self.log("recording %d topics -> %s"
+                 % (len(mb.RECORD_TOPICS), self._rec_dir))
 
     def on_shared(self):
         """Shared autonomy ON TOP of a running teleop, never instead of it."""

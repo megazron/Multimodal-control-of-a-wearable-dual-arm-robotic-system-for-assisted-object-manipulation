@@ -1,0 +1,151 @@
+\chapter{Perception, environment mapping and autonomous manipulation}
+\label{ch:perception}
+
+\Cref{ch:methodsmain} summarises this stage. Almost everything in the
+delivered task layer previously ran on \emph{declared} coordinates verified
+at ten repeats over densified paths, none of which survives a different
+table, a different object, or the same object displaced by
+\SI{50}{\milli\metre}. Three components capable of sensing the same
+quantities already existed and had never been composed: a support-plane
+finder used only to print a description, a voxel-world planner constructed
+nowhere outside its own self-test, and a work-surface module whose
+depth-driven height setter nothing called.
+
+\section{Detection and grasp synthesis}
+
+Detection is open-vocabulary (YOLO-World~\cite{cheng2024yoloworld} with
+FastSAM~\cite{zhao2023fastsam}), falling back to a hue-and-depth filter; the
+backend that produced a detection is reported with it. Range is used as a
+discriminator where hue cannot be: the laboratory's teal robots and the
+target green block differ in hue by only two units, well inside noise, but
+sit \SI{2.8}{\metre} away against a \SI{1.6}{\metre} working range, so range
+separates them at zero extra cost -- the same size-at-range expression
+($w=sZ/f$) also rejects a \SI{210}{\milli\metre} pad presented as a
+\SI{40}{\milli\metre} cube. Grasp synthesis takes the principal axes of the
+object's depth cloud: writing the mean-centred points as $\mathbf{P}_k$, the
+axes are the eigenvectors of the scatter matrix
+\begin{equation}
+  \mathbf{C} = \frac{1}{N}\sum_{k=1}^{N}(\mathbf{P}_k-\bar{\mathbf{P}})(\mathbf{P}_k-\bar{\mathbf{P}})^{\!\top},
+  \qquad \mathbf{C}\mathbf{u}_j=\lambda_j\mathbf{u}_j,\; \lambda_1\ge\lambda_2\ge\lambda_3,
+  \label{eq:pca}
+\end{equation}
+and the jaw closes across $\mathbf{u}_3$, the direction of least extent,
+capped at
+\begin{equation}
+  w = \max_k \mathbf{u}_3^{\!\top}\mathbf{P}_k - \min_k \mathbf{u}_3^{\!\top}\mathbf{P}_k
+  \;\le\; w_{\max} = \SI{85}{\milli\metre}.
+  \label{eq:graspwidth}
+\end{equation}
+A geometric method can \emph{name} the cause of a refusal (too wide, no
+depth, too few points), which a learned alternative cannot and which also
+would not fit beside the detector in \SI{4}{\gibi\byte} of video memory.
+
+A reachability gate checking candidate grasps for reach and wearer clearance
+was inoperative for the life of the module: it scored the clearance from the
+whole kinematic chain including the immobile mount stub, which reads a
+constant \SI{0.2202}{\metre} in every pose and so could never fail against
+the \SI{0.15}{\metre} floor. It now reads the moving-chain clearance
+(\SI{0.4031}{\metre} at home) and a regression test requires a named refusal
+when aimed at the wearer's torso.
+
+\section{Measuring the working area}
+
+The sweep holds one wrist attitude per pass and translates, printer-bed-probe
+style, rather than re-aiming at each grid point: re-aiming would make a
+residual camera-to-wrist error a \emph{different} error in every frame,
+which can neither cancel across views nor be estimated from them. A frame is
+accepted only once no joint has moved by more than \SI{0.0015}{\radian} over
+\SI{400}{\milli\second} -- a tenth of the arrival tolerance.
+
+\begin{table}[htbp]
+  \centering
+  \caption[Measured map accuracy]{The fused map after one full sweep, against
+  the scene it was measuring.}
+  \label{tab:map}
+  \begin{tabular}{@{}ll@{}}
+    \toprule
+    Quantity & Measured \\
+    \midrule
+    Surface height & \SI{1.25026}{\metre} against a declared \SI{1.250}{\metre} \\
+    Objects recovered & 6 of 6, every centre within \SI{1}{\milli\metre} \\
+    Object extents & every dimension within \SI{3}{\milli\metre} \\
+    Coverage of reachable cells & \SI{98.65}{\percent}, 0 stillness refusals \\
+    Elapsed & \SI{13}{\minute}\,\SI{15}{\second} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+An earlier surface error of \SI{-5.2}{\milli\metre} was itself an instrument
+defect (\cref{ch:instrument}): the reported height was the fitted plane's
+intercept at the \emph{origin}, a point inside the wearer, not its height
+over the working area. Reachability (a fact about the robot, computed once)
+and the scene map (a fact about the room, rebuilt from scratch every time)
+are separate products with separate lifetimes; \repo{scripts/pick\_from\_map.py}
+refuses to move from a map older than thirty minutes, because a stale map is
+indistinguishable from a fresh one by inspection.
+
+\section{Planning and natural language}
+
+\repo{joint\_planner.py} implements RRT-Connect~\cite{kuffner2000rrtconnect}
+in joint space (the binding constraint is the whole arm's distance to the
+wearer, not the hand), evaluated against the same moving-chain clearance the
+guard enforces, with every edge densified at \SI{0.05}{\radian} to match the
+path checker. Without a planner, a pick whose pre-grasp and grasp poses were
+each individually clear passed within \SI{0.1462}{\metre} of the wearer
+mid-path.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Instruction handling]{Seventy-five phrasings, delivered grammar
+  against an earlier revision checked out of version control.}
+  \label{tab:phrasings}
+  \begin{tabular}{@{}lcc@{}}
+    \toprule
+    Outcome & Earlier & Delivered \\
+    \midrule
+    Correct & 21 & \textbf{34} \\
+    Asked a clarifying question & 14 & 14 \\
+    Refused & 37 & 27 \\
+    \textbf{Misunderstood} & \textbf{3} & \textbf{0} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The three earlier misunderstandings shared one mechanism: a compound
+instruction (\emph{put the blue ones on the blue mat and the green ones on
+the green mat}) was cut at the first destination cue, so the two-target
+check counted targets only in the head clause, planned the first, and
+silently discarded the second while reporting success.
+
+\section{Observing the wearer}
+\label{sec:wearer-tracking}
+
+The clearance floor of \cref{ch:methodsmain} is enforced against a body.
+\repo{wearer\_tracker\_node.py} replaces the mannequin in the robot
+description, part by part, with one built from markerless pose estimation
+and metric landmarks lifted by perspective-n-point~\cite{lugaresi2019mediapipe}:
+\SIrange{28}{34}{\milli\second} inference, \SI{61.6}{\milli\second} median
+frame-to-estimate, \SIrange{62}{562}{\milli\second} end to end (the spread is
+a configured publication rate limit, not the estimator). The safety
+argument is one monotonicity rule enforced in one function: \textbf{the
+camera may only ever make the wearer larger} -- per body part,
+\texttt{fuse()} keeps whichever of the tracked and mannequin primitive is
+\emph{nearer} the robot. A body injected \SI{0.10}{},\SI{0.30}{},\SI{1.00}{},
+\SI{5.00}{\metre} further away moved the enforced margin by nothing; six
+injected faults (dark frame, blank frame, two people, empty frame, occluded
+arms, a control) were refused seven of seven, each naming the fault. The
+honest limitation is on the fallback side: if the wearer raises their arms
+and tracking is then lost, the guard reverts to arms-down and believes
+\SI{0.317}{\metre} of clearance where there is \SI{0.093}{\metre}.
+
+Before this was connected, the tracker reached the planning scene and
+\emph{not} \repo{mount\_guard\_node}, which builds its wearer at import time
+-- the body the planner avoided and the body the floor enforced against were
+two different bodies. A second camera observing the workspace from outside
+the arms is implemented, refuses to republish stale frames, and both
+calibration tools pass self-tests to \SI{0.43}{\percent} focal length and
+\SI{0.0000}{\metre}/\SI{0.000}{\degree} extrinsic error -- but \textbf{no
+camera has ever been attached to it}: the device is the host's own webcam,
+and forwarding it into the Linux environment needs an administrator-level
+bind that was refused.

@@ -1,0 +1,120 @@
+\chapter{Background, in full}
+\label{app:background}
+
+\noindent\emph{\Cref{ch:background} states the gap this project addresses.
+This is the full review behind it, organised by theme, with each citation's
+scope stated precisely rather than implied.}
+
+\section{Supernumerary robotic limbs}
+
+The field's founding demonstrations are Parietti and Asada's bracing limbs
+for aircraft fuselage assembly, later extended to whole-body
+support~\cite{parietti2016support}, which anchor against the environment so
+the reaction load leaves the wearer's body rather than passing through it
+(\cref{fig:bracing}). In the arrangement studied here the arms are free in
+space, so the chain closes through the wearer instead -- and every reaction
+load is carried by a person who is not the person commanding the motion.
+This difference, not the control law, is what makes wearer clearance the
+binding constraint of \cref{ch:workspace}.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/diagrams/bracing_vs_worn.tex}
+  \caption[Two load paths for a supernumerary limb]{Bracing (the field's
+  founding configuration~\cite{parietti2014bracing}) against free-space
+  mounting (this platform).}
+  \label{fig:bracing}
+\end{figure}
+
+Reviews since map the design space along consistent axes -- mounting
+location trades reach against the moment arm imposed on the wearer,
+actuation trades bandwidth against worn
+mass~\cite{yang2021srlreview,prattichizzo2021augmentation,tong2021srlreview,zhang2023srlreview}
+-- and a recent quantitative survey adds that the field reports embodiment
+far more often than task performance, and rarely
+both~\cite{zheng2026quantitative}. Worn mass is the constraint reported
+least: each Gen3 masses \SI{8.2}{\kilo\gram}, the pair with harness exceeds
+\SI{17}{\kilo\gram}, and simulated wearer loads suggest the biomechanical
+cost is not negligible~\cite{moon2024impact}.
+
+\section{The operator and the wearer as different people}
+
+Fusion mounts a robotic head and two arms on a worn frame, driven by a
+remote operator~\cite{saraiji2018fusion}. Two qualifications travel with
+that citation: its three modes (Direct, Induced, Enforced) are levels of
+\emph{physical coupling} between the robot arms and the wearer's own, not
+levels of machine autonomy -- in all three the robot decides nothing -- and
+the publication is a two-page demonstration with no user study and no
+performance numbers. It establishes that the architecture existed; it
+cannot support a claim about how well it worked.
+
+Work on spatial guidelines for near-body interaction ran a concealed
+operator, varied apparent autonomy, and measured the wearer's physiological
+arousal and self-reported trust~\cite{zhou2026proxemics}: higher apparent
+autonomy made both worse. Their autonomy was a hidden human and their wearer
+had no task of their own, so the result does not settle what happens when
+autonomy is real and the wearer is occupied -- it establishes only that the
+wearer's experience is not a free variable. Disturbance rejection for the
+two-person case is partly solved: Zhang et al.\ compensate human-induced
+base motion and report end-effector errors of
+\SI{1.37(58)}{\milli\metre}~\cite{zhang2024motioncomp}, with the human
+shoulder as a floating base -- covering the case where wearer and operator
+are the same person (the base motion is partly predictable to the
+controller because the person commanding it also caused it), not the case
+studied here.
+
+\section{Master interfaces for dissimilar kinematics}
+
+Guggenheim and Asada argue for miniature physical masters on the grounds
+that geometric similarity supplies feedback inherently, without a separate
+haptic display~\cite{guggenheim2021haptic}. The argument covers similarity
+of \emph{form}; this system's master-to-slave reach ratio is roughly one to
+three, which is where it departs. Joint-space correspondence preserves
+posture but needs every master joint measured accurately; task-space
+correspondence decouples the chains at the cost of the slave's redundant
+degree of freedom (\cref{app:development}). Pinardi et al.\ review
+supplementary feedback in movement augmentation and find that feedback
+improving control does not reliably improve the sense of
+ownership~\cite{pinardi2023feedback} -- a caution against treating either as
+a proxy for the other.
+
+\section{Shared autonomy}
+
+Dragan and Srinivasa formalise arbitration as policy blending: a predicted
+user goal and the user's actual input combined with a weight set by
+prediction confidence~\cite{dragan2013policyblending}, explicit that
+blending aggressively on a wrong prediction is worse than not blending.
+Javdani et al.\ recast the problem as a POMDP over the user's goal,
+approximated by hindsight optimisation~\cite{javdani2015hindsight}: their
+user study found assistance that does not wait for high confidence lets
+operators finish faster with less input. Neither line of work was developed
+for a robot mounted on a second person -- there, the cost of assisting
+toward the wrong goal is a manipulator moving toward someone who did not
+command it, not a slower trial.
+
+\section{Measuring embodiment, workload and trust}
+
+The rubber hand illusion showed ownership can be induced over an object that
+is plainly not one's hand~\cite{botvinick1998rubber}; Longo et al.\
+decompose the resulting experience into ownership, agency and location,
+which can move independently~\cite{longo2008embodiment} -- an operator may
+feel authorship of a motion without feeling the arm is part of them, and a
+wearer may feel neither while bearing the consequences. Workload is
+conventionally the NASA Task Load Index~\cite{hart1988nasatlx}; for a
+two-person system it must be administered to both, since the two will not
+load the same way. Physical exertion is better tracked with a Borg
+category-ratio scale~\cite{borg1982perceived}. ANSI/ISA-101.01's central
+principle for operator displays~\cite{isa101} -- colour is a scarce alarm
+channel, so a normal state should be largely uncoloured -- transfers
+directly to a robot console.
+
+\section{The gap, restated precisely}
+
+Fusion established the architecture and measured nothing. Shared autonomy
+raises operator performance where the robot is attached to nobody. Raising
+apparent autonomy lowers a wearer's trust where the autonomy is a concealed
+human and the wearer has no task. What has not been done is to measure both
+ends in one system, under the same autonomy, in the same trial -- the
+engineering contribution of this thesis is a system in which that question
+could be asked; \cref{ch:discussionmain} sets out what still stands between
+the system as built and the full session that would ask it.

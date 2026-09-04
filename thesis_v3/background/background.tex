@@ -1,0 +1,66 @@
+\chapter{Background}
+\label{ch:background}
+
+Five bodies of work bear on the system built here.
+
+\textbf{Supernumerary robotic limbs.} Parietti and Asada's founding
+demonstrations brace a limb against the environment to stabilise the
+wearer's posture~\cite{parietti2014bracing,parietti2013dynamic}, which turns
+the wearer's body from a disturbance source into part of a closed chain.
+Later reviews map the design space along consistent axes -- mounting
+location trades reach against the moment arm imposed on the wearer,
+actuation trades bandwidth against worn mass -- and note that the field
+reports embodiment far more often than task
+performance~\cite{yang2021srlreview,prattichizzo2021augmentation,zheng2026quantitative}.
+Worn mass binds hardest: each Gen3 masses \SI{8.2}{\kilo\gram}, so the pair
+with harness exceeds \SI{17}{\kilo\gram}, and simulated wearer loads suggest
+the biomechanical cost is not negligible~\cite{moon2024impact}.
+
+\textbf{The operator and the wearer as different people.} Fusion mounts a
+robotic head and two arms on a worn frame, driven by a remote
+operator~\cite{saraiji2018fusion} -- but its three modes are levels of
+\emph{physical coupling}, not machine autonomy, and the publication reports
+no user study and no performance numbers. Work on near-body interaction
+found that raising \emph{apparent} autonomy (a concealed human operator, a
+wearer with no task of their own) raised the wearer's physiological arousal
+and lowered self-reported trust~\cite{zhou2026proxemics} -- evidence that the
+wearer's experience is not a free variable, though not evidence about real
+autonomy or an occupied wearer.
+
+\textbf{Master interfaces for dissimilar kinematics.} Guggenheim and Asada
+argue for miniature physical masters on the grounds that geometric
+similarity supplies feedback inherently~\cite{guggenheim2021haptic}; the
+argument covers similarity of \emph{form}, not \emph{scale}, and this
+system's master-to-slave reach ratio is roughly one to three. Joint-space
+correspondence preserves posture but needs every master joint measured
+accurately; task-space correspondence decouples the chains at the cost of
+the slave's redundant degree of freedom.
+
+\textbf{Shared autonomy.} Dragan and Srinivasa formalise arbitration as
+policy blending, weighted by prediction confidence~\cite{dragan2013policyblending};
+Javdani et al.\ recast it as a POMDP over the user's goal and show that
+assistance which does not wait for high confidence helps operators finish
+faster~\cite{javdani2015hindsight}. Neither was developed for a robot mounted
+on a second person, where the cost of assisting toward the wrong goal is not
+a slower trial but a manipulator moving toward someone who did not command
+it.
+
+\textbf{Measuring embodiment, workload and trust.} Ownership over an
+artificial limb is measurable and decomposes into ownership, agency and
+location, which can move independently~\cite{botvinick1998rubber,longo2008embodiment}.
+Workload separates into the NASA Task Load Index's six
+subscales~\cite{hart1988nasatlx}; physical exertion is better tracked with a
+Borg scale~\cite{borg1982perceived}, appropriate for an uncompensated master
+arm or a carried mass.
+
+\section{The gap}
+
+No study measures the operator and the wearer together, under the same
+autonomy, in the same trial: shared autonomy has been shown to help an
+operator where the robot is attached to nobody, and raising apparent
+autonomy has been shown to lower a wearer's trust where the autonomy was a
+concealed human. Until both are measured in one system, the exchange rate
+between what shared autonomy buys the operator and what it costs the person
+carrying the arms is unknown. \Cref{ch:intro} states the aim this gap sets;
+the full review, with every citation's scope stated precisely, is in
+\cref{app:background}.

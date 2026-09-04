@@ -1,0 +1,171 @@
+\chapter{System as built}
+\label{ch:method}
+
+\Cref{ch:methodsmain} gives the command mapping and safety architecture in
+summary. This appendix covers what is not repeated there: the package
+architecture, the full mode registry, the desk arrangement the laboratory
+actually operates, calibration, the operating window, and the verification
+audit.
+
+\section{Architecture}
+
+The workspace is six packages with a one-way dependency graph
+(\cref{fig:arch}). Direct teleoperation is the baseline condition of every
+planned experiment, so if the teleoperation package imported anything from
+the autonomy package the comparison would be circular; verified both by
+source inspection and by the inverse-kinematics follower still reaching its
+running state with the autonomy and perception packages deleted from the
+install tree.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/diagrams/architecture.tex}
+  \caption[Package architecture]{Package decomposition and the one-way
+  dependency graph.}
+  \label{fig:arch}
+\end{figure}
+
+\section{Command mapping, in full}
+
+The commanded position is built in spherical form about the master's
+shoulder rather than by forward kinematics from seven joint angles, each
+component taken from whichever sensor observes it most directly:
+\begin{align}
+  \phi &= \arcsin\!\left(\hat{a}\cdot\frac{\mathbf{g}}{\lVert\mathbf{g}\rVert}\right)
+    &&\text{elevation, from gravity} \label{eq:elev}\\
+  \psi &= \theta_1-\theta_1^0 &&\text{azimuth, from the shoulder roll} \label{eq:azim}\\
+  r &= \lVert\mathrm{FK}(\theta_1,\theta_2,\theta_3,\theta_4,0,0,0)\rVert &&\text{radius, magnitude only} \label{eq:reach}
+\end{align}
+with $\hat{a}$ the arm's long axis in the sensor's own frame, captured once
+at rest, and $\mathbf{g}$ the measured acceleration. Elevation is
+mount-independent and drift-free; radius is dominated by the bend joints and
+tolerates a dead roll passed through as zero. The commanded end-effector
+position is
+\begin{equation}
+  \mathbf{p} = \mathbf{p}_{\text{anchor}} + s(\mathbf{d}-\mathbf{d}_{\text{ref}}),
+  \label{eq:anchor}
+\end{equation}
+with $\mathbf{d}$ the master tip in the robot frame and
+$\mathbf{d}_{\text{ref}}$ the reference latched at clutch engagement, from
+the first \emph{valid} frame after boot at the master's actual pose. An
+earlier version initialised the reference to the origin of the master's own
+frame, so the first command was a step of the master's entire tip vector
+(roughly \SI{0.22}{\metre}) in whatever direction the master happened to be
+lying.
+
+\subsection{Collision avoidance in three stages}
+\label{sec:clearance}
+
+The wearer is in the collision model: thirteen collision elements were
+added, paired with thirty-six exclusions for the mount-adjacent proximal
+links (the arm bases are bolted to the harness and permanently adjacent, so
+without exclusions every pose is trivially in collision -- everything distal
+of the first arm link stays enabled, which is what actually protects the
+wearer). Avoidance is graduated: collision-aware inverse kinematics rejects
+a configuration; on rejection the redundant degree of freedom is re-seeded
+and the solve retried; a geometric clearance floor measured from the
+transform tree provides the final margin. The floor is measured against the
+\emph{fused} body of \cref{sec:wearer-tracking}, not the semantic collision
+description, which excludes forty-four proximal pairs and would report a
+pose valid with the upper-arm tube inside the person; and
+\texttt{base\_link} sits \SI{0.1610}{\metre} from the torso and is moved by
+no joint, so a clearance reading of exactly that value is a measurement of
+the mount, not the arm (\cref{ch:workspace}). Driving the commanded pose
+directly at the wearer's head and torso stopped the arm at
+\SIrange{0.072}{0.079}{\metre} with zero clearance-floor blocks, so the
+earlier stages did the work and the floor remained a backstop.
+
+\section{Control modes, in full}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Every delivered operating mode. The numbering is 01, 02, 03, 04
+  and 06: there is no 05, and the gap is preserved because recorded data
+  carries these labels.}
+  \label{tab:modes}
+  \begin{tabular}{@{}llll@{}}
+    \toprule
+    Mode & Input & Robot decides & $v_{\max}$ (\si{\radian\per\second}) \\
+    \midrule
+    01 direct, mannequin & master arm & nothing & 0.60 \\
+    02 direct, controllers & tracked controllers & nothing & 0.60 \\
+    03 shared autonomy & master, vision & wrist orientation & 0.60 \\
+    04 shared autonomy, controllers & controllers, vision & wrist orientation & 0.60 \\
+    06 full autonomy & typed or spoken goal & target, approach, grasp, place & 0.15 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Orientation assist is a stub: it would supply wrist orientation under an
+orientation constraint, and the inverse-kinematics plugin in use ignores the
+constraint field entirely (270 solver calls, success identical with and
+without it). It needs a constraint-aware plugin or explicit yaw sampling.
+
+\subsection{The desk arrangement}
+\label{sec:desk}
+
+The laboratory's actual arrangement seats the operator across the room,
+facing the wearer, holding the VR controllers as a six-degree-of-freedom
+input device and watching the physical robot directly. \textbf{Nobody wears
+the headset}; it stands on a shelf as the tracking reference for the
+controllers. The alignment between the operator's frame and the robot's is a
+measured yaw and can never be a mirror: facing someone and copying their
+motion is a reflection (determinant $-1$), which looks correct in position
+alone but reverses every commanded orientation. The angle is measured by
+having the operator move \SI{0.4}{\metre} toward the robot, with a
+perpendicular cross-check; calibration refuses to write a value if the two
+motions are not perpendicular and horizontal.
+
+Bringing the WebXR transport up for the first time (2026-08-19) exposed two
+defects no unit test would have found: the bridge node had never started at
+all, because an attribute named \texttt{clients} shadowed a read-only
+property of the base class; and its axis map had been written for the
+conventional robotics frame rather than this project's, so a hand moved
+\SI{3}{\metre} forward commanded \SI{3}{\metre} to the wearer's right. The
+delivered route serves the client page and the \texttt{wss} socket from one
+origin so a single certificate exception covers both, needs no \texttt{adb}
+or sideloading, and was verified end to end on 2026-08-19.
+
+\section{Calibration}
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/diagrams/calibration.tex}
+  \caption[Calibration procedure]{The calibration procedure, in order. A
+  calibration routine measures whatever the instrument was actually doing at
+  the time, so establishing that the instrument is in a valid state is part
+  of the measurement and not a preliminary to it.}
+  \label{fig:calibration}
+\end{figure}
+
+\section{The operating window}
+\label{sec:gui}
+
+Every capability reaches one window: a feature reachable only from a
+terminal does not exist for the person running a session with a wearer
+standing in the rig. \repo{scripts/verify\_gui\_buttons.py} presses every
+control and checks what the press did (257 checks). The first complete run
+found four defects: five session controls raised an exception inside a Qt
+slot, which the framework swallows, so they did nothing and said nothing;
+and the stray-process preflight for the one-stack constraint had never
+executed, because its module was never imported.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\linewidth]{gui/operating_window.png}
+  \caption[The operating window]{One command opens it. Left: set-up, run,
+  status. Centre: mode registry and per-mode controls. Right: the
+  three-dimensional commanded view beside a panel drawn from the arms' own
+  reported joint states, with the divergence between them read out beneath
+  both, so a mismatch between commanded and reported state is visible
+  without reading a log.}
+  \label{fig:gui}
+\end{figure}
+
+\section{Verification methodology}
+
+The rule -- a surprising failure is evidence about the instrument until the
+instrument has been cleared -- and the ten-repeats-over-a-densified-path
+practice are stated in \cref{ch:methodsmain}; \cref{ch:instrument} is the
+full case-by-case record.

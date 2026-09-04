@@ -1,0 +1,79 @@
+\chapter{The vision pipeline, measured on the real cameras}
+\label{ch:vision}
+
+\emph{Measured on four physical cameras, 2026-08-30 -- together with
+\cref{sec:hardware-session}, the only hardware numbers in this report.}
+
+The pipeline is instrumented at thirty-three stages per camera; every stage
+draws itself on the frame it was given, states its formula, and reports its
+quantities with units, so a claim can be checked rather than taken on trust.
+A stage has three possible outcomes, not two: it succeeds, it \emph{refuses}
+and names its cause and remedy, or it is \emph{absent by design} (the
+webcam's fifteen depth stages, because it has no depth sensor) -- rendering
+an absence identically to a defect has cost this project findings before.
+
+\section{The orientation defect}
+\label{sec:orientation}
+
+Three places in the software independently decided whether the scene depth
+camera is mounted upside down, and disagreed. Settled by correlating each
+frame's grey signature against the HD webcam (rotated by nothing, on the
+same side of the room) in both orientations: the un-rotated frame agrees at
+$r=\numrange{0.66}{0.70}$ over four captures, the rotated one at
+$r=\numrange{0.27}{0.34}$ -- the same verdict every time, a factor of 2.4
+apart. \textbf{The camera is mounted the right way up}, and every earlier
+scene figure was inverted. Because the wrong rotation had been applied
+\emph{consistently} to the image and the intrinsics together, the recovered
+point cloud was an exact reflection of the true one and every distance,
+extent and residual was preserved -- the defect was invisible to every
+metric the pipeline itself computes and was found only by comparing one
+camera's picture against another's.
+
+\section{What the cameras measured}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Geometry recovered from each depth camera]{One frame per camera.
+  The inlier fraction decides whether the row below it means anything.}
+  \label{tab:vision-geometry}
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    & left wrist & right wrist & scene depth \\
+    \midrule
+    pixels returning a depth & \SI{89.4}{\percent} & \SI{80.5}{\percent} & \SI{14.5}{\percent} \\
+    plane inliers & \SI{74.0}{\percent} & \SI{52.8}{\percent} & \SI{3.8}{\percent} \\
+    plane residual, RMS & \SI{1.43}{\milli\metre} & \SI{1.59}{\milli\metre} & \SI{3.41}{\milli\metre} \\
+    objects posed in 3D & 5 & 12 & 12 \\
+    graspable within the jaw & 0 & 0 & 0 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\textbf{The wrist cameras measure a work surface to about
+\SI{1.5}{\milli\metre}} -- within a factor of three of the same code against
+a renderer, the first evidence the surface-fitting stage transfers to
+hardware. \textbf{The scene camera does not identify a support plane}: its
+best plane holds \SI{3.8}{\percent} of the points, so every quantity that
+depends on it (height, object boxes) rests on a plane one point in
+twenty-six agrees with. \textbf{No object in any frame could be grasped}:
+the nearest object's narrowest axis measures \SI{144}{\milli\metre} against
+an \SI{85}{\milli\metre} jaw. \textbf{The open-vocabulary detector returned
+nothing on any camera} for the prompt \emph{green cube}; the classical
+colour-and-geometry path found the same objects it did not.
+
+Two defects in the first runs were software, not hardware. The pick path's
+own depth working band, correct for a wrist camera, applied unchanged to a
+camera across the room retained \textbf{0 of 85\,061 returns} -- the band is
+now declared per source. And two stages disagreed about the same frame
+because depth at $480\times270$ forward-projected into colour at
+$1280\times720$ lands one sample in roughly every seven pixels, so the
+above-plane mask was a dot pattern that failed a connectivity check while a
+per-mask stage saw it fine; splatting each projected sample raised coverage
+to \SI{64.4}{\percent} and \SI{58.8}{\percent}.
+
+The arms were to be parked at the pick pose for this session; measured
+rather than assumed, the left arm was \SI{10.67}{\degree} and the right
+\SI{13.53}{\degree} from the reference configuration, against a
+\SI{2}{\degree} tolerance, so no figure from this session is captioned "at
+the pick pose."

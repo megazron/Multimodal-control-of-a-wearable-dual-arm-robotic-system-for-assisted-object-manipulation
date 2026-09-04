@@ -1,0 +1,58 @@
+\chapter{Conclusion}
+\label{ch:conclusion}
+
+This project built a teleoperation system for two seven-degree-of-freedom
+arms mounted on a worn backpack frame, commanded by a second person through
+an instrumented mannequin master or VR controllers, with a safety
+architecture appropriate to a manipulator standing beside somebody who is not
+commanding it and a shared-autonomy layer above it -- and ran a first pilot
+comparison of direct and assisted control with real operators.
+
+\section{Against the objectives}
+
+A master was built and characterised: six of fourteen channels alive, the
+repair identified to two specific joints. The command mapping degrades
+predictably -- vertical and fore-aft track correctly, lateral does not, and
+no recalibration fixes it. The safety architecture handled fourteen of
+fourteen injected faults with every blocker observable by name. The
+workspace characterisation found the two arms share no reachable point
+under the as-built mount, identified a buildable mount correction, and that
+correction was applied and re-verified. Ten-repeat, known-answer
+verification ran throughout, catching twenty-six measurement defects before
+they entered this report as findings. And a first pilot ran under ethical
+approval with four operators across three tasks, showing shorter completion
+times and fewer re-grips under assistance with no measured cost in hand
+travel or responsiveness.
+
+\section{What was not achieved}
+
+No result here was validated on a physical Kinova arm carrying a load. The
+full two-person study -- operator and wearer, measured together under the
+same autonomy -- was not run; the pilot substitutes a smaller, operator-only
+comparison, made possible once VR controllers offered a route around the
+master's damaged channels. The planning report's haptic objective was not
+delivered, and is not deliverable through this platform's control interface
+without a hardware change.
+
+\section{Further work}
+
+In priority order: repairing the two identified master channels, which would
+make the mannequin master usable as the direct-control baseline the full
+study needs; calibrating the wrist-camera-to-arm transform, the largest
+unmeasured term in the positioning budget and the reason no open-loop grasp
+has yet closed on hardware; correcting the clearance check to sample link
+geometry rather than link origins, the one item on this list that is a
+safety defect rather than an incompleteness; and running the full two-person
+protocol of \cref{app:study} with a separate wearer, now that ethical
+approval and a working input path both exist, to measure what this project
+was ultimately built to ask -- the exchange rate between what shared
+autonomy buys an operator and what it costs the person carrying the arms.
+
+\section{Closing}
+
+The most transferable outcome of this work is not the mapping, the safety
+architecture, or the pilot's result. It is the discipline that produced them:
+twenty-six times a result that looked like a system failure turned out to be
+a defect in the measuring tool, and the habit of establishing which one is in
+hand before acting on it is the part of this project most worth carrying
+into the study it was built to enable.

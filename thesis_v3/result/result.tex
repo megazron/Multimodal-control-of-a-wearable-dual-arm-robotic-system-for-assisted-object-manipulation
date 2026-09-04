@@ -1,0 +1,214 @@
+\chapter{Results}
+\label{ch:resultsmain}
+
+Every number below is labelled with the strength of evidence behind it, and
+\textbf{no result before the pilot in \cref{sec:pilot-results} was validated
+on a physical Kinova arm carrying a load}: the great majority of this
+project is simulated against mock hardware, using the same kinematic
+description, inverse-kinematics solver and safety code as the delivered
+system, plus recorded data from the physical master and four physical
+cameras. \Cref{ch:results} maps every number below to its full derivation.
+
+\section{The command mapping and its safety layer}
+
+Channel health, computed over \emph{distinct} sensor updates rather than
+transmitted rows (roughly \SIrange{82}{88}{\percent} of consecutive rows
+repeat, which had previously been misread as dead channels), found six of
+fourteen channels alive. Replaying the recorded incoherent traces with the
+operator's input held constant shows those channels alone inject
+\SI{54.5}{\milli\metre} of commanded motion on the left arm and
+\SI{0.014}{\milli\metre} on the right -- motion nobody asked for, on a master
+whose whole reach is \SI{272}{\milli\metre}. Regressing true reach on the
+surviving channels shows the left arm retains no observable radial dimension
+at all ($R^2=\num{0.133}$) while the right retains it almost completely
+($R^2=\num{0.986}$), which names the repair precisely as two channels on the
+left arm and predicts that repairing any other channel would not restore
+reach.
+
+Vertical and fore-aft command axes track correctly on both arms. The lateral
+axis does not: two master motions intended \SI{90}{\degree}
+apart arrive \SI{137.7}{\degree} apart at the commanded end effector, and
+because a rotation preserves angles, no axis remapping or recalibration can
+turn a non-orthogonal measured triad into an orthogonal one. The cause is
+mechanical -- the first joint's axis does not tilt as the arm raises, so its
+effect on the tip scales with how bent the arm already is -- and is recorded
+as a geometric limitation of the sensing choice rather than a calibration
+defect.
+
+The safety layer handled fourteen of fourteen injected faults (channel
+dropout, board disconnect and reconnect, emergency stop mid-motion,
+wrong-object latching, stale detections, session loss, clock
+non-monotonicity and more). Two needed several attempts, and both were the
+same class of error: a mechanism keyed on the wrong observable. The dead-man
+did not trip on ten seconds of total master silence because the master
+substitutes stale data and keeps publishing at full rate; keying the
+dead-man on the data's own source timestamp fixed it. An earlier version of
+the same emergency-stop path also called a blocking real-driver shutdown
+first, adding a measured \SI{4}{\second} between the decision to stop and the
+arm actually stopping; the fix parks the arm first, from local publishes
+only.
+
+\section{Workspace and motion}
+
+Over a 63-cell grid spanning the frontal working volume with both arms
+verified at the home pose, \textbf{no cell was reachable by both arms}
+simultaneously, and the result survives freeing the wrist yaw and adding
+solver retries. A parametric mount sweep shows this is not intrinsic: moving
+the mounts inboard, forward and down with additional forward tilt raises
+shared cells to 22 of 63 within a buildable \SI{0.20}{\metre} separation.
+That mount change was subsequently applied, raising clearance at the home
+pose from \SI{0.1610}{\metre} (a reading of the mount itself, since no joint
+moves it) to \SI{0.2202}{\metre}, and moving the pick-and-place placement
+targets from \SI{0.530}{\metre} off centre to \SI{0.290}{\metre}. Neither
+arm crosses the body centre line at any surface height or distance in
+\num{3360} swept configurations; the constraint is the wearer's torso, not
+their arm posture, since deleting the wearer's arms from the model entirely
+moves the boundary by at most \SI{75}{\milli\metre}.
+
+The per-joint step limiter that constituted the whole of teleoperation
+motion generation left the hand \SI{51.3}{\milli\metre} (left arm) and
+\SI{39.2}{\milli\metre} (right) off the straight line its own
+inverse-kinematics solution implied, against a \SI{30}{\milli\metre} grasp
+capture gate, and commanded peak joint speeds \num{12.53} times the
+manufacturer's declared limit because it never read the limits file. Sweeping
+its step size shows the excursion does not tend to zero with a smaller step;
+it settles at \SI{68}{\milli\metre}, which is the structural signature of an
+algorithm that cannot stay on the line rather than a tuning problem. The
+jerk-limited, phase-synchronised replacement is \SI{0.0}{\milli\metre} off
+the line and at \num{1.00} times the joint-speed limit.
+
+Replaying recorded joint commands on the physical arm shows every joint
+parks \SI{0.305}{\degree} short of its target, on the side it approached
+from -- a terminal offset rather than noise, confirmed by propagating the
+error through the manipulator Jacobian ($r=\num{0.923}$) rather than by a
+proportional-gain model. A single scalar per arm, applied as overshoot in
+the direction of travel, removes \SIrange{74}{76}{\percent} of it. Folding
+this correction into the positioning error budget, together with a
+forward-kinematically derived (rather than asserted) pad offset and a
+measured-surface correction to the object-centring bias, takes the combined
+budget from \SI{18.64}{} to \SI{12.91}{\milli\metre} in quadrature and from
+\SI{33.39}{} to \SI{19.99}{\milli\metre} worst case -- inside the
+\SI{30}{\milli\metre} requirement for the first time, \emph{provided} the
+still-unmeasured camera-to-wrist transform is small. The first sustained
+attempt to drive a physical arm from its own wrist camera measured that
+transform directly and found it is not: four poses of a stationary table
+disagreed by \SI{8.45}{\degree}, which is \SIrange{34}{59}{\milli\metre} of
+position error over the working range (\cref{sec:hardware-session}).
+
+\section{Perception and the task set}
+
+Instrumented at thirty-three stages per camera and pointed at four physical
+cameras for the first time (\cref{ch:vision}), the wrist cameras fit a
+support plane at \SI{1.43}{\milli\metre} RMS with \SI{74}{\percent} inlier
+support at working distance -- within a factor of three of the same code
+against a renderer, and the first evidence that the surface-fitting stage
+transfers to hardware. No grasp closed on any camera: the narrowest axis of
+the nearest object measured \SI{144}{\milli\metre} against an
+\SI{85}{\milli\metre} jaw, a statement about the scene rather than the
+planner. The same session found, within its first hour, that three files
+independently asserted the scene camera's mounting orientation and none had
+measured it; the disagreement had silently inverted every earlier scene
+figure, and it was invisible to every geometric metric because a consistent
+rotation preserves every distance -- it was found only by comparing one
+camera's picture against another's.
+
+Within simulation, the full task set solves \num{13927} inverse-kinematics
+calls with zero failures and zero breaches of the \SI{150}{\milli\metre}
+wearer-clearance floor, and reproduces field for field on re-run. Sweeping
+the intent estimator that drives shared autonomy against a mis-declared
+table shows why the perception stage matters operationally and not only
+geometrically: working from declared coordinates, the estimator becomes
+\emph{confidently wrong} \SI{50}{\percent} of the time once the declaration
+is one object-pitch out, while working from measured coordinates it stays at
+\SI{0.0}{\percent} confidently wrong across the same sweep.
+
+\section{A pilot of direct control against shared autonomy}
+\label{sec:pilot-results}
+
+Four operators (P1--P4) completed sixteen recorded sessions under the
+protocol of \cref{sec:ethics}: direct VR control and shared-autonomy-assisted
+control, each on one of three tasks (object tracking, target reaching,
+position matching). Coverage is uneven by design -- not every operator
+performed every task under both conditions in the time available -- so the
+pooled comparison below mixes tasks together and the paired comparison that
+follows it is the part of the data that isolates the condition cleanly.
+Full session-by-session data, the coverage table, and the supplementary
+figures are in \cref{app:pilot}.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Pilot session summary]{Sixteen pilot sessions, pooled by condition.
+  Duration includes any pausing or hesitation and is a session-length rather
+  than a pure motor-execution measure. Every e-stop hold in this pilot
+  occurred once, near the end of the session, to stop the recording, and is
+  excluded as a procedural marker rather than a safety event.}
+  \label{tab:pilot-summary}
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    Measure ($n=8$ sessions per condition) & Direct & Shared autonomy \\
+    \midrule
+    Time to finish, mean (s) & 263 & 209 \\
+    Hand travel distance, mean (m) & 2.55 & 2.55 \\
+    Re-grips per session, mean & 29.4 & 23.9 \\
+    Share of session actively steering, mean & \SI{58}{\percent} & \SI{64}{\percent} \\
+    Robot's lag behind the operator's hand, mean (mm) & 2.8 & 3.0 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.47\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{pilot/pilot_time.pdf}
+    \caption{Pooled across all sixteen sessions. Each dot is one recorded
+    session; the bar is the mean for that task and condition.}
+    \label{fig:pilot-time-a}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.47\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{pilot/pilot_paired_time.pdf}
+    \caption{The six cases where one operator performed the identical task
+    under both conditions -- the fairest comparison in the pilot, since it
+    removes both between-operator and between-task variance.}
+    \label{fig:pilot-time-b}
+  \end{subfigure}
+  \caption[Pilot: time to finish]{Time to finish, pooled by task
+  (\subref{fig:pilot-time-a}) and paired within operator and task
+  (\subref{fig:pilot-time-b}). Session length includes setup and hesitation,
+  so this is the least precise of the pilot's measures; the supplementary
+  measures in \cref{app:pilot} are drawn from the position trace directly
+  and are not subject to the same confound.}
+  \label{fig:pilot-time}
+\end{figure}
+
+Pooled across all sixteen sessions (\cref{tab:pilot-summary},
+\cref{fig:pilot-time-a}), shared autonomy sessions averaged shorter
+completion times (\SI{209}{\second} against \SI{263}{\second}) and fewer
+re-grips per session (\num{23.9} against \num{29.4}), with essentially
+unchanged hand-travel distance and a robot lag under \SI{3.1}{\milli\metre}
+in both conditions. \Cref{fig:pilot-time-b} isolates the six cases in which
+the \emph{same} operator performed the \emph{same} task under both
+conditions: five of six show a shorter time under shared autonomy, and the
+median improvement is consistent with the pooled figure.
+
+This pilot measures operator performance only, at pilot scale (four
+operators, uneven task coverage), and its e-stop, path-length and lag
+measures show no evidence of a safety or responsiveness cost to shared
+autonomy over the sessions recorded. It does not include a separate wearer
+and therefore cannot speak to the wearer-side hypotheses -- trust and
+embodiment under autonomy -- that motivated the two-person design of
+\cref{app:study}; \cref{sec:pilot-limits} treats what would be needed to
+extend it into that full comparison. The physical arms were polled
+throughout every pilot session, which lets the best-tracking session check
+the sim-to-real bridge live rather than by offline replay: the real arm's
+own encoders follow the simulated joint they were commanded through to
+\SI{1.06}{\degree} RMS (\cref{app:pilot}) -- evidence the bridge was live and
+tracking, not evidence of a loaded grasp on hardware. A further three
+operators (M1--M3) attempted the same protocol from the mannequin master
+rather than VR: two track within \SI{3}{\degree}, and the third's three
+sessions track \SIrange{15.9}{21.2}{\degree}, an order of magnitude worse
+and consistent with this project's channel-health finding that the master's
+usability depends on which arm and channels a session happens to exercise
+(\cref{app:pilot}).

@@ -1,0 +1,120 @@
+\chapter{Motion generation and simulation-to-hardware transfer}
+\label{ch:motion}
+
+\Cref{ch:resultsmain} reports the headline numbers. This appendix gives the
+mechanism.
+
+\section{Why a per-joint clamp cannot stay on the line}
+\label{sec:clamp-maths}
+
+The limiter it replaced applied, per cycle and independently to each joint
+$i$, $q_i^{(k+1)} = q_i^{(k)} + \operatorname{clip}(q_i^\star - q_i^{(k)},
+-\Delta, +\Delta)$ with one step bound $\Delta$ shared by all seven joints.
+Writing the required displacement as $\mathbf{e}=\mathbf{q}^\star-\mathbf{q}^{(k)}$,
+staying on the straight joint-space line requires the applied step be
+\emph{parallel} to $\mathbf{e}$; the clamp applies
+$\operatorname{clip}(\mathbf{e},-\Delta,+\Delta)$ component-wise, which is
+parallel to $\mathbf{e}$ only when every component is inside the bound or
+every component saturates equally. In every other case the direction of
+travel rotates and the end effector leaves the path. This is why sweeping
+$\Delta$ over a factor of 35 does not drive the excursion to zero -- it
+settles at \SI{68}{\milli\metre} -- and why the excursion is a property of
+the algorithm, not its tuning.
+
+\section{What replaced it}
+
+Ruckig~\cite{berscheid2021ruckig}: time-optimal, jerk-limited, per-degree-of-freedom
+limits, accepting a non-zero target velocity. Phase synchronisation drives
+every joint from one scalar phase $\sigma(t)\in[0,1]$:
+\begin{equation}
+  \mathbf{q}(t) = \mathbf{q}^{(k)} + \sigma(t)\bigl(\mathbf{q}^\star-\mathbf{q}^{(k)}\bigr),
+  \qquad \sigma(0)=0,\; \sigma(T)=1,
+  \label{eq:phase-sync}
+\end{equation}
+so the commanded configuration is on the segment between endpoints by
+construction for every $t$ -- unlike merely stretching each joint's own
+profile to the slowest joint's duration (time synchronisation), which
+measures \SI{9.5}{\milli\metre} of path deviation on the same case against
+phase's \SI{0.02}{\milli\metre}. The acceleration and jerk limits are
+\emph{assumed} and labelled so: \repo{joint\_limits.yaml} declares zero
+acceleration limits for all fourteen joints, so there is nothing to read;
+only the velocity limits are the robot's own.
+
+Five defects were caught in the replacement, four of which would have
+passed a conventional test suite: re-planning every cycle destroyed phase
+synchronisation (a mid-profile re-plan cannot reproduce the profile it is
+half through); floating-point noise forced a re-plan every cycle even after
+fixing that, because the target was recomputed via a wrapped subtraction not
+bit-identical to itself; the synchronised-clamp fallback reported zero
+acceleration (because it does not model one) and so passed a continuity
+check by fabricating the quantity being checked; the off-path metric had a
+\SI{0.1}{\milli\metre} grid-resolution floor and was reporting the
+instrument's resolution as the robot's behaviour; and an arrival test used
+an absolute tolerance on travels spanning a factor of twenty-five.
+
+\section{The simulation-to-hardware gap}
+\label{sec:sim-to-real}
+
+Of 252 recorded per-joint errors, 211 lie between \SI{0.25}{} and
+\SI{0.30}{\degree} with the sign following the direction of travel -- a
+\emph{bound}, not a spread, which identifies a terminal offset rather than
+noise. Two candidate models, a terminal offset and a proportional gain
+error, coincide at one travel distance and differ by a factor of five at
+\SI{20}{\milli\metre}; propagating the recorded errors through the
+manipulator Jacobian reproduces the measured Cartesian error to
+\SI{90}{\percent} ($r=\num{0.923}$) under the offset model and not the gain
+model. The data had been recorded for weeks in
+\repo{recordings/baselines/arm\_directional\_calibration.json} before
+anything read it.
+
+An earlier report claimed the terminal error is speed-independent across a
+fivefold range; the velocity limit was read once at bridge start-up and
+seven of thirty-six runs moved \emph{faster} than commanded, so the three
+speeds were three replicates of one condition and the speed dependence has
+never actually been measured. The bridge deadband was \SI{1.0}{\degree}
+against a measured \SI{0.305}{\degree} park -- a factor of 3.3 -- and is
+\SI{0.10}{\degree} now, with an opt-in overshoot correction; neither has
+been tried on hardware.
+
+\section{The positioning error budget}
+
+\begin{equation}
+  \sigma_{\text{RSS}} = \sqrt{\textstyle\sum_i b_i^2}, \qquad
+  \sigma_{\text{worst}} = \textstyle\sum_i b_i,
+  \label{eq:budget}
+\end{equation}
+
+with $\sigma_{\text{worst}}$ the honest figure against the
+\SI{30}{\milli\metre} capture gate, since the two largest terms are declared
+constants rather than noise. Corrections -- the pad offset re-derived from
+forward kinematics (\SI{13.45}{} to \SI{0.05}{\milli\metre}), the shell bias
+removed via the measured support plane, and the terminal-offset overshoot
+(joint term \SI{7.24}{} to \SI{1.88}{\milli\metre}) -- take the budget from
+\SI{18.64}{} to \SI{12.91}{\milli\metre} RSS and \SI{33.39}{} to
+\SI{19.99}{\milli\metre} worst case, \emph{provided} the camera-to-wrist
+transform is small. \Cref{sec:hardware-session} measured it directly and it
+is not.
+
+\section{The reaction budget}
+
+\begin{table}[htbp]
+  \centering
+  \caption[Reaction budget]{Limb travel during the measured wearer-tracking
+  latency against the \SI{150}{\milli\metre} clearance floor. Speeds are
+  literature ranges, labelled as assumptions; latencies are measured.}
+  \label{tab:reaction}
+  \begin{tabular}{@{}llrl@{}}
+    \toprule
+    Limb motion & Latency & Travel & Against the floor \\
+    \midrule
+    Deliberate reach & \SI{62}{\milli\second} & \SIrange{50}{93}{\milli\metre} & \SI{62}{\percent} of it \\
+    Deliberate reach & \SI{562}{\milli\second} & \SIrange{450}{843}{\milli\metre} & exceeds it \\
+    Quick reach & \SI{62}{\milli\second} & \SIrange{93}{155}{\milli\metre} & exceeds it \\
+    Startle & \SI{62}{\milli\second} & \SIrange{155}{248}{\milli\metre} & exceeds it \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+In five of six modelled limb motions the limb travels further than the
+entire margin before the guard is aware anything has changed --
+\cref{ch:discussionmain} treats this as the principal open safety question.

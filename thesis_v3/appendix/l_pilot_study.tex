@@ -1,0 +1,241 @@
+\chapter{The pilot session, in full}
+\label{app:pilot}
+
+\noindent\emph{\Cref{sec:pilot-results} reports the headline pilot numbers.
+This appendix is the full record: coverage, every session, and the
+supplementary measures.}
+
+Sixteen sessions were recorded on 2026-09-03 and 2026-09-04
+(\repo{recordings/sessions/}). Duration, hand-travel distance and lag come
+from the full-resolution position trace (20 Hz); clutch and emergency-stop
+counts come from each session's event log. Participant identity is P1--P4
+throughout, including in every figure pixel, consistent with
+\repo{write\_manifest()} refusing to record a name (\cref{sec:ethics}).
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Pilot coverage]{Which participant performed which task under which
+  condition. Coverage is uneven because a pilot session is limited by time.}
+  \label{tab:pilot-coverage}
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    Participant & Object tracking & Target reaching & Position matching \\
+    \midrule
+    P1 & both (direct $\times2$) & --- & --- \\
+    P2 & both & both (shared $\times2$) & --- \\
+    P3 & direct only & shared only & both \\
+    P4 & both & --- & both \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \scriptsize
+  \caption[Every pilot session]{Every recorded session. Duration includes
+  setup and hesitation. Active share is the fraction of the session spent
+  with the grip engaged. P1's two direct-control sessions are a short
+  warm-up followed by the recorded attempt, both retained as separate
+  points.}
+  \label{tab:pilot-sessions}
+  \begin{tabular}{@{}llrrrrr@{}}
+    \toprule
+    P & Task & Cond. & Duration (s) & Travel (m) & Re-grips & Active \\
+    \midrule
+    P1 & Object tracking  & Direct & 147.4 & 0.31 & 19 & \SI{50}{\percent} \\
+    P1 & Object tracking  & Direct & 392.8 & 1.85 & 53 & \SI{53}{\percent} \\
+    P1 & Object tracking  & Shared & 114.9 & 1.50 & 12 & \SI{61}{\percent} \\
+    P2 & Object tracking  & Direct & 38.7  & 0.90 & 2  & \SI{61}{\percent} \\
+    P2 & Object tracking  & Shared & 169.6 & 1.57 & 25 & \SI{76}{\percent} \\
+    P2 & Target reaching  & Direct & 227.9 & 2.77 & 25 & \SI{52}{\percent} \\
+    P2 & Target reaching  & Shared & 78.6  & 0.70 & 11 & \SI{65}{\percent} \\
+    P2 & Target reaching  & Shared & 357.9 & 5.39 & 41 & \SI{73}{\percent} \\
+    P3 & Object tracking  & Direct & 617.4 & 7.09 & 52 & \SI{83}{\percent} \\
+    P3 & Target reaching  & Shared & 458.1 & 3.18 & 51 & \SI{74}{\percent} \\
+    P3 & Position matching & Direct & 315.9 & 3.72 & 35 & \SI{67}{\percent} \\
+    P3 & Position matching & Shared & 196.8 & 4.08 & 14 & \SI{85}{\percent} \\
+    P4 & Object tracking  & Direct & 195.6 & 2.07 & 37 & \SI{68}{\percent} \\
+    P4 & Object tracking  & Shared & 186.9 & 1.98 & 25 & \SI{42}{\percent} \\
+    P4 & Position matching & Direct & 171.9 & 1.65 & 12 & \SI{30}{\percent} \\
+    P4 & Position matching & Shared & 111.7 & 1.98 & 12 & \SI{40}{\percent} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.32\linewidth}
+    \centering\includegraphics[width=\linewidth]{pilot/pilot_distance.pdf}
+    \caption{hand travel}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.32\linewidth}
+    \centering\includegraphics[width=\linewidth]{pilot/pilot_regrips.pdf}
+    \caption{re-grips}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.32\linewidth}
+    \centering\includegraphics[width=\linewidth]{pilot/pilot_active.pdf}
+    \caption{active share}
+  \end{subfigure}\\[6pt]
+  \begin{subfigure}[b]{0.32\linewidth}
+    \centering\includegraphics[width=\linewidth]{pilot/pilot_lag.pdf}
+    \caption{control lag}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.60\linewidth}
+    \centering\includegraphics[width=\linewidth]{pilot/pilot_paired_regrips.pdf}
+    \caption{re-grips, paired within operator and task}
+  \end{subfigure}
+  \caption[Pilot: supplementary measures]{The supplementary pilot measures,
+  by task and condition. Distance and lag are essentially unchanged between
+  conditions, which is why \cref{sec:pilot-limits} reads them as the more
+  reliable measures in a pilot where session duration is confounded with
+  setup time.}
+  \label{fig:pilot-supplementary}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.30\linewidth}
+    \centering\includegraphics[width=\linewidth]{pilot/pilot_traj_direct.pdf}
+    \caption{direct control}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.30\linewidth}
+    \centering\includegraphics[width=\linewidth]{pilot/pilot_traj_shared.pdf}
+    \caption{shared autonomy}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.36\linewidth}
+    \centering\includegraphics[width=\linewidth]{pilot/pilot_engagement.pdf}
+    \caption{active-control span, same session}
+  \end{subfigure}
+  \caption[Pilot: recorded path and engagement, one participant]{The actual
+  recorded end-effector path (\repo{ee\_left\_x/y/z} in \repo{trail.csv}) for
+  one participant on the same task under both conditions, recorded back to
+  back, with the corresponding span of active control alongside. Neither
+  path is smooth; a shorter, straighter line would indicate a more direct
+  approach to the target. Gaps in the engagement panel are the operator
+  releasing the grip to reposition their hand before re-engaging.}
+  \label{fig:pilot-trajectory}
+\end{figure}
+
+\section{Sim-to-real tracking during the pilot}
+
+Every pilot session polled the physical Kinova arms' own joint encoders
+alongside the simulated joint state, which makes a direct check possible:
+does the real arm actually follow the simulated one it was commanded
+through. \Cref{fig:track} is the best-tracking session across all sixteen
+(P4, object tracking, direct control, chosen by lowest sim-to-real joint
+RMS): the real arm's joint 4 angle follows the simulated one to
+\SI{1.06}{\degree} RMS over \num{3859} samples, with the largest departures
+during the fastest motion and near-zero error while the arm holds still.
+This is the same terminal-offset mechanism \cref{sec:sim-to-real} measures
+from replayed commands, seen here live during an operator session rather
+than in an offline replay -- \textbf{it is evidence the sim-to-real bridge
+was live and tracking throughout the pilot}, not a claim that any pilot
+result was validated against a loaded arm, which requires the arm to be
+carrying and moving an object rather than only mirroring a joint angle.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.31\linewidth}
+    \centering\includegraphics[width=\linewidth]{pilot/track_joint.pdf}
+    \caption{joint 4, sim vs.\ real}
+    \label{fig:track-a}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.31\linewidth}
+    \centering\includegraphics[width=\linewidth]{pilot/track_joint_error.pdf}
+    \caption{sim-real tracking error}
+    \label{fig:track-b}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.34\linewidth}
+    \centering\includegraphics[width=\linewidth]{pilot/track_cartesian.pdf}
+    \caption{operator's hand vs.\ robot hand}
+    \label{fig:track-c}
+  \end{subfigure}
+  \caption[Sim-to-real tracking, best pilot session]{The best-tracking pilot
+  session by sim-to-real joint RMS. (\subref{fig:track-a}) One joint,
+  simulated command against the real arm's own encoder, over the session.
+  (\subref{fig:track-b}) The resulting tracking error, root-mean-square over
+  all seven joints; the dotted line is the session RMS,
+  \SI{1.06}{\degree}. (\subref{fig:track-c}) The operator's raw VR-hand path
+  against the simulated robot hand's achieved path, each centred on its own
+  mean -- the two live in different coordinate frames and at different
+  scales by design, so an absolute overlay would not be meaningful; centring
+  each on itself is the honest way to compare their shapes.}
+  \label{fig:track}
+\end{figure}
+
+\section{The master-arm cohort}
+
+Three further operators (M1--M3, disjoint from P1--P4) attempted the same
+protocol from the instrumented mannequin master rather than VR controllers,
+across sixteen further recording attempts on 2026-09-02 and 2026-09-04.
+\textbf{Seven of those sixteen are confirmed empty}: \texttt{ros2 bag info}
+reports zero messages, or no bag metadata at all, for every attempt at the
+multimeter task and both of M1's target-reaching attempts -- the same
+recording-pipeline failure this project's own session index for that day
+logged independently (eight of twenty-six recordings clean, ten with no data
+at all). The nine that did record are real sessions,
+\SIrange{72}{304}{\second} each, tens of thousands of messages.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Master-arm sessions]{The nine recorded master-arm sessions.
+  Joint RMS is the sim-to-real tracking error, computed the same way as
+  \cref{fig:track}, over the active arm's seven joints; see
+  \cref{fig:master-tracking}.}
+  \label{tab:master-sessions}
+  \begin{tabular}{@{}llrrr@{}}
+    \toprule
+    M & Task, condition & Duration (s) & Hand travel (m) & Joint RMS (deg) \\
+    \midrule
+    M1 & Object tracking, direct   & 154.1 & 21.44 & 21.2 \\
+    M1 & Object tracking, direct   & 145.8 & 14.11 & 15.9 \\
+    M1 & (unspecified), shared     & 209.8 & 22.02 & 16.3 \\
+    M2 & Object tracking, direct   & 110.9 & 10.85 & 2.2 \\
+    M2 & Object tracking, shared   & 71.7  & 7.57  & 1.9 \\
+    M2 & Target reaching, direct   & 303.8 & 20.80 & 1.8 \\
+    M2 & Target reaching, shared   & 83.6  & 4.19  & 0.4 \\
+    M2 & Target reaching, shared   & 206.4 & 11.60 & 3.0 \\
+    M3 & Target reaching, direct   & 254.1 & 11.48 & 1.8 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.72\linewidth]{pilot/master_tracking.pdf}
+  \caption[Master-arm sim-to-real tracking, all nine sessions]{Sim-to-real
+  joint tracking error for every recorded master-arm session, sorted low to
+  high. M2 and M3 track within \SI{3}{\degree} throughout; \textbf{every one
+  of M1's three sessions tracks an order of magnitude worse}
+  (\SIrange{15.9}{21.2}{\degree}).}
+  \label{fig:master-tracking}
+\end{figure}
+
+M1's tracking error is not noise: it is consistent across all three of that
+operator's sessions and separated from M2 and M3 by a factor of five to
+fifty. The mechanism this project's own channel-health measurement predicts
+(\cref{ch:results}) is a session that leans on the incoherent left-arm
+channels rather than the coherent right-arm ones -- all three of M1's
+sessions used the \emph{right} arm as the active hand (\cref{tab:master-sessions}),
+so a simple left/right split does not explain it on its own, and which
+specific channels M1's sessions exercised has not been isolated. It is
+reported here as a finding this pilot surfaced, not a diagnosis: the
+master-arm modality can apparently produce sim-to-real tracking an order of
+magnitude worse than either VR teleoperation or another operator on the same
+hardware, on the same day, and the pooled VR-only comparison of
+\cref{sec:pilot-results} would have missed it entirely.
+
+\paragraph{Limits.} Four participants with uneven task coverage is a
+pilot-scale sample: no significance test is reported, and none of the
+differences above should be read as a proven effect. The pooled figures mix
+three tasks together; the paired panels are the part of this pilot closest
+to the paired design of \cref{app:study}. Session duration runs from the
+start of the recording to the end, including any explanation or hesitation,
+so it is a session-length measure rather than a pure motor-execution time.
+Every session's emergency stop was engaged once, near the end, to stop the
+recording -- a procedural marker rather than a safety incident -- and is
+excluded throughout. This pilot has no separate wearer: every measure here
+is what the operator experienced, and the wearer-side hypotheses of
+\cref{app:study} (H3, H4) remain untested.

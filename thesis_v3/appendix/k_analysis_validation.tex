@@ -1,0 +1,51 @@
+\chapter{The analysis procedure, and its behaviour on constructed data}
+\label{app:analysis}
+\label{ch:participant}
+
+\noindent\emph{The analysis \cref{app:study} would be evaluated with,
+measured against data whose answer is chosen. No dyad data exists yet; this
+is a property of the procedure, not a result.}
+
+The design is within dyads: for task $j$, the paired difference
+$d_{ij}=y^{\text{SA}}_{ij}-y^{\text{DT}}_{ij}$ and its standardised mean
+$d_z=\bar{d}_{\cdot j}/s_{d,j}$ is the quantity the design was powered for
+(distinct from the standardised difference of means, which deflates every
+effect by $\sqrt2$ or more once within-dyad correlation is accounted for).
+Five tasks give five comparisons, corrected with Holm's step-down procedure,
+which controls the family-wise error rate under any dependence structure and
+is uniformly more powerful than Bonferroni.
+
+Applied to \num{20000} simulated studies at the planned sixteen dyads (a
+true $d_z=0.73$ effect on all five contrasts; and separately, no effect at
+all), through the unmodified analysis code:
+
+\begin{table}[htbp]
+  \centering
+  \caption[The analysis on constructed data]{$n=16$, $m=5$, $\alpha=0.05$.}
+  \label{tab:pipeline-validation}
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    & one contrast, & one contrast, & some contrast \\
+    Constructed truth & uncorrected & Holm-corrected & in the family \\
+    \midrule
+    $d_z=0.73$ on all five & \num{0.777} & \num{0.638} & \num{0.973} \\
+    no effect at all       & \num{0.052} & \num{0.010} & \num{0.050} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The null row is the check that could fail: a false-positive rate of
+\num{0.050} against nominal $\alpha=0.05$ shows the correction is
+implemented as specified. The design's own \SI{80}{\percent} power figure is
+confirmed \emph{uncorrected} (\SI{77.7}{\percent}) but no contrast will be
+reported uncorrected; after Holm, recovering the effect on a \emph{named}
+task falls to \SI{63.8}{\percent}, and restoring \SI{80}{\percent} on a named
+task needs twenty dyads, not sixteen. The study is nevertheless well powered
+for the question it actually asks -- whether shared autonomy changes
+performance on this platform at all, where the family-wise power is
+\SI{97.3}{\percent} -- so a per-task null at $n=16$ must be reported as an
+interval, not an absence. Trial validity is defined in one shared module
+that exits non-zero when no trials survive or more than half are excluded;
+before that existed, a session with every trial invalidated analysed
+cleanly to empty means and undefined intervals, indistinguishable from a
+null result on inspection.

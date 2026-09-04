@@ -1,0 +1,92 @@
+\chapter{Protocol for the two-person study}
+\label{app:study}
+\label{ch:study}
+
+\noindent\emph{This is the study \cref{ch:methodsmain} says the system was
+built for. The pilot in \cref{app:pilot} is a smaller, operator-only
+precursor; this protocol -- with a separate wearer -- is still the target.}
+
+\section{The question and hypotheses}
+
+Does supplying part of the operator's control with autonomy improve
+performance, and what does it cost the person carrying the arms? No prior
+study measures both under the same autonomy in the same trial
+(\cref{ch:background}). Five hypotheses, stated with direction before any
+data exists: task completion time is shorter under shared autonomy (H1);
+operator workload is lower (H2); \textbf{wearer-reported trust is lower
+under shared autonomy} (H3), against the direction of H1/H2, taken from a
+concealed-operator study~\cite{zhou2026proxemics} and tested here with
+autonomy that is genuinely a program and a wearer with a concurrent task;
+the wearer's sense of agency is lower while ownership is unchanged (H4),
+since the two dissociate~\cite{longo2008embodiment}; cross-arm interference
+is lower under shared autonomy while phase lag is not (H5), which would
+identify the benefit as attentional. \textbf{H3 and H4 are the hypotheses
+worth running the study for}; H1 and H2 exist to establish the platform can
+show an effect at all.
+
+\section{Design}
+
+Two modes (direct teleoperation, shared autonomy) crossed with five tasks,
+within subjects, sixteen dyads, roles fixed for the whole session. Two modes
+rather than four is costed, not a convenience: four modes across five tasks
+needs \SIrange{260}{320}{\minute} against a wearer exposure cap of
+\SI{48}{\minute} for carrying \SI{17}{\kilo\gram} continuously; a
+between-subjects design across modes needs ninety-six participants for the
+same sensitivity, since between-subject variance here exceeds the effect
+sought. Mode order is counterbalanced with Williams squares, not a Latin
+square, because a Latin square balances position but not immediate sequence,
+and a task with a learning curve is sensitive to the sequence.
+
+\textbf{Grasping under direct teleoperation is not achievable}: the default
+orientation mode pins the wrist to the anchor, the pick task needs a
+\SI{169.7}{\degree} rotation from it, and no master channel can command
+that. T2 (pick and place) therefore carries no mode contrast and is analysed
+as a single condition -- retained because grasp success under autonomy is
+worth measuring, and because it is the one task where autonomy's advantage
+over teleoperation on this platform is categorical rather than quantitative.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Task set]{}
+  \label{tab:taskset}
+  \begin{tabular}{@{}p{0.20\linewidth}p{0.48\linewidth}p{0.24\linewidth}@{}}
+    \toprule
+    Task & Measures & Mode contrast \\
+    \midrule
+    T1 positioning & Throughput vs.\ index of difficulty~\cite{fitts1954information}; single- vs.\ both-arm decrement & both modes \\
+    T2 pick and place & Grasp success, placement accuracy & shared autonomy only \\
+    T3 rigid carry & Coordination error as object tilt & both modes \\
+    T4 compliant carry & Coordination error as gripper separation & both modes \\
+    T5 dual pursuit & Cross-arm interference under divided attention & both modes \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Measures and procedure}
+
+NASA-TLX~\cite{hart1988nasatlx} after every block, both participants
+separately (the two roles load differently, and the comparison between them
+is the object of the study); Borg CR10~\cite{borg1982perceived} exertion from
+the wearer between every block, since a single end-of-session rating turns a
+covariate into a guess; trust and embodiment~\cite{longo2008embodiment} at
+the end of session, wearer only for embodiment. A safety observer, present
+throughout, holds an emergency stop and watches the wearer rather than the
+screen; their presence is enforced in software as well as procedurally --
+the safety node treats two seconds of heartbeat silence as withdrawal of
+consent to move. Consent is taken separately, in separate rooms.
+
+\section{Ethics and risk}
+
+The dominant risk is a \SI{17}{\kilo\gram} manipulator pair, moving under
+partly autonomous control, within reach of a seated person's head and
+torso. Mitigations: the \SI{150}{\milli\metre} margin enforced over the
+whole path and measured geometrically (\cref{sec:clearance}); a stop within
+the wearer's own reach and a second held by the observer; twenty minutes of
+carried-load exposure at a time with exertion rated between blocks; order
+counterbalanced against fatigue confounding condition; consent restated at
+every break; identifying data refused in code
+(\repo{write\_manifest()} raises on name, email, date of birth, address or
+telephone number). Video recording is not part of the protocol: a video of a
+participant wearing this rig is not anonymous, and no measure here requires
+one.

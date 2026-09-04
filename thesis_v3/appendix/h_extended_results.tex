@@ -1,0 +1,231 @@
+\chapter{Results, in full}
+\label{ch:results}
+
+\Cref{ch:resultsmain} reports the headline numbers with their evidence
+class. This appendix is the supporting record: every table the simulation
+campaign, the hardware sessions and the safety and instruction-handling
+measurements produced, with only enough text to say what each is.
+
+\section{The simulation campaign}
+\label{sec:campaign}
+
+\repo{scripts/run\_simulation\_campaign.py} runs every simulation stage by
+one command and records what each produced with its exit status and
+duration; \repo{scripts/make\_sim\_figures.py} refuses to emit a table whose
+stage did not run. Sixteen stages, all of which ran; \num{13927}
+inverse-kinematics calls at zero failures.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{The simulation campaign inventory.}
+  \label{tab:campaign}
+  \input{figures/sim/sim_campaign_inventory.tex}
+\end{table}
+
+\subsection{Computer vision against a constructed scene}
+\label{sec:sim-cv}
+
+Twenty-one known-answer checks on a frame whose plane, object pose and size
+were chosen. The fitted plane normal lands \SI{0.0001}{\degree} from the
+constructed one; a \SI{40}{\milli\metre} cube measures $40.8 \times 40.7
+\times \SI{40.7}{\milli\metre}$ and centres to \SI{0.41}{\milli\metre}. Two
+naive shortcuts are measured wrong by name: an axis-aligned bounding box
+reads \SI{41}{\percent} too wide, and taking the object centre as the mean
+of its visible points is out by \SI{16.15}{\milli\metre} along the surface
+normal (a single view sees a shell, not a solid) -- corrected to
+\SI{0.35}{\milli\metre} by assuming the object rests on the fitted plane.
+
+\subsection{Shared autonomy: what the intent estimator is sensitive to}
+
+Sweeping the declared-position error over the range a real table spans, a
+declared-coordinate estimator becomes \emph{confidently wrong} \SI{50}{\percent}
+of the time once the declaration is one object-pitch out; a measured-coordinate
+one stays at \SI{0.0}{\percent} across the same sweep, with the correct rate
+flat at \SIrange{71.7}{75.7}{\percent}. The correct rate never exceeds
+\SI{76}{\percent} in any condition, including perfect information -- the
+remaining quarter is ambiguity, and the arbiter is specified to stay in
+direct teleoperation whenever ambiguous.
+
+\subsection{Full autonomy: seventy-five phrasings}
+
+Correct interpretations rose from 21 to 34 of 75 against an earlier grammar
+revision, refusals fell from 37 to 27, misunderstandings fell from 3 to 0.
+Ten of fourteen clarifying questions carry a scored reply; all ten resolve
+correctly.
+
+\section{Channel health}
+\label{sec:channelhealth}
+
+\emph{Measured on recorded hardware data, 2026-08-06.} Six of fourteen
+channels met the alive criterion.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Per-channel verdicts, over distinct sensor updates.}
+  \label{tab:channelhealth}
+  \begin{tabular}{@{}llll@{}}
+    \toprule
+    \multicolumn{2}{@{}l}{Left arm} & \multicolumn{2}{l@{}}{Right arm} \\
+    \cmidrule(r){1-2}\cmidrule(l){3-4}
+    Channel & Verdict & Channel & Verdict \\
+    \midrule
+    j1 & intermittent, \SI{2.2}{\percent} & j1 & alive, \SI{195}{\degree} \\
+    j2 & incoherent, \SI{5}{\percent}     & j2 & alive, \SI{261}{\degree} \\
+    j3 & incoherent, \SI{8}{\percent}     & j3 & incoherent, \SI{14}{\percent} \\
+    j4 & incoherent, \SI{6}{\percent}     & j4 & alive, \SI{291}{\degree} \\
+    j5 & incoherent, \SI{12}{\percent}    & j5 & dead \\
+    j6 & incoherent, \SI{8}{\percent}     & j6 & alive, \SI{250}{\degree} \\
+    j7 & alive, \SI{26}{\degree}          & j7 & dead \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Left j7 had been recorded as railed and dead: the evidence was a spread of
+exactly zero over forty consecutive \emph{transmitted rows}, which is what
+an oversampled sensor (\SIrange{82}{88}{\percent} repeated rows) produces
+regardless of health. Regressing true reach on the surviving channels plus
+the inertial sensor gives $R^2=\num{0.133}$ (left) and $R^2=\num{0.986}$
+(right), naming the repair as exactly left j2 and j4.
+
+\section{Axis correctness}
+
+Regressing commanded pose against the master's physical spherical position
+(\num{6443} samples, $R^2=\num{0.999}$) found a gain matrix of
+$\mathrm{diag}(+1,-1,-1)$ against the intended identity: raising the master
+drove the arm down. Corrected. The lateral axis remains wrong and cannot be
+fixed by any axis map: measured directions meant to be \SI{90}{\degree}
+apart are \SI{137.7}{\degree} apart, and a rotation preserves angles, so no
+rotation maps one triad onto the other. Gyroscope-derived azimuth halves the
+residual on the left arm (\SI{25.6}{\degree} to \SI{13.5}{\degree}) but is
+not enabled: the right sensor drifts at \SI{44}{\degree\per\minute}
+stationary.
+
+\section{Safety: fault injection and timing}
+
+Fourteen of fourteen injected faults handled: channel dropout, board
+disconnect/reconnect, emergency stop mid-motion, wrong-object latching,
+ambiguous-target flicker, stale object, detection failure, logging failure,
+identifying data in a manifest, non-monotonic clock, session loss, zero
+detections, network dropout. Dead-man timing against a \SI{1.00}{\second}
+deadline: healthy master, 243 frames, no trip; \textbf{degraded (publishing
+at full rate, frozen source timestamp): trip at \SIrange{0.94}{0.99}{\second}}
+-- the case that could not have passed before keying the dead-man on the
+source timestamp; clean unplug: trip at \SI{0.97}{\second}. A separate
+emergency-stop defect: the trip handler called a blocking real-driver
+shutdown first, so decision at \SI{0.97}{\second} produced trip \emph{logged}
+at \SI{4.98}{\second} -- fixed by parking first, from local publishes only.
+
+\section{Task-set verification}
+
+Every coordinate of the five-task set verified at ten repeats over paths
+densified to \SI{20}{\milli\metre}, both arms confirmed at
+\SI{0.0000}{\radian} from home before any sample: zero failures, and the
+result reproduces field for field on re-run.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Five-task verification.}
+  \label{tab:final5}
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    Task & Coverage & Result \\
+    \midrule
+    Positioning       & 3 targets per arm                    & 3/3, 3/3 \\
+    Pick and place    & 3 picks per arm, approach and place  & 3/3, 3/3 \\
+    Rigid carry       & 3 paths, 25 densified waypoints      & all verified \\
+    Compliant carry   & as rigid carry                       & all verified \\
+    Dual pursuit      & 26-direction shell per arm            & 26/26, 26/26 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Performance figures}
+
+\emph{Control-path latency; a lower bound on end-to-end latency.}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Measured rates and latencies, against mock hardware.}
+  \label{tab:perf}
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    Quantity & Value & Note \\
+    \midrule
+    Master frame rate       & \SI{100}{\hertz} & firmware loop \\
+    Distinct sensor updates & \SIrange{14.7}{17}{\hertz} & \cref{ch:master} \\
+    VR packet rate          & \SI{68.5}{\hertz} & 822 packets / \SI{12.0}{\second} \\
+    VR round trip           & \SI{8.66}{\milli\second} median, \SI{16.5}{\milli\second} p95 & \\
+    Voice stop to \texttt{/estop} & \SI{2}{\milli\second} & \\
+    Kortex high-level loop  & \SIrange{18.4}{18.7}{\hertz} & two round trips/cycle \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The Kortex figure constrains the architecture: the cyclic control interface
+needs a \SI{1}{\kilo\hertz} loop on a dedicated link, and over this
+machine's virtualised network each cyclic write costs about
+\SI{10}{\milli\second} -- at \SI{100}{\hertz} the write alone consumes the
+cycle budget and no command reaches the arm while telemetry keeps arriving.
+The high-level velocity interface avoids this because it holds a commanded
+motion between sends.
+
+\section{The first hardware session}
+\label{sec:hardware-session}
+\label{sec:hardware}
+
+\emph{Measured on a physical arm -- the only section of this chapter whose
+numbers come from a moving Kinova arm.} A single arm was driven from its own
+wrist camera for the first time. Three findings survive as results.
+\textbf{The camera-to-wrist transform is wrong by roughly \SI{8.5}{\degree}
+and rotates with the wrist}: the surface normal measured from four poses of
+a stationary table read \SI{9.74}{},\SI{15.42}{},\SI{16.26}{},\SI{18.14}{\degree}
+from vertical, a worst pairwise disagreement of \SI{8.45}{\degree} --
+\SI{34}{\milli\metre} at \SI{0.23}{\metre}, \SI{59}{\milli\metre} at
+\SI{0.40}{\metre}. \textbf{The depth sensor itself is excellent}: the
+support plane fits at \SI{94.8}{\percent} inliers, \SI{0.46}{\milli\metre}
+residual, and a \SI{40}{\milli\metre} calibration cube measures $39.2 \times
+38.9 \times \SI{40.9}{\milli\metre}$ -- only the transform out of the camera
+frame is wrong. \textbf{The middleware was a first-class hazard}: shared
+memory in a state where no new process could join while running nodes
+continued normally, and an unset middleware variable caused silent discovery
+failure. Both present as an unresponsive robot.
+
+\section{Verification, in totals}
+
+\begin{table}[htbp]
+  \centering
+  \caption{What is checked automatically, as of 2026-08-31.}
+  \label{tab:verification}
+  \begin{tabular}{@{}lr@{}}
+    \toprule
+    Measure & Count \\
+    \midrule
+    Automated tests passing & \num{1505} \\
+    Test modules & \num{136} \\
+    Checks on the operating window & \num{257} \\
+    Faults injected and handled & 14 of 14 \\
+    Simulation stages, all of which ran & \num{16} \\
+    Inverse-kinematics calls, failures & \num{13927}, \textbf{0} \\
+    Known-answer checks on the vision arithmetic & \num{21} \\
+    Simulated studies of the analysis procedure & \num{20000} \\
+    Recorded demonstration cells & 17, at 8 camera angles \\
+    Vision stages instrumented on real cameras & \num{132} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{What is not measured}
+
+Anything derived from a force reading (the mock returns identically zero);
+object detection rate at working distance (the renderer used to measure it
+is out of the detector's training distribution); grasp success against a
+physical object; end-to-end latency including the arm and operator; how the
+terminal joint error varies with commanded speed (retracted in
+\cref{ch:motion}: three speeds were three replicates of one condition);
+speech recognition against a human speaker (no audio input device on this
+host; every voice figure characterises the grammar, not a recogniser); two
+arms driven simultaneously on hardware (measured at \SIrange{8.1}{12.2}{\hertz}
+with send latency spiking to \SI{519}{\milli\second}, past the bridge's own
+watchdog).

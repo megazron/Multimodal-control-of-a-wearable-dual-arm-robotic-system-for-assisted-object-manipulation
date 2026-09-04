@@ -1,24 +1,41 @@
 %% =====================================================================
 %%  MSc Individual Project, Imperial College London
-%%  Compile with XeLaTeX.  On Overleaf: Menu > Compiler > XeLaTeX.
-%%      xelatex main && bibtex main && xelatex main && xelatex main
+%%  Built on the department's own "Imperial College Individual Project
+%%  Template_LaTeX": same document class, page geometry, title page,
+%%  chapter order (Introduction, Background, Method, Result, Discussion,
+%%  Conclusion, Appendix) and bibliography style. Compile with XeLaTeX
+%%  (the template's own \usepackage{fontspec} and Times New Roman request
+%%  need it): xelatex main && bibtex main && xelatex main && xelatex main
 %% =====================================================================
 \documentclass[a4paper, twoside, 11pt]{report}
 
 %% Language. inputenc is deliberately absent: XeLaTeX reads UTF-8 natively
-%% and utf8x conflicts with fontspec.
+%% and utf8x (which the template lists for pdfLaTeX) conflicts with
+%% fontspec, which the template also loads.
 \usepackage[english]{babel}
 
-%% Page size and margins, as specified by the department template.
+%% Page size and margins: identical to the template.
 \usepackage[a4paper, top=2.54cm, bottom=2.54cm, left=1.91cm, right=1.91cm,
             marginparwidth=1.75cm]{geometry}
 
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{fontspec}
+\usepackage{titlesec}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+%% Beyond the template's own package list: booktabs/siunitx for data
+%% tables and physical quantities (every number in this report goes
+%% through \SI or \num), subcaption for the collage figures, cleveref so
+%% every cross-reference names its own kind ("Table 3.1", "Appendix B"),
+%% and tikz/pgfplots/listings for the appendix's data-path diagrams and
+%% short code excerpts (the appendix carries a handful, not the full
+%% firmware -- large listings are cited by repository path instead, per
+%% the booklet's own guidance).
 \usepackage{booktabs}
 \usepackage{multirow}
-\usepackage{longtable}
 \usepackage{array}
 \usepackage{siunitx}
 \usepackage{subcaption}
@@ -31,37 +48,21 @@
 \usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc,
                 shapes.geometric,shapes.misc,decorations.pathreplacing,
                 decorations.pathmorphing,decorations.markings}
-\usepackage{setspace}
-\usepackage{fontspec}
-\usepackage{titlesec}
-\usepackage[colorlinks=true, allcolors=blue]{hyperref}
 \usepackage[capitalise,nameinlink]{cleveref}
-
-%% siunitx: every physical quantity goes through \SI or \num, never a bare
-%% number.
-\sisetup{
-  detect-all,
-  range-units = single,
-  separate-uncertainty = true,
-  per-mode = symbol,
-}
+\sisetup{detect-all, range-units = single, separate-uncertainty = true,
+         per-mode = symbol}
 
 \graphicspath{{figures/}}
 
-%% Implementation provenance. Every claim about the implementation names the
-%% file it is implemented in, so a reader can check it.
-%% Repository paths are long and unbreakable in typewriter type, which
-%% produces overfull lines in captions and narrow columns. Underscores are
-%% given a zero-width break opportunity so a path can wrap.
+%% Implementation provenance: every claim about the implementation names
+%% the file it is implemented in. Repository paths are long and
+%% unbreakable in typewriter type; underscores get a zero-width break
+%% opportunity so a path can wrap instead of overflowing the margin.
 \DeclareRobustCommand{\repo}[1]{{\small\ttfamily
   \def\_{\char`\_\hspace{0pt}}\def\slash{/\hspace{0pt}}#1}}
-\DeclareRobustCommand{\file}[1]{\repo{#1}}
 
-%% ---------------------------------------------------------------------------
-%% FLOWCHART STYLES. One vocabulary for every data-path and control-flow
-%% diagram, so the diagrams can be compared stage by stage: the shape carries
-%% the kind of stage and the colour carries whether it can stop the arm.
-%% ---------------------------------------------------------------------------
+%% Flowchart styles used by the appendix's data-path diagrams: shape
+%% carries the kind of stage, colour carries whether it can stop the arm.
 \tikzset{
   sensor/.style   = {draw, rounded corners=2pt, fill=blue!8,
                      minimum height=7mm, text width=27mm, align=center,
@@ -85,25 +86,16 @@
                      font=\scriptsize},
   flow/.style     = {-{Latex[length=2mm]}, thick},
   fail/.style     = {-{Latex[length=2mm]}, thick, red!65!black, dashed},
-  %% align= is required on these two: without it the node is in LR mode and a
-  %% line break inside the label is an error rather than a break.
   lbl/.style      = {font=\tiny\itshape, inner sep=1pt, align=center},
   faillbl/.style  = {font=\tiny\itshape, red!65!black, inner sep=1pt,
                      align=center},
-  %% Aliases used by the chapters added after the 2026-08-09 draft.
-  stage/.style    = {proc},
-  sense/.style    = {sensor},
-  guard/.style    = {safety},
-  choice/.style   = {decision},
-  motor/.style    = {actuator},
-  absent/.style   = {stub},
-  go/.style       = {flow},
-  halt/.style     = {fail},
-  tag/.style      = {lbl},
-  stoptag/.style  = {faillbl},
+  stage/.style    = {proc}, sense/.style = {sensor}, guard/.style = {safety},
+  choice/.style   = {decision}, motor/.style = {actuator},
+  absent/.style   = {stub}, go/.style = {flow}, halt/.style = {fail},
+  tag/.style      = {lbl}, stoptag/.style = {faillbl},
 }
 
-%% Short listings only; full source belongs in the appendix.
+%% Short listings only; full source is cited by repository path.
 \lstset{
   basicstyle=\ttfamily\footnotesize,
   breaklines=true,
@@ -115,10 +107,6 @@
   showstringspaces=false,
 }
 
-%% \chaptertitlename tracks \appendix automatically (it is LaTeX's own
-%% \@chapapp), so appendix chapters are headed "Appendix A" and not "Chapter
-%% A" -- the literal word "Chapter" here was a pre-existing defect that
-%% mislabelled every appendix chapter as a numbered chapter of the main body.
 \titleformat{\chapter}[display]
   {\centering\huge\bfseries}
   {\chaptertitlename\ \thechapter}
@@ -131,10 +119,15 @@
 \emergencystretch=2em
 \hbadness=6000
 
-%% FONT. Times New Roman where present; TeX Gyre Termes, which is
-%% metric-compatible, otherwise. The stock template hard-codes Times New
-%% Roman, which is absent on most Linux machines, so the document failed to
-%% build anywhere else.
+%% A 14-chapter appendix with subsections at every level would give a
+%% seven-page table of contents that lists implementation detail nobody
+%% consults the ToC to find. Chapter and section only.
+\setcounter{tocdepth}{1}
+\setcounter{secnumdepth}{3}
+
+%% FONT. Times New Roman where present (the template's own choice);
+%% TeX Gyre Termes, metric-compatible, where it is not, so the document
+%% builds identically on Overleaf and on a machine without that font.
 \IfFontExistsTF{Times New Roman}{
   \setmainfont{Times New Roman}
 }{
@@ -151,57 +144,81 @@
 }
 
 \title{Multimodal Teleoperation of a Wearable Dual-Arm Supernumerary Robotic
-System: Master Interface Design, Safety Architecture, and a Workspace
-Characterisation}
+System}
 \author{Gaus Sayyad}
 % Supervisor and co-supervisor are set in title/title.tex
 
 \begin{document}
 \input{title/title.tex}
 
-\input{chapters/00_frontmatter.tex}
+\begin{abstract}
+The base of a supernumerary robotic limb is a person. This project built a
+teleoperation system for two seven-degree-of-freedom arms carried on a worn
+backpack frame and commanded by a \emph{second} person, gave it a safety
+layer appropriate to a manipulator standing beside somebody who is not
+commanding it, and ran a first pilot comparing direct control against
+shared-autonomy assistance.
+
+A body-worn master supplies position from whichever sensor observes each
+component most directly, and classifies all fourteen channels so a failing
+sensor degrades the system announcedly rather than silently. Six of fourteen
+met the health criterion; failing ones injected \SI{54.5}{\milli\metre} of
+unrequested motion. Vertical and fore-and-aft command track correctly;
+lateral does not, and no axis mapping fixes it. The two arms share no
+reachable point under the as-built mount; a costed mount change raised home
+clearance from \SI{0.1610}{\metre} to \SI{0.2202}{\metre}. The task set
+solves \num{13927} inverse-kinematics calls with no failures; replacing the
+motion generator removed \SI{51.3}{\milli\metre} of unrequested excursion;
+and perception on four physical cameras fits a work surface to
+\SI{1.43}{\milli\metre} RMS.
+
+Under ethical approval (SETREC 7111986), four operators completed sixteen
+sessions comparing direct VR control against shared-autonomy assistance:
+assisted sessions averaged shorter completion times and fewer re-grips, with
+unchanged hand travel and sub-\SI{5}{\milli\metre} lag. The pilot has no
+separate wearer and is pilot-scale; nothing was validated on a loaded
+physical arm, and the two-person study this system was built for remains the
+target for the work that follows.
+\end{abstract}
+
+\renewcommand{\abstractname}{Acknowledgements}
+\begin{abstract}
+I thank my supervisor, Dr.\ Dandan Zhang, for the direction of this project
+and for consistently pushing the work toward what could be measured rather
+than what could be claimed.
+
+I thank my co-supervisor, Dr.\ Etienne Burdet, for the framing that changed
+the shape of the project: treating the wearer and the operator as two people
+with different stakes, rather than as one role, is what turned a control
+problem into a question worth asking.
+
+I am grateful to the Human Robotics Group for access to the Dr.\ Octopus
+platform, and to everyone who kept two Kinova arms and a backpack frame
+available and working. Finally, I thank my family and friends for their
+support over the course of the year.
+\end{abstract}
 
 \tableofcontents
-\listoffigures
-\listoftables
+% \listoffigures and \listoftables are omitted, as in the department
+% template: the main body carries a small, deliberate figure/table budget
+% (booklet limit: 20) and a separate list adds pages without adding
+% information at this length.
 
 %% ---------------------------------------------------------------------------
-%% BODY. Introduction, Methods, Results, Discussion, Conclusion -- the
-%% structure and word/figure budget required by the Bioengineering MSc
-%% project booklet (final report: <=6000 words, <=20 figures/tables in the
-%% body; everything else may be appended without either limit). The full
-%% engineering detail this body summarises and points into -- the master
-%% arm's electronics and firmware, the complete system architecture, the
-%% perception and motion pipelines, the full simulation and hardware results,
-%% the workspace characterisation, the extended discussion, the route the
-%% design took, the measurement-validity record, the un-run two-person
-%% protocol and its validated analysis, and the pilot session in full -- is
-%% carried in the appendices, none of which counts against either limit.
+%% BODY. Introduction, Background, Method, Result, Discussion, Conclusion,
+%% in the department template's own order. Booklet limits (final report):
+%% <=6000 words and <=20 figures/tables in this body; the Appendix carries
+%% supporting detail and is exempt from both.
 %% ---------------------------------------------------------------------------
-\input{chapters/01_introduction.tex}
-\input{chapters/02_methods.tex}
-\input{chapters/03_results.tex}
-\input{chapters/04_discussion.tex}
-\input{chapters/05_conclusion.tex}
+\input{introduction/introduction.tex}
+\input{background/background.tex}
+\input{method/method.tex}
+\input{result/result.tex}
+\input{discussion/discussion.tex}
+\input{conclusion/conclusion.tex}
+\input{appendix/appendix.tex}
 
-\appendix
-\input{chapters/appendix_a_background.tex}
-\input{chapters/appendix_b_master.tex}
-\input{chapters/appendix_c_development.tex}
-\input{chapters/appendix_d_system.tex}
-\input{chapters/appendix_e_perception.tex}
-\input{chapters/appendix_f_motion.tex}
-\input{chapters/appendix_g_vision.tex}
-\input{chapters/appendix_h_instrument.tex}
-\input{chapters/appendix_i_extended_results.tex}
-\input{chapters/appendix_j_workspace.tex}
-\input{chapters/appendix_k_study_protocol.tex}
-\input{chapters/appendix_l_analysis_validation.tex}
-\input{chapters/appendix_m_extended_discussion.tex}
-\input{chapters/appendix_n_firmware.tex}
-\input{chapters/appendix_o_pilot_study.tex}
-
-\bibliographystyle{plain}
+\bibliographystyle{alpha}
 \bibliography{bibs/references}
 
 \end{document}

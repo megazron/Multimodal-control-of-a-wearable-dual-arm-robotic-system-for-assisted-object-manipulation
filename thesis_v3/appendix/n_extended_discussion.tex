@@ -1,0 +1,46 @@
+\chapter{Discussion, extended}
+\label{ch:discussion}
+
+\noindent\emph{\Cref{ch:discussionmain} is the argument. This appendix adds
+the detail that did not fit there.}
+
+\section{The clearance model itself is not yet trustworthy}
+
+The most uncomfortable single finding of the hardware programme belongs
+here rather than in the results. Asked about a pose in which the arm was
+\emph{physically against the mannequin}, one clearance model -- the one that
+samples link \emph{origins} rather than link geometry, and which runs on the
+physical arm during homing -- returned \SI{367.0}{\milli\metre}, the same
+value it returns for a visibly clear pose. Every clearance figure in this
+report computed through the guard's capsule model stands (the majority);
+but the standing claim that wearer margin is enforced \emph{at all times}
+was, at the time of writing, \textbf{not enforced in code on hardware}. This
+is the one item in \cref{ch:conclusion}'s further-work list that is a safety
+defect rather than an incompleteness, and it is placed above the mount
+change and above the study for that reason.
+
+\section{Three things the real cameras changed}
+
+Beyond the headline numbers of \cref{ch:vision}: the surface-fitting stage
+transferring to hardware within a factor of three of its simulated figure is
+the one component of the perception chain now known to work outside
+simulation, and the one the pick path leans on hardest. The scene camera is
+a \emph{different} instrument from the wrist cameras, not merely a distant
+one -- an eighth of the depth returns, a twentieth of the plane support --
+and no autonomous behaviour should expect a support surface from it. And the
+learned detector contributed nothing the classical colour-and-geometry path
+did not; no result in this report rests on a learned detector, worth noting
+given that a language-model-free, learned-detector-optional design was
+argued for on cost grounds rather than accuracy grounds.
+
+\section{Comparison against the planning report, in full}
+
+Divergences fall into three groups. \emph{Superseded by measurement}: the
+haptic objective (\cref{ch:discussionmain}). \emph{Deferred and still open}:
+coordinated pick-and-place on the real platform -- the task set is specified
+and verified geometrically and the runner exists, but the arms were not
+available for the period in which it would have run. \emph{Added}: the
+safety architecture, the degradation architecture, the workspace
+characterisation and the pilot were not in the plan; the first two follow
+directly from discovering that sensor faults dominate, the third from asking
+whether the task set was reachable before running it.

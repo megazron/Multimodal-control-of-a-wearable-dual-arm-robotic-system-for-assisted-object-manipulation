@@ -95,6 +95,23 @@ RVIZ_WAIT_S = float(os.environ.get("SRL_VR_RVIZ_WAIT_S", "60"))
 # RViz over the window -- the 2026-08-27 finding, which fixed every stack
 # spec the GUI launches and missed this one, since it is spawned from
 # `vr_bringup` and not from a spec. From a terminal the default stands.
+def _default_route_ip():
+    """The address on the interface carrying the default route, or None.
+
+    That is the network the headset shares. On this box `192.168.1.x` is the
+    ethernet segment the two Kinovas sit on -- a headset on the lab wifi can
+    never load a page there, and inside a headset that reads as a firewall or
+    certificate problem rather than as the wrong address.
+    """
+    try:
+        out = subprocess.run(["ip", "route", "get", "1.1.1.1"],
+                             capture_output=True, text=True, timeout=4).stdout
+    except Exception:                                         # noqa: BLE001
+        return None
+    m = re.search(r"\bsrc\s+(\d+\.\d+\.\d+\.\d+)", out)
+    return m.group(1) if m else None
+
+
 def _sim_rviz():
     # READ AT CALL TIME, not at import. The window sets this when it opens,
     # and it imports this module at start-up -- a module-level constant here
@@ -536,7 +553,15 @@ class World:
         ips = [t for t in out.split()
                if t and "." in t and ":" not in t
                and t[0].isdigit() and not t.startswith("127.")]
-        return sorted(ips, key=lambda t: (not t.startswith("192.168."), t))
+        # THE HEADSET IS ON THE WIFI, AND 192.168.1.x IS THE ARM SWITCH.
+        # 2026-09-02: the wifi lease moved and the window offered
+        # https://192.168.1.25:8765/ first -- an address on the ethernet
+        # segment the two Kinovas sit on, which no headset can ever reach.
+        # The interface carrying the DEFAULT ROUTE is the one the headset
+        # shares, so that address goes first; the rest follow unchanged.
+        dflt = _default_route_ip()
+        return sorted(ips, key=lambda t: (t != dflt,
+                                          not t.startswith("192.168."), t))
 
     def lan_ip(self):
         ips = self.lan_ips()

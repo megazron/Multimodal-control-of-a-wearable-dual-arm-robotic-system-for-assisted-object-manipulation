@@ -1461,6 +1461,27 @@ class MasterPoseNode(Node):
                 continue
             joints_deg, (ax, ay, az), (gx, gy, gz) = parsed
 
+            # ---- stage -2: PUBLISH THE RAW LINE, BEFORE EVERY GATE ----
+            # The pots go out the moment they are parsed. This used to be
+            # published at the END of this loop, past a `continue` that
+            # fires when no good frame has EVER arrived -- so one dead
+            # channel took the whole arm off `/master_arm_raw_<arm>` and
+            # `live_monitor` printed "is master_pose_node running?" about a
+            # node that was running perfectly, reading all seven pots, and
+            # logging exactly which channel was at fault. A broken channel
+            # and a dead node were one observation, which is the same defect
+            # as the VR mapper being silent while disengaged.
+            #
+            # The channels are looked at precisely WHEN they are broken, so
+            # the diagnostic topic must be the last thing to go quiet, not
+            # the first. It is also raw now in the sense the old comment
+            # already claimed: before the degraded-mode freeze and before
+            # incoherence rejection, so a frozen channel reads as the 0.0 it
+            # really is rather than its zero-reference substitute.
+            raw_now = Float64MultiArray()
+            raw_now.data = list(joints_deg) + [ax, ay, az, gx, gy, gz]
+            self.raw_pubs[a].publish(raw_now)
+
             # ---- stage -1: DEGRADED MODE FREEZE ----
             # Before incoherence rejection and before validation, so a
             # frozen channel cannot trip either. It is replaced by its
@@ -1689,12 +1710,9 @@ class MasterPoseNode(Node):
 
             self.pubs[a].publish(msg)
 
-            raw_msg = Float64MultiArray()
-            # [k1j1..k1j7 in degrees, ax, ay, az] -- the RAW line as read,
-            # never the validated/substituted vector, so this stays usable
-            # for diagnosing the channels themselves.
-            raw_msg.data = list(joints_deg) + [ax, ay, az, gx, gy, gz]
-            self.raw_pubs[a].publish(raw_msg)
+            # (the raw vector is published at stage -2, before every gate --
+            # publishing it again here would double the topic's rate and
+            # would only ever fire on frames that already passed.)
 
             self.status[a][ST_CLUTCH] = 1.0 if self.clutch_on[a] else 0.0
             self.status[a][ST_SCALE] = scale

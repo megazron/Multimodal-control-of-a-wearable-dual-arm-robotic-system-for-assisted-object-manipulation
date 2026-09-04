@@ -253,7 +253,20 @@ class QuestBridge(Node):
         ips = [t for t in out.split()
                if t and '.' in t and ':' not in t and t[0].isdigit()
                and not t.startswith('127.')]
-        return sorted(ips, key=lambda t: (not t.startswith('192.168.'), t))
+        # THE HEADSET IS ON THE WIFI, AND 192.168.1.x IS THE ARM SWITCH.
+        # Same fix as vr_bringup.lan_ips, 2026-09-02: the address on the
+        # interface carrying the DEFAULT ROUTE is the one the headset can
+        # reach; 192.168.1.x is the ethernet segment the Kinovas are on.
+        import re as _re
+        try:
+            r = subprocess.run(['ip', 'route', 'get', '1.1.1.1'],
+                               capture_output=True, text=True, timeout=4)
+            m = _re.search(r'\bsrc\s+(\d+\.\d+\.\d+\.\d+)', r.stdout)
+            dflt = m.group(1) if m else None
+        except Exception:                                     # noqa: BLE001
+            dflt = None
+        return sorted(ips, key=lambda t: (t != dflt,
+                                          not t.startswith('192.168.'), t))
 
     # ------------------------------------------------------------- transport
     def _serve(self):

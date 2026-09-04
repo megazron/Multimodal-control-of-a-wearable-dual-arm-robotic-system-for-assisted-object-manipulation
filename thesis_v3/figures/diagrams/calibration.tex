@@ -1,0 +1,48 @@
+% THE CALIBRATION PROCEDURE, IN ORDER.
+% The order is not cosmetic: each step consumes the previous step's output,
+% and two of the orderings are load-bearing. The notes that say WHY sit
+% beside the steps they constrain, brace-linked to them, so a reader can see
+% which step each warning is about without a legend.
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize,
+  pstep/.style = {proc, text width=44mm, minimum height=11mm},
+  why/.style  = {draw, dashed, rounded corners=2pt, red!60!black,
+                 fill=red!3, text width=88mm, align=left,
+                 font=\scriptsize, inner sep=4pt, anchor=west}]
+
+\node[pstep] (settle) at (0,    0) {\textbf{0. Settle the stream}\\node running, port held,\\IMU past power-on};
+\node[pstep] (gyro)   at (0,  -20) {\textbf{1. Gyroscope bias}\\sample \texttt{/master\_arm\_raw\_*},\\never the port};
+\node[pstep] (zero)   at (0,  -40) {\textbf{2. Zero reference}\\arm hanging; captures $\hat{\mathbf{a}}$\\and the j1 datum};
+\node[pstep] (chan)   at (0,  -60) {\textbf{3. Channel health}\\one verdict per channel over\\\emph{distinct} updates};
+\node[pstep] (maxp)   at (0,  -80) {\textbf{4. Range}\\sweep each joint to both\\mechanical stops};
+\node[pstep] (btn)    at (0, -100) {\textbf{5. Button map}\\\texttt{check\_buttons} reports,\\never rewrites};
+\node[actuator, text width=44mm, minimum height=11mm] (anchor) at (0, -120)
+  {\textbf{6. Workspace anchor}\\\texttt{tf2\_echo} at home $\Rightarrow$\\$\mathbf{p}_{\text{HOME}}$ and the anchor quaternion};
+
+\foreach \a/\b in {settle/gyro, gyro/zero, zero/chan, chan/maxp,
+                   maxp/btn, btn/anchor}
+  {\draw[flow] (\a) -- (\b);}
+
+\node[why] (w0) at (30,  -10)
+  {\textbf{Step 0 is not optional.} Re-opening the serial port resets the
+   board, and the inertial sensor emits nonsense while it settles. A
+   gyroscope bias captured through a script that re-opened the port read
+   \SI{4.85}{\degree\per\second} on the left sensor; sampled from the settled
+   topic instead, the same sensor read \SI{0.11}{\degree\per\second}. That one
+   mistake is the difference between \SI{1492}{\degree\per\minute} and
+   \SI{44}{\degree\per\minute} of estimated drift.};
+\node[why] (w3) at (30,  -70)
+  {\textbf{Step 3 must precede step 4.} A range sweep on an incoherent
+   channel measures the fault rather than the joint: the readings span a wide
+   interval without forming a trajectory, and range alone calls that healthy.};
+\node[why] (w6) at (30, -122)
+  {\textbf{Step 6 is derived, not chosen.} The anchor is the end-effector
+   pose at the home joint angles, so changing the home pose or the mount
+   invalidates it and every clearance figure computed from it.};
+
+\draw[decorate, decoration={brace, amplitude=4pt}, red!60!black]
+  (23, -3) -- (23, -17);
+\draw[decorate, decoration={brace, amplitude=4pt}, red!60!black]
+  (23, -55) -- (23, -85);
+\draw[decorate, decoration={brace, amplitude=4pt}, red!60!black]
+  (23, -115) -- (23, -126);
+\end{tikzpicture}

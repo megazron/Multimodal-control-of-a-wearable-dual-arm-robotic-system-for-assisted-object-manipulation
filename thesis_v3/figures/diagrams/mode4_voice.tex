@@ -1,0 +1,50 @@
+% MODE 06 -- FULL AUTONOMY FROM A TYPED OR SPOKEN INSTRUCTION.
+% Refusals are drawn as first-class outcomes with their own terminals,
+% because this mode declines more utterances than it accepts and the
+% distribution of outcomes IS the result (34 correct / 14 asked / 27 refused
+% / 0 misunderstood over 75 phrasings).
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize,
+  spine/.style  = {proc,   text width=42mm},
+  guardn/.style = {safety, text width=40mm},
+  sensen/.style = {sensor, text width=34mm},
+  sinkn/.style  = {draw, dashed, rounded corners=2pt, red!60!black,
+                   fill=red!3, text width=38mm, align=center,
+                   font=\scriptsize, inner sep=3pt},
+  outn/.style   = {actuator, text width=42mm}]
+
+\node[sensen] (mic) at (-54, 10) {typed sentence,\\or microphone};
+\node[sensen] (cam) at ( 54, 10) {wrist and scene cameras\\RGB-D};
+
+\node[spine] (stt)  at (-54,-12) {\texttt{faster-whisper} small\\int8, \SI{1222}{\mebi\byte} VRAM};
+\node[decision, text width=26mm] (wake) at (-54,-32) {addressed?};
+\node[spine] (gram) at (-54,-54) {grammar parser\\closed verb set:\\pick, place, hand over, stop};
+
+\node[spine] (det)   at (54,-12) {open-vocabulary detector\\HSV gate with a per-cube margin};
+\node[spine] (world) at (54,-32) {world model\\from the measured map};
+\node[guardn](keep)  at (54,-54) {wearer keep-out\\filters \emph{before} resolution};
+
+\node[decision, text width=32mm] (res) at (0,-78) {resolves to\\exactly one?};
+\node[guardn](conf) at (0,-100) {announce the intention,\\then require a confirmation};
+\node[spine] (plan) at (0,-120) {plan against the measured map\\not against declared coordinates};
+\node[outn]  (arm)  at (0,-140) {Kinova Gen3\\$v_{\max}=\SI{0.15}{\radian\per\second}$};
+
+\node[guardn, text width=36mm] (stop) at (62,-100) {``stop'' $\rightarrow$ \texttt{/estop}\\in \SI{2}{\milli\second}};
+
+\node[sinkn] (silent) at (-54,-78) {not addressed:\\\textbf{no reply at all}};
+\node[sinkn] (ask)    at (-54,-104) {none, or more than one:\\\textbf{refuse, and say why}\\or \textbf{ask}, picking none};
+
+\draw[flow] (mic) -- (stt);
+\draw[flow] (stt) -- (wake);
+\draw[flow] (wake) -- node[lbl, right] {yes} (gram);
+\draw[flow] (cam) -- (det);
+\draw[flow] (det) -- (world);
+\draw[flow] (world) -- (keep);
+\draw[flow] (gram.south) to[out=270,in=180] (res.west);
+\draw[flow] (keep.south) to[out=270,in=0]   (res.east);
+\draw[flow] (res) -- node[lbl, right] {yes} (conf);
+\draw[flow] (conf) -- (plan);
+\draw[flow] (plan) -- (arm);
+\draw[flow] (stop.west) -- (conf.east);
+\draw[fail] (wake.west) to[out=180,in=90] node[faillbl, left, pos=0.4] {no} (silent.north);
+\draw[fail] (res.west) -- node[faillbl, above] {no} (ask.east);
+\end{tikzpicture}

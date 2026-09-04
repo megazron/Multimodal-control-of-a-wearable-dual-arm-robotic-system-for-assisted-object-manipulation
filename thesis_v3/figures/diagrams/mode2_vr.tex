@@ -1,0 +1,49 @@
+% MODE 02 -- DIRECT TELEOPERATION FROM A QUEST HEADSET.
+% Same three-column grid as mode 01, so the two can be read against each
+% other: the front end differs and everything from `scale and anchor'
+% downwards is the same code.
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize,
+  spine/.style   = {proc,   text width=40mm},
+  guardn/.style  = {safety, text width=38mm},
+  sensen/.style  = {sensor, text width=34mm},
+  sinkn/.style   = {draw, dashed, rounded corners=2pt, red!60!black,
+                    fill=red!3, text width=34mm, align=center,
+                    font=\scriptsize, inner sep=3pt},
+  outn/.style    = {actuator, text width=40mm}]
+
+\node[sensen] (ctrl) at (-32, 10) {Quest controllers\\6-DOF pose, trigger, grip};
+\node[sensen] (hmd)  at ( 32, 10) {headset\\\SI{13.9}{\milli\second} frame, \SI{72}{\hertz}};
+
+\node[spine] (unity)  at (0, -10) {WebXR client\\vendor schema,\\sequence and timestamp};
+\node[spine] (tls)    at (0, -28) {one TLS origin\\page and \texttt{wss} socket\\from the same certificate};
+\node[spine] (bridge) at (0, -46) {\texttt{quest\_bridge\_node}\\WebSocket server, port 8766};
+\node[spine] (frame)  at (0, -66) {frame conversion\\$\mathbf{p}=(x,z,y)$,
+                                   $\mathbf{q}=(q_x,q_z,q_y,-q_w)$};
+\node[spine] (yaw)    at (0, -86) {operator yaw alignment\\$R_{\text{align}}=R_z(\psi)$, measured};
+\node[spine] (scale)  at (0,-104) {scale and anchor\\\emph{shared with mode 01}};
+\node[guardn](ik)     at (0,-124) {collision-aware IK\\clearance floor, step guard};
+\node[outn]  (arm)    at (0,-142) {Kinova Gen3\\\SI{100}{\hertz} command};
+
+\node[guardn,text width=36mm] (track) at (62, -46) {tracking watchdog\\per controller validity,\\freeze at \SI{0.20}{\second}};
+\node[guardn,text width=36mm] (link)  at (62, -66) {link watchdog\\freeze at \SI{0.30}{\second}};
+\node[spine, text width=36mm] (clutch)at (62, -86) {clutch\\anchors on the arm's\\current end effector};
+\node[guardn,text width=36mm] (obs)   at (62,-104) {observer e-stop heartbeat\\\SI{5}{\hertz}; \SI{2}{\second} of silence\\is withdrawal, not consent};
+\node[guardn,text width=36mm] (ref)   at (62,-124) {reference stability\\freeze past \SI{20}{\milli\metre} or
+                                                    \SI{2}{\degree} of headset motion};
+
+\node[sinkn] (freeze) at (-62, -56) {tracking or link lost:\\\textbf{freeze that arm}};
+\node[sinkn] (refuse) at (-62,-104) {no observer:\\\textbf{refuse to drive}};
+
+\draw[flow] (ctrl) -- (unity);
+\draw[flow] (hmd)  -- (unity);
+\foreach \a/\b in {unity/tls, tls/bridge, bridge/frame, frame/yaw,
+                   yaw/scale, scale/ik, ik/arm}
+  {\draw[flow] (\a) -- (\b);}
+\draw[flow] (track.west)  -- (bridge.east);
+\draw[flow] (link.west)   -- (frame.east);
+\draw[flow] (clutch.west) -- (yaw.east);
+\draw[flow] (obs.west)    -- (scale.east);
+\draw[flow] (ref.west)    -- (ik.east);
+\draw[fail] (track.south west) to[out=200,in=0] (freeze.east);
+\draw[fail] (obs.south west)   to[out=200,in=0] (refuse.east);
+\end{tikzpicture}

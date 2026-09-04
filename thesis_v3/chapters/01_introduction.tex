@@ -1,0 +1,104 @@
+\chapter{Introduction}
+\label{ch:intro}
+
+A supernumerary robotic limb is an extra arm worn on the body, working
+alongside the wearer's own limbs rather than replacing or rehabilitating
+them~\cite{yang2021srlreview,prattichizzo2021augmentation}. What separates
+such a device from a fixed manipulator is consequential for control: the base
+of the robot is a person. It accelerates, sways and steps, and it cannot be
+told to hold still.
+
+This thesis reports work on the MUlti-limb Virtual Environment, known within
+Imperial College London as the Dr.\ Octopus platform~\cite{muve}, which mounts
+two Kinova Gen3 seven-degree-of-freedom arms~\cite{kinova2022gen3} on a
+backpack frame and commands them from a \emph{second} person: an operator who
+cannot feel the arms, controlling them for a wearer who cannot command them.
+Fusion established that this operator/wearer architecture can be built, but
+measured nothing about it~\cite{saraiji2018fusion}; shared autonomy is known
+to raise operator performance where the robot is not attached to
+anybody~\cite{dragan2013policyblending,javdani2015hindsight}; and increasing
+apparent autonomy has been shown to lower a wearer's trust in a setting where
+autonomy was simulated by a concealed human with no task of their
+own~\cite{zhou2026proxemics}. No study measures the operator and the wearer
+together, under the same autonomy, in the same trial, so the exchange rate
+between what shared autonomy buys the operator and what it costs the wearer
+is unknown. \Cref{ch:background} reviews this ground in full; the gap it
+leaves is what this project is built to close.
+
+Two premises, argued and tested throughout, shaped the engineering. First,
+commanding fourteen joints through a body-worn master with no force feedback
+is a usability problem before it is a control problem, so position is taken
+from whichever sensor observes each component best rather than from the
+slave's full kinematic chain. Second, a body-worn master \emph{will} lose
+sensing channels over its life, so the system treats channel loss as an
+operating condition: every channel carries a health verdict, and when too
+many are lost the system reports position unavailable rather than fabricating
+one, because on a manipulator beside a person's head a fabricated position is
+worse than none.
+
+\section{Objectives}
+
+\begin{enumerate}
+  \item Design and build an instrumented mannequin master reproducing the
+    Gen3 morphology at reduced scale, characterised against recorded data.
+  \item Derive a master-to-slave command mapping that degrades predictably as
+    sensing channels are lost, and quantify what each loss costs.
+  \item Implement a safety architecture appropriate to a manipulator mounted
+    beside a person, validated by fault injection rather than inspection.
+  \item Characterise the reachable workspace of the mounted configuration and
+    determine which manipulation tasks it can support.
+  \item Establish a verification methodology producing traceable evidence for
+    every claim, and apply it throughout.
+  \item Run a pilot comparison of direct control against shared-autonomy
+    assistance with real operators, and identify what stands between it and
+    the full two-person study the architecture was designed for.
+\end{enumerate}
+
+The planning report framed this project around a haptic master with physical
+springs and virtual slave-side impedance. That objective was not delivered:
+\cref{ch:discussionmain} explains why, and \cref{app:development} records the
+route in full.
+
+\section{Contributions}
+
+Each contribution below is stated with its evidence class, because the
+distinction between implemented, verified in simulation, measured on
+hardware, and measured on a pilot session is load-bearing throughout this
+report. A graceful-degradation architecture for a body-worn master, measured
+against \num{20430} recorded frames; a reduced-degree-of-freedom command
+mapping that takes direction from gravity and magnitude from the
+best-conditioned joints; a safety architecture in which every blocking
+mechanism is observable, with fourteen of fourteen injected faults handled; a
+workspace characterisation showing the two arms share no reachable point
+under the as-built mount, together with a quantified and buildable mount
+correction; a jerk-limited, phase-synchronised motion generator that removes
+\SI{51.3}{\milli\metre} of unrequested Cartesian excursion; a
+calibrate-then-plan perception stage that recovers six objects to within
+\SI{1}{\milli\metre}; a stage-by-stage instrumentation of the perception
+pipeline exercised on four physical cameras; and a first pilot of the
+direct-versus-shared-autonomy comparison with four operators across three
+tasks, run under ethical approval once VR controllers supplied a working
+alternative to the master's incoherent channels. \textbf{No contribution
+below the pilot was validated on physical hardware carrying a load.}
+
+The single most transferable outcome does not appear in that list. Twenty-six
+times across this project, a result that looked like a system failure was a
+defect in the measuring tool rather than in the system, and validating an
+instrument against a known answer before trusting a surprising reading it
+produces is the practice applied to every number in this report
+(\cref{sec:validity}, \cref{ch:instrument}).
+
+\section{Report structure}
+
+\Cref{ch:methodsmain} summarises what was designed, built and run, including
+the pilot protocol and its ethical approval; the full engineering detail --
+the master's electronics and firmware, the system architecture, the
+perception and motion pipelines -- is in \cref{ch:master,ch:method,ch:perception,ch:motion}.
+\Cref{ch:resultsmain} reports the headline measurements and the pilot's
+results; \cref{ch:results,ch:vision,ch:workspace} carry the full simulation
+campaign, the real-camera vision session and the workspace characterisation.
+\Cref{ch:discussionmain} interprets the results and states what they are
+worth; \cref{ch:discussion} is the extended version. \Cref{ch:conclusion}
+closes against the objectives above. \Cref{app:study,app:analysis} are the
+protocol for the full two-person study and the validated analysis that would
+evaluate it, and \cref{app:pilot} is the pilot session in full.

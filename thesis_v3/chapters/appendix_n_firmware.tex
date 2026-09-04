@@ -1,0 +1,326 @@
+
+\chapter{Master arm firmware}
+\label{app:firmware}
+
+The complete sketch is at \repo{firmware/master\_arm/teensy\_final.ino}. The
+superseded revision, which carried the pin conflict described in
+\cref{ch:master}, is kept at
+\repo{firmware/master\_arm/teensy\_merged\_prior.ino} so the change can be
+diffed.
+
+\noindent\emph{The inertial-sensor driver header is included by the sketch but
+was not among the files handed over, and is not in the repository. It is
+therefore not listed below. Every call site that uses it appears in the
+listings that follow, so the interface the system depends on is fully
+specified here even though the implementation is not.}
+
+\section{Pin assignment as declared}
+
+\begin{lstlisting}[language=C++, caption={Pin arrays. \texttt{A4} and
+\texttt{A5} appear in neither array, which is the fix described in
+\cref{ch:master}.}]
+const int potPinsK1[JOINTS] =
+{
+ A0, A1, A2, A3, A6, A7, A8      // K1 (left arm) -- 7 channels, no I2C pins
+};
+const int potPinsK2[JOINTS] =
+{
+ A9, A10, A11, A12, A13, A16, A17  // K2 (right arm) -- 7 channels, no I2C pins
+};
+
+const int FSR1_PIN = A14;
+const int FSR2_PIN = A15;
+
+const int BUTTON1_PIN = 2;
+const int BUTTON2_PIN = 3;
+\end{lstlisting}
+
+\section{Signal conditioning as implemented}
+
+\begin{lstlisting}[language=C++, caption={The potentiometer filter and the
+count-to-degree transform. The filter operates in raw ADC units; note that
+\texttt{setup()} seeds the accumulator with \texttt{analogRead(pin) << 8},
+which is inconsistent with this recurrence and produces the start-up transient
+quantified in \cref{tab:transient}.}]
+static constexpr int ALPHA_FP    = 64;
+static constexpr int ADC_MIN_VAL = 50;
+static constexpr int ADC_MAX_VAL = 4045;
+
+inline int updateEMA(int pin, int32_t& emaFP)
+{
+    int raw = analogRead(pin);
+    emaFP =
+    ((int32_t)ALPHA_FP * raw +
+    (256 - ALPHA_FP) * emaFP) >> 8;
+    return (int)emaFP;
+}
+
+inline float adcToDeg(int adc)
+{
+    float t = constrain(
+    (float)(adc - ADC_MIN_VAL) /
+    (float)(ADC_MAX_VAL - ADC_MIN_VAL),
+    0.0f,
+    1.0f);
+    return t * DEG_MAX;
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=C++, caption={Button debounce and toggle. The
+output is a latched state, so a host that drops frames cannot miss a press.}]
+static constexpr uint32_t DEBOUNCE_MS = 40;
+
+inline int updateButtonToggle(
+int pin, int& state, int& lastRaw, uint32_t& lastChangeMs)
+{
+    int raw = digitalRead(pin);
+    uint32_t now = millis();
+    if(raw != lastRaw && (now - lastChangeMs) > DEBOUNCE_MS)
+    {
+        lastChangeMs = now;
+        lastRaw = raw;
+        if(raw == LOW)
+        {
+            state = state ? 0 : 1;
+        }
+    }
+    return state;
+}
+\end{lstlisting}
+
+\section{Frame construction}
+
+\begin{lstlisting}[language=C++, caption={Frame assembly. Inertial values are
+transmitted raw in LSB, so the scale factors are applied on the host and can
+be corrected without reflashing.}]
+    for(int j=0;j<JOINTS;j++)
+        p += snprintf(p, end-p, "k1j%d:%.1f,", j+1, degK1[j]);
+    for(int j=0;j<JOINTS;j++)
+        p += snprintf(p, end-p, "k2j%d:%.1f,", j+1, degK2[j]);
+    p += snprintf(p, end-p, "K1IMU:%d,%d,%d,%d,%d,%d,", ax1,ay1,az1,gx1,gy1,gz1);
+    p += snprintf(p, end-p, "K2IMU:%d,%d,%d,%d,%d,%d,", ax2,ay2,az2,gx2,gy2,gz2);
+    p += snprintf(p, end-p, "fsr1:%d,fsr2:%d,", fsr1, fsr2);
+    p += snprintf(p, end-p, "btn1:%d,btn2:%d", btn1, btn2);
+\end{lstlisting}
+
+\chapter{Supporting records}
+\label{app:records}
+
+The following are maintained in the repository rather than reproduced here,
+because each is longer than the chapter that cites it and each is generated
+rather than written.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Supporting records and where they live.}
+  \label{tab:records}
+  \begin{tabular}{@{}p{52mm}p{90mm}@{}}
+    \toprule
+    Record & Content \\
+    \midrule
+    \repo{thesis\_report/DIVERGENCE.md} &
+      Divergence from the planning report, by objective, with the reason and
+      the evidence for each. \\
+    \repo{thesis\_report/EVIDENCE.md} &
+      Every numerical claim in this thesis with the file and run that produced
+      it. \\
+    \repo{recordings/baselines/} &
+      Channel-health baselines by date, workspace sweeps, and the five-task
+      verification result. \\
+    \repo{docs/NEXT\_SESSION.md} &
+      Current blocking items in priority order. \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\chapter{Evaluation criteria}
+\label{app:criteria}
+
+Each criterion carries a threshold and the justification for that threshold. A
+criterion with a number and no justification for the number is not a
+criterion. Two criteria that a reader might expect are deliberately absent and
+the reason is given at the end.
+
+\begin{table}[H]
+  \centering
+  \footnotesize
+  \caption[Evaluation criteria]{The nine criteria this work is judged against,
+  with the outcome of each.}
+  \label{tab:criteria}
+  \begin{tabular}{@{}p{5mm}p{28mm}p{58mm}p{38mm}@{}}
+    \toprule
+    & Criterion & Threshold, and its justification & Outcome \\
+    \midrule
+    1 & Convention round trip &
+      Converting a joint angle from the manufacturer's convention to the
+      middleware's and back must return the original to within numerical
+      precision. The failure mode is a near-full revolution of a joint beside
+      a person, so there is no tolerance to spend &
+      \textbf{Met} \\
+    2 & Directional fidelity &
+      Under \SI{30}{\degree} per axis. Beyond that an operator must
+      consciously correct rather than move naturally &
+      \textbf{Partly met}: vertical and fore-and-aft pass, lateral does not
+      (\cref{ch:results}) \\
+    3 & Command tracking in simulation &
+      Under \SI{5}{\milli\metre} RMS. Below that the residual is dominated by
+      the pose deadband rather than by the controller &
+      \textbf{Met}, \SIrange{0.7}{4.7}{\milli\metre} \\
+    4 & Wearer clearance &
+      At least the configured floor at every point of every path, measured
+      geometrically &
+      \textbf{Not met} on three of four task paths; reported per task in
+      \cref{fig:clearance} \\
+    5 & Safety response completeness &
+      All injected faults detected, responded to and made externally visible.
+      A mechanism handling thirteen of fourteen is not a safety mechanism &
+      \textbf{Met}, 14 of 14 \\
+    6 & Degraded-mode integrity &
+      Under \SI{1}{\milli\metre} of commanded motion contributed by failed
+      channels from a still hand, and a refusal when no positional channel
+      survives &
+      \textbf{Partly met}: right arm \SI{0.014}{\milli\metre}, left arm
+      \SI{54.5}{\milli\metre}; refusal implemented \\
+    7 & Scenario reachability &
+      Ten repeats of ten over the whole densified path. A pose feasible on
+      \SIrange{72}{82}{\percent} of calls passes a five-of-five check
+      \SI{19}{\percent} of the time, so anything short of $N/N$ is not an
+      established pose &
+      \textbf{Met}, all verified scenarios \\
+    8 & Control-path latency &
+      Under \SI{200}{\milli\second}, inherited from the planning report &
+      \textbf{Not measured end to end}; the control-path figures in
+      \cref{ch:results} are lower bounds \\
+    9 & Object handling verified in the recording &
+      The fingers must open, close within the holding band and reopen, and the
+      object must track the gripper &
+      \textbf{Met}, all recorded grasp cells \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\textbf{No force or impedance criterion.} The mock hardware returns
+identically zero for every force and effort field, so any quantity derived
+from a force reading is \emph{structurally undefined} on this platform rather
+than merely unmeasured. Force reflection and closed-loop overshoot cannot be
+defined as criteria until either a dynamic simulator or the physical arm is in
+the loop.
+
+\textbf{No angular-tracking criterion.} The commanded orientation is pinned to
+the workspace anchor and never follows the master's wrist, because the wrist
+channels are dead or incoherent. There is no angular tracking to measure until
+those channels are repaired.
+
+\chapter{Equipment}
+\label{app:equipment}
+
+\begin{table}[H]
+  \centering
+  \small
+  \caption[Equipment]{Hardware and software, with the reference for each.}
+  \label{tab:equipment}
+  \begin{tabular}{@{}p{34mm}p{100mm}@{}}
+    \toprule
+    Item & Detail \\
+    \midrule
+    Manipulators & Two Kinova Gen3, seven degrees of freedom,
+      \SI{8.2}{\kilo\gram} each, \SI{0.902}{\metre}
+      reach~\cite{kinova2022gen3} \\
+    Grippers & Robotiq two-finger, \SI{85}{\milli\metre} stroke \\
+    Wrist cameras & Colour and depth, one per arm \\
+    Frame & Backpack harness; arms mounted behind the shoulders with forward
+      tilt \\
+    Master arm & Scale model of the same joint sequence: fourteen rotary
+      potentiometers, two inertial units, two force-sensitive resistors, two
+      buttons \\
+    Microcontroller & Teensy 4.1~\cite{pjrc2020teensy41}, \SI{100}{\hertz}
+      frame rate \\
+    Inertial sensors & MPU-6050 at power-on
+      defaults~\cite{invensense2013mpu6050,invensense2013mpuregmap} \\
+    Controllers & Two tracked hand controllers, headset stationary as the
+      tracking reference (\cref{sec:desk}) \\
+    Host & Laptop, Linux, \SI{4}{\gibi\byte} of video memory \\
+    Middleware & ROS~2~\cite{macenski2022ros2} \\
+    Inverse kinematics & TRAC-IK~\cite{beeson2015tracik} \\
+    Motion generation & Ruckig~\cite{berscheid2021ruckig} \\
+    Path planning & RRT-Connect~\cite{kuffner2000rrtconnect} in joint space \\
+    Plane fitting & RANSAC~\cite{fischler1981ransac}, constrained to the
+      support normal \\
+    Detection & YOLO-World~\cite{cheng2024yoloworld} with
+      FastSAM~\cite{zhao2023fastsam} \\
+    Body tracking & MediaPipe Pose~\cite{lugaresi2019mediapipe} \\
+    Prior simulation & MuJoCo~\cite{todorov2012mujoco}; Isaac
+      Lab~\cite{isaaclab} evaluated and rejected \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\chapter{Where the evidence lives}
+\label{app:evidence}
+
+Every quantity quoted in this thesis is produced by a named program and stored
+as a record, so that it can be recomputed rather than taken on trust. The
+mapping below is the index; the records themselves are in the repository.
+
+\begin{table}[H]
+  \centering
+  \small
+  \caption[Evidence index]{Principal claims and the programs that produce
+  them.}
+  \label{tab:evidence}
+  \begin{tabular}{@{}p{58mm}p{76mm}@{}}
+    \toprule
+    Claim & Produced by \\
+    \midrule
+    Channel health verdicts &
+      \repo{trajectory\_capture/channel\_report.py} \\
+    Cost of each rung of the degradation ladder &
+      \repo{scripts/measure\_capability\_ladder.py} \\
+    Commanded motion injected by failed channels &
+      \repo{scripts/prove\_degraded\_mode.py} \\
+    Continuous reachability by direction &
+      \repo{scripts/measure\_workspace.py} \\
+    Both-arm overlap and the dead band &
+      \repo{scripts/sweep\_mount\_overlap.py} \\
+    Mount parameter sweep &
+      \repo{scripts/sweep\_mount\_geometry.py} \\
+    The centre, asked four ways &
+      \repo{scripts/search\_centre\_on\_surface.py},
+      \repo{measure\_centre\_vs\_height.py},
+      \repo{measure\_centre\_vs\_wearer\_posture.py} \\
+    Clearance along each task path &
+      \repo{scripts/measure\_clearance\_region.py} \\
+    Positioning error budget &
+      \repo{scripts/measure\_control\_budget.py} \\
+    Motion generation and the step sweep &
+      \repo{scripts/measure\_teleop\_motion.py} \\
+    Simulation-to-hardware terminal error &
+      \repo{scripts/measure\_sim\_to\_real\_gap.py} \\
+    Map accuracy &
+      \repo{scripts/calibrate\_environment.py} \\
+    Wearer tracking rate and fallbacks &
+      \repo{scripts/measure\_wearer\_tracking\_rate.py},
+      \repo{verify\_wearer\_fallbacks.py} \\
+    Instruction handling &
+      \repo{scripts/sweep\_t1\_instructions.py} \\
+    Fault injection &
+      \repo{srl\_teleop/fault\_injector.py} \\
+    Operating window audit &
+      \repo{scripts/verify\_gui\_buttons.py} \\
+    Test totals &
+      \repo{scripts/check\_tests.py} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\chapter{Participant documentation}
+\label{app:documents}
+
+\noindent\fbox{\parbox{0.95\linewidth}{\small\itshape
+To be attached before submission: the participant information sheet, both
+consent forms, the pre-session screening questions and the debrief script. Two
+consent forms rather than one, because the two roles carry materially
+different risks: one participant carries \SI{17}{\kilo\gram} and is within
+reach of a manipulator moving under another participant's command, and the
+other is not. Drafts exist in the project's research records and are not
+reproduced here because they have not been through ethical review.}}

@@ -1,0 +1,49 @@
+% MODE 04 -- SHARED AUTONOMY.
+% The one claim this figure has to make unmissable is that the POSITION path
+% never passes through the autonomy stage, so it is drawn as a straight green
+% spine down the middle and the autonomy stack is a side branch that can only
+% reach the ORIENTATION blend.
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize,
+  spine/.style  = {proc,   text width=40mm},
+  posn/.style   = {draw, thick, fill=green!8, draw=green!45!black,
+                   text width=40mm, align=center, font=\scriptsize,
+                   minimum height=9mm},
+  guardn/.style = {safety, text width=38mm},
+  sensen/.style = {sensor, text width=34mm},
+  sinkn/.style  = {draw, dashed, rounded corners=2pt, red!60!black,
+                   fill=red!3, text width=34mm, align=center,
+                   font=\scriptsize, inner sep=3pt},
+  outn/.style   = {actuator, text width=40mm}]
+
+\node[sensen] (master) at (-62,  8) {master arm\\the mode 01 front end};
+\node[sensen] (cam)    at ( 46,  8) {wrist cameras\\RGB-D};
+
+\node[posn]  (pose)  at (-62, -16) {\textbf{commanded position}\\the operator's, in full};
+\node[posn]  (carry) at (-62, -74) {\textbf{position is never blended}\\100\% operator, every state};
+
+\node[spine] (tag)    at (46, -16) {AprilTag 36h11\\sub-pixel refinement};
+\node[spine] (track)  at (46, -34) {object tracker\\drops a target unseen\\for \SI{1.5}{\second}};
+\node[spine] (intent) at (46, -54) {intent estimator\\pointing (primary), velocity\\(weight \num{0.25}), $\lambda=\num{0.02}$};
+\node[decision, text width=28mm] (amb) at (46, -74) {ambiguous?};
+\node[guardn](arb)    at (46, -94) {arbiter\\DIRECT $\rightarrow$ ASSIST only if\\$P>\theta$, near, and unambiguous};
+\node[spine] (slerp)  at (46,-114) {wrist SLERP\\over \SI{0.5}{\second}};
+
+\node[guardn](ik)  at (-8,-136) {collision-aware IK\\clearance floor, step guard};
+\node[outn]  (arm) at (-8,-156) {Kinova Gen3};
+
+\node[sinkn, text width=38mm] (stay) at (-62,-104)
+  {ambiguous, or no object:\\\textbf{stay in DIRECT}\\assist nothing};
+
+\draw[flow] (master) -- (pose);
+\draw[flow] (pose)   -- (carry);
+\draw[flow] (cam) -- (tag);
+\foreach \a/\b in {tag/track, track/intent, intent/amb, amb/arb, arb/slerp}
+  {\draw[flow] (\a) -- (\b);}
+\draw[flow] (pose.east) to[out=0,in=180] (intent.west);
+\draw[flow, green!45!black, thick] (carry.south) to[out=270,in=180] (ik.west);
+\draw[flow] (slerp.south) to[out=270,in=0] (ik.east);
+\draw[flow] (ik) -- (arm);
+\draw[fail] (amb.west) -- node[faillbl, above] {yes} (stay.east);
+\draw[fail] (track.south west) to[out=200,in=30] (stay.north east);
+\node[lbl, anchor=west] at (48, -84) {no};
+\end{tikzpicture}

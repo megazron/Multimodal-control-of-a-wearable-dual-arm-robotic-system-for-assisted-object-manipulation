@@ -1,0 +1,406 @@
+\chapter{Workspace characterisation and its consequences}
+\label{ch:workspace}
+
+This chapter is separated from \cref{ch:results} because it is not a single
+measurement but a chain of them, and because its consequences determined the
+shape of the task set. It reports a negative finding together with a
+quantified and buildable mechanical fix; the finding alone would be a
+complaint rather than a contribution.
+
+\section{Continuous reachability from the home pose}
+
+Reachability was measured as a swept extent rather than as pointwise
+feasibility, because teleoperation requires the arm to travel to a pose from
+where it already is, without a branch change. Twenty-six directions were swept
+in \SI{1}{\centi\metre} steps from the home configuration, each step seeded
+from the previous solution exactly as the follower does.
+
+Repeating the sweep ten times gave identical quartiles: the inter-quartile
+range was \SI{0.000}{\metre} in every direction for both arms. The measurement
+repeats. What did \emph{not} repeat in earlier runs was the summary statistic:
+isotropy taken as the minimum over directions of a single sweep is dominated
+by rare early terminations and varied by a factor of two between runs. On
+medians it is stable, at \num{0.16} for the left arm and \num{0.10} for the
+right (\cref{fig:reach}).
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\textwidth]{reach_directions.pdf}
+  \caption[Continuous reachability from home]{Continuous reachability from the
+  home pose in the six principal directions, median of ten sweeps, with the
+  binding constraint printed inside each bar. The envelope is markedly
+  anisotropic: the median reach over all twenty-six directions is
+  \SIrange{0.34}{0.40}{\metre} while the worst direction is
+  \SI{0.14}{\metre} on the left arm and \SI{0.09}{\metre} on the right.
+  \emph{Max range} marks a direction in which the sweep exhausted its own
+  travel before the arm did, so those two figures are lower bounds.
+  Regenerated from \repo{recordings/baselines/workspace\_n10\_20260806.json}.}
+  \label{fig:reach}
+\end{figure}
+
+The early terminations were traced to the measuring tool rather than to the
+robot. A sweep is a chain of up to ninety solver calls and any single failure
+ends that direction; the follower does not suffer this because it re-seeds the
+redundant joint and retries. Giving the sweep the same retry reduced early
+terminations from nine to zero on the left arm and three to zero on the right,
+while the medians barely moved. That the medians were already right is what
+establishes the outliers as chain compounding rather than geometry.
+
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.72\linewidth]{rviz/home_pose_labelled.png}
+  \caption[The mounted configuration at the home pose]{The simulated platform
+  at the home joint angles, captured from the running system rather than
+  drawn. Both arms are parked over the shoulders and both hands finish on the
+  same side of the body, \SI{1.46}{\metre} apart. That asymmetry is not a
+  rendering artefact and not a mount error: it follows from the home joint
+  angles, which are ground truth because the simulation-to-hardware bridge
+  replays them onto the real arm. It is the disjoint-workspace result of this
+  chapter made visible.}
+  \label{fig:rviz-home-workspace}
+\end{figure}
+
+\section{The two arms share no reachable workspace}
+
+Over a grid of sixty-three cells spanning the frontal working volume, with the
+arms verified at the home pose, \textbf{no cell was reachable by both arms}.
+The result survives the two obvious objections, as \cref{tab:overlap} shows:
+freeing the wrist yaw raises each arm's individual reach from sixteen and eighteen
+cells to twenty-one and still yields no shared cell, and repeating the test
+with more redundancy retries changes nothing.
+
+\begin{table}[htbp]
+  \centering
+  \caption[Both-arm overlap under three test conditions]{Both-arm overlap over
+  the 63-cell frontal grid, arms verified at home. The null result survives
+  both wrist freedom and additional inverse-kinematics retries.}
+  \label{tab:overlap}
+  \begin{tabular}{lccc}
+    \toprule
+    Test condition & Both & Left & Right \\
+    \midrule
+    Fixed orientation, 3 retries & \textbf{0/63} & 16 & 18 \\
+    Fixed orientation, 6 retries, 3 repeats & \textbf{0/63} & 17 & 18 \\
+    Yaw free, 6 retries & \textbf{0/63} & 21 & 21 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+A fine sweep in \SI{0.05}{\metre} steps across the plane on which the arms
+would have to meet locates the boundary precisely: the right arm reaches
+$x \le \SI{-0.10}{\metre}$, the left reaches $x \ge \SI{0.15}{\metre}$, and
+there is a \SI{0.25}{\metre} dead band between them in which neither arm can
+place its end effector (\cref{fig:disjoint}).
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{workspace_disjoint.pdf}
+  \caption[The measured dead band]{The two reachable sets do not meet. Measured
+  at $y=\SI{0.35}{\metre}$, $z=\SI{1.10}{\metre}$ with yaw free and three
+  repeats per point.}
+  \label{fig:disjoint}
+\end{figure}
+
+\subsection{What this does and does not establish}
+
+It establishes that, within $x \in [-0.6, 0.6]$, $y \in [0, 0.4]$,
+$z \in [0.90, 1.30]$~\si{\metre}, with the as-built mount and the legacy home
+joint angles, the two reachable sets do not intersect.
+
+It does \emph{not} establish behaviour outside that volume, nor does it
+generalise to other mounts. The correct claim is that the arms share no
+workspace \emph{as mounted and as parked}, and the remedy is mechanical.
+
+\section{The fix is buildable}
+
+A parametric sweep over candidate mount placements shows the null result is
+not intrinsic. Moving the mounts inboard, forward and down, with additional
+forward tilt, raises the number of shared cells from three to
+\textbf{twenty-two} on the purely kinematic measure, within a buildable
+\SI{0.20}{\metre} mount separation (\cref{fig:mount}).
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\textwidth]{mount_sweep.pdf}
+  \caption[Mount parameter sweep]{Single-parameter sweeps from the as-built
+  mount. Forward tilt and inboard translation both help substantially; splaying
+  the mounts outward \emph{hurts}. The sweep is purely kinematic, moving the
+  arms' bases without moving the wearer, so these are upper bounds and any
+  candidate requires a clearance check before adoption.}
+  \label{fig:mount}
+\end{figure}
+
+The sweep was recorded and deliberately not applied at the time, because
+changing the mount invalidates the home pose, the workspace anchor and every
+clearance figure reported in \cref{ch:results}. It was applied later, as one
+deliberate pass with the whole task set re-measured afterwards, and
+\cref{sec:mount-applied} reports what it bought.
+
+\section{One boundary, two independent constraints}
+
+Two further measurements, taken for different reasons, land on the same
+lateral boundary and together make the case that the inboard band is
+unusable.
+
+The first is wearer clearance. Every scenario in the chest-height band passes
+inverse kinematics with collision checking enabled, and the planner reports
+the poses valid, yet the arms pass within \SIrange{48}{67}{\milli\metre} of
+the wearer's torso, inside the margin the real-robot configuration enforces,
+which was \SI{120}{\milli\metre} at the time of that measurement and is
+\SI{150}{\milli\metre} now. The reconciliation is that the two tests ask different
+questions: the planner's check is binary contact, whereas the floor is a
+margin, and a pose can satisfy one while being refused by the other. Sweeping
+the lateral half-span shows clearance rising monotonically and crossing the
+floor at \SI{0.25}{\metre}.
+
+The second is grasp feasibility. A top-down grasp requires the wrist to adopt
+an orientation with its approach axis vertical. Sweeping the same lateral
+coordinate gives a sharp cliff: zero of nine grasp candidates are solvable at
+$|x| = \SI{0.25}{\metre}$ and nine of nine at $|x| = \SI{0.30}{\metre}$. The
+failure persists with collision checking disabled, so it is kinematic
+infeasibility of the wrist orientation rather than obstruction.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\textwidth]{lateral_constraint.pdf}
+  \caption[Two constraints, one boundary]{Wearer clearance and top-down grasp
+  feasibility against lateral half-span. The two constraints were measured
+  independently and for different purposes, and both place the usable boundary
+  at $|x| \approx \SIrange{0.25}{0.30}{\metre}$.}
+  \label{fig:lateral-workspace}
+\end{figure}
+
+\section{What the pinned wrist costs, at the point where the work happens}
+\label{sec:work-point}
+
+\Cref{sec:sim-orientation} measures reach under each orientation policy by
+walking outward from each arm's \emph{home} end-effector pose, and finds that
+freeing the wrist buys \SI{87}{\milli\metre} of mean reach. Walking from the
+home pose is the natural thing to do and it understates the cost badly,
+because home is in free space and the task is not.
+
+Repeating the walk from the point the task actually works at ---
+$(\num{0.4}, \num{0.175}, \SI{1.12}{\metre})$, on the working surface in front
+of the wearer --- and solving through the follower's own orientation policy
+rather than against a continuous bound, gives a different picture entirely.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Reach from home and from the work point]{Mean reach under each
+  orientation policy, from two start points, both with the
+  \SI{150}{\milli\metre} wearer floor enforced throughout. The two columns are
+  the same measurement of the same arms and they disagree by a factor of
+  seven, because a reach figure is meaningless without the point it was
+  measured from.}
+  \label{tab:work-point}
+  \begin{tabular}{@{}lcc@{}}
+    \toprule
+    Orientation policy & from \textsc{home} & from the \textsc{work point} \\
+    & \si{\metre} & \si{\metre} \\
+    \midrule
+    pinned to the anchor (delivered) & \num{0.460} & \textbf{\num{0.065}} \\
+    roll free                        & \num{0.463} & \num{0.065} \\
+    within a \SI{15}{\degree} cone   & \num{0.492} & \num{0.304} \\
+    within a \SI{45}{\degree} cone   & \num{0.530} & \num{0.325} \\
+    position only                    & \num{0.547} & \num{0.363} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\textbf{At the point where the work happens, the delivered policy leaves the
+arm \SI{65}{\milli\metre} of mean reach against \SI{363}{\milli\metre} with
+the wrist free --- a factor of \num{5.6}.} That is the honest size of the
+constraint this system operates under, and it is why the arms appear barely to
+move while every reachability figure taken at home looks comfortable.
+
+Three things follow.
+
+\emph{The mechanism is redundancy, not the wearer.} No walk from the work
+point stops because of the clearance floor; they stop because there is no
+solution. A fixed six-degree-of-freedom pose on a seven-degree-of-freedom arm
+spends the entire redundancy, and the redundancy is the joint that moves the
+elbow out of the way while the hand stays put. Near the body that joint is the
+only thing that makes a pose reachable at all, and pinning the wrist removes
+it.
+
+\emph{Freeing the roll alone buys nothing, in either column.} It is worth
+\SI{3}{\milli\metre} from home and \SI{0}{\milli\metre} from the work point.
+The redundancy does not live in the roll, so the cheapest-sounding relaxation
+is the one that is worth least --- which is a useful thing to know before
+spending a session on it.
+
+\emph{Almost all of the recovery comes from the first \SI{15}{\degree}.} A
+\SI{15}{\degree} cone recovers \SI{239}{\milli\metre} of the
+\SI{298}{\milli\metre} that separates pinned from free, or
+\SI{80}{\percent} of it. The follower already supplies a \SI{15}{\degree}
+cone when it plans, which is why the task set solves at all
+(\cref{sec:sim-tasks}) --- and it means the delivered system is not in fact
+operating in the \SI{0.065}{\metre} column. The pinned figure is what the
+\emph{commanded} orientation would cost if the follower did not quietly widen
+it, and stating that separation is the point of the table.
+
+\section{The centre of the working space, asked four ways}
+\label{sec:centre}
+
+The question the platform is most often asked is whether the arms can work in
+front of the wearer's own chest, where the wearer's own hands would be. It was
+asked four times, by four instruments built for different purposes, because
+the first answer was unwelcome enough to distrust.
+
+\begin{table}[htbp]
+  \centering
+  \caption[The centre, four measurements]{Four independent attempts to place
+  usable work within \SI{100}{\milli\metre} of the body centre line. All are
+  at ten repeats over the full densified path with the wearer measured
+  geometrically against the \SI{150}{\milli\metre} floor.}
+  \label{tab:centre}
+  \begin{tabular}{@{}p{0.34\linewidth}p{0.58\linewidth}@{}}
+    \toprule
+    Question & Answer \\
+    \midrule
+    Innermost workable column at the working height &
+      $|x| = \SI{0.325}{\metre}$ on the left arm and \SI{0.450}{\metre} on the
+      right \\
+    The same, with the wearer's arms deleted from the model entirely &
+      \SI{0.300}{\metre} and \SI{0.375}{\metre}. Every column from
+      \SI{0.125}{\metre} to \SI{0.300}{\metre} then binds on the
+      \textbf{torso}, and at $|x| = \SI{0.10}{\metre}$ the clearance is
+      \SI{-0.007}{\metre} and \SI{-0.013}{\metre}: the arm is inside the chest \\
+    Objects \emph{resting} on a surface, sweeping surface height and distance
+      together, \num{3360} configurations &
+      \textbf{no configuration} places a graspable object within
+      \SI{100}{\milli\metre} of the centre line \\
+    The same, asked for a top-down approach instead of the side approach &
+      \textbf{0 of 840} cells, at any surface height from \SI{0.70}{\metre} to
+      \SI{1.10}{\metre}, on either arm \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Two conclusions follow, and the second is the operationally useful one.
+
+The constraint is the \textbf{torso}, not the wearer's limbs. Making the
+wearer's arm posture a variable and re-running the sweep across five postures
+moves the boundary by at most \SI{75}{\milli\metre}, and deleting the arms
+altogether leaves the centre shut. An instruction to the wearer is therefore
+worth something and is not a route to the centre. Two of the five postures are
+actively worse than the default: with a back-mounted rig, arms clasped behind
+the back and arms held out to the sides both place the wearer's own limbs
+inside the clearance floor at the home pose, before the robot has been asked
+to do anything.
+
+\textbf{Neither arm crosses the centre line at all.} Measured at ten repeats
+with the wearer and the working surface present, every cross-side placement
+slot and every cross-side object returns zero solutions of ten, on both arms.
+Not marginal: nothing solves. This is what forces the randomised stage of the
+pick-and-place task to draw the \emph{side} and let the colour follow, and the
+task builder refuses an object whose declared colour names the other side's
+target rather than emitting a path whose every waypoint fails for a reason
+nobody would connect to colour.
+
+\section{What the applied mount change bought}
+\label{sec:mount-applied}
+
+The mount modification was subsequently applied, as one pass with the task set
+re-measured afterwards: the mounts moved \SI{150}{\milli\metre} outboard with
+\SI{15}{\degree} of outboard yaw, the working surface was raised, and its near
+edge was brought forward.
+
+\begin{table}[htbp]
+  \centering
+  \caption[Before and after the mount change]{What the applied mount change
+  altered. Home clearance improves because the mount is no longer the nearest
+  part of the robot to the wearer, which also raises the ceiling on every
+  clearance figure the platform can report.}
+  \label{tab:mountapplied}
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    Quantity & Before & After \\
+    \midrule
+    Clearance at the home pose & \SI{0.1610}{\metre} & \SI{0.2202}{\metre} \\
+    Nearest robot part to the wearer at home & the mount, which no joint moves
+      & the moving chain \\
+    Task objects resting on the surface & not achievable & achieved \\
+    Pick-and-place placement targets & \SI{0.530}{\metre} and
+      \SI{0.350}{\metre} off centre & \SI{0.290}{\metre} either side \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The cost is that every quantity derived from the previous mount had to be
+re-derived, which is the reason the change was deferred rather than taken
+early: the approach anchor, the pad offset, the home end-effector position and
+every task coordinate computed through them. That is a session's work and it
+is the correct way to spend it, but it cannot be done twice.
+
+\section{Clearance along the task paths}
+
+Reachability is not the binding property for a machine mounted on a person.
+\Cref{fig:clearance} gives the closest approach to the wearer over the whole
+of each task's path, which is the quantity the safety case turns on.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\textwidth]{clearance_tasks.pdf}
+  \caption[Clearance by task]{Closest approach to the wearer over each task's
+  full commanded path, ten repeats, with the body measured geometrically and
+  the nearest body part printed above each bar. Only the pick-and-place task
+  clears the floor on both arms. The three bars at \SI{161}{\milli\metre} are
+  the mount before the change of \cref{sec:mount-applied}, which no joint
+  moves and which therefore sets the ceiling. Regenerated from
+  \repo{recordings/baselines/home\_change\_applied.json}.}
+  \label{fig:clearance}
+\end{figure}
+
+The breaches are reported rather than corrected. Each is a layout change with
+its own re-verification, and moving a task's coordinates to satisfy the floor
+without walking the whole path again would replace a known breach with an
+unknown one.
+
+\section{Consequences for the task set}
+
+Three consequences follow directly, and each is visible in the task
+definitions of \cref{ch:results}.
+
+\textbf{Inter-arm handover is impossible.} It requires both arms at one point,
+and no such point exists. This removes an entire task family, and no control,
+planning or autonomy change can restore it.
+
+\textbf{A bimanual task must either span the gap or exploit simultaneity.} A
+rigid object held at two points can bridge the dead band; two targets in the
+two disjoint sets can require simultaneous satisfaction. Both routes are used.
+
+\textbf{The coupled objects had to be re-specified.} The original
+\SI{310}{\milli\metre} tray placed each grip at $|x| = \SI{0.155}{\metre}$,
+inside the dead band, and ten of twenty-five waypoints failed once the arms
+were verified at home. Widening to \SI{500}{\milli\metre} places each grip at
+$|x| = \SI{0.25}{\metre}$, which satisfies the clearance boundary and the
+reachability boundary simultaneously. The compliant carrier had to lengthen
+with it: retention of a ball of radius $r$ requires sag of at least $2r$, so
+
+\begin{equation}
+  \mathrm{sag}(s) = \sqrt{\left(\tfrac{L}{2}\right)^{2}
+                          - \left(\tfrac{s}{2}\right)^{2}},
+  \qquad
+  s_{\max} = 2\sqrt{\left(\tfrac{L}{2}\right)^{2} - (2r)^{2}},
+  \label{eq:sling}
+\end{equation}
+
+where $s$ is the gripper separation, $L$ the carrier length and $r$ the ball
+radius. For $L = \SI{540}{\milli\metre}$ and $r = \SI{20}{\milli\metre}$ this
+gives $s_{\max} = \SI{534}{\milli\metre}$, leaving a \SI{34}{\milli\metre}
+margin at the nominal \SI{500}{\milli\metre} separation
+(\cref{fig:sling}). The length is chosen so that the failure threshold sits
+\emph{inside} the reachable band: a longer carrier could never fail and would
+measure nothing.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.8\textwidth]{sling_geometry.pdf}
+  \caption[Compliant carrier geometry]{Sag against gripper separation for the
+  re-specified compliant carrier. The nonlinearity is the point: sag falls
+  slowly, then the ball is lost abruptly at \SI{534}{\milli\metre}.}
+  \label{fig:sling}
+\end{figure}

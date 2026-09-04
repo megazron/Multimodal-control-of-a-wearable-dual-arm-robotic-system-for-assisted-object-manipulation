@@ -1,0 +1,433 @@
+\chapter{Perception, environment mapping and autonomous manipulation}
+\label{ch:perception}
+
+The system described so far commands the arm from a human input. This chapter
+covers the parts added afterwards that let it command the arm from a
+\emph{measurement} instead: object detection, grasp synthesis, a sweep that
+measures the working surface and the objects on it, a planner that consults
+the result, and a natural-language route into the same task layer. It closes
+with the camera that observes the wearer, which is a safety component rather
+than a manipulation one.
+
+\section{The defect that motivated it}
+
+Almost everything in the delivered task layer runs on \emph{declared}
+coordinates. The blocks in the pick-and-place task are at their coordinates
+because a source file says so; the working surface is at its height because a
+constant says so. All of it is verified at ten repeats over densified paths
+(\cref{ch:results}), and none of it survives a different table, a different
+object, or the same object displaced by \SI{50}{\milli\metre}. The number in
+the file becomes a proposition the arm acts on with complete confidence, and
+nothing in the system is positioned to disagree with it.
+
+Three components capable of sensing the same quantities already existed and
+had never been composed. \repo{srl\_perception/table\_scene.py} finds a
+support plane and the objects resting on it, and was used to print a
+description. \repo{srl\_perception/joint\_planner.py} defines a
+\texttt{VoxelWorld} so that a planner can avoid obstacles that are not the
+wearer, and was constructed nowhere outside its own self-test, which means no
+path this project had ever planned knew that the table existed.
+\repo{srl\_experiments/work\_surface.py} exposes \texttt{set\_measured()} so
+that the surface height can come from depth, and nothing called it.
+
+\Cref{fig:perception-pipeline} is the stage that replaced this.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/perception.tex}
+  \caption[Measure, then plan]{The calibrate-then-plan stage. The sweep is
+  deliberately shaped like a printer's bed probe: one wrist attitude per pass
+  with pure translation between cells, rather than re-aiming the camera at
+  every cell.}
+  \label{fig:perception-pipeline}
+\end{figure}
+
+\section{Detection}
+
+Detection is open-vocabulary rather than class-fixed: the stage takes a noun
+phrase and returns instances. \repo{srl\_perception/prompt\_detector.py} runs
+YOLO-World for boxes~\cite{cheng2024yoloworld} with FastSAM for
+masks~\cite{zhao2023fastsam}, and falls back to a hue-and-depth filter when
+neither model is resident. \textbf{The backend that produced a detection is
+reported with the detection}, so a result can never imply tacitly that the
+stronger model was running.
+
+Two properties of the deployment are worth recording because both were forced
+by measurement rather than chosen.
+
+\emph{Range is used as a discriminator where hue cannot be.} The laboratory
+contains teal robots whose shadowed hue is \num{76}; the target green block
+sits at \num{74}. Two units apart is inside the noise, and a colour filter had
+already been fooled by them three times. The robots stand \SI{2.8}{\metre}
+away while the rig works within \SI{1.6}{\metre}, so range separates the two
+populations cleanly and is applied at detection time.
+
+\emph{Range is a discriminator that costs nothing to compute.} A blob of $s$
+pixels across at range $Z$ subtends a physical width
+
+\begin{equation}
+  \label{eq:size-at-range}
+  w = \frac{s\,Z}{f},
+\end{equation}
+
+so the same expression that rejects the distant robots also rejects a
+\SI{210}{\milli\metre} pad presented as a \SI{40}{\milli\metre} cube, without
+a second model and without a threshold on appearance.
+
+\emph{Grasp synthesis is geometric and deliberately not learned.}
+\repo{srl\_perception/rgbd\_grasp.py} takes the principal axes of the object's
+depth cloud. Writing the mean-centred points as $\mathbf{P}_k$, the axes are
+the eigenvectors of the scatter matrix
+
+\begin{equation}
+  \label{eq:pca}
+  \mathbf{C} = \frac{1}{N}\sum_{k=1}^{N}
+    (\mathbf{P}_k - \bar{\mathbf{P}})(\mathbf{P}_k - \bar{\mathbf{P}})^{\!\top},
+  \qquad
+  \mathbf{C}\,\mathbf{u}_j = \lambda_j \mathbf{u}_j,
+  \; \lambda_1 \ge \lambda_2 \ge \lambda_3 ,
+\end{equation}
+
+and the jaw closes across $\mathbf{u}_3$, the direction of least extent, while
+approaching along whichever of the remaining axes is free. The width to be
+closed on is not the eigenvalue but the extent of the projected points, which
+is the quantity the jaw physically has to span:
+
+\begin{equation}
+  \label{eq:graspwidth}
+  w = \max_k \mathbf{u}_3^{\!\top}\mathbf{P}_k
+      - \min_k \mathbf{u}_3^{\!\top}\mathbf{P}_k
+  \;\le\; w_{\max} = \SI{85}{\milli\metre} .
+\end{equation}
+
+A parallel jaw closing on a rigid convex object is a solved problem; a learned
+alternative would need video memory that is not available beside the detector;
+and, decisively, a geometric method can \emph{name} the cause of a refusal.
+\Cref{eq:graspwidth} gives one of the three it names --- wider than the jaw,
+and by how much --- alongside no depth returns and too few points to fit an
+axis. All three were exercised on real objects in \cref{ch:vision}, where the
+width test refused every object in the scene and reported the arithmetic that
+made it do so.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\linewidth]{vision/wrist_ransac.png}
+  \caption[Detection: the support plane, fitted and scored]{One stage of the
+  detection pipeline as it is actually instrumented. Every stage draws itself
+  on the frame it was given, states the operation as a formula, and reports
+  the numbers it produced with units, so that a figure captioned ``the vision
+  works'' can be replaced by one a reader can check. Here the support plane
+  is fitted by random sample consensus on the left-hand wrist camera:
+  \num{40517} of \num{54789} deprojected points are inliers at a
+  \SI{6}{\milli\metre} tolerance, giving a residual of
+  \SI{1.43}{\milli\metre} root mean square. The inlier fraction is the
+  quantity that matters, not the residual: a plane can fit three points
+  perfectly.}
+  \label{fig:detect}
+\end{figure}
+
+\subsection{A reachability gate that could not fail}
+
+\repo{srl\_perception/grasp\_pipeline.py} checks a candidate grasp for reach
+and for wearer clearance before offering it. The clearance half of that check
+was inoperative for the life of the module, and the mechanism is the same one
+that recurs throughout this thesis.
+
+The scorer returns two clearances. One is taken over the whole kinematic
+chain, including the immobile mount stub between \texttt{base\_link} and
+\texttt{shoulder\_link}; that stub is nearer the wearer than anything the
+joints can move, so the quantity reads a constant \SI{0.2202}{\metre} in every
+pose the arm can adopt. The gate compared it against the \SI{0.15}{\metre}
+floor. \textbf{Every grasp this pipeline ever approved was tested against a
+predicate that could not be false.} It now reads the moving-chain clearance,
+which is \SI{0.4031}{\metre} at the home pose, and a regression test aims the
+hand at the centre of the wearer's torso and requires a refusal that names the
+wearer.
+
+\section{Measuring the working area}
+
+\subsection{Why the sweep holds one wrist attitude}
+
+The first version of the sweep aimed the tool axis at each grid point in turn.
+That is the intuitive design and it is wrong for a measurement. Re-aiming
+means the wrist attitude differs between neighbouring cells
+\SI{90}{\milli\metre} apart, so a residual error in the camera-to-wrist
+transform becomes a \emph{different} error in every frame: it can neither
+cancel across views nor be estimated from them.
+
+A printer's bed probe does not re-aim. It holds one attitude and translates.
+\repo{srl\_perception/calibration\_sweep.py} does the same. One wrist
+direction per pass, with the camera grid being the work grid rigidly
+translated back along that fixed ray, so consecutive cells differ by a pure
+translation; several passes at different yaws supply the object sides, which a
+single elevation cannot see. The sweep is two layers by three yaws by
+twenty-four cells by two arms, and the traverse order is a boustrophedon
+rather than a typewriter raster: \SI{1.140}{\metre} of travel against
+\SI{1.702}{\metre} for the same coverage, measured by the module's own
+self-test rather than asserted.
+
+\subsection{Stationary is not arrived}
+
+A joint can sit \SI{0.02}{\radian} from its commanded value and still be
+moving through it. A frame captured at that moment is smeared across two
+poses, while every statistic computed downstream reports normally. The sweep
+therefore requires no joint to move by more than \SI{0.0015}{\radian} over
+\SI{400}{\milli\second}, which is a tenth of the arrival tolerance, before a
+frame is accepted.
+
+\subsection{What the map contains}
+
+\begin{table}[htbp]
+  \centering
+  \caption[Measured map accuracy]{Contents of the fused map after one full
+  sweep, against the scene it was measuring. Objects are cut from the image by
+  \repo{segment\_lift} and lifted through each frame's own depth, rather than
+  clustered from the accumulated point cloud, which is pinned by
+  \repo{test\_objects\_come\_from\_the\_picture.py}. Record at
+  \repo{recordings/baselines/world\_map.json}.}
+  \label{tab:map}
+  \begin{tabular}{@{}ll@{}}
+    \toprule
+    Quantity & Measured \\
+    \midrule
+    Support plane inliers & \num{694455} \\
+    Surface height & \SI{1.25026}{\metre} against a declared \SI{1.250}{\metre} \\
+    Surface tilt & \SI{0.036}{\degree} \\
+    Objects recovered & 6 of 6 \\
+    Object centres & every one within \SI{1}{\milli\metre} in $x$ and $y$ \\
+    Object extents & every dimension within \SI{3}{\milli\metre} \\
+    Cells swept & 109, of which 74 reachable \\
+    Coverage of reachable cells & \SI{98.65}{\percent} \\
+    Stillness refusals & 0 \\
+    Elapsed & \SI{13}{\minute}\,\SI{15}{\second} with the cache warm \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+An earlier surface error of \SI{-5.2}{\milli\metre} was itself an instrument
+defect and is recorded in \cref{ch:instrument}: the reported height was the
+fitted plane's intercept \emph{at the origin}, which is a point inside the
+wearer, rather than its height over the working area.
+
+\subsection{Two lifetimes, one command}
+
+Bundling reachability and scene mapping into a single calibration command
+obscured that they are facts about different things, and the distinction
+governs how often each must be redone.
+
+\begin{table}[htbp]
+  \centering
+  \caption[Calibration lifetimes]{The two products of the calibration stage
+  and when each expires.}
+  \label{tab:lifetimes}
+  \begin{tabular}{@{}p{0.24\linewidth}p{0.30\linewidth}p{0.38\linewidth}@{}}
+    \toprule
+    Record & A fact about & Redo when \\
+    \midrule
+    \repo{reachable\_cells.json} & the \textbf{robot}: which camera poses the
+      arm can reach & once. It is keyed on every bound, layer, facing,
+      elevation and step, so moving the mount, changing the home pose or
+      editing the description invalidates it automatically \\
+    \repo{world\_map.json} & the \textbf{scene}: the surface and what stands
+      on it & whenever the scene changes. There is no incremental re-map:
+      \texttt{build()} fuses every view from scratch \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Until an incremental re-map exists, \repo{scripts/pick\_from\_map.py} reports
+the map's age on every run and \textbf{refuses to move from a map older than
+thirty minutes}. Planning from a stale map is harmless and is reported;
+driving the arm at coordinates measured in a previous session is the failure
+that costs something, and a stale file is indistinguishable from a fresh one
+by inspection.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\linewidth]{vision/wrist_boxes3d.png}
+  \caption[The measured map]{The map, as objects rather than as a point
+  pile. Five objects are recovered from the left-hand wrist camera between
+  \SI{0.539}{\metre} and \SI{0.843}{\metre}, each with its extent in the
+  camera frame, and the table under them is measured at
+  $\SI{0.579}{\metre}\times\SI{0.423}{\metre}$, \SI{0.278}{\metre} away and
+  flat to \SI{1.42}{\milli\metre}. Every coordinate the autonomous mode
+  subsequently uses derives from a record like this one, and the record
+  carries the time it was made so that a stale map can be refused rather than
+  trusted.}
+  \label{fig:map}
+\end{figure}
+
+\section{Planning against the measurement}
+
+For teleoperation there is no planner and there should not be: the operator's
+hand is the plan and the correct problem is smooth, safe following
+(\cref{ch:method}). For the autonomous mode there is a goal, and the absence
+of a planner had a measurable cost. A pick whose pre-grasp and grasp poses are
+both individually clear, streamed as a straight line in joint space, passes
+within \SI{0.1462}{\metre} of the wearer at step twenty-nine of sixty-four.
+The path checker catches it, and catching it means the run stops.
+
+\repo{joint\_planner.py} implements RRT-Connect~\cite{kuffner2000rrtconnect}
+with four choices made for this platform specifically.
+
+\begin{description}
+  \item[Joint space, not Cartesian.] The binding constraint is the distance
+    from the whole \emph{arm} to the wearer, not from the hand. A Cartesian
+    planner would solve inverse kinematics at every node in any case.
+  \item[The wearer floor is the collision predicate], evaluated through the
+    same moving-chain clearance the guard enforces, rather than through the
+    semantic description, which is blind to the proximal pairs that matter.
+  \item[Every edge densified at \SI{0.05}{\radian}], matching the path
+    checker. A planner that checks only its nodes reproduces, one level up,
+    the defect it exists to remove.
+  \item[Straight line first, then shortcut, then resample] to the follower's
+    own step size. Handing the follower waypoints spaced further apart than
+    its maximum step means it invents the intermediate motion by unchecked
+    interpolation, which reintroduces the same defect at the last stage.
+\end{description}
+
+Larger alternatives were assessed against the platform's video memory and
+rejected on stated grounds rather than by omission. CUDA-accelerated motion
+generation is the strongest option in this space and needs roughly
+\SI{2.5}{\gibi\byte} at batch 1024 on a card with \SI{48}{\gibi\byte};
+GPU-accelerated simulation for policy learning lists an eight-gigabyte
+card as its minimum~\cite{isaaclab}. This machine has \SI{4}{\gibi\byte} in
+total, shared with the detector.
+
+\section{Commanding a task in natural language}
+
+The full-autonomy mode accepts a typed or spoken instruction. The parser is a
+grammar, for the reasons given in \cref{ch:method}, and the design question
+that matters is what it does when an instruction is ambiguous.
+
+Asked to \emph{put the blue block on the blue mat} with two blue blocks
+present, the system \textbf{asks} rather than choosing. Nearest, leftmost and
+first-detected are all defensible and all guesses, and the manipulator is
+bolted to a person. Asked to \emph{put the blue ones on the blue mat}, it does
+not ask, because the plural settles it. The distinction lives in the
+instruction's own quantity marker rather than in a heuristic over how many
+candidates happen to match, which is why the evaluation scene contains two
+blocks of each colour rather than one.
+
+\begin{table}[htbp]
+  \centering
+  \caption[Instruction handling]{Seventy-five phrasings of the same task,
+  scored against the grammar as committed six days earlier. The earlier
+  grammar was checked out of version control into a temporary tree and run in
+  its own interpreter, so the two columns differ by the code and by nothing
+  else. Replies to a clarifying question are scored on a separate line and are
+  never counted as correct. Produced by
+  \repo{scripts/sweep\_t1\_instructions.py}.}
+  \label{tab:phrasings}
+  \begin{tabular}{@{}lcc@{}}
+    \toprule
+    Outcome & Earlier grammar & Delivered \\
+    \midrule
+    Correct & 21 & \textbf{34} \\
+    Asked a clarifying question & 14 & 14 \\
+    Refused & 37 & 27 \\
+    \textbf{Misunderstood} & \textbf{3} & \textbf{0} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The bottom row is the one that matters, and the three misunderstandings share
+a mechanism worth stating. Each was a compound instruction of the form
+\emph{put the blue ones on the blue mat and the green ones on the green mat}:
+two complete instructions sharing a verb. The destination split cut at the
+first destination cue, so the head of the sentence was \emph{put the blue
+ones}; the two-target check counted targets within the head and found one; and
+the planner emitted a plan for the first clause, discarded the second in
+silence, moved two objects of four, and reported success. Every component
+behaved as specified.
+
+A refusal costs the operator a repetition. A misunderstanding moves the arm,
+and it is therefore the quantity this evaluation is designed around.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.72\linewidth]{gui/sim_scene_front.png}
+  \caption[The scene an instruction is resolved against]{The scene an
+  instruction is resolved against. The operator types a sentence; before
+  anything moves, the window shows the parsed interpretation, the detections
+  the plan was formed from with the classifier's own hue margin for each, and
+  the intention in plain words, and waits for a confirmation. The
+  instruction is then handed to the runner verbatim, so the record of what
+  was asked cannot diverge from what was done, and that is what the
+  verification script checks: that the argument vector the runner receives
+  carries the task, the mode, the detections it was planned from, and the
+  sentence unaltered.}
+  \label{fig:instruct}
+\end{figure}
+
+\section{Observing the wearer}
+\label{sec:wearer-tracking}
+
+The clearance floor of \cref{ch:method} is enforced against a body. Until late
+in the project that body was always the mannequin in the robot description.
+\repo{srl\_perception/wearer\_tracker\_node.py} replaces it, part by part,
+with a measured one, using a markerless pose model with metric landmarks
+lifted by perspective-n-point~\cite{lugaresi2019mediapipe}.
+
+\begin{table}[htbp]
+  \centering
+  \caption[Wearer tracking rate and latency]{Measured by
+  \repo{scripts/measure\_wearer\_tracking\_rate.py}. The end-to-end spread is
+  a configured publication rate limit, not the estimator.}
+  \label{tab:tracking}
+  \begin{tabular}{@{}ll@{}}
+    \toprule
+    Quantity & Measured \\
+    \midrule
+    Pose inference & \SIrange{28}{34}{\milli\second} per frame \\
+    Frame to estimate & \SI{61.6}{\milli\second} median \\
+    End to end & \SIrange{62}{562}{\milli\second} \\
+    Primitives maintained in the planning scene & 12 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The safety argument for admitting a camera into the clearance check is a
+single monotonicity rule, and it is enforced in one function:
+
+\begin{quote}
+\textbf{The camera may only ever make the wearer larger.} Per body part,
+\texttt{fuse()} retains whichever of the tracked and mannequin primitives is
+\emph{nearer} the robot. There is no mode switch.
+\end{quote}
+
+A body injected \SI{0.10}{\metre}, \SI{0.30}{\metre}, \SI{1.00}{\metre} and
+\SI{5.00}{\metre} further away in turn moves the enforced margin by nothing at
+all. Six faults were then injected through the live node, comprising a dark
+frame, a blank frame, two people in shot, an empty frame, occluded arms, and a
+control; the node refused seven of seven cases, and each refusal was required
+to \emph{name} the injected fault. That naming requirement is what exposed a
+false pass in which the two-person gate had never executed.
+
+The substitution is per part, so a measured torso can stand beside a mannequin
+upper arm within one scene, and \texttt{/wearer/enforced} publishes which body
+is in force. Before this was connected, the tracker reached the planning scene
+and \emph{not} \repo{mount\_guard\_node}, which constructs its wearer at
+import time: the body the planner avoided and the body the floor was enforced
+against were two different bodies, and the floor held the mannequin.
+
+The honest limitation is on the fallback side and is quantified in
+\cref{ch:discussion}. If the wearer raises their arms and tracking is then
+lost, the guard reverts to the assumed posture, which has the arms down, and
+believes there is \SI{0.317}{\metre} of clearance where there is
+\SI{0.093}{\metre}.
+
+\section{The scene camera}
+
+A second camera, observing the workspace from outside the arms rather than
+from a wrist, is implemented. \repo{scene\_camera\_node} refuses to republish
+rather than passing through stale frames and publishes a zero intrinsic matrix
+until calibrated; both calibration tools carry self-tests that pass to
+\SI{0.43}{\percent} in focal length, \SI{4.5}{px} in principal point and
+\SI{0.0000}{\metre} and \SI{0.000}{\degree} in the extrinsic.
+
+\textbf{No camera has ever been attached to it.} The device is the host's own
+webcam, and forwarding it into the Linux environment requires an
+administrator-level bind that was refused. Everything in this section is
+verified against mock inputs, and the project keeps ``as built'' and
+``inferred'' in separate records for this reason.

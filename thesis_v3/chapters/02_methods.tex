@@ -1,0 +1,167 @@
+\chapter{Methods}
+\label{ch:methodsmain}
+
+This chapter summarises what was designed, built and run. Full engineering
+detail -- the master's electronics and firmware, the complete system
+architecture, the perception and motion pipelines -- is carried in
+\cref{ch:master,ch:method,ch:perception,ch:motion} so that it can be checked
+and reproduced without lengthening the argument here.
+
+\section{The master arm}
+
+The master is a miniature mannequin reproducing the Gen3's joint sequence at
+roughly a third of its scale (\cref{fig:master-cad}, \cref{ch:master}), moved
+with the fingers of one or both hands. A Teensy 4.1 reads fourteen rotary
+potentiometers, two inertial measurement units, two force-sensitive resistors
+and two buttons, and emits one text frame at \SI{100}{\hertz}
+(\cref{tab:frame}). Potentiometer counts pass through an integer exponential
+moving average (\cref{eq:ema}) before conversion to degrees; the inertial
+sensors are read as a single burst so that all six axes come from one
+sampling instant.
+
+Each channel carries a health verdict computed from its own recent history:
+\emph{dead}, \emph{incoherent} (present but not tracing a trajectory),
+\emph{intermittent}, or \emph{alive}. Validation is scoped to the channels
+the active mode actually consumes, so a dead channel the mode does not read
+cannot reject a frame, and when no well-conditioned channel remains the
+system reports position \emph{unavailable} rather than extrapolating one.
+
+\section{From master pose to arm command}
+
+The commanded position is built in spherical form about the master's
+shoulder rather than by forward kinematics from seven joint angles
+(\cref{eq:elev,eq:azim,eq:reach}): elevation from the gravity vector,
+azimuth from the shoulder roll, and radius from the forward-kinematic
+magnitude of the bend joints. Each component is taken from whichever sensor
+observes it most directly, so a dead roll channel can be passed through as
+zero without corrupting the radius. The commanded end-effector position is
+an anchor plus a scaled displacement from a reference latched at clutch
+engagement (\cref{eq:anchor}), so releasing and re-engaging the clutch
+indexes like a mouse lifted and set down again, and the reachable set is
+bounded by the robot rather than by the master's own range.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Operating modes]{Operating modes, condensed from \cref{tab:modes}.
+  Autonomy runs at a quarter of teleoperation's speed by design: nobody is
+  holding a master, so the only bound on a wrong motion is how long it takes
+  to happen.}
+  \label{tab:modes-main}
+  \begin{tabular}{@{}llll@{}}
+    \toprule
+    Mode & Input & Robot decides & $v_{\max}$ \\
+    \midrule
+    01/02 direct & mannequin or VR controllers & nothing & \SI{0.60}{\radian\per\second} \\
+    03/04 shared autonomy & master or controllers, vision & wrist orientation & \SI{0.60}{\radian\per\second} \\
+    06 full autonomy & typed or spoken goal & target, approach, grasp, place & \SI{0.15}{\radian\per\second} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Five modes are delivered (\cref{tab:modes-main}); one safety stack serves all
+of them, and dropping any shared mechanism is refused regardless of mode. The
+desk arrangement the laboratory actually operates has the operator seated
+across the room from the wearer, holding the VR controllers as a
+six-degree-of-freedom input device and watching the physical robot directly
+rather than wearing the headset (\cref{sec:desk}); the alignment between the
+operator's frame and the robot's is a measured yaw rather than a mirror,
+because facing someone and copying them is a reflection that would invert
+every commanded orientation while positions looked correct.
+
+\subsection{Safety architecture}
+
+Collision avoidance is graduated in three stages (\cref{sec:clearance}):
+collision-aware inverse kinematics, redundancy re-seeding on rejection, and a
+geometric clearance floor of \SI{150}{\milli\metre} measured from the
+transform tree between any moving arm link and any wearer primitive -- not
+from the semantic collision description, which excludes the proximal pairs a
+shoulder mount actually threatens. Every mechanism able to stop the arm
+registers by name, must declare how it clears, and expires into an explicit
+\emph{unknown} state (still treated as blocking) if the loop asserting it
+stops running, because a blocker that silently keeps its last state is
+indistinguishable from one that is working. Three independent triggers latch
+the emergency stop until reset: an explicit call, both master buttons held
+together, and a dead-man keyed on the \emph{source} timestamp of the master
+data, not on message arrival -- the correction that makes it fire on the
+failure mode that actually occurs, since a degraded master keeps publishing
+stale values at full rate rather than falling silent.
+
+\section{Perception, planning and motion}
+
+A calibrate-then-plan stage (\cref{ch:perception}) replaced declared object
+and surface coordinates with measured ones: a wrist-camera sweep that holds
+one attitude per pass and translates, printer-bed-probe style, fits the
+working surface and segments objects from the image rather than clustering a
+point cloud, and hands the result to an RRT-Connect planner
+\cite{kuffner2000rrtconnect} evaluated against the same moving-chain
+clearance the safety layer enforces. Detection is open-vocabulary
+(YOLO-World~\cite{cheng2024yoloworld} with FastSAM~\cite{zhao2023fastsam}),
+falling back to a hue-and-depth filter, and grasp synthesis is the geometric
+principal-axis method of \cref{eq:pca,eq:graspwidth} rather than a learned
+one, chosen because it can \emph{name} the reason for a refusal and fits the
+\SI{4}{\gibi\byte} of video memory available on this machine.
+
+The per-joint step limiter that previously constituted the entire motion
+generator for teleoperation left the commanded hand \SI{51.3}{\milli\metre}
+off the path its own inverse-kinematics solution implied
+(\cref{sec:clamp-maths}); it was replaced with Ruckig~\cite{berscheid2021ruckig},
+a jerk-limited, phase-synchronised generator in which every joint is driven
+from a single scalar phase (\cref{eq:phase-sync}), so the commanded
+configuration is on the line between endpoints by construction. Replaying
+recorded joint commands onto the physical arm shows every joint parks
+\SI{0.305}{\degree} short of its target on the side it approached from
+(\cref{sec:sim-to-real}); the two candidate models -- a terminal offset and a
+proportional gain error -- are distinguishable only at short travel, and
+propagating the error through the manipulator Jacobian selects the terminal
+offset at $r=\num{0.923}$.
+
+\section{Verification methodology}
+
+Twenty-six times in this project a result that looked like a system failure
+was a defect in the measuring tool (\cref{ch:instrument}). The practice that
+follows from it is applied throughout: every analysis script carries a
+known-answer test, synthetic data is used only where its ground truth is
+\emph{constructed} rather than rendered, and a result contradicting an
+earlier measurement is treated as an instrument check until the two are
+reconciled. Because the inverse-kinematics solver restarts randomly, every
+reachability claim in this report is ten repeats over a path densified to
+\SI{20}{\milli\metre}, not single calls at the endpoints, and a pose that is
+not solid on all ten repeats is not reported as reachable.
+
+\section{Ethics and the pilot study}
+\label{sec:ethics}
+
+\textbf{This study was approved by Imperial College London's Science,
+Engineering and Technology Research Ethics Committee, approval number
+7111986.} All participants gave informed consent before taking part.
+Participant data are anonymised throughout this report as P1--P4;
+\repo{write\_manifest()} refuses to record a name, email address, date of
+birth, address or telephone number, so anonymity is enforced in the code that
+writes the session record rather than only in this text.
+
+The full two-person protocol (\cref{app:study}) crosses direct teleoperation
+against shared autonomy over five tasks with a separate wearer, and was
+designed in full before this report but could not be run: it depends on
+master channels that were incoherent (\cref{ch:results}), and on an approved
+protocol that did not yet exist. Both blockers have since partly cleared.
+Approval was obtained, and VR controllers -- already a delivered input mode
+(\cref{tab:modes-main}) -- supply a six-degree-of-freedom command that does
+not depend on the master's damaged channels, which made a first, smaller
+pilot practical ahead of a full session with a separate wearer.
+
+Four operators (P1--P4) each completed between two and four recorded
+sessions, performing one of three manipulation-style tasks -- object
+tracking, target reaching, and position matching -- once under direct VR
+control and once with shared-autonomy assistance active, using the desk
+arrangement of \cref{sec:desk}. Coverage across participant, task and
+condition is uneven, which \cref{sec:pilot-results} reports rather than
+hides. Every sample was logged automatically at \SI{20}{\hertz} -- controller
+and end-effector pose, clutch engagement, and the VR link's own reported
+spatial lag -- together with an event log of every clutch and emergency-stop
+transition, giving completion time, hand-travel distance, re-grip count, the
+active-control fraction of the session, and mean tracking lag per session
+without any manual timing. This pilot measures \emph{operator} performance
+only; it has no separate wearer and therefore does not address the
+wearer-side hypotheses (H3, H4) of the full protocol, which remain for the
+session \cref{app:study} specifies.

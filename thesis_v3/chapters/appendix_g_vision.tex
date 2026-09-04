@@ -1,0 +1,386 @@
+\chapter{The vision pipeline, measured on the real cameras}
+\label{ch:vision}
+
+\emph{Measured on four physical cameras, 2026-08-30. This chapter and
+\cref{sec:hardware-session} are the only places in this thesis where the
+numbers come from hardware in the laboratory rather than from the simulated
+platform.}
+
+\bigskip
+
+``The vision works'' is not a claim a thesis can print, and until this session
+it was the only claim available: the perception stages of \cref{ch:perception}
+had been exercised against rendered scenes, where the answer is known because
+the scene was constructed, and against no real camera at any point. This
+chapter reports what happens when the same code is pointed at four physical
+cameras and every stage is required to show its working.
+
+\section{Method: one figure and one formula per stage}
+\label{sec:vision-method}
+
+The pipeline was decomposed into thirty-three stages, each of which is one
+operation with one formula. Every stage draws itself on the frame it was
+given, states the operation it performed, and reports the quantities it
+produced \emph{with units}; the numbers are written to a machine-readable
+table at the same time as they are burned into the figure, so a figure and the
+table beneath it cannot disagree. The run of 2026-08-30 produced
+\num{723} such measurements.
+
+Three properties of the instrument matter more than any single number it
+produced.
+
+\textbf{A stage that cannot run says so, and says what would fix it.} There
+are three outcomes, not two. A stage \emph{succeeds}; a stage
+\emph{refuses}, and the refusal names its cause and its remedy; or a stage is
+\emph{absent by design}, which is drawn differently again. The webcam has no
+depth sensor, so its fifteen depth stages are by-design absences and are not
+faults. Rendering a by-design absence identically to a defect is a failure
+mode this project has recorded before, and it costs a reader the ability to
+tell a limitation from a bug.
+
+\textbf{Nothing in the file can move the arm.} The program contains no
+publisher, no service client, no Kortex session and no trajectory. Its only
+possible traffic is a subscription. This is a structural property rather than
+a policy, and it is what allows the pipeline to be exercised on live hardware
+without a safety case.
+
+\textbf{The arithmetic is checked against a constructed frame whose answer is
+known.} A self-test runs every geometric stage against a synthetic depth image
+whose plane, object heights and object widths were chosen rather than
+measured, so that a stage returning the wrong answer fails before any real
+camera is involved. This is the standing rule of \cref{ch:instrument} applied
+to a new instrument at the point of building it rather than after it produced
+a surprising number.
+
+\subsection{The geometry, written out}
+
+Depth arrives as a range image and is lifted to a point cloud by the pinhole
+model, using intrinsics read from the device rather than assumed:
+
+\begin{equation}
+  \label{eq:deproject}
+  \mathbf{P}(u,v) =
+  \left(
+    \frac{u - c_x}{f_x}\,Z(u,v),\;
+    \frac{v - c_y}{f_y}\,Z(u,v),\;
+    Z(u,v)
+  \right)^{\!\top} .
+\end{equation}
+
+The support plane is fitted by random sample consensus. Three points are drawn,
+the candidate plane is
+$\mathbf{n} = (\mathbf{b}-\mathbf{a}) \times (\mathbf{c}-\mathbf{a})$
+normalised, with offset $d = -\mathbf{n}\cdot\mathbf{a}$, and it is scored by
+the number of points within a tolerance $\tau = \SI{6}{\milli\metre}$:
+
+\begin{equation}
+  \label{eq:ransac}
+  S(\mathbf{n}, d) =
+  \bigl|\bigl\{\,\mathbf{P} : |\mathbf{n}\cdot\mathbf{P} + d| < \tau \,\bigr\}\bigr| ,
+  \qquad
+  \text{best of \num{400} draws.}
+\end{equation}
+
+Height above the fitted surface is then the signed residual, and it is what
+separates an object from the surface it stands on:
+
+\begin{equation}
+  \label{eq:height}
+  h(\mathbf{P}) = \mathbf{n}\cdot\mathbf{P} + d .
+\end{equation}
+
+Two quantities are reported for every plane fit and both are needed. The
+residual root mean square says how flat the fitted set is; the inlier
+\emph{fraction} says whether the fitted set is the scene. A plane fits three
+points perfectly, so a small residual on its own establishes nothing, and
+\cref{sec:vision-scene} is a case where the two diverge sharply.
+
+\section{The orientation defect}
+\label{sec:orientation}
+
+The first thing the instrumentation found was in the instrumentation's own
+input, which is the outcome the standing rule predicts.
+
+Three separate places in the software decided independently whether the scene
+depth camera is mounted upside down. Two rotated its frames by
+\SI{180}{\degree} and carried the comment that the camera is inverted; the
+third, the live node that publishes to the rest of the system, rotated
+nothing. Nobody had measured it, so the recorded figures and the live topics
+disagreed and neither side could tell.
+
+It was settled by measurement rather than by inspection, using a reference
+that needs no convention: the HD webcam watches the same scene from the same
+side of the room and is rotated by nothing. Each frame is reduced to a
+$64\times 64$ grey signature, standardised so that a brighter camera does not
+score differently from a darker one, and correlated against the reference in
+both orientations. Over four independent captures the un-rotated RealSense
+frame agrees with the webcam at $r = \numrange{0.66}{0.70}$ and the rotated
+one at $r = \numrange{0.27}{0.34}$: the same verdict every time, a factor of
+\num{2.4} apart. \textbf{The camera is mounted the right way up}, and every
+scene figure recorded before the correction was inverted.
+
+The correction is not a rotation of the image. A \SI{180}{\degree} rotation
+maps pixel $(u,v)$ to $(W\!-\!1\!-\!u,\; H\!-\!1\!-\!v)$, and the principal
+point is a pixel, so it must move with it:
+
+\begin{equation}
+  \label{eq:rot180}
+  c_x' = W - 1 - c_x, \qquad c_y' = H - 1 - c_y .
+\end{equation}
+
+Rotating the image and leaving the intrinsics alone places every deprojected
+ray on the wrong side of the optical axis. On this device the principal point
+sits \SI{8.85}{px} from the image centre, so the error is \SI{17.7}{px} of
+apparent principal-point displacement, or \SI{29}{\milli\metre} at
+\SI{1}{\metre} --- small, real, and completely invisible in a picture. The
+orientation is now stored as a measured configuration with the evidence that
+set it, one function applies it to the image and the intrinsics together so
+that half a rotation cannot be applied, and all three consumers read the same
+file. Undoing the rotation restored the intrinsics to the device's own
+reported values of $c_x = \num{318.87}$, $c_y = \num{231.22}$ exactly, which
+is an independent confirmation that \cref{eq:rot180} was applied in the right
+direction.
+
+\subsection{What the defect did and did not corrupt}
+
+Because the rotation was applied \emph{consistently} to the image and the
+intrinsics, substituting \cref{eq:rot180} into \cref{eq:deproject} negates the
+$X$ and $Y$ components and leaves $Z$ untouched. The recovered point cloud was
+therefore an exact reflection of the true one through the optical axis, and
+every distance, extent, angle and residual is preserved under a reflection. No
+metric quantity should have changed at all, and this was checked rather than
+assumed: the deprojected extents are exactly negated
+($X \in [\num{-3.477}, \num{1.141}]$ became
+$X \in [\num{-1.141}, \num{3.477}]$) and the centroid components change sign
+and nothing else.
+
+Two classes of stage changed anyway, and the reason each changed is worth
+recording.
+
+\textbf{The learned segmenter is not rotation-invariant.} Given the same scene
+the right way up it returned \num{96} regions rather than \num{92}, with a
+different largest region and a different median area. A convolutional
+segmenter has no reason to be invariant to a \SI{180}{\degree} rotation and
+was not trained to be, so this is expected behaviour and not a defect --- but
+it means that a geometric pipeline can be immune to an orientation error while
+the learned component sitting beside it is not, and only the learned component
+will show it.
+
+\textbf{The plane fit changed because its support is weak, not because the
+geometry changed.} \Cref{eq:ransac} draws candidate triples in raster order,
+and rotating the image reverses that order, so a different sequence of
+candidates is examined. On the wrist cameras, where the best plane holds
+\SI{74.0}{\percent} of the points, this makes no difference. On the scene
+camera, where the best plane holds \SI{3.8}{\percent}, it selects a different
+plane entirely: \SI{2.68}{\metre} from the camera before the correction and
+\SI{4.35}{\metre} after. That is not a consequence of the orientation bug. It
+is a consequence of pointing a plane-finder at a room, and the orientation
+change merely made it visible.
+
+\section{What the cameras measured}
+\label{sec:vision-results}
+\label{sec:vision-scene}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Stage outcomes by camera]{Outcomes of \num{33} stages on each of
+  four cameras. \emph{By design} is the webcam's depth stages, which are
+  absent because the sensor is absent; they are counted separately from
+  refusals so that a limitation is never reported as a fault. \textbf{No
+  stage crashed on any camera.}}
+  \label{tab:vision-stages}
+  \begin{tabular}{@{}lcccl@{}}
+    \toprule
+    Camera & Result & Refused & By design & What it is \\
+    \midrule
+    left wrist  & 28 & 5 & 0
+      & Kinova vision module, RGB-D, on the arm \\
+    right wrist & 29 & 4 & 0
+      & Kinova vision module, RGB-D, on the arm \\
+    scene depth & 27 & 6 & 0
+      & RealSense D435i across the room \\
+    scene colour & 12 & 8 & 13
+      & HD webcam, colour only, never calibrated \\
+    \midrule
+    \textbf{total} & \textbf{96} & \textbf{23} & \textbf{13} & of \num{132} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Geometry recovered from each depth camera]{Geometry recovered from
+  each depth camera in one frame. The inlier fraction is the column that
+  decides whether the row below it means anything: the wrist cameras identify
+  a work surface and the scene camera does not, which is the honest
+  consequence of pointing a plane-finder at a room rather than at a table.}
+  \label{tab:vision-geometry}
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    & left wrist & right wrist & scene depth \\
+    \midrule
+    pixels returning a depth      & \SI{89.4}{\percent} & \SI{80.5}{\percent} & \SI{14.5}{\percent} \\
+    median range                  & \SI{2.222}{\metre} & \SI{1.838}{\metre} & \SI{4.706}{\metre} \\
+    points inside the working band & \num{54789} & \num{42779} & \num{38526} \\
+    colour pixels given a depth   & \SI{64.4}{\percent} & \SI{58.8}{\percent} & aligned in hardware \\
+    \midrule
+    plane inliers                 & \SI{74.0}{\percent} & \SI{52.8}{\percent} & \SI{3.8}{\percent} \\
+    plane residual, RMS           & \SI{1.43}{\milli\metre} & \SI{1.59}{\milli\metre} & \SI{3.41}{\milli\metre} \\
+    surface extent                & $\num{0.579}\times\num{0.423}$ & $\num{0.428}\times\num{0.467}$ & $\num{1.012}\times\num{1.762}$ \\
+    surface distance              & \SI{0.278}{\metre} & \SI{0.290}{\metre} & \SI{4.352}{\metre} \\
+    \midrule
+    objects posed in three dimensions & 5 & 12 & 12 \\
+    nearest object                & \SI{0.539}{\metre} & \SI{0.387}{\metre} & \SI{2.609}{\metre} \\
+    graspable within the jaw      & 0 & 0 & 0 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{vision/scene_rs_colour.png}
+    \caption{Colour, the right way up.}
+    \label{fig:rs-colour}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{vision/scene_rs_depth.png}
+    \caption{The aligned depth of the same frame. Magenta is no return.}
+    \label{fig:rs-depth}
+  \end{subfigure}
+  \caption[The scene camera after the orientation correction]{The scene
+  camera after the correction of \cref{sec:orientation}. The depth panel is
+  the reason the row for this camera in \cref{tab:vision-geometry} reads as it
+  does: at a median range of \SI{4.706}{\metre} only \SI{14.5}{\percent} of
+  pixels return anything, and what does return is the far wall and the floor
+  rather than a work surface. A stereo depth camera across a room is not a
+  small version of a wrist camera.}
+  \label{fig:rs-pair}
+\end{figure}
+
+\Cref{tab:vision-geometry} contains one result and one non-result, and it is
+worth being explicit about which is which.
+
+\textbf{The wrist cameras measure a work surface to about
+\SI{1.5}{\milli\metre}.} A plane holding \SI{74.0}{\percent} of the returned
+points at \SI{1.43}{\milli\metre} root mean square, at a working distance of
+\SI{0.278}{\metre}, is the quantity the autonomous pick path in
+\cref{ch:perception} depends on, and it is close to the \SI{0.54}{\milli\metre}
+this project recorded for the same sensor class against a rendered scene. This
+is the first evidence in the project that the surface-fitting stage behaves on
+a real table as it does on a constructed one.
+
+\textbf{The scene camera does not identify a support plane, and the figure
+says so rather than reporting the number quietly.} Its best plane holds
+\SI{3.8}{\percent} of the points. Every quantity that depends on it --- height
+above the surface, object heights, three-dimensional boxes --- therefore rests
+on a plane that one point in twenty-six agrees with, and none of those numbers
+should be quoted. The instrument reports them because suppressing them would
+hide the inlier fraction that condemns them; the interpretation is stated here
+instead.
+
+\subsection{The two defects the first runs exposed}
+
+The first attempts at this session produced results that were wrong in ways
+that only a stage-by-stage instrument would have separated from a broken
+camera, and both were in the software.
+
+\emph{A gate belongs to the thing being measured.} The depth working band
+$\SIrange{0.08}{1.5}{\metre}$ is the pick path's own, and is correct for a
+camera on the hand. Applied unchanged to a camera across the room, whose
+nearest return is \SI{0.741}{\metre} and whose median is \SI{3.84}{\metre}, it
+retained \textbf{\num{0} of \num{85061} returns}, and sixteen stages then
+refused for want of depth that the camera had in abundance. The band is now
+declared per source and every figure states the band it used; the same camera
+now yields \num{38526} points.
+
+\emph{Two stages disagreed about the same frame, and the disagreement was the
+evidence.} The stage that asks what is standing on the surface reported
+nothing, while the stage that poses objects in three dimensions --- on the
+same frame --- reported six objects, the nearest at \SI{0.536}{\metre}. Both
+cannot be true. The cause was that depth at $\num{480}\times\num{270}$
+forward-projected into colour at $\num{1280}\times\num{720}$ lands one sample
+in roughly every seven colour pixels, so only \SI{7.22}{\percent} of colour
+pixels carried a depth. The above-plane mask was a dot pattern: every
+connected component fell below the area floor, so the stage that needs
+connectivity saw nothing while the stage that works per mask was unaffected.
+Splatting each projected sample over the gap it spans, with the radius derived
+from the resolution ratio rather than chosen, raised coverage to
+\SI{64.4}{\percent} and \SI{58.8}{\percent}
+(\cref{tab:vision-geometry}). A contradiction between two stages was worth
+more than either stage's output.
+
+\subsection{What did not work, and why that is an answer}
+
+\textbf{No object in any frame could be grasped.} The parallel-jaw planner
+refused on every camera, and the refusal carries its arithmetic: the narrowest
+axis of the nearest object measures \SI{144}{\milli\metre} against a usable
+jaw opening of \SI{75}{\milli\metre}. That is a statement about the scene, not
+a failure of the planner, and it is the same geometric constraint that
+\cref{sec:cells} imposes on the study's carry tasks.
+
+\textbf{The open-vocabulary detector returned nothing on any camera.} It was
+given the single class \emph{green cube} and found no instance of it at a
+confidence floor of \num{0.05}. It was not asked for people or furniture, so
+this is the measured behaviour of that model on this rig with that prompt
+rather than a misconfiguration; the classical colour and geometry stages found
+the same objects the model did not.
+
+\textbf{No fiducial marker decoded in any frame}, because none was in the
+scene. A marker either decodes or it does not, which is the property that
+makes it a poor thing to depend on and a good thing to check.
+
+\textbf{The colour scene camera has never been calibrated}, so eight of its
+stages refuse rather than assume that the principal point is the image centre.
+On the depth camera the principal point is \SI{8.85}{px} from centre, which
+would be \SI{14.7}{\milli\metre} of error at \SI{1}{\metre} if assumed away.
+The refusal is the correct behaviour and the calibration is a half-hour task
+that has not been done.
+
+\textbf{The robot is not detected in any image, and no stage claims that it
+is.} Nothing in this system finds an arm in a picture. The arm's pose comes
+from its encoders through the kinematic description, and drawing it into a
+camera image requires the hand-eye transform that \cref{ch:motion} identifies
+as the largest unmeasured term in the positioning budget.
+
+\subsection{A caption that could not be written}
+
+The arms were to be parked at the pick pose for this session so that the
+figures could be captioned as such. The instrument measures the pose rather
+than assuming it, and found the left arm \SI{10.67}{\degree} and the right
+\SI{13.53}{\degree} from the reference configuration, against a tolerance of
+\SI{2}{\degree}. Earlier runs in the same session were \SIrange{66}{82}{\degree}
+out.
+
+None of these figures may therefore be captioned ``at the pick pose'', and
+none is. This is the check working rather than failing: a figure captioned
+with a pose nobody measured is worth nothing, and nothing else in the session
+would have noticed. It is the same failure mode as \cref{sec:orientation} in a
+different variable --- a property everybody believed, that nobody had put a
+number on.
+
+\section{What this chapter changes}
+
+Three things are true after this session that were not true before it.
+
+The perception geometry has been exercised on real sensors and the surface fit
+holds to \SI{1.43}{\milli\metre} at working distance, which is the term the
+pick path depends on and which had previously only been characterised against
+a renderer.
+
+The scene camera is a different instrument from the wrist cameras, not a
+distant one, and the numbers say by how much: an eighth of the depth returns,
+a twentieth of the plane support, and a scene with no dominant plane in it.
+Any autonomous behaviour that expects a support surface must take it from a
+wrist camera.
+
+And a constant that three separate files had asserted and none had measured
+was wrong. It was found in the first hour of pointing an instrumented pipeline
+at the hardware, it was invisible to every metric stage by construction, and
+the only thing that would ever have shown it is a second camera looking at the
+same room. It is the twenty-sixth entry in \cref{ch:instrument}, and the first
+whose mechanism is a constant asserted in three places and measured in none.

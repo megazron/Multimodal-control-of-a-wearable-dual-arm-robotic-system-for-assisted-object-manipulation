@@ -7,19 +7,13 @@ produced. This appendix is the chain of measurements behind it.
 \section{The two arms share no reachable workspace}
 
 Over a 63-cell grid spanning the frontal working volume, arms verified at
-home, no cell was reachable by both arms. The result survives freeing the
-wrist yaw (raising each arm's individual reach from 16/18 to 21/21 cells,
-still 0/63 shared) and additional solver retries.
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.85\textwidth]{workspace_disjoint.pdf}
-  \caption[The measured dead band]{The two reachable sets do not meet.
-  Measured at $y=\SI{0.35}{\metre}$, $z=\SI{1.10}{\metre}$, yaw free, three
-  repeats per point: the right arm reaches $x\le\SI{-0.10}{\metre}$, the
-  left $x\ge\SI{0.15}{\metre}$, a \SI{0.25}{\metre} dead band between.}
-  \label{fig:disjoint}
-\end{figure}
+home, no cell was reachable by both arms (\cref{fig:disjoint} in
+\cref{ch:resultsmain}). The result survives freeing the wrist yaw (raising
+each arm's individual reach from 16/18 to 21/21 cells, still 0/63 shared)
+and additional solver retries. The right arm reaches
+$x\le\SI{-0.10}{\metre}$, the left $x\ge\SI{0.15}{\metre}$: a
+\SI{0.25}{\metre} dead band, measured at $y=\SI{0.35}{\metre}$,
+$z=\SI{1.10}{\metre}$, yaw free, three repeats per point.
 
 This holds within $x\in[-0.6,0.6]$, $y\in[0,0.4]$, $z\in[0.90,1.30]$
 \si{\metre}, with the as-built mount and the legacy home joint angles -- the

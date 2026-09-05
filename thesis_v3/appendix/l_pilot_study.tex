@@ -5,27 +5,36 @@
 This appendix is the full record: coverage, every session, and the
 supplementary measures.}
 
-Sixteen sessions were recorded on 2026-09-03 and 2026-09-04
-(\repo{recordings/sessions/}). Duration, hand-travel distance and lag come
-from the full-resolution position trace (20 Hz); clutch and emergency-stop
-counts come from each session's event log. Participant identity is P1--P4
-throughout, including in every figure pixel, consistent with
-\repo{write\_manifest()} refusing to record a name (\cref{sec:ethics}).
+Twenty-three sessions were recorded, sixteen on 2026-09-03/04 for P1--P4 and
+seven on 2026-09-02 for P5 (\repo{recordings/sessions/}). Duration,
+hand-travel distance and lag come from the full-resolution position trace
+(20 Hz); clutch and emergency-stop counts come from each session's event
+log. P5's sessions predate the per-participant folder-naming convention
+(generic timestamp names, no task label) and are identified as direct or
+shared from the \texttt{shared\_autonomy} flag each session's own
+\texttt{events.jsonl} logs at start, which -- unlike the folder names relied
+on for P1--P4 -- is populated correctly for every one of P5's sessions.
+Participant identity is P1--P5 throughout, including in every figure pixel,
+consistent with \repo{write\_manifest()} refusing to record a name
+(\cref{sec:ethics}).
 
 \begin{table}[htbp]
   \centering
   \small
   \caption[Pilot coverage]{Which participant performed which task under which
-  condition. Coverage is uneven because a pilot session is limited by time.}
+  condition. Coverage is uneven because a pilot session is limited by time.
+  P5's task was not recorded; all seven of P5's sessions are one
+  undifferentiated block.}
   \label{tab:pilot-coverage}
-  \begin{tabular}{@{}lccc@{}}
+  \begin{tabular}{@{}lcccc@{}}
     \toprule
-    Participant & Object tracking & Target reaching & Position matching \\
+    Participant & Object tracking & Target reaching & Position matching & (unlabelled) \\
     \midrule
-    P1 & both (direct $\times2$) & --- & --- \\
-    P2 & both & both (shared $\times2$) & --- \\
-    P3 & direct only & shared only & both \\
-    P4 & both & --- & both \\
+    P1 & both (direct $\times2$) & --- & --- & --- \\
+    P2 & both & both (shared $\times2$) & --- & --- \\
+    P3 & direct only & shared only & both & --- \\
+    P4 & both & --- & both & --- \\
+    P5 & --- & --- & --- & both (direct $\times5$, shared $\times2$) \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -59,6 +68,13 @@ throughout, including in every figure pixel, consistent with
     P4 & Object tracking  & Shared & 186.9 & 1.98 & 25 & \SI{42}{\percent} \\
     P4 & Position matching & Direct & 171.9 & 1.65 & 12 & \SI{30}{\percent} \\
     P4 & Position matching & Shared & 111.7 & 1.98 & 12 & \SI{40}{\percent} \\
+    P5 & (unlabelled) & Direct & 262.5 & 1.99 & 20 & \SI{37}{\percent} \\
+    P5 & (unlabelled) & Shared & 250.0 & 1.58 & 23 & \SI{39}{\percent} \\
+    P5 & (unlabelled) & Direct & 359.5 & 5.19 & 43 & \SI{62}{\percent} \\
+    P5 & (unlabelled) & Shared & 265.8 & 5.89 & 19 & \SI{53}{\percent} \\
+    P5 & (unlabelled) & Direct & 207.8 & 1.62 & 15 & \SI{43}{\percent} \\
+    P5 & (unlabelled) & Direct & 93.0  & 0.16 & 11 & \SI{56}{\percent} \\
+    P5 & (unlabelled) & Direct & 99.3  & 0.59 & 11 & \SI{57}{\percent} \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -122,7 +138,7 @@ throughout, including in every figure pixel, consistent with
 Every pilot session polled the physical Kinova arms' own joint encoders
 alongside the simulated joint state, which makes a direct check possible:
 does the real arm actually follow the simulated one it was commanded
-through. \Cref{fig:track} is the best-tracking session across all sixteen
+through. \Cref{fig:track} is the best-tracking session across all twenty-three
 (P4, object tracking, direct control, chosen by lowest sim-to-real joint
 RMS): the real arm's joint 4 angle follows the simulated one to
 \SI{1.06}{\degree} RMS over \num{3859} samples, with the largest departures
@@ -227,7 +243,7 @@ magnitude worse than either VR teleoperation or another operator on the same
 hardware, on the same day, and the pooled VR-only comparison of
 \cref{sec:pilot-results} would have missed it entirely.
 
-\paragraph{Limits.} Four participants with uneven task coverage is a
+\paragraph{Limits.} Five participants with uneven task coverage is a
 pilot-scale sample: no significance test is reported, and none of the
 differences above should be read as a proven effect. The pooled figures mix
 three tasks together; the paired panels are the part of this pilot closest

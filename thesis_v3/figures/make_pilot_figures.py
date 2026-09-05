@@ -39,9 +39,9 @@ for s in SESSIONS:
 for p in PAIRED:
     p["participant"] = ANON.get(p["participant"], p["participant"])
 
-TASKS = ["Object tracking", "Target reaching", "Position matching"]
+TASKS = ["Object tracking", "Target reaching", "Position matching", "Unspecified"]
 TASK_SHORT = {"Object tracking": "track", "Target reaching": "reach",
-              "Position matching": "match"}
+              "Position matching": "match", "Unspecified": "P5*"}
 
 
 def by_task_condition(metric):

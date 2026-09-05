@@ -2,28 +2,10 @@
 \label{ch:method}
 
 \Cref{ch:methodsmain} gives the command mapping and safety architecture in
-summary. This appendix covers what is not repeated there: the package
-architecture, the full mode registry, the desk arrangement the laboratory
-actually operates, calibration, the operating window, and the verification
-audit.
-
-\section{Architecture}
-
-The workspace is six packages with a one-way dependency graph
-(\cref{fig:arch}). Direct teleoperation is the baseline condition of every
-planned experiment, so if the teleoperation package imported anything from
-the autonomy package the comparison would be circular; verified both by
-source inspection and by the inverse-kinematics follower still reaching its
-running state with the autonomy and perception packages deleted from the
-install tree.
-
-\begin{figure}[htbp]
-  \centering
-  \input{figures/diagrams/architecture.tex}
-  \caption[Package architecture]{Package decomposition and the one-way
-  dependency graph.}
-  \label{fig:arch}
-\end{figure}
+summary, including the package architecture (\cref{fig:arch}). This
+appendix covers what is not repeated there: the full mode registry, the
+desk arrangement the laboratory actually operates, calibration, the
+operating window, and the verification audit.
 
 \section{Command mapping, in full}
 

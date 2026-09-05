@@ -18,16 +18,25 @@ and what it costs the person carrying the arms, in one system, under the
 same trial (\cref{ch:background}); that gap is what this project is built to
 close.
 
-Two premises, argued and tested throughout, shaped the engineering. First,
-commanding fourteen joints through a body-worn master with no force feedback
-is a usability problem before it is a control problem, so position is taken
-from whichever sensor observes each component best rather than from the
-slave's full kinematic chain. Second, a body-worn master \emph{will} lose
-sensing channels over its life, so the system treats channel loss as an
-operating condition: every channel carries a health verdict, and when too
-many are lost the system reports position unavailable rather than fabricating
-one, because on a manipulator beside a person's head a fabricated position is
-worse than none.
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.8\linewidth]{photos/platform_scene_hd.png}
+  \caption[The platform as built]{The platform as built: two Kinova Gen3
+  arms on a backpack frame, on a torso mannequin, photographed by the scene
+  camera. The two teal columns are the laboratory's fixed manipulators and
+  are not part of this system.}
+  \label{fig:platform}
+\end{figure}
+
+Two premises shaped the engineering. First, commanding fourteen joints
+through a body-worn master with no force feedback is a usability problem
+before a control one, so position comes from whichever sensor observes each
+component best, not the slave's full kinematic chain. Second, a body-worn
+master \emph{will} lose channels over its life, so the system treats
+channel loss as an operating condition: every channel carries a health
+verdict, and when too many are lost it reports position unavailable rather
+than fabricating one -- on a manipulator beside a person's head, worse than
+none.
 
 \section{Objectives}
 
@@ -54,44 +63,32 @@ route in full.
 
 \section{Contributions}
 
-Each contribution below is stated with its evidence class, because the
-distinction between implemented, verified in simulation, measured on
-hardware, and measured on a pilot session is load-bearing throughout this
-report. A graceful-degradation architecture for a body-worn master, measured
-against \num{20430} recorded frames; a reduced-degree-of-freedom command
-mapping that takes direction from gravity and magnitude from the
-best-conditioned joints; a safety architecture in which every blocking
-mechanism is observable, with fourteen of fourteen injected faults handled; a
-workspace characterisation showing the two arms share no reachable point
-under the as-built mount, together with a quantified and buildable mount
-correction; a jerk-limited, phase-synchronised motion generator that removes
-\SI{51.3}{\milli\metre} of unrequested Cartesian excursion; a
-calibrate-then-plan perception stage that recovers six objects to within
-\SI{1}{\milli\metre}; a stage-by-stage instrumentation of the perception
-pipeline exercised on four physical cameras; and a first pilot of the
-direct-versus-shared-autonomy comparison with four operators across three
-tasks, run under ethical approval once VR controllers supplied a working
-alternative to the master's incoherent channels. \textbf{No contribution
-below the pilot was validated on physical hardware carrying a load.}
+Each is stated with its evidence class (implemented, verified in
+simulation, measured on hardware, or measured on a pilot session) in
+\cref{ch:resultsmain}: a graceful-degradation architecture for a body-worn
+master; a reduced-degree-of-freedom command mapping; a safety architecture
+in which every blocking mechanism is observable; a workspace
+characterisation with a quantified, buildable mount correction; a
+jerk-limited motion generator; a calibrate-then-plan perception stage
+exercised on four physical cameras; and a first pilot of the
+direct-versus-shared-autonomy comparison with five operators, run under
+ethical approval once VR controllers supplied a working alternative to the
+master's incoherent channels. \textbf{No contribution below the pilot was
+validated on physical hardware carrying a load.}
 
-The single most transferable outcome does not appear in that list. Twenty-six
-times across this project, a result that looked like a system failure was a
-defect in the measuring tool rather than in the system, and validating an
-instrument against a known answer before trusting a surprising reading it
-produces is the practice applied to every number in this report
-(\cref{sec:validity}, \cref{ch:instrument}).
+The single most transferable outcome does not appear in that list.
+Twenty-six times across this project, a result that looked like a system
+failure was a defect in the measuring tool, and validating an instrument
+against a known answer before trusting a surprising reading it produces is
+the practice applied to every number in this report (\cref{sec:validity}).
 
 \section{Report structure}
 
-\Cref{ch:methodsmain} summarises what was designed, built and run, including
-the pilot protocol and its ethical approval; the full engineering detail --
-the master's electronics and firmware, the system architecture, the
-perception and motion pipelines -- is in \cref{ch:master,ch:method,ch:perception,ch:motion}.
-\Cref{ch:resultsmain} reports the headline measurements and the pilot's
-results; \cref{ch:results,ch:vision,ch:workspace} carry the full simulation
-campaign, the real-camera vision session and the workspace characterisation.
-\Cref{ch:discussionmain} interprets the results and states what they are
-worth; \cref{ch:discussion} is the extended version. \Cref{ch:conclusion}
-closes against the objectives above. \Cref{app:study,app:analysis} are the
-protocol for the full two-person study and the validated analysis that would
-evaluate it, and \cref{app:pilot} is the pilot session in full.
+\Cref{ch:methodsmain} summarises what was designed, built and run;
+\cref{ch:master,ch:method,ch:perception,ch:motion} carry the full
+engineering detail. \Cref{ch:resultsmain} reports the headline measurements
+and the pilot; \cref{ch:results,ch:vision,ch:workspace} carry the full
+campaign. \Cref{ch:discussionmain,ch:conclusion} interpret the results and
+close against the objectives above; \cref{app:study} is the un-run
+two-person protocol this project was built for, and \cref{app:pilot} the
+pilot session in full.

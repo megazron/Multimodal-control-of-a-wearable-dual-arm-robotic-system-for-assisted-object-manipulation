@@ -1,0 +1,43 @@
+% THE SIGNAL PATH, END TO END. What the operator does on the left, what the
+% robot does on the right, and every point at which something can stop the
+% arm drawn in red. Drawn from the implementation, not copied.
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize,
+  box/.style   = {proc, text width=30mm, minimum height=8mm},
+  inp/.style   = {sensor, text width=30mm, minimum height=8mm},
+  stop/.style  = {safety, text width=30mm, minimum height=8mm},
+  outp/.style  = {actuator, text width=30mm, minimum height=8mm}]
+
+\node[inp]  (master) at (0, 0)    {mannequin master\\14 sensors, \SI{100}{\hertz}};
+\node[inp]  (vr)     at (36, 0)   {VR controllers\\hand pose, \SI{90}{\hertz}};
+\node[inp]  (cam)    at (108, 0)  {wrist cameras\\colour + depth};
+
+\node[box] (health) at (0, -14)  {health verdict per sensor\\dead / incoherent / alive};
+\node[box] (map)    at (18, -28) {pose mapping\\direction + distance, Eq.~\eqref{eq:map-main}};
+\node[box] (clutch) at (18, -42) {clutch and anchor\\Eq.~\eqref{eq:anchor-main}};
+\node[box] (detect) at (108, -14){find table and objects\\plane fit, tilted boxes};
+\node[box] (intent) at (108, -28){guess the operator's target\\confidence $P$};
+\node[decision, text width=22mm] (arb) at (108, -46) {$P>\theta$ and\\unambiguous?};
+\node[box] (blend)  at (63, -62) {command: operator's position;\\wrist orientation from robot only if yes, Eq.~\eqref{eq:arb-main}};
+\node[stop](ik)     at (63, -82) {joint solver + clearance floor\\hold if any link $<\SI{150}{\milli\metre}$, Eq.~\eqref{eq:floor-main}};
+\node[box] (ruckig) at (63, -100) {motion generator (Ruckig)\\one timing for all joints, Eq.~\eqref{eq:phase-main}};
+\node[outp] (sim)    at (63, -116){simulated robot (RViz)};
+\node[outp] (real)   at (63, -130){real arm, via the bridge\\$\le\SI{0.15}{\radian\per\second}$};
+\node[stop](estop)  at (0, -82)  {emergency stop, latched\\call $\mid$ both buttons $\mid$ watchdog};
+
+\draw[flow] (master) -- (health);
+\draw[flow] (health) -- (map);
+\draw[flow] (vr.south) to[out=270,in=90] (map.north);
+\draw[flow] (map) -- (clutch);
+\draw[flow] (clutch.south) to[out=270,in=180] (blend.west);
+\draw[flow] (cam) -- (detect);
+\draw[flow] (detect) -- (intent);
+\draw[flow] (intent) -- (arb);
+\draw[flow] (arb.west) to[out=180,in=0] node[lbl, above, pos=0.35] {yes} (blend.east);
+\draw[flow] (blend) -- (ik);
+\draw[flow] (ik) -- (ruckig);
+\draw[flow] (ruckig) -- (sim);
+\draw[flow] (sim) -- (real);
+\draw[fail] (estop.east) -- node[faillbl, above] {blocks} (ik.west);
+\draw[fail] (health.south west) to[out=250,in=110] node[faillbl, left, pos=0.5] {position\\unavailable} (estop.north west);
+\node[lbl, anchor=north] at (108, -54) {no: keep the operator's\\wrist orientation};
+\end{tikzpicture}

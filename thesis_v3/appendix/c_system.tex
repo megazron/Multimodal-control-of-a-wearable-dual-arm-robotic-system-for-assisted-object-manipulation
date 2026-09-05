@@ -7,6 +7,17 @@ appendix covers what is not repeated there: the full mode registry, the
 desk arrangement the laboratory actually operates, calibration, the
 operating window, and the verification audit.
 
+\begin{figure}[htbp]
+  \centering
+  \input{figures/diagrams/architecture.tex}
+  \caption[Package architecture]{The software packages and their one-way
+  dependencies: the teleoperation package, the baseline condition of every
+  planned experiment, imports nothing from the autonomy package -- verified
+  by inspecting the source and by running it with the autonomy and
+  perception packages deleted.}
+  \label{fig:arch}
+\end{figure}
+
 \section{Command mapping, in full}
 
 The commanded position is built in spherical form about the master's

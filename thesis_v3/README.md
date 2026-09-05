@@ -14,6 +14,25 @@ request needs it):
 
 ## Current state
 
+- **Latest round (flowcharts, formulas, trajectories as a/b/c):** Methods
+  now carries eight numbered equations in the main body (sensor smoothing,
+  the direction-and-distance pose mapping, the clutch anchor, the
+  assistance rule as a case expression, the clearance-floor test, the
+  RANSAC plane criterion, the grasp-width rule, the shared-timing motion
+  generator, the two sim-to-real models and the error-budget combination)
+  and two new flowcharts drawn from the implementation
+  (`figures/diagrams/signal_path.tex` -- operator input to real arm with
+  every stopping point in red -- and `pilot_procedure.tex` -- one pilot
+  session as run and the log every metric came from); the package
+  dependency graph moved to Appendix C. The two 3-D trajectory figures are
+  replaced by one figure of three separate panels per cohort -- (a) master
+  arm / operator's hand, (b) simulated robot's hand (RViz), (c) real robot's
+  hand from its own encoders -- for a VR session and a mannequin session
+  (`figures/make_trajectory_abc.py`, from the gallery's FK'd data). The CV
+  figure is now a six-stage flowchart of real stage images on one frame
+  (`figures/make_cv_flowchart.py`; the recomputed plane-inlier fraction
+  matches the pipeline's stored 73.95% exactly). Two tikz style names
+  (`in`, `step`) collided with built-in tikz keys and were renamed.
 - **Read against the booklet itself** (`MSc_Project_booklet_2025-26.pdf`,
   28 pages, extracted to text) and the department template zip (identical
   in structure to what this report is built on). Two things the rubric

@@ -22,8 +22,7 @@ short of the wearer -- never activated. The manual emergency stop did:
 twelve holds across eleven of twenty-three sessions, nine of them in a
 session's final \SI{15}{\percent} as the operator ended the recording, and
 three not -- one assisted session stopped at \SI{67}{\percent} and
-\SI{83}{\percent} of its length, with steering resuming after each. The
-automatic floor is so far validated only against injected faults.
+\SI{83}{\percent} of its length, with steering resuming after each.
 
 \begin{figure}[htbp]
   \centering
@@ -68,8 +67,7 @@ to \SI{0.290}{\metre} off centre. The tightest limit on reach is the fixed
 wrist orientation: from the working position, the hand can travel a mean
 \SI{0.065}{\metre} with the wrist held fixed against \SI{0.363}{\metre}
 with it free -- over five times -- because a fixed orientation uses up the
-seventh joint, the one that moves the elbow away from the person
-(\cref{tab:work-point}).
+seventh joint (\cref{tab:work-point}).
 
 The per-joint step limiter that was the whole motion generator is compared
 with its replacement in \cref{tab:motiongen-main}: it let the hand leave the
@@ -110,25 +108,26 @@ across the working range (\cref{sec:hardware-session}).
 Pointed at four physical cameras for the first time (\cref{ch:vision}), the
 wrist cameras find the table surface to \SI{1.43}{\milli\metre} with
 \SI{74}{\percent} of their depth points on it (plane fitting by random
-sample consensus~\cite{fischler1981ransac}). Segmentation is scoped to the task's two
-objects (\cref{fig:vision-pipeline}): the cube by the project's own colour
-classifier, the box -- outside that palette -- by a threshold on its
-measured hue; both are recovered as oriented boxes, which is what gives the
-planner a turned object's true width.
+sample consensus~\cite{fischler1981ransac}). Segmentation is scoped to the
+task's two objects (\cref{fig:vision-pipeline}), recovered as oriented boxes
+so the planner sees a turned object's true width.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{vision/cv_pipeline.pdf}
-  \caption[Detection pipeline: raw frame to oriented boxes]{The left wrist
-  camera's raw frame (a), the cube and box picked out of it (b), and the
-  oriented boxes recovered from each (c) -- one real frame at every stage.}
+  \includegraphics[width=\linewidth]{vision/cv_flowchart_300.png}
+  \caption[The picture-to-grasp pipeline on one real frame]{The pipeline on
+  one real left-wrist-camera frame, stage by stage: picture; depth map;
+  table plane (\SI{74}{\percent} of points on it, \SI{1.43}{\milli\metre});
+  the two task objects picked out; a tilted box round each; and the map
+  handed to the planner -- five objects, four fit the \SI{85}{\milli\metre}
+  hand, the widest is \SI{341}{\milli\metre}.}
   \label{fig:vision-pipeline}
 \end{figure}
 
 Depth, not colour, is what a box is drawn from (\cref{fig:depth-boxes}):
-the same two objects, labelled with their measured distance in the depth
-map. \Cref{tab:vision-values} collects this frame's numbers; its two
-distance methods measure different points on a tilted object.
+the same two objects with their measured distance. \Cref{tab:vision-values}
+collects this frame's numbers; its two distance methods measure different
+points on a tilted object.
 
 \begin{figure}[htbp]
   \centering
@@ -144,8 +143,7 @@ distance methods measure different points on a tilted object.
 No grasp closed on any camera in that session: the nearest object's
 narrowest side measured \SI{144}{\milli\metre} against an
 \SI{85}{\milli\metre} gripper opening. \Cref{fig:scene-boxes-full} shows
-the whole scene the safety layer reasons about -- wearer, table, arms and
-objects in one frame.
+the whole scene the safety layer reasons about.
 
 In simulation the full task set solves \num{13927} joint-angle problems
 with no failures and no clearance breaches, and every scripted grasp closes
@@ -201,8 +199,7 @@ hand), \emph{target reaching} (a reach to a marked position) and
 under direct control and once with assistance. P5's seven unlabelled
 sessions are pooled, their condition read from the logged flag. A fourth
 planned task, using a multimeter, was never recorded with a participant on
-any of three tries (\cref{app:pilot} carries every session and the coverage
-table; \cref{app:gallery} shows every session). Coverage is uneven, so the
+any of three tries (\cref{app:pilot,app:gallery}). Coverage is uneven, so the
 pooled comparison mixes tasks and the paired one isolates the condition.
 
 \begin{table}[htbp]
@@ -290,30 +287,23 @@ own hand in only two of seven.
 
 Every session also recorded the real arm's own joint encoders, so the gap
 between the simulated and the real hand is known throughout
-(\cref{fig:track-3d,fig:track-3d-master,fig:track-gap}): typically
+(\cref{fig:track-3d,fig:track-gap}): typically
 \SI{11.8}{\milli\metre} per VR session and \SI{24.8}{\milli\metre} for the
 mannequin cohort, most sessions inside the \SI{30}{\milli\metre} grasp gate.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{pilot/track_3d_full_v2.pdf}
-  \caption[VR cohort: operator's hand, simulated and real robot hand]{One
-  VR operator, one direct and one assisted session of the same task: the
-  operator's hand (smoothed), the simulated robot's hand, and the real
-  robot's hand computed from its own joint encoders; the first clutch press
-  and release are marked. The gripper itself was never commanded in the
-  pilot.}
+  \includegraphics[width=\linewidth]{pilot/trajectory_abc_300.png}
+  \caption[Master arm, simulated robot and real robot, both cohorts]{One
+  session per cohort as three separate paths, coloured from start to end:
+  (a) the master arm or operator's hand, (b) the simulated robot's hand as
+  RViz shows it, (c) the real robot's hand from its own joint encoders. Top:
+  VR (P4, object tracking, direct; simulated-to-real gap
+  \SI{11.1}{\milli\metre}). Bottom: mannequin master (M2, target reaching,
+  direct; gap \SI{21.8}{\milli\metre}). The hand covers far more distance
+  than the robot because the mapping scales and filters it. Every session:
+  \cref{app:gallery}.}
   \label{fig:track-3d}
-\end{figure}
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=\linewidth]{pilot/track_3d_master.pdf}
-  \caption[Master-arm cohort: master, simulated and real robot hand]{The
-  mannequin-master cohort's version of \cref{fig:track-3d}: M2, direct and
-  assisted, same task, both under \SI{2.3}{\degree} of joint tracking
-  error. This cohort logs no clutch channel, so no markers are drawn.}
-  \label{fig:track-3d-master}
 \end{figure}
 
 \begin{figure}[htbp]
@@ -321,7 +311,7 @@ mannequin cohort, most sessions inside the \SI{30}{\milli\metre} grasp gate.
   \includegraphics[width=0.78\linewidth]{gallery/trajectories/summary_gap_all_sessions_300.png}
   \caption[Gap between simulated and real robot hand, every session]{Every
   session of both cohorts ranked by the typical gap between the simulated
-  and the real robot hand, coloured by condition, against the
+  and the real robot hand, against the
   \SI{30}{\milli\metre} grasp gate. The one large outlier is the P5 session
   with the two mid-session emergency stops.}
   \label{fig:track-gap}

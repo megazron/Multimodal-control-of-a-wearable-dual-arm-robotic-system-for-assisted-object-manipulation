@@ -13,8 +13,7 @@ sessions and reduced re-grips while lengthening the robot's path.
 
 The finding that the arms shared no reachable point is severe because it is
 geometric: no planner or wrist policy can produce a point neither arm can
-reach, so hand-to-hand transfer left the task set before anything else did.
-The cause was not the mount's rotation but the arms' asymmetric rest
+reach, which ruled out hand-to-hand transfer. The cause was not the mount's rotation but the arms' asymmetric rest
 angles, which are fixed facts because the simulation-to-hardware bridge
 replays them onto the real arm. Fixing it needed a mechanical change,
 costed, applied and re-verified in one pass.
@@ -25,9 +24,8 @@ The clearance floor is a \emph{distance}, and the wearer can move.
 Combining the measured delay of the wearer-tracking camera with limb speeds
 from the literature gives \cref{tab:reaction-compact}: in most modelled limb
 motions the limb crosses the whole \SI{150}{\milli\metre} margin before the
-robot knows anything changed. That is what a fixed margin means when
-perception takes up to half a second and a person can move a metre in that
-time. It is this report's principal open safety question, and three
+robot knows anything changed. It is this report's principal open safety
+question, and three
 responses exist, none yet implemented: enlarge the floor by the delay times
 an assumed limb speed, a one-parameter change that makes the margin mean
 what it claims; cut the delay, since most of the \SI{562}{\milli\second}
@@ -37,8 +35,8 @@ clearance, two quantities the system already computes separately. The
 fallback makes it worse: when the wearer estimate is stale the guard
 reverts to a mannequin with its arms down and believes there is
 \SI{0.3170}{\metre} of clearance where a wearer with arms held out has
-\SI{0.0933}{\metre} -- optimistic by \SI{224}{\milli\metre}, mitigated today
-by an instruction to the wearer, not a control.
+\SI{0.0933}{\metre} -- optimistic by \SI{224}{\milli\metre}, mitigated only
+by instructing the wearer.
 
 \begin{table}[htbp]
   \centering
@@ -61,8 +59,7 @@ by an instruction to the wearer, not a control.
 \label{sec:validity}
 
 Twenty-six times in this project a measurement was wrong and the system was
-not (\cref{ch:instrument}), a rate that conditions how every other number
-here should be read. Fifteen were caught because an independently known
+not (\cref{ch:instrument}). Fifteen were caught because an independently known
 quantity disagreed with the reading, and fourteen could have been caught in
 advance from something already in hand -- the case for building a
 cross-check into every instrument rather than trusting it harder. Every
@@ -85,8 +82,7 @@ belongs to the assistance, and the platform shows the same with no operator
 at all: identical scripted waypoints travel \SI{4}{\percent} further under
 VR shared autonomy than direct VR, and \SI{45}{\percent} further under
 mannequin-master shared autonomy than mannequin direct
-(\cref{fig:mode-travel}). ``Shorter but less direct'' is a property of the
-assistance rule, not a contradiction. The literature predicts the cost this
+(\cref{fig:mode-travel}). The literature predicts the cost this
 pilot could not see: higher autonomy improves performance but lowers the
 sense of agency~\cite{collier2025agency}, cuts effort without raising
 satisfaction~\cite{kim2012autonomy}, and raises safety while lowering
@@ -121,8 +117,8 @@ followed from a measurement the plan did not anticipate.
 Of the six objectives of \cref{sec:aim}, five were met and one partly: the
 master built and characterised, its repair narrowed to two joints (1); a
 mapping that degrades predictably (2); a safety layer that handled fourteen
-of fourteen injected faults, its live record showing the manual stop used
-and the automatic floor never needed (3); a workspace characterisation that
+of fourteen injected faults and whose live record shows the automatic floor
+was never needed (3); a workspace characterisation that
 found no shared reachable point and costed, applied and re-verified the fix
 (4); ten-repeat, known-answer verification that caught twenty-six
 instrument defects before any became a finding (5); and a pilot under

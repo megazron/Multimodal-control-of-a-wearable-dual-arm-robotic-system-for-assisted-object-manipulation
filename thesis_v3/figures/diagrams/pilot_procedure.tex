@@ -1,0 +1,24 @@
+% ONE PILOT SESSION, AS RUN. Left to right; the record the metrics come from
+% is drawn beneath, because nothing was timed by hand.
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize,
+  stp/.style   = {proc, text width=26mm, minimum height=9mm},
+  pers/.style  = {person, text width=26mm, minimum height=9mm},
+  rec/.style   = {sensor, text width=26mm, minimum height=9mm},
+  halt/.style  = {safety, text width=26mm, minimum height=9mm}]
+
+\node[pers] (consent) at (0, 0)   {information sheet,\\consent (SETREC 7111986)};
+\node[stp] (brief)   at (31, 0)  {briefing; stop rehearsed;\\operator-to-robot yaw measured};
+\node[stp] (direct)  at (62, 0)  {session: direct control\\one task, clutch to move};
+\node[stp] (assist)  at (93, 0)  {session: with assistance\\same task, same operator};
+\node[halt] (end)     at (124, 0) {both buttons held:\\emergency stop ends recording};
+
+\node[rec]  (log)     at (62, -19) {log at \SI{20}{\hertz}: hand, robot,\\clutch, lag; every stop event};
+\node[stp] (metrics) at (93, -19) {metrics computed from the log:\\time, robot path, re-grips, lag};
+\node[rec]  (anon)    at (124, -19){manifest as P1--P5 only;\\a name is refused in code};
+
+\foreach \a/\b in {consent/brief, brief/direct, direct/assist, assist/end, log/metrics, metrics/anon}
+  {\draw[flow] (\a) -- (\b);}
+\draw[flow] (direct.south) -- (log.north);
+\draw[flow] (assist.south) to[out=250,in=60] (log.north east);
+\draw[fail] (end.south) to[out=270,in=30] (metrics.north east);
+\end{tikzpicture}

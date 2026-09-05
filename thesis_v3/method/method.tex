@@ -11,36 +11,52 @@ The master is a miniature mannequin arm with the Gen3's joint layout at
 roughly a third of its size (\cref{fig:master-cad}, \cref{ch:master}), moved
 with the fingers. A Teensy 4.1 microcontroller reads fourteen rotary
 position sensors (potentiometers), two inertial sensors, two
-force-sensitive pads and two buttons, and sends one line of text a hundred
-times a second (\cref{tab:frame}). Readings are smoothed (\cref{eq:ema})
-before conversion to degrees. Each sensor carries a health verdict from its
-own recent history (\emph{dead}, \emph{incoherent}, \emph{intermittent} or
-\emph{alive}; \cref{sec:channelhealth}); only the sensors the active mode
-uses can reject a reading, and when no trustworthy sensor remains the
-system reports the position as \emph{unavailable} rather than guessing.
+force-sensitive pads and two buttons, and reports at \SI{100}{\hertz}
+(\cref{tab:frame}). Each reading $r_n$ is smoothed on the
+microcontroller by an integer running average before conversion to degrees,
+\begin{equation}
+  e_{n+1} = \frac{\alpha\, r_n + (256-\alpha)\, e_n}{256}, \qquad \alpha = 64.
+  \label{eq:ema-main}
+\end{equation}
+Each sensor carries a health
+verdict from its own recent history (\emph{dead}, \emph{incoherent},
+\emph{intermittent} or \emph{alive}; \cref{sec:channelhealth}); only the
+sensors the active mode uses can reject a reading, and when no trustworthy
+sensor remains the system reports the position as \emph{unavailable} rather
+than guessing.
 
 \section{From master pose to arm command}
 
 \begin{figure}[htbp]
   \centering
-  \input{figures/diagrams/architecture.tex}
-  \caption[Package architecture]{The software packages and their one-way
-  dependencies: the teleoperation package, the baseline condition of every
-  planned experiment, imports nothing from the autonomy package -- verified
-  by inspecting the source and by running it with the autonomy and
-  perception packages deleted.}
-  \label{fig:arch}
+  \input{figures/diagrams/signal_path.tex}
+  \caption[The signal path from operator to robot]{The signal path from the
+  operator's input to the real arm, with every point at which something can
+  stop the arm in red. The operator's position always passes straight
+  through; the robot may supply the wrist orientation only.}
+  \label{fig:signal-path}
 \end{figure}
 
 The commanded hand position is a direction and a distance from the master's
-shoulder rather than a computation from all seven joint angles
-(\cref{eq:elev,eq:azim,eq:reach}): up--down from the gravity sensor,
-left--right from the shoulder's rotation, distance from the bend joints, so
-a dead rotation sensor is treated as zero without corrupting the distance.
-The robot's target is a fixed reference plus a scaled displacement from
-where the master was when the operator pressed the \emph{clutch}, a button
-held to make the robot follow (\cref{eq:anchor}); releasing and re-pressing
-it works like lifting and repositioning a mouse.
+shoulder rather than a computation from all seven joint angles. With
+$\mathbf{g}$ the measured gravity vector, $\hat{a}$ the upper arm's own axis,
+$\theta_i$ the joint angles and $\theta_1^0$ the shoulder's rest angle,
+\begin{equation}
+  \phi = \arcsin\!\Bigl(\hat{a}\cdot\tfrac{\mathbf{g}}{\lVert\mathbf{g}\rVert}\Bigr),\qquad
+  \psi = \theta_1-\theta_1^0,\qquad
+  r = \bigl\lVert \mathrm{FK}(\theta_1,\theta_2,\theta_3,\theta_4,0,0,0)\bigr\rVert,
+  \label{eq:map-main}
+\end{equation}
+so a dead rotation sensor zeroes $\psi$ without corrupting $r$. The robot's
+target is a fixed reference plus a scaled displacement from where the master
+tip $\mathbf{d}$ was when the operator pressed the \emph{clutch}, a button
+held to make the robot follow:
+\begin{equation}
+  \mathbf{p} = \mathbf{p}_{\text{anchor}} + s\,(\mathbf{d}-\mathbf{d}_{\text{ref}}),
+  \label{eq:anchor-main}
+\end{equation}
+so releasing and re-pressing the clutch works like lifting and
+repositioning a mouse.
 
 \begin{table}[htbp]
   \centering
@@ -65,16 +81,25 @@ it works like lifting and repositioning a mouse.
 Five modes are delivered (\cref{tab:modes-main}); one safety layer serves
 all of them and no mode may switch any part of it off. Shared autonomy
 decides by a threshold rather than by continuous
-blending~\cite{dragan2013policyblending} (\cref{fig:arbitration}): below a
-confidence $\theta$ the operator's command passes unchanged; above it the
-robot supplies the wrist orientation only. Position is never blended,
-because a blend toward the wrong goal here moves the arm toward somebody
-who did not ask. In the laboratory the operator sits across the room,
+blending~\cite{dragan2013policyblending} (\cref{fig:arbitration}). With
+$P$ the estimator's confidence in its guess of the operator's target and
+$\mathbf{q}$ a wrist orientation,
+\begin{equation}
+  \mathbf{p}_{\text{cmd}} = \mathbf{p}_{\text{op}}\ \text{always};\qquad
+  \mathbf{q}_{\text{cmd}} =
+  \begin{cases}
+    \mathbf{q}_{\text{op}} & P \le \theta \text{ or ambiguous},\\
+    \mathrm{slerp}\bigl(\mathbf{q}_{\text{op}},\mathbf{q}_{\text{grasp}},\sigma(t)\bigr) & P > \theta,
+  \end{cases}
+  \label{eq:arb-main}
+\end{equation}
+blended in over \SI{0.5}{\second}. Position is never blended, because a
+blend toward the wrong goal here moves the arm toward somebody who did not
+ask. In the laboratory the operator sits across the room,
 holding the VR controllers as a hand-position input and watching the robot
 directly (\cref{sec:desk}); the operator-to-robot alignment is a measured
-rotation about the vertical, never a mirror image, because facing someone
-and copying them is a reflection that reverses every orientation while
-positions look right.
+rotation, never a mirror image, since copying someone you face reverses
+every orientation.
 
 \begin{figure}[htbp]
   \centering
@@ -89,10 +114,16 @@ positions look right.
 
 Collision avoidance has three stages (\cref{sec:clearance}): the joint
 solver rejects colliding poses, the spare joint is re-seeded and the solve
-retried, and a \SI{150}{\milli\metre} clearance floor is enforced from where
-the arm actually is -- on the robot's own link model, not the planner's
-collision list, which excludes the shoulder-adjacent pairs a
-shoulder-mounted arm threatens. Every mechanism able to stop the arm
+retried, and a clearance floor is enforced from where the arm actually is.
+With $\ell$ ranging over the arm's links (modelled as tubes of radius
+$r_{\text{tube}}$) and $w$ over the wearer's body parts, the arm holds
+unless
+\begin{equation}
+  \min_{\ell,\,w}\ \bigl[\operatorname{dist}(\ell, w) - r_{\text{tube}}\bigr] \;\ge\; \SI{0.150}{\metre},
+  \label{eq:floor-main}
+\end{equation}
+computed on the robot's own link model, not the planner's collision list,
+which omits the shoulder-adjacent pairs. Every mechanism able to stop the arm
 registers by name, states how it clears, and falls into an explicit
 \emph{unknown} state -- still blocking -- if its process stops. Three
 independent triggers latch the emergency stop until reset: a software call,
@@ -110,21 +141,42 @@ the safety layer's own clearance. Detection uses an open-vocabulary model
 (YOLO-World~\cite{cheng2024yoloworld} with FastSAM~\cite{zhao2023fastsam})
 with a colour-and-depth filter as fallback; the fallback carries the load,
 since on real frames (432 object instances) the learned detector found
-\SI{9.0}{\percent}. Grasps come from the object's measured principal axes
-(\cref{eq:pca,eq:graspwidth}) rather than a learned model, because geometry
-can \emph{name} the cause of a refusal and fits \SI{4}{\gibi\byte} of video
-memory.
+\SI{9.0}{\percent}. The table is the plane $(\mathbf{n}, d)$ on which most
+depth points $\mathbf{P}_k$ lie, $|\mathbf{n}\cdot\mathbf{P}_k + d| <
+\SI{6}{\milli\metre}$, kept from 400 random draws~\cite{fischler1981ransac}.
+Grasps come from each object's principal axes: with $\mathbf{u}_3$ the
+direction of its least extent,
+\begin{equation}
+  w = \max_k \mathbf{u}_3^{\!\top}\mathbf{P}_k - \min_k \mathbf{u}_3^{\!\top}\mathbf{P}_k \;\le\; w_{\max} = \SI{85}{\milli\metre},
+  \label{eq:grasp-main}
+\end{equation}
+the jaw closes across $\mathbf{u}_3$ and a wider object is refused by name
+(\cref{eq:pca}) -- which a learned model cannot do.
 
 Motion is generated by Ruckig~\cite{berscheid2021ruckig}, which limits
 acceleration and its rate of change and drives all seven joints on one
-shared timing (\cref{eq:phase-sync}), so the commanded pose stays on the
-straight line between endpoints; it replaced a per-joint step limiter
-(\cref{sec:clamp-maths}). The gap between simulation and the real arm was
-modelled by replaying recorded commands on the physical arm and testing two
-explanations -- a fixed stop-short at the end of each move, or an error
-growing with distance -- which differ only on short moves, so the joint
-errors were propagated to hand position to choose between them
-(\cref{sec:sim-to-real}).
+shared timing $\sigma(t)\in[0,1]$,
+\begin{equation}
+  \mathbf{q}(t) = \mathbf{q}^{(k)} + \sigma(t)\bigl(\mathbf{q}^\star - \mathbf{q}^{(k)}\bigr),
+  \label{eq:phase-main}
+\end{equation}
+so the commanded pose stays on the straight line between endpoints; it
+replaced a per-joint step limiter (\cref{sec:clamp-maths}). Replaying
+recorded commands on the physical arm tested two models of the
+simulation-to-real gap -- a fixed stop-short, $q_{\text{real}} =
+q_{\text{cmd}} - \varepsilon\,\mathrm{sign}(\Delta q)$, or an error growing
+with distance, $q_{\text{real}} = (1-k)\,q_{\text{cmd}}$ -- which differ only
+on short moves, so joint errors were propagated to the hand,
+$\Delta\mathbf{p} \approx \mathbf{J}\,\Delta\mathbf{q}$, to choose
+(\cref{sec:sim-to-real}). The positioning error budget combines its terms
+$b_i$ as
+\begin{equation}
+  \sigma_{\text{RSS}} = \sqrt{\textstyle\sum_i b_i^2}, \qquad
+  \sigma_{\text{worst}} = \textstyle\sum_i b_i,
+  \label{eq:budget-main}
+\end{equation}
+the second being the honest figure against the \SI{30}{\milli\metre} gate,
+since the two largest terms are fixed offsets.
 
 \section{Verification methodology}
 
@@ -136,9 +188,9 @@ result that contradicts an earlier measurement is a suspect instrument
 until reconciled. Because the joint solver (TRAC-IK~\cite{beeson2015tracik})
 starts from a random guess, every reachability claim is ten repeats along a
 path sampled every \SI{20}{\milli\metre}, and a pose that fails any repeat
-is not reported reachable. The perception pipeline applies the same rule at
-each of its thirty-three stages: a result, a refusal with a reason, or
-``not applicable'' -- never a silent zero (\cref{fig:pipeline-status}).
+is not reported reachable. Each of the perception pipeline's thirty-three
+stages likewise returns a result, a refusal with a reason, or ``not
+applicable'' -- never a silent zero (\cref{fig:pipeline-status}).
 
 \section{Ethics}
 \label{sec:ethics}
@@ -159,16 +211,26 @@ identities are held on encrypted College storage outside the repository,
 and \repo{write\_manifest()} refuses to record a name. \emph{Social
 responsibility}: assistance that helps an operator while eroding a wearer's
 trust shifts harm onto the person least able to refuse it -- why H3 and H4
-exist. No animals are involved; no new hardware was bought.
+exist.
 
 \section{The pilot study}
 
 Five operators (P1--P5) each completed two to seven recorded sessions --
 following a held object, reaching a target, matching a pose -- once under
 direct VR control and once with assistance, from the desk arrangement of
-\cref{sec:desk}. Positions, clutch state and the robot's lag were logged
+\cref{sec:desk} (\cref{fig:pilot-procedure}). Positions, clutch state and
+the robot's lag were logged
 twenty times a second with an event log of every clutch press and emergency
 stop, so completion time, robot path, re-grips, steering fraction and lag
 came from the record, not a stopwatch. Three further operators (M1--M3)
 attempted the same tasks from the mannequin master. The pilot has no
 separate wearer, so H3--H5 remain for \cref{app:study}.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/diagrams/pilot_procedure.tex}
+  \caption[One pilot session, as run]{One pilot session as run, and the
+  record every metric came from; nothing was timed by hand, and the stop
+  that ends a recording is itself in the log (twelve holds, eleven sessions).}
+  \label{fig:pilot-procedure}
+\end{figure}

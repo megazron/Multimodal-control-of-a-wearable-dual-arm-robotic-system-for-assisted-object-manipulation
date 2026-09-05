@@ -1,0 +1,132 @@
+\chapter{Ethical analysis}
+\label{app:ethics}
+
+\noindent\emph{\Cref{sec:ethics} states the approval and the substance.
+This appendix is the analysis behind it, organised by the department's six
+domains and the Engineering Council's four pillars (honesty and integrity;
+respect for life, law, the environment and the public good; accuracy and
+rigour; leadership and communication), and it names every stakeholder.
+Source: \repo{docs/research/03\_ethics\_and\_safety.md}, the document the
+approval application was adapted from.}
+
+\section{Stakeholders}
+
+The \textbf{wearer}: bears \SI{17}{\kilo\gram} and the physical risk of
+motion they do not command; the party with the least control and the most
+at stake. The \textbf{operator}: bears the cognitive load and the
+responsibility for motion they cannot feel. The \textbf{experimenter}: calls
+breaks and stops, and must not let the schedule pressure either
+participant. \textbf{Fellow students and the laboratory}: share the arms,
+the room and the reputation of the group. \textbf{The College}: holds the
+approval, the data and the liability. \textbf{The wider public}: the
+eventual users of assistive limbs, and the people who will stand next to
+them. \textbf{The environment}: the hardware's energy and material cost.
+
+\section{A. Scientific integrity -- is it true?}
+
+Every quantitative claim in the main body carries its evidence class
+(implemented, verified in simulation, measured on hardware, or measured in
+the pilot), and the report states that nothing below the pilot was
+validated on a loaded physical arm. Twenty-six occasions on which the
+measuring tool, not the system, was wrong are catalogued in
+\cref{ch:instrument} and summarised in \cref{sec:validity}; each is
+reported as a defect found, not hidden. Numbers that disagreed with their
+source when this report was checked -- the e-stop count, the estimator's
+wrong-guess rate at one cube pitch, the pinned-wrist reach ratio -- were
+corrected and the correction is recorded in the repository log. The
+analysis for the full study was pre-registered and run on \num{20000}
+constructed data sets before any participant data existed
+(\cref{app:analysis}), so its false-positive rate is known
+(\SI{5.0}{\percent} against a nominal \SI{5}{\percent}).
+
+\section{B. Scientific collegiality -- is it fair?}
+
+The platform is shared laboratory equipment. Sessions were booked, the
+two-stack rule (never two control processes on one robot) protected other
+users' measurements as much as this project's, and every session leaves a
+manifest and a log. The report anonymises participants and credits prior
+work by citation; where this project reproduces a published finding it
+says so, and where it contradicts one -- the robot's path being longer
+under assistance -- it gives the measured mechanism rather than an
+appeal.
+
+\section{C. Protection of human subjects}
+
+\textbf{Approval and consent.} SETREC approval 7111986. Participants
+received an information sheet at least twenty-four hours in advance
+stating what the device is, that it moves near them, its weight if worn,
+the session length, the right to withdraw, what is recorded and how to
+withdraw data afterwards. Consent is taken separately for participation,
+for video (optional), for retention of anonymised data beyond the project,
+and for its use in publication. Withdrawal is possible at any time without
+reason, and data can be withdrawn up to publication through the
+participant code.
+
+\textbf{The two-person rule.} A wearer and an operator who arrive together
+will not decline in front of each other, and the wearer consents to strictly
+more. Consent is therefore taken in separate rooms, on separate forms, and
+neither is told whether the other consented until both have. The wearer
+holds their own emergency stop on the watchdog path and presses it twice,
+watching the arms halt, before any recorded trial. No justification is ever
+requested for a stop. A session ended by a wearer is reported as data, not
+replaced with a fresh pair to make up the numbers, because that would select
+for tolerant wearers.
+
+\textbf{Risk register (the pilot's operator-only sessions, and the planned
+worn study).} Robot contacts the participant: collision-aware solving, a
+\SI{150}{\milli\metre} clearance floor enforced from the robot's true pose,
+the autonomy never permitted to move toward the wearer, the wearer's own
+stop. Unexpected or fast motion: a participant speed cap stricter than the
+developer's, re-asserted every two seconds so a stray parameter change
+cannot raise it; motion must be explicitly armed. Stop out of reach: the
+software refuses to arm until the reach check is confirmed. A sensor fails
+mid-trial: the trial is aborted and marked invalid, never silently
+continued, because a frozen command looks like a slow participant in the
+data. Physical strain from the master: blocks of at most eight minutes,
+two-minute rests, a session of at most forty-five minutes, a Borg fatigue
+probe between blocks. Strain from wearing the rig: twenty minutes maximum,
+two people to don and doff, exclusion for any back, neck or shoulder
+problem. Psychological risk: participants are told the \emph{system} is
+under evaluation and that cancelling an autonomous action is normal use.
+
+\textbf{What is not yet safe, stated rather than glossed.} The arms'
+proximal links interfere with the wearer's own upper arms in the collision
+model; this is set by the mount position and no planner can avoid it.
+Worn operation therefore was not sought for approval; the pilot ran with a
+mannequin wearer. The clearance check that runs on the physical arm samples
+link origins, not link geometry (\cref{ch:discussion}) -- the one item
+this report classes as a safety defect rather than an incompleteness.
+
+\section{D. Animal welfare}
+
+No animals are involved.
+
+\section{E. Institutional integrity -- is it wise?}
+
+Data handling: participant codes only; no name, email, date of birth,
+address or telephone number appears in any file, enforced by
+\repo{write\_manifest()} raising if one is passed; demographics as age
+bands. The code-to-person mapping exists only to allow withdrawal, is held
+on encrypted College storage outside the repository, and is destroyed at
+publication. Video, if consented to, frames the rig and hands, not the
+face. Anonymised data are retained under institutional policy; the
+repository is not a data store. Legal basis: public-task processing under
+UK GDPR and the Data Protection Act 2018, with consent for the optional
+elements. No external sponsor or conflict of interest exists; the arms are
+laboratory property and the findings belong to the College.
+
+\section{F. Social responsibility}
+
+The device this work points toward is an assistive limb worn by one person
+and, in this configuration, directed by another. The result that
+assistance shortens the operator's task while lengthening the robot's
+path, with the wearer's trust and agency unmeasured, is exactly the shape
+of harm that professional ethics exists to notice: a benefit to the party
+who chooses and a cost to the party who does not. That is why H3 and H4 --
+that the wearer's trust and agency fall under assistance -- are the
+hypotheses the full study exists to test, and why the report refuses to
+call the pilot evidence about the wearer. Sustainability and cost: the
+platform re-uses existing laboratory arms and a consumer headset; the
+\SI{4}{\gibi\byte} video-memory limit was met by choosing lighter methods
+rather than buying hardware; the software is open in the laboratory
+repository so the work can be continued rather than repeated.

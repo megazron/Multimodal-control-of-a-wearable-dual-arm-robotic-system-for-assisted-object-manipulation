@@ -152,32 +152,31 @@ System}
 \input{title/title.tex}
 
 \begin{abstract}
-The base of a supernumerary robotic limb is a person. This project built a
-teleoperation system for two seven-degree-of-freedom arms carried on a worn
-backpack frame and commanded by a \emph{second} person, gave it a safety
-layer appropriate to a manipulator standing beside somebody who is not
-commanding it, and ran a first pilot comparing direct control against
-shared-autonomy assistance.
+A wearable robotic arm has a person as its base. This project built a
+teleoperation system for two seven-joint robot arms carried on a backpack
+frame and controlled by a \emph{second} person, gave it a safety layer
+suited to a robot standing beside somebody who is not commanding it, and
+ran a first pilot comparing direct control against shared-autonomy
+assistance.
 
-The two arms share no reachable point under the as-built mount; a costed mount change
-raised home clearance from \SI{0.1610}{\metre} to \SI{0.2202}{\metre}, and
-the pinned wrist, not the wearer, is what binds reach -- over five times at
-the work point. The task set solves \num{13927} inverse-kinematics calls
-with no failures; a jerk-limited motion generator removed
-\SI{51.3}{\milli\metre} of unrequested excursion; perception on four
-physical cameras fits a work surface to \SI{1.43}{\milli\metre} RMS; and
-across every recorded session the geometric clearance floor never engaged
-while the manual stop was used twelve times.
+As mounted, the two arms could reach no common point; a costed mount change
+fixed it and raised the clearance to the wearer from \SI{0.1610}{\metre} to
+\SI{0.2202}{\metre}. Holding the wrist at a fixed orientation, not the
+wearer's body, is what limits reach -- by a factor of five at the working
+position. The task set solves \num{13927} joint-angle problems with no
+failures; a new motion generator removed \SI{51.3}{\milli\metre} of
+unrequested hand excursion; four real cameras find the table surface to
+\SI{1.43}{\milli\metre}; and across every recorded session the automatic
+clearance floor never engaged while the manual stop was used twelve times.
 
 Under ethical approval (SETREC 7111986), five operators completed
-twenty-three sessions comparing direct VR control against shared-autonomy
-assistance: assisted sessions averaged shorter completion times and fewer
-re-grips, with a robot path \SI{21}{\percent} longer that the operators' own
-hand paths, within \SI{2}{\percent} of each other, show to be the
-assistance layer's rather than theirs. The pilot has no separate wearer and
-is pilot-scale; nothing was validated on a loaded physical arm, and the
-two-person study this system was built for remains the target for the work
-that follows.
+twenty-three sessions comparing direct VR control against assistance:
+assisted sessions were shorter and needed fewer re-grips, but the robot's
+path was \SI{21}{\percent} longer while the operators' own hand paths were
+within \SI{2}{\percent} of each other -- the extra distance comes from the
+assistance, not the operator. The pilot has no separate wearer; nothing was
+validated on a loaded physical arm; and the two-person study this system
+was built for remains the target.
 \end{abstract}
 
 \renewcommand{\abstractname}{Acknowledgements}

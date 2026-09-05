@@ -14,9 +14,36 @@ request needs it):
 
 ## Current state
 
-- **Main body: ~5,995 words, 19 figures/tables** (Introduction, Method,
+- **Read against the booklet itself** (`MSc_Project_booklet_2025-26.pdf`,
+  28 pages, extracted to text) and the department template zip (identical
+  in structure to what this report is built on). Two things the rubric
+  wants that the report was short on are now in: (1) the **ethics section
+  is marked separately** and wants the six domains (scientific integrity,
+  collegiality, human subjects, animal welfare, institutional integrity,
+  social responsibility) and every stakeholder -- `method/method.tex`
+  §Ethics now covers them in brief and `appendix/p_ethics.tex` in full,
+  grounded in `docs/research/03_ethics_and_safety.md`; (2) the A* criteria
+  ask for accurate terminology written "for third parties who may not be
+  experts", so every main chapter had a **plain-language pass**: each
+  technical term is defined in ordinary words at first use (clutch, forward
+  kinematics, RANSAC, watchdog, terminal offset...), idioms replaced with
+  direct statements, long dash-chained sentences split. Booklet also
+  requires one file under 25 MB: `main.pdf` is ~6.7 MB.
+- **Main body: ~5,955 words, 19 figures/tables** (Introduction, Method,
   Result, Discussion, Conclusion) -- against the booklet's limit of 6,000
-  words / 20 figures. Word count is read from the *typeset* PDF (`Chapter 1`
+  words / 20 figures.
+- **All the trajectory graphs exist** (`figures/gallery/trajectories/`, 74
+  figures, `make_trajectory_gallery.py`): every one of the 32 sessions as
+  a 3-D panel (operator's hand / simulated robot hand / real robot hand
+  from its own encoders via `/compute_fk`, 0 failures), per-participant
+  grids, top and side views, gap-over-time traces, a best-session
+  composite per operator, and a ranked all-sessions gap summary. The
+  summary replaced the joint-angle tracking figure in the main body (it
+  says the same thing in millimetres for every session, plainly);
+  Appendix O.4 carries the composite, all eight 3-D grids and all eight
+  gap-over-time figures. Cartesian sim-vs-real gap: VR median 11.8 mm
+  (3.5-168.4), master cohort 24.8 mm (4.7-38.8); the 168 mm outlier is the
+  P5 assisted session with the two mid-session e-stops. Word count is read from the *typeset* PDF (`Chapter 1`
   to the page before `Appendix A`), not estimated from the LaTeX source,
   because `\SI{}{}`/`\cref{}` expand into several rendered words each, and
   figure text (legends, axis labels, tikz annotations) in *vector* figures

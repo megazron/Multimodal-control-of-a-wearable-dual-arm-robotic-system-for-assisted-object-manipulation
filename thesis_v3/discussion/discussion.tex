@@ -33,10 +33,9 @@ report's principal open safety question, and three responses exist, none
 implemented: inflate the floor by latency times an assumed limb speed, a
 one-parameter change that makes the margin mean what it claims; cut the
 latency, since most of the \SI{562}{\milli\second} tail is a configured
-publication rate limit, not the estimator, which runs at
-\SIrange{28}{34}{\milli\second} per frame; and scale commanded speed with
-measured clearance, two quantities the system already computes and keeps
-apart. The fallback compounds it: with the wearer estimate stale or gated
+rate limit, not the \SIrange{28}{34}{\milli\second} estimator; and scale
+commanded speed with measured clearance, which the system already computes
+separately. The fallback compounds it: with the wearer estimate stale or gated
 out, the guard reverts to the arms-down mannequin and believes
 \SI{0.3170}{\metre} of clearance where a wearer with arms out has
 \SI{0.0933}{\metre} -- optimistic by \SI{224}{\milli\metre}, mitigated
@@ -66,9 +65,8 @@ Twenty-six times in this project a measurement was wrong and the system was
 not (\cref{ch:instrument}), a base rate that conditions how every other
 number here should be read. Fifteen of the twenty-six were caught by
 an independently known quantity contradicting the reading, and fourteen
-were already answerable from something in hand -- a published stroke, an
-arithmetic prediction, a quantity exact by construction -- which is the
-case for building the cross-check in rather than trusting harder. Every
+were already answerable from something in hand -- the case for building the
+cross-check in rather than trusting harder. Every
 result above except the pilot and channel measurements comes from
 simulation with mock hardware, whose force channels are identically zero,
 so no force-derived quantity is defined; and every latency reported is
@@ -88,7 +86,7 @@ the assistance layer's, not the operator's, and the platform shows the same
 with no operator at all: identical scripted waypoints travel
 \SI{4}{\percent} further under VR shared autonomy than direct VR, and
 \SI{45}{\percent} further under master shared autonomy than master direct
-(\repo{recordings/baselines/mode\_difference.json}). "Shorter but less
+(\cref{fig:mode-travel}). "Shorter but less
 direct" is a property of the arbiter, not a contradiction. The literature
 predicts the cost this pilot could not see: higher autonomy improves
 performance but lowers sense of agency~\cite{collier2025agency}, autonomous
@@ -96,9 +94,8 @@ modes cut effort without raising satisfaction~\cite{kim2012autonomy}, and
 assistance raises safety while lowering perceived
 control~\cite{you2011assisted}; no agency or workload instrument was
 administered here, which is why H2 is untested and H4 is in the protocol.
-Five operators with uneven task coverage is a pilot-scale sample, not a
-powered comparison; the paired comparison isolates the condition and rests
-on seven cases. The full study's own pre-registered analysis, run on \num{20000}
+Five operators with uneven coverage is a pilot-scale sample, not a powered
+comparison. The full study's own pre-registered analysis, run on \num{20000}
 constructed data sets (\cref{app:analysis}), recovers a
 $d_z=\num{0.73}$ effect family-wise with \SI{97.3}{\percent} power at
 sixteen dyads but on a \emph{named} task with only \SI{63.8}{\percent}
@@ -106,8 +103,7 @@ after correction; \SI{80}{\percent} on a named task needs twenty dyads,
 which is the sample the next study should recruit. Most importantly, the
 pilot has no separate wearer: it measures what
 the operator experienced, not what carrying \SI{17}{\kilo\gram} of assisted
-motion costs a second person, the comparison \cref{app:study} remains the
-target for.
+motion costs a second person -- the comparison \cref{app:study} is for.
 
 \section{Against the planning report}
 
@@ -125,9 +121,9 @@ plan; each followed from a measurement it did not anticipate.
 
 Of the six objectives of \cref{sec:aim}, five were met and one partly: the
 master built and characterised, its repair named to two joints (1); a
-predictably degrading mapping (2); a safety layer that handled fourteen of fourteen injected
-faults, every blocker observable, its live record showing the manual path
-firing and the geometric path never needed (3); a workspace
+predictably degrading mapping (2); a safety layer that handled fourteen of
+fourteen injected faults, its live record showing the manual path used and
+the geometric never needed (3); a workspace
 characterisation that found no shared reachable point and costed, applied
 and re-verified the fix (4); ten-repeat, known-answer verification that
 caught twenty-six instrument defects before any became a finding (5); and a

@@ -1,0 +1,438 @@
+\chapter{Additional figures from the recordings}
+\label{app:gallery}
+
+\noindent\emph{Every figure here is drawn from data already described in
+\cref{app:pilot,ch:vision,ch:results}; this chapter exists so that a reader
+can see the whole record rather than the headline. Labels are in plain
+words. Scripts: \repo{thesis\_v3/figures/gallery/*/make\_*\_gallery.py}.}
+
+\clearpage
+\section{The pilot, session by session}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/pilot/01_session_glance_P2.pdf}
+  \caption[What one operator's sessions looked like, second by second]{One
+  operator's five sessions (P2), second by second: shaded where the clutch
+  was held and the operator was steering, the grey line the speed of the
+  robot's hand, black where the emergency stop was held. The other four
+  operators' strips are in the gallery directory.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/pilot/02_paths_topdown.pdf}
+    \caption{from above}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/pilot/02_paths_side.pdf}
+    \caption{from the side}
+  \end{subfigure}
+  \caption[Where the robot's hand went in every VR session]{Where the
+  robot's hand went in every one of the twenty-three VR sessions, coloured
+  from the start (dark) to the end (yellow) of each; one cell per operator
+  and condition.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/pilot/03_order_effects.pdf}
+    \caption{practice}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/pilot/07_tracking_loss.pdf}
+    \caption{controller tracking loss}
+  \end{subfigure}
+  \caption[Practice effects and tracking loss]{Left: each operator's
+  sessions in the order recorded; no consistent drift with practice, so
+  order is not obviously driving the direct/assisted difference. Right: the
+  headset lost sight of the controller in a median \SI{0}{\percent} of
+  samples, worst \SI{8}{\percent}, clustered at session edges.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/pilot/04_lag.pdf}
+  \caption[How far behind the operator the robot ran]{Robot lag behind the
+  operator while steering: median \SI{1.6}{\milli\metre} direct,
+  \SI{1.7}{\milli\metre} with assistance; past the \SI{30}{\milli\metre}
+  capture gate in \SI{0.5}{\percent} and \SI{0.9}{\percent} of samples; lag
+  grows roughly linearly with hand speed.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/pilot/05_clutch_behaviour.pdf}
+  \caption[How operators used the clutch]{Clutch use per session:
+  engagements per minute (median 6.6 under both conditions), how long each
+  engagement was held (\SI{3.8}{\second} direct, \SI{4.3}{\second}
+  assisted), the pause before re-engaging, and refused engagements (3.8 per
+  session under both).}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/pilot/12_robot_vs_hand_travel.pdf}
+    \caption{robot path per metre of hand motion}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/pilot/12_robot_speed.pdf}
+    \caption{robot hand speed while steering}
+  \end{subfigure}
+  \caption[Robot path against operator motion, and robot speed]{Left: the
+  operator's controller covers \SIrange{10}{50}{\metre} per session (raw
+  motion, jitter included) while the robot's hand covers
+  \SIrange{0.2}{7}{\metre}; the ratio is the same under both conditions.
+  Right: the robot's hand moves at similar speeds under both conditions
+  (medians \SI{35}{} and \SI{45}{\milli\metre\per\second}) -- assistance
+  lengthens the path, it does not speed the robot up.}
+\end{figure}
+
+\clearpage
+\section{Sim-to-real tracking, every session and every joint}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\linewidth]{gallery/pilot/08_sim_real_heatmap.pdf}
+  \caption[Tracking error, sessions by joints]{How closely the real arm
+  followed the simulated one, every session (rows) by joint (columns), both
+  cohorts. Median per-joint error \SI{1.44}{\degree}; the three M1 rows and
+  two P5 rows light up on several joints at once, the signature of a bad
+  input channel rather than a bad joint; every P1--P4 session stays under
+  \SI{4.6}{\degree} on every joint.}
+  \label{fig:sim-real-heatmap}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/pilot/08_sim_real_error.pdf}
+  \caption[Tracking error per joint, and its growth with speed]{Pooled over
+  the VR cohort: the error is centred on zero for every joint and grows with
+  joint speed (median \SI{0.13}{\degree} at rest, \SI{2.59}{\degree} in the
+  fastest bin) -- the real arm lags a moving command rather than sitting off
+  a still one.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.55\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/pilot/09_master_raw_channels.pdf}
+    \caption{raw master channels, a good and a bad session}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.43\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/pilot/09_master_hand_paths.pdf}
+    \caption{the master hand's path, all nine sessions}
+  \end{subfigure}
+  \caption[The master arm's channels and hand paths]{Left: the seven raw
+  sensor channels of one M2 session (tracking error \SI{2.2}{\degree})
+  beside one M1 session (\SI{21.2}{\degree}); a channel that traces a
+  trajectory is alive, one that sits flat or jumps between levels is the
+  defect the health verdict names. Right: M1's hand paths are wide, jagged
+  sweeps; M2's and M3's are compact.}
+\end{figure}
+
+\clearpage
+\section{The scripted task set, in pictures}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/verification/05_circuit_box_by_mode.pdf}
+  \caption[The circuit-box task in every mode]{The circuit-box-and-multimeter
+  task under all five modes at four moments (simulation). Both arms lift the
+  box and bring the meter to it in every mode; the runs differ in timing --
+  grasps at \SIrange{4.4}{4.8}{\second} in four modes, \SI{37.0}{\second}
+  through the VR path -- not in outcome.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/verification/06_reach_target_by_mode.pdf}
+  \caption[The reach task in every mode]{Reaching three targets under all
+  five modes, at the start, a third, two thirds and the end of the run
+  (simulation). \SI{16.5}{\second} in four modes, \SI{49.1}{\second} through
+  the VR path.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/verification/03_gripper_traces_by_mode.pdf}
+    \caption{finger angle through every grasping run}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/verification/12_tray_tilt_by_mode.pdf}
+    \caption{tray tilt while carrying}
+  \end{subfigure}
+  \caption[Gripper closure and tray tilt, by mode]{Left: in every mode the
+  fingers close when the log says an object was grasped (\SI{24.2}{\degree}
+  on a \SI{40}{\milli\metre} cube, \SI{29.7}{\degree} on the
+  \SI{30}{\milli\metre} objects) and open when it says released. Right: the
+  tray stays within a degree of level in four modes; the VR-direct run
+  spiked to \SI{9.9}{\degree} for \SI{0.31}{\second}, past the
+  \SI{6.8}{\degree} roll-off angle.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/verification/08_placement_error_history.pdf}
+    \caption{set-down error across four recorded versions}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/verification/13_scripted_run_durations.pdf}
+    \caption{run duration by mode}
+  \end{subfigure}
+  \caption[Placement error history and run durations]{Left: how far each
+  cube was set down from its pad across the four recorded versions of the
+  pick-and-place -- means \SIlist{130;174;312}{\milli\metre}, then
+  \SI{56}{\milli\metre} on every cube. Right: the same scripted task takes
+  about three times longer through the VR-controller path (\SI{49}{} against
+  \SI{16.5}{\second} for the reach task), which is rate-limited by its own
+  filter.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/verification/09_robot_travel_no_operator.pdf}
+  \caption[Same waypoints, no operator: robot travel per mode]{With no
+  person in the loop, the same commanded waypoints make the arm travel
+  further under the assisted modes: reach task, left arm, \SI{1.41}{\metre}
+  direct against \SI{2.03}{\metre} with mannequin-master assistance
+  (\SI{+45}{\percent}); \SI{1.46}{} against \SI{1.52}{\metre} for the VR
+  pair (\SI{+4}{\percent}). This is the no-operator baseline behind
+  \cref{sec:pilot-limits}.}
+  \label{fig:mode-travel}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/verification/10_vr_lag_vs_hand_speed.pdf}
+    \caption{VR lag against hand speed}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/verification/11_master_sweep_commanded_vs_moved.pdf}
+    \caption{master sweep: asked against moved}
+  \end{subfigure}
+  \caption[VR lag against speed, and the master sweep]{Left: in a scripted
+  VR protocol (simulation, 2026-08-26) the robot never fell more than
+  \SI{22.7}{\milli\metre} behind a hand moving under
+  \SI{0.27}{\metre\per\second}; a deliberately fast push at
+  \SI{0.35}{\metre\per\second} left it \SIrange{83}{93}{\milli\metre} behind,
+  three times the capture gate. Right: twenty-eight set movements of the
+  mannequin master: the left arm moved roughly what was asked, the right
+  undershot on eight of fourteen; the hand never came within half a metre of
+  the wearer.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.8\linewidth]{gallery/verification/07_seven_camera_angles.pdf}
+  \caption[One grasp, seven cameras]{The first grasp of the autonomous
+  pick-and-place from the seven fixed viewpoints plus the gripper's own
+  camera; every run was filmed this way so a grasp is judged from the
+  pictures rather than asserted.}
+\end{figure}
+
+\clearpage
+\section{The cameras}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/vision/pipeline_status.pdf}
+  \caption[The 33 perception stages, per camera: result, refusal or not
+  applicable]{Every stage of the picture-to-grasp pipeline on the four real
+  cameras: 28, 29, 27 and 12 of 33 stages gave a result; every other outcome
+  is a named refusal or a by-design absence, and none crashed.}
+  \label{fig:pipeline-status}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/vision/four_cameras.pdf}
+  \caption[The four cameras' views]{The four cameras' views of the same
+  moment: two ride on the hands and see the table; two stand across the room
+  and see the whole rig.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/vision/plane_fit_per_camera.pdf}
+  \caption[Where the flat table was found, per camera]{The support plane the
+  pipeline fitted, recomputed over each camera's own depth array with the
+  stored plane and tolerance: \SI{73.95}{\percent} of the left wrist
+  camera's points lie on it, \SI{52.79}{\percent} of the right's, and under
+  \SI{1}{\percent} of the room depth camera's (the pipeline's own log says
+  \SI{3.75}{\percent} for that camera; both mean no usable surface).}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.8\linewidth]{gallery/vision/plan_view_left.pdf}
+  \caption[What the left wrist camera believes is on the table]{The left
+  wrist camera's point cloud from above, coloured by height, with the
+  pipeline's oriented boxes: the box (red, too wide for the
+  \SI{85}{\milli\metre} jaw) and the cube (green, graspable) plus three small
+  fragments; nearest object \SI{0.539}{\metre}, furthest \SI{0.843}{\metre}.
+  This is the map the planner plans against.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/vision/depth_coverage.pdf}
+  \caption[How much of each picture has a depth reading]{Share of each
+  picture with any depth reading (\SIlist{89;80;15}{\percent}) and within the
+  working range (\SIlist{42;33;13}{\percent}); the room depth camera's
+  returns lie mostly \SIrange{2}{6}{\metre} away -- a different instrument
+  from the wrist cameras, not merely a distant one.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/vision/left_vs_right_pipeline.pdf}
+  \caption[Both wrist cameras: picture, objects picked out, boxes]{The same
+  scene from both hands: each wrist camera isolates the cube and the box.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/vision/arm_park_error.pdf}
+  \caption[How far short each arm stopped]{The thirty-six calibration moves:
+  every \SI{100}{\milli\metre} move stopped \SIrange{5.1}{8.3}{\milli\metre}
+  short, the same for both arms and all three speeds, with the worst joint's
+  rest error in a \SIrange{0.289}{0.296}{\degree} band (the pooled per-joint
+  fit in \cref{sec:sim-to-real} gives \SI{0.305}{\degree}).}
+\end{figure}
+
+\clearpage
+\section{Measured baselines, in pictures}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/baselines/error_budget.pdf}
+  \caption[Where the positioning error comes from]{Each known source of
+  finger-landing error as a bar, fixed offsets distinguished from random
+  terms and each fix shown against the row it fixes; combined
+  \SI{12.9}{\milli\metre} against the \SI{30}{\milli\metre} grasp line. The
+  camera's true position on the wrist is unmeasured and not on this chart.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.55\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/baselines/reaction_budget.pdf}
+    \caption{the reaction budget}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.44\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/baselines/posture_fallback_gap.pdf}
+    \caption{the fallback assumption}
+  \end{subfigure}
+  \caption[The reaction budget and the fallback gap]{Left: the share of the
+  \SI{150}{\milli\metre} safety gap a moving wearer closes before the robot
+  knows, three limb-motion classes at the best (\SI{62}{\milli\second}) and
+  worst (\SI{562}{\milli\second}) measured delay. Right: what the guard
+  assumes when the wearer camera drops out (arms down, \SI{317}{\milli\metre})
+  against a wearer with arms held out (\SI{93}{\milli\metre}).}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/baselines/sim_real_park_error.pdf}
+  \caption[The real arms park short by a fixed amount]{Thirty-six real moves
+  of \SI{100}{\milli\metre}: every joint stops about \SI{0.29}{\degree} short
+  (a), which costs the hand \SIrange{5}{8}{\milli\metre} by direction, the
+  same at all three speeds (b).}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/baselines/intent_estimator_sweep.pdf}
+  \caption[Guessing the operator's intent from a typed-in map against a
+  measured one]{Four hundred trials per point: from a typed-in object
+  position the estimator's confident wrong guesses climb past the
+  published \SI{16}{\percent} break-even at \SI{40}{\milli\metre} of error
+  and reach \SI{35}{\percent} at one cube spacing; from the camera's
+  measured position they stay at zero.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/baselines/orientation_cost.pdf}
+    \caption{what pinning the wrist costs}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/baselines/what_binds_work_point.pdf}
+    \caption{what stops the hand, by direction}
+  \end{subfigure}
+  \caption[The pinned wrist, and what stops the hand]{Left: mean reach under
+  each wrist policy from home and from the work point. Right: from the work
+  point, what stops the hand in each of twelve directions -- the wearer in
+  eleven of twelve when the wrist is pinned.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/baselines/wearer_posture.pdf}
+    \caption{the wearer's posture}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/baselines/reach_mount_sweep.pdf}
+    \caption{moving the mounts}
+  \end{subfigure}
+  \caption[Wearer posture and mount position]{Left: how the wearer's arm
+  posture changes what the arms can reach, with the \SI{150}{\milli\metre}
+  gap drawn. Right: how moving the mounts changes what both arms can reach
+  -- as built the two share three of 63 cells; the buildable best is 22.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/baselines/pick_accuracy_belief_vs_miss.pdf}
+    \caption{pad miss against camera error}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/baselines/channel_health.pdf}
+    \caption{the master's sensor channels}
+  \end{subfigure}
+  \caption[Pick accuracy, and channel health]{Left: whatever the camera
+  believes, the arm delivers the fingers there -- the pad miss equals the
+  belief error, so the residual is perception, not kinematics. Right: which
+  of the fourteen master-arm sensors read cleanly, the verdict behind
+  \cref{sec:channelhealth}.}
+\end{figure}
+
+\clearpage
+\section{How the project was done}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/process/instrument_defects.pdf}
+  \caption[The twenty-six instrument defects]{What went wrong in the
+  twenty-six cases where a measurement was wrong and the system was not, and
+  how each was caught: fifteen by an independently known quantity
+  disagreeing with the reading, five by reading the code, six by looking at
+  the raw image or data.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/process/commits_and_tests.pdf}
+    \caption{commits and tests}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.49\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/process/recording_yield.pdf}
+    \caption{recording yield}
+  \end{subfigure}
+  \caption[Commits, tests and recording yield]{Left: 449 commits over 27
+  active days and a test suite that grew with the code to 140 files and
+  1376 tests. Right: recording sessions started per day and how many held
+  data -- unreliable until 2 September (0/6, 1/10, 4/17, 0/2, 0/9), then
+  17/26, 3/3 and 14/15.}
+\end{figure}

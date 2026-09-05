@@ -10,35 +10,40 @@ hardware, plus recorded data from the physical master and four cameras
 \section{The command mapping and its safety layer}
 \label{sec:safety}
 
-Six of fourteen master channels are alive; the verdicts, the
-\SI{54.5}{\milli\metre} of unrequested motion the incoherent ones inject
-and the repair they name are in \cref{sec:channelhealth}, with the
-degradation architecture's discussion in \cref{sec:degradation-appendix}.
+Six of fourteen master channels are alive (\cref{sec:channelhealth}; the
+degradation architecture is discussed in \cref{sec:degradation-appendix}).
 
-The safety layer handled fourteen of fourteen injected faults (channel
-dropout, e-stop mid-motion, wrong-object latching, stale detections, clock
-non-monotonicity); the two that needed several attempts both traced to a
+The safety layer handled fourteen of fourteen injected faults; the two that needed several attempts both traced to a
 mechanism keyed on the wrong observable, fixed by reading the master data's
 source timestamp rather than its arrival, and by parking the arm before
 talking to the driver.
 
 The pilot (\cref{sec:pilot-results}) is the only \emph{live} evidence for
-this layer: across all twenty-six recorded sessions the
+this layer (\cref{fig:estop-timeline}): across every recorded session the
 geometric clearance floor -- the mechanism that would hold an arm
-\SI{150}{\milli\metre} short of the wearer -- never activated once, meaning
-no recorded operator ever drove either arm inside that margin. The
-manual/dead-man emergency stop did fire for real: four holds across three
-sessions, one tripping twice, the first held \SI{22.6}{\second}
-\emph{mid}-session (\SI{67}{\percent} through) with clutch engagement
-resuming around it -- not an end-of-recording gesture. The geometric path
-remains validated only against synthetic fault injection.
+\SI{150}{\milli\metre} short of the wearer -- never activated once. The
+manual emergency stop
+did fire: twelve holds across eleven of twenty-three sessions, nine of them
+in a session's final \SI{15}{\percent}, the operator ending the recording,
+and three not -- one assisted session tripped at \SI{67}{\percent} and
+\SI{83}{\percent} of its length with steering resuming after each. The
+geometric path remains validated only against synthetic fault injection.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\linewidth]{gallery/pilot/10_estop_timeline_300.png}
+  \caption[Every pilot session's timeline, with emergency-stop holds]{Every
+  VR pilot session as a bar, emergency-stop holds in black: twelve holds in
+  eleven sessions, median \SI{16.1}{\second}, longest \SI{30.9}{\second}; the
+  geometric clearance floor never fired.}
+  \label{fig:estop-timeline}
+\end{figure}
 
 \section{Workspace and motion}
 
-Over a 63-cell grid spanning the frontal working volume with both arms
-verified at the home pose, \textbf{no cell was reachable by both arms}
-simultaneously (\cref{fig:disjoint}), and the result survives freeing the
-wrist yaw and adding solver retries.
+Over a 63-cell grid spanning the frontal working volume, \textbf{no cell was
+reachable by both arms} (\cref{fig:disjoint}), and the result survives
+freeing the wrist yaw and adding solver retries.
 
 \begin{figure}[htbp]
   \centering
@@ -60,17 +65,15 @@ wrist yaw and adding solver retries.
   \label{fig:disjoint}
 \end{figure}
 
-Moving the mounts inboard, forward and down with extra forward tilt raises
-shared cells to 22 of 63 within a buildable \SI{0.20}{\metre} separation.
-That change was applied, raising home-pose clearance from
-\SI{0.1610}{\metre} to \SI{0.2202}{\metre} and moving pick-and-place
-targets from
-\SI{0.530}{\metre} off centre to \SI{0.290}{\metre}. Neither arm crosses
-the body centre line in \num{3360} swept cells; the constraint there is the
-torso. What binds hardest is the pinned wrist: from the work point, mean
-reach is \SI{0.065}{\metre} with the wrist pinned against \SI{0.450}{\metre}
-free, a factor of seven, because a fixed pose spends the seventh joint --
-the one that moves the elbow out of the person (\cref{tab:work-point}).
+Moving the mounts inboard, forward and down with more forward tilt raises
+shared cells to 22 of 63 within a buildable \SI{0.20}{\metre} separation;
+applied, it raised home-pose clearance from \SI{0.1610}{} to
+\SI{0.2202}{\metre} and moved pick-and-place targets from \SI{0.530}{} to
+\SI{0.290}{\metre} off centre. What binds hardest is
+the pinned wrist: from the work point, mean reach is \SI{0.065}{\metre}
+with the wrist pinned against \SI{0.363}{\metre} free, over five times,
+because a fixed pose spends the seventh joint -- the one that moves the
+elbow out of the person (\cref{tab:work-point}).
 
 The per-joint step limiter that was the whole motion generator is compared
 with its jerk-limited replacement in \cref{tab:motiongen-main}: it left the
@@ -96,18 +99,15 @@ the limits file.
 \end{table}
 
 Replaying recorded joint commands on the physical arm shows every joint
-parks \SI{0.305}{\degree} short of its target, on the side it approached
-from -- a terminal offset, confirmed by propagating the error through the
-manipulator Jacobian ($r=\num{0.923}$) rather than a proportional-gain
-model. A single scalar per arm, applied as overshoot in the direction of
-travel, removes \SIrange{74}{76}{\percent} of it. Folded into the
-positioning error budget, this takes the combined budget from
-\SI{18.64}{} to \SI{12.91}{\milli\metre} RSS and \SI{33.39}{} to
-\SI{19.99}{\milli\metre} worst case -- inside the \SI{30}{\milli\metre}
-requirement, \emph{provided} the still-unmeasured camera-to-wrist transform
-is small. Measured directly on the physical arm, it is not: four poses of a
-stationary table disagreed by \SI{8.45}{\degree}, \SIrange{34}{59}{\milli\metre}
-over the working range (\cref{sec:hardware-session}).
+parks \SI{0.305}{\degree} short of its target on the side it approached
+from -- a terminal offset, not a gain, by Jacobian propagation
+($r=\num{0.923}$). One scalar per arm removes \SIrange{74}{76}{\percent} of
+it, taking the positioning budget from \SI{18.64}{} to
+\SI{12.91}{\milli\metre} RSS (\SI{33.39}{} to \SI{19.99}{\milli\metre}
+worst), inside the \SI{30}{\milli\metre} requirement \emph{provided} the
+unmeasured camera-to-wrist transform is small. Measured on the physical
+arm, it is not: \SI{8.45}{\degree}, \SIrange{34}{59}{\milli\metre} over the
+working range (\cref{sec:hardware-session}).
 
 \section{Perception: what the cameras actually detected}
 
@@ -116,13 +116,11 @@ wrist cameras fit a
 support plane by random sample consensus~\cite{fischler1981ransac} at
 \SI{1.43}{\milli\metre} RMS with \SI{74}{\percent} inliers
 at working distance -- within a factor of three of the same code against a
-renderer, the first evidence the surface-fitting stage transfers to
-hardware. Segmentation is scoped to the two objects the task actually uses,
-not the whole scene (\cref{fig:vision-pipeline}): the cube is isolated by
-the project's own colour classifier, and the box -- outside that palette --
-by thresholding on its own measured hue. Both recover as oriented boxes
-rather than axis-aligned ones, which is what makes a turned object's true
-width available to the grasp planner at all.
+renderer. Segmentation is scoped to the task's two objects
+(\cref{fig:vision-pipeline}): the cube by the project's own colour
+classifier, the box -- outside that palette -- by a threshold on its
+measured hue; both recover as oriented boxes, which is what makes a turned
+object's true width available to the planner.
 
 \begin{figure}[htbp]
   \centering
@@ -152,21 +150,53 @@ millimetres because they measure different points on a tilted object.
 \input{figures/vision/cv_values_table.tex}
 
 No grasp closed on any camera this session: the nearest object's narrowest
-axis measured \SI{144}{\milli\metre} against an \SI{85}{\milli\metre} jaw, a
-statement about the scene rather than the planner. \Cref{fig:scene-boxes-full}
-places this against the safety layer's own subject in one frame: wearer,
-table, the wearable arms and the objects between them.
+axis measured \SI{144}{\milli\metre} against an \SI{85}{\milli\metre} jaw.
+\Cref{fig:scene-boxes-full} places the scene against the safety layer's
+subject: wearer, table, arms and objects in one frame.
 
 In simulation, the full task set solves \num{13927} inverse-kinematics
-calls with zero failures and zero clearance breaches. Sweeping the
+calls with zero failures and zero clearance breaches, and every scripted
+grasp closes on its object in every mode (\cref{fig:grasp-grid}); the cubes
+are set down \SI{56}{\milli\metre} from their pad centre, past the
+\SI{30}{\milli\metre} gate (\cref{fig:pick-frames}). Sweeping the
 shared-autonomy intent estimator against a mis-declared table shows why:
-from declared
-coordinates it becomes \emph{confidently wrong} \SI{50}{\percent} of the
-time once the declaration is one object-pitch out, and already
+from declared coordinates it is \emph{confidently wrong} \SI{35}{\percent}
+of the time at one object pitch (\SI{60}{\milli\metre}) and already
 \SI{17.5}{\percent} at \SI{40}{\milli\metre} -- past the \SI{16}{\percent}
-error rate above which Dragan and Srinivasa measured aggressive assistance
-to be a net loss~\cite{dragan2012formalizing}; from measured coordinates it
-stays at \SI{0.0}{\percent} across the same sweep.
+error rate above which Dragan and Srinivasa found aggressive assistance a
+net loss~\cite{dragan2012formalizing}; from measured coordinates it stays
+at \SI{0.0}{\percent} across the sweep.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.56\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/verification/01_grasp_success_grid_300.png}
+    \caption{every scripted grasp, every mode}
+    \label{fig:grasp-grid-a}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.42\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/verification/02_positioning_error_vs_gate_300.png}
+    \caption{how close the hand got}
+    \label{fig:grasp-grid-b}
+  \end{subfigure}
+  \caption[Scripted task verification: grasps and positioning, all modes]{
+  (\subref{fig:grasp-grid-a}) Twelve of twelve grasps closed; hatched cells
+  are tasks not run in that mode by design, grey ones have nothing to grasp.
+  (\subref{fig:grasp-grid-b}) Fingers met every object where planned;
+  set-down lands \SIrange{55.5}{56.9}{\milli\metre} from the pad centre.
+  Simulation.}
+  \label{fig:grasp-grid}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/verification/04_pick_and_place_frames_300.png}
+  \caption[The autonomous pick-and-place, cube by cube]{The autonomous
+  pick-and-place in simulation, one row per cube: approach, grasp, carry,
+  set-down, cut from the recorded clips at the logged event times; both
+  arms are used.}
+  \label{fig:pick-frames}
+\end{figure}
 
 \section{A pilot of direct control against shared autonomy}
 \label{sec:pilot-results}
@@ -177,13 +207,13 @@ tasks -- \emph{object tracking} (following a moving held object with the
 end-effector), \emph{target reaching} (a discrete reach to a marked
 position) and \emph{position matching} (driving to and holding a target
 pose) -- once direct, once with shared-autonomy assistance.
-P5's seven unlabelled sessions are pooled as one block, their condition
-read from the session's own logged flag. A fourth, planned task using a
+P5's seven unlabelled sessions are pooled, their condition read from the
+logged flag. A fourth, planned task using a
 multimeter as the manipulated object was never recorded with a participant
 on any of three tries (\cref{app:pilot}, which also carries every session
-and the coverage table); its box, at \SI{195}{\milli\metre}, exceeds the
-\SI{85}{\milli\metre} jaw regardless. Coverage is uneven, so the pooled comparison mixes
-tasks and the paired one isolates the condition.
+and the coverage table; \cref{app:gallery} shows every session). Coverage
+is uneven, so the pooled comparison mixes tasks and the paired one isolates
+the condition.
 
 \begin{table}[htbp]
   \centering
@@ -234,11 +264,21 @@ completion times (\SI{219}{\second} against \SI{241}{\second}) and fewer
 re-grips per session (\num{23.3} against \num{25.8}), with a robot lag under
 \SI{2.9}{\milli\metre} in both conditions -- but a \emph{longer} robot
 end-effector path (\SI{2.78}{\metre} against \SI{2.30}{\metre}), a direction
-that holds in the paired comparison too (\cref{sec:pilot-limits}), not just
-the pooled one (\cref{fig:pilot-variance}). \Cref{fig:pilot-time-b} isolates the
-seven cases in which the \emph{same} operator repeated a task under both
-conditions: five of seven finish faster under shared autonomy, and six of
-seven travel further doing it.
+that holds in the paired comparison too (\cref{fig:pilot-variance},
+\cref{sec:pilot-limits}). \Cref{fig:paired-slopes} isolates
+the seven cases in which the \emph{same} operator repeated a task under both
+conditions: the robot travels further with assistance in six of seven, the
+operator's own hand in only two of seven.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{gallery/pilot/11_paired_slopes_3panel_300.png}
+  \caption[Same operator, same task, both conditions]{The seven paired
+  cases: the robot's path rises with assistance in six of seven pairs while
+  the operator's own hand path does not (two of seven) -- the extra distance
+  is the assistance layer's.}
+  \label{fig:paired-slopes}
+\end{figure}
 
 \begin{figure}[htbp]
   \centering
@@ -260,11 +300,11 @@ seven travel further doing it.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\linewidth]{pilot/track_3d_full_v2.pdf}
-  \caption[VR cohort: master, simulated and real robot position, picked and
-  placed]{VR cohort: master hand (smoothed, the raw input), simulated EE,
-  and the real robot's own EE (forward kinematics on its own encoders) --
-  one Direct and one Shared session, same operator and task, picked/placed
-  from the gripper's logged transitions.}
+  \caption[VR cohort: master, simulated and real robot position]{VR cohort:
+  master hand (smoothed, the raw input), simulated EE, and the real robot's
+  own EE (forward kinematics on its own encoders) -- one Direct and one
+  Shared session, same operator and task, the first clutch engage and
+  release marked. The gripper itself was never commanded in the pilot.}
   \label{fig:track-3d}
 \end{figure}
 
@@ -274,7 +314,7 @@ seven travel further doing it.
   \caption[Master-arm cohort: master, simulated and real robot position]{
   The master-arm cohort's own version of \cref{fig:track-3d}: M2, Direct and
   Shared, same task, both under \SI{2.3}{\degree} sim-to-real RMS. This
-  cohort logs no gripper channel, so no picked/placed markers are drawn.}
+  cohort logs no clutch channel, so no markers are drawn.}
   \label{fig:track-3d-master}
 \end{figure}
 
@@ -295,8 +335,7 @@ seven travel further doing it.
   \SI{1.06}{\degree} RMS. (\subref{fig:track-main-b}) Three further
   operators (M1--M3) from the mannequin master: two track within
   \SI{3}{\degree}; the third's three sessions track
-  \SIrange{15.9}{21.2}{\degree}, consistent with \cref{sec:channelhealth}.
-  Full record in \cref{app:pilot}.}
+  \SIrange{15.9}{21.2}{\degree}, consistent with \cref{sec:channelhealth}.}
   \label{fig:track-main}
 \end{figure}
 

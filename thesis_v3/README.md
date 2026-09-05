@@ -14,14 +14,48 @@ request needs it):
 
 ## Current state
 
-- **Main body: ~5,995 words, 15 figures/tables** (Introduction, Method,
+- **Main body: ~5,995 words, 19 figures/tables** (Introduction, Method,
   Result, Discussion, Conclusion) -- against the booklet's limit of 6,000
   words / 20 figures. Word count is read from the *typeset* PDF (`Chapter 1`
   to the page before `Appendix A`), not estimated from the LaTeX source,
   because `\SI{}{}`/`\cref{}` expand into several rendered words each, and
-  figure text (legends, axis labels, tikz annotations) is vector text the
-  extractor also reads. Headroom is under 10 words -- trim before adding.
+  figure text (legends, axis labels, tikz annotations) in *vector* figures
+  is text the extractor also reads. The five gallery figures added to the
+  main body in the last round are included as 300-dpi rasters
+  (`*_300.png`) for that reason: their label text alone was ~670 extracted
+  "words". Headroom is under 10 words -- trim before adding.
 - **Abstract: 243/250 words.**
+- **A figure gallery from every data source** (`figures/gallery/{pilot,
+  baselines,verification,vision,process}/`, ~90 figures, each `.pdf` +
+  `.png`, one `INDEX.md` per directory with source, plain-English
+  takeaway, numbers and a MAIN/APPENDIX/SKIP verdict, and one
+  `make_*_gallery.py` per directory). Appendix O carries the appendix-grade
+  ones with plain captions; five went into the main body: the e-stop
+  timeline of every session, the grasp-success grid + positioning error,
+  the pick-and-place frame collage (simulation renders -- there are no
+  photographs of a physical arm doing a task, none exist on disk), and the
+  paired slopes. Labels are plain words throughout (the user's request:
+  "no jargon graphs").
+- **Corrections the gallery pass forced on the text:**
+  - The e-stop count. The first `/blocking` scan only opened bags in a
+    `bag/` subfolder (12 sessions). All 23 VR sessions now scanned (28 bags
+    incl. uncompressed `bag_0.mcap`): clearance floor still 0 activations;
+    e-stop **12 holds across 11 sessions** (events.jsonl agrees exactly),
+    9 in a session's last 15%, 3 not. Was "four holds across three
+    sessions" -- fixed in Results, Conclusion, Abstract.
+  - "Picked/placed" markers in `fig:track-3d` were clutch events:
+    `vr_*_grip` equals `vr_*_engaged` in 99.84% of samples and `grip_cmd_*`
+    is empty in every session -- the gripper was never commanded in the
+    pilot. Legend regenerated ("first clutch engage/release"), caption
+    says so.
+  - Intent estimator: 35% wrong at one cube pitch (60 mm), 47.5% at two;
+    "50% at one pitch" was the two-pitch figure. Fixed.
+  - Pinned-wrist cost: free reach from the work point is 0.363 m
+    (`orientation_cost*.json`, App. I), not 0.450 (that is the right arm's
+    innermost column) -- "over five times", not "a factor of seven". Fixed
+    in Results and Abstract.
+  - The T3 box "exceeds the jaw regardless" clause removed: the scripted
+    T3 clips grasp 2 of 2 in every mode.
 - **Structure follows the booklet's own logic, not just the template's
   chapter list.** The literature review is now the first section of the
   Introduction (`background/` is gone), so Chapter 1 runs problem ->

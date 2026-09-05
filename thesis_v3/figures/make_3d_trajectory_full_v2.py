@@ -140,11 +140,11 @@ def main():
         if pick_i is not None:
             ax.scatter(*[[v[pick_i]] for v in (sx, sy, sz)], color="black",
                        marker="o", s=60, zorder=5,
-                       label="picked" if panel == 0 else None)
+                       label="first clutch engage" if panel == 0 else None)
         if place_i is not None:
             ax.scatter(*[[v[place_i]] for v in (sx, sy, sz)], color="black",
                        marker="^", s=60, zorder=5,
-                       label="placed" if panel == 0 else None)
+                       label="first clutch release" if panel == 0 else None)
         ax.set_title(label)
         ax.set_xlabel("x (m)", labelpad=0)
         ax.set_ylabel("y (m)", labelpad=0)

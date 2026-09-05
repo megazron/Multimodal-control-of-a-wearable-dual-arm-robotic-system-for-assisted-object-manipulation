@@ -12,9 +12,9 @@ roughly a third of its scale (\cref{fig:master-cad}, \cref{ch:master}), moved
 with the fingers of one or both hands. A Teensy 4.1 reads fourteen rotary
 potentiometers, two inertial units, two force-sensitive resistors and two
 buttons, emitting one text frame at \SI{100}{\hertz} (\cref{tab:frame}).
-Potentiometer counts pass through an integer exponential moving average
-(\cref{eq:ema}) before conversion to degrees; the inertial sensors are read
-as a single burst so all six axes come from one sampling instant.
+Potentiometer counts are smoothed (\cref{eq:ema}) before conversion to
+degrees; the inertial sensors are read as one burst so all six axes share
+an instant.
 
 Each channel carries a health verdict from its own recent history
 (\emph{dead}, \emph{incoherent}, \emph{intermittent}, \emph{alive};
@@ -42,9 +42,8 @@ azimuth from the shoulder roll, and radius from the forward-kinematic
 magnitude of the bend joints, so a dead roll channel passes through as zero
 without corrupting the radius. The commanded end-effector position is
 an anchor plus a scaled displacement from a reference latched at clutch
-engagement (\cref{eq:anchor}), so releasing and re-engaging the clutch
-indexes like a mouse lifted and set down again, and the reachable set is
-bounded by the robot rather than by the master's own range.
+engagement (\cref{eq:anchor}), so the clutch indexes like a mouse lifted
+and set down, and reach is bounded by the robot rather than the master.
 
 \begin{table}[htbp]
   \centering
@@ -102,17 +101,16 @@ loop stops running, so a blocker cannot silently keep a stale "clear."
 Three independent triggers latch the emergency stop until reset: an
 explicit call, both master buttons held together, and a dead-man keyed on
 the master data's \emph{source} timestamp rather than message arrival,
-since a degraded master keeps publishing stale values at full rate rather
-than falling silent.
+since a degraded master keeps publishing stale values rather than falling
+silent.
 
 \section{Perception, planning and motion}
 
 A calibrate-then-plan stage (\cref{ch:perception}) replaced declared object
-and surface coordinates with measured ones: a wrist-camera sweep holding one
-attitude per pass, printer-bed-probe style, fits the working surface and
-segments objects from the image, and hands the result to an RRT-Connect
-planner \cite{kuffner2000rrtconnect} evaluated against the safety layer's
-own clearance. Detection is open-vocabulary
+and surface coordinates with measured ones: a wrist-camera sweep, one
+attitude per pass, fits the working surface, segments objects from the image
+and hands the result to an RRT-Connect planner \cite{kuffner2000rrtconnect}
+checked against the safety layer's own clearance. Detection is open-vocabulary
 (YOLO-World~\cite{cheng2024yoloworld} with FastSAM~\cite{zhao2023fastsam}),
 falling back to a hue-and-depth filter -- a fallback that is load-bearing:
 on real RGB-D (432 instances) the open-vocabulary detector found
@@ -143,7 +141,9 @@ earlier measurement is an instrument check until reconciled. Because the
 solver (TRAC-IK~\cite{beeson2015tracik}) restarts randomly, every
 reachability claim here is ten repeats over
 a path densified to \SI{20}{\milli\metre}, and a pose not solid on all ten
-is not reported as reachable.
+is not reported as reachable. The perception pipeline applies the same rule
+at each of its thirty-three stages: a result, a named refusal, or not
+applicable -- never a silent zero (\cref{fig:pipeline-status}).
 
 \section{Ethics and the pilot study}
 \label{sec:ethics}
@@ -171,7 +171,7 @@ Coverage is uneven, which \cref{sec:pilot-results} reports rather than
 hides. Every sample was logged automatically at \SI{20}{\hertz} -- pose,
 clutch engagement, VR spatial lag -- with an event log of every clutch and
 emergency-stop transition, giving completion time, robot path, re-grips,
-active-control fraction and mean lag with no manual timing. A further three
+active-control fraction and lag with no manual timing. A further three
 operators (M1--M3) attempted the same protocol from the mannequin master.
 This pilot has no separate wearer, so H3--H5 remain for the session
 \cref{app:study} specifies.

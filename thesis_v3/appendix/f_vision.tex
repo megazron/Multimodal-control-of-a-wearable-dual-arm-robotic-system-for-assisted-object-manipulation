@@ -77,3 +77,21 @@ rather than assumed, the left arm was \SI{10.67}{\degree} and the right
 \SI{13.53}{\degree} from the reference configuration, against a
 \SI{2}{\degree} tolerance, so no figure from this session is captioned "at
 the pick pose."
+
+\section{The scene the safety layer reasons about}
+
+\Cref{fig:scene-boxes-full} names four classes in one frame rather than
+isolated detections: the mannequin the clearance floor of \cref{sec:safety}
+is enforced against, the table, the two wearable arms, and the task
+objects between them. No detector in this project covers the first three
+classes -- only the task-object palette does -- so all six boxes here are
+hand-identified against a pixel grid on this exact frame, stated as such
+rather than presented as automatic detections.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.75\linewidth]{vision/scene_boxes.pdf}
+  \caption[The scene the safety layer reasons about, full]{The same figure
+  referenced from \cref{ch:resultsmain}.}
+  \label{fig:scene-boxes-full}
+\end{figure}

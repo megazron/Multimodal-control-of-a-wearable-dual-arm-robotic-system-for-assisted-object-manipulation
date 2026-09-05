@@ -14,22 +14,40 @@ request needs it):
 
 ## Current state
 
-- **Main body: 5,969 words, 12 figures/tables** (Introduction, Background,
+- **Main body: 5,993 words, 12 figures/tables** (Introduction, Background,
   Method, Result, Discussion, Conclusion) -- against the booklet's limit of
   6,000 words / 20 figures. Word count is read from the *typeset* PDF
   (`Chapter 1` to the page before `Appendix A`), not estimated from the
   LaTeX source, because `\SI{}{}`/`\cref{}` expand into several rendered
-  words each.
+  words each, and figure text (legends, axis labels) is vector text the
+  extractor also reads. Headroom is now ~7 words -- trim before adding.
 - **Abstract: 248/250 words.**
-- **63 pages total.** The main body is now figure-dense on purpose: the
-  booklet only marks the body and the appendix, so the graded content
-  carries the platform photo, the package architecture, master channel
-  health, the disjoint-workspace + mount-fix pair, two real computer-vision
-  detection images (RANSAC plane fit and oriented 3D boxes, both from the
-  real cameras, not simulation), the pilot's pooled + paired comparison, a
-  genuine 3D trajectory plot, and the sim-to-real tracking collage -- 12 of
-  the 20 permitted, leaving 8 spare. The appendix carries everything else,
-  uncounted.
+- **62 pages total.** Channel health ("pot health") prose was cut back to
+  its one headline number in the main body, per direct feedback that it was
+  spending graded words on the least central finding; the regression detail
+  survives in `ch:results`. That freed room for: a genuine three-way 3D
+  trajectory (master hand, simulated EE, and the **real robot's own EE from
+  live forward kinematics on its encoders**, not simulated), with picked
+  and placed marked from the gripper's logged transitions, for one Direct
+  and one Shared-autonomy session; a clean raw-to-detection computer-vision
+  pipeline figure replacing the two dashboard-style PNGs; a written
+  explanation of the three pilot tasks and the never-recorded fourth
+  (multimeter); and a real safety finding from the pilot's own `/blocking`
+  topic (below). 12 of the 20 permitted figures/tables, leaving 8 spare --
+  a bounding-box scene figure (mannequin/table/arms/objects) moved to
+  `app:vision` (`ch:vision`) to protect the word budget instead, referenced
+  from the main body. The appendix carries everything else, uncounted.
+- **A real safety finding, not a synthetic one**: across all 26 recorded
+  pilot-era sessions' `/blocking` topic, the geometric clearance floor
+  (`clearance_floor`, the mechanism that would hold an arm 150 mm short of
+  the wearer) **never activated once** -- no recorded operator drove either
+  arm inside that margin. The manual/dead-man e-stop *did* fire for real:
+  four holds across three sessions, one tripping twice, the first held
+  22.6 s mid-session (not simply an end-of-recording gesture, which the
+  table caption previously claimed for all of them -- corrected).
+  Regenerate the scan: `rosbag2_py.SequentialCompressionReader` over each
+  session's `bag_0.mcap.zstd`, watching `/blocking`'s per-unit `blockers[]`
+  for a `false -> true` edge on `clearance_floor` and on `estop`.
 - **Figures are matplotlib PDFs in the same house style as the platform's
   own data figures** (`figures/make_figures.py`'s `channels()`/`reach()`/
   `clearance()`: muted grey/blue/red, `font.size` 8-9, no display title
@@ -72,8 +90,25 @@ first names in a legend before this check caught it).
 
 Regenerate: `make_pilot_figures.py`, `make_3d_trajectory.py`,
 `make_tracking_figure.py`, `make_master_figure.py`, each
-`python3 thesis_v3/figures/<script>.py` from the repository root. All
-re-derive participant anonymisation from the raw session names before any
+`python3 thesis_v3/figures/<script>.py` from the repository root.
+`make_3d_trajectory_full.py` (the three-way master/sim/real trajectory,
+`fig:track-3d`) additionally needs `scripts/sim_session.py --stack teleop
+--keep-up` running first, since the real-EE trace is FK'd live through
+`/compute_fk` -- `real_left_jN` in `trail.csv` has no recorded Cartesian
+counterpart (`ee_left_x/y/z` is FK of the *simulated* joint state, not the
+real one; confirmed by reading `scripts/record_all.py`). The vision-pipeline
+and scene-bounding-box figures (`vision/cv_pipeline.pdf`,
+`vision/scene_boxes.pdf`) were built ad hoc from a raw frame pair at
+`recordings/vision_thesis/20260830_073141/raw/{left_gripper,scene_hd}/` and
+`scripts/srl_object_detector.py`'s own `blobs()`/`PALETTE` (cube) plus a
+measured-hue threshold on the same toolchain (box, which the palette
+doesn't cover); the four scene classes without a detector in this project
+(mannequin, table, arm, table -- `scene_boxes.pdf`) are hand-identified
+against a pixel grid on that exact frame, stated as such in its caption
+rather than presented as automatic detections. No standalone regeneration
+script exists yet for either -- write one from those sources before editing
+them again. All scripts re-derive participant anonymisation from the raw
+session names before any
 plot is drawn -- if the pilot data set grows, extend each script's `ANON`
 dict rather than plotting first and anonymising after.
 

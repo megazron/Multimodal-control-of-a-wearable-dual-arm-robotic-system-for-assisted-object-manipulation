@@ -9,6 +9,7 @@ and safety code, plus recorded data from the physical master and four
 cameras (\cref{ch:results}: full derivations).
 
 \section{The command mapping and its safety layer}
+\label{sec:safety}
 
 Channel health, computed over \emph{distinct} sensor updates rather than
 transmitted rows (roughly \SIrange{82}{88}{\percent} of consecutive rows
@@ -24,30 +25,28 @@ fourteen channels alive (\cref{fig:channelhealth}).
   \label{fig:channelhealth}
 \end{figure}
 
-Replaying the recorded incoherent traces with the operator's input held
-constant shows those channels alone inject \SI{54.5}{\milli\metre} of
-commanded motion on the left arm and \SI{0.014}{\milli\metre} on the right
--- motion nobody asked for. Regressing true reach on the surviving channels
-shows the left arm retains no observable radial dimension at all
-($R^2=\num{0.133}$) against the right's near-complete
-$R^2=\num{0.986}$, naming the repair precisely as two left-arm channels.
-
-Vertical and fore-aft command axes track correctly on both arms. Lateral
-does not: two master motions meant \SI{90}{\degree} apart arrive
-\SI{137.7}{\degree} apart, and since a rotation preserves angles, no
-remapping turns a non-orthogonal measured triad orthogonal -- a geometric
-limitation, not a calibration defect.
+Replaying the incoherent traces alone injects \SI{54.5}{\milli\metre} of
+unrequested motion on the left arm, naming the repair as two left-arm
+channels (regression and the separate lateral-axis defect: \cref{ch:results}).
 
 The safety layer handled fourteen of fourteen injected faults (channel
-dropout, board disconnect/reconnect, emergency stop mid-motion,
-wrong-object latching, stale detections, session loss, clock
-non-monotonicity and more). Two needed several attempts, both the same
-class of error: a mechanism keyed on the wrong observable. The dead-man did
-not trip on ten seconds of total master silence, because the master
-substitutes stale data at full rate; keying it on the data's source
-timestamp fixed it. The same path once called a blocking driver shutdown
-first, adding \SI{4}{\second} between deciding to stop and the arm
-stopping; the fix parks the arm first, from local publishes only.
+dropout, emergency stop mid-motion, wrong-object latching, stale
+detections, clock non-monotonicity and more); the two that needed several
+attempts both traced to a mechanism keyed on the wrong observable, fixed by
+reading the master data's source timestamp rather than its arrival, and by
+parking the arm before talking to the driver rather than after.
+
+The pilot (\cref{sec:pilot-results}) is the only source of \emph{live}
+evidence for this layer: across all twenty-six recorded sessions the
+geometric clearance floor -- the mechanism that would hold an arm
+\SI{150}{\milli\metre} short of the wearer -- never activated once, meaning
+no recorded operator ever drove either arm inside that margin. The
+manual/dead-man emergency stop did fire for real: four holds across three
+sessions, one session tripping twice, the first hold lasting
+\SI{22.6}{\second} \emph{mid}-session (\SI{67}{\percent} through, at
+\SI{178.9}{\second} of \SI{265.7}{\second}) with clutch engagement resuming
+around it -- not simply an end-of-recording gesture. The geometric path
+remains validated only against synthetic fault injection.
 
 \section{Workspace and motion}
 
@@ -82,9 +81,7 @@ That change was applied, raising home-pose clearance from
 it) to \SI{0.2202}{\metre}, and moving pick-and-place targets from
 \SI{0.530}{\metre} off centre to \SI{0.290}{\metre}. Neither arm crosses
 the body centre line at any surface height or distance in \num{3360} swept
-configurations; the constraint is the wearer's torso, not arm posture --
-deleting the wearer's arms from the model entirely moves the boundary by at
-most \SI{75}{\milli\metre}.
+configurations; the constraint is the wearer's torso, not arm posture.
 
 The per-joint step limiter that constituted the whole of teleoperation
 motion generation, measured against a \SI{30}{\milli\metre} grasp capture
@@ -131,48 +128,35 @@ of position error over the working range (\cref{sec:hardware-session}).
 Instrumented at thirty-three stages per camera and pointed at four physical
 cameras for the first time (\cref{ch:vision}), the wrist cameras fit a
 support plane at \SI{1.43}{\milli\metre} RMS with \SI{74}{\percent} inliers
-at working distance (\cref{fig:vision-plane}) -- within a factor of three of
-the same code against a renderer, and the first evidence the surface-fitting
-stage transfers to hardware.
+at working distance -- within a factor of three of the same code against a
+renderer, the first evidence the surface-fitting stage transfers to
+hardware. Segmentation is scoped to the two objects the task actually uses,
+not the whole scene (\cref{fig:vision-pipeline}): the cube is isolated by
+the project's own colour classifier, and the box -- outside that palette --
+by thresholding on its own measured hue, since applying the cube's palette
+to it misfires on the box's brown tones. Both recover as oriented boxes
+rather than axis-aligned ones, which is what makes a turned object's true
+width -- the quantity the grasp planner needs -- available at all.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.92\linewidth]{vision/wrist_ransac.png}
-  \caption[Detection: the support plane, fitted and scored on a real
-  camera]{The support plane fitted by random sample consensus on the
-  left-hand wrist camera. Green is an inlier (on the fitted plane), red is
-  not. The inlier fraction is the quantity that matters, not the residual
-  alone: a plane can fit three points perfectly.}
-  \label{fig:vision-plane}
-\end{figure}
-
-Objects are recovered as oriented three-dimensional boxes rather than an
-axis-aligned bounding volume (\cref{fig:vision-boxes}), which is what makes
-a turned object's true width -- the quantity the grasp planner needs --
-available at all.
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.92\linewidth]{vision/wrist_boxes3d.png}
-  \caption[Detection: objects as oriented 3D boxes, projected and
-  plan-view]{Five objects recovered from the left-hand wrist camera, each
-  posed as an oriented box and projected back into the picture (top) and
-  shown in plan view (bottom).}
-  \label{fig:vision-boxes}
+  \includegraphics[width=\linewidth]{vision/cv_pipeline.pdf}
+  \caption[Detection pipeline: raw frame to oriented boxes]{The left-hand
+  wrist camera's raw frame (a), the cube and box segmented from it (b), and
+  the oriented boxes recovered from each mask (c) -- the same real frame at
+  every stage, not three different examples.}
+  \label{fig:vision-pipeline}
 \end{figure}
 
 No grasp closed on any camera this session: the nearest object's narrowest
 axis measured \SI{144}{\milli\metre} against an \SI{85}{\milli\metre} jaw, a
-statement about the scene rather than the planner. The same session found,
-within its first hour, that three files independently asserted the scene
-camera's mounting orientation and none had measured it, silently inverting
-every earlier scene figure -- invisible to every geometric metric, since a
-consistent rotation preserves every distance, and found only by comparing
-one camera's picture against another's.
+statement about the scene rather than the planner. \Cref{fig:scene-boxes-full}
+places this against the safety layer's own subject in one frame: wearer,
+table, the wearable arms and the objects between them.
 
 In simulation, the full task set solves \num{13927} inverse-kinematics
-calls with zero failures and zero clearance breaches, reproducing field for
-field on re-run. Sweeping the shared-autonomy intent estimator against a
+calls with zero failures and zero clearance breaches. Sweeping the
+shared-autonomy intent estimator against a
 mis-declared table shows why this matters operationally: from declared
 coordinates it becomes \emph{confidently wrong} \SI{50}{\percent} of the
 time once the declaration is one object-pitch out; from measured
@@ -182,14 +166,19 @@ coordinates it stays at \SI{0.0}{\percent} across the same sweep.
 \label{sec:pilot-results}
 
 \textbf{Five operators (P1--P5)} completed twenty-three recorded sessions
-under the protocol of \cref{sec:ethics}: direct VR control and
-shared-autonomy-assisted control, on one of three tasks for P1--P4, and on
-an unlabelled task for P5, whose seven sessions predate the per-task naming
-convention and are identified as direct/shared from the session's own
-logged flag. Coverage is uneven by design -- not every operator performed
-every task under both conditions in the time available -- so the pooled
-comparison below mixes tasks together and the paired comparison that
-follows it is the part of the data that isolates the
+under the protocol of \cref{sec:ethics}, each on one of three VR-teleoperated
+tasks -- \emph{object tracking} (following a moving held object with the
+end-effector), \emph{target reaching} (a discrete reach to a marked
+position) and \emph{position matching} (driving to and holding a target
+pose) -- once under direct control and once with shared-autonomy assistance.
+P5's seven sessions predate the per-task naming convention and are pooled
+as one unlabelled block, identified as direct/shared from the session's own
+logged flag. A fourth, planned task using a multimeter as the manipulated
+object was attempted by the master-arm cohort below but never recorded on
+any of its three tries (\cref{app:pilot}). Coverage is uneven by design --
+not every operator performed every task under both conditions in the time
+available -- so the pooled comparison below mixes tasks together and the
+paired comparison that follows it is the part of the data that isolates the
 condition cleanly. Full session-by-session data, the coverage table, and
 the supplementary measures are in \cref{app:pilot}.
 
@@ -198,10 +187,9 @@ the supplementary measures are in \cref{app:pilot}.
   \small
   \caption[Pilot session summary]{Twenty-three pilot sessions, pooled by
   condition. Duration includes any pausing or hesitation and is a
-  session-length rather than a pure motor-execution measure. Every e-stop
-  hold in this pilot occurred once, near the end of the session, to stop
-  the recording, and is excluded as a procedural marker rather than a
-  safety event.}
+  session-length rather than a pure motor-execution measure. E-stop holds
+  (four, across three sessions, detailed in \cref{sec:safety} above) are
+  excluded from this table as engagement time, not as a safety verdict.}
   \label{tab:pilot-summary}
   \begin{tabular}{@{}lccc@{}}
     \toprule
@@ -252,34 +240,42 @@ it.
 
 \begin{figure}[htbp]
   \centering
-  \begin{subfigure}[b]{0.31\linewidth}
-    \centering\includegraphics[width=\linewidth]{pilot/track_3d.pdf}
-    \caption{best VR session, full 3D path}
-  \end{subfigure}\hfill
-  \begin{subfigure}[b]{0.31\linewidth}
+  \includegraphics[width=\linewidth]{pilot/track_3d_full.pdf}
+  \caption[Master, simulated and real robot position, picked and placed]{
+  Master hand, simulated robot end-effector, and the real robot's own
+  end-effector (forward kinematics on its own encoders, not simulated) --
+  one Direct and one Shared-autonomy session, same operator and task, with
+  picked and placed marked from the gripper's own logged transitions.
+  Simulated and real agree closely throughout, the same small gap as
+  \cref{fig:track-main}; master moves far more, since the mapping scales
+  and filters it.}
+  \label{fig:track-3d}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.47\linewidth}
     \centering\includegraphics[width=\linewidth]{pilot/track_joint.pdf}
-    \caption{same session, one joint}
+    \caption{one joint, best VR session}
+    \label{fig:track-main-a}
   \end{subfigure}\hfill
-  \begin{subfigure}[b]{0.34\linewidth}
+  \begin{subfigure}[b]{0.47\linewidth}
     \centering\includegraphics[width=\linewidth]{pilot/master_tracking.pdf}
     \caption{master-arm cohort, every session}
+    \label{fig:track-main-b}
   \end{subfigure}
-  \caption[Sim-to-real tracking during the pilot]{Every session polled the
-  real arms' own encoders alongside the simulated joint state, a live
-  sim-to-real check. (a, b) Best-tracking VR session: operator's hand and
-  the simulated robot's achieved path, one joint tracking its command to
-  \SI{1.06}{\degree} RMS. (c) Three further operators (M1--M3) from the
-  mannequin master: two track within \SI{3}{\degree}; the third's three
-  sessions track \SIrange{15.9}{21.2}{\degree}, an order of magnitude
-  worse and consistent with \cref{fig:channelhealth}. Full record in
-  \cref{app:pilot}.}
+  \caption[Sim-to-real tracking during the pilot]{Sim-to-real tracking, the
+  same pilot. (\subref{fig:track-main-a}) One joint tracking its command to
+  \SI{1.06}{\degree} RMS. (\subref{fig:track-main-b}) Three further
+  operators (M1--M3) from the mannequin master: two track within
+  \SI{3}{\degree}; the third's three sessions track
+  \SIrange{15.9}{21.2}{\degree}, consistent with \cref{fig:channelhealth}.
+  Full record in \cref{app:pilot}.}
   \label{fig:track-main}
 \end{figure}
 
-This pilot measures operator performance only, at pilot scale, and its
-e-stop and lag measures show no evidence of a safety or responsiveness cost
-to shared autonomy over the sessions recorded. It does not include a
-separate wearer and therefore cannot speak to the wearer-side hypotheses --
-trust and embodiment under autonomy -- that motivated the two-person design
-of \cref{app:study}; \cref{sec:pilot-limits} treats what would be needed to
-extend it into that full comparison.
+This pilot measures operator performance only, at pilot scale, with no
+evidence of a safety or responsiveness cost to shared autonomy. It has no
+separate wearer and so cannot speak to the wearer-side hypotheses that
+motivated \cref{app:study}'s two-person design; \cref{sec:pilot-limits}
+treats extending it.

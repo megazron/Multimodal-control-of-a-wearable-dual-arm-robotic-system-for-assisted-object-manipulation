@@ -159,27 +159,25 @@ layer appropriate to a manipulator standing beside somebody who is not
 commanding it, and ran a first pilot comparing direct control against
 shared-autonomy assistance.
 
-A body-worn master supplies position from whichever sensor observes each
-component most directly, and classifies all fourteen channels so a failing
-sensor degrades the system announcedly rather than silently. Six of fourteen
-met the health criterion; failing ones injected \SI{54.5}{\milli\metre} of
-unrequested motion. Vertical and fore-and-aft command track correctly;
-lateral does not, and no axis mapping fixes it. The two arms share no
-reachable point under the as-built mount; a costed mount change raised home
-clearance from \SI{0.1610}{\metre} to \SI{0.2202}{\metre}. The task set
-solves \num{13927} inverse-kinematics calls with no failures; replacing the
-motion generator removed \SI{51.3}{\milli\metre} of unrequested excursion;
-and perception on four physical cameras fits a work surface to
-\SI{1.43}{\milli\metre} RMS.
+The two arms share no reachable point under the as-built mount; a costed mount change
+raised home clearance from \SI{0.1610}{\metre} to \SI{0.2202}{\metre}, and
+the pinned wrist, not the wearer, is what binds reach -- a factor of seven
+at the work point. The task set solves \num{13927} inverse-kinematics calls
+with no failures; a jerk-limited motion generator removed
+\SI{51.3}{\milli\metre} of unrequested excursion; perception on four
+physical cameras fits a work surface to \SI{1.43}{\milli\metre} RMS; and
+across twenty-six recorded sessions the geometric clearance floor never
+engaged while the manual stop fired four times.
 
 Under ethical approval (SETREC 7111986), five operators completed
 twenty-three sessions comparing direct VR control against shared-autonomy
 assistance: assisted sessions averaged shorter completion times and fewer
-re-grips but more hand travel, with sub-\SI{5}{\milli\metre} lag throughout.
-The pilot has no separate wearer and is pilot-scale; nothing was validated
-on a loaded physical arm, and the two-person study this system was built
-for remains the
-target for the work that follows.
+re-grips, with a robot path \SI{21}{\percent} longer that the operators' own
+hand paths, within \SI{2}{\percent} of each other, show to be the
+assistance layer's rather than theirs. The pilot has no separate wearer and
+is pilot-scale; nothing was validated on a loaded physical arm, and the
+two-person study this system was built for remains the target for the work
+that follows.
 \end{abstract}
 
 \renewcommand{\abstractname}{Acknowledgements}
@@ -200,19 +198,19 @@ support over the course of the year.
 \end{abstract}
 
 \tableofcontents
-% \listoffigures and \listoftables are omitted, as in the department
-% template: the main body carries a small, deliberate figure/table budget
-% (booklet limit: 20) and a separate list adds pages without adding
-% information at this length.
+% Lists of figures and tables: uncounted front matter per the booklet, and
+% useful here because the appendix carries several dozen figures.
+\listoffigures
+\listoftables
 
 %% ---------------------------------------------------------------------------
-%% BODY. Introduction, Background, Method, Result, Discussion, Conclusion,
-%% in the department template's own order. Booklet limits (final report):
-%% <=6000 words and <=20 figures/tables in this body; the Appendix carries
-%% supporting detail and is exempt from both.
+%% BODY. Introduction (with the literature review as its first section, so
+%% the chapter runs problem -> literature -> gap -> aim, objectives and
+%% hypotheses, as the booklet asks), Method, Result, Discussion, Conclusion.
+%% Booklet limits (final report): <=6000 words and <=20 figures/tables in
+%% this body; the Appendix carries supporting detail and is exempt from both.
 %% ---------------------------------------------------------------------------
 \input{introduction/introduction.tex}
-\input{background/background.tex}
 \input{method/method.tex}
 \input{result/result.tex}
 \input{discussion/discussion.tex}

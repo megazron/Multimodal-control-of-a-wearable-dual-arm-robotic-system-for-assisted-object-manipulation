@@ -8,14 +8,14 @@ such a device from a fixed manipulator is consequential for control: the base
 of the robot is a person. It accelerates, sways and steps, and it cannot be
 told to hold still.
 
-This thesis reports work on the MUlti-limb Virtual Environment, known within
-Imperial College London as the Dr.\ Octopus platform~\cite{muve}, which mounts
+This thesis reports work on Imperial College London's Dr.\ Octopus platform
+(the MUlti-limb Virtual Environment~\cite{muve}), which mounts
 two Kinova Gen3 seven-degree-of-freedom arms~\cite{kinova2022gen3} on a
 backpack frame and commands them from a \emph{second} person: an operator who
 cannot feel the arms, controlling them for a wearer who cannot command them.
 No prior work has measured both what shared autonomy buys such an operator
 and what it costs the person carrying the arms, in one system, under the
-same trial (\cref{ch:background}); that gap is what this project is built to
+same trial (\cref{sec:gap}); that gap is what this project is built to
 close.
 
 \begin{figure}[htbp]
@@ -28,17 +28,91 @@ close.
   \label{fig:platform}
 \end{figure}
 
-Two premises shaped the engineering. First, commanding fourteen joints
-through a body-worn master with no force feedback is a usability problem
-before a control one, so position comes from whichever sensor observes each
-component best, not the slave's full kinematic chain. Second, a body-worn
-master \emph{will} lose channels over its life, so the system treats
-channel loss as an operating condition: every channel carries a health
-verdict, and when too many are lost it reports position unavailable rather
-than fabricating one -- on a manipulator beside a person's head, worse than
-none.
+Two premises shaped the engineering: position is taken from whichever
+sensor observes each component best rather than from the slave's full
+kinematic chain, and a body-worn master \emph{will} lose channels over its
+life, so channel loss is treated as an operating condition that is
+announced, never papered over -- on a manipulator beside a person's head, a
+fabricated position is worse than none.
 
-\section{Objectives}
+\section{Background}
+\label{ch:background}
+
+\textbf{Supernumerary robotic limbs.} Parietti and Asada's founding
+demonstrations brace a limb against the environment to stabilise the
+wearer's posture~\cite{parietti2014bracing,parietti2013dynamic}, which turns
+the wearer's body from a disturbance source into part of a closed chain.
+Later reviews map the design space along consistent axes -- mounting
+location trades reach against the moment arm imposed on the wearer,
+actuation trades bandwidth against worn mass -- and note that the field
+reports embodiment far more often than task
+performance~\cite{yang2021srlreview,prattichizzo2021augmentation,tong2021srlreview,zhang2023srlreview,zheng2026quantitative}.
+Worn mass binds hardest: each Gen3 masses \SI{8.2}{\kilo\gram}, so the pair
+with harness exceeds \SI{17}{\kilo\gram}, and simulated wearer loads suggest
+the biomechanical cost is not negligible~\cite{moon2024impact}.
+
+\textbf{The operator and the wearer as different people.} Fusion mounts a
+robotic head and two arms on a worn frame, driven by a remote
+operator~\cite{saraiji2018fusion} -- but its three modes are levels of
+\emph{physical coupling}, not machine autonomy, and the publication reports
+no user study. Work on near-body interaction found that raising
+\emph{apparent} autonomy (a concealed operator, a wearer with no task of
+their own) raised physiological arousal and lowered self-reported
+trust~\cite{zhou2026proxemics}: the wearer's experience is not a free
+variable, though this is not evidence about real autonomy or an occupied
+wearer. The two-person case also differs mechanically: one-person
+base-motion compensation reaches \SI{1.37 \pm 0.58}{\milli\metre} of
+end-effector error~\cite{zhang2024motioncomp}, but there the disturbance
+comes from the operator's own nervous system, which supplies an efference
+copy of it; here it comes from somebody else's, which supplies none.
+
+\textbf{Master interfaces for dissimilar kinematics.} Guggenheim and Asada
+argue for miniature physical masters on the grounds that geometric
+similarity supplies feedback inherently~\cite{guggenheim2021haptic}; the
+argument covers similarity of \emph{form}, not \emph{scale}, and this
+system's master-to-slave reach ratio is roughly one to three. Joint-space
+correspondence preserves posture but needs every master joint measured
+accurately; task-space correspondence decouples the chains at the cost of
+the slave's redundant degree of freedom.
+
+\textbf{Shared autonomy.} Dragan and Srinivasa formalise arbitration as
+policy blending, weighted by prediction confidence~\cite{dragan2013policyblending};
+Javdani et al.\ recast it as a POMDP over the user's goal and show that
+assistance which does not wait for high confidence helps operators finish
+faster~\cite{javdani2015hindsight}. Neither was developed for a robot mounted
+on a second person, where the cost of assisting toward the wrong goal is not
+a slower trial but a manipulator moving toward someone who did not command
+it.
+
+\textbf{Measuring embodiment, workload and trust.} Ownership over an
+artificial limb is measurable and decomposes into ownership, agency and
+location, which can move independently~\cite{botvinick1998rubber,longo2008embodiment}.
+Workload separates into the NASA Task Load Index's six
+subscales~\cite{hart1988nasatlx}; physical exertion is better tracked with a
+Borg scale~\cite{borg1982perceived}, appropriate for an uncompensated master
+arm or a carried mass. Feedback that improves control does not reliably
+improve ownership~\cite{pinardi2023feedback}, so performance and embodiment
+must be measured separately -- which is why the pilot here measures the
+former and claims nothing about the latter.
+
+\section{The gap}
+\label{sec:gap}
+
+No study measures the operator and the wearer together, under the same
+autonomy, in the same trial: shared autonomy has been shown to help an
+operator where the robot is attached to nobody, and raising apparent
+autonomy has been shown to lower a wearer's trust where the autonomy was a
+concealed human. Until both are measured in one system, the exchange rate
+between what shared autonomy buys the operator and what it costs the person
+carrying the arms is unknown. The full review, with every citation's scope
+stated precisely, is in \cref{app:background}.
+
+\section{Aim, objectives and hypotheses}
+\label{sec:aim}
+
+The aim was to build and verify, on the platform of \cref{fig:platform}, a
+two-person teleoperation system on which that exchange rate can be
+measured, and to begin measuring it. Six objectives:
 
 \begin{enumerate}
   \item Design and build an instrumented mannequin master reproducing the
@@ -56,39 +130,17 @@ none.
     the full two-person study the architecture was designed for.
 \end{enumerate}
 
-The planning report framed this project around a haptic master with physical
-springs and virtual slave-side impedance. That objective was not delivered:
-\cref{ch:discussionmain} explains why, and \cref{app:development} records the
-route in full.
+The study the system is built for states five hypotheses, with direction,
+before any data (\cref{app:study}): task completion time is shorter under
+shared autonomy (H1); operator workload is lower (H2); wearer-reported trust
+is \emph{lower} under shared autonomy (H3), against the direction of H1 and
+H2; the wearer's sense of agency falls while ownership does not (H4); and
+cross-arm interference falls while phase lag does not (H5). The pilot
+reported here tests H1 directly; no workload instrument was administered, so
+H2 is untested, and H3--H5 need the separate wearer it did not have.
 
-\section{Contributions}
-
-Each is stated with its evidence class (implemented, verified in
-simulation, measured on hardware, or measured on a pilot session) in
-\cref{ch:resultsmain}: a graceful-degradation architecture for a body-worn
-master; a reduced-degree-of-freedom command mapping; a safety architecture
-in which every blocking mechanism is observable; a workspace
-characterisation with a quantified, buildable mount correction; a
-jerk-limited motion generator; a calibrate-then-plan perception stage
-exercised on four physical cameras; and a first pilot of the
-direct-versus-shared-autonomy comparison with five operators, run under
-ethical approval once VR controllers supplied a working alternative to the
-master's incoherent channels. \textbf{No contribution below the pilot was
-validated on physical hardware carrying a load.}
-
-The single most transferable outcome does not appear in that list.
-Twenty-six times across this project, a result that looked like a system
-failure was a defect in the measuring tool, and validating an instrument
-against a known answer before trusting a surprising reading it produces is
-the practice applied to every number in this report (\cref{sec:validity}).
-
-\section{Report structure}
-
-\Cref{ch:methodsmain} summarises what was designed, built and run;
-\cref{ch:master,ch:method,ch:perception,ch:motion} carry the full
-engineering detail. \Cref{ch:resultsmain} reports the headline measurements
-and the pilot; \cref{ch:results,ch:vision,ch:workspace} carry the full
-campaign. \Cref{ch:discussionmain,ch:conclusion} interpret the results and
-close against the objectives above; \cref{app:study} is the un-run
-two-person protocol this project was built for, and \cref{app:pilot} the
-pilot session in full.
+Each objective is reported in \cref{ch:resultsmain} with its evidence class
+-- implemented, verified in simulation, measured on hardware, or measured on
+a pilot session. The planning report's haptic-master objective was not
+delivered (\cref{ch:discussionmain,app:development}). \textbf{No result
+below the pilot was validated on physical hardware carrying a load.}

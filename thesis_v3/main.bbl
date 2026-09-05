@@ -1,5 +1,10 @@
 \newcommand{\etalchar}[1]{$^{#1}$}
-\begin{thebibliography}{dWKB24}
+\begin{thebibliography}{KHKCG{\etalchar{+}}12}
+
+\bibitem[BA15]{beeson2015tracik}
+Patrick Beeson and Barrett Ames.
+\newblock {TRAC-IK}: An open-source library for improved solving of generic inverse kinematics.
+\newblock In {\em Proc. IEEE-RAS 15th International Conference on Humanoid Robots (Humanoids)}, pages 928--935. IEEE, 2015.
 
 \bibitem[BC98]{botvinick1998rubber}
 Matthew Botvinick and Jonathan Cohen.
@@ -16,10 +21,21 @@ Gunnar~A. Borg.
 \newblock Psychophysical bases of perceived exertion.
 \newblock {\em Medicine and Science in Sports and Exercise}, 14(5):377--381, 1982.
 
+\bibitem[CNA25]{collier2025agency}
+Maggie~A. Collier, Rithika Narayan, and Henny Admoni.
+\newblock The sense of agency in assistive robotics using shared autonomy.
+\newblock In {\em Proceedings of the 2025 ACM/IEEE International Conference on Human-Robot Interaction (HRI '25)}, 2025.
+\newblock arXiv:2501.07462.
+
 \bibitem[CSG{\etalchar{+}}24]{cheng2024yoloworld}
 Tianheng Cheng, Lin Song, Yixiao Ge, Wenyu Liu, Xinggang Wang, and Ying Shan.
 \newblock {YOLO-World}: Real-time open-vocabulary object detection.
 \newblock In {\em Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)}, 2024.
+
+\bibitem[DS12]{dragan2012formalizing}
+Anca~D. Dragan and Siddhartha~S. Srinivasa.
+\newblock Formalizing assistive teleoperation.
+\newblock In {\em Robotics: Science and Systems VIII}, Sydney, Australia, 2012.
 
 \bibitem[DS13]{dragan2013policyblending}
 Anca~D. Dragan and Siddhartha~S. Srinivasa.
@@ -30,6 +46,11 @@ Anca~D. Dragan and Siddhartha~S. Srinivasa.
 S.~de~Wolde, J.~Kober, and R.~Babuska.
 \newblock Current-based impedance control for interacting with mobile manipulators.
 \newblock {\em arXiv preprint arXiv:2403.13079}, 2024.
+
+\bibitem[FB81]{fischler1981ransac}
+Martin~A. Fischler and Robert~C. Bolles.
+\newblock Random sample consensus: A paradigm for model fitting with applications to image analysis and automated cartography.
+\newblock {\em Communications of the ACM}, 24(6):381--395, 1981.
 
 \bibitem[Fit54]{fitts1954information}
 Paul~M. Fitts.
@@ -60,6 +81,11 @@ International Society of Automation.
 Shervin Javdani, Siddhartha~S. Srinivasa, and J.~Andrew Bagnell.
 \newblock Shared autonomy via hindsight optimization.
 \newblock In {\em Robotics: Science and Systems XI}, 2015.
+
+\bibitem[KHKCG{\etalchar{+}}12]{kim2012autonomy}
+Dae-Jin Kim, Rebekah Hazlett-Knudsen, Heather Culver-Godfrey, Greta Rucks, Tara Cunningham, David Port{\'e}e, John Bricout, Zhao Wang, and Aman Behal.
+\newblock How autonomy impacts performance and satisfaction: Results from a study with spinal cord injured subjects using an assistive robot.
+\newblock {\em IEEE Transactions on Systems, Man, and Cybernetics -- Part A: Systems and Humans}, 42(1):2--14, 2012.
 
 \bibitem[Kin22]{kinova2022gen3}
 Kinova Robotics.
@@ -140,6 +166,11 @@ H.~Toubar, G.~Goldsmith, S.~A. Tafrishi, M.~Innala, and V.~Bergstromer.
 Yuchen Tong and Jianbin Liu.
 \newblock Review of research and development of supernumerary robotic limbs.
 \newblock {\em IEEE/CAA Journal of Automatica Sinica}, 2021.
+
+\bibitem[YH11]{you2011assisted}
+Erkang You and Kris Hauser.
+\newblock Assisted teleoperation strategies for aggressively controlling a robot arm with 2d input.
+\newblock In {\em Robotics: Science and Systems VII}, 2011.
 
 \bibitem[YHC{\etalchar{+}}21]{yang2021srlreview}
 Bo~Yang, Jian Huang, Xu~Chen, Caihua Xiong, and Yasuhisa Hasegawa.

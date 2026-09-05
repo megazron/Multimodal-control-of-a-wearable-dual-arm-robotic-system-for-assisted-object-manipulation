@@ -79,7 +79,7 @@ def grouped_panel(metric, ylabel, fname, scale=1.0, figsize=(2.5, 2.1), legend=F
 
 
 grouped_panel("duration_s", "time to finish (s)", "pilot_time.pdf", legend=True)
-grouped_panel("ee_path_m", "hand travel (m)", "pilot_distance.pdf")
+grouped_panel("ee_path_m", "robot path (m)", "pilot_distance.pdf")
 grouped_panel("clutch_engagements", "re-grips", "pilot_regrips.pdf")
 grouped_panel("active_control_frac", "active share (%)", "pilot_active.pdf", scale=100.0)
 grouped_panel("mean_lag_mm", "lag (mm)", "pilot_lag.pdf")
@@ -246,7 +246,7 @@ def grouped_box_panel(metric, ylabel, fname, scale=1.0, figsize=(2.7, 2.2),
 
 grouped_box_panel("duration_s", "time to finish (s)", "pilot_time_box.pdf",
                    legend=True)
-grouped_box_panel("ee_path_m", "hand travel (m)", "pilot_distance_box.pdf")
+grouped_box_panel("ee_path_m", "robot path (m)", "pilot_distance_box.pdf")
 grouped_box_panel("clutch_engagements", "re-grips", "pilot_regrips_box.pdf")
 
 print("wrote", sorted(os.listdir(OUT)))

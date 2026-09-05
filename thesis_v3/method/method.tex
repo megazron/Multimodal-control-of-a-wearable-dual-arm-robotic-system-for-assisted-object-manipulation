@@ -16,12 +16,11 @@ Potentiometer counts pass through an integer exponential moving average
 (\cref{eq:ema}) before conversion to degrees; the inertial sensors are read
 as a single burst so all six axes come from one sampling instant.
 
-Each channel carries a health verdict computed from its own recent history:
-\emph{dead}, \emph{incoherent} (present but not tracing a trajectory),
-\emph{intermittent}, or \emph{alive}. Validation is scoped to the channels
-the active mode actually consumes, so a dead channel the mode does not read
-cannot reject a frame, and when no well-conditioned channel remains the
-system reports position \emph{unavailable} rather than extrapolating one.
+Each channel carries a health verdict from its own recent history
+(\emph{dead}, \emph{incoherent}, \emph{intermittent}, \emph{alive};
+\cref{sec:channelhealth}), validation is scoped to the channels the active
+mode consumes, and when no well-conditioned channel remains the system
+reports position \emph{unavailable} rather than extrapolating one.
 
 \section{From master pose to arm command}
 
@@ -40,9 +39,8 @@ The commanded position is built in spherical form about the master's
 shoulder rather than by forward kinematics from seven joint angles
 (\cref{eq:elev,eq:azim,eq:reach}): elevation from the gravity vector,
 azimuth from the shoulder roll, and radius from the forward-kinematic
-magnitude of the bend joints. Each component is taken from whichever sensor
-observes it most directly, so a dead roll channel can be passed through as
-zero without corrupting the radius. The commanded end-effector position is
+magnitude of the bend joints, so a dead roll channel passes through as zero
+without corrupting the radius. The commanded end-effector position is
 an anchor plus a scaled displacement from a reference latched at clutch
 engagement (\cref{eq:anchor}), so releasing and re-engaging the clutch
 indexes like a mouse lifted and set down again, and the reachable set is
@@ -52,9 +50,10 @@ bounded by the robot rather than by the master's own range.
   \centering
   \small
   \caption[Operating modes]{Operating modes, condensed from \cref{tab:modes}.
-  Autonomy runs at a quarter of teleoperation's speed by design: nobody is
-  holding a master, so the only bound on a wrong motion is how long it takes
-  to happen.}
+  $v_{\max}$ is the simulation default -- the hardware bridge caps every
+  mode at \SI{0.15}{\radian\per\second} -- and autonomy runs at a quarter of
+  teleoperation's speed by design: nobody holds a master, so the only bound
+  on a wrong motion is how long it takes.}
   \label{tab:modes-main}
   \begin{tabular}{@{}llll@{}}
     \toprule
@@ -68,13 +67,27 @@ bounded by the robot rather than by the master's own range.
 \end{table}
 
 Five modes are delivered (\cref{tab:modes-main}); one safety stack serves all
-of them, and dropping any shared mechanism is refused regardless of mode. The
-laboratory's actual arrangement seats the operator across the room from the
-wearer, holding the VR controllers as a six-degree-of-freedom input device
-and watching the robot directly rather than wearing the headset
+of them, and dropping any shared mechanism is refused regardless of mode.
+Shared autonomy arbitrates by threshold, not by continuous
+blending~\cite{dragan2013policyblending} (\cref{fig:arbitration}): below a
+confidence $\theta$ the operator's command passes untouched, above it the
+robot supplies wrist orientation only, and position is never blended --
+because a blend toward a wrong goal here moves metal toward somebody who
+did not command it. The
+operator sits across the room holding the VR controllers as a
+six-degree-of-freedom input and watching the robot directly
 (\cref{sec:desk}); the operator-to-robot alignment is a measured yaw, never
-a mirror, since facing someone and copying them is a reflection that would
-invert every commanded orientation while positions looked correct.
+a mirror, since facing someone and copying them is a reflection that inverts
+every orientation while positions look correct.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/diagrams/arbitration.tex}
+  \caption[The arbitration rule, against continuous blending]{The
+  arbitration rule this system implements, plotted from its own constants,
+  beside the continuous blend it deliberately does not use.}
+  \label{fig:arbitration}
+\end{figure}
 
 \subsection{Safety architecture}
 
@@ -101,23 +114,23 @@ segments objects from the image, and hands the result to an RRT-Connect
 planner \cite{kuffner2000rrtconnect} evaluated against the safety layer's
 own clearance. Detection is open-vocabulary
 (YOLO-World~\cite{cheng2024yoloworld} with FastSAM~\cite{zhao2023fastsam}),
-falling back to a hue-and-depth filter; grasp synthesis is the geometric
+falling back to a hue-and-depth filter -- a fallback that is load-bearing:
+on real RGB-D (432 instances) the open-vocabulary detector found
+\SI{9.0}{\percent}, a recall failure the geometric path does not share;
+grasp synthesis is the geometric
 principal-axis method of \cref{eq:pca,eq:graspwidth} rather than a learned
 one, chosen because it can \emph{name} a refusal's cause and fits the
 \SI{4}{\gibi\byte} of video memory on this machine.
 
-The per-joint step limiter that previously was the entire motion generator
-left the commanded hand \SI{51.3}{\milli\metre} off the path its own
-inverse kinematics implied (\cref{sec:clamp-maths}); replaced with
-Ruckig~\cite{berscheid2021ruckig}, a jerk-limited generator driving every
-joint from a single scalar phase (\cref{eq:phase-sync}), so the commanded
-configuration is on the line between endpoints by construction. Replaying
-recorded joint commands onto the physical arm shows every joint parks
-\SI{0.305}{\degree} short of its target on the side it approached from
-(\cref{sec:sim-to-real}); the two candidate models -- a terminal offset and a
-proportional gain error -- are distinguishable only at short travel, and
-propagating the error through the manipulator Jacobian selects the terminal
-offset at $r=\num{0.923}$.
+Motion generation is Ruckig~\cite{berscheid2021ruckig}, a jerk-limited
+generator driving every joint from a single scalar phase
+(\cref{eq:phase-sync}) so the commanded configuration is on the line between
+endpoints by construction, replacing a per-joint step limiter
+(\cref{sec:clamp-maths}). The sim-to-real gap is modelled by replaying
+recorded joint commands onto the physical arm and testing two candidate
+models -- a terminal offset and a proportional gain -- which are
+distinguishable only at short travel, so the error is propagated through
+the manipulator Jacobian to select between them (\cref{sec:sim-to-real}).
 
 \section{Verification methodology}
 
@@ -127,9 +140,10 @@ The practice applied throughout: every analysis script carries a
 known-answer test, synthetic data only where its ground truth is
 \emph{constructed} rather than rendered, and a result contradicting an
 earlier measurement is an instrument check until reconciled. Because the
-solver restarts randomly, every reachability claim here is ten repeats over
-a path densified to \SI{20}{\milli\metre}, not single endpoint calls, and a
-pose not solid on all ten is not reported as reachable.
+solver (TRAC-IK~\cite{beeson2015tracik}) restarts randomly, every
+reachability claim here is ten repeats over
+a path densified to \SI{20}{\milli\metre}, and a pose not solid on all ten
+is not reported as reachable.
 
 \section{Ethics and the pilot study}
 \label{sec:ethics}
@@ -143,13 +157,11 @@ address or telephone number, so anonymity is enforced in code, not only in
 this text.
 
 The full two-person protocol (\cref{app:study}) crosses direct teleoperation
-against shared autonomy over five tasks with a separate wearer, designed in
-full before this report but not run: it depends on master channels that
-were incoherent (\cref{ch:results}) and an approved protocol that did not
-yet exist. Both have since partly cleared -- approval was obtained, and VR
-controllers (\cref{tab:modes-main}) supply a command that does not depend
-on the master's damaged channels -- making a first, smaller pilot practical
-ahead of a full session with a separate wearer.
+against shared autonomy over five tasks with a separate wearer; it was not
+run, because it depended on master channels that were incoherent and on an
+approval that did not yet exist. Approval was then obtained and VR
+controllers (\cref{tab:modes-main}) supplied a command independent of the
+damaged channels, making a smaller, operator-only pilot practical first.
 
 Five operators (P1--P5) each completed between two and seven recorded
 sessions, performing manipulation-style tasks -- object tracking, target
@@ -158,9 +170,8 @@ shared-autonomy assistance, using the desk arrangement of \cref{sec:desk}.
 Coverage is uneven, which \cref{sec:pilot-results} reports rather than
 hides. Every sample was logged automatically at \SI{20}{\hertz} -- pose,
 clutch engagement, VR spatial lag -- with an event log of every clutch and
-emergency-stop transition, giving completion time, hand travel, re-grips,
+emergency-stop transition, giving completion time, robot path, re-grips,
 active-control fraction and mean lag with no manual timing. A further three
 operators (M1--M3) attempted the same protocol from the mannequin master.
-This pilot measures \emph{operator} performance only; it has no separate
-wearer and so does not address the wearer-side hypotheses (H3, H4) of the
-full protocol, which remain for the session \cref{app:study} specifies.
+This pilot has no separate wearer, so H3--H5 remain for the session
+\cref{app:study} specifies.

@@ -1,6 +1,14 @@
 \chapter{Discussion}
 \label{ch:discussionmain}
 
+This project built and verified a teleoperation system for two arms worn by
+one person and commanded by another, and piloted direct against
+shared-autonomy control with real operators. Its principal findings are a
+disjoint two-arm workspace with a costed and applied fix, a safety layer
+whose live pilot record shows the geometric floor never engaged, and a pilot
+in which assistance shortened sessions and reduced re-grips while
+lengthening the robot's path.
+
 \section{The workspace result, and what it costs}
 
 The disjoint-workspace finding is severe because it is geometric: no
@@ -9,8 +17,8 @@ inter-arm handover was excluded from the task set before anything else
 excluded it. The cause is not the mount's rotation but the arms'
 asymmetric home joint angles, ground truth because the sim-to-hardware
 bridge replays them onto the real arm; fixing it needed a mechanical change,
-costed, applied and re-verified as one deliberate pass because every
-clearance and task coordinate in the report depends on it.
+costed, applied and re-verified as one pass, since every clearance and task
+coordinate depends on it.
 
 \section{The safety layer is thorough about distance and silent about time}
 
@@ -18,10 +26,21 @@ The clearance floor is a \emph{distance}, and the wearer can move. Combining
 the measured wearer-tracking latency with literature limb-speed ranges gives
 \cref{tab:reaction-compact}: in most modelled limb motions the limb travels
 further than the entire \SI{150}{\milli\metre} margin before the perception
-chain is even aware anything changed -- not an implementation defect, but
-the consequence of a fixed margin meeting a perception chain of roughly
-half a second and a person who can move a metre in that time. It is this
-report's principal open safety question.
+chain is aware anything changed -- the consequence of a fixed margin
+meeting a half-second perception chain and a person who can move a metre
+in that time. It is this
+report's principal open safety question, and three responses exist, none
+implemented: inflate the floor by latency times an assumed limb speed, a
+one-parameter change that makes the margin mean what it claims; cut the
+latency, since most of the \SI{562}{\milli\second} tail is a configured
+publication rate limit, not the estimator, which runs at
+\SIrange{28}{34}{\milli\second} per frame; and scale commanded speed with
+measured clearance, two quantities the system already computes and keeps
+apart. The fallback compounds it: with the wearer estimate stale or gated
+out, the guard reverts to the arms-down mannequin and believes
+\SI{0.3170}{\metre} of clearance where a wearer with arms out has
+\SI{0.0933}{\metre} -- optimistic by \SI{224}{\milli\metre}, mitigated
+today by an instruction to the wearer, not a control.
 
 \begin{table}[htbp]
   \centering
@@ -44,52 +63,83 @@ report's principal open safety question.
 \label{sec:validity}
 
 Twenty-six times in this project a measurement was wrong and the system was
-not (\cref{ch:instrument}), a high enough base rate to condition how every
-other number here should be read. Fifteen of the twenty-six were caught by
-an independently known quantity contradicting the reading rather than by
-inspection -- the argument for building a cross-check into every
-instrument rather than trusting it harder. Every result above except the
-pilot and channel measurements comes from simulation with mock hardware,
-whose force channels are identically zero, so any force-derived quantity is
-structurally undefined; and every latency reported is control-path latency
-between software stages, excluding the operator, display and physical arm,
-so it is a floor.
+not (\cref{ch:instrument}), a base rate that conditions how every other
+number here should be read. Fifteen of the twenty-six were caught by
+an independently known quantity contradicting the reading, and fourteen
+were already answerable from something in hand -- a published stroke, an
+arithmetic prediction, a quantity exact by construction -- which is the
+case for building the cross-check in rather than trusting harder. Every
+result above except the pilot and channel measurements comes from
+simulation with mock hardware, whose force channels are identically zero,
+so no force-derived quantity is defined; and every latency reported is
+control-path latency between software stages, so it is a floor.
 
 \section{What the pilot shows, and its limits}
 \label{sec:pilot-limits}
 
-The pilot is the first evidence from real operators on this platform, and it
-points the same direction as the shared-autonomy literature developed for
-robots not attached to anybody~\cite{dragan2013policyblending,javdani2015hindsight}:
+The pilot points the same direction as shared-autonomy literature developed
+for robots attached to nobody~\cite{dragan2013policyblending,javdani2015hindsight}:
 shorter completion times and fewer re-grips under assistance, with no
-measurable cost in responsiveness. It should not be read as more than that.
-Hand-travel distance is \emph{higher} under shared autonomy, and unlike
-completion time this holds in the paired comparison too: six of seven
-paired cases travel further under assistance, not less. This pilot cannot
-say why -- plausibly the arbiter nudges a directed hand along a route that
-is not the shortest the operator would have taken alone, making "shorter
-but less direct" a real property of it rather than a contradiction, but
-seven paired trials cannot separate that from task-order or fatigue. Five
-operators with uneven task coverage is a pilot-scale sample, not a powered
-comparison, and the pooled figures mix three tasks (plus P5's unlabelled
-sessions) together; the paired comparison isolates the condition, and rests
-on seven cases. Session duration includes setup and hesitation, which is
-why hand travel and re-grips -- drawn from the position trace, not a
-stopwatch -- are read as the more reliable measures. Most importantly, the
-pilot has no separate wearer: it measures what the operator experienced,
-not what carrying \SI{17}{\kilo\gram} of assisted motion costs a second
-person, the comparison \cref{app:study} remains the target for.
+measurable cost in responsiveness. The robot's path is \emph{longer} under
+shared autonomy, in the paired comparison too (six of seven cases) -- but
+the operators' own controller paths are not: \SI{29.9}{\metre} against
+\SI{30.5}{\metre}, within \SI{2}{\percent}. The extra distance is
+the assistance layer's, not the operator's, and the platform shows the same
+with no operator at all: identical scripted waypoints travel
+\SI{4}{\percent} further under VR shared autonomy than direct VR, and
+\SI{45}{\percent} further under master shared autonomy than master direct
+(\repo{recordings/baselines/mode\_difference.json}). "Shorter but less
+direct" is a property of the arbiter, not a contradiction. The literature
+predicts the cost this pilot could not see: higher autonomy improves
+performance but lowers sense of agency~\cite{collier2025agency}, autonomous
+modes cut effort without raising satisfaction~\cite{kim2012autonomy}, and
+assistance raises safety while lowering perceived
+control~\cite{you2011assisted}; no agency or workload instrument was
+administered here, which is why H2 is untested and H4 is in the protocol.
+Five operators with uneven task coverage is a pilot-scale sample, not a
+powered comparison; the paired comparison isolates the condition and rests
+on seven cases. The full study's own pre-registered analysis, run on \num{20000}
+constructed data sets (\cref{app:analysis}), recovers a
+$d_z=\num{0.73}$ effect family-wise with \SI{97.3}{\percent} power at
+sixteen dyads but on a \emph{named} task with only \SI{63.8}{\percent}
+after correction; \SI{80}{\percent} on a named task needs twenty dyads,
+which is the sample the next study should recruit. Most importantly, the
+pilot has no separate wearer: it measures what
+the operator experienced, not what carrying \SI{17}{\kilo\gram} of assisted
+motion costs a second person, the comparison \cref{app:study} remains the
+target for.
 
 \section{Against the planning report}
 
 The planning report specified physical springs at the master and virtual
-impedance at the slave. Neither survives contact with the measured system:
-the arm's cyclic interface is unusable over the network path, so commands
-go through a high-level interface at \SIrange{18.4}{18.7}{\hertz}, and an
-impedance law at that rate is not one. The compliance sought would need to
-come from the mechanism -- series elastic actuation at the
-joint~\cite{toubar2022sea,lee2019sea} or a current-based formulation
-avoiding a fast torque loop~\cite{dewolde2024impedance} -- both hardware
-changes. The safety architecture, degradation architecture, workspace
-characterisation and pilot were not in the plan; each followed from a
-measurement the plan did not anticipate.
+impedance at the slave; neither survives the measured system, whose usable
+command path runs at \SIrange{18.4}{18.7}{\hertz}, a rate at which an
+impedance law is not one. The compliance sought would have to come from the
+mechanism -- series elastic actuation~\cite{toubar2022sea,lee2019sea} or a
+current-based formulation~\cite{dewolde2024impedance} -- both hardware
+changes. The safety, degradation, workspace and pilot work were not in the
+plan; each followed from a measurement it did not anticipate.
+
+\section{Against the objectives, and what remains}
+\label{sec:against-objectives}
+
+Of the six objectives of \cref{sec:aim}, five were met and one partly: the
+master built and characterised, its repair named to two joints (1); a
+predictably degrading mapping (2); a safety layer that handled fourteen of fourteen injected
+faults, every blocker observable, its live record showing the manual path
+firing and the geometric path never needed (3); a workspace
+characterisation that found no shared reachable point and costed, applied
+and re-verified the fix (4); ten-repeat, known-answer verification that
+caught twenty-six instrument defects before any became a finding (5); and a
+pilot under approval that supports H1 directionally at pilot scale but,
+with no workload instrument and no wearer, leaves H2--H5 untested, so
+objective 6 is met in its first half only.
+
+What remains, in priority order with the number that sets it: repair the
+two named master channels (\SI{54.5}{\milli\metre} of unrequested motion);
+calibrate the wrist-camera-to-arm transform (\SIrange{34}{59}{\milli\metre},
+the largest unmeasured budget term and why no open-loop grasp has closed on
+hardware); correct the clearance check that samples link origins rather
+than geometry, the one safety defect here rather than incompleteness
+(\cref{ch:discussion}); and run \cref{app:study}'s protocol with a separate
+wearer, now that approval and an input path both exist.

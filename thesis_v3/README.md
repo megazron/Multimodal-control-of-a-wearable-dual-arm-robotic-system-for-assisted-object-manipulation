@@ -14,14 +14,57 @@ request needs it):
 
 ## Current state
 
-- **Main body: 5,982 words, 14 figures/tables** (Introduction, Background,
-  Method, Result, Discussion, Conclusion) -- against the booklet's limit of
-  6,000 words / 20 figures. Word count is read from the *typeset* PDF
-  (`Chapter 1` to the page before `Appendix A`), not estimated from the
-  LaTeX source, because `\SI{}{}`/`\cref{}` expand into several rendered
-  words each, and figure text (legends, axis labels) is vector text the
-  extractor also reads. Headroom is ~18 words -- trim before adding.
-- **Abstract: 248/250 words.**
+- **Main body: ~5,995 words, 15 figures/tables** (Introduction, Method,
+  Result, Discussion, Conclusion) -- against the booklet's limit of 6,000
+  words / 20 figures. Word count is read from the *typeset* PDF (`Chapter 1`
+  to the page before `Appendix A`), not estimated from the LaTeX source,
+  because `\SI{}{}`/`\cref{}` expand into several rendered words each, and
+  figure text (legends, axis labels, tikz annotations) is vector text the
+  extractor also reads. Headroom is under 10 words -- trim before adding.
+- **Abstract: 243/250 words.**
+- **Structure follows the booklet's own logic, not just the template's
+  chapter list.** The literature review is now the first section of the
+  Introduction (`background/` is gone), so Chapter 1 runs problem ->
+  literature -> gap -> aim, objectives and the five hypotheses (H1-H5,
+  numbered as in Appendix J), the aim closing the chapter as the booklet
+  asks. The Discussion opens with the two-sentence summary the booklet
+  asks for and absorbs the objective-by-objective evaluation and the
+  prioritised future work (with the number that sets each item); the
+  Conclusion is one paragraph. `\listoffigures`/`\listoftables` are in
+  (uncounted front matter).
+- **"Hand travel" was the robot's path, not the operator's -- corrected
+  everywhere.** `ee_path_m` is the end-effector path; the operators' own
+  controller paths (`controller_path_m`, also extracted) differ by 2%
+  between conditions (29.9 m direct / 30.5 m shared) while the robot's
+  differs by 21%, so the extra distance under shared autonomy is the
+  assistance layer's. The platform shows the same with no operator
+  (`recordings/baselines/mode_difference.json`: identical scripted
+  waypoints travel 4% further under VR shared than VR direct, 45% under
+  master shared than master direct). Figure labels regenerated to "robot
+  path (m)"; every prose occurrence relabelled; the Discussion's earlier
+  speculation replaced with this measured account.
+- **Other corrections this round:** the modes table now says 0.60 rad/s is
+  the simulation default and the hardware bridge caps every mode at 0.15
+  (every real-arm launch file); H2 (workload) is stated as untested, since
+  no workload instrument was administered (re-grips are control effort, not
+  workload); the multimeter task is "never recorded with a participant"
+  (scripted no-operator T3 clips exist) and its 195 mm box exceeds the
+  85 mm jaw regardless.
+- **Added on evidence already in the repo:** the pinned-wrist cost at the
+  work point (0.065 m pinned vs 0.450 m free, a factor of seven; App. I),
+  the reaction-budget remedies with numbers and the 224 mm optimistic
+  fallback (v2 §13.5, verified against `docs/system/23_how_good_is_it.md`),
+  the full study's power (97.3% family-wise, 63.8% per named task at
+  n=16, 80% needs twenty dyads; App. K), the real-RGB-D open-vocabulary
+  detection rate (9.0% of 432 instances) as the justification for the
+  geometric fallback, the intent-estimator sweep anchored to Dragan &
+  Srinivasa's 16% break-even, the arbitration-rule figure
+  (`figures/diagrams/arbitration.tex`, previously unused), and four
+  literature anchors for the performance/agency trade (Dragan & Srinivasa
+  2012, Kim et al. 2012, You & Hauser 2011, Collier et al. 2025 -- bib
+  entries transcribed from `docs/research/01_literature_review.md`'s
+  verified reference list), plus zero-word citations for TRAC-IK, RANSAC
+  and two further SRL reviews.
 - **65 pages total.** Channel health ("pot health") and the degradation
   architecture discussion are now moved to the appendix **in full** -- not
   just trimmed: the main body carries only "six of fourteen channels are

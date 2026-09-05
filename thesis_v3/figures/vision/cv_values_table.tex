@@ -1,20 +1,22 @@
 \begin{table}[htbp]
   \centering
   \small
-  \caption[Vision pipeline: measured values, one real frame]{Every value
-  from the one real frame of \cref{fig:vision-pipeline,fig:depth-boxes}.}
+  \caption[What the cameras detected: measured values]{What the cameras
+  detected, one real frame per camera; the object rows are the left wrist
+  camera's. The learned-detector row is a separate real-image benchmark.}
   \label{tab:vision-values}
   \begin{tabular}{@{}lrl@{}}
     \toprule
-    Quantity & Value & Method \\
+    Quantity & Value & Source \\
     \midrule
-    Support-plane RMS & \SI{1.43}{\milli\metre} & RANSAC, this frame \\
-    Support-plane inlier fraction & \SI{74.0}{\percent} & RANSAC, this frame \\
-    Cube range & \SI{525.5}{\milli\metre} & plane-fit centre \\
-    Cube range & \SI{698}{\milli\metre} & depth-box median \\
-    Box footprint & $341 \times 278$\,mm & oriented 3D box \\
-    Box range & \SI{677.6}{\milli\metre} & plane-fit centre \\
-    Box range & \SI{781}{\milli\metre} & depth-box median \\
+    Table plane: points on it, left wrist camera & \SI{74.0}{\percent} & RANSAC, \SI{1.43}{\milli\metre} residual \\
+    Table plane: points on it, right wrist camera & \SI{52.8}{\percent} & RANSAC \\
+    Table plane: points on it, room depth camera & \SI{3.8}{\percent} & RANSAC -- no usable surface \\
+    Objects found on the table & 5 & tilted 3-D box per object \\
+    Objects the \SI{85}{\milli\metre} hand could grasp & 4 of 5 & narrowest width $\le$ jaw \\
+    Cube: range, footprint & \SI{525.5}{\milli\metre}, $99\times26$\,mm & box centre; top face seen \\
+    Box: range, footprint & \SI{677.6}{\milli\metre}, $341\times278$\,mm & box centre; too wide \\
+    Learned detector: objects found by name & \SI{9.0}{\percent} of 432 & 60 real frames, 8 classes \\
     \bottomrule
   \end{tabular}
 \end{table}

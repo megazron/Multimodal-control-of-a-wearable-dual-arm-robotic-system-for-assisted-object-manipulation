@@ -23,14 +23,13 @@ The clearance floor is a \emph{distance}, and the wearer can move.
 Combining the measured delay of the wearer-tracking camera with limb speeds
 from the literature gives \cref{tab:reaction-compact}: in most modelled limb
 motions the limb crosses the whole \SI{150}{\milli\metre} margin before the
-robot knows anything changed. It is this report's principal open safety
-question, and three
+robot knows anything changed -- this report's principal open safety
+question. Three
 responses exist, none yet implemented: enlarge the floor by the delay times
 an assumed limb speed, so the margin means what it claims; cut the delay, since most of the \SI{562}{\milli\second}
 tail is a configured publishing rate, not the \SIrange{28}{34}{\milli\second}
 the tracker itself takes; and scale commanded speed with measured
-clearance, two quantities the system already computes separately. The
-fallback makes it worse: when the wearer estimate is stale the guard
+clearance. The fallback makes it worse: when the wearer estimate is stale the guard
 reverts to a mannequin with its arms down and believes there is
 \SI{0.3170}{\metre} of clearance where a wearer with arms held out has
 \SI{0.0933}{\metre} -- optimistic by \SI{224}{\milli\metre}, mitigated only
@@ -61,10 +60,9 @@ not (\cref{ch:instrument}). Fifteen were caught because an independently known
 quantity disagreed with the reading, and fourteen could have been caught in
 advance from something already in hand -- the case for building a
 cross-check into every instrument rather than trusting it harder. Every
-result other than the pilot and the sensor measurements comes from
-simulation with mock hardware, whose force readings are exactly zero, so no
-force-based quantity is defined here; and every delay reported excludes
-operator, display and physical arm, so it is a lower bound.
+result other than the pilot comes from simulation with mock hardware whose
+force readings are zero, so no force-based quantity is defined; every delay
+reported excludes operator, display and arm, so it is a lower bound.
 
 \section{What the pilot shows, and its limits}
 \label{sec:pilot-limits}

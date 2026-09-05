@@ -1,11 +1,9 @@
 \chapter{Results}
 \label{ch:resultsmain}
 
-Every number below states the strength of its evidence, and \textbf{no
-result before the pilot in \cref{sec:pilot-results} was validated on a
-physical arm carrying a load}: most of this project is simulated against
-mock hardware, plus recorded data from the physical master and four cameras
-(\cref{ch:results}: full derivations).
+\textbf{No result before the pilot (\cref{sec:pilot-results}) was validated
+on a physical arm carrying a load}: most of this project is simulated, plus
+recorded data from the physical master and four cameras (\cref{ch:results}).
 
 \section{The command mapping and its safety layer}
 \label{sec:safety}
@@ -29,8 +27,7 @@ length and resumed after each).
   \includegraphics[width=0.9\linewidth]{gallery/pilot/10_estop_timeline_300.png}
   \caption[Every pilot session's timeline, with emergency-stop holds]{Every
   VR pilot session as a bar, emergency-stop holds in black: twelve holds in
-  eleven sessions, median \SI{16.1}{\second}, longest \SI{30.9}{\second}; the
-  automatic clearance floor never fired.}
+  eleven sessions; the automatic clearance floor never fired.}
   \label{fig:estop-timeline}
 \end{figure}
 
@@ -71,8 +68,7 @@ seventh joint (\cref{tab:work-point}).
 
 The per-joint step limiter Ruckig replaced (\cref{tab:motiongen-main}) let
 the hand leave the planned line by nearly twice the \SI{30}{\milli\metre}
-grasp gate at twelve times the declared joint speed, because it never read
-the speed-limit file.
+grasp gate, because it never read the speed-limit file.
 
 \begin{table}[htbp]
   \centering
@@ -104,12 +100,10 @@ across the working range (\cref{sec:hardware-session}).
 
 \section{Perception: what the cameras actually detected}
 
-Pointed at four physical cameras for the first time (\cref{ch:vision}), the
-wrist cameras find the table surface to \SI{1.43}{\milli\metre} with
-\SI{74}{\percent} of their depth points on it (plane fitting by random
-sample consensus~\cite{fischler1981ransac}). Segmentation is scoped to the
-task's two objects (\cref{fig:vision-pipeline}), recovered as oriented
-boxes.
+On real cameras for the first time (\cref{ch:vision}), the pipeline runs as
+\cref{fig:vision-pipeline} shows: the table is fitted by random sample
+consensus~\cite{fischler1981ransac} and the two task objects are picked out
+and boxed.
 
 \begin{figure}[htbp]
   \centering
@@ -122,17 +116,32 @@ boxes.
   \label{fig:vision-pipeline}
 \end{figure}
 
-Depth, not colour, is what a box is drawn from (\cref{fig:depth-boxes};
-numbers in \cref{tab:vision-values}, whose two distance methods measure
-different points on a tilted object).
+The four cameras are not interchangeable (\cref{fig:cameras-detected},
+\cref{tab:vision-values}): the wrist cameras find the table
+(\SI{74}{\percent} and \SI{53}{\percent} of depth points on one plane), the
+room depth camera does not (\SI{3.8}{\percent}), and the webcam has no
+depth. The learned detector found \SI{9.0}{\percent} of objects on real
+frames, fitting well when it found one -- why the geometric path carries
+the load.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{vision/depth_boxes.pdf}
-  \caption[The raw frame beside its own depth map, boxed and measured]{
-  \Cref{fig:vision-pipeline}'s frame (a) beside its depth map (b), each
-  object boxed and labelled with its median measured distance.}
-  \label{fig:depth-boxes}
+  \begin{subfigure}[b]{\linewidth}
+    \centering\includegraphics[width=\linewidth]{gallery/vision/plane_fit_per_camera_300.png}
+    \caption{where each depth camera found the flat table}
+    \label{fig:cameras-detected-a}
+  \end{subfigure}\\[4pt]
+  \begin{subfigure}[b]{\linewidth}
+    \centering\includegraphics[width=0.92\linewidth]{gallery/baselines/detector_real_rgbd_300.png}
+    \caption{the learned detector on real frames}
+    \label{fig:cameras-detected-b}
+  \end{subfigure}
+  \caption[What the cameras actually detected]{(\subref{fig:cameras-detected-a})
+  Depth points on the fitted table plane (green), per camera.
+  (\subref{fig:cameras-detected-b}) The learned detector on 60 real frames:
+  \SI{9.0}{\percent} of 432 objects found, most classes never; when found,
+  box overlap 0.8--0.95.}
+  \label{fig:cameras-detected}
 \end{figure}
 
 \input{figures/vision/cv_values_table.tex}
@@ -292,7 +301,7 @@ mannequin cohort, most sessions inside the \SI{30}{\milli\metre} grasp gate.
   reaching, direct). Panels (b) and (c) share a scale and are near-identical
   -- the real arm follows the simulation to \SI{11}{} and
   \SI{22}{\milli\metre}; the operator's hand (a) moves more, because the
-  mapping scales and filters it (every session: \cref{app:gallery}).}
+  mapping scales and filters it.}
   \label{fig:track-3d}
 \end{figure}
 
@@ -306,6 +315,3 @@ mannequin cohort, most sessions inside the \SI{30}{\milli\metre} grasp gate.
   with the two mid-session emergency stops.}
   \label{fig:track-gap}
 \end{figure}
-
-This pilot measures operator performance only; it has no separate wearer,
-so H3--H5 are untested (\cref{sec:pilot-limits}).

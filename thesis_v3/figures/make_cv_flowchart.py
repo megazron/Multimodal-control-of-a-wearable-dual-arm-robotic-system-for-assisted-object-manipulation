@@ -46,10 +46,10 @@ def main():
     m15 = G.stage(CAM, "15_raw_depth")["m"]
     ret = 100 * m15["pixels with a return"] / (m15["depth width"] * m15["depth height"])
 
-    fig = plt.figure(figsize=(7.4, 3.9))
-    gs = fig.add_gridspec(2, 3, height_ratios=[1, 1], hspace=0.55, wspace=0.18,
-                          left=0.02, right=0.98, top=0.90, bottom=0.08)
-    axes = [fig.add_subplot(gs[i // 3, i % 3]) for i in range(6)]
+    fig = plt.figure(figsize=(7.4, 7.6))
+    gs = fig.add_gridspec(3, 2, hspace=0.42, wspace=0.14,
+                          left=0.02, right=0.98, top=0.95, bottom=0.04)
+    axes = [fig.add_subplot(gs[i // 2, i % 2]) for i in range(6)]
 
     # 1 picture
     axes[0].imshow(im)
@@ -105,19 +105,17 @@ def main():
     for ax, (t1, t2) in zip(axes, titles):
         if ax is not axes[5]:
             ax.axis("off")
-        ax.set_title(t1, fontsize=8.5, loc="left", pad=3)
-        ax.text(0.0, -0.06, t2, transform=ax.transAxes, fontsize=7, color="0.3", va="top")
+        ax.set_title(t1, fontsize=10, loc="left", pad=3)
+        ax.text(0.0, -0.04, t2, transform=ax.transAxes, fontsize=8.5, color="0.3", va="top")
 
     # arrows between stages in the same row, from the grid cells (panel 6 has
     # an equal-aspect axes box, so axes positions are not comparable)
     def arrow(i, j):
-        pa = gs[i // 3, i % 3].get_position(fig); pb = gs[j // 3, j % 3].get_position(fig)
+        pa = gs[i // 2, i % 2].get_position(fig); pb = gs[j // 2, j % 2].get_position(fig)
         y = (pa.y0 + pa.y1) / 2
         fig.add_artist(FancyArrowPatch((pa.x1 - 0.012, y), (pb.x0 + 0.012, y),
                                        arrowstyle="-|>", mutation_scale=10, color="0.35", lw=1.0))
-    arrow(0, 1); arrow(1, 2); arrow(3, 4); arrow(4, 5)
-    fig.text(0.985, 0.47, "stage 3 continues at stage 4", ha="right", va="center",
-             fontsize=6.5, color="0.45", style="italic")
+    arrow(0, 1); arrow(2, 3); arrow(4, 5)
     print("widest object %.0f mm" % float(big["length mm"]))
     fig.savefig(OUT)
     print("wrote", OUT, "| stored inlier %.2f%%, recomputed %.2f%%" % (frac_stored, 100 * inl.mean()))

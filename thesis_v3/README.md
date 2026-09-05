@@ -14,7 +14,20 @@ request needs it):
 
 ## Current state
 
-- **Latest round (the three experiments, readable trajectories):** Methods
+- **Latest round (page-by-page check; CV section fixed):** every main-body
+  page rendered and inspected. Fixes: the title-page word count was stale
+  (now set from the typeset count at build time); the CV section's second
+  figure repeated the flowchart's stages, so it is replaced by what each of
+  the four cameras actually detected (plane found per camera: 74 / 53 /
+  3.8 %) beside the learned detector's real-frame recall (9.0 % of 432,
+  most classes never); the flowchart is now 3x2 with larger panels; and the
+  values table summarises detection (plane per camera, objects found,
+  graspable, cube and box range/footprint, detector recall) instead of two
+  distance methods -- the earlier "depth-box median" ranges were farther
+  than the plane-fit ranges because the 2-D box contains table pixels
+  behind the object, not because of a tilted object; that wrong explanation
+  is gone.
+- **Previous round (the three experiments, readable trajectories):** Methods
   §The pilot study now describes the three experiments as run -- common
   setup (operator across the room, controller in each hand, robot follows
   only while the clutch is held, direct then assisted in the same sitting,

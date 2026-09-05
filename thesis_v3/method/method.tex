@@ -95,11 +95,9 @@ $\mathbf{q}$ a wrist orientation,
 \end{equation}
 blended in over \SI{0.5}{\second}. Position is never blended, because a
 blend toward the wrong goal here moves the arm toward somebody who did not
-ask. In the laboratory the operator sits across the room,
-holding the VR controllers as a hand-position input and watching the robot
-directly (\cref{sec:desk}); the operator-to-robot alignment is a measured
-rotation, never a mirror image, since copying someone you face reverses
-every orientation.
+ask. The operator-to-robot alignment is a measured rotation, never a mirror
+image, since copying someone you face reverses every orientation
+(\cref{sec:desk}).
 
 \begin{figure}[htbp]
   \centering
@@ -203,8 +201,8 @@ Engineering Council's four pillars and the department's six domains.
 \emph{Human subjects}: the wearer bears a risk they cannot control, so
 consent is taken from operator and wearer separately, in separate rooms;
 the wearer holds their own emergency stop and rehearses it before any data;
-a stop is data, never a lost participant; worn operation was not sought for
-approval until the mount clash of \cref{sec:against-objectives} is fixed.
+a stop is data, never a lost participant; worn operation was not yet sought
+for approval (\cref{sec:against-objectives}).
 \emph{Scientific integrity}: every number carries its evidence class and
 twenty-six instrument defects are reported. \emph{Institutional integrity}:
 identities are held on encrypted College storage outside the repository,
@@ -215,16 +213,47 @@ exist.
 
 \section{The pilot study}
 
-Five operators (P1--P5) each completed two to seven recorded sessions --
-following a held object, reaching a target, matching a pose -- once under
-direct VR control and once with assistance, from the desk arrangement of
-\cref{sec:desk} (\cref{fig:pilot-procedure}). Positions, clutch state and
-the robot's lag were logged
+The pilot ran the three experiments of \cref{tab:tasks}. In all three the
+operator sat across the room from the mannequin wearer, a VR controller in
+each hand, watching the robot directly (\cref{sec:desk}); the robot's hand
+followed the controller only while the clutch button was held, so the
+operator worked in the strokes the clutch count records. Each task was done
+once under direct control and then, in the same sitting, once with
+assistance, the robot supplying the wrist orientation whenever it was
+confident which object was meant (\cref{eq:arb-main}). There was no time
+limit; the operator ended each session by holding both buttons, the
+emergency stop (\cref{fig:pilot-procedure}). A fourth task, with
+a multimeter, was attempted three times and never recorded
+(\cref{app:pilot}). Positions, clutch state and the robot's lag were logged
 twenty times a second with an event log of every clutch press and emergency
 stop, so completion time, robot path, re-grips, steering fraction and lag
 came from the record, not a stopwatch. Three further operators (M1--M3)
 attempted the same tasks from the mannequin master. The pilot has no
 separate wearer, so H3--H5 remain for \cref{app:study}.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[The three pilot experiments]{The three pilot experiments, as
+  run. Sessions and mean duration are direct\,/\,assisted; duration
+  includes pauses. P5's seven unlabelled sessions (five\,/\,two) are pooled
+  separately.}
+  \label{tab:tasks}
+  \begin{tabular}{@{}p{2.1cm}p{5.3cm}p{2.9cm}cc@{}}
+    \toprule
+    Experiment & What the operator did & Measured & Sessions & Duration (s) \\
+    \midrule
+    Object tracking & keep the robot's hand on an object moved through the
+    workspace in front of the wearer & time on the object; robot path;
+    re-grips & 5\,/\,3 & 278\,/\,157 \\
+    Target reaching & bring the robot's hand to a marked position, then to
+    the next & time to each target; robot path; re-grips & 1\,/\,3 &
+    228\,/\,298 \\
+    Position matching & bring the robot's hand to a shown target pose and
+    hold it & time to settle; robot path; re-grips & 2\,/\,2 & 244\,/\,154 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \begin{figure}[htbp]
   \centering

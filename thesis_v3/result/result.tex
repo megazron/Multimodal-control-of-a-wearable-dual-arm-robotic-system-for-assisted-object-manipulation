@@ -10,8 +10,8 @@ mock hardware, plus recorded data from the physical master and four cameras
 \section{The command mapping and its safety layer}
 \label{sec:safety}
 
-Six of fourteen master sensors are alive (\cref{sec:channelhealth}; the
-graceful-degradation design is discussed in \cref{sec:degradation-appendix}).
+Six of fourteen master sensors are alive (\cref{sec:channelhealth};
+degradation discussed in \cref{sec:degradation-appendix}).
 The safety layer handled fourteen of fourteen injected faults
 (\cref{sec:channelhealth}).
 
@@ -19,10 +19,10 @@ The pilot (\cref{sec:pilot-results}) is the only \emph{live} evidence for
 this layer (\cref{fig:estop-timeline}): across every recorded session the
 automatic clearance floor -- the rule that holds an arm \SI{150}{\milli\metre}
 short of the wearer -- never activated. The manual emergency stop did:
-twelve holds across eleven of twenty-three sessions, nine of them in a
-session's final \SI{15}{\percent} as the operator ended the recording, and
-three not -- one assisted session stopped at \SI{67}{\percent} and
-\SI{83}{\percent} of its length, with steering resuming after each.
+twelve holds across eleven of twenty-three sessions, nine at the end of a
+session as the operator ended the recording and three mid-session (one
+assisted session stopped at \SI{67}{\percent} and \SI{83}{\percent} of its
+length and resumed after each).
 
 \begin{figure}[htbp]
   \centering
@@ -69,11 +69,10 @@ wrist orientation: from the working position, the hand can travel a mean
 with it free -- over five times -- because a fixed orientation uses up the
 seventh joint (\cref{tab:work-point}).
 
-The per-joint step limiter that was the whole motion generator is compared
-with its replacement in \cref{tab:motiongen-main}: it let the hand leave the
-planned straight line by nearly twice the \SI{30}{\milli\metre} grasp gate,
-at over twelve times the declared joint speed, because it never read the
-speed-limit file.
+The per-joint step limiter Ruckig replaced (\cref{tab:motiongen-main}) let
+the hand leave the planned line by nearly twice the \SI{30}{\milli\metre}
+grasp gate at twelve times the declared joint speed, because it never read
+the speed-limit file.
 
 \begin{table}[htbp]
   \centering
@@ -109,25 +108,23 @@ Pointed at four physical cameras for the first time (\cref{ch:vision}), the
 wrist cameras find the table surface to \SI{1.43}{\milli\metre} with
 \SI{74}{\percent} of their depth points on it (plane fitting by random
 sample consensus~\cite{fischler1981ransac}). Segmentation is scoped to the
-task's two objects (\cref{fig:vision-pipeline}), recovered as oriented boxes
-so the planner sees a turned object's true width.
+task's two objects (\cref{fig:vision-pipeline}), recovered as oriented
+boxes.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\linewidth]{vision/cv_flowchart_300.png}
   \caption[The picture-to-grasp pipeline on one real frame]{The pipeline on
   one real left-wrist-camera frame, stage by stage: picture; depth map;
-  table plane (\SI{74}{\percent} of points on it, \SI{1.43}{\milli\metre});
-  the two task objects picked out; a tilted box round each; and the map
-  handed to the planner -- five objects, four fit the \SI{85}{\milli\metre}
-  hand, the widest is \SI{341}{\milli\metre}.}
+  table plane; the two task objects picked out; a tilted box round each; and
+  the map handed to the planner -- five objects, four fit the
+  \SI{85}{\milli\metre} hand, the widest is \SI{341}{\milli\metre}.}
   \label{fig:vision-pipeline}
 \end{figure}
 
-Depth, not colour, is what a box is drawn from (\cref{fig:depth-boxes}):
-the same two objects with their measured distance. \Cref{tab:vision-values}
-collects this frame's numbers; its two distance methods measure different
-points on a tilted object.
+Depth, not colour, is what a box is drawn from (\cref{fig:depth-boxes};
+numbers in \cref{tab:vision-values}, whose two distance methods measure
+different points on a tilted object).
 
 \begin{figure}[htbp]
   \centering
@@ -149,9 +146,9 @@ In simulation the full task set solves \num{13927} joint-angle problems
 with no failures and no clearance breaches, and every scripted grasp closes
 on its object in every mode (\cref{fig:grasp-grid}); the cubes are set down
 \SI{56}{\milli\metre} from the centre of their pad, past the
-\SI{30}{\milli\metre} gate (\cref{fig:pick-frames}). The intent estimator
--- the part of shared autonomy that guesses which object the operator wants
--- shows why measuring matters: from a typed-in table position it guesses
+\SI{30}{\milli\metre} gate (\cref{fig:pick-frames}). The intent estimator,
+which guesses the operator's target, shows why measuring matters: from a
+typed-in table position it guesses
 the wrong object with confidence \SI{35}{\percent} of the time at one cube
 spacing (\SI{60}{\milli\metre}) and \SI{17.5}{\percent} at
 \SI{40}{\milli\metre}, past the \SI{16}{\percent} error rate above which
@@ -192,24 +189,18 @@ camera's measured position, \SI{0.0}{\percent}.
 \label{sec:pilot-results}
 
 \textbf{Five operators (P1--P5)} completed twenty-three recorded sessions
-under the protocol of \cref{sec:ethics}, each on one of three tasks --
-\emph{object tracking} (following a held, moving object with the robot's
-hand), \emph{target reaching} (a reach to a marked position) and
-\emph{position matching} (moving to and holding a target pose) -- once
-under direct control and once with assistance. P5's seven unlabelled
-sessions are pooled, their condition read from the logged flag. A fourth
-planned task, using a multimeter, was never recorded with a participant on
-any of three tries (\cref{app:pilot,app:gallery}). Coverage is uneven, so the
-pooled comparison mixes tasks and the paired one isolates the condition.
+of the three tasks of \cref{tab:tasks}, once under direct control and once
+with assistance. P5's seven unlabelled sessions are pooled, their condition
+read from the logged flag. Coverage is uneven, so the pooled comparison
+mixes tasks and the paired one isolates the condition.
 
 \begin{table}[htbp]
   \centering
   \small
   \caption[Pilot session summary]{Twenty-three pilot sessions, pooled by
   condition. Duration includes pausing and hesitation, so it measures the
-  session rather than pure movement. Emergency-stop holds
-  (\cref{sec:safety}) are excluded here as engagement time, not as a safety
-  verdict.}
+  session rather than pure movement; emergency-stop holds are excluded
+  (\cref{sec:safety}).}
   \label{tab:pilot-summary}
   \begin{tabular}{@{}lccc@{}}
     \toprule
@@ -249,8 +240,7 @@ pooled comparison mixes tasks and the paired one isolates the condition.
 Pooled across all twenty-three sessions (\cref{tab:pilot-summary},
 \cref{fig:pilot-time-a}), assisted sessions averaged shorter completion
 times (\SI{219}{\second} against \SI{241}{\second}) and fewer re-grips
-(\num{23.3} against \num{25.8}), with the robot lagging the hand by under
-\SI{2.9}{\milli\metre} in both conditions -- but a \emph{longer} robot path
+(\num{23.3} against \num{25.8}) -- but a \emph{longer} robot path
 (\SI{2.78}{\metre} against \SI{2.30}{\metre}), a direction that holds in
 the paired comparison too (\cref{fig:pilot-variance},
 \cref{sec:pilot-limits}). \Cref{fig:paired-slopes} isolates the seven cases
@@ -293,16 +283,16 @@ mannequin cohort, most sessions inside the \SI{30}{\milli\metre} grasp gate.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{pilot/trajectory_abc_300.png}
-  \caption[Master arm, simulated robot and real robot, both cohorts]{One
-  session per cohort as three separate paths, coloured from start to end:
-  (a) the master arm or operator's hand, (b) the simulated robot's hand as
-  RViz shows it, (c) the real robot's hand from its own joint encoders. Top:
-  VR (P4, object tracking, direct; simulated-to-real gap
-  \SI{11.1}{\milli\metre}). Bottom: mannequin master (M2, target reaching,
-  direct; gap \SI{21.8}{\milli\metre}). The hand covers far more distance
-  than the robot because the mapping scales and filters it. Every session:
-  \cref{app:gallery}.}
+  \includegraphics[width=\linewidth]{pilot/trajectory_timeseries_300.png}
+  \caption[Master arm, simulated robot and real robot, both cohorts]{Where
+  each hand was, second by second, for one session per cohort: (a) the
+  master arm or operator's hand, (b) the simulated robot's hand as RViz
+  shows it, (c) the real robot's hand from its own joint encoders. Top: VR
+  (P4, object tracking, direct). Bottom: mannequin master (M2, target
+  reaching, direct). Panels (b) and (c) share a scale and are near-identical
+  -- the real arm follows the simulation to \SI{11}{} and
+  \SI{22}{\milli\metre}; the operator's hand (a) moves more, because the
+  mapping scales and filters it (every session: \cref{app:gallery}).}
   \label{fig:track-3d}
 \end{figure}
 

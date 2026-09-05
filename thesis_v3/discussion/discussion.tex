@@ -2,8 +2,8 @@
 \label{ch:discussionmain}
 
 This project built and verified a teleoperation system for two robot arms
-worn by one person and controlled by another, and ran a first pilot of
-direct control against shared-autonomy assistance with real operators. Its
+worn by one person and controlled by another, and piloted direct against
+assisted control with real operators. Its
 main findings: the two arms as mounted could reach no common point, and a
 costed mount change fixed it; the safety layer's own pilot record shows the
 automatic clearance floor was never needed; and assistance shortened
@@ -14,8 +14,7 @@ sessions and reduced re-grips while lengthening the robot's path.
 The finding that the arms shared no reachable point is severe because it is
 geometric: no planner or wrist policy can produce a point neither arm can
 reach, which ruled out hand-to-hand transfer. The cause was not the mount's rotation but the arms' asymmetric rest
-angles, which are fixed facts because the simulation-to-hardware bridge
-replays them onto the real arm. Fixing it needed a mechanical change,
+angles, which the bridge replays onto the real arm and so cannot be edited. Fixing it needed a mechanical change,
 costed, applied and re-verified in one pass.
 
 \section{The safety layer is thorough about distance and silent about time}
@@ -27,8 +26,7 @@ motions the limb crosses the whole \SI{150}{\milli\metre} margin before the
 robot knows anything changed. It is this report's principal open safety
 question, and three
 responses exist, none yet implemented: enlarge the floor by the delay times
-an assumed limb speed, a one-parameter change that makes the margin mean
-what it claims; cut the delay, since most of the \SI{562}{\milli\second}
+an assumed limb speed, so the margin means what it claims; cut the delay, since most of the \SI{562}{\milli\second}
 tail is a configured publishing rate, not the \SIrange{28}{34}{\milli\second}
 the tracker itself takes; and scale commanded speed with measured
 clearance, two quantities the system already computes separately. The
@@ -102,14 +100,13 @@ comparison \cref{app:study} is for.
 \section{Against the planning report}
 
 The planning report specified physical springs at the master and a virtual
-spring-damper at the robot; neither survives the measured system, whose
-usable command path runs at \SIrange{18.4}{18.7}{\hertz}, too slowly for a
-spring-damper law to behave as one. The compliance sought would have to
-come from the mechanism -- a spring in series with each
+spring-damper at the robot; neither survives a command path that runs at
+\SIrange{18.4}{18.7}{\hertz}, too slowly for a spring-damper law to behave as
+one. The compliance sought needs hardware -- a spring in series with each
 motor~\cite{toubar2022sea,lee2019sea} or current-based
-control~\cite{dewolde2024impedance} -- both hardware changes. The safety,
-sensor-degradation, workspace and pilot work were not in the plan; each
-followed from a measurement the plan did not anticipate.
+control~\cite{dewolde2024impedance}. The safety, workspace and pilot work
+were not in the plan; each followed from a measurement it did not
+anticipate.
 
 \section{Against the objectives, and what remains}
 \label{sec:against-objectives}
@@ -120,8 +117,8 @@ mapping that degrades predictably (2); a safety layer that handled fourteen
 of fourteen injected faults and whose live record shows the automatic floor
 was never needed (3); a workspace characterisation that
 found no shared reachable point and costed, applied and re-verified the fix
-(4); ten-repeat, known-answer verification that caught twenty-six
-instrument defects before any became a finding (5); and a pilot under
+(4); verification that caught twenty-six instrument defects before any
+became a finding (5); and a pilot under
 approval that supports H1 at pilot scale but, with no workload
 questionnaire and no wearer, leaves H2--H5 untested, so objective 6 is met
 in its first half only.

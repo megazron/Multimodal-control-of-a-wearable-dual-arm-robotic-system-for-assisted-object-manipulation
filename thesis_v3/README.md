@@ -14,7 +14,21 @@ request needs it):
 
 ## Current state
 
-- **Latest round (flowcharts, formulas, trajectories as a/b/c):** Methods
+- **Latest round (the three experiments, readable trajectories):** Methods
+  §The pilot study now describes the three experiments as run -- common
+  setup (operator across the room, controller in each hand, robot follows
+  only while the clutch is held, direct then assisted in the same sitting,
+  no time limit, both buttons end the recording) and `tab:tasks` with what
+  the operator did, what was measured, sessions direct/assisted and mean
+  duration per task, from `vr_study_sessions.json`. No written task protocol
+  exists in the repository, so the descriptions are what the labels and the
+  logs support; the table is the 20th figure/table. The 3-D trajectory
+  figure ("random drawn lines") is replaced by position-against-time panels
+  (`figures/make_trajectory_timeseries.py`): three lines (left-right,
+  forward-back, up-down) per panel, (a) master arm / operator's hand, (b)
+  simulated robot's hand, (c) real robot's hand, one row per cohort; (b) and
+  (c) share a scale so their match is visible at a glance.
+- **Previous round (flowcharts, formulas, trajectories as a/b/c):** Methods
   now carries eight numbered equations in the main body (sensor smoothing,
   the direction-and-distance pose mapping, the clutch anchor, the
   assistance rule as a case expression, the clearance-floor test, the

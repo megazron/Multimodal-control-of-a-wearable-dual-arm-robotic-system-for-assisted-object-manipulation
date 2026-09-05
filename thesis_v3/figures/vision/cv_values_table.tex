@@ -1,0 +1,20 @@
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[Vision pipeline: measured values, one real frame]{Every value
+  from the one real frame of \cref{fig:vision-pipeline,fig:depth-boxes}.}
+  \label{tab:vision-values}
+  \begin{tabular}{@{}lrl@{}}
+    \toprule
+    Quantity & Value & Method \\
+    \midrule
+    Support-plane RMS & \SI{1.43}{\milli\metre} & RANSAC, this frame \\
+    Support-plane inlier fraction & \SI{74.0}{\percent} & RANSAC, this frame \\
+    Cube range & \SI{525.5}{\milli\metre} & plane-fit centre \\
+    Cube range & \SI{698}{\milli\metre} & depth-box median \\
+    Box footprint & $341 \times 278$\,mm & oriented 3D box \\
+    Box range & \SI{677.6}{\milli\metre} & plane-fit centre \\
+    Box range & \SI{781}{\milli\metre} & depth-box median \\
+    \bottomrule
+  \end{tabular}
+\end{table}

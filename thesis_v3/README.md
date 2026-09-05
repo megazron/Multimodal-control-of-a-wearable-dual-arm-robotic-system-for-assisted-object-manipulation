@@ -14,29 +14,37 @@ request needs it):
 
 ## Current state
 
-- **Main body: 5,993 words, 12 figures/tables** (Introduction, Background,
+- **Main body: 5,982 words, 14 figures/tables** (Introduction, Background,
   Method, Result, Discussion, Conclusion) -- against the booklet's limit of
   6,000 words / 20 figures. Word count is read from the *typeset* PDF
   (`Chapter 1` to the page before `Appendix A`), not estimated from the
   LaTeX source, because `\SI{}{}`/`\cref{}` expand into several rendered
   words each, and figure text (legends, axis labels) is vector text the
-  extractor also reads. Headroom is now ~7 words -- trim before adding.
+  extractor also reads. Headroom is ~18 words -- trim before adding.
 - **Abstract: 248/250 words.**
-- **62 pages total.** Channel health ("pot health") prose was cut back to
-  its one headline number in the main body, per direct feedback that it was
-  spending graded words on the least central finding; the regression detail
-  survives in `ch:results`. That freed room for: a genuine three-way 3D
-  trajectory (master hand, simulated EE, and the **real robot's own EE from
-  live forward kinematics on its encoders**, not simulated), with picked
-  and placed marked from the gripper's logged transitions, for one Direct
-  and one Shared-autonomy session; a clean raw-to-detection computer-vision
-  pipeline figure replacing the two dashboard-style PNGs; a written
-  explanation of the three pilot tasks and the never-recorded fourth
-  (multimeter); and a real safety finding from the pilot's own `/blocking`
-  topic (below). 12 of the 20 permitted figures/tables, leaving 8 spare --
-  a bounding-box scene figure (mannequin/table/arms/objects) moved to
-  `app:vision` (`ch:vision`) to protect the word budget instead, referenced
-  from the main body. The appendix carries everything else, uncounted.
+- **65 pages total.** Channel health ("pot health") and the degradation
+  architecture discussion are now moved to the appendix **in full** -- not
+  just trimmed: the main body carries only "six of fourteen channels are
+  alive" and a pointer to `sec:channelhealth`/`sec:degradation-appendix`;
+  `fig:channelhealth` (the per-channel bar chart) and the whole "what the
+  architecture bought" discussion section no longer appear in the graded
+  chapters at all. That, plus tighter prose elsewhere, paid for: a **second**
+  three-way 3D trajectory (the master-arm cohort's own version, alongside
+  the VR one, both master hand / simulated EE / real EE from live forward
+  kinematics on encoders -- previously only the VR cohort had one); a
+  decluttered redraw of the VR trajectory (the master trace smoothed and
+  thinned since it is the noisy raw input, not a measured result -- the
+  sim/real traces are untouched); box plots (median/IQR/whiskers/outliers)
+  replacing the bar+scatter pooled comparisons for time-to-finish, hand
+  travel and re-grips, so the real variance is visible instead of only a
+  mean bar; a depth-camera figure with each object's bounding box annotated
+  with its own real measured distance, beside the raw frame for context;
+  and a compact values table for the vision section (support-plane RMS and
+  inlier fraction, both objects' plane-fit and depth-box ranges, the box's
+  footprint). 14 of the 20 permitted figures/tables, leaving 6 spare -- the
+  mannequin/table/arms/objects bounding-box figure stays in `app:vision`
+  (`ch:vision`) to protect the word budget, referenced from the main body.
+  The appendix carries everything else, uncounted.
 - **A real safety finding, not a synthetic one**: across all 26 recorded
   pilot-era sessions' `/blocking` topic, the geometric clearance floor
   (`clearance_floor`, the mechanism that would hold an arm 150 mm short of
@@ -91,26 +99,40 @@ first names in a legend before this check caught it).
 Regenerate: `make_pilot_figures.py`, `make_3d_trajectory.py`,
 `make_tracking_figure.py`, `make_master_figure.py`, each
 `python3 thesis_v3/figures/<script>.py` from the repository root.
-`make_3d_trajectory_full.py` (the three-way master/sim/real trajectory,
-`fig:track-3d`) additionally needs `scripts/sim_session.py --stack teleop
---keep-up` running first, since the real-EE trace is FK'd live through
-`/compute_fk` -- `real_left_jN` in `trail.csv` has no recorded Cartesian
-counterpart (`ee_left_x/y/z` is FK of the *simulated* joint state, not the
-real one; confirmed by reading `scripts/record_all.py`). The vision-pipeline
-and scene-bounding-box figures (`vision/cv_pipeline.pdf`,
-`vision/scene_boxes.pdf`) were built ad hoc from a raw frame pair at
-`recordings/vision_thesis/20260830_073141/raw/{left_gripper,scene_hd}/` and
+`make_3d_trajectory_full.py`/`_full_v2.py`/`_master.py` (the three-way
+master/sim/real trajectories, `fig:track-3d` and `fig:track-3d-master`) and
+`make_depth_boxes.py` all need `scripts/sim_session.py --stack teleop
+--keep-up` running first for the FK-based ones, since the real-EE trace is
+FK'd live through `/compute_fk` -- neither cohort's CSV has a recorded
+Cartesian real-EE column (`ee_left_x/y/z` in the VR cohort's `trail.csv` is
+FK of the *simulated* joint state, not the real one, confirmed by reading
+`scripts/record_all.py`; the master-arm cohort's `trail_extracted.csv` has
+no `ee_*` column at all -- both simulated and real EE are FK'd for that
+cohort). `_full_v2.py` additionally smooths and thins the master trace only
+(never the sim/real traces, which must stay exact) for legibility.
+`make_pilot_figures.py`'s `grouped_box_panel()` builds the three pooled box
+plots (`pilot_time_box.pdf`, `pilot_distance_box.pdf`,
+`pilot_regrips_box.pdf`) from the same `by_task_condition()` data as the
+original bar charts, which it does not modify. The vision-pipeline,
+depth-boxes and scene-bounding-box figures (`vision/cv_pipeline.pdf`,
+`vision/depth_boxes.pdf`, `vision/scene_boxes.pdf`) all read the same raw
+frame pair at
+`recordings/vision_thesis/20260830_073141/raw/left_gripper/{colour.png,depth.npy}`
+(depth: float32 metres, 0 = no return) and
 `scripts/srl_object_detector.py`'s own `blobs()`/`PALETTE` (cube) plus a
 measured-hue threshold on the same toolchain (box, which the palette
-doesn't cover); the four scene classes without a detector in this project
-(mannequin, table, arm, table -- `scene_boxes.pdf`) are hand-identified
-against a pixel grid on that exact frame, stated as such in its caption
-rather than presented as automatic detections. No standalone regeneration
-script exists yet for either -- write one from those sources before editing
-them again. All scripts re-derive participant anonymisation from the raw
-session names before any
-plot is drawn -- if the pilot data set grows, extend each script's `ANON`
-dict rather than plotting first and anonymising after.
+doesn't cover); `cv_values_table.tex`'s numbers come from that same frame's
+own pipeline stage logs under
+`recordings/vision_thesis/20260830_073141/data/left_gripper/`. The four
+scene classes without a detector in this project (mannequin, table, arm,
+objects -- `scene_boxes.pdf`) are hand-identified against a pixel grid on
+that exact frame, stated as such in its caption rather than presented as
+automatic detections; `scene_boxes.pdf` itself still has no standalone
+regeneration script. All scripts re-derive participant anonymisation from
+the raw session names before any plot is drawn, and every figure's
+extracted PDF text is grepped for real names (word-boundary, not substring
+-- `wen` inside `when` is a false positive this project has hit) before it
+is committed.
 
 ## Checking compliance before submission
 

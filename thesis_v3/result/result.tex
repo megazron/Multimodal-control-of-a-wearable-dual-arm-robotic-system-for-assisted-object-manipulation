@@ -4,30 +4,18 @@
 Every number below carries its strength of evidence, and \textbf{no result
 before the pilot in \cref{sec:pilot-results} was validated on a physical
 Kinova arm carrying a load}: most of this project is simulated against mock
-hardware, using the delivered system's own kinematic description, solver
-and safety code, plus recorded data from the physical master and four
-cameras (\cref{ch:results}: full derivations).
+hardware, plus recorded data from the physical master and four cameras
+(\cref{ch:results}: full derivations).
 
 \section{The command mapping and its safety layer}
 \label{sec:safety}
 
-Channel health, computed over \emph{distinct} sensor updates rather than
-transmitted rows (roughly \SIrange{82}{88}{\percent} of consecutive rows
-repeat, which had previously been misread as dead channels), found six of
-fourteen channels alive (\cref{fig:channelhealth}).
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.92\linewidth]{channels.pdf}
-  \caption[Master channel health, measured]{Every master channel; bar
-  colour is the verdict. Above the five per cent line (upper panel), a
-  channel is fresh but not tracing a trajectory: \emph{incoherent}.}
-  \label{fig:channelhealth}
-\end{figure}
-
-Replaying the incoherent traces alone injects \SI{54.5}{\milli\metre} of
-unrequested motion on the left arm, naming the repair as two left-arm
-channels (regression and the separate lateral-axis defect: \cref{ch:results}).
+Six of fourteen master channels are alive; the per-channel verdicts, the
+\SI{54.5}{\milli\metre} of unrequested motion the incoherent ones inject,
+and the repair that follows from it are moved to \cref{sec:channelhealth}
+in full, alongside the degradation architecture's own discussion
+(\cref{sec:degradation-appendix}) -- this section carries only what the
+safety layer itself did, live, on the pilot below.
 
 The safety layer handled fourteen of fourteen injected faults (channel
 dropout, emergency stop mid-motion, wrong-object latching, stale
@@ -42,10 +30,9 @@ geometric clearance floor -- the mechanism that would hold an arm
 \SI{150}{\milli\metre} short of the wearer -- never activated once, meaning
 no recorded operator ever drove either arm inside that margin. The
 manual/dead-man emergency stop did fire for real: four holds across three
-sessions, one session tripping twice, the first hold lasting
-\SI{22.6}{\second} \emph{mid}-session (\SI{67}{\percent} through, at
-\SI{178.9}{\second} of \SI{265.7}{\second}) with clutch engagement resuming
-around it -- not simply an end-of-recording gesture. The geometric path
+sessions, one tripping twice, the first held \SI{22.6}{\second}
+\emph{mid}-session (\SI{67}{\percent} through) with clutch engagement
+resuming around it -- not an end-of-recording gesture. The geometric path
 remains validated only against synthetic fault injection.
 
 \section{Workspace and motion}
@@ -68,9 +55,10 @@ wrist yaw and adding solver retries.
     \label{fig:disjoint-b}
   \end{subfigure}
   \caption[The disjoint workspace, and the mount change that fixes it]{
-  (\subref{fig:disjoint-a}) The two reachable sets do not meet. (\subref{fig:disjoint-b}) A mount-placement sweep: forward tilt and inboard
-  translation help, splaying outward \emph{hurts}. Kinematic only (the
-  wearer is not moved), so these are upper bounds pending a clearance check.}
+  (\subref{fig:disjoint-a}) The two reachable sets do not meet.
+  (\subref{fig:disjoint-b}) A mount-placement sweep: forward tilt and
+  inboard translation help, splaying outward \emph{hurts}. Kinematic only,
+  so these are upper bounds pending a clearance check.}
   \label{fig:disjoint}
 \end{figure}
 
@@ -148,6 +136,23 @@ width -- the quantity the grasp planner needs -- available at all.
   \label{fig:vision-pipeline}
 \end{figure}
 
+Depth, not colour, is what a box is drawn from (\cref{fig:depth-boxes}):
+the same two objects, boxed and range-labelled in their own depth map.
+\Cref{tab:vision-values} collects this frame's numbers against the
+plane-fit method of \cref{fig:vision-pipeline}; the two disagree by tens of
+millimetres because they measure different points on a tilted object.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{vision/depth_boxes.pdf}
+  \caption[The raw frame beside its own depth map, boxed and measured]{
+  \Cref{fig:vision-pipeline}'s frame (a) beside its depth map (b), boxed
+  and labelled with each object's median measured range.}
+  \label{fig:depth-boxes}
+\end{figure}
+
+\input{figures/vision/cv_values_table.tex}
+
 No grasp closed on any camera this session: the nearest object's narrowest
 axis measured \SI{144}{\milli\metre} against an \SI{85}{\milli\metre} jaw, a
 statement about the scene rather than the planner. \Cref{fig:scene-boxes-full}
@@ -156,8 +161,8 @@ table, the wearable arms and the objects between them.
 
 In simulation, the full task set solves \num{13927} inverse-kinematics
 calls with zero failures and zero clearance breaches. Sweeping the
-shared-autonomy intent estimator against a
-mis-declared table shows why this matters operationally: from declared
+shared-autonomy intent estimator against a mis-declared table shows why:
+from declared
 coordinates it becomes \emph{confidently wrong} \SI{50}{\percent} of the
 time once the declaration is one object-pitch out; from measured
 coordinates it stays at \SI{0.0}{\percent} across the same sweep.
@@ -186,10 +191,9 @@ the supplementary measures are in \cref{app:pilot}.
   \centering
   \small
   \caption[Pilot session summary]{Twenty-three pilot sessions, pooled by
-  condition. Duration includes any pausing or hesitation and is a
-  session-length rather than a pure motor-execution measure. E-stop holds
-  (four, across three sessions, detailed in \cref{sec:safety} above) are
-  excluded from this table as engagement time, not as a safety verdict.}
+  condition. Duration includes pausing and hesitation, a session-length
+  rather than a motor-execution measure. E-stop holds (\cref{sec:safety})
+  are excluded here as engagement time, not a safety verdict.}
   \label{tab:pilot-summary}
   \begin{tabular}{@{}lccc@{}}
     \toprule
@@ -208,7 +212,7 @@ the supplementary measures are in \cref{app:pilot}.
   \centering
   \begin{subfigure}[b]{0.47\linewidth}
     \centering
-    \includegraphics[width=\linewidth]{pilot/pilot_time.pdf}
+    \includegraphics[width=\linewidth]{pilot/pilot_time_box.pdf}
     \caption{pooled by task (P5's task was unrecorded, \emph{P5*})}
     \label{fig:pilot-time-a}
   \end{subfigure}\hfill
@@ -218,11 +222,11 @@ the supplementary measures are in \cref{app:pilot}.
     \caption{paired within operator, both conditions}
     \label{fig:pilot-time-b}
   \end{subfigure}
-  \caption[Pilot: time to finish]{Time to finish, pooled
-  (\subref{fig:pilot-time-a}) and paired (\subref{fig:pilot-time-b}, the
+  \caption[Pilot: time to finish]{Time to finish, pooled as box plots --
+  median, quartiles, whiskers and outliers, not just a mean
+  (\subref{fig:pilot-time-a}) -- and paired (\subref{fig:pilot-time-b}, the
   fairest comparison here). Duration includes setup and hesitation, so it
-  is the least precise pilot measure; \cref{app:pilot}'s supplementary
-  measures come straight from the position trace.}
+  is the least precise pilot measure.}
   \label{fig:pilot-time}
 \end{figure}
 
@@ -233,23 +237,48 @@ re-grips per session (\num{23.3} against \num{25.8}), with a robot lag under
 \SI{2.9}{\milli\metre} in both conditions -- but \emph{more} hand-travel
 distance (\SI{2.78}{\metre} against \SI{2.30}{\metre}), a direction that
 holds in the paired comparison too (\cref{sec:pilot-limits}), not just the
-pooled one. \Cref{fig:pilot-time-b} isolates the seven cases in which the
-\emph{same} operator repeated a task under both conditions: five of seven
-finish faster under shared autonomy, and six of seven travel further doing
-it.
+pooled one (\cref{fig:pilot-variance}). \Cref{fig:pilot-time-b} isolates the
+seven cases in which the \emph{same} operator repeated a task under both
+conditions: five of seven finish faster under shared autonomy, and six of
+seven travel further doing it.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{pilot/track_3d_full.pdf}
-  \caption[Master, simulated and real robot position, picked and placed]{
-  Master hand, simulated robot end-effector, and the real robot's own
-  end-effector (forward kinematics on its own encoders, not simulated) --
-  one Direct and one Shared-autonomy session, same operator and task, with
-  picked and placed marked from the gripper's own logged transitions.
-  Simulated and real agree closely throughout, the same small gap as
-  \cref{fig:track-main}; master moves far more, since the mapping scales
-  and filters it.}
+  \begin{subfigure}[b]{0.47\linewidth}
+    \centering\includegraphics[width=\linewidth]{pilot/pilot_distance_box.pdf}
+    \caption{hand travel}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.47\linewidth}
+    \centering\includegraphics[width=\linewidth]{pilot/pilot_regrips_box.pdf}
+    \caption{re-grips}
+  \end{subfigure}
+  \caption[Pilot: hand travel and re-grips, by task and condition]{The
+  counter-intuitive half of \cref{tab:pilot-summary}: shared autonomy's own
+  box sits \emph{above} direct's in hand travel for three of four task
+  groups, not below, while re-grips move the other way.}
+  \label{fig:pilot-variance}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{pilot/track_3d_full_v2.pdf}
+  \caption[VR cohort: master, simulated and real robot position, picked and
+  placed]{VR cohort: master hand (smoothed, the raw input), simulated EE,
+  and the real robot's own EE (forward kinematics on its own encoders) --
+  one Direct and one Shared session, same operator and task, picked/placed
+  from the gripper's logged transitions. Simulated and real agree closely,
+  the same small gap as \cref{fig:track-main}.}
   \label{fig:track-3d}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{pilot/track_3d_master.pdf}
+  \caption[Master-arm cohort: master, simulated and real robot position]{
+  The master-arm cohort's own version of \cref{fig:track-3d}: M2, Direct and
+  Shared, same task, both under \SI{2.3}{\degree} sim-to-real RMS. This
+  cohort logs no gripper channel, so no picked/placed markers are drawn.}
+  \label{fig:track-3d-master}
 \end{figure}
 
 \begin{figure}[htbp]
@@ -269,7 +298,7 @@ it.
   \SI{1.06}{\degree} RMS. (\subref{fig:track-main-b}) Three further
   operators (M1--M3) from the mannequin master: two track within
   \SI{3}{\degree}; the third's three sessions track
-  \SIrange{15.9}{21.2}{\degree}, consistent with \cref{fig:channelhealth}.
+  \SIrange{15.9}{21.2}{\degree}, consistent with \cref{sec:channelhealth}.
   Full record in \cref{app:pilot}.}
   \label{fig:track-main}
 \end{figure}

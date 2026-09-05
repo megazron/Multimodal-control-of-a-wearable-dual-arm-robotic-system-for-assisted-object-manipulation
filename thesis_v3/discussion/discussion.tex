@@ -1,22 +1,6 @@
 \chapter{Discussion}
 \label{ch:discussionmain}
 
-\section{What the architecture bought, and what it did not}
-
-The degradation architecture kept the system running and its failures
-visible: with eight of fourteen channels failing, the right arm retains
-full position sensing and the left retains direction, and the incoherent
-verdict exists because a failing potentiometer does not go quiet -- range
-alone calls a wide-spanning nonsense signal healthy. What it did not buy is
-capability: freezing the left arm's bend joints collapses its commanded set
-from a shell to a surface, and no health scheme restores a measurement
-never taken. The reduced-degree-of-freedom premise succeeded exactly where
-a single sensor observes the quantity directly (elevation from gravity,
-reach from a forward-kinematic magnitude) and failed where it does not: the
-spherical model assumes azimuth and elevation are independent, and they are
-not, because the first joint's axis does not tilt as the arm bends -- a
-design rule for a successor, not a defect to patch with better calibration.
-
 \section{The workspace result, and what it costs}
 
 The disjoint-workspace finding is severe because it is geometric: no

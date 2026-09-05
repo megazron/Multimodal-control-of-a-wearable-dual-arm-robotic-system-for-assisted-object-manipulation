@@ -208,4 +208,45 @@ ax.set_xlabel("time into the session (s)")
 fig.savefig(os.path.join(OUT, "pilot_engagement.pdf"))
 plt.close(fig)
 
+# ---------------------------------------------------------------------------
+# Box-plot variants of the pooled panels: real quartiles/whiskers/outliers
+# instead of a mean bar with jittered dots, same underlying data.
+# ---------------------------------------------------------------------------
+def grouped_box_panel(metric, ylabel, fname, scale=1.0, figsize=(2.7, 2.2),
+                       legend=False):
+    grouped = by_task_condition(metric)
+    fig, ax = plt.subplots(figsize=figsize)
+    x = np.arange(len(TASKS))
+    w = 0.32
+    for i, (cond, col) in enumerate([("Direct", BLUE), ("Shared", RED)]):
+        data = [[v * scale for v in grouped[t][cond]] for t in TASKS]
+        xc = x + (i - 0.5) * (w + 0.06)
+        bp = ax.boxplot(
+            data, positions=xc, widths=w, patch_artist=True, whis=1.5,
+            manage_ticks=False,
+            boxprops=dict(facecolor=col, alpha=0.35, edgecolor=col, linewidth=1.0),
+            medianprops=dict(color=col, linewidth=1.4),
+            whiskerprops=dict(color=col, linewidth=0.9),
+            capprops=dict(color=col, linewidth=0.9),
+            flierprops=dict(marker="o", markersize=3, markerfacecolor=col,
+                             markeredgecolor=col, alpha=0.7),
+        )
+        if legend:
+            bp["boxes"][0].set_label(cond)
+    ax.set_xticks(x)
+    ax.set_xticklabels([TASK_SHORT[t] for t in TASKS])
+    ax.set_xlim(x[0] - 0.55, x[-1] + 0.55)
+    ax.set_ylabel(ylabel)
+    if legend:
+        ax.legend(frameon=False, fontsize=6.5, loc="upper right",
+                  handlelength=1.2, borderaxespad=0.1)
+    fig.savefig(os.path.join(OUT, fname))
+    plt.close(fig)
+
+
+grouped_box_panel("duration_s", "time to finish (s)", "pilot_time_box.pdf",
+                   legend=True)
+grouped_box_panel("ee_path_m", "hand travel (m)", "pilot_distance_box.pdf")
+grouped_box_panel("clutch_engagements", "re-grips", "pilot_regrips_box.pdf")
+
 print("wrote", sorted(os.listdir(OUT)))

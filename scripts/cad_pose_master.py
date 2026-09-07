@@ -103,7 +103,7 @@ def draw(ax, parts, elev, azim, lim):
         ax.add_collection3d(col)
     ax.view_init(elev=elev, azim=azim)
     (x0, x1), (y0, y1), (z0, z1) = lim
-    ax.set_box_aspect((x1 - x0, y1 - y0, z1 - z0), zoom=1.75)
+    ax.set_box_aspect((x1 - x0, y1 - y0, z1 - z0), zoom=1.4)
     ax.set_xlim(x0, x1); ax.set_ylim(y0, y1); ax.set_zlim(z0, z1)
     ax.set_axis_off()
 

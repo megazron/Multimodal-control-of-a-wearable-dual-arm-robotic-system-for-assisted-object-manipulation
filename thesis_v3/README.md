@@ -12,6 +12,25 @@ request needs it):
 
     xelatex main && bibtex main && xelatex main && xelatex main
 
+**Template conformance (2026-09-07).** `main.tex` and `title/title.tex` are
+the template's own files with only the fill-in slots filled (title, author,
+supervisors, abstract, acknowledgements): the template's package list,
+encodings, `\titleformat` (which prints appendices as "Chapter A", as the
+template does), `\setmainfont{Times New Roman}`, `\today` date, commented-out
+lists of figures/tables, and the EPS logo via the template's own
+`\includegraphics{title/logo.eps}` line. Chapter files are the template's
+seven, including a separate `background/background.tex`. The packages the
+content needs (siunitx, booktabs, subcaption, tikz, cleveref, ...) are added
+after the template's list and change nothing the template sets. The one
+deliberate deviation is `\bibliographystyle{unsrt}` for numbered citations
+(template default: `alpha`); switch the word back to `alpha` to undo it.
+
+Local build prerequisites for a faithful build (Overleaf has both):
+Times New Roman (the four Windows `times*.ttf` copied into
+`~/.local/share/fonts`, then `fc-cache -f`) and Ghostscript on `PATH` for
+the EPS logo (here: Ubuntu's `.deb`s unpacked into `~/.local/gs`, wrapper at
+`~/.local/bin/gs`).
+
 ## Current state
 
 - **Latest round (page-by-page check; CV section fixed):** every main-body

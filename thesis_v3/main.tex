@@ -1,39 +1,25 @@
-%% =====================================================================
-%%  MSc Individual Project, Imperial College London
-%%  Built on the department's own "Imperial College Individual Project
-%%  Template_LaTeX": same document class, page geometry, title page,
-%%  chapter order (Introduction, Background, Method, Result, Discussion,
-%%  Conclusion, Appendix) and bibliography style. Compile with XeLaTeX
-%%  (the template's own \usepackage{fontspec} and Times New Roman request
-%%  need it): xelatex main && bibtex main && xelatex main && xelatex main
-%% =====================================================================
 \documentclass[a4paper, twoside, 11pt]{report}
 
-%% Language. inputenc is deliberately absent: XeLaTeX reads UTF-8 natively
-%% and utf8x (which the template lists for pdfLaTeX) conflicts with
-%% fontspec, which the template also loads.
+%% Language and font encodings
 \usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
 
-%% Page size and margins: identical to the template.
-\usepackage[a4paper, top=2.54cm, bottom=2.54cm, left=1.91cm, right=1.91cm,
-            marginparwidth=1.75cm]{geometry}
+%% Sets page size and margins
+\usepackage[a4paper, top=2.54cm, bottom=2.54cm, left=1.91cm, right=1.91cm, marginparwidth=1.75cm]{geometry}
 
+%% Useful packages
 \usepackage{amsmath}
-\usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage{setspace}
 \usepackage{fontspec}
 \usepackage{titlesec}
+\usepackage[colorinlistoftodos]{todonotes}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
 
-%% Beyond the template's own package list: booktabs/siunitx for data
-%% tables and physical quantities (every number in this report goes
-%% through \SI or \num), subcaption for the collage figures, cleveref so
-%% every cross-reference names its own kind ("Table 3.1", "Appendix B"),
-%% and tikz/pgfplots/listings for the appendix's data-path diagrams and
-%% short code excerpts (the appendix carries a handful, not the full
-%% firmware -- large listings are cited by repository path instead, per
-%% the booklet's own guidance).
+%% Packages the content needs beyond the template's list: tables, units,
+%% sub-figures, diagrams, short code excerpts and cross-references.
+\usepackage{amssymb}
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{array}
@@ -51,18 +37,15 @@
 \usepackage[capitalise,nameinlink]{cleveref}
 \sisetup{detect-all, range-units = single, separate-uncertainty = true,
          per-mode = symbol}
-
 \graphicspath{{figures/}}
 
-%% Implementation provenance: every claim about the implementation names
-%% the file it is implemented in. Repository paths are long and
-%% unbreakable in typewriter type; underscores get a zero-width break
-%% opportunity so a path can wrap instead of overflowing the margin.
+%% Repository paths in typewriter type, with break opportunities at
+%% underscores and slashes so a long path wraps instead of overflowing.
 \DeclareRobustCommand{\repo}[1]{{\small\ttfamily
   \def\_{\char`\_\hspace{0pt}}\def\slash{/\hspace{0pt}}#1}}
 
-%% Flowchart styles used by the appendix's data-path diagrams: shape
-%% carries the kind of stage, colour carries whether it can stop the arm.
+%% Flowchart styles used by the diagrams: shape carries the kind of stage,
+%% colour carries whether it can stop the arm.
 \tikzset{
   sensor/.style   = {draw, rounded corners=2pt, fill=blue!8,
                      minimum height=7mm, text width=27mm, align=center,
@@ -109,44 +92,19 @@
 
 \titleformat{\chapter}[display]
   {\centering\huge\bfseries}
-  {\chaptertitlename\ \thechapter}
+  {Chapter \thechapter}
   {1ex}
   {}
 
 \setstretch{1.15}
 \setlength{\parskip}{3pt}
 \setlength{\parindent}{12pt}
-\emergencystretch=2em
-\hbadness=6000
+\setmainfont{Times New Roman}
 
-%% A 14-chapter appendix with subsections at every level would give a
-%% seven-page table of contents that lists implementation detail nobody
-%% consults the ToC to find. Chapter and section only.
-\setcounter{tocdepth}{1}
-\setcounter{secnumdepth}{3}
 
-%% FONT. Times New Roman where present (the template's own choice);
-%% TeX Gyre Termes, metric-compatible, where it is not, so the document
-%% builds identically on Overleaf and on a machine without that font.
-\IfFontExistsTF{Times New Roman}{
-  \setmainfont{Times New Roman}
-}{
-  \IfFontExistsTF{TeX Gyre Termes}{
-    \setmainfont{TeX Gyre Termes}
-  }{
-    \setmainfont{texgyretermes}[
-      Extension = .otf,
-      UprightFont = *-regular,
-      BoldFont = *-bold,
-      ItalicFont = *-italic,
-      BoldItalicFont = *-bolditalic]
-  }
-}
-
-\title{Multimodal Teleoperation of a Wearable Dual-Arm Supernumerary Robotic
-System}
+\title{Multimodal Teleoperation of a Wearable Dual-Arm Supernumerary Robotic System}
 \author{Gaus Sayyad}
-% Supervisor and co-supervisor are set in title/title.tex
+% Update supervisor and other title stuff in title/title.tex
 
 \begin{document}
 \input{title/title.tex}
@@ -197,28 +155,19 @@ support over the course of the year.
 \end{abstract}
 
 \tableofcontents
-% Lists of figures and tables: uncounted front matter per the booklet, and
-% useful here because the appendix carries several dozen figures.
-\listoffigures
-\listoftables
+% \listoffigures
+% \listoftables
 
-%% ---------------------------------------------------------------------------
-%% BODY. Introduction (with the literature review as its first section, so
-%% the chapter runs problem -> literature -> gap -> aim, objectives and
-%% hypotheses, as the booklet asks), Method, Result, Discussion, Conclusion.
-%% Booklet limits (final report): <=6000 words and <=20 figures/tables in
-%% this body; the Appendix carries supporting detail and is exempt from both.
-%% ---------------------------------------------------------------------------
 \input{introduction/introduction.tex}
+\input{background/background.tex}
 \input{method/method.tex}
 \input{result/result.tex}
 \input{discussion/discussion.tex}
 \input{conclusion/conclusion.tex}
 \input{appendix/appendix.tex}
 
-%% Numbered citations in order of first appearance ([1], [2], ...), the
-%% convention of an engineering journal; the template's default 'alpha'
-%% style produces author-initial labels like [YHC+21].
+%% The template's default is 'alpha' (labels like [YHC+21]); 'unsrt' gives
+%% numbered citations in order of first appearance, as requested.
 \bibliographystyle{unsrt}
 \bibliography{bibs/references}
 

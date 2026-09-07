@@ -1,36 +1,35 @@
-"""MasterArmJoints -- a Fusion 360 script.
+"""MasterArmJointsAuto -- Fusion add-in that does the whole job unattended.
 
-Adds revolute joints to the master-arm design so the arms can be posed by
-dragging or animated (right-click a joint -> Animate Joint). Handles one arm
-or two (left and right), seven potentiometers each. Run it INSIDE Fusion
-with the design open:
-
-    Utilities tab -> ADD-INS -> Scripts and Add-Ins -> Scripts -> "+" (green)
-    -> choose the folder MasterArmJoints -> Run
-
-How it decides:
-  1. Every component whose name contains "resist" or "pot" is a joint. Its
-     shaft circle (largest circular edge along the pot's thin direction) is
-     the joint origin and axis.
-  2. Pots are split into arms of seven (by parent component, else by
-     position), ordered along each arm, and every other part is sorted into
-     a link by where its centre lies between consecutive pots. Parts far off
-     every arm axis, or below the first joint, form the shared BASE, which
-     is grounded.
-  3. Each link becomes a rigid group; as-built revolute joints
-     left_J1..left_J7 / right_J1..right_J7 are created at the pot axes,
-     limited to +/-150 degrees (a 9 mm pot's travel).
-
-Nothing is moved or edited; only rigid groups and joints are added, all of
-which you can change or delete in the browser. If a part lands in the wrong
-link, drag it into the neighbouring rigid group. If the pot count is not a
-multiple of seven the script stops before changing anything and says so.
+On Fusion start-up (or when run from Scripts and Add-Ins) it:
+  1. imports  C:/Users/Gausms/Desktop/MSc_Project/3dprint/Complete Master Arm no joint animation.f3z
+  2. adds the revolute joints to every arm (pot shaft circles as axes, parts
+     sorted into links by position, rigid groups, shared base grounded)
+  3. exports C:/Users/Gausms/Downloads/MasterArmJoints/Complete Master Arm WITH JOINTS.f3z
+  4. writes DONE.txt beside it so it never runs twice; delete DONE.txt to rerun.
+Everything it does is logged to autorun.log in the same folder.
 """
 import math
+import os
+import time
 import traceback
 
 import adsk.core
 import adsk.fusion
+
+SRC = r"C:\Users\Gausms\Desktop\MSc_Project\3dprint\Complete Master Arm no joint animation.f3z"
+OUTDIR = r"C:\Users\Gausms\Downloads\MasterArmJoints"
+OUT = os.path.join(OUTDIR, "Complete Master Arm WITH JOINTS.f3z")
+LOG = os.path.join(OUTDIR, "autorun.log")
+DONE = os.path.join(OUTDIR, "DONE.txt")
+
+
+def log(msg):
+    try:
+        os.makedirs(OUTDIR, exist_ok=True)
+        with open(LOG, "a", encoding="utf-8") as f:
+            f.write(time.strftime("%H:%M:%S ") + str(msg) + "\n")
+    except Exception:
+        pass
 
 # ---- shared joint-building core (identical in the script and the add-in) ----
 POT_NAMES = ("resist", "pot")
@@ -251,15 +250,47 @@ def build_joints(design, log):
 def run(context):
     app = adsk.core.Application.get()
     ui = app.userInterface
+    if os.path.exists(DONE):
+        log("DONE.txt present; not running again")
+        return
     try:
+        log("=== MasterArmJointsAuto start")
+        if not os.path.exists(SRC):
+            raise RuntimeError("source archive not found: %s" % SRC)
+        im = app.importManager
+        opts = im.createFusionArchiveImportOptions(SRC)
+        doc = im.importToNewDocument(opts)
+        log("imported: %s" % (doc.name if doc else None))
+        adsk.doEvents()
         design = adsk.fusion.Design.cast(app.activeProduct)
         if not design:
-            ui.messageBox("Open the master arm design first.")
-            return
-        lines = []
-        report = build_joints(design, lines.append)
-        ui.messageBox("Done.\n\n%s\n\nDrag a link, or right-click a joint in the browser -> Animate Joint. "
-                      "If a part moves with the wrong link, move it between the rigid groups." % report)
+            raise RuntimeError("no active design after import")
+        report = build_joints(design, log)
+        log(report)
+        exp = design.exportManager
+        try:
+            eo = exp.createFusionArchiveExportOptions(OUT)
+            ok = exp.execute(eo)
+            log("export f3z: %s" % ok)
+        except Exception as e:
+            log("direct export failed (%s); saving to the active project first" % e)
+            folder = app.data.activeProject.rootFolder
+            app.activeDocument.saveAs("Complete Master Arm WITH JOINTS", folder, "joints added by MasterArmJointsAuto", "")
+            adsk.doEvents()
+            eo = exp.createFusionArchiveExportOptions(OUT)
+            ok = exp.execute(eo)
+            log("export f3z after save: %s" % ok)
+        with open(DONE, "w") as f:
+            f.write("done " + time.strftime("%Y-%m-%d %H:%M:%S") + "\n" + report + "\n")
+        log("=== finished")
+        ui.messageBox("Master arm joints added and exported to:\n%s\n\n%s\n\nThe jointed design is open now; drag a link or right-click a joint -> Animate Joint." % (OUT, report))
     except Exception:
-        if ui:
-            ui.messageBox("MasterArmJoints stopped before changing the joints:\n\n" + traceback.format_exc()[-1800:])
+        log("FAILED:\n" + traceback.format_exc())
+        try:
+            ui.messageBox("MasterArmJointsAuto failed; see autorun.log in Downloads\\MasterArmJoints.\n\n" + traceback.format_exc()[-1500:])
+        except Exception:
+            pass
+
+
+def stop(context):
+    pass

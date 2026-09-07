@@ -1,0 +1,9 @@
+{
+    "autodeskProduct": "Fusion",
+    "type": "addin",
+    "author": "kortex_ws",
+    "description": {"": "On startup: imports 'Complete Master Arm no joint animation.f3z', adds the seven revolute joints, exports 'Complete Master Arm WITH JOINTS.f3z' to Downloads. Runs once (marker file DONE.txt)."},
+    "supportedOS": "windows|mac",
+    "editEnabled": true,
+    "runOnStartup": true
+}

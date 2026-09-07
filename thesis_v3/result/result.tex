@@ -199,10 +199,15 @@ camera's measured position, \SI{0.0}{\percent}.
 \label{sec:pilot-results}
 
 \textbf{Five operators (P1--P5)} completed twenty-three recorded sessions
-of the three tasks of \cref{tab:tasks}, once under direct control and once
+of the two tasks of \cref{tab:tasks}, once under direct control and once
 with assistance. P5's seven unlabelled sessions are pooled, their condition
 read from the logged flag. Coverage is uneven, so the pooled comparison
-mixes tasks and the paired one isolates the condition.
+mixes tasks and the paired one isolates the condition. Every operator
+completed target reaching. On pick and place the gripper record
+(\cref{tab:gripper-use}) shows three operators closing the gripper on the
+object and holding it (P1, P2, P5), one closing it once, briefly (P3), and
+one never closing it (P4) -- matching the operator's own account of three
+completed pick-and-places, one lift without a place, and one reach.
 
 \begin{table}[htbp]
   \centering
@@ -255,15 +260,15 @@ times (\SI{219}{\second} against \SI{241}{\second}) and fewer re-grips
 the paired comparison too (\cref{fig:pilot-variance},
 \cref{sec:pilot-limits}). \Cref{fig:paired-slopes} isolates the seven cases
 in which the \emph{same} operator repeated a task under both conditions:
-the robot travels further with assistance in six of seven, the operator's
-own hand in only two of seven.
+the robot travels further with assistance in five of seven, the operator's
+own hand in only three of seven.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\linewidth]{gallery/pilot/11_paired_slopes_3panel_300.png}
   \caption[Same operator, same task, both conditions]{The seven paired
-  cases: the robot's path rises with assistance in six of seven pairs while
-  the operator's own hand path does not (two of seven) -- the extra distance
+  cases: the robot's path rises with assistance in five of seven pairs while
+  the operator's own hand path does not (three of seven) -- the extra distance
   comes from the assistance.}
   \label{fig:paired-slopes}
 \end{figure}
@@ -280,7 +285,7 @@ own hand in only two of seven.
   \end{subfigure}
   \caption[Pilot: robot path and re-grips, by task and condition]{The
   counter-intuitive half of \cref{tab:pilot-summary}: with assistance the
-  robot's path is \emph{longer} in three of four task groups, while
+  robot's path is \emph{longer} in two of three task groups, while
   re-grips fall.}
   \label{fig:pilot-variance}
 \end{figure}
@@ -298,7 +303,7 @@ mannequin cohort, most sessions inside the \SI{30}{\milli\metre} grasp gate.
   each hand was, second by second, for one session per cohort: (a) the
   master arm or operator's hand, (b) the simulated robot's hand as RViz
   shows it, (c) the real robot's hand from its own joint encoders. Top: VR
-  (P4, object tracking, direct). Bottom: mannequin master (M2, target
+  (P4, pick and place, direct). Bottom: mannequin master (M2, target
   reaching, direct). Panels (b) and (c) share a scale and are near-identical
   -- the real arm follows the simulation to \SI{11}{} and
   \SI{22}{\milli\metre}; the operator's hand (a) moves more, because the

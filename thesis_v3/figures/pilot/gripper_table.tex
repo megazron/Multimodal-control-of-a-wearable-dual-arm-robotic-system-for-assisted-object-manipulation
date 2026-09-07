@@ -1,0 +1,44 @@
+\begin{table}[htbp]
+  \centering
+  \scriptsize
+  \caption[Gripper use in every VR session]{Gripper use in every VR
+  session, from two independent records. \emph{Commanded}: closures of the
+  controller's index trigger in the \SI{20}{\hertz} trail, counted through
+  the live gripper node's own latch (close above 0.30, release below 0.10),
+  and the share of the session the command was held. \emph{Measured}: the
+  physical gripper's own finger position from the bag
+  (\repo{/real/gripper\_<hand>}, 0 open, 1 closed): closures, share of the
+  session closed, and the furthest the fingers closed. The active hand only.}
+  \label{tab:gripper-use}
+  \begin{tabular}{@{}lllrrrrr@{}}
+    \toprule
+    & & & \multicolumn{2}{c}{Commanded} & \multicolumn{3}{c}{Measured} \\
+    \cmidrule(lr){4-5} \cmidrule(lr){6-8}
+    P & Task & Cond. & Closures & Held & Closures & Closed & Max \\
+    \midrule
+    P1 & Pick and place & Direct & 2 & \SI{0.4}{\percent} & 2 & \SI{1.3}{\percent} & 1.00 \\
+    P1 & Pick and place & Direct & 2 & \SI{0.2}{\percent} & 2 & \SI{0.6}{\percent} & 0.99 \\
+    P1 & Pick and place & Shared & 6 & \SI{37.1}{\percent} & 4 & \SI{12.0}{\percent} & 0.99 \\
+    P2 & Pick and place & Direct & 1 & \SI{2.7}{\percent} & 0 & \SI{0.0}{\percent} & 0.01 \\
+    P2 & Pick and place & Shared & 3 & \SI{17.8}{\percent} & 2 & \SI{2.0}{\percent} & 0.99 \\
+    P2 & Target reaching & Direct & 1 & \SI{0.0}{\percent} & 1 & \SI{0.5}{\percent} & 0.93 \\
+    P2 & Target reaching & Shared & 1 & \SI{1.1}{\percent} & 1 & \SI{1.8}{\percent} & 1.00 \\
+    P2 & Target reaching & Shared & 0 & \SI{0.0}{\percent} & 0 & \SI{0.0}{\percent} & 0.01 \\
+    P3 & Pick and place & Direct & 2 & \SI{0.1}{\percent} & 1 & \SI{0.1}{\percent} & 0.90 \\
+    P3 & Target reaching & Shared & 0 & \SI{0.0}{\percent} & 0 & \SI{0.0}{\percent} & 0.01 \\
+    P3 & Target reaching & Direct & 0 & \SI{0.0}{\percent} & 0 & \SI{0.0}{\percent} & 0.01 \\
+    P3 & Target reaching & Shared & 0 & \SI{0.0}{\percent} & 0 & \SI{0.0}{\percent} & 0.01 \\
+    P4 & Pick and place & Direct & 0 & \SI{0.0}{\percent} & 0 & \SI{0.0}{\percent} & 0.00 \\
+    P4 & Pick and place & Shared & 0 & \SI{0.0}{\percent} & 0 & \SI{0.0}{\percent} & 0.00 \\
+    P4 & Target reaching & Direct & 0 & \SI{0.0}{\percent} & 0 & \SI{0.0}{\percent} & 0.00 \\
+    P4 & Target reaching & Shared & 0 & \SI{0.0}{\percent} & 0 & \SI{0.0}{\percent} & 0.00 \\
+    P5 & (unlabelled) & Direct & 0 & \SI{0.0}{\percent} & 0 & \SI{0.0}{\percent} & 0.01 \\
+    P5 & (unlabelled) & Shared & 2 & \SI{18.2}{\percent} & 2 & \SI{18.5}{\percent} & 0.94 \\
+    P5 & (unlabelled) & Direct & 0 & \SI{0.0}{\percent} & 0 & \SI{0.0}{\percent} & 0.01 \\
+    P5 & (unlabelled) & Shared & 1 & \SI{0.1}{\percent} & 1 & \SI{1.5}{\percent} & 1.00 \\
+    P5 & (unlabelled) & Direct & 1 & \SI{41.1}{\percent} & 1 & \SI{39.9}{\percent} & 0.95 \\
+    P5 & (unlabelled) & Direct & 0 & \SI{0.0}{\percent} & 0 & \SI{0.0}{\percent} & 0.01 \\
+    P5 & (unlabelled) & Direct & 0 & \SI{0.0}{\percent} & 0 & \SI{0.0}{\percent} & 0.01 \\
+    \bottomrule
+  \end{tabular}
+\end{table}

@@ -12,11 +12,14 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 (registers 3D projection)
+import sys as _sys
+_sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from session_paths import session_dir  # noqa: E402
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pilot")
-SESSION = "20260904_172909_Feifan_VRDIrect_ObjecttTracking"
+SESSION = "20260904_172909"  # P4, pick and place, direct
 HAND = "left"
-PATH = os.path.join("recordings", "sessions", SESSION, "trail.csv")
+PATH = os.path.join(session_dir(SESSION), "trail.csv")
 
 plt.rcParams.update({
     "font.size": 8, "axes.labelsize": 7.5, "axes.titlesize": 8.5,

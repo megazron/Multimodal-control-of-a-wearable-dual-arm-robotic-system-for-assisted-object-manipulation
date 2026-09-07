@@ -31,6 +31,25 @@ Times New Roman (the four Windows `times*.ttf` copied into
 the EPS logo (here: Ubuntu's `.deb`s unpacked into `~/.local/gs`, wrapper at
 `~/.local/bin/gs`).
 
+**The pilot ran TWO tasks, not three (corrected 2026-09-07).** The session
+folders were named at the console and mixed the names up: "object tracking"
+folders were the pick-and-place task; "position matching/reaching" and
+"target reaching" were one target-reaching task. The operator confirmed the
+mapping. `figures/relabel_pilot_tasks.py` applies it to the derived data
+files in `figures/pilot/data/` (now kept in the repo, ANONYMISED by
+`figures/anonymise_pilot_data.py`: participant codes only, sessions named by
+their timestamp key, resolved back to a folder by `figures/session_paths.py`;
+the name-to-code book lives outside the repo in
+`recordings/sessions/participant_codes.json`). Paired comparisons were
+recomputed (robot path higher with assistance 5 of 7, was 6 of 7; operator
+hand 3 of 7, was 2 of 7). Pick-and-place OUTCOMES come from the gripper
+record: `figures/extract_pilot_gripper.py` reads `/real/gripper_<hand>` from
+every VR bag (measured finger position) and `figures/make_gripper_table.py`
+sets it beside the controller trigger passed through the live node's own
+latch -- three operators held the gripper closed (P1, P2, P5), one closed it
+once briefly (P3), one never (P4); the operator's account was three
+pick-and-places, one lift, one reach. Table `tab:gripper-use` in Appendix L.
+
 ## Current state
 
 - **Latest round (page-by-page check; CV section fixed):** every main-body

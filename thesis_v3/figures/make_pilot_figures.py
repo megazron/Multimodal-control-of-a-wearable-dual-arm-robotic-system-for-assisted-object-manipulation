@@ -17,7 +17,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-SCRATCH = "/tmp/claude-1000/-home-gausms-kortex-ws/bbebc7ab-9df1-4fc1-80b7-ee284d9eaac6/scratchpad"
+HERE = os.path.dirname(os.path.abspath(__file__))
+SCRATCH = os.path.join(HERE, "pilot", "data")  # the derived session tables, kept in the repo
+from session_paths import session_dir  # noqa: E402
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pilot")
 os.makedirs(OUT, exist_ok=True)
 SESS_ROOT = "recordings/sessions"
@@ -29,7 +31,7 @@ plt.rcParams.update({
     "axes.spines.right": False,
 })
 GREY, BLUE, RED = "0.35", "#2c6fbb", "#c1392b"
-ANON = {"Wen": "P1", "Hela": "P2", "Farrel": "P3", "Feifan": "P4"}
+ANON = {}  # the data files are already anonymised (figures/anonymise_pilot_data.py)
 
 DATA = json.load(open(os.path.join(SCRATCH, "study_summary.json")))
 SESSIONS = DATA["sessions"]
@@ -39,9 +41,8 @@ for s in SESSIONS:
 for p in PAIRED:
     p["participant"] = ANON.get(p["participant"], p["participant"])
 
-TASKS = ["Object tracking", "Target reaching", "Position matching", "Unspecified"]
-TASK_SHORT = {"Object tracking": "track", "Target reaching": "reach",
-              "Position matching": "match", "Unspecified": "P5*"}
+TASKS = ["Pick and place", "Target reaching", "Unspecified"]
+TASK_SHORT = {"Pick and place": "pick & place", "Target reaching": "target\nreaching", "Unspecified": "P5*"}
 
 
 def by_task_condition(metric):
@@ -142,8 +143,8 @@ slope_panel("clutch_engagements", "re-grips", "pilot_paired_regrips.pdf")
 # ---------------------------------------------------------------------------
 # Trajectory and engagement panels, one participant, both conditions
 # ---------------------------------------------------------------------------
-def load_trace(session_dir, hand):
-    path = os.path.join(SESS_ROOT, session_dir, "trail.csv")
+def load_trace(session_key, hand):
+    path = os.path.join(session_dir(session_key), "trail.csv")
     x, y, z = [], [], []
     with open(path) as f:
         for row in csv.DictReader(f):
@@ -157,9 +158,9 @@ def load_trace(session_dir, hand):
     return np.array(x), np.array(y), np.array(z)
 
 
-def load_events(session_dir):
+def load_events(session_key):
     events = []
-    with open(os.path.join(SESS_ROOT, session_dir, "events.jsonl")) as f:
+    with open(os.path.join(session_dir(session_key), "events.jsonl")) as f:
         for line in f:
             line = line.strip()
             if line:
@@ -168,8 +169,8 @@ def load_events(session_dir):
 
 
 TRAJ = {
-    "Direct": ("20260904_172909_Feifan_VRDIrect_ObjecttTracking", "left"),
-    "Shared": ("20260904_174535_Feifan_VRShared_ObjectTracking", "left"),
+    "Direct": ("20260904_172909", "left"),   # P4, pick and place
+    "Shared": ("20260904_174535", "left"),
 }
 COND_COLOR = {"Direct": BLUE, "Shared": RED}
 

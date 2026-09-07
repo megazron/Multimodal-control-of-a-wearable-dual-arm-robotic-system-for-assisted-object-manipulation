@@ -9,7 +9,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-SCRATCH = "/tmp/claude-1000/-home-gausms-kortex-ws/bbebc7ab-9df1-4fc1-80b7-ee284d9eaac6/scratchpad"
+HERE = os.path.dirname(os.path.abspath(__file__))
+SCRATCH = os.path.join(HERE, "pilot", "data")  # the derived session tables, kept in the repo
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pilot")
 
 plt.rcParams.update({

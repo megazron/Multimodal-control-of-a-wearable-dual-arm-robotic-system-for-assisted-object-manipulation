@@ -33,6 +33,9 @@ import rclpy  # noqa: E402
 from moveit_msgs.msg import RobotState  # noqa: E402
 from moveit_msgs.srv import GetPositionFK  # noqa: E402
 from rclpy.node import Node  # noqa: E402
+import sys as _sys
+_sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from session_paths import session_dir  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(os.path.dirname(__file__), "pilot", "track_3d_master.pdf")
@@ -44,8 +47,8 @@ plt.rcParams.update({
 })
 
 SESSIONS = [
-    ("Direct", "jorge_objecttrackingdirect_20260902_132710"),
-    ("Shared autonomy", "jorge_objecttrackingshared_20260902_132941"),
+    ("Direct", "20260902_132710"),   # M2, pick and place
+    ("Shared autonomy", "20260902_132941"),
 ]
 HAND = "right"
 ARM_LEN = 7
@@ -83,7 +86,7 @@ NEEDED = (["master_%s_%s" % (HAND, a) for a in "xyz"] +
 
 
 def load(session):
-    path = os.path.join(ROOT, "recordings", "sessions", session, "trail_extracted.csv")
+    path = os.path.join(session_dir(session), "trail_extracted.csv")
     with open(path) as f:
         rows = list(csv.DictReader(f))
     return [r for r in rows if all((r.get(k) or "") != "" for k in NEEDED)]

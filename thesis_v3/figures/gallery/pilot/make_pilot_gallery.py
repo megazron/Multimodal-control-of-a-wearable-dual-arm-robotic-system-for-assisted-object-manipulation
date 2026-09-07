@@ -23,7 +23,10 @@ from matplotlib.patches import Patch
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
 SESS = os.path.join(ROOT, "recordings", "sessions")
-SCRATCH = "/tmp/claude-1000/-home-gausms-kortex-ws/bbebc7ab-9df1-4fc1-80b7-ee284d9eaac6/scratchpad"
+SCRATCH = os.path.join(HERE, "..", "..", "pilot", "data")  # the derived session tables, kept in the repo
+import sys as _sys
+_sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+from session_paths import session_dir  # noqa: E402
 
 plt.rcParams.update({
     "font.size": 9, "axes.titlesize": 9, "axes.labelsize": 9,
@@ -34,10 +37,9 @@ plt.rcParams.update({
 GREY, BLUE, RED, GREEN = "0.35", "#2c6fbb", "#c1392b", "#3f9142"
 COND_COL = {"Direct": BLUE, "Shared": RED}
 COND_LBL = {"Direct": "direct control", "Shared": "with assistance"}
-ANON = {"Wen": "P1", "Hela": "P2", "Farrel": "P3", "Feifan": "P4", "P5": "P5",
-        "christian": "M1", "jorge": "M2"}
-TASK_LBL = {"Object tracking": "object tracking", "Target reaching": "target reaching",
-            "Position matching": "position matching", "Unspecified": "task not labelled"}
+ANON = {}  # the data files are already anonymised (figures/anonymise_pilot_data.py); codes pass through
+TASK_LBL = {"Pick and place": "pick and place", "Target reaching": "target reaching",
+            "Unspecified": "task not labelled"}
 GATE_MM = 30.0
 INDEX = []
 
@@ -68,7 +70,7 @@ for m in vr_meta + ma_meta:
 
 
 def load_vr(m):
-    d = os.path.join(SESS, m["session"])
+    d = session_dir(m["session"])
     rows = list(csv.DictReader(open(os.path.join(d, "trail.csv"))))
     h = m["active_hand"]
     col = lambda k: np.array([fl(r.get(k)) for r in rows])
@@ -89,7 +91,7 @@ def load_vr(m):
 
 
 def load_master(m):
-    d = os.path.join(SESS, m["session"])
+    d = session_dir(m["session"])
     rows = list(csv.DictReader(open(os.path.join(d, "trail_extracted.csv"))))
     h = m["active_hand"]
     col = lambda k: np.array([fl(r.get(k)) for r in rows])
@@ -400,8 +402,8 @@ save(fig, "08_sim_real_error", "Tracking error per joint, and does it grow with 
 # --------------------------------------------------------------------------
 # 9. master cohort: pots, and master hand paths
 # --------------------------------------------------------------------------
-good = next(s for s in MA if s["participant"] == "M2" and s["condition"] == "Direct" and s["task"] == "Object tracking")
-bad = next(s for s in MA if s["participant"] == "M1" and s["task"] == "Object tracking")
+good = next(s for s in MA if s["participant"] == "M2" and s["condition"] == "Direct" and s["task"] == "Pick and place")
+bad = next(s for s in MA if s["participant"] == "M1" and s["task"] == "Pick and place")
 fig, axes = plt.subplots(2, 1, figsize=(7.2, 4.2), sharex=False)
 for ax, s, nm in zip(axes, (good, bad), ("M2 (tracks within 2°)", "M1 (tracks 16–21° off)")):
     P = s["pots"][s["active_hand"]]
@@ -473,6 +475,27 @@ save(fig, "11_paired_slopes", "Same operator, same task, both ways round",
          sum(1 for v in pairs.values() if np.mean([s["ee_path_m"] for s in v["Shared"]]) > np.mean([s["ee_path_m"] for s in v["Direct"]])),
          sum(1 for v in pairs.values() if np.mean([s["controller_path_m"] for s in v["Shared"]]) > np.mean([s["controller_path_m"] for s in v["Direct"]]))),
      "MAIN")
+
+# --------------------------------------------------------------------------
+# 11b. the same slopegraph, three panels, for the main body (larger type)
+# --------------------------------------------------------------------------
+metrics3 = [("ee_path_m", "how far the robot's hand moved (m)"),
+            ("controller_path_m", "how far the operator's hand moved (m)"),
+            ("clutch_engagements", "times the clutch was re-engaged")]
+with plt.rc_context({"font.size": 11, "axes.labelsize": 11, "xtick.labelsize": 11, "ytick.labelsize": 10}):
+    fig, axes = plt.subplots(1, 3, figsize=(10.0, 4.6), gridspec_kw={"wspace": 0.55})
+    for ax, (k, lab) in zip(axes, metrics3):
+        for (p, task), v in pairs.items():
+            a = np.mean([s[k] for s in v["Direct"]]); b = np.mean([s[k] for s in v["Shared"]])
+            ax.plot([0, 1], [a, b], color=GREY, lw=1.2); ax.scatter([0], [a], color=BLUE, s=60, zorder=3); ax.scatter([1], [b], color=RED, s=60, zorder=3)
+            ax.text(-0.08, a, p, fontsize=9, ha="right", va="center", color=GREY)
+        ax.set_xticks([0, 1]); ax.set_xticklabels(["direct", "with\nassistance"]); ax.set_xlim(-0.4, 1.25); ax.set_ylabel(lab)
+        a_all = [np.mean([s[k] for s in v["Direct"]]) for v in pairs.values()]; b_all = [np.mean([s[k] for s in v["Shared"]]) for v in pairs.values()]
+        up = sum(1 for a, b in zip(a_all, b_all) if b > a)
+        ax.set_title("%d of %d higher with assistance" % (up, len(pairs)), fontsize=11, color=GREY)
+    fig.savefig(os.path.join(HERE, "11_paired_slopes_3panel.pdf"))
+    fig.savefig(os.path.join(HERE, "11_paired_slopes_3panel_300.png"), dpi=300)
+    plt.close(fig)
 
 # --------------------------------------------------------------------------
 # 12. extras: robot path vs hand path per session; speed distribution

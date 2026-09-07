@@ -9,7 +9,12 @@ Twenty-three sessions were recorded, sixteen on 2026-09-03/04 for P1--P4 and
 seven on 2026-09-02 for P5 (\repo{recordings/sessions/}). Duration, the
 robot's end-effector path and lag come from the full-resolution position trace
 (20 Hz); clutch and emergency-stop counts come from each session's event
-log. P5's sessions predate the per-participant folder-naming convention
+log. The session folders were named at the console, and the names mixed
+the two tasks up: sessions named "object tracking" were the pick-and-place
+task, and "position matching" or "position reaching" was the same
+target-reaching task under another name. The operator who ran the sessions
+confirmed the mapping, and every table and figure here uses the two real
+task names (\repo{figures/relabel\_pilot\_tasks.py}). P5's sessions predate the per-participant folder-naming convention
 (generic timestamp names, no task label) and are identified as direct or
 shared from the \texttt{shared\_autonomy} flag each session's own
 \texttt{events.jsonl} logs at start, which -- unlike the folder names relied
@@ -26,15 +31,15 @@ consistent with \repo{write\_manifest()} refusing to record a name
   P5's task was not recorded; all seven of P5's sessions are one
   undifferentiated block.}
   \label{tab:pilot-coverage}
-  \begin{tabular}{@{}lcccc@{}}
+  \begin{tabular}{@{}lccc@{}}
     \toprule
-    Participant & Object tracking & Target reaching & Position matching & (unlabelled) \\
+    Participant & Pick and place & Target reaching & (unlabelled) \\
     \midrule
-    P1 & both (direct $\times2$) & --- & --- & --- \\
-    P2 & both & both (shared $\times2$) & --- & --- \\
-    P3 & direct only & shared only & both & --- \\
-    P4 & both & --- & both & --- \\
-    P5 & --- & --- & --- & both (direct $\times5$, shared $\times2$) \\
+    P1 & both (direct $\times2$) & --- & --- \\
+    P2 & both & both (shared $\times2$) & --- \\
+    P3 & direct only & both (shared $\times2$) & --- \\
+    P4 & both & both & --- \\
+    P5 & --- & --- & both (direct $\times5$, shared $\times2$) \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -52,22 +57,22 @@ consistent with \repo{write\_manifest()} refusing to record a name
     \toprule
     P & Task & Cond. & Duration (s) & Travel (m) & Re-grips & Active \\
     \midrule
-    P1 & Object tracking  & Direct & 147.4 & 0.31 & 19 & \SI{50}{\percent} \\
-    P1 & Object tracking  & Direct & 392.8 & 1.85 & 53 & \SI{53}{\percent} \\
-    P1 & Object tracking  & Shared & 114.9 & 1.50 & 12 & \SI{61}{\percent} \\
-    P2 & Object tracking  & Direct & 38.7  & 0.90 & 2  & \SI{61}{\percent} \\
-    P2 & Object tracking  & Shared & 169.6 & 1.57 & 25 & \SI{76}{\percent} \\
+    P1 & Pick and place   & Direct & 147.4 & 0.31 & 19 & \SI{50}{\percent} \\
+    P1 & Pick and place   & Direct & 392.8 & 1.85 & 53 & \SI{53}{\percent} \\
+    P1 & Pick and place   & Shared & 114.9 & 1.50 & 12 & \SI{61}{\percent} \\
+    P2 & Pick and place   & Direct & 38.7  & 0.90 & 2  & \SI{61}{\percent} \\
+    P2 & Pick and place   & Shared & 169.6 & 1.57 & 25 & \SI{76}{\percent} \\
     P2 & Target reaching  & Direct & 227.9 & 2.77 & 25 & \SI{52}{\percent} \\
     P2 & Target reaching  & Shared & 78.6  & 0.70 & 11 & \SI{65}{\percent} \\
     P2 & Target reaching  & Shared & 357.9 & 5.39 & 41 & \SI{73}{\percent} \\
-    P3 & Object tracking  & Direct & 617.4 & 7.09 & 52 & \SI{83}{\percent} \\
+    P3 & Pick and place   & Direct & 617.4 & 7.09 & 52 & \SI{83}{\percent} \\
     P3 & Target reaching  & Shared & 458.1 & 3.18 & 51 & \SI{74}{\percent} \\
-    P3 & Position matching & Direct & 315.9 & 3.72 & 35 & \SI{67}{\percent} \\
-    P3 & Position matching & Shared & 196.8 & 4.08 & 14 & \SI{85}{\percent} \\
-    P4 & Object tracking  & Direct & 195.6 & 2.07 & 37 & \SI{68}{\percent} \\
-    P4 & Object tracking  & Shared & 186.9 & 1.98 & 25 & \SI{42}{\percent} \\
-    P4 & Position matching & Direct & 171.9 & 1.65 & 12 & \SI{30}{\percent} \\
-    P4 & Position matching & Shared & 111.7 & 1.98 & 12 & \SI{40}{\percent} \\
+    P3 & Target reaching  & Direct & 315.9 & 3.72 & 35 & \SI{67}{\percent} \\
+    P3 & Target reaching  & Shared & 196.8 & 4.08 & 14 & \SI{85}{\percent} \\
+    P4 & Pick and place   & Direct & 195.6 & 2.07 & 37 & \SI{68}{\percent} \\
+    P4 & Pick and place   & Shared & 186.9 & 1.98 & 25 & \SI{42}{\percent} \\
+    P4 & Target reaching  & Direct & 171.9 & 1.65 & 12 & \SI{30}{\percent} \\
+    P4 & Target reaching  & Shared & 111.7 & 1.98 & 12 & \SI{40}{\percent} \\
     P5 & (unlabelled) & Direct & 262.5 & 1.99 & 20 & \SI{37}{\percent} \\
     P5 & (unlabelled) & Shared & 250.0 & 1.58 & 23 & \SI{39}{\percent} \\
     P5 & (unlabelled) & Direct & 359.5 & 5.19 & 43 & \SI{62}{\percent} \\
@@ -103,8 +108,8 @@ consistent with \repo{write\_manifest()} refusing to record a name
   \end{subfigure}
   \caption[Pilot: supplementary measures]{The supplementary pilot measures,
   by task and condition. Lag is essentially unchanged between conditions;
-  the robot's end-effector path (a) is longer under shared autonomy in three
-  of four task groups, consistent with the paired result in
+  the robot's end-effector path (a) is longer under shared autonomy in two
+  of three task groups, consistent with the paired result in
   \cref{sec:pilot-limits} -- and it is the \emph{robot's} path: the
   operators' own controller paths differ by \SI{2}{\percent} between
   conditions (\SI{29.9}{\metre} direct, \SI{30.5}{\metre} shared). Both
@@ -138,13 +143,33 @@ consistent with \repo{write\_manifest()} refusing to record a name
   \label{fig:pilot-trajectory}
 \end{figure}
 
+\section{What the gripper record says about pick and place}
+\label{sec:gripper-record}
+
+The \SI{20}{\hertz} trail never logged a gripper command (its
+\repo{grip\_cmd\_*} columns are empty in every session), so whether a pick
+happened was read from two other records (\cref{tab:gripper-use}): the
+controller's index trigger, which is what the live gripper node closes the
+hand from, passed through that node's own latch; and the physical gripper's
+measured finger position from the bag. The two agree. P1 closed the gripper
+eight times and held it closed for \SI{18}{\second} in total, P2 four times
+for \SI{5.8}{\second}, and P5 four times for \SI{133}{\second} -- carrying
+the object; P3 closed it once, to \num{0.90} of full travel, for
+\SI{0.7}{\second}; P4 never closed it in any session. That is the record
+behind the statement in \cref{sec:pilot-results}: three pick-and-places
+completed, one lift, one reach. P5's task labels were never recorded, and
+the two long holds identify which of P5's sessions were the pick-and-place
+attempts.
+
+\input{figures/pilot/gripper_table.tex}
+
 \section{Sim-to-real tracking during the pilot}
 
 Every pilot session polled the physical Kinova arms' own joint encoders
 alongside the simulated joint state, which makes a direct check possible:
 does the real arm actually follow the simulated one it was commanded
 through. \Cref{fig:track} is the best-tracking session across all twenty-three
-(P4, object tracking, direct control, chosen by lowest sim-to-real joint
+(P4, pick and place, direct control, chosen by lowest sim-to-real joint
 RMS): the real arm's joint 4 angle follows the simulated one to
 \SI{1.06}{\degree} RMS over \num{3859} samples, with the largest departures
 during the fastest motion and near-zero error while the arm holds still.
@@ -210,11 +235,11 @@ at all). The nine that did record are real sessions,
     \toprule
     M & Task, condition & Duration (s) & Master path (m) & Joint RMS (deg) \\
     \midrule
-    M1 & Object tracking, direct   & 154.1 & 21.44 & 21.2 \\
-    M1 & Object tracking, direct   & 145.8 & 14.11 & 15.9 \\
+    M1 & Pick and place, direct   & 154.1 & 21.44 & 21.2 \\
+    M1 & Pick and place, direct   & 145.8 & 14.11 & 15.9 \\
     M1 & (unspecified), shared     & 209.8 & 22.02 & 16.3 \\
-    M2 & Object tracking, direct   & 110.9 & 10.85 & 2.2 \\
-    M2 & Object tracking, shared   & 71.7  & 7.57  & 1.9 \\
+    M2 & Pick and place, direct   & 110.9 & 10.85 & 2.2 \\
+    M2 & Pick and place, shared   & 71.7  & 7.57  & 1.9 \\
     M2 & Target reaching, direct   & 303.8 & 20.80 & 1.8 \\
     M2 & Target reaching, shared   & 83.6  & 4.19  & 0.4 \\
     M2 & Target reaching, shared   & 206.4 & 11.60 & 3.0 \\
@@ -251,7 +276,7 @@ hardware, on the same day, and the pooled VR-only comparison of
 \paragraph{Limits.} Five participants with uneven task coverage is a
 pilot-scale sample: no significance test is reported, and none of the
 differences above should be read as a proven effect. The pooled figures mix
-three tasks together; the paired panels are the part of this pilot closest
+the two tasks together; the paired panels are the part of this pilot closest
 to the paired design of \cref{app:study}. Session duration runs from the
 start of the recording to the end, including any explanation or hesitation,
 so it is a session-length measure rather than a pure motor-execution time.

@@ -1,0 +1,110 @@
+[
+ {
+  "session": "20260902_111231",
+  "participant": "M1",
+  "task": "Unspecified",
+  "condition": "Shared",
+  "active_hand": "right",
+  "duration_s": 209.75,
+  "master_path_m": 22.0228,
+  "trail_rows": 4196,
+  "joint_rms_deg": 16.296,
+  "joint_rms_n": 2232
+ },
+ {
+  "session": "20260902_114001",
+  "participant": "M1",
+  "task": "Pick and place",
+  "condition": "Direct",
+  "active_hand": "right",
+  "duration_s": 154.1,
+  "master_path_m": 21.4378,
+  "trail_rows": 3083,
+  "joint_rms_deg": 21.195,
+  "joint_rms_n": 947
+ },
+ {
+  "session": "20260902_114249",
+  "participant": "M1",
+  "task": "Pick and place",
+  "condition": "Direct",
+  "active_hand": "right",
+  "duration_s": 145.75,
+  "master_path_m": 14.1121,
+  "trail_rows": 2916,
+  "joint_rms_deg": 15.851,
+  "joint_rms_n": 1392
+ },
+ {
+  "session": "20260902_132710",
+  "participant": "M2",
+  "task": "Pick and place",
+  "condition": "Direct",
+  "active_hand": "right",
+  "duration_s": 110.9,
+  "master_path_m": 10.8488,
+  "trail_rows": 2219,
+  "joint_rms_deg": 2.243,
+  "joint_rms_n": 972
+ },
+ {
+  "session": "20260902_132941",
+  "participant": "M2",
+  "task": "Pick and place",
+  "condition": "Shared",
+  "active_hand": "right",
+  "duration_s": 71.7,
+  "master_path_m": 7.5696,
+  "trail_rows": 1435,
+  "joint_rms_deg": 1.904,
+  "joint_rms_n": 527
+ },
+ {
+  "session": "20260902_133239",
+  "participant": "M2",
+  "task": "Target reaching",
+  "condition": "Direct",
+  "active_hand": "right",
+  "duration_s": 303.8,
+  "master_path_m": 20.8015,
+  "trail_rows": 6077,
+  "joint_rms_deg": 1.779,
+  "joint_rms_n": 3310
+ },
+ {
+  "session": "20260902_134510",
+  "participant": "M2",
+  "task": "Target reaching",
+  "condition": "Shared",
+  "active_hand": "right",
+  "duration_s": 83.55,
+  "master_path_m": 4.1939,
+  "trail_rows": 1672,
+  "joint_rms_deg": 0.43,
+  "joint_rms_n": 817
+ },
+ {
+  "session": "20260902_135048",
+  "participant": "M2",
+  "task": "Target reaching",
+  "condition": "Shared",
+  "active_hand": "left",
+  "duration_s": 206.35,
+  "master_path_m": 11.6028,
+  "trail_rows": 4128,
+  "joint_rms_deg": 2.998,
+  "joint_rms_n": 1502
+ },
+ {
+  "session": "20260904_115438",
+  "participant": "M3",
+  "task": "Target reaching",
+  "condition": "Direct",
+  "active_hand": "left",
+  "duration_s": 254.05,
+  "master_path_m": 11.4756,
+  "trail_rows": 5082,
+  "joint_rms_deg": 1.767,
+  "joint_rms_n": 1714
+ }
+]

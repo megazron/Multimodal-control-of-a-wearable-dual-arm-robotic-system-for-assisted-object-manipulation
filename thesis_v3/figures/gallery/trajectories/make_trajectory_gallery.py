@@ -36,7 +36,10 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: E402,F401
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
-SCRATCH = "/tmp/claude-1000/-home-gausms-kortex-ws/bbebc7ab-9df1-4fc1-80b7-ee284d9eaac6/scratchpad"
+SCRATCH = os.path.join(HERE, "..", "..", "pilot", "data")  # the derived session tables, kept in the repo
+import sys as _sys
+_sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+from session_paths import session_dir  # noqa: E402
 CACHE = os.path.join(HERE, "trajectories.json")
 
 GREY, BLUE, RED, GREEN = "0.35", "#2c6fbb", "#c1392b", "#3f9142"
@@ -44,10 +47,10 @@ plt.rcParams.update({
     "font.size": 9, "axes.titlesize": 9,
     "axes.spines.top": False, "axes.spines.right": False,
 })
-ANON = {"Wen": "P1", "Hela": "P2", "Farrel": "P3", "Feifan": "P4"}
+ANON = {}  # the data files are already anonymised (figures/anonymise_pilot_data.py)
 COND = {"Direct": "direct control", "Shared": "with assistance"}
-TASK_SHORT = {"Object tracking": "object tracking", "Target reaching": "target reaching",
-              "Position matching": "position matching", "Unspecified": "task not labelled"}
+TASK_SHORT = {"Pick and place": "pick and place", "Target reaching": "target reaching",
+              "Unspecified": "task not labelled"}
 STRIDE = 10
 ARM_LEN = 7
 LBL_OP = "operator's hand"
@@ -103,7 +106,7 @@ def extract():
     vr = json.load(open(os.path.join(SCRATCH, "vr_study_sessions.json")))
     for s in vr:
         hand = s["active_hand"]
-        path = os.path.join(ROOT, "recordings", "sessions", s["session"], "trail.csv")
+        path = os.path.join(session_dir(s["session"]), "trail.csv")
         need = (["master_%s_%s" % (hand, a) for a in "xyz"] + ["ee_%s_%s" % (hand, a) for a in "xyz"]
                 + ["real_%s_j%d" % (hand, j + 1) for j in range(ARM_LEN)] + ["vr_%s_grip" % hand, "t"])
         with open(path) as f:
@@ -135,7 +138,7 @@ def extract():
     ma = json.load(open(os.path.join(SCRATCH, "master_arm_sessions.json")))
     for s in ma:
         hand = s["active_hand"]
-        path = os.path.join(ROOT, "recordings", "sessions", s["session"], "trail_extracted.csv")
+        path = os.path.join(session_dir(s["session"]), "trail_extracted.csv")
         need = (["master_%s_%s" % (hand, a) for a in "xyz"]
                 + ["sim_%s_j%d" % (hand, j + 1) for j in range(ARM_LEN)]
                 + ["real_%s_j%d" % (hand, j + 1) for j in range(ARM_LEN)] + ["t"])

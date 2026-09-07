@@ -1,0 +1,946 @@
+{
+ "sessions": [
+  {
+   "session": "20260903_152725",
+   "participant": "P1",
+   "task": "Pick and place",
+   "condition": "Direct",
+   "active_hand": "right",
+   "duration_s": 147.4,
+   "ee_path_m": 0.3056,
+   "controller_path_m": 17.1165,
+   "clutch_engagements": 19,
+   "clutch_refused": 1,
+   "active_control_time_s": 73.36,
+   "active_control_frac": 0.498,
+   "mean_lag_mm": 2.82,
+   "tracking_ok_frac": 0.9993,
+   "estop_end_hold": false,
+   "trail_rows": 2793
+  },
+  {
+   "session": "20260903_154051",
+   "participant": "P1",
+   "task": "Pick and place",
+   "condition": "Direct",
+   "active_hand": "left",
+   "duration_s": 392.84,
+   "ee_path_m": 1.8487,
+   "controller_path_m": 50.2742,
+   "clutch_engagements": 53,
+   "clutch_refused": 5,
+   "active_control_time_s": 208.79,
+   "active_control_frac": 0.531,
+   "mean_lag_mm": 3.26,
+   "tracking_ok_frac": 0.9859,
+   "estop_end_hold": false,
+   "trail_rows": 7214
+  },
+  {
+   "session": "20260903_160803",
+   "participant": "P1",
+   "task": "Pick and place",
+   "condition": "Shared",
+   "active_hand": "left",
+   "duration_s": 114.94,
+   "ee_path_m": 1.4958,
+   "controller_path_m": 12.9923,
+   "clutch_engagements": 12,
+   "clutch_refused": 1,
+   "active_control_time_s": 69.59,
+   "active_control_frac": 0.605,
+   "mean_lag_mm": 2.34,
+   "tracking_ok_frac": 1.0,
+   "estop_end_hold": false,
+   "trail_rows": 2222
+  },
+  {
+   "session": "20260904_103909",
+   "participant": "P2",
+   "task": "Pick and place",
+   "condition": "Direct",
+   "active_hand": "left",
+   "duration_s": 38.65,
+   "ee_path_m": 0.8979,
+   "controller_path_m": 3.5415,
+   "clutch_engagements": 2,
+   "clutch_refused": 1,
+   "active_control_time_s": 23.71,
+   "active_control_frac": 0.613,
+   "mean_lag_mm": 2.38,
+   "tracking_ok_frac": 1.0,
+   "estop_end_hold": true,
+   "trail_rows": 751
+  },
+  {
+   "session": "20260904_105440",
+   "participant": "P2",
+   "task": "Pick and place",
+   "condition": "Shared",
+   "active_hand": "left",
+   "duration_s": 169.57,
+   "ee_path_m": 1.5723,
+   "controller_path_m": 22.2323,
+   "clutch_engagements": 25,
+   "clutch_refused": 2,
+   "active_control_time_s": 129.22,
+   "active_control_frac": 0.762,
+   "mean_lag_mm": 2.44,
+   "tracking_ok_frac": 0.9994,
+   "estop_end_hold": false,
+   "trail_rows": 3374
+  },
+  {
+   "session": "20260904_110822",
+   "participant": "P2",
+   "task": "Target reaching",
+   "condition": "Direct",
+   "active_hand": "left",
+   "duration_s": 227.91,
+   "ee_path_m": 2.7725,
+   "controller_path_m": 42.38,
+   "clutch_engagements": 25,
+   "clutch_refused": 3,
+   "active_control_time_s": 118.81,
+   "active_control_frac": 0.521,
+   "mean_lag_mm": 3.37,
+   "tracking_ok_frac": 1.0,
+   "estop_end_hold": true,
+   "trail_rows": 4465
+  },
+  {
+   "session": "20260904_112057",
+   "participant": "P2",
+   "task": "Target reaching",
+   "condition": "Shared",
+   "active_hand": "right",
+   "duration_s": 78.58,
+   "ee_path_m": 0.6985,
+   "controller_path_m": 14.9211,
+   "clutch_engagements": 11,
+   "clutch_refused": 5,
+   "active_control_time_s": 51.15,
+   "active_control_frac": 0.651,
+   "mean_lag_mm": 3.93,
+   "tracking_ok_frac": 1.0,
+   "estop_end_hold": true,
+   "trail_rows": 1528
+  },
+  {
+   "session": "20260904_112954",
+   "participant": "P2",
+   "task": "Target reaching",
+   "condition": "Shared",
+   "active_hand": "left",
+   "duration_s": 357.9,
+   "ee_path_m": 5.3888,
+   "controller_path_m": 60.859,
+   "clutch_engagements": 41,
+   "clutch_refused": 10,
+   "active_control_time_s": 260.34,
+   "active_control_frac": 0.727,
+   "mean_lag_mm": 3.99,
+   "tracking_ok_frac": 1.0,
+   "estop_end_hold": false,
+   "trail_rows": 6917
+  },
+  {
+   "session": "20260904_141930",
+   "participant": "P3",
+   "task": "Pick and place",
+   "condition": "Direct",
+   "active_hand": "left",
+   "duration_s": 617.37,
+   "ee_path_m": 7.0898,
+   "controller_path_m": 79.6834,
+   "clutch_engagements": 52,
+   "clutch_refused": 5,
+   "active_control_time_s": 509.76,
+   "active_control_frac": 0.826,
+   "mean_lag_mm": 3.32,
+   "tracking_ok_frac": 1.0,
+   "estop_end_hold": false,
+   "trail_rows": 12179
+  },
+  {
+   "session": "20260904_144126",
+   "participant": "P3",
+   "task": "Target reaching",
+   "condition": "Shared",
+   "active_hand": "left",
+   "duration_s": 458.05,
+   "ee_path_m": 3.1837,
+   "controller_path_m": 96.5088,
+   "clutch_engagements": 51,
+   "clutch_refused": 7,
+   "active_control_time_s": 339.17,
+   "active_control_frac": 0.74,
+   "mean_lag_mm": 4.7,
+   "tracking_ok_frac": 0.9918,
+   "estop_end_hold": true,
+   "trail_rows": 9103
+  },
+  {
+   "session": "20260904_145702",
+   "participant": "P3",
+   "task": "Target reaching",
+   "condition": "Direct",
+   "active_hand": "left",
+   "duration_s": 315.9,
+   "ee_path_m": 3.7211,
+   "controller_path_m": 47.7843,
+   "clutch_engagements": 35,
+   "clutch_refused": 5,
+   "active_control_time_s": 211.07,
+   "active_control_frac": 0.668,
+   "mean_lag_mm": 2.39,
+   "tracking_ok_frac": 1.0,
+   "estop_end_hold": false,
+   "trail_rows": 6276
+  },
+  {
+   "session": "20260904_152232",
+   "participant": "P3",
+   "task": "Target reaching",
+   "condition": "Shared",
+   "active_hand": "left",
+   "duration_s": 196.82,
+   "ee_path_m": 4.0756,
+   "controller_path_m": 17.6919,
+   "clutch_engagements": 14,
+   "clutch_refused": 0,
+   "active_control_time_s": 167.06,
+   "active_control_frac": 0.849,
+   "mean_lag_mm": 2.12,
+   "tracking_ok_frac": 1.0,
+   "estop_end_hold": false,
+   "trail_rows": 3873
+  },
+  {
+   "session": "20260904_172909",
+   "participant": "P4",
+   "task": "Pick and place",
+   "condition": "Direct",
+   "active_hand": "left",
+   "duration_s": 195.64,
+   "ee_path_m": 2.0723,
+   "controller_path_m": 24.3891,
+   "clutch_engagements": 37,
+   "clutch_refused": 4,
+   "active_control_time_s": 133.19,
+   "active_control_frac": 0.681,
+   "mean_lag_mm": 2.67,
+   "tracking_ok_frac": 0.9995,
+   "estop_end_hold": true,
+   "trail_rows": 3887
+  },
+  {
+   "session": "20260904_174535",
+   "participant": "P4",
+   "task": "Pick and place",
+   "condition": "Shared",
+   "active_hand": "left",
+   "duration_s": 186.87,
+   "ee_path_m": 1.9841,
+   "controller_path_m": 25.247,
+   "clutch_engagements": 25,
+   "clutch_refused": 2,
+   "active_control_time_s": 79.18,
+   "active_control_frac": 0.424,
+   "mean_lag_mm": 2.46,
+   "tracking_ok_frac": 1.0,
+   "estop_end_hold": true,
+   "trail_rows": 3715
+  },
+  {
+   "session": "20260904_175811",
+   "participant": "P4",
+   "task": "Target reaching",
+   "condition": "Direct",
+   "active_hand": "left",
+   "duration_s": 171.94,
+   "ee_path_m": 1.6548,
+   "controller_path_m": 16.4073,
+   "clutch_engagements": 12,
+   "clutch_refused": 0,
+   "active_control_time_s": 50.65,
+   "active_control_frac": 0.295,
+   "mean_lag_mm": 1.93,
+   "tracking_ok_frac": 1.0,
+   "estop_end_hold": true,
+   "trail_rows": 3399
+  },
+  {
+   "session": "20260904_180951",
+   "participant": "P4",
+   "task": "Target reaching",
+   "condition": "Shared",
+   "active_hand": "left",
+   "duration_s": 111.71,
+   "ee_path_m": 1.9796,
+   "controller_path_m": 11.5585,
+   "clutch_engagements": 12,
+   "clutch_refused": 0,
+   "active_control_time_s": 44.61,
+   "active_control_frac": 0.399,
+   "mean_lag_mm": 2.07,
+   "tracking_ok_frac": 1.0,
+   "estop_end_hold": true,
+   "trail_rows": 2207
+  },
+  {
+   "session": "20260902_153646",
+   "participant": "P5",
+   "task": "Unspecified",
+   "condition": "Direct",
+   "active_hand": "right",
+   "duration_s": 262.5,
+   "ee_path_m": 1.9875,
+   "controller_path_m": 19.0086,
+   "clutch_engagements": 20,
+   "clutch_refused": 3,
+   "active_control_time_s": 97.16,
+   "active_control_frac": 0.37,
+   "mean_lag_mm": 2.36,
+   "tracking_ok_frac": 1.0,
+   "estop_end_hold": false,
+   "trail_rows": 5111
+  },
+  {
+   "session": "20260902_155631",
+   "participant": "P5",
+   "task": "Unspecified",
+   "condition": "Shared",
+   "active_hand": "left",
+   "duration_s": 249.96,
+   "ee_path_m": 1.5795,
+   "controller_path_m": 19.9073,
+   "clutch_engagements": 23,
+   "clutch_refused": 6,
+   "active_control_time_s": 96.55,
+   "active_control_frac": 0.386,
+   "mean_lag_mm": 2.33,
+   "tracking_ok_frac": 1.0,
+   "estop_end_hold": false,
+   "trail_rows": 4855
+  },
+  {
+   "session": "20260902_161756",
+   "participant": "P5",
+   "task": "Unspecified",
+   "condition": "Direct",
+   "active_hand": "right",
+   "duration_s": 359.52,
+   "ee_path_m": 5.1941,
+   "controller_path_m": 48.0504,
+   "clutch_engagements": 43,
+   "clutch_refused": 14,
+   "active_control_time_s": 221.69,
+   "active_control_frac": 0.617,
+   "mean_lag_mm": 2.03,
+   "tracking_ok_frac": 0.9198,
+   "estop_end_hold": false,
+   "trail_rows": 6995
+  },
+  {
+   "session": "20260902_162436",
+   "participant": "P5",
+   "task": "Unspecified",
+   "condition": "Shared",
+   "active_hand": "right",
+   "duration_s": 265.77,
+   "ee_path_m": 5.8895,
+   "controller_path_m": 22.7445,
+   "clutch_engagements": 19,
+   "clutch_refused": 5,
+   "active_control_time_s": 140.61,
+   "active_control_frac": 0.529,
+   "mean_lag_mm": 1.87,
+   "tracking_ok_frac": 0.9874,
+   "estop_end_hold": true,
+   "trail_rows": 5171
+  },
+  {
+   "session": "20260902_164021",
+   "participant": "P5",
+   "task": "Unspecified",
+   "condition": "Direct",
+   "active_hand": "right",
+   "duration_s": 207.75,
+   "ee_path_m": 1.6168,
+   "controller_path_m": 19.5501,
+   "clutch_engagements": 15,
+   "clutch_refused": 3,
+   "active_control_time_s": 90.02,
+   "active_control_frac": 0.433,
+   "mean_lag_mm": 2.12,
+   "tracking_ok_frac": 0.9543,
+   "estop_end_hold": true,
+   "trail_rows": 4047
+  },
+  {
+   "session": "20260902_164902",
+   "participant": "P5",
+   "task": "Unspecified",
+   "condition": "Direct",
+   "active_hand": "right",
+   "duration_s": 93.0,
+   "ee_path_m": 0.1555,
+   "controller_path_m": 10.0404,
+   "clutch_engagements": 11,
+   "clutch_refused": 2,
+   "active_control_time_s": 51.6,
+   "active_control_frac": 0.555,
+   "mean_lag_mm": 2.67,
+   "tracking_ok_frac": 1.0,
+   "estop_end_hold": false,
+   "trail_rows": 1792
+  },
+  {
+   "session": "20260902_165659",
+   "participant": "P5",
+   "task": "Unspecified",
+   "condition": "Direct",
+   "active_hand": "right",
+   "duration_s": 99.26,
+   "ee_path_m": 0.5945,
+   "controller_path_m": 10.2029,
+   "clutch_engagements": 11,
+   "clutch_refused": 4,
+   "active_control_time_s": 56.49,
+   "active_control_frac": 0.569,
+   "mean_lag_mm": 2.16,
+   "tracking_ok_frac": 1.0,
+   "estop_end_hold": true,
+   "trail_rows": 1930
+  }
+ ],
+ "cells": [
+  {
+   "participant": "P3",
+   "task": "Pick and place",
+   "condition": "Direct",
+   "n_trials": 1,
+   "duration_s": 617.37,
+   "ee_path_m": 7.0898,
+   "clutch_engagements": 52.0,
+   "active_control_frac": 0.826,
+   "mean_lag_mm": 3.32,
+   "tracking_ok_frac": 1.0,
+   "controller_path_m": 79.6834
+  },
+  {
+   "participant": "P3",
+   "task": "Target reaching",
+   "condition": "Direct",
+   "n_trials": 1,
+   "duration_s": 315.9,
+   "ee_path_m": 3.7211,
+   "clutch_engagements": 35.0,
+   "active_control_frac": 0.668,
+   "mean_lag_mm": 2.39,
+   "tracking_ok_frac": 1.0,
+   "controller_path_m": 47.7843
+  },
+  {
+   "participant": "P3",
+   "task": "Target reaching",
+   "condition": "Shared",
+   "n_trials": 2,
+   "duration_s": 327.435,
+   "ee_path_m": 3.6296,
+   "clutch_engagements": 32.5,
+   "active_control_frac": 0.7945,
+   "mean_lag_mm": 3.41,
+   "tracking_ok_frac": 0.9959,
+   "controller_path_m": 57.1003
+  },
+  {
+   "participant": "P4",
+   "task": "Pick and place",
+   "condition": "Direct",
+   "n_trials": 1,
+   "duration_s": 195.64,
+   "ee_path_m": 2.0723,
+   "clutch_engagements": 37.0,
+   "active_control_frac": 0.681,
+   "mean_lag_mm": 2.67,
+   "tracking_ok_frac": 0.9995,
+   "controller_path_m": 24.3891
+  },
+  {
+   "participant": "P4",
+   "task": "Pick and place",
+   "condition": "Shared",
+   "n_trials": 1,
+   "duration_s": 186.87,
+   "ee_path_m": 1.9841,
+   "clutch_engagements": 25.0,
+   "active_control_frac": 0.424,
+   "mean_lag_mm": 2.46,
+   "tracking_ok_frac": 1.0,
+   "controller_path_m": 25.247
+  },
+  {
+   "participant": "P4",
+   "task": "Target reaching",
+   "condition": "Direct",
+   "n_trials": 1,
+   "duration_s": 171.94,
+   "ee_path_m": 1.6548,
+   "clutch_engagements": 12.0,
+   "active_control_frac": 0.295,
+   "mean_lag_mm": 1.93,
+   "tracking_ok_frac": 1.0,
+   "controller_path_m": 16.4073
+  },
+  {
+   "participant": "P4",
+   "task": "Target reaching",
+   "condition": "Shared",
+   "n_trials": 1,
+   "duration_s": 111.71,
+   "ee_path_m": 1.9796,
+   "clutch_engagements": 12.0,
+   "active_control_frac": 0.399,
+   "mean_lag_mm": 2.07,
+   "tracking_ok_frac": 1.0,
+   "controller_path_m": 11.5585
+  },
+  {
+   "participant": "P2",
+   "task": "Pick and place",
+   "condition": "Direct",
+   "n_trials": 1,
+   "duration_s": 38.65,
+   "ee_path_m": 0.8979,
+   "clutch_engagements": 2.0,
+   "active_control_frac": 0.613,
+   "mean_lag_mm": 2.38,
+   "tracking_ok_frac": 1.0,
+   "controller_path_m": 3.5415
+  },
+  {
+   "participant": "P2",
+   "task": "Pick and place",
+   "condition": "Shared",
+   "n_trials": 1,
+   "duration_s": 169.57,
+   "ee_path_m": 1.5723,
+   "clutch_engagements": 25.0,
+   "active_control_frac": 0.762,
+   "mean_lag_mm": 2.44,
+   "tracking_ok_frac": 0.9994,
+   "controller_path_m": 22.2323
+  },
+  {
+   "participant": "P2",
+   "task": "Target reaching",
+   "condition": "Direct",
+   "n_trials": 1,
+   "duration_s": 227.91,
+   "ee_path_m": 2.7725,
+   "clutch_engagements": 25.0,
+   "active_control_frac": 0.521,
+   "mean_lag_mm": 3.37,
+   "tracking_ok_frac": 1.0,
+   "controller_path_m": 42.38
+  },
+  {
+   "participant": "P2",
+   "task": "Target reaching",
+   "condition": "Shared",
+   "n_trials": 2,
+   "duration_s": 218.24,
+   "ee_path_m": 3.0436,
+   "clutch_engagements": 26.0,
+   "active_control_frac": 0.689,
+   "mean_lag_mm": 3.96,
+   "tracking_ok_frac": 1.0,
+   "controller_path_m": 37.8901
+  },
+  {
+   "participant": "P5",
+   "task": "Unspecified",
+   "condition": "Direct",
+   "n_trials": 5,
+   "duration_s": 204.406,
+   "ee_path_m": 1.9097,
+   "clutch_engagements": 20.0,
+   "active_control_frac": 0.5088,
+   "mean_lag_mm": 2.268,
+   "tracking_ok_frac": 0.9748,
+   "controller_path_m": 21.3705
+  },
+  {
+   "participant": "P5",
+   "task": "Unspecified",
+   "condition": "Shared",
+   "n_trials": 2,
+   "duration_s": 257.865,
+   "ee_path_m": 3.7345,
+   "clutch_engagements": 21.0,
+   "active_control_frac": 0.4575,
+   "mean_lag_mm": 2.1,
+   "tracking_ok_frac": 0.9937,
+   "controller_path_m": 21.3259
+  },
+  {
+   "participant": "P1",
+   "task": "Pick and place",
+   "condition": "Direct",
+   "n_trials": 2,
+   "duration_s": 270.12,
+   "ee_path_m": 1.0772,
+   "clutch_engagements": 36.0,
+   "active_control_frac": 0.5145,
+   "mean_lag_mm": 3.04,
+   "tracking_ok_frac": 0.9926,
+   "controller_path_m": 33.6953
+  },
+  {
+   "participant": "P1",
+   "task": "Pick and place",
+   "condition": "Shared",
+   "n_trials": 1,
+   "duration_s": 114.94,
+   "ee_path_m": 1.4958,
+   "clutch_engagements": 12.0,
+   "active_control_frac": 0.605,
+   "mean_lag_mm": 2.34,
+   "tracking_ok_frac": 1.0,
+   "controller_path_m": 12.9923
+  }
+ ],
+ "paired": [
+  {
+   "participant": "P3",
+   "task": "Target reaching",
+   "duration_s": {
+    "direct": 315.9,
+    "shared": 327.435
+   },
+   "ee_path_m": {
+    "direct": 3.7211,
+    "shared": 3.6296
+   },
+   "clutch_engagements": {
+    "direct": 35.0,
+    "shared": 32.5
+   },
+   "active_control_frac": {
+    "direct": 0.668,
+    "shared": 0.7945
+   },
+   "mean_lag_mm": {
+    "direct": 2.39,
+    "shared": 3.41
+   },
+   "tracking_ok_frac": {
+    "direct": 1.0,
+    "shared": 0.9959
+   },
+   "controller_path_m": {
+    "direct": 47.7843,
+    "shared": 57.1003
+   },
+   "n_direct": 1,
+   "n_shared": 2
+  },
+  {
+   "participant": "P4",
+   "task": "Pick and place",
+   "duration_s": {
+    "direct": 195.64,
+    "shared": 186.87
+   },
+   "ee_path_m": {
+    "direct": 2.0723,
+    "shared": 1.9841
+   },
+   "clutch_engagements": {
+    "direct": 37.0,
+    "shared": 25.0
+   },
+   "active_control_frac": {
+    "direct": 0.681,
+    "shared": 0.424
+   },
+   "mean_lag_mm": {
+    "direct": 2.67,
+    "shared": 2.46
+   },
+   "tracking_ok_frac": {
+    "direct": 0.9995,
+    "shared": 1.0
+   },
+   "controller_path_m": {
+    "direct": 24.3891,
+    "shared": 25.247
+   },
+   "n_direct": 1,
+   "n_shared": 1
+  },
+  {
+   "participant": "P4",
+   "task": "Target reaching",
+   "duration_s": {
+    "direct": 171.94,
+    "shared": 111.71
+   },
+   "ee_path_m": {
+    "direct": 1.6548,
+    "shared": 1.9796
+   },
+   "clutch_engagements": {
+    "direct": 12.0,
+    "shared": 12.0
+   },
+   "active_control_frac": {
+    "direct": 0.295,
+    "shared": 0.399
+   },
+   "mean_lag_mm": {
+    "direct": 1.93,
+    "shared": 2.07
+   },
+   "tracking_ok_frac": {
+    "direct": 1.0,
+    "shared": 1.0
+   },
+   "controller_path_m": {
+    "direct": 16.4073,
+    "shared": 11.5585
+   },
+   "n_direct": 1,
+   "n_shared": 1
+  },
+  {
+   "participant": "P2",
+   "task": "Pick and place",
+   "duration_s": {
+    "direct": 38.65,
+    "shared": 169.57
+   },
+   "ee_path_m": {
+    "direct": 0.8979,
+    "shared": 1.5723
+   },
+   "clutch_engagements": {
+    "direct": 2.0,
+    "shared": 25.0
+   },
+   "active_control_frac": {
+    "direct": 0.613,
+    "shared": 0.762
+   },
+   "mean_lag_mm": {
+    "direct": 2.38,
+    "shared": 2.44
+   },
+   "tracking_ok_frac": {
+    "direct": 1.0,
+    "shared": 0.9994
+   },
+   "controller_path_m": {
+    "direct": 3.5415,
+    "shared": 22.2323
+   },
+   "n_direct": 1,
+   "n_shared": 1
+  },
+  {
+   "participant": "P2",
+   "task": "Target reaching",
+   "duration_s": {
+    "direct": 227.91,
+    "shared": 218.24
+   },
+   "ee_path_m": {
+    "direct": 2.7725,
+    "shared": 3.0436
+   },
+   "clutch_engagements": {
+    "direct": 25.0,
+    "shared": 26.0
+   },
+   "active_control_frac": {
+    "direct": 0.521,
+    "shared": 0.689
+   },
+   "mean_lag_mm": {
+    "direct": 3.37,
+    "shared": 3.96
+   },
+   "tracking_ok_frac": {
+    "direct": 1.0,
+    "shared": 1.0
+   },
+   "controller_path_m": {
+    "direct": 42.38,
+    "shared": 37.8901
+   },
+   "n_direct": 1,
+   "n_shared": 2
+  },
+  {
+   "participant": "P5",
+   "task": "Unspecified",
+   "duration_s": {
+    "direct": 204.406,
+    "shared": 257.865
+   },
+   "ee_path_m": {
+    "direct": 1.9097,
+    "shared": 3.7345
+   },
+   "clutch_engagements": {
+    "direct": 20.0,
+    "shared": 21.0
+   },
+   "active_control_frac": {
+    "direct": 0.5088,
+    "shared": 0.4575
+   },
+   "mean_lag_mm": {
+    "direct": 2.268,
+    "shared": 2.1
+   },
+   "tracking_ok_frac": {
+    "direct": 0.9748,
+    "shared": 0.9937
+   },
+   "controller_path_m": {
+    "direct": 21.3705,
+    "shared": 21.3259
+   },
+   "n_direct": 5,
+   "n_shared": 2
+  },
+  {
+   "participant": "P1",
+   "task": "Pick and place",
+   "duration_s": {
+    "direct": 270.12,
+    "shared": 114.94
+   },
+   "ee_path_m": {
+    "direct": 1.0772,
+    "shared": 1.4958
+   },
+   "clutch_engagements": {
+    "direct": 36.0,
+    "shared": 12.0
+   },
+   "active_control_frac": {
+    "direct": 0.5145,
+    "shared": 0.605
+   },
+   "mean_lag_mm": {
+    "direct": 3.04,
+    "shared": 2.34
+   },
+   "tracking_ok_frac": {
+    "direct": 0.9926,
+    "shared": 1.0
+   },
+   "controller_path_m": {
+    "direct": 33.6953,
+    "shared": 12.9923
+   },
+   "n_direct": 2,
+   "n_shared": 1
+  }
+ ],
+ "pooled_stats": {
+  "Direct": {
+   "duration_s": {
+    "n": 13,
+    "mean": 240.7446,
+    "median": 207.75,
+    "min": 38.65,
+    "max": 617.37
+   },
+   "ee_path_m": {
+    "n": 13,
+    "mean": 2.3009,
+    "median": 1.8487,
+    "min": 0.1555,
+    "max": 7.0898
+   },
+   "clutch_engagements": {
+    "n": 13,
+    "mean": 25.7692,
+    "median": 20,
+    "min": 2,
+    "max": 53
+   },
+   "active_control_frac": {
+    "n": 13,
+    "mean": 0.5521,
+    "median": 0.555,
+    "min": 0.295,
+    "max": 0.826
+   },
+   "mean_lag_mm": {
+    "n": 13,
+    "mean": 2.5754,
+    "median": 2.39,
+    "min": 1.93,
+    "max": 3.37
+   },
+   "tracking_ok_frac": {
+    "n": 13,
+    "mean": 0.9891,
+    "median": 1.0,
+    "min": 0.9198,
+    "max": 1.0
+   }
+  },
+  "Shared": {
+   "duration_s": {
+    "n": 10,
+    "mean": 219.017,
+    "median": 191.845,
+    "min": 78.58,
+    "max": 458.05
+   },
+   "ee_path_m": {
+    "n": 10,
+    "mean": 2.7847,
+    "median": 1.9819,
+    "min": 0.6985,
+    "max": 5.8895
+   },
+   "clutch_engagements": {
+    "n": 10,
+    "mean": 23.3,
+    "median": 21.0,
+    "min": 11,
+    "max": 51
+   },
+   "active_control_frac": {
+    "n": 10,
+    "mean": 0.6072,
+    "median": 0.628,
+    "min": 0.386,
+    "max": 0.849
+   },
+   "mean_lag_mm": {
+    "n": 10,
+    "mean": 2.825,
+    "median": 2.39,
+    "min": 1.87,
+    "max": 4.7
+   },
+   "tracking_ok_frac": {
+    "n": 10,
+    "mean": 0.9979,
+    "median": 1.0,
+    "min": 0.9874,
+    "max": 1.0
+   }
+  }
+ },
+ "task_note": "Two tasks: 'Pick and place' (sessions the console named 'object tracking') and 'Target reaching' (named 'target reaching' or 'position matching/reaching'). Relabelled by relabel_pilot_tasks.py on the operator's confirmation, 2026-09-07."
+}

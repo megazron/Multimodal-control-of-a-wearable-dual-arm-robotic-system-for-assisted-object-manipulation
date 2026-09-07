@@ -22,20 +22,7 @@
 \usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage{setspace}
-%% ENGINE. XeLaTeX is the intended compiler (the template loads fontspec
-%% for Times New Roman). If the document is compiled with pdfLaTeX instead
-%% -- Overleaf's default -- fontspec would abort, so it is loaded only
-%% under XeTeX/LuaTeX, and pdfLaTeX gets the same Times-metric face
-%% (TeX Gyre Termes) through fontenc instead. Either engine builds the
-%% same 112 pages.
-\usepackage{iftex}
-\ifPDFTeX
-  \usepackage[utf8]{inputenc}
-  \usepackage[T1]{fontenc}
-  \usepackage{tgtermes}
-\else
-  \usepackage{fontspec}
-\fi
+\usepackage{fontspec}
 \usepackage{titlesec}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
 
@@ -141,7 +128,6 @@
 %% FONT. Times New Roman where present (the template's own choice);
 %% TeX Gyre Termes, metric-compatible, where it is not, so the document
 %% builds identically on Overleaf and on a machine without that font.
-\ifPDFTeX\else
 \IfFontExistsTF{Times New Roman}{
   \setmainfont{Times New Roman}
 }{
@@ -156,7 +142,6 @@
       BoldItalicFont = *-bolditalic]
   }
 }
-\fi
 
 \title{Multimodal Teleoperation of a Wearable Dual-Arm Supernumerary Robotic
 System}

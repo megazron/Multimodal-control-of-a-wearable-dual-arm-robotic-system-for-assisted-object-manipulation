@@ -1,0 +1,8 @@
+{
+    "autodeskProduct": "Fusion",
+    "type": "script",
+    "author": "kortex_ws",
+    "description": {"": "Adds the seven revolute joints to the master arm design so it can be posed and animated."},
+    "supportedOS": "windows|mac",
+    "editEnabled": true
+}

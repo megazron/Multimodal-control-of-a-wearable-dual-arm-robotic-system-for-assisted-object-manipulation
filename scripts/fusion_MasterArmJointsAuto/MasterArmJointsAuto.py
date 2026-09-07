@@ -34,7 +34,7 @@ def log(msg):
 # ---- shared joint-building core (identical in the script and the add-in) ----
 POT_NAMES = ("resist", "pot")
 LIMIT_DEG = 150.0
-OFF_AXIS_CM = 6.0        # a part further than this from every arm axis goes with the base
+OFF_AXIS_CM = 12.0       # a part further than this from every arm axis goes with the base
 
 
 def _v(p): return (p.x, p.y, p.z)
@@ -124,6 +124,39 @@ def sum_v(ps):
     return s
 
 
+
+def _bbox_vol(o):
+    bb = o.boundingBox
+    return abs((bb.maxPoint.x - bb.minPoint.x) * (bb.maxPoint.y - bb.minPoint.y) * (bb.maxPoint.z - bb.minPoint.z))
+
+
+def _arm_direction(cs, others, info_centre):
+    """Unit vector along the arm pointing from base to handle.
+
+    Rule 1: if the chain is within ~45 deg of the root z axis, the base is the
+    low end (the CAD was modelled arm-up, base at z = 0). Rule 2 otherwise: the
+    base is the end nearer the largest component that lies near the axis (the
+    base plate or mount), because the handle end carries only small parts.
+    """
+    far = max(((a, b) for a in cs for b in cs), key=lambda ab: _len(_sub(ab[0], ab[1])))
+    d = _norm(_sub(far[1], far[0]))
+    if abs(d[2]) > 0.7:
+        return d if d[2] > 0 else _mul(d, -1.0), "z-up rule"
+    org = far[0]
+    near = []
+    for o in others:
+        c = info_centre(o)
+        p = _dot(_sub(c, org), d)
+        perp = _len(_sub(_sub(c, org), _mul(d, p)))
+        if perp < 15.0:
+            near.append((_bbox_vol(o), p))
+    if not near:
+        return d, "default (no parts near axis)"
+    big_p = max(near)[1]
+    mid = 0.5 * (min(_dot(_sub(c, org), d) for c in cs) + max(_dot(_sub(c, org), d) for c in cs))
+    return (d if big_p < mid else _mul(d, -1.0)), "largest-part rule"
+
+
 def build_joints(design, log):
     """Add rigid groups and revolute joints for every 7-pot arm in the design. Returns a report."""
     root = design.rootComponent
@@ -168,15 +201,9 @@ def build_joints(design, log):
     arm_data = []
     for arm in arms:
         cs = [info[o.fullPathName][0] for o in arm]
-        far = max(((a, b) for a in cs for b in cs), key=lambda ab: _len(_sub(ab[0], ab[1])))
-        d = _norm(_sub(far[1], far[0]))
-        org = far[0]
-        proj = lambda p, d=d, org=org: _dot(_sub(p, org), d)
-        lo, hi = min(proj(c) for c in cs), max(proj(c) for c in cs)
-        n_lo = sum(1 for o in others if proj(_centre(o.boundingBox)) < lo)
-        n_hi = sum(1 for o in others if proj(_centre(o.boundingBox)) > hi)
-        if n_hi > n_lo:
-            d = _mul(d, -1.0)
+        d, rule = _arm_direction(cs, others, lambda o: _centre(o.boundingBox))
+        org = min(cs, key=lambda c: _dot(c, d))
+        log("arm direction %s by %s" % (tuple(round(x, 3) for x in d), rule))
         proj = lambda p, d=d, org=org: _dot(_sub(p, org), d)
         arm_sorted = sorted(arm, key=lambda o: proj(info[o.fullPathName][0]))
         jpos = [proj(info[o.fullPathName][0]) for o in arm_sorted]
@@ -264,8 +291,28 @@ def build_joints(design, log):
                 log("limits on %s failed: %s" % (jt.name, e))
             joint_names.append(jt.name)
             log("joint %s: %s -> %s" % (jt.name, links[ai][i][0].name, links[ai][i + 1][0].name))
-    return "%d arm(s); %d root bodies made components; base %d parts; joints: %s" % (
-        n_arms, made, len(base), ", ".join(joint_names))
+    # self-test: drive J4 of each arm by 60 deg and check the handle link really moves
+    checks = []
+    for ai in range(n_arms):
+        try:
+            jt = root.asBuiltJoints.itemByName("%s_J4" % names[ai])
+            tip = links[ai][7][0]
+            before = _centre(tip.boundingBox)
+            jt.jointMotion.rotationValue = math.radians(60.0)
+            adsk.doEvents()
+            after = _centre(tip.boundingBox)
+            jt.jointMotion.rotationValue = 0.0
+            adsk.doEvents()
+            moved = _len(_sub(after, before))
+            checks.append("%s handle moved %.1f cm when J4 driven 60 deg%s" % (names[ai], moved, "" if moved > 2.0 else "  <-- FAILED"))
+        except Exception as e:
+            checks.append("%s self-test error: %s" % (names[ai], e))
+    for c in checks:
+        log("CHECK " + c)
+    sizes = "; ".join("%s links %s" % (names[ai], [len(L) for L in links[ai]]) for ai in range(n_arms))
+    log("link sizes: " + sizes)
+    return "%d arm(s); %d root bodies made components; base %d parts; %s.\nJoints: %s.\nSelf-test: %s" % (
+        n_arms, made, len(base), sizes, ", ".join(joint_names), " | ".join(checks))
 # ---- end core ----
 
 

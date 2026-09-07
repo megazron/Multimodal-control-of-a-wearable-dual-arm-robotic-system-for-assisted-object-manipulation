@@ -62,22 +62,44 @@ def _thin_axis(bb):
 
 
 def _pot_axis(pot):
-    """(centre, axis, edge, radius) from the pot's largest circular edge along its thin direction."""
-    thin = _thin_axis(pot.boundingBox)
-    best = None
+    """(centre, axis, entity, radius) for the pot's rotation axis, from its own geometry.
+
+    A rotary pot's shaft is a cylinder, so several circular edges share one
+    normal: the direction shared by the most circular/arc edges is the axis,
+    and the largest circle on that axis gives the origin. No assumption about
+    how the pot is oriented in the design. Falls back to a planar face whose
+    normal is that axis if the largest circle cannot be used.
+    """
+    circles = []   # (centre, normal, edge, radius)
+    faces = []
+    kinds = {}
     for body in pot.bRepBodies:
         for e in body.edges:
             g = e.geometry
-            if g.objectType != adsk.core.Circle3D.classType():
-                continue
-            n = _norm(_v(g.normal))
-            if abs(_dot(n, thin)) < 0.95:
-                continue
-            if best is None or g.radius > best[3]:
-                best = (_v(g.center), n, e, g.radius)
-    if best is None:
-        raise RuntimeError("no circular edge along the thin axis of %s" % pot.name)
-    return best
+            t = g.objectType.split("::")[-1]
+            kinds[t] = kinds.get(t, 0) + 1
+            if t in ("Circle3D", "Arc3D"):
+                circles.append((_v(g.center), _norm(_v(g.normal)), e, g.radius))
+        for f in body.faces:
+            g = f.geometry
+            if g.objectType == adsk.core.Plane.classType():
+                faces.append((f, _norm(_v(g.normal))))
+    if not circles:
+        raise RuntimeError("%s has no circular edges (edge kinds: %s)" % (pot.fullPathName, kinds))
+    # group circles by parallel normal; the biggest group is the shaft axis
+    groups = []
+    for c in circles:
+        for grp in groups:
+            if abs(_dot(grp[0][1], c[1])) > 0.98:
+                grp.append(c)
+                break
+        else:
+            groups.append([c])
+    groups.sort(key=lambda grp: (-len(grp), -max(x[3] for x in grp)))
+    axis_grp = groups[0]
+    axis = axis_grp[0][1]
+    best = max(axis_grp, key=lambda x: x[3])
+    return best[0], axis, best[2], best[3]
 
 
 def _cluster(points, k):

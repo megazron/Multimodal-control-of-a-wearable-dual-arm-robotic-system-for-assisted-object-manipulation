@@ -21,10 +21,14 @@ costed, applied and re-verified in one pass.
 
 The clearance floor is a \emph{distance}, and the wearer can move.
 Combining the measured delay of the wearer-tracking camera with limb speeds
-from the literature gives \cref{tab:reaction-compact}: in most modelled limb
-motions the limb crosses the whole \SI{150}{\milli\metre} margin before the
-robot knows anything changed -- this report's principal open safety
-question. Three
+from the literature (\cref{tab:reaction} in \cref{ch:motion}) gives a
+reaction budget: at the median delay of \SI{62}{\milli\second} a deliberate
+reach covers \SI{62}{\percent} of the \SI{150}{\milli\metre} floor and a
+quick reach or startle exceeds it; at the worst measured delay of
+\SI{562}{\milli\second} every modelled motion exceeds it, several times
+over. In most modelled limb motions the limb crosses the whole margin
+before the robot knows anything changed -- this report's principal open
+safety question. Three
 responses exist, none yet implemented: enlarge the floor by the delay times
 an assumed limb speed, so the margin means what it claims; cut the delay, since most of the \SI{562}{\milli\second}
 tail is a configured publishing rate, not the \SIrange{28}{34}{\milli\second}
@@ -34,23 +38,6 @@ reverts to a mannequin with its arms down and believes there is
 \SI{0.3170}{\metre} of clearance where a wearer with arms held out has
 \SI{0.0933}{\metre} -- optimistic by \SI{224}{\milli\metre}, mitigated only
 by instructing the wearer.
-
-\begin{table}[htbp]
-  \centering
-  \small
-  \caption[The reaction budget, condensed]{How far a limb travels during
-  the measured tracking delay, against the \SI{150}{\milli\metre} clearance
-  floor; full table in \cref{ch:motion}.}
-  \label{tab:reaction-compact}
-  \begin{tabular}{@{}lll@{}}
-    \toprule
-    Delay & Deliberate reach & Quick reach or startle \\
-    \midrule
-    \SI{62}{\milli\second} (median) & \SI{62}{\percent} of the floor & exceeds the floor \\
-    \SI{562}{\milli\second} (worst) & exceeds the floor & exceeds it several times over \\
-    \bottomrule
-  \end{tabular}
-\end{table}
 
 \section{Validity of the measurements}
 \label{sec:validity}

@@ -216,7 +216,10 @@ support over the course of the year.
 \input{conclusion/conclusion.tex}
 \input{appendix/appendix.tex}
 
-\bibliographystyle{alpha}
+%% Numbered citations in order of first appearance ([1], [2], ...), the
+%% convention of an engineering journal; the template's default 'alpha'
+%% style produces author-initial labels like [YHC+21].
+\bibliographystyle{unsrt}
 \bibliography{bibs/references}
 
 \end{document}

@@ -80,18 +80,38 @@ the pick pose."
 
 \section{The scene the safety layer reasons about}
 
-\Cref{fig:scene-boxes-full} names four classes in one frame rather than
-isolated detections: the mannequin the clearance floor of \cref{sec:safety}
-is enforced against, the table, the two wearable arms, and the task
-objects between them. No detector in this project covers the first three
-classes -- only the task-object palette does -- so all six boxes here are
-hand-identified against a pixel grid on this exact frame, stated as such
-rather than presented as automatic detections.
-
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.75\linewidth]{vision/scene_boxes.pdf}
-  \caption[The scene the safety layer reasons about, full]{The same figure
-  referenced from \cref{ch:resultsmain}.}
+  \includegraphics[width=0.72\linewidth]{vision/scene_boxes.pdf}
+  \caption[The scene through the open-vocabulary detector]{The room camera
+  frame through YOLO-World with the prompts \emph{mannequin, table, robot
+  arm, box, cube}. Boxes and scores are the detector's own; two prompts
+  returned nothing (legend). The figure referenced from
+  \cref{ch:resultsmain}.}
   \label{fig:scene-boxes-full}
 \end{figure}
+
+\Cref{fig:scene-boxes-full} is the room camera's frame passed through the
+project's own open-vocabulary detector, YOLO-World
+(\repo{yolov8s-worldv2.pt}~\cite{cheng2024yoloworld}), asked by name for the
+five classes the safety layer cares about: the mannequin the clearance
+floor of \cref{sec:safety} is enforced against, the table, the robot arms,
+the boxes and the cubes. Every rectangle is the detector's own output at a
+\num{0.10} confidence threshold, drawn with its class and score; nothing is
+hand-placed (\repo{thesis\_v3/figures/make\_scene\_boxes\_yolo.py}, output
+also saved as \repo{scene\_boxes\_yolo.json}).
+
+The result is instructive rather than flattering. The mannequin is found
+twice, at \num{0.23} and \num{0.19}, the wider of the two boxes swallowing
+the arms with the body; the table is found at \num{0.38} (and a second
+time at \num{0.11} on the right-hand robot pedestal); a \num{0.35} ``box''
+lands on the strip of task objects at the mannequin's waist. The two
+wearable arms are not found at all under the label ``robot arm'', and no
+cube is found at this distance -- the same failure mode as the
+\SI{9.0}{\percent} recall of \cref{tab:vision-values} from the gripper
+camera. Four of the five ``box'' detections are the pedestals of the two
+industrial arms and the two tripods, not task objects. This is
+why the shipped system never trusts a scene-camera detection for the
+wearer: the clearance floor is enforced against the tracked body of
+\cref{sec:safety}, with the mannequin as the fallback it can only enlarge.
+

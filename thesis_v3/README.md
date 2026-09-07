@@ -273,12 +273,15 @@ frame pair at
 measured-hue threshold on the same toolchain (box, which the palette
 doesn't cover); `cv_values_table.tex`'s numbers come from that same frame's
 own pipeline stage logs under
-`recordings/vision_thesis/20260830_073141/data/left_gripper/`. The four
-scene classes without a detector in this project (mannequin, table, arm,
-objects -- `scene_boxes.pdf`) are hand-identified against a pixel grid on
-that exact frame, stated as such in its caption rather than presented as
-automatic detections; `scene_boxes.pdf` itself still has no standalone
-regeneration script. All scripts re-derive participant anonymisation from
+`recordings/vision_thesis/20260830_073141/data/left_gripper/`. `scene_boxes.pdf`
+(F.3) is, since 2026-09-07, genuine detector output: YOLO-World
+(`yolov8s-worldv2.pt`, CPU, `.venv_vision`) on the `scene_hd` frame with the
+prompts mannequin/table/robot arm/box/cube at conf 0.10, drawn by
+`figures/make_scene_boxes_yolo.py` with the raw detections kept in
+`scene_boxes_yolo.json`. It finds the mannequin (0.23) and table (0.38),
+misses both arms and every cube, and labels two robot pedestals "box" --
+the caption says so. The earlier hand-drawn version is kept as
+`scene_boxes_handdrawn_superseded.pdf` and is referenced by nothing. All scripts re-derive participant anonymisation from
 the raw session names before any plot is drawn, and every figure's
 extracted PDF text is grepped for real names (word-boundary, not substring
 -- `wen` inside `when` is a false positive this project has hit) before it

@@ -22,7 +22,7 @@ OUTDIR = r"C:\Users\Gausms\Downloads\MasterArmJoints"
 OUT = os.path.join(OUTDIR, "Complete Master Arm WITH JOINTS.f3z")
 LOG = os.path.join(OUTDIR, "autorun.log")
 DONE = os.path.join(OUTDIR, "DONE.txt")
-DESIGN_NAME = "complete master arm"      # matched case-insensitively against your cloud designs
+DESIGN_NAME = "backpack"      # the root design of the exported archive (DesignDescription.json); newest version wins
 EVT = "MasterArmJointsAutoGo"
 START_DELAY_S = 40
 
@@ -325,22 +325,43 @@ _keep = []
 
 
 def find_design(app):
-    """The newest cloud design whose name contains DESIGN_NAME, searched across every project."""
-    hits = []
-    for pi in range(app.data.dataProjects.count):
-        proj = app.data.dataProjects.item(pi)
-        stack = [proj.rootFolder]
-        while stack:
-            folder = stack.pop()
-            for i in range(folder.dataFiles.count):
-                f = folder.dataFiles.item(i)
-                if f.fileExtension.lower() == "f3d" and DESIGN_NAME in f.name.lower():
-                    hits.append((f.dateModified, proj.name, f))
-            for i in range(folder.dataFolders.count):
-                stack.append(folder.dataFolders.item(i))
-    for dm, pn, f in sorted(hits, key=lambda h: h[0], reverse=True):
-        log("candidate: %s / %s (v%s, modified %s)" % (pn, f.name, f.versionNumber, dm))
-    return hits and sorted(hits, key=lambda h: h[0], reverse=True)[0][2]
+    """The newest cloud design whose name matches, searched across every hub and project.
+    Logs every design it sees so a miss can be diagnosed from the log."""
+    hits, seen = [], 0
+    hubs = [app.data.dataHubs.item(i) for i in range(app.data.dataHubs.count)] or [app.data.activeHub]
+    for hub in hubs:
+        try:
+            projects = [hub.dataProjects.item(i) for i in range(hub.dataProjects.count)]
+        except Exception as e:
+            log("hub %s: cannot list projects (%s)" % (hub.name, e)); continue
+        for proj in projects:
+            stack = [proj.rootFolder]
+            while stack:
+                folder = stack.pop()
+                try:
+                    files = [folder.dataFiles.item(i) for i in range(folder.dataFiles.count)]
+                    subs = [folder.dataFolders.item(i) for i in range(folder.dataFolders.count)]
+                except Exception as e:
+                    log("  folder %s unreadable (%s)" % (folder.name, e)); continue
+                for f in files:
+                    seen += 1
+                    try:
+                        ext = f.fileExtension.lower()
+                    except Exception:
+                        ext = "?"
+                    log("  design: [%s] %s / %s / %s (.%s)" % (hub.name, proj.name, folder.name, f.name, ext))
+                    n = f.name.lower()
+                    if ext == "f3d" and (n == DESIGN_NAME or "complete master arm" in n):
+                        score = 2 if "complete master arm" in n else 1
+                        hits.append((score, f.dateModified, proj.name, f))
+                stack.extend(subs)
+    log("designs seen: %d, matching: %d" % (seen, len(hits)))
+    if not hits:
+        return None
+    hits.sort(key=lambda h: (h[0], h[1]), reverse=True)
+    for sc, dm, pn, f in hits:
+        log("candidate: %s / %s (score %d, v%s, modified %s)" % (pn, f.name, sc, f.versionNumber, dm))
+    return hits[0][3]
 
 
 def do_work(app, ui):

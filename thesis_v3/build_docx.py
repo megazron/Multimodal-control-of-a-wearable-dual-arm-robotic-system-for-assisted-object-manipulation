@@ -80,7 +80,8 @@ def resolve_cref(m, cap):
     # same kind: "Figures 3.1 and 3.2"
     ks = {kinds.get(l) for l in labs}
     if len(ks) == 1 and len(labs) > 1 and list(ks)[0] not in ("equation",):
-        w = refword(labs[0], cap) + "s"
+        w = refword(labs[0], cap)
+        w = {"Appendix": "Appendices", "appendix": "appendices", "Eq.": "Eqs."}.get(w, w + "s")
         nums = [labels.get(l, "?") for l in labs]
         return "%s %s and %s" % (w, ", ".join(nums[:-1]), nums[-1])
     return ", ".join(parts[:-1]) + " and " + parts[-1]
@@ -285,6 +286,11 @@ from docx.oxml.ns import qn  # noqa: E402
 d = Document(OUT)
 from docx.enum.text import WD_ALIGN_PARAGRAPH  # noqa: E402
 d.styles["Heading 1"].paragraph_format.page_break_before = True
+from docx.shared import RGBColor  # noqa: E402
+for p in d.paragraphs:
+    if p.style.name.startswith("Heading"):
+        for r in p.runs:
+            r.font.color.rgb = RGBColor(0, 0, 0)
 paras = d.paragraphs
 first_h1 = next(p for p in paras if p.style.name == "Heading 1")
 # the front page: centre everything before the first heading and size it like the template

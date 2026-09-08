@@ -10,6 +10,7 @@ Everything it does is logged to autorun.log in the same folder.
 """
 import math
 import os
+import threading
 import time
 import traceback
 
@@ -21,6 +22,9 @@ OUTDIR = r"C:\Users\Gausms\Downloads\MasterArmJoints"
 OUT = os.path.join(OUTDIR, "Complete Master Arm WITH JOINTS.f3z")
 LOG = os.path.join(OUTDIR, "autorun.log")
 DONE = os.path.join(OUTDIR, "DONE.txt")
+DESIGN_NAME = "complete master arm"      # matched case-insensitively against your cloud designs
+EVT = "MasterArmJointsAutoGo"
+START_DELAY_S = 40
 
 
 def log(msg):
@@ -316,50 +320,100 @@ def build_joints(design, log):
 # ---- end core ----
 
 
+
+_keep = []
+
+
+def find_design(app):
+    """The newest cloud design whose name contains DESIGN_NAME, searched across every project."""
+    hits = []
+    for pi in range(app.data.dataProjects.count):
+        proj = app.data.dataProjects.item(pi)
+        stack = [proj.rootFolder]
+        while stack:
+            folder = stack.pop()
+            for i in range(folder.dataFiles.count):
+                f = folder.dataFiles.item(i)
+                if f.fileExtension.lower() == "f3d" and DESIGN_NAME in f.name.lower():
+                    hits.append((f.dateModified, proj.name, f))
+            for i in range(folder.dataFolders.count):
+                stack.append(folder.dataFolders.item(i))
+    for dm, pn, f in sorted(hits, key=lambda h: h[0], reverse=True):
+        log("candidate: %s / %s (v%s, modified %s)" % (pn, f.name, f.versionNumber, dm))
+    return hits and sorted(hits, key=lambda h: h[0], reverse=True)[0][2]
+
+
+def do_work(app, ui):
+    try:
+        log("=== MasterArmJointsAuto work start")
+        df = find_design(app)
+        if df is None:
+            raise RuntimeError("no cloud design containing %r found in any project" % DESIGN_NAME)
+        log("opening %s" % df.name)
+        doc = app.documents.open(df, True)
+        adsk.doEvents()
+        for _ in range(60):          # give the design time to load
+            design = adsk.fusion.Design.cast(app.activeProduct)
+            if design and design.rootComponent.allOccurrences.count > 0:
+                break
+            time.sleep(1); adsk.doEvents()
+        design = adsk.fusion.Design.cast(app.activeProduct)
+        if not design:
+            raise RuntimeError("no active design after opening %s" % df.name)
+        log("open: %s, %d occurrences" % (doc.name, design.rootComponent.allOccurrences.count))
+        report = build_joints(design, log)
+        log(report)
+        folder = df.parentFolder
+        newname = "Complete Master Arm WITH JOINTS"
+        doc.saveAs(newname, folder, "joints added by MasterArmJointsAuto", "")
+        adsk.doEvents()
+        log("saved as %s in %s" % (newname, folder.name))
+        exp = design.exportManager
+        eo = exp.createFusionArchiveExportOptions(OUT)
+        ok = exp.execute(eo)
+        log("export f3z: %s -> %s" % (ok, OUT))
+        with open(DONE, "w") as f:
+            f.write("done " + time.strftime("%Y-%m-%d %H:%M:%S") + "\n" + report + "\n")
+        log("=== finished")
+        ui.messageBox("Master arm joints added.\n\nSaved in your project as '%s' and exported to:\n%s\n\n%s\n\nDrag a link or right-click a joint -> Animate Joint." % (newname, OUT, report))
+    except Exception:
+        log("FAILED:\n" + traceback.format_exc())
+
+
+class _Go(adsk.core.CustomEventHandler):
+    def __init__(self, app, ui):
+        super().__init__()
+        self.app, self.ui = app, ui
+
+    def notify(self, args):
+        do_work(self.app, self.ui)
+
+
 def run(context):
     app = adsk.core.Application.get()
     ui = app.userInterface
     if os.path.exists(DONE):
         log("DONE.txt present; not running again")
         return
+    startup = isinstance(context, dict) and context.get("IsApplicationStartup", False)
+    log("=== MasterArmJointsAuto loaded (startup=%s); work in %d s" % (startup, START_DELAY_S if startup else 1))
     try:
-        log("=== MasterArmJointsAuto start")
-        if not os.path.exists(SRC):
-            raise RuntimeError("source archive not found: %s" % SRC)
-        im = app.importManager
-        opts = im.createFusionArchiveImportOptions(SRC)
-        doc = im.importToNewDocument(opts)
-        log("imported: %s" % (doc.name if doc else None))
-        adsk.doEvents()
-        design = adsk.fusion.Design.cast(app.activeProduct)
-        if not design:
-            raise RuntimeError("no active design after import")
-        report = build_joints(design, log)
-        log(report)
-        exp = design.exportManager
-        try:
-            eo = exp.createFusionArchiveExportOptions(OUT)
-            ok = exp.execute(eo)
-            log("export f3z: %s" % ok)
-        except Exception as e:
-            log("direct export failed (%s); saving to the active project first" % e)
-            folder = app.data.activeProject.rootFolder
-            app.activeDocument.saveAs("Complete Master Arm WITH JOINTS", folder, "joints added by MasterArmJointsAuto", "")
-            adsk.doEvents()
-            eo = exp.createFusionArchiveExportOptions(OUT)
-            ok = exp.execute(eo)
-            log("export f3z after save: %s" % ok)
-        with open(DONE, "w") as f:
-            f.write("done " + time.strftime("%Y-%m-%d %H:%M:%S") + "\n" + report + "\n")
-        log("=== finished")
-        ui.messageBox("Master arm joints added and exported to:\n%s\n\n%s\n\nThe jointed design is open now; drag a link or right-click a joint -> Animate Joint." % (OUT, report))
+        app.unregisterCustomEvent(EVT)
     except Exception:
-        log("FAILED:\n" + traceback.format_exc())
-        try:
-            ui.messageBox("MasterArmJointsAuto failed; see autorun.log in Downloads\\MasterArmJoints.\n\n" + traceback.format_exc()[-1500:])
-        except Exception:
-            pass
+        pass
+    ev = app.registerCustomEvent(EVT)
+    h = _Go(app, ui)
+    ev.add(h)
+    _keep.append((ev, h))
+
+    def fire():
+        time.sleep(START_DELAY_S if startup else 1)
+        app.fireCustomEvent(EVT, "")
+    threading.Thread(target=fire, daemon=True).start()
 
 
 def stop(context):
-    pass
+    try:
+        adsk.core.Application.get().unregisterCustomEvent(EVT)
+    except Exception:
+        pass

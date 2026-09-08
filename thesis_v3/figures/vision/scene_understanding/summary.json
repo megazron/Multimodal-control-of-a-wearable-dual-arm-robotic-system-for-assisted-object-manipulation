@@ -1,0 +1,42 @@
+{
+ "body_mask_frac": 0.05992063492063492,
+ "yolo_best": {
+  "white desk": 0.82,
+  "cardboard box": 0.51,
+  "mannequin": 0.31,
+  "green cube": 0.13
+ },
+ "arms": {
+  "left": {
+   "links": 5,
+   "length_px": 314,
+   "bends_deg": [
+    33,
+    58,
+    55,
+    49
+   ]
+  },
+  "right": {
+   "links": 4,
+   "length_px": 242,
+   "bends_deg": [
+    37,
+    43,
+    81
+   ]
+  }
+ },
+ "colour_blobs": [
+  {
+   "colour": "green",
+   "box": [
+    270,
+    340,
+    294,
+    364
+   ],
+   "area": 544
+  }
+ ]
+}

@@ -82,37 +82,47 @@ the pick pose."
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.72\linewidth]{vision/scene_boxes.pdf}
-  \caption[The scene through the open-vocabulary detector]{The room camera
-  frame, cropped to the wearer and the table, through YOLO-World with the
-  prompts \emph{mannequin, table, robot arm, box, cube}. Boxes and scores
-  are the detector's own; three prompts returned nothing (legend). The figure referenced from
-  \cref{ch:resultsmain}.}
+  \includegraphics[width=\linewidth]{vision/scene_understanding.pdf}
+  \caption[The scene read by three methods]{The room camera's frame,
+  cropped to the wearer, the arms and the table, read by three methods.
+  (b) The wearer by MediaPipe Pose: body mask and 33 landmarks. (c) The
+  robot arms by a backdrop-difference rule, thinned to a centreline with a
+  joint wherever it bends by more than \SI{25}{\degree}: five links on the
+  left arm, four on the right. (d) The table and objects by YOLO-World
+  with descriptive prompts; (e) the project's colour detector as a
+  cross-check. (f) All of it on one frame. Every mask, landmark, box and
+  score is the method's own output
+  (\repo{figures/make\_scene\_understanding.py}).}
   \label{fig:scene-boxes-full}
 \end{figure}
 
-\Cref{fig:scene-boxes-full} is the room camera's frame, cropped to the
-mannequin, its arms and the table (the laboratory's fixed robots at either
-side are not part of the scene), passed through the project's own
-open-vocabulary detector, YOLO-World
-(\repo{yolov8s-worldv2.pt}~\cite{cheng2024yoloworld}), asked by name for the
-five classes the safety layer cares about: the mannequin the clearance
-floor of \cref{sec:safety} is enforced against, the table, the robot arms,
-the boxes and the cubes. Every rectangle is the detector's own output at a
-\num{0.10} confidence threshold, drawn with its class and score; nothing is
-hand-placed (\repo{thesis\_v3/figures/make\_scene\_boxes\_yolo.py}, output
-also saved as \repo{scene\_boxes\_yolo.json}).
+\Cref{fig:scene-boxes-full} reads the room camera's frame with three
+methods, because no single detector covers the scene. The wearer is found
+by MediaPipe Pose, the tracker the clearance floor of \cref{sec:safety}
+consumes: one body, a segmentation mask covering \SI{6.0}{\percent} of the
+crop, and 33 landmarks. The robot arms are white links on a white backdrop,
+which defeated YOLO-World under every prompt tried and FastSAM's text
+prompts alike, so they are found by an engineered rule: a 71-pixel median
+of the grey image is the local backdrop level, pixels that differ from it
+by more than 12 grey levels inside the corridor beside the torso, between
+shoulder height and the table, are structure, FastSAM segments that overlap
+a candidate by half are merged in, and the two largest components are the
+arms. Each arm is thinned to its centreline (Zhang--Suen), the centreline
+walked from the shoulder end to its farthest point, and a joint placed
+wherever it bends by more than \SI{25}{\degree}, which is what separates one
+link from the next: five links on the left arm (bends of 33, 58, 55 and
+\SI{49}{\degree}) and four on the right (37, 43 and \SI{81}{\degree}). The
+table and the objects are found by YOLO-World once the prompts describe
+them (``white desk'' \num{0.82}, ``cardboard box'' \num{0.51}, ``green
+cube'' \num{0.13}); the project's own colour detector cross-checks the
+cube as a 544-pixel green blob and, once blobs on the body are excluded
+(the mannequin's skin reads as red), nothing else. Every intermediate
+result is kept under \repo{figures/vision/scene\_understanding/}.
 
-The result is instructive rather than flattering. The mannequin is found
-twice, at \num{0.31} for the torso and \num{0.13} for a wider box that
-takes the arms with the body; the cardboard box on the table, a real task
-object, is found at \num{0.45}, the detector's most confident output. The
-table itself is not found, the two wearable arms are not found under the
-label ``robot arm'', and no cube is found at this distance -- the same
-failure mode as the \SI{9.0}{\percent} recall of \cref{tab:vision-values}
-from the gripper camera. The two remaining ``box'' detections, at
-\num{0.18} and \num{0.32}, are the camera tripods. This is
-why the shipped system never trusts a scene-camera detection for the
-wearer: the clearance floor is enforced against the tracked body of
-\cref{sec:safety}, with the mannequin as the fallback it can only enlarge.
-
+What this does not give: no metric distance, because the HD camera has no
+depth sensor, and a joint count that is what the silhouette shows rather
+than the arm's seven joints -- at this pose the left arm presents five
+visible bends and the right four. The shipped safety layer therefore
+enforces the clearance floor against the tracked body of
+\cref{sec:safety}, with the mannequin as the fallback it can only enlarge,
+and never against a scene-camera detection of the arms.

@@ -14,6 +14,13 @@ position sensors (potentiometers), two inertial sensors, two
 force-sensitive pads and two buttons, and reports at \SI{100}{\hertz}
 (\cref{tab:frame}). Each reading $r_n$ is smoothed on the
 microcontroller by an integer running average before conversion to degrees,
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.55\linewidth]{master_arm_posed_iso.png}
+  \caption{}
+  \label{fig:master-posed}
+\end{figure}
+
 \begin{equation}
   e_{n+1} = \frac{\alpha\, r_n + (256-\alpha)\, e_n}{256}, \qquad \alpha = 64.
   \label{eq:ema-main}

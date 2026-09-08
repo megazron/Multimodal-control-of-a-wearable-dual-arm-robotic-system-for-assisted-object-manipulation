@@ -33,20 +33,27 @@ PROMPTS = ["mannequin", "table", "robot arm", "box", "cube"]
 COLOURS = {"mannequin": "#c1392b", "table": "0.35", "robot arm": "#2c6fbb",
            "box": "#3f9142", "cube": "#3f9142"}
 CONF = 0.10
+CROP = (330, 90, 950, 720)   # x0, y0, x1, y1 in the 1280x720 frame: the mannequin, its arms and the table; the lab robots at the sides are not part of the scene
+
+
+def cropped_frame():
+    im = cv2.imread(FRAME)
+    x0, y0, x1, y1 = CROP
+    return im[y0:y1, x0:x1]
 
 
 def detect():
     from ultralytics import YOLO
     model = YOLO(MODEL)
     model.set_classes(PROMPTS)
-    res = model.predict(FRAME, conf=CONF, imgsz=1280, device="cpu", verbose=False)[0]
+    res = model.predict(cropped_frame(), conf=CONF, imgsz=960, device="cpu", verbose=False)[0]
     dets = []
     for b in res.boxes:
         x0, y0, x1, y1 = b.xyxy[0].tolist()
         dets.append({"class": PROMPTS[int(b.cls)], "conf": float(b.conf), "box": [x0, y0, x1, y1]})
     found = sorted({d["class"] for d in dets})
     missed = [p for p in PROMPTS if p not in found]
-    json.dump({"frame": os.path.relpath(FRAME, ROOT), "model": os.path.basename(MODEL),
+    json.dump({"frame": os.path.relpath(FRAME, ROOT), "crop_xyxy": CROP, "model": os.path.basename(MODEL),
                "conf_threshold": CONF, "detections": dets, "missed": missed},
               open(OUT.replace(".pdf", ".json"), "w"), indent=1)
     return dets, missed
@@ -60,9 +67,9 @@ def main():
     else:
         dets, missed = detect()
     print(json.dumps({"detections": dets, "missed": missed}, indent=1))
-    im = cv2.cvtColor(cv2.imread(FRAME), cv2.COLOR_BGR2RGB)
+    im = cv2.cvtColor(cropped_frame(), cv2.COLOR_BGR2RGB)
 
-    fig, ax = plt.subplots(figsize=(6.0, 3.95))
+    fig, ax = plt.subplots(figsize=(5.2, 5.6))
     ax.imshow(im)
     ax.axis("off")
     placed = []  # (x0, x_end, y) of labels already drawn above a box
@@ -71,7 +78,7 @@ def main():
         c = COLOURS[d["class"]]
         ax.add_patch(Rectangle((x0, y0), x1 - x0, y1 - y0, fill=False, edgecolor=c, lw=2.0))
         text = "%s %.2f" % (d["class"], d["conf"])
-        width = 11.5 * len(text)  # px, approximate at this font size
+        width = 9.0 * len(text)  # px, approximate at this font size
         clash = any(abs(py - y0) < 25 and x0 < px1 for px0, px1, py in placed)
         if clash:  # a label already sits above here; drop this one inside its own box
             ax.text(x0 + 4, y0 + 4, text, color="white", fontsize=8.5, va="top",

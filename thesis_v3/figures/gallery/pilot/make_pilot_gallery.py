@@ -27,10 +27,13 @@ SCRATCH = os.path.join(HERE, "..", "..", "pilot", "data")  # the derived session
 import sys as _sys
 _sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 from session_paths import session_dir  # noqa: E402
+import os as _os
+FS = float(_os.environ.get("FONT_SCALE", "1"))
+SUFFIX = _os.environ.get("OUT_SUFFIX", "")
 
 plt.rcParams.update({
-    "font.size": 9, "axes.titlesize": 9, "axes.labelsize": 9,
-    "xtick.labelsize": 8, "ytick.labelsize": 8, "legend.fontsize": 8,
+    "font.size": 9 * FS, "axes.titlesize": 9 * FS, "axes.labelsize": 9 * FS,
+    "xtick.labelsize": 8 * FS, "ytick.labelsize": 8 * FS, "legend.fontsize": 8 * FS,
     "figure.dpi": 150, "savefig.bbox": "tight",
     "axes.spines.top": False, "axes.spines.right": False,
 })
@@ -45,6 +48,7 @@ INDEX = []
 
 
 def save(fig, name, title, data, takeaway, numbers, verdict):
+    name = name + SUFFIX
     fig.savefig(os.path.join(HERE, name + ".pdf"))
     fig.savefig(os.path.join(HERE, name + ".png"), dpi=150)
     plt.close(fig)
@@ -170,9 +174,9 @@ for p in PARTS:
         for a, b in runs(s["estop"] == 1):
             ax.axvspan(t[a], t[b], color="black", alpha=0.35, lw=0)
         ax.plot(t, v, color=GREY, lw=0.6)
-        ax.set_ylabel("robot hand\nspeed (mm/s)", fontsize=7)
+        ax.set_ylabel("robot hand\nspeed (mm/s)", fontsize=7 * FS)
         ax.set_ylim(0, np.nanpercentile(v, 99.5) * 1.1 if np.isfinite(np.nanpercentile(v, 99.5)) else 1)
-        ax.text(0.995, 0.92, label(s), transform=ax.transAxes, ha="right", va="top", fontsize=7.5)
+        ax.text(0.995, 0.92, label(s), transform=ax.transAxes, ha="right", va="top", fontsize=7.5 * FS)
         ax.set_xlim(0, t[-1])
     axes[-1].set_xlabel("time into session (s)")
     fig.legend(handles=[Patch(color=BLUE, alpha=0.3, label="clutch held, direct control"),
@@ -202,7 +206,7 @@ def path_grid(idx, xlab, ylab, name, title):
                 lc.set_array(tt / tt[-1]); ax.add_collection(lc)
             ax.autoscale(); ax.set_aspect("equal", adjustable="datalim")
             ax.text(0.02, 0.95, f"{p}, {COND_LBL[cond]} ({len(ss)} session%s)" % ("" if len(ss) == 1 else "s"),
-                    transform=ax.transAxes, va="top", fontsize=7.5)
+                    transform=ax.transAxes, va="top", fontsize=7.5 * FS)
             if i == len(PARTS) - 1: ax.set_xlabel(xlab)
             if j == 0: ax.set_ylabel(ylab)
     sm = plt.cm.ScalarMappable(cmap="viridis", norm=plt.Normalize(0, 1))
@@ -227,7 +231,7 @@ for p in PARTS:
         ax.plot(xs, ys, color=GREY, lw=0.7, alpha=0.6)
         for x, y, s in zip(xs, ys, ss):
             ax.scatter(x, y, color=COND_COL[s["condition"]], s=22, zorder=3)
-        ax.text(xs[-1] + 0.12, ys[-1], p, fontsize=7.5, va="center", color=GREY)
+        ax.text(xs[-1] + 0.12, ys[-1], p, fontsize=7.5 * FS, va="center", color=GREY)
 axes[0].set_ylabel("time to finish (s)"); axes[1].set_ylabel("times the clutch was re-engaged")
 for ax in axes:
     ax.set_xlabel("session number, in the order recorded"); ax.set_xticks(range(1, 8))
@@ -248,7 +252,7 @@ fig, axes = plt.subplots(1, 2, figsize=(7.6, 2.8), gridspec_kw={"wspace": 0.45})
 lag_pool = {c: np.clip(v, 0.1, None) for c, v in lag_pool.items()}
 box(axes[0], [lag_pool["Direct"], lag_pool["Shared"]], ["direct control", "with assistance"], [BLUE, RED],
     "robot lag behind the operator (mm),\nclutch held; log scale")
-axes[0].axhline(GATE_MM, color=GREY, ls=":", lw=1); axes[0].text(1.5, GATE_MM * 1.05, "30 mm grasp gate", fontsize=7, color=GREY, ha="center")
+axes[0].axhline(GATE_MM, color=GREY, ls=":", lw=1); axes[0].text(1.5, GATE_MM * 1.05, "30 mm grasp gate", fontsize=7 * FS, color=GREY, ha="center")
 axes[0].set_yscale("log"); axes[0].set_ylim(0.1, max(np.nanmax(lag_pool["Direct"]), np.nanmax(lag_pool["Shared"])) * 1.5)
 for c, s0 in zip(("Direct", "Shared"), (BLUE, RED)):
     v_all, l_all = [], []
@@ -265,7 +269,7 @@ for c, s0 in zip(("Direct", "Shared"), (BLUE, RED)):
     axes[1].plot(mid, q75, color=s0, lw=0.8, ls="--", alpha=0.8)
 axes[1].axhline(GATE_MM, color=GREY, ls=":", lw=1)
 axes[1].set_xlabel("operator hand speed (m/s)"); axes[1].set_ylabel("robot lag behind the operator (mm)")
-axes[1].legend(frameon=False, loc="upper left"); axes[1].text(0.99, 0.02, "dashed = upper quartile", transform=axes[1].transAxes, ha="right", fontsize=7, color=GREY)
+axes[1].legend(frameon=False, loc="upper left"); axes[1].text(0.99, 0.02, "dashed = upper quartile", transform=axes[1].transAxes, ha="right", fontsize=7 * FS, color=GREY)
 save(fig, "04_lag", "How far behind the operator the robot ran",
      "trail.csv vr_*_lag_m while vr_*_engaged == 1; controller speed from vrc_*_x/y/z",
      "Lag is a few millimetres almost always and grows with hand speed; the fraction of samples past the 30 mm grasp gate is %.1f%% (direct) and %.1f%% (with assistance)." % (100 * frac_gate["Direct"], 100 * frac_gate["Shared"]),
@@ -331,16 +335,16 @@ fig, axes = plt.subplots(1, 2, figsize=(7.4, 2.8), gridspec_kw={"width_ratios": 
 order = sorted(VR, key=lambda s: s["tracking_ok_frac"])
 axes[0].barh(range(len(order)), [100 * (1 - s["tracking_ok_frac"]) for s in order],
              color=[COND_COL[s["condition"]] for s in order], alpha=0.8)
-axes[0].set_yticks(range(len(order))); axes[0].set_yticklabels([s["participant"] for s in order], fontsize=6.5)
+axes[0].set_yticks(range(len(order))); axes[0].set_yticklabels([s["participant"] for s in order], fontsize=6.5 * FS)
 axes[0].set_xlabel("share of session untracked (%)")
 for i, s in enumerate(VR):
     t = s["t"]; lost = runs(s["tracked"] == 0)
     for a, b in lost:
         axes[1].plot([t[a] / t[-1], t[b] / t[-1]], [i, i], color=COND_COL[s["condition"]], lw=3, solid_capstyle="butt")
     axes[1].plot([0, 1], [i, i], color="0.85", lw=0.5, zorder=0)
-axes[1].set_yticks(range(len(VR))); axes[1].set_yticklabels([s["participant"] for s in VR], fontsize=6.5)
+axes[1].set_yticks(range(len(VR))); axes[1].set_yticklabels([s["participant"] for s in VR], fontsize=6.5 * FS)
 axes[1].set_xlabel("position in the session (0 = start, 1 = end)"); axes[1].set_xlim(0, 1)
-axes[1].set_title("when tracking dropped out", fontsize=8)
+axes[1].set_title("when tracking dropped out", fontsize=8 * FS)
 worst = order[0]
 save(fig, "07_tracking_loss", "How often the headset lost sight of the controller",
      "trail.csv vr_*_tracked per session",
@@ -365,7 +369,7 @@ for s in VR + MA:
 mat = np.array(mat)
 fig, ax = plt.subplots(figsize=(6.2, 0.22 * len(rows_lbl) + 1.2))
 im = ax.imshow(mat, aspect="auto", cmap="viridis", vmin=0, vmax=np.percentile(mat, 97))
-ax.set_yticks(range(len(rows_lbl))); ax.set_yticklabels(rows_lbl, fontsize=6.2)
+ax.set_yticks(range(len(rows_lbl))); ax.set_yticklabels(rows_lbl, fontsize=6.2 * FS)
 ax.set_xticks(range(7)); ax.set_xticklabels([f"joint {i}" for i in range(1, 8)])
 cb = fig.colorbar(im, ax=ax, fraction=0.03, pad=0.02); cb.set_label("tracking error, real vs simulated (degrees)")
 ax.spines["left"].set_visible(True)
@@ -411,8 +415,8 @@ for ax, s, nm in zip(axes, (good, bad), ("M2 (tracks within 2°)", "M1 (tracks 1
         y = P[:, i];
         if np.isfinite(y).sum() < 10: continue
         ax.plot(s["t"], y, lw=0.6, label=f"channel {i+1}")
-    ax.set_ylabel("raw sensor reading\n(counts)"); ax.text(0.99, 0.95, nm, transform=ax.transAxes, ha="right", va="top", fontsize=8)
-axes[-1].set_xlabel("time into session (s)"); fig.legend(*axes[0].get_legend_handles_labels(), ncol=7, frameon=False, fontsize=7, loc="lower center", bbox_to_anchor=(0.5, -0.03)); fig.subplots_adjust(bottom=0.16)
+    ax.set_ylabel("raw sensor reading\n(counts)"); ax.text(0.99, 0.95, nm, transform=ax.transAxes, ha="right", va="top", fontsize=8 * FS)
+axes[-1].set_xlabel("time into session (s)"); fig.legend(*axes[0].get_legend_handles_labels(), ncol=7, frameon=False, fontsize=7 * FS, loc="lower center", bbox_to_anchor=(0.5, -0.03)); fig.subplots_adjust(bottom=0.16)
 save(fig, "09_master_raw_channels", "The master arm's raw sensor channels, a good session beside a bad one",
      "trail_extracted.csv mraw_<hand>_p1..p7 for one M2 and one M1 object-tracking session",
      "Channels that trace a trajectory are alive; a channel that sits flat or jumps between levels is the defect the health verdict names.",
@@ -423,7 +427,7 @@ for ax, s in zip(axes, MA):
     xy = s["master"][:, [0, 1]]; ok = np.isfinite(xy).all(1); xy = xy[ok]; tt = s["t"][ok]
     pts = xy.reshape(-1, 1, 2); segs = np.concatenate([pts[:-1], pts[1:]], 1)
     lc = LineCollection(segs, cmap="viridis", lw=0.7); lc.set_array(tt / tt[-1]); ax.add_collection(lc); ax.autoscale(); ax.set_aspect("equal", "datalim")
-    ax.text(0.02, 0.95, "%s, %s,\n%s" % (s["participant"], TASK_LBL[s["task"]], COND_LBL[s["condition"]]), transform=ax.transAxes, va="top", fontsize=7)
+    ax.text(0.02, 0.95, "%s, %s,\n%s" % (s["participant"], TASK_LBL[s["task"]], COND_LBL[s["condition"]]), transform=ax.transAxes, va="top", fontsize=7 * FS)
 for ax in axes[6:]: ax.set_xlabel("left–right (m)")
 for ax in axes[::3]: ax.set_ylabel("forward (m)")
 save(fig, "09_master_hand_paths", "Where the master arm's hand went, every master-arm session (from above)",
@@ -439,7 +443,7 @@ for i, s in enumerate(VR):
     t = s["t"]; ax.plot([0, t[-1]], [i, i], color="0.85", lw=3, solid_capstyle="butt")
     for a, b in runs(s["estop"] == 1):
         ax.plot([t[a], t[b]], [i, i], color="black", lw=3, solid_capstyle="butt"); n_holds += 1; hold_s.append(t[b] - t[a])
-    ax.text(t[-1] + 4, i, label(s), fontsize=6.2, va="center")
+    ax.text(t[-1] + 4, i, label(s), fontsize=6.2 * FS, va="center")
 ax.set_yticks([]); ax.set_xlabel("time into session (s)"); ax.set_xlim(0, max(s["t"][-1] for s in VR) * 1.9)
 ax.spines["left"].set_visible(False)
 save(fig, "10_estop_timeline", "Every session's timeline, with emergency-stop holds in black",
@@ -463,11 +467,11 @@ for ax, (k, lab) in zip(axes, metrics):
     for (p, task), v in pairs.items():
         a = np.mean([s[k] for s in v["Direct"]]); b = np.mean([s[k] for s in v["Shared"]])
         ax.plot([0, 1], [a, b], color=GREY, lw=0.9); ax.scatter([0], [a], color=BLUE, s=20, zorder=3); ax.scatter([1], [b], color=RED, s=20, zorder=3)
-        ax.text(-0.06, a, p, fontsize=6.5, ha="right", va="center", color=GREY)
+        ax.text(-0.06, a, p, fontsize=6.5 * FS, ha="right", va="center", color=GREY)
     ax.set_xticks([0, 1]); ax.set_xticklabels(["direct", "with\nassistance"]); ax.set_xlim(-0.35, 1.2); ax.set_ylabel(lab)
     a_all = [np.mean([s[k] for s in v["Direct"]]) for v in pairs.values()]; b_all = [np.mean([s[k] for s in v["Shared"]]) for v in pairs.values()]
     up = sum(1 for a, b in zip(a_all, b_all) if b > a)
-    ax.set_title("%d of %d higher with assistance" % (up, len(pairs)), fontsize=7.5, color=GREY)
+    ax.set_title("%d of %d higher with assistance" % (up, len(pairs)), fontsize=7.5 * FS, color=GREY)
 save(fig, "11_paired_slopes", "Same operator, same task, both ways round",
      "vr_study_sessions.json, the 7 participant×task pairs with both conditions",
      "The robot's hand travels further with assistance in 6 of 7 pairs, but the operator's own hand does not — so the extra travel is the assistance layer's, not the operator's.",
@@ -482,19 +486,19 @@ save(fig, "11_paired_slopes", "Same operator, same task, both ways round",
 metrics3 = [("ee_path_m", "how far the robot's hand moved (m)"),
             ("controller_path_m", "how far the operator's hand moved (m)"),
             ("clutch_engagements", "times the clutch was re-engaged")]
-with plt.rc_context({"font.size": 11, "axes.labelsize": 11, "xtick.labelsize": 11, "ytick.labelsize": 10}):
+with plt.rc_context({"font.size": 11 * FS, "axes.labelsize": 11 * FS, "xtick.labelsize": 11 * FS, "ytick.labelsize": 10 * FS}):
     fig, axes = plt.subplots(1, 3, figsize=(10.0, 4.6), gridspec_kw={"wspace": 0.55})
     for ax, (k, lab) in zip(axes, metrics3):
         for (p, task), v in pairs.items():
             a = np.mean([s[k] for s in v["Direct"]]); b = np.mean([s[k] for s in v["Shared"]])
             ax.plot([0, 1], [a, b], color=GREY, lw=1.2); ax.scatter([0], [a], color=BLUE, s=60, zorder=3); ax.scatter([1], [b], color=RED, s=60, zorder=3)
-            ax.text(-0.08, a, p, fontsize=9, ha="right", va="center", color=GREY)
+            ax.text(-0.08, a, p, fontsize=9 * FS, ha="right", va="center", color=GREY)
         ax.set_xticks([0, 1]); ax.set_xticklabels(["direct", "with\nassistance"]); ax.set_xlim(-0.4, 1.25); ax.set_ylabel(lab)
         a_all = [np.mean([s[k] for s in v["Direct"]]) for v in pairs.values()]; b_all = [np.mean([s[k] for s in v["Shared"]]) for v in pairs.values()]
         up = sum(1 for a, b in zip(a_all, b_all) if b > a)
-        ax.set_title("%d of %d higher with assistance" % (up, len(pairs)), fontsize=11, color=GREY)
-    fig.savefig(os.path.join(HERE, "11_paired_slopes_3panel.pdf"))
-    fig.savefig(os.path.join(HERE, "11_paired_slopes_3panel_300.png"), dpi=300)
+        ax.set_title("%d of %d higher with assistance" % (up, len(pairs)), fontsize=11 * FS, color=GREY)
+    fig.savefig(os.path.join(HERE, "11_paired_slopes_3panel%s.pdf" % SUFFIX))
+    fig.savefig(os.path.join(HERE, "11_paired_slopes_3panel%s_300.png" % SUFFIX), dpi=300)
     plt.close(fig)
 
 # --------------------------------------------------------------------------

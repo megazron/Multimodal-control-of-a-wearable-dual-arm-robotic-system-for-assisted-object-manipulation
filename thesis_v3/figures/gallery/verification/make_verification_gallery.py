@@ -14,6 +14,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 from PIL import Image
+import os as _os
+FS = float(_os.environ.get("FONT_SCALE", "1"))
+SUFFIX = _os.environ.get("OUT_SUFFIX", "")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
@@ -22,7 +25,7 @@ FR = os.path.join(HERE, "frames"); os.makedirs(FR, exist_ok=True)
 
 GREY, BLUE, RED, GREEN = "0.35", "#2c6fbb", "#c1392b", "#3f9142"
 AMBER = "#c98a1a"
-plt.rcParams.update({"font.size": 9, "axes.titlesize": 10, "axes.spines.top": False,
+plt.rcParams.update({"font.size": 9 * FS, "axes.titlesize": 10 * FS, "axes.spines.top": False,
                      "axes.spines.right": False, "legend.frameon": False})
 
 MODES = ["01_master_teleop", "02_vr_teleop", "03_shared_autonomy", "04_vr_shared", "06_full_autonomy"]
@@ -56,6 +59,7 @@ def load(path):
 
 
 def save(fig, name, title, source, takeaway, numbers, verdict):
+    name = name + SUFFIX
     pdf = os.path.join(HERE, name + ".pdf"); png = os.path.join(HERE, name + ".png")
     fig.savefig(pdf, bbox_inches="tight"); fig.savefig(png, dpi=150, bbox_inches="tight")
     plt.close(fig)
@@ -99,7 +103,7 @@ def clip_times(mode, task):
 def montage(ax, path, label=None):
     ax.imshow(Image.open(path)); ax.axis("off")
     if label:
-        ax.set_title(label, fontsize=8, pad=2)
+        ax.set_title(label, fontsize=8 * FS, pad=2)
 
 
 # ---------------------------------------------------------------- data
@@ -125,23 +129,23 @@ def fig_grasp_grid():
             x, y = j, len(MODES) - 1 - i
             if not ran:
                 ax.add_patch(plt.Rectangle((x, y), 1, 1, fc="0.93", ec="white", hatch="///", lw=2))
-                ax.text(x + .5, y + .5, "not run in\nthis mode", ha="center", va="center", fontsize=6.5, color="0.45")
+                ax.text(x + .5, y + .5, "not run in\nthis mode", ha="center", va="center", fontsize=6.5 * FS, color="0.45")
             elif st is None:
                 ax.add_patch(plt.Rectangle((x, y), 1, 1, fc="0.85", ec="white", lw=2))
-                ax.text(x + .5, y + .5, "nothing to\ngrasp", ha="center", va="center", fontsize=6.5, color="0.35")
+                ax.text(x + .5, y + .5, "nothing to\ngrasp", ha="center", va="center", fontsize=6.5 * FS, color="0.35")
             else:
                 g, n, _ = st
                 ax.add_patch(plt.Rectangle((x, y), 1, 1, fc=GREEN if g == n else (AMBER if g else RED), ec="white", lw=2))
-                ax.text(x + .5, y + .5, "%d of %d\ngrasped" % (g, n), ha="center", va="center", fontsize=8, color="white", fontweight="bold")
+                ax.text(x + .5, y + .5, "%d of %d\ngrasped" % (g, n), ha="center", va="center", fontsize=8 * FS, color="white", fontweight="bold")
     ax.set_xlim(0, len(TASKS)); ax.set_ylim(0, len(MODES))
-    ax.set_xticks([j + .5 for j in range(len(TASKS))]); ax.set_xticklabels([TASK_NAME[t] for t in TASKS], fontsize=8)
-    ax.set_yticks([len(MODES) - .5 - i for i in range(len(MODES))]); ax.set_yticklabels([MODE_NAME[m] for m in MODES], fontsize=8)
+    ax.set_xticks([j + .5 for j in range(len(TASKS))]); ax.set_xticklabels([TASK_NAME[t] for t in TASKS], fontsize=8 * FS)
+    ax.set_yticks([len(MODES) - .5 - i for i in range(len(MODES))]); ax.set_yticklabels([MODE_NAME[m] for m in MODES], fontsize=8 * FS)
     for s in ax.spines.values(): s.set_visible(False)
     ax.tick_params(length=0)
     ax.legend(handles=[Patch(fc=GREEN, label="every grasp closed on its object"),
                        Patch(fc="0.85", label="task has nothing to grasp"),
                        Patch(fc="0.93", hatch="///", label="not run in this mode (by design)")],
-              loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=2, fontsize=7.5)
+              loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=2, fontsize=7.5 * FS)
     save(fig, "01_grasp_success_grid", "Did the robot grasp what it was meant to? Every scripted run, every mode",
          "recordings/verification/accuracy_table.json (grasped/n), cell directories present on disk",
          "Every grasp attempted in every mode closed on its object; the blank cells are tasks that were never meant to run there, not failures.",
@@ -165,10 +169,10 @@ def fig_positioning():
                 placed_labelled = True
             xs.append(k); labels.append("%s\n%s" % (MODE_TINY[mode], TASK_TINY[r["task"].upper()]))
             k += 1
-    ax.axhline(GATE_MM, color=GREY, ls="--", lw=1); ax.text(k - 0.5, GATE_MM + 1.5, "30 mm: the gripper can still capture it", ha="right", fontsize=7.5, color=GREY)
-    ax.set_xticks(xs); ax.set_xticklabels(labels, fontsize=7)
+    ax.axhline(GATE_MM, color=GREY, ls="--", lw=1); ax.text(k - 0.5, GATE_MM + 1.5, "30 mm: the gripper can still capture it", ha="right", fontsize=7.5 * FS, color=GREY)
+    ax.set_xticks(xs); ax.set_xticklabels(labels, fontsize=7 * FS)
     ax.set_ylabel("distance (mm)"); ax.set_ylim(-3, 70)
-    ax.legend(fontsize=7.5, loc="upper left")
+    ax.legend(fontsize=7.5 * FS, loc="upper left")
     save(fig, "02_positioning_error_vs_gate", "How close the hand got: grasp and set-down error against the 30 mm capture gate",
          "recordings/verification/accuracy_table.json (pos_err, place_err), metres converted to mm",
          "The fingers met every object exactly where the plan said (0.0 mm); the cubes were set down about 56 mm from the centre of their pad, which is past the 30 mm line.",
@@ -185,10 +189,10 @@ def fig_gripper_traces():
             ax = axes[i, j]
             d = cell_dir(mode, task)
             if d is None:
-                ax.text(.5, .5, "not run in this mode", ha="center", va="center", transform=ax.transAxes, fontsize=7, color="0.45")
+                ax.text(.5, .5, "not run in this mode", ha="center", va="center", transform=ax.transAxes, fontsize=7 * FS, color="0.45")
                 ax.set_xticks([]); [s.set_visible(False) for s in ax.spines.values()]
-                if i == 0: ax.set_title(MODE_SHORT[mode], fontsize=8)
-                if j == 0: ax.set_ylabel("%s\nfingers closed (deg)" % TASK_SHORT[task], fontsize=8)
+                if i == 0: ax.set_title(MODE_SHORT[mode], fontsize=8 * FS)
+                if j == 0: ax.set_ylabel("%s\nfingers closed (deg)" % TASK_SHORT[task], fontsize=8 * FS)
                 continue
             tr = load(os.path.join(d, "grip_trace.json")); ev = load(os.path.join(d, "scene_events.json"))
             t = [r["t"] for r in tr]
@@ -197,12 +201,12 @@ def fig_gripper_traces():
                 ax.plot(t, [math.degrees(y) if y == y else y for y in ys], color=c, lw=1, label="%s gripper" % arm)
             for x in ev.get("events", []):
                 ax.axvline(x["t"], color=GREEN if x["ev"] == "GRASPED" else GREY, lw=.8, ls=":" if x["ev"] == "RELEASED" else "-")
-            if i == 0: ax.set_title(MODE_SHORT[mode], fontsize=8)
-            if j == 0: ax.set_ylabel("%s\nfingers closed (deg)" % TASK_SHORT[task], fontsize=8)
-            ax.set_xlabel("time (s)", fontsize=7); ax.tick_params(labelsize=7)
+            if i == 0: ax.set_title(MODE_SHORT[mode], fontsize=8 * FS)
+            if j == 0: ax.set_ylabel("%s\nfingers closed (deg)" % TASK_SHORT[task], fontsize=8 * FS)
+            ax.set_xlabel("time (s)", fontsize=7 * FS); ax.tick_params(labelsize=7)
     h = [plt.Line2D([], [], color=BLUE, label="left gripper"), plt.Line2D([], [], color=RED, label="right gripper"),
          plt.Line2D([], [], color=GREEN, label="grasp confirmed"), plt.Line2D([], [], color=GREY, ls=":", label="object released")]
-    fig.legend(handles=h, loc="lower center", ncol=4, fontsize=8, bbox_to_anchor=(0.5, -0.01))
+    fig.legend(handles=h, loc="lower center", ncol=4, fontsize=8 * FS, bbox_to_anchor=(0.5, -0.01))
     fig.tight_layout(rect=(0, 0.05, 1, 1))
     save(fig, "03_gripper_traces_by_mode", "Did the gripper actually close? Finger angle through every grasping run",
          "recordings/verification/*/T*/*/grip_trace.json (knuckle rad -> deg), scene_events.json events",
@@ -227,7 +231,7 @@ def fig_t1_frames():
             montage(axes[r, c], frame(mode, task, angle, t, "%s_%d_%s" % (lab.split()[0], r, angle)),
                     lab if r == 0 else None)
         axes[r, 0].text(-0.02, 0.5, "%s\n(%s arm, %s)" % (g["item"].replace("_", " "), g["arm"], "gripper camera" if cam == "gripper" else "right-side view"),
-                        transform=axes[r, 0].transAxes, ha="right", va="center", fontsize=7.5)
+                        transform=axes[r, 0].transAxes, ha="right", va="center", fontsize=7.5 * FS)
     fig.subplots_adjust(wspace=0.03, hspace=0.06, left=0.13, right=0.99, top=0.94, bottom=0.01)
     save(fig, "04_pick_and_place_frames", "The autonomous pick-and-place, cube by cube: approach, grasp, carry, set down",
          "recordings/verification/06_full_autonomy/T1/S1_both_arms_centre/rviz_{gripper,right,top}.mp4, stills at the logged grasp/release times",
@@ -249,7 +253,7 @@ def fig_task_by_mode(task, name, title, take, nums, verdict):
             ts = [(off + 0.5, "start"), (off + span * .33, "one third"), (off + span * .66, "two thirds"), (off + span - 0.5, "end")]
         for c, (t, lab) in enumerate(ts):
             montage(axes[i, c], frame(mode, task, "front", t, "bymode_%s_%d" % (task, c)), lab if i == 0 else None)
-        axes[i, 0].text(-0.02, 0.5, MODE_NAME[mode], transform=axes[i, 0].transAxes, ha="right", va="center", fontsize=8)
+        axes[i, 0].text(-0.02, 0.5, MODE_NAME[mode], transform=axes[i, 0].transAxes, ha="right", va="center", fontsize=8 * FS)
     fig.subplots_adjust(wspace=0.03, hspace=0.06, left=0.13, right=0.99, top=0.94, bottom=0.01)
     save(fig, name, title, "recordings/verification/<mode>/%s/*/rviz_front.mp4, stills at logged event times (or thirds where the task logs none)" % task, take, nums, verdict)
 
@@ -284,9 +288,9 @@ def fig_placement_history():
         vals = [1000 * v for r in d.get("06_full_autonomy", []) if r["task"] == "t1" for v in r["place_err"]]
         ax.scatter([k] * len(vals), vals, color=BLUE, s=30, zorder=3)
         ax.plot([k - .25, k + .25], [sum(vals) / len(vals)] * 2, color=RED, lw=2)
-        ax.text(k + .28, sum(vals) / len(vals), "mean %.0f" % (sum(vals) / len(vals)), va="center", fontsize=7.5, color=RED)
-    ax.axhline(GATE_MM, color=GREY, ls="--", lw=1); ax.text(-0.4, GATE_MM + 8, "30 mm capture gate", fontsize=7.5, color=GREY)
-    ax.set_xticks(range(len(sets))); ax.set_xticklabels([s[0] for s in sets], fontsize=7.5)
+        ax.text(k + .28, sum(vals) / len(vals), "mean %.0f" % (sum(vals) / len(vals)), va="center", fontsize=7.5 * FS, color=RED)
+    ax.axhline(GATE_MM, color=GREY, ls="--", lw=1); ax.text(-0.4, GATE_MM + 8, "30 mm capture gate", fontsize=7.5 * FS, color=GREY)
+    ax.set_xticks(range(len(sets))); ax.set_xticklabels([s[0] for s in sets], fontsize=7.5 * FS)
     ax.set_ylabel("cube set-down error (mm)"); ax.set_ylim(0, 650)
     save(fig, "08_placement_error_history", "How far each cube was set down from its pad, across the four recorded versions of the pick-and-place",
          "archive/recordings/*/accuracy_table.json and recordings/verification/accuracy_table.json (06_full_autonomy, t1, place_err)",
@@ -307,10 +311,10 @@ def fig_mode_travel():
             x = pm[mode]
             ax.plot([i, i], [0, x["travel_l"]], color=BLUE, lw=5, solid_capstyle="butt", alpha=.85)
             ax.plot([i + .28, i + .28], [0, x["travel_r"]], color=RED, lw=5, solid_capstyle="butt", alpha=.85)
-        ax.set_xticks([i + .14 for i in range(len(MODES))]); ax.set_xticklabels([MODE_TINY[m] for m in MODES], fontsize=6.5)
-        ax.set_title(TASK_SHORT[task], fontsize=9); ax.tick_params(labelsize=7)
+        ax.set_xticks([i + .14 for i in range(len(MODES))]); ax.set_xticklabels([MODE_TINY[m] for m in MODES], fontsize=6.5 * FS)
+        ax.set_title(TASK_SHORT[task], fontsize=9 * FS); ax.tick_params(labelsize=7)
     axes[0].set_ylabel("distance the hand travelled (m)")
-    fig.legend(handles=[Patch(fc=BLUE, label="left arm"), Patch(fc=RED, label="right arm")], loc="lower center", ncol=2, fontsize=8, bbox_to_anchor=(0.5, -0.06))
+    fig.legend(handles=[Patch(fc=BLUE, label="left arm"), Patch(fc=RED, label="right arm")], loc="lower center", ncol=2, fontsize=8 * FS, bbox_to_anchor=(0.5, -0.06))
     fig.tight_layout()
     save(fig, "09_robot_travel_no_operator", "Same commanded waypoints, no operator: how far the arm travels in each mode",
          "recordings/baselines/mode_difference.json (per_mode travel_l/travel_r); also plotted by another gallery -- labelled here as the no-operator baseline",
@@ -329,11 +333,11 @@ def fig_vr_lag():
             if a.get("peak_hand_speed_mps") is None: continue
             ax.scatter(a["peak_hand_speed_mps"], a["max_lag_mm"], color=c, marker=mk, s=34, zorder=3)
             if a["max_lag_mm"] > GATE_MM:
-                ax.annotate(s["segment"].replace("_", " "), (a["peak_hand_speed_mps"], a["max_lag_mm"]), xytext=(5, 3), textcoords="offset points", fontsize=7)
-    ax.axhline(GATE_MM, color=GREY, ls="--", lw=1); ax.text(0.02, GATE_MM + 2, "30 mm: still inside the capture gate", fontsize=7.5, color=GREY)
-    ax.axvline(0.27, color=GREY, ls=":", lw=1); ax.text(0.272, 60, "0.27 m/s", fontsize=7.5, color=GREY)
+                ax.annotate(s["segment"].replace("_", " "), (a["peak_hand_speed_mps"], a["max_lag_mm"]), xytext=(5, 3), textcoords="offset points", fontsize=7 * FS)
+    ax.axhline(GATE_MM, color=GREY, ls="--", lw=1); ax.text(0.02, GATE_MM + 2, "30 mm: still inside the capture gate", fontsize=7.5 * FS, color=GREY)
+    ax.axvline(0.27, color=GREY, ls=":", lw=1); ax.text(0.272, 60, "0.27 m/s", fontsize=7.5 * FS, color=GREY)
     ax.set_xlabel("fastest hand speed in the movement (m/s)"); ax.set_ylabel("furthest the robot fell behind the hand (mm)")
-    ax.legend(handles=[plt.Line2D([], [], color=BLUE, marker="o", ls="", label="left hand"), plt.Line2D([], [], color=RED, marker="s", ls="", label="right hand")], fontsize=8, loc="upper left")
+    ax.legend(handles=[plt.Line2D([], [], color=BLUE, marker="o", ls="", label="left hand"), plt.Line2D([], [], color=RED, marker="s", ls="", label="right hand")], fontsize=8 * FS, loc="upper left")
     save(fig, "10_vr_lag_vs_hand_speed", "How far the robot fell behind a VR-controlled hand, against how fast the hand moved",
          "recordings/vr_teleop/protocol_20260826_124739.json (peak_hand_speed_mps, max_lag_mm per segment and arm; simulation, 2026-08-26)",
          "Below about 0.27 m/s the robot never fell more than 23 mm behind; a deliberately fast forward push at 0.35 m/s left it 83-93 mm behind, three times the capture gate.",
@@ -365,10 +369,10 @@ def fig_master_capture():
         ax2.scatter(len(rs) / 50.0, 1000 * min(clr), color=c, s=26, zorder=3)
     lim = 1.5; ax.plot([0, lim], [0, lim], color=GREY, lw=1, ls="--"); ax.set_xlim(0, lim); ax.set_ylim(0, lim)
     ax.set_xlabel("distance the master asked for (m)"); ax.set_ylabel("distance the simulated hand moved (m)")
-    ax.text(0.05, 1.38, "dashed line: hand went exactly where asked", fontsize=7.5, color=GREY)
-    ax2.axhline(150, color=GREY, ls="--", lw=1); ax2.text(9, 165, "150 mm: closest the arm may come to the wearer", fontsize=7.5, color=GREY)
+    ax.text(0.05, 1.38, "dashed line: hand went exactly where asked", fontsize=7.5 * FS, color=GREY)
+    ax2.axhline(150, color=GREY, ls="--", lw=1); ax2.text(9, 165, "150 mm: closest the arm may come to the wearer", fontsize=7.5 * FS, color=GREY)
     ax2.set_xlabel("length of the movement (s)"); ax2.set_ylabel("closest the arm came to the wearer (mm)"); ax2.set_ylim(0, 620)
-    fig.legend(handles=[plt.Line2D([], [], color=BLUE, marker="o", ls="", label="left arm"), plt.Line2D([], [], color=RED, marker="o", ls="", label="right arm")], loc="upper center", ncol=2, fontsize=8, bbox_to_anchor=(0.5, 1.04))
+    fig.legend(handles=[plt.Line2D([], [], color=BLUE, marker="o", ls="", label="left arm"), plt.Line2D([], [], color=RED, marker="o", ls="", label="right arm")], loc="upper center", ncol=2, fontsize=8 * FS, bbox_to_anchor=(0.5, 1.04))
     fig.tight_layout()
     save(fig, "11_master_sweep_commanded_vs_moved", "Moving the mannequin master through 28 set movements: what was asked for, what the hand did, and how close it came to the wearer",
          "recordings/trajectory_capture/capture_20260901_151026/all_segments.csv (cmd vs ee path per segment, min_clearance), 50 Hz, clutch pinned",
@@ -386,9 +390,9 @@ def fig_tray_tilt():
         e = load(os.path.join(d, "scene_events.json")); cs = e.get("carry_series") or []
         ax.plot([r["t"] for r in cs], [r["tilt_deg"] for r in cs], color=c, lw=1, label=MODE_SHORT[mode])
     ax.axhline(6.8, color=RED, ls="--", lw=1); ax.axhline(-6.8, color=RED, ls="--", lw=1)
-    ax.text(0.5, 7.3, "6.8 deg: the ball rolls off", fontsize=7.5, color=RED)
+    ax.text(0.5, 7.3, "6.8 deg: the ball rolls off", fontsize=7.5 * FS, color=RED)
     ax.set_xlabel("time (s)"); ax.set_ylabel("tray tilt (degrees)"); ax.set_ylim(-8, 12)
-    ax.legend(fontsize=7, ncol=3, loc="upper left", bbox_to_anchor=(0, 1.0))
+    ax.legend(fontsize=7 * FS, ncol=3, loc="upper left", bbox_to_anchor=(0, 1.0))
     save(fig, "12_tray_tilt_by_mode", "Carrying the tray: how much it tilted in each mode, against the angle at which the ball rolls off",
          "recordings/verification/*/T2/*/scene_events.json carry_series.tilt_deg, carry_summary.fail_tilt_deg",
          "The tray stays within a degree of level in four modes; the VR-direct run spiked to 9.9 degrees for a third of a second, past the roll-off angle.",
@@ -408,7 +412,7 @@ def fig_run_durations():
             ax.scatter(j + (i - 2) * 0.13, span, color=[BLUE, RED, GREEN, AMBER, GREY][i], s=36, zorder=3, label=MODE_SHORT[mode] if j == 0 else None)
     ax.set_xticks(range(len(tasks))); ax.set_xticklabels([TASK_SHORT[t] for t in tasks])
     ax.set_ylabel("time to run the task (s)"); ax.set_ylim(0, 60)
-    ax.legend(fontsize=7.5, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.16))
+    ax.legend(fontsize=7.5 * FS, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.16))
     save(fig, "13_scripted_run_durations", "How long each scripted run took, by mode",
          "recordings/verification/*/T*/*/clip_meta.json (grab_t1 - grab_t0)",
          "The same scripted task takes about three times longer through the VR-controller path than through any other mode -- the VR path is rate-limited by its own filter.",

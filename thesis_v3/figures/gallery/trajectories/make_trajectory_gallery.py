@@ -25,6 +25,8 @@ import csv
 import json
 import math
 import os
+FS = float(os.environ.get("FONT_SCALE", "1"))
+SUFFIX = os.environ.get("OUT_SUFFIX", "")
 import sys
 import time
 
@@ -44,7 +46,7 @@ CACHE = os.path.join(HERE, "trajectories.json")
 
 GREY, BLUE, RED, GREEN = "0.35", "#2c6fbb", "#c1392b", "#3f9142"
 plt.rcParams.update({
-    "font.size": 9, "axes.titlesize": 9,
+    "font.size": 9 * FS, "axes.titlesize": 9 * FS,
     "axes.spines.top": False, "axes.spines.right": False,
 })
 ANON = {}  # the data files are already anonymised (figures/anonymise_pilot_data.py)
@@ -206,9 +208,9 @@ def draw3d(ax, rec, markers=True, op_alpha=0.45):
         i = rec["release"]
         ax.scatter([sx[i]], [sy[i]], [sz[i]], color="black", marker="^", s=30, zorder=5,
                    label="first clutch release")
-    ax.set_xlabel("x (m)", labelpad=-2, fontsize=7)
-    ax.set_ylabel("y (m)", labelpad=-2, fontsize=7)
-    ax.set_zlabel("z (m)", labelpad=-4, fontsize=7)
+    ax.set_xlabel("x (m)", labelpad=-2, fontsize=7 * FS)
+    ax.set_ylabel("y (m)", labelpad=-2, fontsize=7 * FS)
+    ax.set_zlabel("z (m)", labelpad=-4, fontsize=7 * FS)
     ax.tick_params(labelsize=6, pad=0)
     ax.locator_params(nbins=4)
 
@@ -219,11 +221,12 @@ def legend_below(fig, ax, ncol=3, y=0.0):
     for a, b in zip(h, l):
         if b not in seen:
             seen.add(b); hh.append(a); ll.append(b)
-    fig.legend(hh, ll, loc="lower center", ncol=ncol, frameon=False, fontsize=7,
+    fig.legend(hh, ll, loc="lower center", ncol=ncol, frameon=False, fontsize=7 * FS,
                bbox_to_anchor=(0.5, y))
 
 
 def save(fig, name):
+    name = name + SUFFIX
     pdf = os.path.join(HERE, name + ".pdf")
     fig.savefig(pdf)
     fig.savefig(os.path.join(HERE, name + ".png"), dpi=200)
@@ -260,7 +263,7 @@ def plot(data):
         for k, rec in enumerate(recs):
             ax = fig.add_subplot(nr, nc, k + 1, projection="3d")
             draw3d(ax, rec, markers=(rec["cohort"] == "VR"))
-            ax.set_title(short(rec), fontsize=7.5, pad=0)
+            ax.set_title(short(rec), fontsize=7.5 * FS, pad=0)
             ax0 = ax0 or ax
         fig.subplots_adjust(left=0.02, right=0.98, bottom=0.14 if nr > 1 else 0.22, top=0.92,
                             wspace=0.08, hspace=0.25)
@@ -272,7 +275,7 @@ def plot(data):
             fig = plt.figure(figsize=(3.4, 3.2))
             ax = fig.add_subplot(111, projection="3d")
             draw3d(ax, rec, markers=(rec["cohort"] == "VR"))
-            ax.set_title(short(rec), fontsize=8, pad=0)
+            ax.set_title(short(rec), fontsize=8 * FS, pad=0)
             fig.subplots_adjust(left=0.02, right=0.98, bottom=0.2, top=0.9)
             legend_below(fig, ax, ncol=2, y=0.0)
             save(fig, "3d_single_%s_%02d" % (p, k + 1))
@@ -292,10 +295,10 @@ def plot(data):
                 ax.plot(smooth(o[ia]), smooth(o[ib]), color=BLUE, lw=0.5, alpha=0.45, label=LBL_OP)
                 ax.plot(s[ia], s[ib], color=RED, lw=1.0, label=LBL_SIM)
                 ax.plot(r[ia], r[ib], color=GREEN, lw=1.0, ls="--", label=LBL_REAL)
-                ax.set_title(short(rec), fontsize=7.5)
+                ax.set_title(short(rec), fontsize=7.5 * FS)
                 ax.set_aspect("equal", adjustable="datalim")
                 ax.tick_params(labelsize=6)
-                ax.set_xlabel(xl, fontsize=7); ax.set_ylabel(yl, fontsize=7)
+                ax.set_xlabel(xl, fontsize=7 * FS); ax.set_ylabel(yl, fontsize=7 * FS)
             for k in range(len(recs), nr * nc):
                 axes[k // nc][k % nc].axis("off")
             fig.subplots_adjust(left=0.08, right=0.98, bottom=0.16 if nr > 1 else 0.3, top=0.9,
@@ -322,7 +325,7 @@ def plot(data):
             continue
         ax = fig.add_subplot(len(vr_ps), 2, k + 1, projection="3d")
         draw3d(ax, rec)
-        ax.set_title("%s (gap %.0f mm)" % (label(rec), rms(gap_mm(rec))), fontsize=7.5, pad=0)
+        ax.set_title("%s (gap %.0f mm)" % (label(rec), rms(gap_mm(rec))), fontsize=7.5 * FS, pad=0)
         ax0 = ax0 or ax
     fig.subplots_adjust(left=0.02, right=0.98, bottom=0.06, top=0.96, wspace=0.05, hspace=0.3)
     legend_below(fig, ax0, ncol=3, y=0.0)
@@ -345,12 +348,12 @@ def plot(data):
             ax.plot(t, g, color=GREY, lw=0.7)
             ax.axhline(30, color=RED, lw=0.6, ls=":")
             ax.text(0.99, 0.85, "%s -- mean %.1f mm" % (label(rec), sum(g) / len(g)),
-                    transform=ax.transAxes, ha="right", va="top", fontsize=7)
+                    transform=ax.transAxes, ha="right", va="top", fontsize=7 * FS)
             ax.tick_params(labelsize=6)
             ax.set_ylim(0, max(35, max(g) * 1.05))
-        axes[-1][0].set_xlabel("time into session (s)", fontsize=8)
-        fig.text(0.01, 0.5, "gap between simulated and real hand (mm)", rotation=90, va="center", fontsize=8)
-        fig.text(0.99, 0.01, "dotted red: 30 mm, the gripper's capture gate", ha="right", fontsize=6.5, color=RED)
+        axes[-1][0].set_xlabel("time into session (s)", fontsize=8 * FS)
+        fig.text(0.01, 0.5, "gap between simulated and real hand (mm)", rotation=90, va="center", fontsize=8 * FS)
+        fig.text(0.99, 0.01, "dotted red: 30 mm, the gripper's capture gate", ha="right", fontsize=6.5 * FS, color=RED)
         fig.subplots_adjust(left=0.1, right=0.98, bottom=0.12 if len(recs) > 2 else 0.25, top=0.98, hspace=0.35)
         save(fig, "gap_over_time_%s" % p)
         index.append(("gap_over_time_%s" % p, "How far apart the simulated and real hands were through each %s session" % p,
@@ -371,11 +374,11 @@ def plot(data):
             ax.plot(centre(smooth(o[0])), centre(smooth(o[2])), color=BLUE, lw=0.6, alpha=0.6,
                     label=LBL_OP + " (centred)")
             ax.plot(centre(s[0]), centre(s[2]), color=RED, lw=1.0, label=LBL_SIM + " (centred)")
-            ax.set_title(short(rec), fontsize=7.5)
+            ax.set_title(short(rec), fontsize=7.5 * FS)
             ax.set_aspect("equal", adjustable="datalim")
             ax.tick_params(labelsize=6)
-            ax.set_xlabel("forward, about its own mean (m)", fontsize=6.5)
-            ax.set_ylabel("height, about its own mean (m)", fontsize=6.5)
+            ax.set_xlabel("forward, about its own mean (m)", fontsize=6.5 * FS)
+            ax.set_ylabel("height, about its own mean (m)", fontsize=6.5 * FS)
         for k in range(len(recs), nr * nc):
             axes[k // nc][k % nc].axis("off")
         fig.subplots_adjust(left=0.08, right=0.98, bottom=0.16 if nr > 1 else 0.3, top=0.9,
@@ -392,15 +395,15 @@ def plot(data):
     for y, rec in zip(ys, items):
         v = rms(gap_mm(rec))
         ax.barh(y, v, color=BLUE if rec["condition"] == "Direct" else RED, height=0.7)
-        ax.text(v + 0.5, y, label(rec), va="center", fontsize=6)
+        ax.text(v + 0.5, y, label(rec), va="center", fontsize=6 * FS)
     ax.set_yticks([])
     ax.set_xlim(0, max(rms(gap_mm(r)) for r in items) * 1.35)
     ax.axvline(30, color=GREY, lw=0.6, ls=":")
-    ax.text(30.5, -0.9, "30 mm capture gate", fontsize=6.5, color=GREY, va="top")
-    ax.set_xlabel("typical gap between simulated and real hand over the session (mm)", fontsize=8)
+    ax.text(30.5, -0.9, "30 mm capture gate", fontsize=6.5 * FS, color=GREY, va="top")
+    ax.set_xlabel("typical gap between simulated and real hand over the session (mm)", fontsize=8 * FS)
     from matplotlib.patches import Patch
     ax.legend(handles=[Patch(color=BLUE, label="direct control"), Patch(color=RED, label="with assistance")],
-              frameon=False, fontsize=7, loc="lower right")
+              frameon=False, fontsize=7 * FS, loc="lower right")
     fig.subplots_adjust(left=0.02, right=0.98, bottom=0.12, top=0.99)
     save(fig, "summary_gap_all_sessions")
     stats = {}

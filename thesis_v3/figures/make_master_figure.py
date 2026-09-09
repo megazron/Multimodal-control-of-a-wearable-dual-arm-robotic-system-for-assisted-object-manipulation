@@ -14,8 +14,8 @@ SCRATCH = os.path.join(HERE, "pilot", "data")  # the derived session tables, kep
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pilot")
 
 plt.rcParams.update({
-    "font.size": 8, "axes.titlesize": 8, "axes.labelsize": 8,
-    "xtick.labelsize": 6.5, "ytick.labelsize": 7,
+    "font.size": 10.0, "axes.titlesize": 10.0, "axes.labelsize": 10.0,
+    "xtick.labelsize": 8.1, "ytick.labelsize": 8.8,
     "figure.dpi": 150, "savefig.bbox": "tight", "axes.spines.top": False,
     "axes.spines.right": False,
 })

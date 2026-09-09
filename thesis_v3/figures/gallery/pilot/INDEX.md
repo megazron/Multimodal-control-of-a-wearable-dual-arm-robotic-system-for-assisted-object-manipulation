@@ -22,7 +22,7 @@ Sanity check run first: `vr_*_grip` equals `vr_*_engaged` in 99.84% of all sampl
 
 - **Data:** trail.csv of every P3 session: vr_*_engaged, estop, ee_*_x/y/z at 20 Hz
 - **Takeaway:** Shaded = clutch held (the operator steering); grey line = how fast the robot's hand moved; black = emergency stop held.
-- **Numbers:** 4 sessions
+- **Numbers:** 7 sessions
 - **Suggested use:** APPENDIX
 
 ## `01_session_glance_P4.pdf` — What P4's sessions looked like, second by second
@@ -36,7 +36,7 @@ Sanity check run first: `vr_*_grip` equals `vr_*_engaged` in 99.84% of all sampl
 
 - **Data:** trail.csv of every P5 session: vr_*_engaged, estop, ee_*_x/y/z at 20 Hz
 - **Takeaway:** Shaded = clutch held (the operator steering); grey line = how fast the robot's hand moved; black = emergency stop held.
-- **Numbers:** 7 sessions
+- **Numbers:** 4 sessions
 - **Suggested use:** APPENDIX
 
 ## `02_paths_topdown.pdf` — The robot's hand path seen from above
@@ -85,7 +85,7 @@ Sanity check run first: `vr_*_grip` equals `vr_*_engaged` in 99.84% of all sampl
 
 - **Data:** trail.csv vr_*_tracked per session
 - **Takeaway:** Tracking loss is rare — the worst session lost the controller for 8.0% of its samples — and it clusters at session edges.
-- **Numbers:** worst 8.0% (P5); median 0.00%
+- **Numbers:** worst 8.0% (P3); median 0.00%
 - **Suggested use:** APPENDIX
 
 ## `08_sim_real_heatmap.pdf` — How closely the real arm followed the simulated one, joint by joint

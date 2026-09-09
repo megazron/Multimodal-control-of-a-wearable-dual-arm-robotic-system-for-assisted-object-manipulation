@@ -1,0 +1,181 @@
+participant,age,handedness,vr_experience,vr_exp_level,robot_experience,robot_exp_level,condition,condition_code,condition_label,task,task_code,task_label,task_outcome,outcome_score,outcome_success,subscale,rating,subscale_label,subscale_order
+P1,26,Right,Experienced,3,Experienced,3,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,mental,95,Mental demand,1
+P1,26,Right,Experienced,3,Experienced,3,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,physical,95,Physical demand,2
+P1,26,Right,Experienced,3,Experienced,3,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,temporal,70,Temporal demand,3
+P1,26,Right,Experienced,3,Experienced,3,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,performance,35,Performance,4
+P1,26,Right,Experienced,3,Experienced,3,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,effort,80,Effort,5
+P1,26,Right,Experienced,3,Experienced,3,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,frustration,55,Frustration,6
+P1,26,Right,Experienced,3,Experienced,3,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,mental,75,Mental demand,1
+P1,26,Right,Experienced,3,Experienced,3,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,physical,75,Physical demand,2
+P1,26,Right,Experienced,3,Experienced,3,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,temporal,75,Temporal demand,3
+P1,26,Right,Experienced,3,Experienced,3,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,performance,5,Performance,4
+P1,26,Right,Experienced,3,Experienced,3,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,effort,70,Effort,5
+P1,26,Right,Experienced,3,Experienced,3,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,frustration,25,Frustration,6
+P1,26,Right,Experienced,3,Experienced,3,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,mental,65,Mental demand,1
+P1,26,Right,Experienced,3,Experienced,3,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,physical,65,Physical demand,2
+P1,26,Right,Experienced,3,Experienced,3,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,temporal,60,Temporal demand,3
+P1,26,Right,Experienced,3,Experienced,3,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,performance,5,Performance,4
+P1,26,Right,Experienced,3,Experienced,3,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,effort,10,Effort,5
+P1,26,Right,Experienced,3,Experienced,3,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,frustration,5,Frustration,6
+P1,26,Right,Experienced,3,Experienced,3,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,mental,55,Mental demand,1
+P1,26,Right,Experienced,3,Experienced,3,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,physical,75,Physical demand,2
+P1,26,Right,Experienced,3,Experienced,3,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,temporal,55,Temporal demand,3
+P1,26,Right,Experienced,3,Experienced,3,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,performance,0,Performance,4
+P1,26,Right,Experienced,3,Experienced,3,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,effort,0,Effort,5
+P1,26,Right,Experienced,3,Experienced,3,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,frustration,5,Frustration,6
+P1,26,Right,Experienced,3,Experienced,3,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,mental,80,Mental demand,1
+P1,26,Right,Experienced,3,Experienced,3,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,physical,55,Physical demand,2
+P1,26,Right,Experienced,3,Experienced,3,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,temporal,40,Temporal demand,3
+P1,26,Right,Experienced,3,Experienced,3,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,performance,10,Performance,4
+P1,26,Right,Experienced,3,Experienced,3,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,effort,20,Effort,5
+P1,26,Right,Experienced,3,Experienced,3,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,frustration,15,Frustration,6
+P1,26,Right,Experienced,3,Experienced,3,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,mental,70,Mental demand,1
+P1,26,Right,Experienced,3,Experienced,3,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,physical,60,Physical demand,2
+P1,26,Right,Experienced,3,Experienced,3,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,temporal,55,Temporal demand,3
+P1,26,Right,Experienced,3,Experienced,3,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,performance,0,Performance,4
+P1,26,Right,Experienced,3,Experienced,3,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,effort,35,Effort,5
+P1,26,Right,Experienced,3,Experienced,3,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,frustration,5,Frustration,6
+P2,24,Right,Intermediate,2,Intermediate,2,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,mental,90,Mental demand,1
+P2,24,Right,Intermediate,2,Intermediate,2,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,physical,90,Physical demand,2
+P2,24,Right,Intermediate,2,Intermediate,2,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,temporal,80,Temporal demand,3
+P2,24,Right,Intermediate,2,Intermediate,2,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,performance,35,Performance,4
+P2,24,Right,Intermediate,2,Intermediate,2,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,effort,25,Effort,5
+P2,24,Right,Intermediate,2,Intermediate,2,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,frustration,20,Frustration,6
+P2,24,Right,Intermediate,2,Intermediate,2,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,mental,70,Mental demand,1
+P2,24,Right,Intermediate,2,Intermediate,2,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,physical,70,Physical demand,2
+P2,24,Right,Intermediate,2,Intermediate,2,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,temporal,70,Temporal demand,3
+P2,24,Right,Intermediate,2,Intermediate,2,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,performance,10,Performance,4
+P2,24,Right,Intermediate,2,Intermediate,2,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,effort,75,Effort,5
+P2,24,Right,Intermediate,2,Intermediate,2,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,frustration,5,Frustration,6
+P2,24,Right,Intermediate,2,Intermediate,2,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,mental,75,Mental demand,1
+P2,24,Right,Intermediate,2,Intermediate,2,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,physical,70,Physical demand,2
+P2,24,Right,Intermediate,2,Intermediate,2,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,temporal,65,Temporal demand,3
+P2,24,Right,Intermediate,2,Intermediate,2,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,performance,10,Performance,4
+P2,24,Right,Intermediate,2,Intermediate,2,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,effort,10,Effort,5
+P2,24,Right,Intermediate,2,Intermediate,2,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,frustration,15,Frustration,6
+P2,24,Right,Intermediate,2,Intermediate,2,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,mental,20,Mental demand,1
+P2,24,Right,Intermediate,2,Intermediate,2,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,physical,70,Physical demand,2
+P2,24,Right,Intermediate,2,Intermediate,2,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,temporal,75,Temporal demand,3
+P2,24,Right,Intermediate,2,Intermediate,2,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,performance,5,Performance,4
+P2,24,Right,Intermediate,2,Intermediate,2,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,effort,5,Effort,5
+P2,24,Right,Intermediate,2,Intermediate,2,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,frustration,10,Frustration,6
+P2,24,Right,Intermediate,2,Intermediate,2,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,mental,80,Mental demand,1
+P2,24,Right,Intermediate,2,Intermediate,2,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,physical,75,Physical demand,2
+P2,24,Right,Intermediate,2,Intermediate,2,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,temporal,75,Temporal demand,3
+P2,24,Right,Intermediate,2,Intermediate,2,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,performance,20,Performance,4
+P2,24,Right,Intermediate,2,Intermediate,2,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,effort,15,Effort,5
+P2,24,Right,Intermediate,2,Intermediate,2,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,frustration,80,Frustration,6
+P2,24,Right,Intermediate,2,Intermediate,2,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,mental,75,Mental demand,1
+P2,24,Right,Intermediate,2,Intermediate,2,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,physical,60,Physical demand,2
+P2,24,Right,Intermediate,2,Intermediate,2,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,temporal,25,Temporal demand,3
+P2,24,Right,Intermediate,2,Intermediate,2,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,performance,5,Performance,4
+P2,24,Right,Intermediate,2,Intermediate,2,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,effort,45,Effort,5
+P2,24,Right,Intermediate,2,Intermediate,2,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,frustration,70,Frustration,6
+P3,22,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,mental,80,Mental demand,1
+P3,22,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,physical,75,Physical demand,2
+P3,22,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,temporal,20,Temporal demand,3
+P3,22,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,performance,35,Performance,4
+P3,22,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,effort,75,Effort,5
+P3,22,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,frustration,20,Frustration,6
+P3,22,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,mental,70,Mental demand,1
+P3,22,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,physical,70,Physical demand,2
+P3,22,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,temporal,85,Temporal demand,3
+P3,22,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,performance,10,Performance,4
+P3,22,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,effort,65,Effort,5
+P3,22,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,frustration,75,Frustration,6
+P3,22,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,mental,80,Mental demand,1
+P3,22,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,physical,70,Physical demand,2
+P3,22,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,temporal,20,Temporal demand,3
+P3,22,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,performance,15,Performance,4
+P3,22,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,effort,20,Effort,5
+P3,22,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,frustration,25,Frustration,6
+P3,22,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,mental,70,Mental demand,1
+P3,22,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,physical,70,Physical demand,2
+P3,22,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,temporal,75,Temporal demand,3
+P3,22,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,performance,0,Performance,4
+P3,22,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,effort,5,Effort,5
+P3,22,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,frustration,25,Frustration,6
+P3,22,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,mental,75,Mental demand,1
+P3,22,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,physical,75,Physical demand,2
+P3,22,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,temporal,35,Temporal demand,3
+P3,22,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,performance,60,Performance,4
+P3,22,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,effort,80,Effort,5
+P3,22,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,frustration,55,Frustration,6
+P3,22,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,mental,75,Mental demand,1
+P3,22,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,physical,75,Physical demand,2
+P3,22,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,temporal,10,Temporal demand,3
+P3,22,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,performance,80,Performance,4
+P3,22,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,effort,70,Effort,5
+P3,22,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,frustration,60,Frustration,6
+P4,21,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,mental,75,Mental demand,1
+P4,21,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,physical,70,Physical demand,2
+P4,21,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,temporal,45,Temporal demand,3
+P4,21,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,performance,50,Performance,4
+P4,21,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,effort,65,Effort,5
+P4,21,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,frustration,25,Frustration,6
+P4,21,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,mental,70,Mental demand,1
+P4,21,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,physical,70,Physical demand,2
+P4,21,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,temporal,65,Temporal demand,3
+P4,21,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,performance,10,Performance,4
+P4,21,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,effort,90,Effort,5
+P4,21,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,frustration,25,Frustration,6
+P4,21,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,mental,75,Mental demand,1
+P4,21,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,physical,70,Physical demand,2
+P4,21,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,temporal,20,Temporal demand,3
+P4,21,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,performance,20,Performance,4
+P4,21,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,effort,25,Effort,5
+P4,21,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,frustration,25,Frustration,6
+P4,21,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,mental,70,Mental demand,1
+P4,21,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,physical,90,Physical demand,2
+P4,21,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,temporal,70,Temporal demand,3
+P4,21,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,performance,0,Performance,4
+P4,21,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,effort,85,Effort,5
+P4,21,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,frustration,5,Frustration,6
+P4,21,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,mental,85,Mental demand,1
+P4,21,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,physical,75,Physical demand,2
+P4,21,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,temporal,15,Temporal demand,3
+P4,21,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,performance,25,Performance,4
+P4,21,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,effort,75,Effort,5
+P4,21,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,frustration,30,Frustration,6
+P4,21,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,mental,70,Mental demand,1
+P4,21,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,physical,85,Physical demand,2
+P4,21,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,temporal,20,Temporal demand,3
+P4,21,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,performance,75,Performance,4
+P4,21,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,effort,55,Effort,5
+P4,21,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,frustration,80,Frustration,6
+P5,26,Right,Intermediate,2,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,mental,70,Mental demand,1
+P5,26,Right,Intermediate,2,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,physical,80,Physical demand,2
+P5,26,Right,Intermediate,2,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,temporal,80,Temporal demand,3
+P5,26,Right,Intermediate,2,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,performance,20,Performance,4
+P5,26,Right,Intermediate,2,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,effort,70,Effort,5
+P5,26,Right,Intermediate,2,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,frustration,70,Frustration,6
+P5,26,Right,Intermediate,2,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,mental,75,Mental demand,1
+P5,26,Right,Intermediate,2,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,physical,75,Physical demand,2
+P5,26,Right,Intermediate,2,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,temporal,80,Temporal demand,3
+P5,26,Right,Intermediate,2,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,performance,5,Performance,4
+P5,26,Right,Intermediate,2,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,effort,80,Effort,5
+P5,26,Right,Intermediate,2,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,frustration,10,Frustration,6
+P5,26,Right,Intermediate,2,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,mental,65,Mental demand,1
+P5,26,Right,Intermediate,2,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,physical,65,Physical demand,2
+P5,26,Right,Intermediate,2,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,temporal,65,Temporal demand,3
+P5,26,Right,Intermediate,2,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,performance,0,Performance,4
+P5,26,Right,Intermediate,2,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,effort,5,Effort,5
+P5,26,Right,Intermediate,2,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,frustration,80,Frustration,6
+P5,26,Right,Intermediate,2,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,mental,90,Mental demand,1
+P5,26,Right,Intermediate,2,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,physical,70,Physical demand,2
+P5,26,Right,Intermediate,2,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,temporal,90,Temporal demand,3
+P5,26,Right,Intermediate,2,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,performance,5,Performance,4
+P5,26,Right,Intermediate,2,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,effort,75,Effort,5
+P5,26,Right,Intermediate,2,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,frustration,20,Frustration,6
+P5,26,Right,Intermediate,2,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,mental,70,Mental demand,1
+P5,26,Right,Intermediate,2,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,physical,70,Physical demand,2
+P5,26,Right,Intermediate,2,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,temporal,20,Temporal demand,3
+P5,26,Right,Intermediate,2,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,performance,10,Performance,4
+P5,26,Right,Intermediate,2,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,effort,50,Effort,5
+P5,26,Right,Intermediate,2,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,frustration,15,Frustration,6
+P5,26,Right,Intermediate,2,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,mental,70,Mental demand,1
+P5,26,Right,Intermediate,2,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,physical,85,Physical demand,2
+P5,26,Right,Intermediate,2,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,temporal,75,Temporal demand,3
+P5,26,Right,Intermediate,2,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,performance,5,Performance,4
+P5,26,Right,Intermediate,2,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,effort,70,Effort,5
+P5,26,Right,Intermediate,2,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,frustration,10,Frustration,6

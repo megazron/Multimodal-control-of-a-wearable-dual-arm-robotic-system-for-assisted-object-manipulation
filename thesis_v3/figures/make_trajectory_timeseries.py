@@ -30,7 +30,7 @@ BLUE, RED, GREEN = "#2c6fbb", "#c1392b", "#3f9142"
 plt.rcParams.update({"font.size": 8, "axes.titlesize": 9,
                      "axes.spines.top": False, "axes.spines.right": False})
 
-PICK = {"VR": ("P4", "Pick and place", "Direct"),
+PICK = {"VR": ("P5", "Pick and place", "Direct"),
         "master": ("M2", "Target reaching", "Direct")}
 
 

@@ -30,7 +30,7 @@ plt.rcParams.update({"font.size": 8, "axes.titlesize": 9})
 
 # VR: P4, object tracking, direct (the session already used elsewhere in the
 # report); mannequin: M2, target reaching, direct (the longest master session).
-PICK = {"VR": ("P4", "Pick and place", "Direct"),
+PICK = {"VR": ("P5", "Pick and place", "Direct"),
         "master": ("M2", "Target reaching", "Direct")}
 
 

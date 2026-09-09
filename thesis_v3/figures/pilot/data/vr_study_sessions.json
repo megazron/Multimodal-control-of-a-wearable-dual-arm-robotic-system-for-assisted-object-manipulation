@@ -145,7 +145,7 @@
  },
  {
   "session": "20260904_141930",
-  "participant": "P3",
+  "participant": "P4",
   "task": "Pick and place",
   "condition": "Direct",
   "active_hand": "left",
@@ -163,7 +163,7 @@
  },
  {
   "session": "20260904_144126",
-  "participant": "P3",
+  "participant": "P4",
   "task": "Target reaching",
   "condition": "Shared",
   "active_hand": "left",
@@ -181,7 +181,7 @@
  },
  {
   "session": "20260904_145702",
-  "participant": "P3",
+  "participant": "P4",
   "task": "Target reaching",
   "condition": "Direct",
   "active_hand": "left",
@@ -199,7 +199,7 @@
  },
  {
   "session": "20260904_152232",
-  "participant": "P3",
+  "participant": "P4",
   "task": "Target reaching",
   "condition": "Shared",
   "active_hand": "left",
@@ -217,7 +217,7 @@
  },
  {
   "session": "20260904_172909",
-  "participant": "P4",
+  "participant": "P5",
   "task": "Pick and place",
   "condition": "Direct",
   "active_hand": "left",
@@ -235,7 +235,7 @@
  },
  {
   "session": "20260904_174535",
-  "participant": "P4",
+  "participant": "P5",
   "task": "Pick and place",
   "condition": "Shared",
   "active_hand": "left",
@@ -253,7 +253,7 @@
  },
  {
   "session": "20260904_175811",
-  "participant": "P4",
+  "participant": "P5",
   "task": "Target reaching",
   "condition": "Direct",
   "active_hand": "left",
@@ -271,7 +271,7 @@
  },
  {
   "session": "20260904_180951",
-  "participant": "P4",
+  "participant": "P5",
   "task": "Target reaching",
   "condition": "Shared",
   "active_hand": "left",
@@ -289,7 +289,7 @@
  },
  {
   "session": "20260902_153646",
-  "participant": "P5",
+  "participant": "P3",
   "task": "Unspecified",
   "condition": "Direct",
   "active_hand": "right",
@@ -307,7 +307,7 @@
  },
  {
   "session": "20260902_155631",
-  "participant": "P5",
+  "participant": "P3",
   "task": "Unspecified",
   "condition": "Shared",
   "active_hand": "left",
@@ -325,7 +325,7 @@
  },
  {
   "session": "20260902_161756",
-  "participant": "P5",
+  "participant": "P3",
   "task": "Unspecified",
   "condition": "Direct",
   "active_hand": "right",
@@ -343,7 +343,7 @@
  },
  {
   "session": "20260902_162436",
-  "participant": "P5",
+  "participant": "P3",
   "task": "Unspecified",
   "condition": "Shared",
   "active_hand": "right",
@@ -361,7 +361,7 @@
  },
  {
   "session": "20260902_164021",
-  "participant": "P5",
+  "participant": "P3",
   "task": "Unspecified",
   "condition": "Direct",
   "active_hand": "right",
@@ -379,7 +379,7 @@
  },
  {
   "session": "20260902_164902",
-  "participant": "P5",
+  "participant": "P3",
   "task": "Unspecified",
   "condition": "Direct",
   "active_hand": "right",
@@ -397,7 +397,7 @@
  },
  {
   "session": "20260902_165659",
-  "participant": "P5",
+  "participant": "P3",
   "task": "Unspecified",
   "condition": "Direct",
   "active_hand": "right",

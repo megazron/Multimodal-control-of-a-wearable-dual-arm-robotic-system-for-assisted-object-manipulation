@@ -42,7 +42,7 @@ for p in PAIRED:
     p["participant"] = ANON.get(p["participant"], p["participant"])
 
 TASKS = ["Pick and place", "Target reaching", "Unspecified"]
-TASK_SHORT = {"Pick and place": "pick & place", "Target reaching": "target\nreaching", "Unspecified": "P5*"}
+TASK_SHORT = {"Pick and place": "pick & place", "Target reaching": "target\nreaching", "Unspecified": "P3*"}
 
 
 def by_task_condition(metric):

@@ -1,0 +1,31 @@
+participant,age,handedness,vr_experience,vr_exp_level,robot_experience,robot_exp_level,condition,condition_code,condition_label,task,task_code,task_label,task_outcome,outcome_score,outcome_success,mental,physical,temporal,performance,effort,frustration,rtlx
+P1,26,Right,Experienced,3,Experienced,3,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,80,55,40,10,20,15,36.67
+P1,26,Right,Experienced,3,Experienced,3,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,70,60,55,0,35,5,37.5
+P1,26,Right,Experienced,3,Experienced,3,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,95,95,70,35,80,55,71.67
+P1,26,Right,Experienced,3,Experienced,3,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,75,75,75,5,70,25,54.17
+P1,26,Right,Experienced,3,Experienced,3,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,65,65,60,5,10,5,35.0
+P1,26,Right,Experienced,3,Experienced,3,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,55,75,55,0,0,5,31.67
+P2,24,Right,Intermediate,2,Intermediate,2,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,80,75,75,20,15,80,57.5
+P2,24,Right,Intermediate,2,Intermediate,2,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,75,60,25,5,45,70,46.67
+P2,24,Right,Intermediate,2,Intermediate,2,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,90,90,80,35,25,20,56.67
+P2,24,Right,Intermediate,2,Intermediate,2,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,70,70,70,10,75,5,50.0
+P2,24,Right,Intermediate,2,Intermediate,2,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,75,70,65,10,10,15,40.83
+P2,24,Right,Intermediate,2,Intermediate,2,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,20,70,75,5,5,10,30.83
+P3,22,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,75,75,35,60,80,55,63.33
+P3,22,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,75,75,10,80,70,60,61.67
+P3,22,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,80,75,20,35,75,20,50.83
+P3,22,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,70,70,85,10,65,75,62.5
+P3,22,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Success_picked_and_placed,2,1,80,70,20,15,20,25,38.33
+P3,22,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,70,70,75,0,5,25,40.83
+P4,21,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,85,75,15,25,75,30,50.83
+P4,21,Right,Novice,1,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,70,85,20,75,55,80,64.17
+P4,21,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,75,70,45,50,65,25,55.0
+P4,21,Right,Novice,1,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,70,70,65,10,90,25,55.0
+P4,21,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Partial_picked_not_placed,1,0,75,70,20,20,25,25,39.17
+P4,21,Right,Novice,1,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,70,90,70,0,85,5,53.33
+P5,26,Right,Intermediate,2,Novice,1,VR,VR,VR teleoperation,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,70,70,20,10,50,15,39.17
+P5,26,Right,Intermediate,2,Novice,1,VR,VR,VR teleoperation,TargetReaching,TR,Target reaching,Success_reached,2,1,70,85,75,5,70,10,52.5
+P5,26,Right,Intermediate,2,Novice,1,Mannequin,MM,Master mannequin,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,70,80,80,20,70,70,65.0
+P5,26,Right,Intermediate,2,Novice,1,Mannequin,MM,Master mannequin,TargetReaching,TR,Target reaching,Success_reached,2,1,75,75,80,5,80,10,54.17
+P5,26,Right,Intermediate,2,Novice,1,SharedAutonomy,SA,Shared autonomy,PickAndPlace,PP,Pick-and-place,Fail_no_pick_reach_only,0,0,65,65,65,0,5,80,46.67
+P5,26,Right,Intermediate,2,Novice,1,SharedAutonomy,SA,Shared autonomy,TargetReaching,TR,Target reaching,Success_reached,2,1,90,70,90,5,75,20,58.33

@@ -7,9 +7,9 @@ Data: 23 VR sessions (P1-P5, `trail.csv`) and 9 master-arm sessions (M1-M3, `tra
 | --- | --- | --- | --- |
 | `3d_grid_P1` | Every P1 session in 3-D: operator's hand, simulated robot hand, real robot hand | 3 sessions | APPENDIX |
 | `3d_grid_P2` | Every P2 session in 3-D: operator's hand, simulated robot hand, real robot hand | 5 sessions | APPENDIX |
-| `3d_grid_P3` | Every P3 session in 3-D: operator's hand, simulated robot hand, real robot hand | 4 sessions | APPENDIX |
+| `3d_grid_P3` | Every P3 session in 3-D: operator's hand, simulated robot hand, real robot hand | 7 sessions | APPENDIX |
 | `3d_grid_P4` | Every P4 session in 3-D: operator's hand, simulated robot hand, real robot hand | 4 sessions | APPENDIX |
-| `3d_grid_P5` | Every P5 session in 3-D: operator's hand, simulated robot hand, real robot hand | 7 sessions | APPENDIX |
+| `3d_grid_P5` | Every P5 session in 3-D: operator's hand, simulated robot hand, real robot hand | 4 sessions | APPENDIX |
 | `3d_grid_M1` | Every M1 session in 3-D: operator's hand, simulated robot hand, real robot hand | 3 sessions | APPENDIX |
 | `3d_grid_M2` | Every M2 session in 3-D: operator's hand, simulated robot hand, real robot hand | 5 sessions | APPENDIX |
 | `3d_grid_M3` | Every M3 session in 3-D: operator's hand, simulated robot hand, real robot hand | 1 sessions | APPENDIX |
@@ -17,12 +17,12 @@ Data: 23 VR sessions (P1-P5, `trail.csv`) and 9 master-arm sessions (M1-M3, `tra
 | `side_view_P1` | P1 sessions seen from the side | 3 sessions | APPENDIX |
 | `top_view_P2` | P2 sessions seen from the top | 5 sessions | APPENDIX |
 | `side_view_P2` | P2 sessions seen from the side | 5 sessions | APPENDIX |
-| `top_view_P3` | P3 sessions seen from the top | 4 sessions | APPENDIX |
-| `side_view_P3` | P3 sessions seen from the side | 4 sessions | APPENDIX |
+| `top_view_P3` | P3 sessions seen from the top | 7 sessions | APPENDIX |
+| `side_view_P3` | P3 sessions seen from the side | 7 sessions | APPENDIX |
 | `top_view_P4` | P4 sessions seen from the top | 4 sessions | APPENDIX |
 | `side_view_P4` | P4 sessions seen from the side | 4 sessions | APPENDIX |
-| `top_view_P5` | P5 sessions seen from the top | 7 sessions | APPENDIX |
-| `side_view_P5` | P5 sessions seen from the side | 7 sessions | APPENDIX |
+| `top_view_P5` | P5 sessions seen from the top | 4 sessions | APPENDIX |
+| `side_view_P5` | P5 sessions seen from the side | 4 sessions | APPENDIX |
 | `top_view_M1` | M1 sessions seen from the top | 3 sessions | APPENDIX |
 | `side_view_M1` | M1 sessions seen from the side | 3 sessions | APPENDIX |
 | `top_view_M2` | M2 sessions seen from the top | 5 sessions | APPENDIX |
@@ -32,17 +32,17 @@ Data: 23 VR sessions (P1-P5, `trail.csv`) and 9 master-arm sessions (M1-M3, `tra
 | `composite_best_per_operator` | Each operator's cleanest direct and assisted session, side by side | 10 panels; 'gap' is the average distance between simulated and real hand | MAIN |
 | `gap_over_time_P1` | How far apart the simulated and real hands were through each P1 session | means 2.2, 4.7, 7.5 mm | APPENDIX |
 | `gap_over_time_P2` | How far apart the simulated and real hands were through each P2 session | means 9.6, 5.4, 24.6, 19.7, 11.8 mm | APPENDIX |
-| `gap_over_time_P3` | How far apart the simulated and real hands were through each P3 session | means 7.4, 5.2, 7.3, 10.9 mm | APPENDIX |
-| `gap_over_time_P4` | How far apart the simulated and real hands were through each P4 session | means 6.7, 7.1, 7.8, 9.6 mm | APPENDIX |
-| `gap_over_time_P5` | How far apart the simulated and real hands were through each P5 session | means 7.0, 3.8, 9.2, 94.2, 7.5, 2.4, 14.7 mm | APPENDIX |
+| `gap_over_time_P3` | How far apart the simulated and real hands were through each P3 session | means 7.0, 3.8, 9.2, 94.2, 7.5, 2.4, 14.7 mm | APPENDIX |
+| `gap_over_time_P4` | How far apart the simulated and real hands were through each P4 session | means 7.4, 5.2, 7.3, 10.9 mm | APPENDIX |
+| `gap_over_time_P5` | How far apart the simulated and real hands were through each P5 session | means 6.7, 7.1, 7.8, 9.6 mm | APPENDIX |
 | `gap_over_time_M1` | How far apart the simulated and real hands were through each M1 session | means 19.7, 28.9, 18.4 mm | APPENDIX |
 | `gap_over_time_M2` | How far apart the simulated and real hands were through each M2 session | means 19.7, 17.2, 16.6, 4.3, 25.9 mm | APPENDIX |
 | `gap_over_time_M3` | How far apart the simulated and real hands were through each M3 session | means 16.0 mm | APPENDIX |
 | `shape_overlay_P1` | Shape of the operator's path against the robot's, each centred on its own mean (P1) | 3 sessions | APPENDIX |
 | `shape_overlay_P2` | Shape of the operator's path against the robot's, each centred on its own mean (P2) | 5 sessions | APPENDIX |
-| `shape_overlay_P3` | Shape of the operator's path against the robot's, each centred on its own mean (P3) | 4 sessions | APPENDIX |
+| `shape_overlay_P3` | Shape of the operator's path against the robot's, each centred on its own mean (P3) | 7 sessions | APPENDIX |
 | `shape_overlay_P4` | Shape of the operator's path against the robot's, each centred on its own mean (P4) | 4 sessions | APPENDIX |
-| `shape_overlay_P5` | Shape of the operator's path against the robot's, each centred on its own mean (P5) | 7 sessions | APPENDIX |
+| `shape_overlay_P5` | Shape of the operator's path against the robot's, each centred on its own mean (P5) | 4 sessions | APPENDIX |
 | `shape_overlay_M1` | Shape of the operator's path against the robot's, each centred on its own mean (M1) | 3 sessions | APPENDIX |
 | `shape_overlay_M2` | Shape of the operator's path against the robot's, each centred on its own mean (M2) | 5 sessions | APPENDIX |
 | `shape_overlay_M3` | Shape of the operator's path against the robot's, each centred on its own mean (M3) | 1 sessions | APPENDIX |

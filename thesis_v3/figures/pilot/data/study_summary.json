@@ -146,7 +146,7 @@
   },
   {
    "session": "20260904_141930",
-   "participant": "P3",
+   "participant": "P4",
    "task": "Pick and place",
    "condition": "Direct",
    "active_hand": "left",
@@ -164,7 +164,7 @@
   },
   {
    "session": "20260904_144126",
-   "participant": "P3",
+   "participant": "P4",
    "task": "Target reaching",
    "condition": "Shared",
    "active_hand": "left",
@@ -182,7 +182,7 @@
   },
   {
    "session": "20260904_145702",
-   "participant": "P3",
+   "participant": "P4",
    "task": "Target reaching",
    "condition": "Direct",
    "active_hand": "left",
@@ -200,7 +200,7 @@
   },
   {
    "session": "20260904_152232",
-   "participant": "P3",
+   "participant": "P4",
    "task": "Target reaching",
    "condition": "Shared",
    "active_hand": "left",
@@ -218,7 +218,7 @@
   },
   {
    "session": "20260904_172909",
-   "participant": "P4",
+   "participant": "P5",
    "task": "Pick and place",
    "condition": "Direct",
    "active_hand": "left",
@@ -236,7 +236,7 @@
   },
   {
    "session": "20260904_174535",
-   "participant": "P4",
+   "participant": "P5",
    "task": "Pick and place",
    "condition": "Shared",
    "active_hand": "left",
@@ -254,7 +254,7 @@
   },
   {
    "session": "20260904_175811",
-   "participant": "P4",
+   "participant": "P5",
    "task": "Target reaching",
    "condition": "Direct",
    "active_hand": "left",
@@ -272,7 +272,7 @@
   },
   {
    "session": "20260904_180951",
-   "participant": "P4",
+   "participant": "P5",
    "task": "Target reaching",
    "condition": "Shared",
    "active_hand": "left",
@@ -290,7 +290,7 @@
   },
   {
    "session": "20260902_153646",
-   "participant": "P5",
+   "participant": "P3",
    "task": "Unspecified",
    "condition": "Direct",
    "active_hand": "right",
@@ -308,7 +308,7 @@
   },
   {
    "session": "20260902_155631",
-   "participant": "P5",
+   "participant": "P3",
    "task": "Unspecified",
    "condition": "Shared",
    "active_hand": "left",
@@ -326,7 +326,7 @@
   },
   {
    "session": "20260902_161756",
-   "participant": "P5",
+   "participant": "P3",
    "task": "Unspecified",
    "condition": "Direct",
    "active_hand": "right",
@@ -344,7 +344,7 @@
   },
   {
    "session": "20260902_162436",
-   "participant": "P5",
+   "participant": "P3",
    "task": "Unspecified",
    "condition": "Shared",
    "active_hand": "right",
@@ -362,7 +362,7 @@
   },
   {
    "session": "20260902_164021",
-   "participant": "P5",
+   "participant": "P3",
    "task": "Unspecified",
    "condition": "Direct",
    "active_hand": "right",
@@ -380,7 +380,7 @@
   },
   {
    "session": "20260902_164902",
-   "participant": "P5",
+   "participant": "P3",
    "task": "Unspecified",
    "condition": "Direct",
    "active_hand": "right",
@@ -398,7 +398,7 @@
   },
   {
    "session": "20260902_165659",
-   "participant": "P5",
+   "participant": "P3",
    "task": "Unspecified",
    "condition": "Direct",
    "active_hand": "right",
@@ -417,7 +417,7 @@
  ],
  "cells": [
   {
-   "participant": "P3",
+   "participant": "P4",
    "task": "Pick and place",
    "condition": "Direct",
    "n_trials": 1,
@@ -430,7 +430,7 @@
    "controller_path_m": 79.6834
   },
   {
-   "participant": "P3",
+   "participant": "P4",
    "task": "Target reaching",
    "condition": "Direct",
    "n_trials": 1,
@@ -443,7 +443,7 @@
    "controller_path_m": 47.7843
   },
   {
-   "participant": "P3",
+   "participant": "P4",
    "task": "Target reaching",
    "condition": "Shared",
    "n_trials": 2,
@@ -456,7 +456,7 @@
    "controller_path_m": 57.1003
   },
   {
-   "participant": "P4",
+   "participant": "P5",
    "task": "Pick and place",
    "condition": "Direct",
    "n_trials": 1,
@@ -469,7 +469,7 @@
    "controller_path_m": 24.3891
   },
   {
-   "participant": "P4",
+   "participant": "P5",
    "task": "Pick and place",
    "condition": "Shared",
    "n_trials": 1,
@@ -482,7 +482,7 @@
    "controller_path_m": 25.247
   },
   {
-   "participant": "P4",
+   "participant": "P5",
    "task": "Target reaching",
    "condition": "Direct",
    "n_trials": 1,
@@ -495,7 +495,7 @@
    "controller_path_m": 16.4073
   },
   {
-   "participant": "P4",
+   "participant": "P5",
    "task": "Target reaching",
    "condition": "Shared",
    "n_trials": 1,
@@ -560,7 +560,7 @@
    "controller_path_m": 37.8901
   },
   {
-   "participant": "P5",
+   "participant": "P3",
    "task": "Unspecified",
    "condition": "Direct",
    "n_trials": 5,
@@ -573,7 +573,7 @@
    "controller_path_m": 21.3705
   },
   {
-   "participant": "P5",
+   "participant": "P3",
    "task": "Unspecified",
    "condition": "Shared",
    "n_trials": 2,
@@ -614,7 +614,7 @@
  ],
  "paired": [
   {
-   "participant": "P3",
+   "participant": "P4",
    "task": "Target reaching",
    "duration_s": {
     "direct": 315.9,
@@ -648,7 +648,7 @@
    "n_shared": 2
   },
   {
-   "participant": "P4",
+   "participant": "P5",
    "task": "Pick and place",
    "duration_s": {
     "direct": 195.64,
@@ -682,7 +682,7 @@
    "n_shared": 1
   },
   {
-   "participant": "P4",
+   "participant": "P5",
    "task": "Target reaching",
    "duration_s": {
     "direct": 171.94,
@@ -784,7 +784,7 @@
    "n_shared": 2
   },
   {
-   "participant": "P5",
+   "participant": "P3",
    "task": "Unspecified",
    "duration_s": {
     "direct": 204.406,
@@ -942,5 +942,6 @@
    }
   }
  },
- "task_note": "Two tasks: 'Pick and place' (sessions the console named 'object tracking') and 'Target reaching' (named 'target reaching' or 'position matching/reaching'). Relabelled by relabel_pilot_tasks.py on the operator's confirmation, 2026-09-07."
+ "task_note": "Two tasks: 'Pick and place' (sessions the console named 'object tracking') and 'Target reaching' (named 'target reaching' or 'position matching/reaching'). Relabelled by relabel_pilot_tasks.py on the operator's confirmation, 2026-09-07.",
+ "code_note": "Participant codes follow the NASA-TLX questionnaire numbering (P1-P3 completed pick and place, P4 picked only, P5 reached only); remapped 2026-09-09 from the earlier session-order codes."
 }

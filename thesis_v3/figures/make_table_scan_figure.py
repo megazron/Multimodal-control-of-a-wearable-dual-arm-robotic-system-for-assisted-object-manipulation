@@ -37,8 +37,8 @@ TRUTH = [((0.290, 0.500), (0.140, 0.160), "pad"), ((-0.290, 0.500), (0.140, 0.16
 def main():
     w = json.load(open(RUN))
     sw = w["sweep"]; prov = w["provenance"]
-    fig = plt.figure(figsize=(W, 5.4))
-    gs = fig.add_gridspec(2, 2, height_ratios=[1.0, 0.7], hspace=0.45, wspace=0.3)
+    fig = plt.figure(figsize=(W, 5.6))
+    gs = fig.add_gridspec(2, 2, height_ratios=[1.35, 0.7], hspace=0.25, wspace=0.3)
 
     # (a) the planned sweep for one arm: serpentine rows, one attitude per pass, two layers.
     # The run's own record keeps the grid shape (cols, rows, step, layers, facings) but not
@@ -53,38 +53,48 @@ def main():
         return CS.plan_volume(x0, x1, y0, y1, surface, step_m=pa["step_m"], layers_m=tuple(pa["layers_m"]),
                               facings_deg=tuple(pa["facings_deg"]))["passes"]
     passes = plan("left")
-    ax = fig.add_subplot(gs[0, 0])
+    ax = fig.add_subplot(gs[0, 0], projection="3d")
     cells = passes[0]["cells"]
     zs = sorted({c[2] for c in cells})
+    x0, x1, y0, y1 = BOUNDS["left"]
+    # the measured surface as a translucent sheet under the sweep
+    XX, YY = np.meshgrid([x0 - 0.05, x1 + 0.05], [y0 - 0.05, y1 + 0.05])
+    ax.plot_surface(XX, YY, np.full_like(XX, surface), color=AMBER, alpha=0.25, linewidth=0)
     for zi, z in enumerate(zs):
-        pts = [(c[0], c[1]) for c in cells if c[2] == z]
-        xs, ys = zip(*pts)
-        ax.plot(xs, ys, "-", color=[BLUE, RED][zi % 2], lw=1.0, alpha=0.9, label="camera %.2f m above the surface" % (z - surface))
-        ax.scatter(xs, ys, s=10, color=[BLUE, RED][zi % 2], zorder=3)
-        ax.annotate("", xy=pts[1], xytext=pts[0], arrowprops=dict(arrowstyle="->", color=[BLUE, RED][zi % 2], lw=1.4))
-    ax.set_aspect("equal"); ax.set_xlabel("x (m)"); ax.set_ylabel("y (m)"); ax.margins(0.15)
-    ax.legend(loc="upper left", frameon=False, fontsize=7.5, bbox_to_anchor=(0, 1.0))
-    ax.set_title("(a) one pass, left arm",
-                 loc="left", fontsize=9, fontweight="bold")
+        pts = [(c[0], c[1], c[2]) for c in cells if c[2] == z]
+        xs, ys, zz = zip(*pts)
+        col = [BLUE, RED][zi % 2]
+        ax.plot(xs, ys, zz, "-", color=col, lw=1.3, label="camera %.2f m above the surface" % (z - surface))
+        ax.scatter(xs, ys, zz, s=12, color=col, depthshade=False)
+        ax.quiver(xs[0], ys[0], zz[0], xs[1] - xs[0], ys[1] - ys[0], 0, color=col, arrow_length_ratio=0.4, lw=1.5)
+    for (xa, ya, za) in [(c[0], c[1], c[2]) for c in cells if c[2] == zs[0]][:4]:
+        ax.plot([xa, xa], [ya, ya], [surface, za], color="0.7", lw=0.5, ls=":")
+    ax.set_xlabel("x (m)", labelpad=-4); ax.set_ylabel("y (m)", labelpad=-4); ax.set_zlabel("z (m)", labelpad=-2)
+    ax.tick_params(labelsize=7, pad=-1)
+    ax.view_init(elev=26, azim=-58); ax.set_box_aspect((1.3, 1.0, 0.55), zoom=1.35)
+    ax.legend(loc="upper left", frameon=False, fontsize=7, bbox_to_anchor=(0.0, 0.98), ncol=1)
+    ax.set_title("(a) one pass of the sweep, left arm", loc="left", fontsize=9, fontweight="bold", pad=0)
 
-    # (b) every planned cell position of both arms: how many of its six views (2 heights x 3
-    # facings) were captured, from the run's own record of captured sources
+    # (b) every planned cell position of both arms as a grid: how many of its six views were captured
     ax = fig.add_subplot(gs[0, 1])
     captured = set(prov["sources"])
+    step = pa["step_m"]
     for arm, cmap in (("left", plt.cm.Blues), ("right", plt.cm.Reds)):
         pss = plan(arm); n_per = len(pss[0]["cells"]); count = {}
         for pi, ps in enumerate(pss):
             for ci, c in enumerate(ps["cells"]):
                 key = "%s_p%d_c%02d" % (arm, pi + 1, pi * n_per + ci + 1)
-                count.setdefault((round(c[0], 3), round(c[1], 3)), [0, 0])
-                count[(round(c[0], 3), round(c[1], 3))][1] += 1
-                if key in captured: count[(round(c[0], 3), round(c[1], 3))][0] += 1
+                kk = (round(c[0], 3), round(c[1], 3))
+                count.setdefault(kk, [0, 0]); count[kk][1] += 1
+                if key in captured: count[kk][0] += 1
         for (x, y), (n, tot) in count.items():
-            ax.scatter([x], [y], s=150, color=cmap(0.25 + 0.7 * n / tot), edgecolor="0.4", lw=0.5, zorder=3)
+            ax.add_patch(Rectangle((x - step * 0.42, y - step * 0.42), step * 0.84, step * 0.84,
+                                   fc=cmap(0.2 + 0.7 * n / tot), ec="white", lw=1))
             ax.text(x, y, "%d" % n, ha="center", va="center", fontsize=7.5, color="white" if n / tot > 0.5 else "0.2")
-    ax.set_aspect("auto"); ax.set_xlabel("x (m)"); ax.set_ylabel("y (m)"); ax.margins(0.12, 0.25)
-    ax.set_title("(b) %d planned, %d reachable, %d captured" % (sw["cells"], sw["cells_reachable"], sw["views_used"]),
-                 loc="left", fontsize=9, fontweight="bold")
+    ax.set_xlim(-0.66, 0.66); ax.set_ylim(0.23, 0.60); ax.set_aspect("equal", adjustable="box")
+    ax.set_xlabel("x (m)"); ax.set_ylabel("y (m)")
+    ax.text(-0.44, 0.585, "right arm", ha="center", fontsize=7.5, color=RED); ax.text(0.44, 0.585, "left arm", ha="center", fontsize=7.5, color=BLUE)
+    ax.set_title("(b) views captured per cell, of 6", loc="left", fontsize=9, fontweight="bold")
 
     # (c) the map against the truth
     ax = fig.add_subplot(gs[1, :])
@@ -113,7 +123,7 @@ def main():
     n_true = len(TRUTH); hits = 0
     for (cx, cy), _, _ in TRUTH:
         if any(abs(o["centre"][0] - cx) < 0.01 and abs(o["centre"][1] - cy) < 0.01 for o in w["objects"]): hits += 1
-    ax.set_title("(c) the fused map against the true scene (dashed): surface %.4f m, true %.3f m" % (w["surface"]["z_m"], 1.250),
+    ax.set_title("(c) the fused map (filled) against the true scene (dashed); surface %.4f m, true %.3f m" % (w["surface"]["z_m"], 1.250),
                  loc="left", fontsize=9, fontweight="bold")
 
     os.makedirs(os.path.dirname(OUT), exist_ok=True)

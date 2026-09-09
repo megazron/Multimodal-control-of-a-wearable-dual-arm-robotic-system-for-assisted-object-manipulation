@@ -26,7 +26,7 @@ plt.rcParams.update({"font.size": 8, "axes.titlesize": 8.5, "axes.labelsize": 8,
                      "ytick.labelsize": 7.5, "legend.fontsize": 7, "figure.dpi": 150, "savefig.bbox": "tight",
                      "axes.spines.top": False, "axes.spines.right": False})
 rows = list(csv.DictReader(open(D)))
-COND = [("VR", "VR direct"), ("MM", "mannequin\ndirect"), ("SA", "VR + shared\nautonomy")]
+COND = [("VR", "VR direct"), ("MM", "mannequin\ndirect"), ("SA", "shared\nautonomy")]
 TASK = [("PP", "pick and place"), ("TR", "target reaching")]
 SUB = [("mental", "mental"), ("physical", "physical"), ("temporal", "temporal"), ("performance", "performance"),
        ("effort", "effort"), ("frustration", "frustration")]
@@ -115,7 +115,7 @@ tex = r"""\begin{table}[htbp]
   performance subscale is scored so that lower means better perceived
   performance.}
   \label{tab:tlx}
-  \begin{tabular}{p{3.9cm}p{2.5cm}rrrrrrrr}
+  \begin{tabular}{p{2.9cm}p{2.3cm}rrrrrrrr}
     \toprule
     Condition & Task & RTLX & s.d. & Mental & Physical & Temporal & Perform. & Effort & Frustr. \\
     \midrule

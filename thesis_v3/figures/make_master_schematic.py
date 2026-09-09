@@ -53,8 +53,8 @@ def main():
             pins.append(elm.IcPin(name="K2J%d" % (i + 1), pin="%s/%d" % (a, p), side="right", slot="%d/%d" % (POT_SLOTS[i], NSLOT), anchorname="K2J%d" % (i + 1)))
         pins.append(elm.IcPin(name="FSR2", pin="%s/%d" % FSR2, side="right", slot="%d/%d" % (FSR_SLOT, NSLOT), anchorname="FSR2"))
         pins.append(elm.IcPin(name="BTN2", pin="%d" % BTN2, side="right", slot="%d/%d" % (BTN_SLOT, NSLOT), anchorname="BTN2"))
-        for k, name in enumerate(["VUSB", "VIN", "3V3", "GND"]):
-            pins.append(elm.IcPin(name=name, side="top", slot="%d/4" % (k + 1), anchorname="T" + name))
+        for k, name in enumerate(["3V3", "GND"]):
+            pins.append(elm.IcPin(name=name, side="top", slot="%d/2" % (k + 1), anchorname="T" + name))
         pins.append(elm.IcPin(name="GND", side="bottom", slot="1/2", anchorname="BGND"))
         pins.append(elm.IcPin(name="USB", side="bottom", slot="2/2", anchorname="BUSB"))
         T = elm.Ic(pins=pins, pinspacing=ROW, edgepadH=0.6, edgepadW=1.1, leadlen=0.6,
@@ -151,39 +151,39 @@ def main():
         # ------------------------------------------------------------------
         ybus_sda, ybus_scl = bb.ymin - 0.9, bb.ymin - 1.3
         xj_sda, xj_scl = T.SDA0.x - 0.5, T.SCL0.x - 0.9
-        xbus_end = 4.4
-        d += elm.Line().at((T.SDA0.x, T.SDA0.y)).tox(xj_sda)
-        d += elm.Line().at((xj_sda, T.SDA0.y)).toy(ybus_sda)
-        d += elm.Line().at((xj_sda, ybus_sda)).tox(xbus_end)
-        d += elm.Line().at((T.SCL0.x, T.SCL0.y)).tox(xj_scl)
-        d += elm.Line().at((xj_scl, T.SCL0.y)).toy(ybus_scl)
-        d += elm.Line().at((xj_scl, ybus_scl)).tox(xbus_end)
-        d += elm.Label().at((xj_scl - 0.2, ybus_sda)).label("SDA0 (pin 18)", fontsize=F_SMALL, halign="right", valign="center", ofst=0)
-        d += elm.Label().at((xj_scl - 0.2, ybus_scl)).label("SCL0 (pin 19), I2C at 400 kHz", fontsize=F_SMALL, halign="right", valign="center", ofst=0)
 
         def imu(x, ad0_to, title):
             nonlocal d
-            names = ["VCC", "GND", "SCL", "SDA", "AD0", "INT"]
-            ip = [elm.IcPin(name=n, side="top", slot="%d/6" % (k + 1), anchorname=n) for k, n in enumerate(names)]
+            names = ["VCC", "GND", "SCL", "SDA", "AD0"]
+            ip = [elm.IcPin(name=n, side="top", slot="%d/5" % (k + 1), anchorname=n) for k, n in enumerate(names)]
             M = elm.Ic(pins=ip, pinspacing=0.7, edgepadH=0.45, edgepadW=0.25, leadlen=0.5, lsize=F_SMALL).theta(0).at((x, ybus_scl - 2.8)).anchor("center")
             d += M
             mb = M.get_bbox(transform=True)
             d += elm.Label().at((x, mb.ymin + 0.95)).label(title, fontsize=F_NOTE, ofst=0)
             d += elm.Label().at((x, mb.ymin + 0.3)).label("GY-521: MPU-6050 with 3.3 V LDO\nand 4.7 k SDA/SCL pull-ups", fontsize=F_SMALL, color=GREY, ofst=0)
             d += elm.Line().at(M.SDA).toy(ybus_sda)
-            d += elm.Dot(radius=0.05).at((M.SDA.x, ybus_sda))
             d += elm.Line().at(M.SCL).toy(ybus_scl)
-            d += elm.Dot(radius=0.05).at((M.SCL.x, ybus_scl))
+            if x < 0:
+                d += elm.Dot(radius=0.05).at((M.SDA.x, ybus_sda))
+                d += elm.Dot(radius=0.05).at((M.SCL.x, ybus_scl))
             d += elm.Vdd().theta(0).at(M.VCC).label("3V3", fontsize=F_SMALL, color=RED)
             d += elm.Ground().theta(0).flip().at(M.GND)
             if ad0_to == "GND":
                 d += elm.Ground().theta(0).flip().at(M.AD0)
             else:
                 d += elm.Vdd().theta(0).at(M.AD0).label("3V3", fontsize=F_SMALL, color=RED)
-            d += elm.Label().at((M.INT.x, M.INT.y + 0.1)).label("n.c.", fontsize=F_SMALL, color=GREY, valign="bottom", ofst=0)
+            return M
 
-        imu(-2.5, "GND", "K1 IMU on the LEFT wrist\nAD0 to GND: address 0x68")
-        imu(2.5, "VCC", "K2 IMU on the RIGHT wrist\nAD0 to VCC: address 0x69")
+        M1 = imu(-2.5, "GND", "K1 IMU on the LEFT wrist\nAD0 to GND: address 0x68")
+        M2 = imu(2.5, "VCC", "K2 IMU on the RIGHT wrist\nAD0 to VCC: address 0x69")
+        d += elm.Line().at((T.SDA0.x, T.SDA0.y)).tox(xj_sda)
+        d += elm.Line().at((xj_sda, T.SDA0.y)).toy(ybus_sda)
+        d += elm.Line().at((xj_sda, ybus_sda)).tox(M2.SDA.x)
+        d += elm.Line().at((T.SCL0.x, T.SCL0.y)).tox(xj_scl)
+        d += elm.Line().at((xj_scl, T.SCL0.y)).toy(ybus_scl)
+        d += elm.Line().at((xj_scl, ybus_scl)).tox(M2.SCL.x)
+        d += elm.Label().at((xj_scl - 0.2, ybus_sda)).label("SDA0 (pin 18)", fontsize=F_SMALL, halign="right", valign="center", ofst=0)
+        d += elm.Label().at((xj_scl - 0.2, ybus_scl)).label("SCL0 (pin 19), I2C at 400 kHz", fontsize=F_SMALL, halign="right", valign="center", ofst=0)
 
         # ------------------------------------------------------------------
         # power and the USB link
@@ -191,13 +191,11 @@ def main():
         d += elm.Vdd().theta(0).at(T.T3V3).label("3V3", fontsize=F_SMALL, color=RED)
         d += elm.Ground().theta(0).flip().at(T.TGND)
         d += elm.Label().at((T.T3V3.x, T.T3V3.y + 1.0)).label(
-            "on-board LDO: 3V3 supplies\nevery sensor, ADC reference", fontsize=F_SMALL, color=RED, valign="bottom", ofst=0)
-        d += elm.Label().at((T.TVIN.x, T.TVIN.y + 0.15)).label("n.c.", fontsize=F_SMALL, color=GREY, valign="bottom", ofst=0)
-        d += elm.Label().at((T.TVUSB.x - 0.1, T.TVUSB.y + 0.15)).label("5 V from\nUSB VBUS", fontsize=F_SMALL, valign="bottom", ofst=0)
+            "3V3: on-board regulator, supplies\nevery sensor and is the converter's reference", fontsize=F_SMALL, color=RED, valign="bottom", ofst=0)
         d += elm.Ground().theta(0).at(T.BGND)
         d += elm.Line().at(T.BUSB).down(0.35)
         d += elm.Label().at((T.BUSB.x + 0.15, T.BUSB.y - 0.05)).label(
-            "USB micro-B to the host PC: 5 V in,\none text frame out per cycle\n(usbipd -> WSL /dev/ttyACM*)", fontsize=F_SMALL, halign="left", valign="top", ofst=0)
+            "USB micro-B to the host PC:\n5 V in, one serial frame out per cycle", fontsize=F_SMALL, halign="left", valign="top", ofst=0)
 
         d.save(OUT + ".pdf")
         d.save(OUT + ".png", dpi=200)

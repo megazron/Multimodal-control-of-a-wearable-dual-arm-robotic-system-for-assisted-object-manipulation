@@ -31,7 +31,7 @@ def panel_letter(ax, s):
 # --------------------------------------------------------------------------
 def tlx():
     rows = list(csv.DictReader(open(os.path.join(HERE, "pilot", "data", "tlx_trials_long.csv"))))
-    COND = [("VR", "VR direct"), ("MM", "mannequin\ndirect"), ("SA", "VR + shared\nautonomy")]
+    COND = [("VR", "VR direct"), ("MM", "mannequin\ndirect"), ("SA", "shared\nautonomy")]
     TASK = [("PP", "pick and place"), ("TR", "target reaching")]
     SUB = ["mental", "physical", "temporal", "performance", "effort", "frustration"]
     COL = {"VR": BLUE, "MM": PURPLE, "SA": RED}

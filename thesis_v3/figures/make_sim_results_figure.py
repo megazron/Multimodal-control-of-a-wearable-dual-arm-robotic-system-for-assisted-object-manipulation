@@ -51,25 +51,26 @@ def panel_letter(ax, s):
 
 def main():
     acc = load(os.path.join(V, "accuracy_table.json"))
-    fig = plt.figure(figsize=(W, 6.0))
-    gs = fig.add_gridspec(2, 2, hspace=0.8, wspace=0.4)
+    fig = plt.figure(figsize=(W, 5.6))
+    gs = fig.add_gridspec(2, 2, hspace=0.55, wspace=0.4)
 
-    # (a) grasp and set-down error against the gate
-    ax = fig.add_subplot(gs[0, 0]); k = 0; xs = []; labels = []
-    for mode in MODES:
-        for r in acc.get(mode, []):
-            pe = [1000 * v for v in r["pos_err"]]
-            ax.scatter([k] * len(pe), pe, color=BLUE, s=22, zorder=3, label="fingers to object" if k == 0 else None)
-            if r["place_err"]:
-                pl = [1000 * v for v in r["place_err"]]
-                ax.scatter([k] * len(pl), pl, color=RED, marker="s", s=22, zorder=3,
-                           label="cube to its pad" if not any(l.get_label() == "cube to its pad" for l in ax.collections) else None)
-            xs.append(k); labels.append("%s: %s" % (MODE_TINY[mode], TASK_TINY[r["task"].upper()]))
-            k += 1
-    ax.axhline(GATE, color=GREY, ls="--", lw=1); ax.text(k - 0.6, GATE + 2, "30 mm capture gate", ha="right", fontsize=7.5, color=GREY)
-    ax.set_xticks(xs); ax.set_xticklabels(labels, fontsize=7, rotation=40, ha="right", rotation_mode="anchor")
-    ax.set_ylabel("distance (mm)"); ax.set_ylim(-3, 70); ax.legend(loc="upper left", frameon=False)
-    panel_letter(ax, "(a) grasp and set-down error")
+    # (a) set-down error across the four recorded versions of the pick-and-place
+    ax = fig.add_subplot(gs[0, 0])
+    sets = [("first\nlayout", "archive/recordings/superseded_20260813_prespec/verification/accuracy_table.json"),
+            ("rework", "archive/recordings/superseded_20260813_prespec/verification_20260811_t1rework/accuracy_table.json"),
+            ("before the\naccuracy pass", "archive/recordings/verification_20260823_pre_accuracy_pass/accuracy_table.json"),
+            ("delivered", "recordings/verification/accuracy_table.json")]
+    for k, (lab, path) in enumerate(sets):
+        dd = load(os.path.join(ROOT, path))
+        vals = [1000 * v for r in dd.get("06_full_autonomy", []) if r["task"] == "t1" for v in r["place_err"]]
+        ax.scatter([k] * len(vals), vals, color=BLUE, s=24, zorder=3, label="one cube" if k == 0 else None)
+        m = sum(vals) / len(vals)
+        ax.plot([k - .28, k + .28], [m, m], color=RED, lw=2, label="mean" if k == 0 else None)
+        ax.text(k + 0.3, m, "%.0f" % m, ha="left", va="center", fontsize=7.5, color=RED)
+    ax.axhline(GATE, color=GREY, ls="--", lw=1); ax.text(-0.4, GATE + 14, "30 mm capture gate", ha="left", fontsize=7, color=GREY)
+    ax.set_xticks(range(len(sets))); ax.set_xticklabels([sname for sname, _ in sets], fontsize=7.5)
+    ax.set_ylabel("cube set-down error (mm)"); ax.set_ylim(0, 680); ax.legend(frameon=False, loc="upper left", fontsize=7)
+    panel_letter(ax, "(a) set-down error by version")
 
     # (b) run duration by mode
     ax = fig.add_subplot(gs[0, 1]); tasks = ["T0", "T2", "T3"]
@@ -93,7 +94,7 @@ def main():
     for src, col, name in (("DECLARED", RED, "object position typed in"), ("CALIBRATED", BLUE, "object position measured by camera")):
         ax.plot(x, [d["rows"][e][src]["wrong_pct"] for e in errs], "o-", color=col, lw=1.6, ms=4, label=name)
     ax.axhline(16, ls="--", color=AMBER, lw=1); ax.text(124, 18, "16 %: above this, assistance is a net loss", fontsize=7, color=AMBER, ha="right")
-    ax.axvline(d["cube_pitch_mm"], ls=":", color=GREY, lw=0.9); ax.text(d["cube_pitch_mm"] + 1.5, 45, "one cube\nspacing", fontsize=7, color=GREY)
+    ax.axvline(d["cube_pitch_mm"], ls=":", color=GREY, lw=0.9); ax.text(d["cube_pitch_mm"] + 1.5, 4, "one cube\nspacing", fontsize=7, color=GREY)
     ax.set_xlabel("error in the typed-in object position (mm)"); ax.set_ylabel("confidently wrong guesses (%)")
     ax.set_ylim(0, 55); ax.legend(frameon=False, loc="upper left", fontsize=7)
     panel_letter(ax, "(c) shared autonomy: guessing the target")

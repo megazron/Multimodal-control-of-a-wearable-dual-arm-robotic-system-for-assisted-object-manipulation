@@ -291,7 +291,7 @@
   {
    "session": "20260902_153646",
    "participant": "P3",
-   "task": "Unspecified",
+   "task": "Target reaching",
    "condition": "Direct",
    "active_hand": "right",
    "duration_s": 262.5,
@@ -309,7 +309,7 @@
   {
    "session": "20260902_155631",
    "participant": "P3",
-   "task": "Unspecified",
+   "task": "Pick and place",
    "condition": "Shared",
    "active_hand": "left",
    "duration_s": 249.96,
@@ -327,7 +327,7 @@
   {
    "session": "20260902_161756",
    "participant": "P3",
-   "task": "Unspecified",
+   "task": "Target reaching",
    "condition": "Direct",
    "active_hand": "right",
    "duration_s": 359.52,
@@ -345,7 +345,7 @@
   {
    "session": "20260902_162436",
    "participant": "P3",
-   "task": "Unspecified",
+   "task": "Target reaching",
    "condition": "Shared",
    "active_hand": "right",
    "duration_s": 265.77,
@@ -363,7 +363,7 @@
   {
    "session": "20260902_164021",
    "participant": "P3",
-   "task": "Unspecified",
+   "task": "Pick and place",
    "condition": "Direct",
    "active_hand": "right",
    "duration_s": 207.75,
@@ -381,7 +381,7 @@
   {
    "session": "20260902_164902",
    "participant": "P3",
-   "task": "Unspecified",
+   "task": "Target reaching",
    "condition": "Direct",
    "active_hand": "right",
    "duration_s": 93.0,
@@ -399,7 +399,7 @@
   {
    "session": "20260902_165659",
    "participant": "P3",
-   "task": "Unspecified",
+   "task": "Target reaching",
    "condition": "Direct",
    "active_hand": "right",
    "duration_s": 99.26,
@@ -416,6 +416,136 @@
   }
  ],
  "cells": [
+  {
+   "participant": "P1",
+   "task": "Pick and place",
+   "condition": "Direct",
+   "n_trials": 2,
+   "duration_s": 270.12,
+   "ee_path_m": 1.0772,
+   "clutch_engagements": 36.0,
+   "active_control_frac": 0.5145,
+   "mean_lag_mm": 3.04,
+   "tracking_ok_frac": 0.9926,
+   "controller_path_m": 33.6953
+  },
+  {
+   "participant": "P1",
+   "task": "Pick and place",
+   "condition": "Shared",
+   "n_trials": 1,
+   "duration_s": 114.94,
+   "ee_path_m": 1.4958,
+   "clutch_engagements": 12.0,
+   "active_control_frac": 0.605,
+   "mean_lag_mm": 2.34,
+   "tracking_ok_frac": 1.0,
+   "controller_path_m": 12.9923
+  },
+  {
+   "participant": "P2",
+   "task": "Pick and place",
+   "condition": "Direct",
+   "n_trials": 1,
+   "duration_s": 38.65,
+   "ee_path_m": 0.8979,
+   "clutch_engagements": 2.0,
+   "active_control_frac": 0.613,
+   "mean_lag_mm": 2.38,
+   "tracking_ok_frac": 1.0,
+   "controller_path_m": 3.5415
+  },
+  {
+   "participant": "P2",
+   "task": "Pick and place",
+   "condition": "Shared",
+   "n_trials": 1,
+   "duration_s": 169.57,
+   "ee_path_m": 1.5723,
+   "clutch_engagements": 25.0,
+   "active_control_frac": 0.762,
+   "mean_lag_mm": 2.44,
+   "tracking_ok_frac": 0.9994,
+   "controller_path_m": 22.2323
+  },
+  {
+   "participant": "P2",
+   "task": "Target reaching",
+   "condition": "Direct",
+   "n_trials": 1,
+   "duration_s": 227.91,
+   "ee_path_m": 2.7725,
+   "clutch_engagements": 25.0,
+   "active_control_frac": 0.521,
+   "mean_lag_mm": 3.37,
+   "tracking_ok_frac": 1.0,
+   "controller_path_m": 42.38
+  },
+  {
+   "participant": "P2",
+   "task": "Target reaching",
+   "condition": "Shared",
+   "n_trials": 2,
+   "duration_s": 218.24,
+   "ee_path_m": 3.0436,
+   "clutch_engagements": 26.0,
+   "active_control_frac": 0.689,
+   "mean_lag_mm": 3.96,
+   "tracking_ok_frac": 1.0,
+   "controller_path_m": 37.8901
+  },
+  {
+   "participant": "P3",
+   "task": "Pick and place",
+   "condition": "Direct",
+   "n_trials": 1,
+   "duration_s": 207.75,
+   "ee_path_m": 1.6168,
+   "clutch_engagements": 15.0,
+   "active_control_frac": 0.433,
+   "mean_lag_mm": 2.12,
+   "tracking_ok_frac": 0.9543,
+   "controller_path_m": 19.5501
+  },
+  {
+   "participant": "P3",
+   "task": "Pick and place",
+   "condition": "Shared",
+   "n_trials": 1,
+   "duration_s": 249.96,
+   "ee_path_m": 1.5795,
+   "clutch_engagements": 23.0,
+   "active_control_frac": 0.386,
+   "mean_lag_mm": 2.33,
+   "tracking_ok_frac": 1.0,
+   "controller_path_m": 19.9073
+  },
+  {
+   "participant": "P3",
+   "task": "Target reaching",
+   "condition": "Direct",
+   "n_trials": 4,
+   "duration_s": 203.57,
+   "ee_path_m": 1.9829,
+   "clutch_engagements": 21.25,
+   "active_control_frac": 0.5277,
+   "mean_lag_mm": 2.305,
+   "tracking_ok_frac": 0.9799,
+   "controller_path_m": 21.8256
+  },
+  {
+   "participant": "P3",
+   "task": "Target reaching",
+   "condition": "Shared",
+   "n_trials": 1,
+   "duration_s": 265.77,
+   "ee_path_m": 5.8895,
+   "clutch_engagements": 19.0,
+   "active_control_frac": 0.529,
+   "mean_lag_mm": 1.87,
+   "tracking_ok_frac": 0.9874,
+   "controller_path_m": 22.7445
+  },
   {
    "participant": "P4",
    "task": "Pick and place",
@@ -506,113 +636,179 @@
    "mean_lag_mm": 2.07,
    "tracking_ok_frac": 1.0,
    "controller_path_m": 11.5585
-  },
-  {
-   "participant": "P2",
-   "task": "Pick and place",
-   "condition": "Direct",
-   "n_trials": 1,
-   "duration_s": 38.65,
-   "ee_path_m": 0.8979,
-   "clutch_engagements": 2.0,
-   "active_control_frac": 0.613,
-   "mean_lag_mm": 2.38,
-   "tracking_ok_frac": 1.0,
-   "controller_path_m": 3.5415
-  },
-  {
-   "participant": "P2",
-   "task": "Pick and place",
-   "condition": "Shared",
-   "n_trials": 1,
-   "duration_s": 169.57,
-   "ee_path_m": 1.5723,
-   "clutch_engagements": 25.0,
-   "active_control_frac": 0.762,
-   "mean_lag_mm": 2.44,
-   "tracking_ok_frac": 0.9994,
-   "controller_path_m": 22.2323
-  },
-  {
-   "participant": "P2",
-   "task": "Target reaching",
-   "condition": "Direct",
-   "n_trials": 1,
-   "duration_s": 227.91,
-   "ee_path_m": 2.7725,
-   "clutch_engagements": 25.0,
-   "active_control_frac": 0.521,
-   "mean_lag_mm": 3.37,
-   "tracking_ok_frac": 1.0,
-   "controller_path_m": 42.38
-  },
-  {
-   "participant": "P2",
-   "task": "Target reaching",
-   "condition": "Shared",
-   "n_trials": 2,
-   "duration_s": 218.24,
-   "ee_path_m": 3.0436,
-   "clutch_engagements": 26.0,
-   "active_control_frac": 0.689,
-   "mean_lag_mm": 3.96,
-   "tracking_ok_frac": 1.0,
-   "controller_path_m": 37.8901
-  },
-  {
-   "participant": "P3",
-   "task": "Unspecified",
-   "condition": "Direct",
-   "n_trials": 5,
-   "duration_s": 204.406,
-   "ee_path_m": 1.9097,
-   "clutch_engagements": 20.0,
-   "active_control_frac": 0.5088,
-   "mean_lag_mm": 2.268,
-   "tracking_ok_frac": 0.9748,
-   "controller_path_m": 21.3705
-  },
-  {
-   "participant": "P3",
-   "task": "Unspecified",
-   "condition": "Shared",
-   "n_trials": 2,
-   "duration_s": 257.865,
-   "ee_path_m": 3.7345,
-   "clutch_engagements": 21.0,
-   "active_control_frac": 0.4575,
-   "mean_lag_mm": 2.1,
-   "tracking_ok_frac": 0.9937,
-   "controller_path_m": 21.3259
-  },
-  {
-   "participant": "P1",
-   "task": "Pick and place",
-   "condition": "Direct",
-   "n_trials": 2,
-   "duration_s": 270.12,
-   "ee_path_m": 1.0772,
-   "clutch_engagements": 36.0,
-   "active_control_frac": 0.5145,
-   "mean_lag_mm": 3.04,
-   "tracking_ok_frac": 0.9926,
-   "controller_path_m": 33.6953
-  },
-  {
-   "participant": "P1",
-   "task": "Pick and place",
-   "condition": "Shared",
-   "n_trials": 1,
-   "duration_s": 114.94,
-   "ee_path_m": 1.4958,
-   "clutch_engagements": 12.0,
-   "active_control_frac": 0.605,
-   "mean_lag_mm": 2.34,
-   "tracking_ok_frac": 1.0,
-   "controller_path_m": 12.9923
   }
  ],
  "paired": [
+  {
+   "participant": "P1",
+   "task": "Pick and place",
+   "duration_s": {
+    "direct": 270.12,
+    "shared": 114.94
+   },
+   "ee_path_m": {
+    "direct": 1.0772,
+    "shared": 1.4958
+   },
+   "clutch_engagements": {
+    "direct": 36.0,
+    "shared": 12.0
+   },
+   "active_control_frac": {
+    "direct": 0.5145,
+    "shared": 0.605
+   },
+   "mean_lag_mm": {
+    "direct": 3.04,
+    "shared": 2.34
+   },
+   "tracking_ok_frac": {
+    "direct": 0.9926,
+    "shared": 1.0
+   },
+   "controller_path_m": {
+    "direct": 33.6953,
+    "shared": 12.9923
+   },
+   "n_direct": 2,
+   "n_shared": 1
+  },
+  {
+   "participant": "P2",
+   "task": "Pick and place",
+   "duration_s": {
+    "direct": 38.65,
+    "shared": 169.57
+   },
+   "ee_path_m": {
+    "direct": 0.8979,
+    "shared": 1.5723
+   },
+   "clutch_engagements": {
+    "direct": 2.0,
+    "shared": 25.0
+   },
+   "active_control_frac": {
+    "direct": 0.613,
+    "shared": 0.762
+   },
+   "mean_lag_mm": {
+    "direct": 2.38,
+    "shared": 2.44
+   },
+   "tracking_ok_frac": {
+    "direct": 1.0,
+    "shared": 0.9994
+   },
+   "controller_path_m": {
+    "direct": 3.5415,
+    "shared": 22.2323
+   },
+   "n_direct": 1,
+   "n_shared": 1
+  },
+  {
+   "participant": "P2",
+   "task": "Target reaching",
+   "duration_s": {
+    "direct": 227.91,
+    "shared": 218.24
+   },
+   "ee_path_m": {
+    "direct": 2.7725,
+    "shared": 3.0436
+   },
+   "clutch_engagements": {
+    "direct": 25.0,
+    "shared": 26.0
+   },
+   "active_control_frac": {
+    "direct": 0.521,
+    "shared": 0.689
+   },
+   "mean_lag_mm": {
+    "direct": 3.37,
+    "shared": 3.96
+   },
+   "tracking_ok_frac": {
+    "direct": 1.0,
+    "shared": 1.0
+   },
+   "controller_path_m": {
+    "direct": 42.38,
+    "shared": 37.8901
+   },
+   "n_direct": 1,
+   "n_shared": 2
+  },
+  {
+   "participant": "P3",
+   "task": "Pick and place",
+   "duration_s": {
+    "direct": 207.75,
+    "shared": 249.96
+   },
+   "ee_path_m": {
+    "direct": 1.6168,
+    "shared": 1.5795
+   },
+   "clutch_engagements": {
+    "direct": 15.0,
+    "shared": 23.0
+   },
+   "active_control_frac": {
+    "direct": 0.433,
+    "shared": 0.386
+   },
+   "mean_lag_mm": {
+    "direct": 2.12,
+    "shared": 2.33
+   },
+   "tracking_ok_frac": {
+    "direct": 0.9543,
+    "shared": 1.0
+   },
+   "controller_path_m": {
+    "direct": 19.5501,
+    "shared": 19.9073
+   },
+   "n_direct": 1,
+   "n_shared": 1
+  },
+  {
+   "participant": "P3",
+   "task": "Target reaching",
+   "duration_s": {
+    "direct": 203.57,
+    "shared": 265.77
+   },
+   "ee_path_m": {
+    "direct": 1.9829,
+    "shared": 5.8895
+   },
+   "clutch_engagements": {
+    "direct": 21.25,
+    "shared": 19.0
+   },
+   "active_control_frac": {
+    "direct": 0.5277,
+    "shared": 0.529
+   },
+   "mean_lag_mm": {
+    "direct": 2.305,
+    "shared": 1.87
+   },
+   "tracking_ok_frac": {
+    "direct": 0.9799,
+    "shared": 0.9874
+   },
+   "controller_path_m": {
+    "direct": 21.8256,
+    "shared": 22.7445
+   },
+   "n_direct": 4,
+   "n_shared": 1
+  },
   {
    "participant": "P4",
    "task": "Target reaching",
@@ -714,142 +910,6 @@
    },
    "n_direct": 1,
    "n_shared": 1
-  },
-  {
-   "participant": "P2",
-   "task": "Pick and place",
-   "duration_s": {
-    "direct": 38.65,
-    "shared": 169.57
-   },
-   "ee_path_m": {
-    "direct": 0.8979,
-    "shared": 1.5723
-   },
-   "clutch_engagements": {
-    "direct": 2.0,
-    "shared": 25.0
-   },
-   "active_control_frac": {
-    "direct": 0.613,
-    "shared": 0.762
-   },
-   "mean_lag_mm": {
-    "direct": 2.38,
-    "shared": 2.44
-   },
-   "tracking_ok_frac": {
-    "direct": 1.0,
-    "shared": 0.9994
-   },
-   "controller_path_m": {
-    "direct": 3.5415,
-    "shared": 22.2323
-   },
-   "n_direct": 1,
-   "n_shared": 1
-  },
-  {
-   "participant": "P2",
-   "task": "Target reaching",
-   "duration_s": {
-    "direct": 227.91,
-    "shared": 218.24
-   },
-   "ee_path_m": {
-    "direct": 2.7725,
-    "shared": 3.0436
-   },
-   "clutch_engagements": {
-    "direct": 25.0,
-    "shared": 26.0
-   },
-   "active_control_frac": {
-    "direct": 0.521,
-    "shared": 0.689
-   },
-   "mean_lag_mm": {
-    "direct": 3.37,
-    "shared": 3.96
-   },
-   "tracking_ok_frac": {
-    "direct": 1.0,
-    "shared": 1.0
-   },
-   "controller_path_m": {
-    "direct": 42.38,
-    "shared": 37.8901
-   },
-   "n_direct": 1,
-   "n_shared": 2
-  },
-  {
-   "participant": "P3",
-   "task": "Unspecified",
-   "duration_s": {
-    "direct": 204.406,
-    "shared": 257.865
-   },
-   "ee_path_m": {
-    "direct": 1.9097,
-    "shared": 3.7345
-   },
-   "clutch_engagements": {
-    "direct": 20.0,
-    "shared": 21.0
-   },
-   "active_control_frac": {
-    "direct": 0.5088,
-    "shared": 0.4575
-   },
-   "mean_lag_mm": {
-    "direct": 2.268,
-    "shared": 2.1
-   },
-   "tracking_ok_frac": {
-    "direct": 0.9748,
-    "shared": 0.9937
-   },
-   "controller_path_m": {
-    "direct": 21.3705,
-    "shared": 21.3259
-   },
-   "n_direct": 5,
-   "n_shared": 2
-  },
-  {
-   "participant": "P1",
-   "task": "Pick and place",
-   "duration_s": {
-    "direct": 270.12,
-    "shared": 114.94
-   },
-   "ee_path_m": {
-    "direct": 1.0772,
-    "shared": 1.4958
-   },
-   "clutch_engagements": {
-    "direct": 36.0,
-    "shared": 12.0
-   },
-   "active_control_frac": {
-    "direct": 0.5145,
-    "shared": 0.605
-   },
-   "mean_lag_mm": {
-    "direct": 3.04,
-    "shared": 2.34
-   },
-   "tracking_ok_frac": {
-    "direct": 0.9926,
-    "shared": 1.0
-   },
-   "controller_path_m": {
-    "direct": 33.6953,
-    "shared": 12.9923
-   },
-   "n_direct": 2,
-   "n_shared": 1
   }
  ],
  "pooled_stats": {
@@ -942,6 +1002,6 @@
    }
   }
  },
- "task_note": "Two tasks: 'Pick and place' (sessions the console named 'object tracking') and 'Target reaching' (named 'target reaching' or 'position matching/reaching'). Relabelled by relabel_pilot_tasks.py on the operator's confirmation, 2026-09-07.",
+ "task_note": "Two tasks: 'Pick and place' (sessions the console named 'object tracking') and 'Target reaching' (named 'target reaching' or 'position matching/reaching'). Relabelled by relabel_pilot_tasks.py on the operator's confirmation, 2026-09-07. P3's seven sessions carry no console label; their task is assigned from the gripper record (closed >= 5 % of samples = pick and place), classify_p3_tasks.py.",
  "code_note": "Participant codes follow the NASA-TLX questionnaire numbering (P1-P3 completed pick and place, P4 picked only, P5 reached only); remapped 2026-09-09 from the earlier session-order codes."
 }

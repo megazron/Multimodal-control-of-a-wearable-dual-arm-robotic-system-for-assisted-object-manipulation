@@ -102,7 +102,7 @@ def tlx():
 def dvs():
     D = json.load(open(os.path.join(HERE, "pilot", "data", "study_summary.json")))
     S = D["sessions"]; P = D["paired"]
-    TASKS = ["Pick and place", "Target reaching", "Unspecified"]
+    TASKS = ["Pick and place", "Target reaching"]
     TL = {"Pick and place": "pick +\nplace", "Target reaching": "target\nreach", "Unspecified": "P3*"}
     fig = plt.figure(figsize=(W, 6.2))
     gs = fig.add_gridspec(2, 3, height_ratios=[1.0, 1.15], hspace=0.55, wspace=0.45, top=0.93)
@@ -118,7 +118,7 @@ def dvs():
                 for b in bp["boxes"]: b.set(facecolor=col, alpha=0.45, edgecolor=col)
                 for w_ in bp["whiskers"] + bp["caps"]: w_.set(color=col, lw=0.9)
             ticks.append(pos); pos += 1
-        ax.set_xticks(ticks); ax.set_xticklabels([TL[t] for t in TASKS], fontsize=8); ax.set_xlim(-0.6, 2.6); ax.set_ylabel(lab)
+        ax.set_xticks(ticks); ax.set_xticklabels([TL[t] for t in TASKS], fontsize=8); ax.set_xlim(-0.6, 1.6); ax.set_ylabel(lab)
         ax.set_title(["(a)", "(b)", "(c)"][k], loc="left", fontsize=9, fontweight="bold")
         if k == 0:
             fig.legend(handles=[Patch(facecolor=BLUE, alpha=0.45, label="direct"), Patch(facecolor=RED, alpha=0.45, label="shared autonomy")],

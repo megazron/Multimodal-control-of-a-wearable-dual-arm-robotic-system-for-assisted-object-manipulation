@@ -290,7 +290,7 @@
  {
   "session": "20260902_153646",
   "participant": "P3",
-  "task": "Unspecified",
+  "task": "Target reaching",
   "condition": "Direct",
   "active_hand": "right",
   "duration_s": 262.5,
@@ -308,7 +308,7 @@
  {
   "session": "20260902_155631",
   "participant": "P3",
-  "task": "Unspecified",
+  "task": "Pick and place",
   "condition": "Shared",
   "active_hand": "left",
   "duration_s": 249.96,
@@ -326,7 +326,7 @@
  {
   "session": "20260902_161756",
   "participant": "P3",
-  "task": "Unspecified",
+  "task": "Target reaching",
   "condition": "Direct",
   "active_hand": "right",
   "duration_s": 359.52,
@@ -344,7 +344,7 @@
  {
   "session": "20260902_162436",
   "participant": "P3",
-  "task": "Unspecified",
+  "task": "Target reaching",
   "condition": "Shared",
   "active_hand": "right",
   "duration_s": 265.77,
@@ -362,7 +362,7 @@
  {
   "session": "20260902_164021",
   "participant": "P3",
-  "task": "Unspecified",
+  "task": "Pick and place",
   "condition": "Direct",
   "active_hand": "right",
   "duration_s": 207.75,
@@ -380,7 +380,7 @@
  {
   "session": "20260902_164902",
   "participant": "P3",
-  "task": "Unspecified",
+  "task": "Target reaching",
   "condition": "Direct",
   "active_hand": "right",
   "duration_s": 93.0,
@@ -398,7 +398,7 @@
  {
   "session": "20260902_165659",
   "participant": "P3",
-  "task": "Unspecified",
+  "task": "Target reaching",
   "condition": "Direct",
   "active_hand": "right",
   "duration_s": 99.26,

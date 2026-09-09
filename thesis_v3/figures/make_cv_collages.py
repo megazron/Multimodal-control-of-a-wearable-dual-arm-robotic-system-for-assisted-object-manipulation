@@ -165,10 +165,10 @@ def wrist_collage(cam="left_gripper"):
     (cx, cy), (rw, rh), _ = rect_cube
     (bx, by), _, _ = rect_box
     final = rects.copy()
-    cv2.putText(final, "cube: %.0f mm tall, fits %.0f mm gripper" % (cube_h, GRIPPER_MM), (int(cx) - 150, int(cy) + 95),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 160, 0), 2, cv2.LINE_AA)
+    cv2.putText(final, "cube %.0f mm: fits %.0f mm gripper" % (cube_h, GRIPPER_MM), (int(cx) - 260, int(cy) + 150),
+                cv2.FONT_HERSHEY_SIMPLEX, 1.1, (0, 160, 0), 3, cv2.LINE_AA)
     cv2.putText(final, "box %.0f x %.0f mm: too wide" % (float(box_row["length mm"]), float(box_row["width mm"])),
-                (int(bx) - 160, int(by) - 110), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 120, 0), 2, cv2.LINE_AA)
+                (int(bx) - 250, int(by) - 130), cv2.FONT_HERSHEY_SIMPLEX, 1.1, (255, 120, 0), 3, cv2.LINE_AA)
     width_mm = cube_h  # for the tile subtitle
 
     tiles = [
@@ -184,7 +184,7 @@ def wrist_collage(cam="left_gripper"):
         tile(depth_img, "10 depth (Kinova module, 480x270)", "%.0f%% of pixels return; band %.2f-%.2f m" % (100 * (depth > 0).mean(), lo, hi)),
         tile(plane_img, "11 RANSAC table plane, 400 draws", "green: within 6 mm, %.1f%% (RMS %.1f mm)" % (100 * inl.mean(), 1000 * np.sqrt(np.mean(hgt[inl] ** 2)))),
         tile(hm_img, "12 height above the plane (mm)", "%.1f%% of points > %.0f mm" % (100 * above.mean(), r20["height threshold"])),
-        tile(on, "13 pieces standing on the surface", "%d pieces over 200 px" % len(pieces)),
+        tile(on, "13 pixels more than 5 mm above the plane", "%d pieces over 200 px (pipeline gate: %d pieces)" % (len(pieces), int(r22["pieces standing on the surface"]))),
         tile(final, "14 result: objects and grasp check", "cube %.0f mm fits the %.0f mm gripper; box %.0f mm does not" % (cube_h, GRIPPER_MM, float(box_row["length mm"]))),
     ]
     img = grid(tiles, 4)
@@ -235,7 +235,7 @@ def room_collage():
         cv2.polylines(final, [P.reshape(-1, 1, 2)], False, (255, 255, 255), 2)
         for k in J:
             cv2.circle(final, tuple(P[k]), 7, (0, 0, 255), 2)
-        cv2.putText(final, "%s: %d links" % (side, a["n_links"]), (int(P[0, 0]) - 60, int(P[0, 1]) - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.55, col, 2, cv2.LINE_AA)
+        cv2.putText(final, "%s arm: %d links" % (side, a["n_links"]), (int(P[0, 0]) - 90, int(P[0, 1]) - 16), cv2.FONT_HERSHEY_SIMPLEX, 0.8, col, 2, cv2.LINE_AA)
     cs, _ = cv2.findContours(mask_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cv2.drawContours(final, cs, -1, (0, 0, 255), 2)
     for cls, col in (("white desk", (80, 80, 80)), ("cardboard box", (0, 180, 0)), ("green cube", (0, 180, 0))):
@@ -243,19 +243,19 @@ def room_collage():
         if b:
             bx0, by0, bx1, by1 = [int(v) for v in b["box"]]
             cv2.rectangle(final, (bx0, by0), (bx1, by1), col, 2)
-            cv2.putText(final, "%s %.2f" % (cls, b["conf"]), (bx0, by0 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, col, 1, cv2.LINE_AA)
+            cv2.putText(final, "%s %.2f" % (cls, b["conf"]), (bx0, by0 - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.7, col, 2, cv2.LINE_AA)
     yolo_img = bgr.copy()
-    for d in det["yolo"]["detections"]:
+    for d in det["yolo"]["best"].values():
         if d["conf"] >= 0.15:
             bx0, by0, bx1, by1 = [int(v) for v in d["box"]]
             cv2.rectangle(yolo_img, (bx0, by0), (bx1, by1), (200, 0, 200), 2)
-            cv2.putText(yolo_img, "%s %.2f" % (d["class"], d["conf"]), (bx0, by0 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 0, 200), 1, cv2.LINE_AA)
+            cv2.putText(yolo_img, "%s %.2f" % (d["class"], d["conf"]), (bx0, by0 - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 200), 2, cv2.LINE_AA)
     summ = json.load(open(os.path.join(WORK, "summary.json")))["checks"]
     tiles = [
         tile(bgr, "01 room camera, cropped to the scene", "%dx%d of 1280x720" % (W, H)),
         tile(lm, "02 MediaPipe Pose: 33 landmarks", "shoulders %.0f px apart" % abs(pose[11][0] - pose[12][0])),
         tile(mask_img, "03 MediaPipe segmentation mask", "%.1f%% of the crop" % (100 * body.mean())),
-        tile(yolo_img, "04 YOLO-World, prompts >= 0.15", "desk %.2f, box %.2f; arms not found" % (det["yolo"]["best"]["white desk"]["conf"], det["yolo"]["best"]["cardboard box"]["conf"])),
+        tile(yolo_img, "04 YOLO-World, best box per prompt", "desk %.2f, box %.2f; arms not found" % (det["yolo"]["best"]["white desk"]["conf"], det["yolo"]["best"]["cardboard box"]["conf"])),
         tile(grey, "05 greyscale"),
         tile(med, "06 local backdrop: median 71 px"),
         tile(cv2.convertScaleAbs(diff, alpha=4), "07 |grey - backdrop| (x4 for display)"),

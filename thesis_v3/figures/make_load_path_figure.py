@@ -27,7 +27,7 @@ def person(ax, x, commands):
     for dx in (-0.28, 0.28):
         ax.plot([x + dx, x + dx * 1.1], [4.7, 1.65], color="#2b3a55", lw=5, solid_capstyle="round", zorder=2)
     ax.plot([x - 0.45, x - 0.75, x - 0.55], [7.2, 5.9, 4.9], color=SKIN, lw=3.2, solid_capstyle="round", zorder=4)
-    ax.text(x, 3.15, "wearer" + ("" if commands else "\n(does not command)"), ha="center", va="top", fontsize=8)
+    ax.text(x, 8.95, "wearer\n(" + ("commands the limb" if commands else "does not command") + ")", ha="center", va="bottom", fontsize=8)
 
 
 def limb(ax, pts, color=STEEL):
@@ -43,7 +43,7 @@ def surface(ax, x0, x1, contacted):
     ax.add_patch(Rectangle((x0, 3.55), x1 - x0, 0.32, fc="0.85", ec="0.35", lw=0.8, zorder=2))
     for lx in (x0 + 0.3, x1 - 0.3):
         ax.plot([lx, lx], [3.55, 1.65], color="0.35", lw=1.6, zorder=1)
-    ax.text((x0 + x1) / 2, 3.15, "work surface" + ("" if contacted else ", not contacted"), ha="center", va="top", fontsize=8)
+    ax.text(x1 - 0.45, 3.15, "work surface" + ("" if contacted else ", not contacted"), ha="right", va="top", fontsize=8)
 
 
 def floor(ax):
@@ -63,9 +63,9 @@ def path(ax, pts, color, label=None, label_xy=None, rad=0.0):
 
 
 def main():
-    fig, axes = plt.subplots(1, 2, figsize=(W, 3.05))
+    fig, axes = plt.subplots(1, 2, figsize=(W, 3.25))
     for ax in axes:
-        ax.set_xlim(0, 10); ax.set_ylim(0.9, 9.6); ax.set_aspect("equal"); ax.axis("off")
+        ax.set_xlim(0, 10); ax.set_ylim(0.9, 10.4); ax.set_aspect("equal"); ax.axis("off")
         floor(ax)
 
     # (a) bracing: mount at the waist, limb pressed on the surface, load closes through the environment
@@ -80,7 +80,6 @@ def main():
     path(ax, [(3.0, 5.4), (4.7, 6.6), (6.3, 5.3), (7.0, 3.87), (7.0, 2.4), (7.0, 1.7)], GREEN)
     ax.text(8.55, 5.6, "reaction load\nleaves the body\nthrough the surface\nand the floor", color=GREEN, fontsize=8,
             ha="center", va="center", style="italic", zorder=9)
-    ax.text(2.5, 9.05, "wearer commands the limb", fontsize=7.5, ha="center", va="bottom", color="0.3")
 
     # (b) this thesis: mount on the back, arm free in space, load closes through the wearer
     ax = axes[1]

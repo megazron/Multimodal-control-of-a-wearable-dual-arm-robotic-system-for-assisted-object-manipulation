@@ -299,13 +299,13 @@ for s in VR:
     if holds: hold_med[c].append(np.median(holds)); holds_pool[c] += holds
     if gaps: gap_med[c].append(np.median(gaps))
     refused_n[c].append(refused)
-fig, axes = plt.subplots(1, 4, figsize=(11.0, 2.8), gridspec_kw={"wspace": 0.55})
+fig, axes = plt.subplots(2, 2, figsize=(6.4, 5.2), gridspec_kw={"wspace": 0.45, "hspace": 0.4}); axes = axes.ravel()
 lbls, cols = ["direct\ncontrol", "with\nassistance"], [BLUE, RED]
-box(axes[0], [per_min["Direct"], per_min["Shared"]], lbls, cols, "clutch engagements per minute")
-box(axes[1], [holds_pool["Direct"], holds_pool["Shared"]], lbls, cols, "length of each engagement (s)")
+box(axes[0], [per_min["Direct"], per_min["Shared"]], lbls, cols, "engagements per minute")
+box(axes[1], [holds_pool["Direct"], holds_pool["Shared"]], lbls, cols, "hold length (s)")
 axes[1].set_yscale("log")
 box(axes[2], [gap_med["Direct"], gap_med["Shared"]], lbls, cols, "pause before re-engaging (s)")
-box(axes[3], [refused_n["Direct"], refused_n["Shared"]], lbls, cols, "refused engagements per session")
+box(axes[3], [refused_n["Direct"], refused_n["Shared"]], lbls, cols, "refused per session")
 save(fig, "05_clutch_behaviour", "How operators used the clutch",
      "events.jsonl clutch / clutch_refused events, active hand, every VR session",
      "With assistance operators re-engaged the clutch less often per minute and held it for longer stretches.",

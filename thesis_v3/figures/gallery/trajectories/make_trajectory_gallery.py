@@ -27,6 +27,7 @@ import math
 import os
 FS = float(os.environ.get("FONT_SCALE", "1"))
 SUFFIX = os.environ.get("OUT_SUFFIX", "")
+PS = float(os.environ.get("PANEL_SCALE", "1"))
 import sys
 import time
 
@@ -211,7 +212,7 @@ def draw3d(ax, rec, markers=True, op_alpha=0.45):
     ax.set_xlabel("x (m)", labelpad=-2, fontsize=7 * FS)
     ax.set_ylabel("y (m)", labelpad=-2, fontsize=7 * FS)
     ax.set_zlabel("z (m)", labelpad=-4, fontsize=7 * FS)
-    ax.tick_params(labelsize=6, pad=0)
+    ax.tick_params(labelsize=6 * FS, pad=0)
     ax.locator_params(nbins=4)
 
 
@@ -228,8 +229,8 @@ def legend_below(fig, ax, ncol=3, y=0.0):
 def save(fig, name):
     name = name + SUFFIX
     pdf = os.path.join(HERE, name + ".pdf")
-    fig.savefig(pdf)
-    fig.savefig(os.path.join(HERE, name + ".png"), dpi=200)
+    fig.savefig(pdf, bbox_inches="tight")
+    fig.savefig(os.path.join(HERE, name + ".png"), dpi=200, bbox_inches="tight")
     plt.close(fig)
     print("wrote", name)
 
@@ -258,7 +259,7 @@ def plot(data):
         if not recs:
             continue
         nr, nc = grid_shape(len(recs))
-        fig = plt.figure(figsize=(2.6 * nc + 0.4, 2.0 * nr + 0.8))
+        fig = plt.figure(figsize=(2.6 * PS * nc + 0.4, 2.0 * PS * nr + 0.8))
         ax0 = None
         for k, rec in enumerate(recs):
             ax = fig.add_subplot(nr, nc, k + 1, projection="3d")
@@ -267,7 +268,7 @@ def plot(data):
             ax0 = ax0 or ax
         fig.subplots_adjust(left=0.02, right=0.98, bottom=0.14 if nr > 1 else 0.22, top=0.92,
                             wspace=0.08, hspace=0.25)
-        legend_below(fig, ax0, ncol=3 if p.startswith("M") else 5, y=0.0)
+        legend_below(fig, ax0, ncol=2, y=0.0)
         save(fig, "3d_grid_%s" % p)
         index.append(("3d_grid_%s" % p, "Every %s session in 3-D: operator's hand, simulated robot hand, real robot hand" % p,
                       "%d sessions" % len(recs), "APPENDIX"))
@@ -406,6 +407,31 @@ def plot(data):
               frameon=False, fontsize=7 * FS, loc="lower right")
     fig.subplots_adjust(left=0.02, right=0.98, bottom=0.12, top=0.99)
     save(fig, "summary_gap_all_sessions")
+    # 6b. the same ranking, compact: one strip per cohort, the outliers named
+    fig, ax = plt.subplots(figsize=(6.4, 2.4))
+    rows = [("VR", "VR controllers"), ("master", "mannequin master")]
+    for y, (coh, name) in enumerate(rows):
+        recs = [r for r in items if r["cohort"] == coh]
+        vals = [rms(gap_mm(r)) for r in recs]
+        for k, (rec, v) in enumerate(zip(recs, vals)):
+            ax.scatter(v, y + (k % 3 - 1) * 0.12, s=28, zorder=3,
+                       color=BLUE if rec["condition"] == "Direct" else RED, alpha=0.9)
+            if v > 60:
+                ax.annotate(label(rec), (v, y + (k % 3 - 1) * 0.12), xytext=(-8, 0),
+                            textcoords="offset points", fontsize=6.5 * FS, ha="right", va="center", color=GREY)
+        med = sorted(vals)[len(vals) // 2]
+        ax.plot([med, med], [y - 0.3, y + 0.3], color="black", lw=1.2, zorder=4)
+        ax.text(med, y + 0.36, "median %.1f mm" % med, ha="center", va="bottom", fontsize=6.5 * FS)
+    ax.set_yticks([0, 1]); ax.set_yticklabels([n.replace(" ", "\n") for _, n in rows], fontsize=7.5 * FS); ax.set_ylim(-0.7, 1.8)
+    ax.axvline(30, color=GREY, lw=0.8, ls=":")
+    ax.text(30.5, -0.55, "30 mm capture gate", fontsize=6.5 * FS, color=GREY, va="bottom")
+    ax.set_xlim(0, max(rms(gap_mm(r)) for r in items) * 1.12)
+    ax.set_xlabel("typical gap, simulated to real hand, over the session (mm)", fontsize=8 * FS)
+    ax.legend(handles=[Patch(color=BLUE, label="direct control"), Patch(color=RED, label="with assistance")],
+              frameon=False, fontsize=7 * FS, loc="upper right")
+    for sp in ("top", "right"): ax.spines[sp].set_visible(False)
+    fig.subplots_adjust(left=0.19, right=0.98, bottom=0.22, top=0.97)
+    save(fig, "summary_gap_compact")
     stats = {}
     for coh in ("VR", "master"):
         vals = sorted(rms(gap_mm(r)) for r in sessions if r["cohort"] == coh)

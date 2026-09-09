@@ -282,7 +282,7 @@ def fig_placement_history():
             ("2026-08-11 rework", "archive/recordings/superseded_20260813_prespec/verification_20260811_t1rework/accuracy_table.json"),
             ("2026-08-23, before the\naccuracy pass", "archive/recordings/verification_20260823_pre_accuracy_pass/accuracy_table.json"),
             ("2026-08-23, delivered", "recordings/verification/accuracy_table.json")]
-    fig, ax = plt.subplots(figsize=(6.2, 3.2))
+    fig, ax = plt.subplots(figsize=(7.0, 3.4))
     for k, (lab, p) in enumerate(sets):
         d = load(os.path.join(ROOT, p))
         vals = [1000 * v for r in d.get("06_full_autonomy", []) if r["task"] == "t1" for v in r["place_err"]]
@@ -290,7 +290,7 @@ def fig_placement_history():
         ax.plot([k - .25, k + .25], [sum(vals) / len(vals)] * 2, color=RED, lw=2)
         ax.text(k + .28, sum(vals) / len(vals), "mean %.0f" % (sum(vals) / len(vals)), va="center", fontsize=7.5 * FS, color=RED)
     ax.axhline(GATE_MM, color=GREY, ls="--", lw=1); ax.text(-0.4, GATE_MM + 8, "30 mm capture gate", fontsize=7.5 * FS, color=GREY)
-    ax.set_xticks(range(len(sets))); ax.set_xticklabels([s[0] for s in sets], fontsize=7.5 * FS)
+    ax.set_xticks(range(len(sets))); ax.set_xticklabels([s[0].replace(", ", ",\n").replace(" the\n", "\nthe ") for s in sets], fontsize=7.5 * FS)
     ax.set_ylabel("cube set-down error (mm)"); ax.set_ylim(0, 650)
     save(fig, "08_placement_error_history", "How far each cube was set down from its pad, across the four recorded versions of the pick-and-place",
          "archive/recordings/*/accuracy_table.json and recordings/verification/accuracy_table.json (06_full_autonomy, t1, place_err)",
@@ -402,7 +402,7 @@ def fig_tray_tilt():
 
 # 13. how long each scripted run took -----------------------------------------
 def fig_run_durations():
-    fig, ax = plt.subplots(figsize=(6.4, 3.2))
+    fig, ax = plt.subplots(figsize=(7.0, 3.6))
     tasks = ["T0", "T2", "T3"]
     for j, task in enumerate(tasks):
         for i, mode in enumerate(MODES):
@@ -410,9 +410,9 @@ def fig_run_durations():
             if not d: continue
             m = load(os.path.join(d, "clip_meta.json")); span = m["grab_t1"] - m["grab_t0"]
             ax.scatter(j + (i - 2) * 0.13, span, color=[BLUE, RED, GREEN, AMBER, GREY][i], s=36, zorder=3, label=MODE_SHORT[mode] if j == 0 else None)
-    ax.set_xticks(range(len(tasks))); ax.set_xticklabels([TASK_SHORT[t] for t in tasks])
-    ax.set_ylabel("time to run the task (s)"); ax.set_ylim(0, 60)
-    ax.legend(fontsize=7.5 * FS, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.16))
+    ax.set_xticks(range(len(tasks))); ax.set_xticklabels([TASK_NAME[t] for t in tasks])
+    ax.set_ylabel("time to run the task (s)"); ax.set_ylim(0, 60); ax.set_xlim(-0.6, len(tasks) - 0.4)
+    ax.legend(fontsize=7.5 * FS, ncol=2, loc="upper center", bbox_to_anchor=(0.5, -0.14))
     save(fig, "13_scripted_run_durations", "How long each scripted run took, by mode",
          "recordings/verification/*/T*/*/clip_meta.json (grab_t1 - grab_t0)",
          "The same scripted task takes about three times longer through the VR-controller path than through any other mode -- the VR path is rate-limited by its own filter.",

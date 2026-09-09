@@ -14,8 +14,8 @@ SCRATCH = os.path.join(HERE, "pilot", "data")  # the derived session tables, kep
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pilot")
 
 plt.rcParams.update({
-    "font.size": 13.0, "axes.titlesize": 13.0, "axes.labelsize": 13.0,
-    "xtick.labelsize": 10.5, "ytick.labelsize": 11.4,
+    "font.size": 9.0, "axes.titlesize": 9.5, "axes.labelsize": 9.0,
+    "xtick.labelsize": 8.0, "ytick.labelsize": 8.5,
     "figure.dpi": 150, "savefig.bbox": "tight", "axes.spines.top": False,
     "axes.spines.right": False,
 })
@@ -29,15 +29,15 @@ labels = [f"{d['participant']}\n{d['task'].split()[0].lower()} {d['condition'][0
 vals = [d["joint_rms_deg"] for d in data]
 colors = [COLORS[d["participant"]] for d in data]
 
-fig, ax = plt.subplots(figsize=(6.0, 2.6))
+fig, ax = plt.subplots(figsize=(6.4, 2.8))
 x = np.arange(len(data))
 ax.bar(x, vals, color=colors, alpha=0.85)
 ax.set_xticks(x)
-ax.set_xticklabels(labels, fontsize=6)
+ax.set_xticklabels(labels, fontsize=7.5)
 ax.set_ylabel("sim-real joint RMS (deg)")
 handles = [plt.Rectangle((0, 0), 1, 1, color=c) for c in COLORS.values()]
 ax.legend(handles, ["M1", "M2", "M3"],
-          frameon=False, fontsize=6.5, loc="upper left")
+          frameon=False, fontsize=8.5, loc="upper left")
 fig.savefig(os.path.join(OUT, "master_tracking.pdf"))
 plt.close(fig)
 print("wrote master_tracking.pdf")

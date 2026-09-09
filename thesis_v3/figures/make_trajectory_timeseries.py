@@ -27,7 +27,7 @@ DATA = os.path.join(HERE, "gallery", "trajectories", "trajectories.json")
 OUT = os.path.join(HERE, "pilot", "trajectory_timeseries.pdf")
 
 BLUE, RED, GREEN = "#2c6fbb", "#c1392b", "#3f9142"
-plt.rcParams.update({"font.size": 16.9, "axes.titlesize": 19.0,
+plt.rcParams.update({"font.size": 8.5, "axes.titlesize": 9.5, "axes.labelsize": 8.5, "xtick.labelsize": 8, "ytick.labelsize": 8,
                      "axes.spines.top": False, "axes.spines.right": False})
 
 PICK = {"VR": ("P5", "Pick and place", "Direct"),
@@ -43,10 +43,10 @@ def pick(sessions, cohort):
 
 def main():
     d = json.load(open(DATA))
-    fig, axes = plt.subplots(2, 3, figsize=(7.4, 4.6), sharex="row")
+    fig, axes = plt.subplots(2, 3, figsize=(6.8, 4.4), sharex="row")
     cols = [("op", "(a) master arm / operator's hand"),
             ("sim", "(b) simulated robot's hand"),
-            ("real", "(c) real robot's hand (encoders)")]
+            ("real", "(c) real robot's hand")]
     for r, (cohort, cname) in enumerate([("VR", "VR controllers"), ("master", "mannequin master")]):
         s = pick(d["sessions"], cohort)
         t = np.array(s["t"], float); t = t - t[0]
@@ -73,13 +73,13 @@ def main():
             if r == 1:
                 ax.set_xlabel("time into session (s)")
             ax.grid(True, lw=0.3, alpha=0.5)
-        axes[r, 2].text(0.03, 0.97, "gap between (b) and (c): %.0f mm" % gap,
-                        transform=axes[r, 2].transAxes, ha="left", va="top", fontsize=7, color="0.35",
+        axes[r, 2].text(0.03, 0.97, "gap (b) to (c): %.0f mm" % gap,
+                        transform=axes[r, 2].transAxes, ha="left", va="top", fontsize=8, color="0.35",
                         bbox=dict(facecolor="white", edgecolor="none", alpha=0.8, pad=1))
         print(cohort, s["participant"], s["task"], s["condition"], "gap %.1f mm" % gap, "T=%.0f s" % t[-1])
-    fig.legend(loc="lower center", ncol=3, frameon=False, fontsize=8, bbox_to_anchor=(0.5, -0.01))
+    fig.legend(loc="lower center", ncol=3, frameon=False, fontsize=8.5, bbox_to_anchor=(0.5, -0.01))
     fig.subplots_adjust(left=0.09, right=0.99, top=0.92, bottom=0.17, wspace=0.28, hspace=0.25)
-    fig.savefig(OUT)
+    fig.savefig(OUT, bbox_inches="tight")
     print("wrote", OUT)
 
 

@@ -38,7 +38,7 @@ import make_vision_gallery as G  # noqa: E402  (loaders: depth, cloud, plane, ba
 
 CAMS = [
     ("left_gripper", "Left wrist camera", "RGB-D (Kinova vision module)",
-     "on the left gripper: table plane\nand objects for the grasp"),
+     "on the left gripper: fits the table plane,\nfinds and sizes the objects"),
     ("right_gripper", "Right wrist camera", "RGB-D (Kinova vision module)",
      "on the right gripper: the same\nfor the right arm"),
     ("scene_rs", "Room depth camera", "RGB-D (RealSense D435i)",
@@ -60,35 +60,17 @@ def to169(a):
 
 
 def wrist_result(ax, cam):
-    """On the colour image: depth points projected through the pipeline's own
-    alignment (depth point + module baseline, then the colour intrinsics),
-    green on the fitted plane and red off it, plus the two objects' rotated
-    boxes from the colour-and-geometry detector."""
+    """The colour image with the two task objects the colour-and-geometry detector
+    found, and each object's measured footprint against the gripper opening."""
     bgr = G.cv2.imread(os.path.join(RAW, cam, "colour.png"))
-    im = G.cv2.cvtColor(bgr, G.cv2.COLOR_BGR2RGB).astype(float)
-    H, W = im.shape[:2]
-    P, v, u = G.cloud(cam)
-    n, off, tol, frac_stored, rms = G.plane(cam)
-    inl = np.abs(P @ n + off) < tol
-    al = {m["quantity"]: m["value"] for m in json.load(open(os.path.join(RAW, "..", "data", cam, "16_alignment.json")))["measurements"]}
-    t = np.array([al["baseline x"], al["baseline y"], al["baseline z"]]) / 1000.0
-    fx, fy, cx, cy = G.SRC[cam]["K_colour"]
-    Q = P + t
-    uc = np.round(fx * Q[:, 0] / Q[:, 2] + cx).astype(int); vc = np.round(fy * Q[:, 1] / Q[:, 2] + cy).astype(int)
-    ok = (uc >= 0) & (uc < W) & (vc >= 0) & (vc < H)
-    for sel, col in ((inl, GREEN), (~inl, RED)):
-        m = np.zeros((H, W), np.uint8)
-        m[vc[sel & ok], uc[sel & ok]] = 1
-        m = G.cv2.dilate(m, np.ones((5, 5), np.uint8)) > 0
-        im[m] = 0.45 * im[m] + 0.55 * np.array(matplotlib.colors.to_rgb(col)) * 255
-    ax.imshow(im.astype(np.uint8))
+    ax.imshow(G.cv2.cvtColor(bgr, G.cv2.COLOR_BGR2RGB))
     cube_pts, _ = G.cube_rect(bgr)
     box_pts, _ = G.box_rect(bgr)
     for pts, col in ((cube_pts, GREEN), (box_pts, BLUE)):
-        ax.add_patch(Polygon(np.array(pts, float), closed=True, fill=False, edgecolor=col, lw=1.8))
+        ax.add_patch(Polygon(np.array(pts, float), closed=True, fill=False, edgecolor=col, lw=2.0))
     rows = G.boxes(cam)
-    txt = "plane: %.0f%% of depth points, RMS %.1f mm\n%d objects, %d fit the gripper" % (
-        100 * inl.mean(), rms, len(rows), sum(1 for r in rows if r["graspable"].strip().lower() == "yes"))
+    n_fit = sum(1 for r in rows if r["graspable"].strip().lower() == "yes")
+    txt = "2 objects found by colour: cube and box\nthe cube fits the 85 mm gripper, the box does not"
     ax.text(0.02, 0.04, txt, transform=ax.transAxes, fontsize=7.5, color="white",
             bbox=dict(facecolor="black", alpha=0.55, edgecolor="none", pad=2))
 
@@ -153,13 +135,24 @@ def main():
         ax = axes[1, j]
         dp = os.path.join(d, "depth.npy")
         if os.path.exists(dp):
-            depth, _ = to169(np.load(dp).astype(float))
+            full_depth = np.load(dp).astype(float)
+            depth, yoff_d = to169(full_depth)
             valid = depth > 0
             shown = np.where(valid, depth, np.nan)
             vmax = np.percentile(depth[valid], 97) if valid.any() else 1.0
             im = ax.imshow(shown, cmap="viridis", vmin=0.0, vmax=vmax)
-            ax.text(0.02, 0.04, "%.0f%% of pixels return a depth" % (100 * valid.mean()),
-                    transform=ax.transAxes, fontsize=8, color="white",
+            note = "%.0f%% of pixels return a depth" % (100 * valid.mean())
+            if cam in ("left_gripper", "right_gripper"):
+                # the table plane the pipeline fitted, drawn on the same depth grid it was fitted on
+                P, v, u = G.cloud(cam)
+                n, off, tol, frac_stored, rms = G.plane(cam)
+                inl = np.abs(P @ n + off) < tol
+                mask = np.zeros(full_depth.shape, bool); mask[v[inl], u[inl]] = True
+                mask = mask[yoff_d:yoff_d + depth.shape[0]]
+                rgba = np.zeros(mask.shape + (4,)); rgba[mask] = (*matplotlib.colors.to_rgb(GREEN), 0.55)
+                ax.imshow(rgba)
+                note += "\nplane: %.0f%% of points, RMS %.1f mm" % (100 * inl.mean(), rms)
+            ax.text(0.02, 0.04, note, transform=ax.transAxes, fontsize=7.5, color="white",
                     bbox=dict(facecolor="black", alpha=0.55, edgecolor="none", pad=2))
             cb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.02)
             cb.set_label("distance (m)", fontsize=8); cb.ax.tick_params(labelsize=7)
@@ -185,7 +178,7 @@ def main():
         fig.text(0.05 + (0.94 / 4) * (j + 0.5) - 0.012, 0.095, role, ha="center", va="top", fontsize=8.5, color="0.25")
     for r, lab in enumerate(("colour", "depth", "what is\nextracted")):
         axes[r, 0].text(-0.06, 0.5, lab, transform=axes[r, 0].transAxes, rotation=90, va="center", ha="right", fontsize=11)
-    fig.legend(handles=[Patch(color=GREEN, label="on the fitted table plane"), Patch(color=RED, label="in range, not on the plane"),
+    fig.legend(handles=[Patch(facecolor=GREEN, alpha=0.55, label="depth points on the fitted table plane"),
                         Patch(fill=False, edgecolor=GREEN, label="cube (colour detector)"), Patch(fill=False, edgecolor=BLUE, label="box (colour detector)"),
                         Patch(facecolor=BODY, alpha=0.5, label="wearer (MediaPipe Pose)"),
                         Patch(facecolor=BLUE, alpha=0.5, label="left arm"), Patch(facecolor=ORANGE, alpha=0.5, label="right arm")],

@@ -1,4 +1,10 @@
 {
+ "checks": {
+  "cube_iou_yolo_vs_colour": 0.85,
+  "left_arm_start_to_shoulder_px": 60.5,
+  "right_arm_start_to_shoulder_px": 48.3,
+  "arm_pixels_inside_body_mask": 0
+ },
  "body_mask_frac": 0.05992063492063492,
  "yolo_best": {
   "white desk": 0.82,

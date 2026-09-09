@@ -306,20 +306,27 @@ def stage_compose():
                             bbox=dict(facecolor=LEFT if side == "left" else RIGHT, edgecolor="none", pad=1))
 
     def draw_boxes(ax, classes, colour, lw=1.6, best_only=False, min_conf=0.0):
+        k = 0
         for d in det["yolo"]["detections"]:
-            if d["class"] in classes and d["conf"] >= min_conf and (not best_only or det["yolo"]["best"].get(d["class"]) is d or
-                                                                    (best_only and abs(det["yolo"]["best"][d["class"]]["conf"] - d["conf"]) < 1e-9)):
+            if d["class"] in classes and d["conf"] >= min_conf and (not best_only or
+                                                                    abs(det["yolo"]["best"][d["class"]]["conf"] - d["conf"]) < 1e-9):
                 x0, y0, x1, y1 = d["box"]
                 ax.add_patch(Rectangle((x0, y0), x1 - x0, y1 - y0, fill=False, edgecolor=colour, lw=lw))
-                ax.text(x0 + 2, y0 - 3, "%s %.2f" % (d["class"], d["conf"]), color="white", fontsize=6.5, va="bottom",
-                        bbox=dict(facecolor=colour, edgecolor="none", pad=1))
+                # label below the box for every other detection, above otherwise, so neighbours do not collide
+                if k % 2 == 0:
+                    ax.text(x0 + 2, y0 - 3, "%s %.2f" % (d["class"], d["conf"]), color="white", fontsize=6.5, va="bottom",
+                            bbox=dict(facecolor=colour, edgecolor="none", pad=1))
+                else:
+                    ax.text(x0 + 2, y1 + 3, "%s %.2f" % (d["class"], d["conf"]), color="white", fontsize=6.5, va="top",
+                            bbox=dict(facecolor=colour, edgecolor="none", pad=1))
+                k += 1
 
     fig, axes = plt.subplots(2, 3, figsize=(11.5, 8.2))
     titles = ["(a) room camera, cropped to the scene",
-              "(b) wearer: MediaPipe Pose, body mask and 33 landmarks",
-              "(c) robot arms: backdrop-difference segmentation; bends of the centreline = joints",
-              "(d) table and objects: YOLO-World, best box per prompt",
-              "(e) objects: the project's colour detector (cross-check)",
+              "(b) wearer: MediaPipe Pose mask and landmarks",
+              "(c) robot arms: silhouette, centreline and its bends",
+              "(d) table and objects: YOLO-World",
+              "(e) objects: the colour detector, as a cross-check",
               "(f) the scene the safety layer reasons about"]
     for ax, t in zip(axes.flat, titles):
         ax.imshow(im); ax.set_axis_off(); ax.set_title(t, fontsize=8.5, loc="left")
@@ -344,12 +351,24 @@ def stage_compose():
                Patch(facecolor=RIGHT, alpha=0.6, label="right arm, %d links" % det["arms"].get("right", {}).get("n_links", 0)),
                Line2D([], [], marker="o", color="red", markerfacecolor="none", ls="", label="joint (bend > %.0f deg)" % BEND_DEG),
                Patch(fill=False, edgecolor=TABLE, label="table (YOLO-World)"),
-               Patch(fill=False, edgecolor=OBJ, label="objects (YOLO-World + colour)")]
-    ax.legend(handles=handles, loc="lower left", fontsize=6.5, frameon=True, framealpha=0.85)
-    fig.subplots_adjust(left=0.01, right=0.99, top=0.96, bottom=0.01, wspace=0.03, hspace=0.08)
+               Patch(fill=False, edgecolor=OBJ, label="objects (YOLO-World, colour)")]
+    ax.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.01), ncol=2, fontsize=6.5, frameon=False, columnspacing=1.0, handlelength=1.4)
+    fig.subplots_adjust(left=0.01, right=0.99, top=0.96, bottom=0.09, wspace=0.03, hspace=0.10)
     fig.savefig(OUT + ".pdf"); fig.savefig(OUT + "_300.png", dpi=300); fig.savefig(OUT + ".png", dpi=120)
     # a one-line summary for the caption, from the record
-    summ = {"body_mask_frac": float(body.mean()), "yolo_best": {k: round(v["conf"], 2) for k, v in best.items()},
+    # checks: the two object detectors agree; each arm starts at a shoulder; arms do not overlap the body
+    def iou(a, b):
+        ix0, iy0, ix1, iy1 = max(a[0], b[0]), max(a[1], b[1]), min(a[2], b[2]), min(a[3], b[3])
+        inter = max(0, ix1 - ix0) * max(0, iy1 - iy0)
+        return inter / ((a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter + 1e-9)
+    checks = {}
+    if "green cube" in best and det["colour_blobs"]:
+        checks["cube_iou_yolo_vs_colour"] = round(iou(best["green cube"]["box"], det["colour_blobs"][0]["box"]), 2)
+    sh = {"left": pose[12][:2] if pose[12][0] < pose[11][0] else pose[11][:2], "right": pose[11][:2] if pose[12][0] < pose[11][0] else pose[12][:2]}
+    for side, a in det["arms"].items():
+        checks["%s_arm_start_to_shoulder_px" % side] = round(float(np.hypot(a["start"][0] - sh[side][0], a["start"][1] - sh[side][1])), 1)
+    checks["arm_pixels_inside_body_mask"] = int(((arm_mask > 0) & body).sum())
+    summ = {"checks": checks, "body_mask_frac": float(body.mean()), "yolo_best": {k: round(v["conf"], 2) for k, v in best.items()},
             "arms": {s: {"links": a["n_links"], "length_px": round(a["length_px"]), "bends_deg": [round(b) for b in a["bend_deg"]]} for s, a in det["arms"].items()},
             "colour_blobs": det["colour_blobs"]}
     json.dump(summ, open(os.path.join(WORK, "summary.json"), "w"), indent=1)

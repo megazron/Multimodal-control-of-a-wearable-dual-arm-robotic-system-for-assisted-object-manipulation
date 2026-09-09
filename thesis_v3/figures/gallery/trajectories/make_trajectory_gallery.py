@@ -258,7 +258,7 @@ def plot(data):
         if not recs:
             continue
         nr, nc = grid_shape(len(recs))
-        fig = plt.figure(figsize=(2.6 * nc + 0.4, 2.5 * nr + 0.8))
+        fig = plt.figure(figsize=(2.6 * nc + 0.4, 2.0 * nr + 0.8))
         ax0 = None
         for k, rec in enumerate(recs):
             ax = fig.add_subplot(nr, nc, k + 1, projection="3d")

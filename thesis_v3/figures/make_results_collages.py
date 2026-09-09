@@ -23,7 +23,7 @@ BLUE, RED, PURPLE, GREEN, AMBER, GREY = "#2c6fbb", "#c1392b", "#8e44ad", "#3f914
 
 
 def panel_letter(ax, s):
-    ax.text(-0.02, 1.06, s, transform=ax.transAxes, fontsize=9, fontweight="bold", va="bottom", ha="right")
+    ax.text(0.0, 1.04, s, transform=ax.transAxes, fontsize=9, fontweight="bold", va="bottom", ha="left")
 
 
 # --------------------------------------------------------------------------
@@ -36,14 +36,14 @@ def tlx():
     SUB = ["mental", "physical", "temporal", "performance", "effort", "frustration"]
     COL = {"VR": BLUE, "MM": PURPLE, "SA": RED}
     PARTS = sorted({r["participant"] for r in rows})
-    OUTC = {"Success_picked_and_placed": ("picked and placed", GREEN), "Success_reached": ("reached", GREEN),
-            "Partial_picked_not_placed": ("picked, not placed", AMBER), "Fail_no_pick_reach_only": ("reached only", RED)}
+    OUTC = {"Success_picked_and_placed": ("placed", GREEN), "Success_reached": ("reached", GREEN),
+            "Partial_picked_not_placed": ("picked\nonly", AMBER), "Fail_no_pick_reach_only": ("reach\nonly", RED)}
     sel = lambda c=None, t=None: [r for r in rows if (c is None or r["condition_code"] == c) and (t is None or r["task_code"] == t)]
-    fig = plt.figure(figsize=(W, 6.9))
-    gs = fig.add_gridspec(3, 2, height_ratios=[1.0, 1.0, 0.95], hspace=0.55, wspace=0.28)
+    fig = plt.figure(figsize=(W, 7.4))
+    gs = fig.add_gridspec(3, 5, height_ratios=[1.0, 1.0, 0.95], hspace=0.6, wspace=0.9)
     # (a) RTLX per condition, each task
     for k, (tc, tl) in enumerate(TASK):
-        ax = fig.add_subplot(gs[0, k])
+        ax = fig.add_subplot(gs[0, 0:3] if k == 0 else gs[0, 3:5])
         for i, (cc, cl) in enumerate(COND):
             v = [float(r["rtlx"]) for r in sel(cc, tc)]
             ax.bar(i, np.mean(v), 0.6, color=COL[cc], alpha=0.35)
@@ -51,7 +51,7 @@ def tlx():
             xs = np.linspace(-0.16, 0.16, len(v))
             ax.scatter(i + xs, v, s=16, color=COL[cc], zorder=3)
             for r, x in zip(sel(cc, tc), xs):
-                ax.text(i + x + 0.04, float(r["rtlx"]), r["participant"], fontsize=6, ha="left", va="center", color=GREY)
+                ax.text(i + x + 0.04, float(r["rtlx"]), r["participant"], fontsize=6.5, ha="left", va="center", color=GREY)
         ax.set_xticks(range(3)); ax.set_xticklabels([c[1] for c in COND]); ax.set_ylim(0, 100); ax.set_title(tl)
         if k == 0:
             ax.set_ylabel("raw NASA-TLX workload (0-100)"); panel_letter(ax, "(a)")
@@ -65,24 +65,24 @@ def tlx():
     ax.set_xticks(x); ax.set_xticklabels(SUB); ax.set_ylabel("rating (0-100)"); ax.set_ylim(0, 100)
     ax.legend(frameon=False, ncol=3, loc="upper right"); panel_letter(ax, "(b)")
     # (c) outcomes
-    ax = fig.add_subplot(gs[2, 0])
+    ax = fig.add_subplot(gs[2, 0:3])
     cols = [(tc, cc) for tc, _ in TASK for cc, _ in COND]
     for j, (tc, cc) in enumerate(cols):
         for i, p in enumerate(PARTS):
             r = [r for r in rows if r["participant"] == p and r["task_code"] == tc and r["condition_code"] == cc][0]
             lab, col = OUTC[r["task_outcome"]]
             ax.add_patch(plt.Rectangle((j, i), 1, 1, facecolor=col, edgecolor="white", lw=1.5))
-            ax.text(j + 0.5, i + 0.5, lab.replace(", ", ",\n"), ha="center", va="center", fontsize=5.5, color="white")
+            ax.text(j + 0.5, i + 0.5, lab, ha="center", va="center", fontsize=7, color="white")
     ax.set_xlim(0, len(cols)); ax.set_ylim(len(PARTS), 0)
     ax.set_xticks(np.arange(len(cols)) + 0.5)
-    ax.set_xticklabels(["%s\n%s" % ("pick+place" if tc == "PP" else "reach", {"VR": "VR", "MM": "mannequin", "SA": "shared"}[cc]) for tc, cc in cols], fontsize=6)
+    ax.set_xticklabels(["%s\n%s" % ("pick+place" if tc == "PP" else "reach", {"VR": "VR", "MM": "mannequin", "SA": "shared"}[cc]) for tc, cc in cols], fontsize=6.5)
     exp = {p: [r for r in rows if r["participant"] == p][0] for p in PARTS}
     ax.set_yticks(np.arange(len(PARTS)) + 0.5)
-    ax.set_yticklabels(["%s: VR %s, robot %s" % (p, exp[p]["vr_experience"].lower()[:5], exp[p]["robot_experience"].lower()[:5]) for p in PARTS], fontsize=6.5)
+    ax.set_yticklabels(["%s (VR %s, robot %s)" % (p, exp[p]["vr_experience"].lower(), exp[p]["robot_experience"].lower()) for p in PARTS], fontsize=7)
     for s in ax.spines.values(): s.set_visible(False)
     ax.tick_params(length=0); panel_letter(ax, "(c)")
     # (d) workload against experience
-    ax = fig.add_subplot(gs[2, 1])
+    ax = fig.add_subplot(gs[2, 3:5])
     lv = {1: "novice", 2: "intermediate", 3: "experienced"}
     for cc, cl in COND:
         xs, ys = [], []

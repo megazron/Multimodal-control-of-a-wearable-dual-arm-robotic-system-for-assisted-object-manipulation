@@ -27,7 +27,7 @@ DATA = os.path.join(HERE, "gallery", "trajectories", "trajectories.json")
 OUT = os.path.join(HERE, "pilot", "trajectory_timeseries.pdf")
 
 BLUE, RED, GREEN = "#2c6fbb", "#c1392b", "#3f9142"
-plt.rcParams.update({"font.size": 10.0, "axes.titlesize": 11.2,
+plt.rcParams.update({"font.size": 16.9, "axes.titlesize": 19.0,
                      "axes.spines.top": False, "axes.spines.right": False})
 
 PICK = {"VR": ("P5", "Pick and place", "Direct"),

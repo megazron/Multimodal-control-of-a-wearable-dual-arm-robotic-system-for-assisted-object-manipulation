@@ -56,10 +56,10 @@ def tile(img, title, sub=None):
     if img.ndim == 2:
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     t = cv2.resize(img, TILE, interpolation=cv2.INTER_AREA)
-    cv2.rectangle(t, (0, 0), (TILE[0], 24 if sub is None else 40), (30, 30, 30), -1)
-    cv2.putText(t, title, (6, 17), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+    cv2.rectangle(t, (0, 0), (TILE[0], 30 if sub is None else 52), (30, 30, 30), -1)
+    cv2.putText(t, title, (6, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.66, (255, 255, 255), 2, cv2.LINE_AA)
     if sub:
-        cv2.putText(t, sub, (6, 34), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (200, 200, 200), 1, cv2.LINE_AA)
+        cv2.putText(t, sub, (6, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.52, (210, 210, 210), 1, cv2.LINE_AA)
     return t
 
 
@@ -181,13 +181,13 @@ def wrist_collage(cam="left_gripper"):
         tile(colourise_labels(lab), "07 connected components (8-conn)", "%d components over 40 px" % len(big)),
         tile(box, "08 box threshold (HSV) + open/close"),
         tile(rects, "09 minAreaRect on each object"),
-        tile(depth_img, "10 depth (Kinova module, 480x270)", "%.0f%% of pixels return; band %.2f-%.2f m" % (100 * (depth > 0).mean(), lo, hi)),
-        tile(plane_img, "11 RANSAC table plane, 400 draws", "green: within 6 mm, %.1f%% (RMS %.1f mm)" % (100 * inl.mean(), 1000 * np.sqrt(np.mean(hgt[inl] ** 2)))),
+        tile(depth_img, "10 depth (Kinova module, 480x270)", "%.0f%% return; band %.2f-%.2f m" % (100 * (depth > 0).mean(), lo, hi)),
+        tile(plane_img, "11 RANSAC table plane, 400 draws", "within 6 mm: %.1f%%, RMS %.1f mm" % (100 * inl.mean(), 1000 * np.sqrt(np.mean(hgt[inl] ** 2)))),
         tile(hm_img, "12 height above the plane (mm)", "%.1f%% of points > %.0f mm" % (100 * above.mean(), r20["height threshold"])),
-        tile(on, "13 pixels more than 5 mm above the plane", "%d pieces over 200 px (pipeline gate: %d pieces)" % (len(pieces), int(r22["pieces standing on the surface"]))),
-        tile(final, "14 result: objects and grasp check", "cube %.0f mm fits the %.0f mm gripper; box %.0f mm does not" % (cube_h, GRIPPER_MM, float(box_row["length mm"]))),
+        tile(on, "13 pixels more than 5 mm above the plane", "%d pieces > 200 px (pipeline gate: %d)" % (len(pieces), int(r22["pieces standing on the surface"]))),
+        tile(final, "14 result: objects and grasp check", "cube %.0f mm fits %.0f mm gripper; box %.0f mm not" % (cube_h, GRIPPER_MM, float(box_row["length mm"]))),
     ]
-    img = grid(tiles, 4)
+    img = grid(tiles, 3)
     cv2.imwrite(os.path.join(OUT, "cv_collage_wrist.png"), img)
     return img
 
@@ -255,17 +255,17 @@ def room_collage():
         tile(bgr, "01 room camera, cropped to the scene", "%dx%d of 1280x720" % (W, H)),
         tile(lm, "02 MediaPipe Pose: 33 landmarks", "shoulders %.0f px apart" % abs(pose[11][0] - pose[12][0])),
         tile(mask_img, "03 MediaPipe segmentation mask", "%.1f%% of the crop" % (100 * body.mean())),
-        tile(yolo_img, "04 YOLO-World, best box per prompt", "desk %.2f, box %.2f; arms not found" % (det["yolo"]["best"]["white desk"]["conf"], det["yolo"]["best"]["cardboard box"]["conf"])),
+        tile(yolo_img, "04 YOLO-World, best box per prompt", "desk %.2f, box %.2f, arms none" % (det["yolo"]["best"]["white desk"]["conf"], det["yolo"]["best"]["cardboard box"]["conf"])),
         tile(grey, "05 greyscale"),
         tile(med, "06 local backdrop: median 71 px"),
         tile(cv2.convertScaleAbs(diff, alpha=4), "07 |grey - backdrop| (x4 for display)"),
-        tile(thr, "08 threshold > 12, corridor beside torso", "y %d-%d, torso x %d-%d excluded" % (cy0, cy1, tx0, tx1)),
+        tile(thr, "08 threshold > 12, corridor beside torso", "rows %d-%d; torso x %d-%d out" % (cy0, cy1, tx0, tx1)),
         tile(morph, "09 open 3x3, close 21x21"),
         tile(comp_img, "10 two largest components = arms", "%d px inside body mask" % summ["arm_pixels_inside_body_mask"]),
-        tile(skel, "11 Zhang-Suen thinning", "centreline from shoulder end to farthest point"),
-        tile(final, "12 result: wearer, arms, table, objects", "bends > 25 deg = joints; arm starts %.0f/%.0f px from shoulders" % (summ["left_arm_start_to_shoulder_px"], summ["right_arm_start_to_shoulder_px"])),
+        tile(skel, "11 Zhang-Suen thinning", "centreline, shoulder end to far end"),
+        tile(final, "12 result: wearer, arms, table, objects", "bends >25 deg; starts %.0f/%.0f px from shoulders" % (summ["left_arm_start_to_shoulder_px"], summ["right_arm_start_to_shoulder_px"])),
     ]
-    img = grid(tiles, 4)
+    img = grid(tiles, 3)
     cv2.imwrite(os.path.join(OUT, "cv_collage_room.png"), img)
     return img
 

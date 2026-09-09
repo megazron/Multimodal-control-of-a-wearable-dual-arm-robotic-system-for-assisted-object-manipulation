@@ -44,7 +44,7 @@ def surface(ax, x0, x1, contacted):
     for lx in (x0 + 0.3, x1 - 0.3):
         ax.plot([lx, lx], [3.55, 1.65], color="0.35", lw=1.6, zorder=1)
     if contacted:
-        ax.text(x1 - 0.35, 3.15, "work surface", ha="right", va="top", fontsize=8)
+        ax.text(x1 - 0.7, 3.15, "work surface", ha="right", va="top", fontsize=8)
     else:
         ax.text((x0 + x1) / 2, 3.15, "work surface\n(not contacted)", ha="center", va="top", fontsize=8)
 

@@ -127,7 +127,7 @@ Sanity check run first: `vr_*_grip` equals `vr_*_engaged` in 99.84% of all sampl
 
 - **Data:** vr_study_sessions.json, the 7 participant×task pairs with both conditions
 - **Takeaway:** The robot's hand travels further with assistance in 6 of 7 pairs, but the operator's own hand does not — so the extra travel is the assistance layer's, not the operator's.
-- **Numbers:** robot path up in 5/7; operator's hand path up in 3/7
+- **Numbers:** robot path up in 5/7; operator's hand path up in 5/7
 - **Suggested use:** MAIN
 
 ## `12_robot_vs_hand_travel_c.pdf` — How much the robot moved for each metre the operator's hand moved

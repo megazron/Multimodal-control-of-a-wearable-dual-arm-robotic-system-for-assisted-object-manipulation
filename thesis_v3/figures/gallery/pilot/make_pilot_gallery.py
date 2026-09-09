@@ -409,7 +409,7 @@ save(fig, "08_sim_real_error", "Tracking error per joint, and does it grow with 
 good = next(s for s in MA if s["participant"] == "M2" and s["condition"] == "Direct" and s["task"] == "Pick and place")
 bad = next(s for s in MA if s["participant"] == "M1" and s["task"] == "Pick and place")
 fig, axes = plt.subplots(2, 1, figsize=(7.2, 4.2), sharex=False)
-for ax, s, nm in zip(axes, (good, bad), ("M2 (tracks within 2°)", "M1 (tracks 16–21° off)")):
+for ax, s, nm in zip(axes, (good, bad), ("a trial tracking within 2°", "a trial tracking 16–21° off")):
     P = s["pots"][s["active_hand"]]
     for i in range(7):
         y = P[:, i];

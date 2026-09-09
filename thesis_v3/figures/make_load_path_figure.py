@@ -43,7 +43,10 @@ def surface(ax, x0, x1, contacted):
     ax.add_patch(Rectangle((x0, 3.55), x1 - x0, 0.32, fc="0.85", ec="0.35", lw=0.8, zorder=2))
     for lx in (x0 + 0.3, x1 - 0.3):
         ax.plot([lx, lx], [3.55, 1.65], color="0.35", lw=1.6, zorder=1)
-    ax.text(x1 - 0.45, 3.15, "work surface" + ("" if contacted else ", not contacted"), ha="right", va="top", fontsize=8)
+    if contacted:
+        ax.text(x1 - 0.35, 3.15, "work surface", ha="right", va="top", fontsize=8)
+    else:
+        ax.text((x0 + x1) / 2, 3.15, "work surface\n(not contacted)", ha="center", va="top", fontsize=8)
 
 
 def floor(ax):
@@ -89,7 +92,7 @@ def main():
     pts = [(3.15, 6.9), (4.6, 8.3), (6.4, 7.4), (7.4, 6.2)]
     limb(ax, pts)
     ax.add_patch(Rectangle((7.35, 5.65), 0.5, 0.5, fc="#3f9142", ec="0.25", lw=0.6, zorder=6))
-    ax.text(5.6, 9.0, "two 8.2 kg arms, free in space", ha="center", va="bottom", fontsize=8)
+    ax.text(6.7, 9.35, "two 8.2 kg arms, free in space", ha="center", va="bottom", fontsize=8)
     # weight of the arm and the reaction path back into the wearer
     ax.add_patch(FancyArrowPatch((4.7, 7.75), (4.7, 6.35), arrowstyle="-|>", mutation_scale=11, lw=1.6, color=RED, zorder=8))
     ax.text(4.7, 6.1, "weight and\ncontact forces", color=RED, fontsize=7.5, ha="center", va="top", style="italic")

@@ -1,0 +1,68 @@
+{
+ "left_gripper median hue": {
+  "recomputed": 133.0,
+  "recorded": 133.0,
+  "tolerance": 1.0,
+  "ok": true
+ },
+ "left_gripper median saturation": {
+  "recomputed": 16.0,
+  "recorded": 16.0,
+  "tolerance": 1.0,
+  "ok": true
+ },
+ "left_gripper median value": {
+  "recomputed": 163.0,
+  "recorded": 163.0,
+  "tolerance": 1.0,
+  "ok": true
+ },
+ "left_gripper green pixels selected": {
+  "recomputed": 31333.0,
+  "recorded": 31333.0,
+  "tolerance": 0,
+  "ok": true
+ },
+ "left_gripper green pixels after opening": {
+  "recomputed": 30550.0,
+  "recorded": 30550.0,
+  "tolerance": 0,
+  "ok": true
+ },
+ "left_gripper components over 40 px": {
+  "recomputed": 2.0,
+  "recorded": 2.0,
+  "tolerance": 0,
+  "ok": true
+ },
+ "left_gripper plane inlier fraction (%)": {
+  "recomputed": 73.95097556078774,
+  "recorded": 73.95,
+  "tolerance": 0.5,
+  "ok": true
+ },
+ "left_gripper plane residual RMS (mm)": {
+  "recomputed": 1.427655609578486,
+  "recorded": 1.428,
+  "tolerance": 0.1,
+  "ok": true
+ },
+ "left_gripper points above the plane (%)": {
+  "recomputed": 17.463359433462923,
+  "recorded": 17.463,
+  "tolerance": 0.5,
+  "ok": true
+ },
+ "left_gripper pieces on the surface": {
+  "recomputed": 2,
+  "recorded": 4,
+  "note": "area gate differs; informational"
+ },
+ "left_gripper cube 3-D box (mm)": {
+  "length": 99.1,
+  "width": 25.9,
+  "height": 59.7,
+  "range_m": 0.5389,
+  "note": "pipeline's own measurement; graspable flag yes"
+ }
+}

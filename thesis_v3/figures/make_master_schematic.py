@@ -77,22 +77,29 @@ def main():
             ys = [getattr(T, nm).y for nm in names]
             for k, nm in enumerate(names):
                 pin = getattr(T, nm)
-                if side == "left":      # .up() puts the wiper arrow on the right, toward the Teensy
-                    P = elm.Potentiometer().up().at((xpot, pin.y - 0.3)).length(0.6)
-                    top_pt, bot_pt = P.end, P.start
-                else:                   # .down() puts it on the left
-                    P = elm.Potentiometer().down().at((xpot, pin.y + 0.3)).length(0.6)
-                    top_pt, bot_pt = P.start, P.end
-                d += P
-                d += elm.Line().at(P.tap).tox(pin.x)
-                d += elm.Line().at(top_pt).tox(rail_v)
+                # the track: a plain resistor between the rails, shorter than the row pitch so
+                # neighbouring pots are visibly separate; the wiper: an arrow into the track
+                # from the Teensy side, its wire running straight to the pin
+                # the track drawn by hand as a small box, so its size is the row's and not the
+                # library's fixed resistor body (which overran the row pitch)
+                hb, wb = 0.17, 0.08
+                for (xa, ya, xb, yb) in ((xpot - wb, pin.y - hb, xpot + wb, pin.y - hb), (xpot + wb, pin.y - hb, xpot + wb, pin.y + hb),
+                                         (xpot + wb, pin.y + hb, xpot - wb, pin.y + hb), (xpot - wb, pin.y + hb, xpot - wb, pin.y - hb)):
+                    d += elm.Line().at((xa, ya)).to((xb, yb))
+                top_pt = type("P", (), {})(); bot_pt = type("P", (), {})()
+                top_pt.x, top_pt.y = xpot, pin.y + hb
+                bot_pt.x, bot_pt.y = xpot, pin.y - hb
+                xw = xpot - sgn * 0.55            # where the wiper wire meets the arrow
+                d += elm.Arrow(headwidth=0.16, headlength=0.14).at((xw, pin.y)).to((xpot - sgn * wb, pin.y))
+                d += elm.Line().at((xw, pin.y)).tox(pin.x)
+                d += elm.Line().at((top_pt.x, top_pt.y)).tox(rail_v)
                 d += elm.Dot(radius=0.05).at((rail_v, top_pt.y))
-                d += elm.Line().at(bot_pt).tox(rail_g)
+                d += elm.Line().at((bot_pt.x, bot_pt.y)).tox(rail_g)
                 d += elm.Dot(radius=0.05).at((rail_g, bot_pt.y))
-                d += elm.Label().at((xpot - sgn * 0.5, pin.y - 0.06)).label(
+                d += elm.Label().at((xpot - sgn * 0.62, pin.y + 0.07)).label(
                     "%s-%s" % (("L" if side == "left" else "R"), JOINT[k]), fontsize=F_SMALL, ofst=0,
-                    halign="left" if side == "left" else "right", valign="top", color=BLUE)
-            top, bot = max(ys) + 0.3, min(ys) - 0.3
+                    halign="left" if side == "left" else "right", valign="bottom", color=BLUE)
+            top, bot = max(ys) + 0.17, min(ys) - 0.17
             d += elm.Line().at((rail_v, top)).toy(bot).color(RED)
             d += elm.Vdd().theta(0).at((rail_v, top)).label("3V3", fontsize=F_SMALL, color=RED)
             d += elm.Line().at((rail_g, top)).toy(bot).color(GREY)
@@ -116,11 +123,11 @@ def main():
             sgn = -1 if side == "left" else 1
             xsup = xnode + sgn * 1.6
             d += elm.Vdd().theta(0).at((xsup, pin.y)).label("3V3", fontsize=F_SMALL, color=RED)
-            F = elm.Resistor().at((xsup, pin.y)).tox(xnode).label("FSR", loc="top", fontsize=F_SMALL)
+            F = elm.ResistorIEC().at((xsup, pin.y)).tox(xnode).label("FSR", loc="top", fontsize=F_SMALL)
             d += F
             d += elm.Dot(radius=0.05).at((xnode, pin.y))
             d += elm.Line().at((xnode, pin.y)).tox(pin.x)
-            R = elm.Resistor().at((xnode, pin.y)).down().length(0.9).label("R_pd", loc="bottom", fontsize=F_SMALL)
+            R = elm.ResistorIEC().at((xnode, pin.y)).down().length(0.9).label("R_pd", loc="bottom", fontsize=F_SMALL)
             d += R
             d += elm.Ground().theta(0).at(R.end)
             d += elm.Label().at((xsup - sgn * 0.3, pin.y - 0.4)).label(label, fontsize=F_SMALL, valign="top", color=GREEN, ofst=0,

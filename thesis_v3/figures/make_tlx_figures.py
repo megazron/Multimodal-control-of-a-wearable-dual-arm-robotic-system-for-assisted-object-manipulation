@@ -107,7 +107,7 @@ for cc, cl in COND:
     lines.append("    \\addlinespace")
 tex = r"""\begin{table}[htbp]
   \centering
-  \small
+  \footnotesize
   \caption[NASA-TLX workload by condition and task]{Raw NASA-TLX workload
   (RTLX, the unweighted mean of the six subscales, 0--100) reported by the
   five operators after each trial: mean and standard deviation across
@@ -115,7 +115,7 @@ tex = r"""\begin{table}[htbp]
   performance subscale is scored so that lower means better perceived
   performance.}
   \label{tab:tlx}
-  \begin{tabular}{p{3.1cm}p{1.9cm}rrrrrrrr}
+  \begin{tabular}{p{3.9cm}p{2.5cm}rrrrrrrr}
     \toprule
     Condition & Task & RTLX & s.d. & Mental & Physical & Temporal & Perform. & Effort & Frustr. \\
     \midrule

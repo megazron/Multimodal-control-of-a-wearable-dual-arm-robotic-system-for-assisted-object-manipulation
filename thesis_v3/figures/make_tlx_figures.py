@@ -26,7 +26,7 @@ plt.rcParams.update({"font.size": 8, "axes.titlesize": 8.5, "axes.labelsize": 8,
                      "ytick.labelsize": 7.5, "legend.fontsize": 7, "figure.dpi": 150, "savefig.bbox": "tight",
                      "axes.spines.top": False, "axes.spines.right": False})
 rows = list(csv.DictReader(open(D)))
-COND = [("VR", "VR controllers,\ndirect"), ("MM", "mannequin master,\ndirect"), ("SA", "VR controllers,\nshared autonomy")]
+COND = [("VR", "VR direct"), ("MM", "mannequin\ndirect"), ("SA", "VR + shared\nautonomy")]
 TASK = [("PP", "pick and place"), ("TR", "target reaching")]
 SUB = [("mental", "mental"), ("physical", "physical"), ("temporal", "temporal"), ("performance", "performance"),
        ("effort", "effort"), ("frustration", "frustration")]
@@ -47,7 +47,7 @@ for ax, (tc, tl) in zip(axes, TASK):
         ax.errorbar(i, np.mean(v), yerr=np.std(v, ddof=1), color=COL[cc], capsize=3, lw=1)
         ax.scatter(np.full(len(v), i) + np.linspace(-0.15, 0.15, len(v)), v, s=14, color=COL[cc], zorder=3)
         for r, x in zip(sel(cc, tc), np.linspace(-0.15, 0.15, len(v))):
-            ax.text(i + x, float(r["rtlx"]) + 1.5, r["participant"], fontsize=5, ha="center", color="0.3")
+            ax.text(i + x + 0.035, float(r["rtlx"]), r["participant"], fontsize=5, ha="left", va="center", color="0.3")
     ax.set_xticks(range(3)); ax.set_xticklabels([c[1] for c in COND]); ax.set_title(tl); ax.set_ylim(0, 100)
 axes[0].set_ylabel("raw NASA-TLX workload (0-100)")
 fig.savefig(os.path.join(OUT, "tlx_rtlx_by_condition.pdf")); plt.close(fig)
@@ -64,7 +64,7 @@ ax.legend(frameon=False, ncol=3, loc="upper center", bbox_to_anchor=(0.5, 1.18))
 fig.savefig(os.path.join(OUT, "tlx_subscales.pdf")); plt.close(fig)
 
 # 3. outcomes: operator x (task, condition)
-fig, ax = plt.subplots(figsize=(6.4, 2.2))
+fig, ax = plt.subplots(figsize=(6.4, 2.6))
 cols = [(tc, cc) for tc, _ in TASK for cc, _ in COND]
 for j, (tc, cc) in enumerate(cols):
     for i, p in enumerate(PARTS):
@@ -73,7 +73,7 @@ for j, (tc, cc) in enumerate(cols):
         ax.add_patch(plt.Rectangle((j, i), 1, 1, facecolor=col, edgecolor="white", lw=2))
         ax.text(j + 0.5, i + 0.5, lab, ha="center", va="center", fontsize=6, color="white")
 ax.set_xlim(0, len(cols)); ax.set_ylim(len(PARTS), 0)
-ax.set_xticks(np.arange(len(cols)) + 0.5); ax.set_xticklabels(["%s\n%s" % (dict(TASK)[tc], dict(COND)[cc].replace("\n", " ")) for tc, cc in cols], fontsize=6.5)
+ax.set_xticks(np.arange(len(cols)) + 0.5); ax.set_xticklabels(["%s\n%s" % (dict(TASK)[tc], dict(COND)[cc].replace("\n", " ")) for tc, cc in cols], fontsize=6)
 ax.set_yticks(np.arange(len(PARTS)) + 0.5); ax.set_yticklabels(["%s (%s, robot %s)" % (p, [r for r in rows if r["participant"] == p][0]["vr_experience"].lower(), [r for r in rows if r["participant"] == p][0]["robot_experience"].lower()) for p in PARTS])
 for s in ax.spines.values(): s.set_visible(False)
 ax.tick_params(length=0)

@@ -8,6 +8,10 @@ five operators, two tasks, two conditions. Grey lines join the same
 operator across the two conditions, because the comparison is within
 subject.
 
+The box is the interquartile range with the median, and the whiskers span
+the full range, because at n = 5 a 1.5 IQR fence calls ordinary operators
+outliers. Checked by verify_overall_results_figure.py.
+
 Data: thesis_v3/figures/pilot/data/study_summary.json (duration, robot
 hand path, re-grips) and tlx_trials_long.csv (raw NASA-TLX).
 
@@ -63,14 +67,17 @@ def per_operator():
 
 
 PANELS = [("time",   "(a) time to finish", "seconds per trial",     "%.0f",  "s"),
-          ("regrip", "(b) re-grips",       "clutch engagements",    "%.0f",  ""),
-          ("rtlx",   "(c) reported workload", "NASA-TLX (RTLX, 0-100)", "%.0f", ""),
+          ("regrip", "(b) re-grips",       "clutch engagements",    "%.1f",  ""),
+          ("rtlx",   "(c) reported workload", "NASA-TLX (RTLX, 0-100)", "%.1f", ""),
           ("path",   "(d) the robot's hand path", "metres per trial", "%.2f", "m")]
 
 
 def panel(ax, direct, shared, title, ylab, fmt, unit):
     pairs = [direct, shared]
-    bp = ax.boxplot(pairs, positions=[0, 1], widths=0.46, showfliers=False,
+    # whis=(0, 100): the whiskers span the full range. With five values per box
+    # a 1.5 IQR fence calls ordinary operators outliers -- in the robot-path
+    # panel it would exclude two of the five -- so every point sits inside them.
+    bp = ax.boxplot(pairs, positions=[0, 1], widths=0.46, showfliers=False, whis=(0, 100),
                     medianprops=dict(color=INK, lw=1.6, solid_capstyle="butt"),
                     boxprops=dict(lw=1.0), whiskerprops=dict(lw=1.0, color="#8a8a8a"),
                     capprops=dict(lw=1.0, color="#8a8a8a"), patch_artist=True)

@@ -66,7 +66,7 @@ primitives, no exclusions -- evaluated on FK for the candidate posture.
 /check_state_validity is still asked, for self-collision, but it is not the
 authority on the wearer.
 
-WHAT +85 DEGREES IS NOT. CLAUDE.md records the home wrist as pointing up by
+WHAT +85 DEGREES IS NOT. docs/ENGINEERING_LOG.md records the home wrist as pointing up by
 +85 (left) and +79 (right), and this script measures the home TOOL AXIS at
 about +31 (left) and +22 (right). Those are not in conflict and the difference
 is not an error: they are DIFFERENT QUANTITIES, exactly as
@@ -195,7 +195,7 @@ HAND_LOW_W = 4.0
 # they can.
 #
 # AND THE REASON IT COULD NOT DO BETTER IS THE RIG, NOT THE SEARCH. The two
-# arms are not mirror images: CLAUDE.md records |v_R - M v_L| = 1.3837 m,
+# arms are not mirror images: docs/ENGINEERING_LOG.md records |v_R - M v_L| = 1.3837 m,
 # proven independent of the mount. A shared hand target does not give a shared
 # arm configuration, and no weight on this term makes one appear -- it only
 # trades away the terms that CAN be satisfied.
@@ -427,7 +427,7 @@ class Kin(Node):
         # resolved by falling back to the CURRENT state. Every candidate then
         # measured as the home pose: identical elevation, identical hand
         # position, for every target. That is the "FK evaluating the current
-        # state, ignoring the solution given" row of CLAUDE.md's failure
+        # state, ignoring the solution given" row of docs/ENGINEERING_LOG.md's failure
         # table, reached by a different route.
         last = getattr(self._solver, "_last_solution_names", None)
         names = last or self._solver.names(arm)
@@ -691,7 +691,7 @@ def main():
                     if cands:
                         # KEEP THE TOP FEW, NOT JUST THE BEST. The elbow is
                         # what the null space controls and the two arms are
-                        # NOT mirror images -- CLAUDE.md records
+                        # NOT mirror images -- docs/ENGINEERING_LOG.md records
                         # |v_R - M v_L| = 1.3837 m -- so the lowest-cost draw
                         # for each arm INDEPENDENTLY can put one elbow up and
                         # outboard while the other tucks. Measured on the

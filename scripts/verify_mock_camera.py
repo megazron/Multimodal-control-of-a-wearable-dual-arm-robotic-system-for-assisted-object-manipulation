@@ -77,7 +77,7 @@ class Sink(Node):
 
 
 def main():
-    # RIGHT, not left: CLAUDE.md records that the LEFT wrist camera is parked
+    # RIGHT, not left: docs/ENGINEERING_LOG.md records that the LEFT wrist camera is parked
     # looking UP and back at home (elevation +38.3 deg) and "sees nothing at
     # table height from home", while the right points down and reaches z=0.80
     # in front of the wearer. Verifying against the left camera measures an

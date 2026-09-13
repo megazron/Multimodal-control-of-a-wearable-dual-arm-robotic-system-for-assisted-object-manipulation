@@ -30,7 +30,7 @@ except Exception:                                              # noqa: BLE001
 # THE WEARER'S SIZE REACHED THIS FILE THROUGH NOTHING, AND THIS IS THE LIVE
 # CHECK.
 #
-# `SRL_WEARER_SIZE` has been a variable since 2026-08-15 and CLAUDE.md
+# `SRL_WEARER_SIZE` has been a variable since 2026-08-15 and docs/ENGINEERING_LOG.md
 # describes it as going "through the SAME one source the posture uses". It
 # reached `mount_guard_node.WEARER`, which is an OFFLINE guard, and it did not
 # reach here -- and this module is what `ik_follower_node`, `real_homing_node`
@@ -42,7 +42,7 @@ except Exception:                                              # noqa: BLE001
 #     clearance.py upper arm   0.300 m long              the mannequin
 #
 # So the arm was stopped at 150 mm from a body 70 mm narrower than the one
-# configured, and every consumer reported the floor as held. That is CLAUDE.md
+# configured, and every consumer reported the floor as held. That is docs/ENGINEERING_LOG.md
 # rule 11's "a posture that reaches one and not the other measures the old
 # wearer under a new name", one level down and on the live path.
 #
@@ -117,7 +117,7 @@ DISTAL_LINKS = ["forearm_link", "spherical_wrist_1_link",
 # hand can be a metre clear while the upper tube is inside somebody's neck,
 # and the check would report the hand's distance and call it clearance.
 #
-# This is the SRDF trap one layer down: CLAUDE.md hard constraint 11 says the
+# This is the SRDF trap one layer down: docs/ENGINEERING_LOG.md hard constraint 11 says the
 # SRDF excludes the 44 proximal pairs a shoulder mount threatens, and the
 # homing check then reproduced the same blind spot in its own link list.
 #

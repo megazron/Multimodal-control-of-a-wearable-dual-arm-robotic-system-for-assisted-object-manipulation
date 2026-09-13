@@ -12,7 +12,7 @@ ABOUT THE HOME LEG
 ------------------
 `config/home_positions_left.txt` is the SIM home (the solved presentation
 pose).  HARD CONSTRAINT 0 says the real arms have never been set to it, and
-CLAUDE.md records that the bridge refuses to enable across that ~1.9 rad gap.
+docs/ENGINEERING_LOG.md records that the bridge refuses to enable across that ~1.9 rad gap.
 From the pickup pose it is a very large reconfiguration -- joint 5 alone moves
 about 135 deg.  So this leg is checked like any other and ABORTS rather than
 forcing: if it cannot be shown safe, the sequence says so and stops instead of
@@ -50,7 +50,7 @@ def ik_relaxed(target, R_pref, q, grip, n_cam_to_world, fk):
     Demanding an exact top-down wrist is what stopped the servo 97 mm short
     with a 23.6 mm IK residual -- and it was not reach: max pad reach measured
     1.278 m against a cube at 1.000 m.  A fixed 6-DOF pose on a 7-DOF arm
-    spends the whole redundancy, which CLAUDE.md sizes at a factor of seven in
+    spends the whole redundancy, which docs/ENGINEERING_LOG.md sizes at a factor of seven in
     usable workspace.  The follower already runs a 15 deg cone, so allowing one
     here costs nothing that was not already accepted.
 

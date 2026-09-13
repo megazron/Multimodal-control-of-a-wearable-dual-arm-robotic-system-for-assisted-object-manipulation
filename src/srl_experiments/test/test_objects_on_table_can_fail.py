@@ -8,7 +8,7 @@ defect and would have rejected the fix.
 
 That was corrected, but "it reports BLOCKED today" is not evidence that it can
 report anything else. A check with one reachable answer is the same as no check,
-and this repo has paid for that shape repeatedly -- CLAUDE.md: a check that
+and this repo has paid for that shape repeatedly -- docs/ENGINEERING_LOG.md: a check that
 cannot fail on a deliberately broken input is not a check.
 
 So this drives the REAL scene three ways through one displacement knob and pins

@@ -593,7 +593,7 @@ def test_ready_requires_poses_TO_ARRIVE_and_not_a_topic_to_exist():
     out by squeezing the grip and watching nothing happen with the window
     still saying ready.
 
-    CLAUDE.md's instrument table calls this exactly: "feature present but does
+    docs/ENGINEERING_LOG.md's instrument table calls this exactly: "feature present but does
     nothing -- checked that a field is STORED, not that a consumer READS it."
     """
     # Topic present, nothing arriving: NOT ready, and not a failure either --

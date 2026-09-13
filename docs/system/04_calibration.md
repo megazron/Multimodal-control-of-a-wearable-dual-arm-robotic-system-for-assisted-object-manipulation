@@ -72,4 +72,4 @@ the choice toward the smaller value.
 - the continuous-reachability sweep
 - E1–E5's `home_xyz` in each `config.yaml`
 
-There is a script for the first three: see the mount section of `CLAUDE.md`.
+There is a script for the first three: see the mount section of `docs/ENGINEERING_LOG.md`.

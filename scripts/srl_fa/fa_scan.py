@@ -181,7 +181,7 @@ def seek_view(arm, want_inc=WANT_INCIDENCE_DEG, want_d=WANT_STANDOFF_M,
         #
         # dq IS WRAPPED.  Joints 3, 5 and 7 are CONTINUOUS: -179.05 deg and
         # +181.02 deg are the same pose, and plain subtraction calls that
-        # 360 deg of motion.  That is CLAUDE.md's own ang_wrap finding, and
+        # 360 deg of motion.  That is docs/ENGINEERING_LOG.md's own ang_wrap finding, and
         # unwrapped it refuses correct solutions at random.
         chosen = None
         for f in (damp, damp * 0.7, damp * 0.45, damp * 0.28, damp * 0.16):

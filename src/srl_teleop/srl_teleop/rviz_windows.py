@@ -15,7 +15,7 @@ The caller then took `sorted(new)[0]`, the LOWEST id, which is the selection
 owner. So the GUI reparented an invisible helper window into the commanded
 panel, the geometry dump measured the container and read 1005..1554 exactly
 as designed, every check passed, and the panel showed nothing while the real
-RViz sat in its own window on top of the GUI. CLAUDE.md recorded embedding as
+RViz sat in its own window on top of the GUI. docs/ENGINEERING_LOG.md recorded embedding as
 working on the strength of it.
 
 That is this repository's own listed failure mode -- "feature present but

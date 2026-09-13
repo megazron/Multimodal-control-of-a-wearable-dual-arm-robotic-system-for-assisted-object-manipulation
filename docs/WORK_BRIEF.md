@@ -3,7 +3,7 @@
 The standing multi-part brief. **This file is the resume point.** A fresh
 session needs only:
 
-> Read CLAUDE.md, NEXT_SESSION.md and docs/WORK_BRIEF.md. Resume from the first
+> Read docs/ENGINEERING_LOG.md, NEXT_SESSION.md and docs/WORK_BRIEF.md. Resume from the first
 > incomplete part.
 
 **Constraint carried from the brief:** context runs out on long briefs — it has

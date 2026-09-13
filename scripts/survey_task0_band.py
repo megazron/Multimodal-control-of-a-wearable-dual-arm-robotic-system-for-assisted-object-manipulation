@@ -82,7 +82,7 @@ def main():
     zs = [round(1.04 + 0.03 * i, 3) for i in range(15)]      # 1.04 .. 1.46
 
     # BOTH ARMS, and the answer is the INTERSECTION at mirrored x.  The two
-    # arms are parked asymmetrically -- CLAUDE.md records the residual as
+    # arms are parked asymmetrically -- docs/ENGINEERING_LOG.md records the residual as
     # 1.3837 m and proves it independent of the mount -- so the right arm's
     # band is NOT the mirror of the left's, and a set derived from the left
     # alone puts a sphere the right arm cannot reach.  Measured: it did

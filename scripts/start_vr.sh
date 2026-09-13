@@ -6,7 +6,7 @@
 #
 # Runs `adb reverse` on the WINDOWS side, because that is where the Quest is
 # plugged in and where adb lives. Under networkingMode=mirrored the forwarded
-# port lands on WSL's own 127.0.0.1 -- MEASURED, see CLAUDE.md -- so the ROS
+# port lands on WSL's own 127.0.0.1 -- MEASURED, see docs/ENGINEERING_LOG.md -- so the ROS
 # bridge binds locally and no relay is needed.
 set -euo pipefail
 set +u; source /opt/ros/jazzy/setup.bash; source "$(dirname "$0")/../install/setup.bash"; set -u

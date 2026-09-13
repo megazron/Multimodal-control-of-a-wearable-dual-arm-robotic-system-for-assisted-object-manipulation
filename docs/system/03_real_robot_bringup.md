@@ -279,7 +279,7 @@ ros2 param set /ik_follower_left motion_enabled true
 ```
 
 - [ ] Move the master slowly. The arm follows in the **matching direction**
-      for up/down and fore/aft. **Lateral is known-wrong** (see CLAUDE.md
+      for up/down and fore/aft. **Lateral is known-wrong** (see docs/ENGINEERING_LOG.md
       AZIMUTH LIMITATION) — do not be surprised by it, and do not use lateral
       motion to judge whether bring-up succeeded.
 - [ ] Watch `min clearance` in `/ik_status_left`. It must stay above the

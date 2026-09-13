@@ -11,7 +11,7 @@ choose is by what each task uniquely measures.
 
 Two consolidations, each already justified by a recorded finding:
 
-  * TASKS 3 AND 4 WERE NEVER TWO MECHANISMS. CLAUDE.md records it plainly:
+  * TASKS 3 AND 4 WERE NEVER TWO MECHANISMS. docs/ENGINEERING_LOG.md records it plainly:
     "Tasks 3 and 4 are the same mechanism -- a coupled object spanning the
     dead band -- run with a rigid and a compliant object." Rigid-versus-
     compliant is the scientific contrast, so it belongs INSIDE one task as a

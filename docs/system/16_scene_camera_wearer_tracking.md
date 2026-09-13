@@ -172,7 +172,7 @@ perception path.
 ## 4. WHAT IT CHANGES PER TASK
 
 Numbers below are the current mannequin-based readings from
-`recordings/baselines/home_change_applied.json` and CLAUDE.md's clearance row.
+`recordings/baselines/home_change_applied.json` and docs/ENGINEERING_LOG.md's clearance row.
 
 | task | today | with a measured body |
 | --- | --- | --- |
@@ -185,7 +185,7 @@ Numbers below are the current mannequin-based readings from
 
 The cross-cutting change is bigger than any row: **posture stops being a
 launch-time environment variable**. `SRL_WEARER_ARMS` has five settings and
-CLAUDE.md already records that two of them (`behind`, `out`) put the wearer's
+docs/ENGINEERING_LOG.md already records that two of them (`behind`, `out`) put the wearer's
 own limbs inside the floor at HOME. Today nothing notices if the wearer simply
 moves their arms mid-run. With tracking, that becomes an observable.
 
@@ -238,7 +238,7 @@ impossible to guarantee from a monocular estimate, so it is not attempted.
 Same rule as the camera panels in the GUI and `camera_relay.ChannelState`: a
 frame past its age limit is not used, not dimmed. A stale body pose is
 indistinguishable from a live pose of a person standing still, and it is the
-"data fresh but never changes" row of CLAUDE.md's instrument table. Past
+"data fresh but never changes" row of docs/ENGINEERING_LOG.md's instrument table. Past
 ~300 ms the tracker contributes nothing and the mannequin binds alone.
 
 ### 6.3 The extrinsic is latched, and a knock freezes it

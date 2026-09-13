@@ -8,7 +8,7 @@ THE PROBLEM, MEASURED. At the home pose neither wrist camera frames the work
 surface. For the right camera the bench projects to pixel (954, 539) and the
 table to (1115, 765) -- both IN FRONT of the camera and both outside a
 640 x 480 image. The left camera is parked looking up and back (elevation
-+38.3 deg; CLAUDE.md: "sees nothing at table height from home").
++38.3 deg; docs/ENGINEERING_LOG.md: "sees nothing at table height from home").
 
 This is the documented parking, not a fault. It matters because on camera day
 an empty image from a correctly-working camera is indistinguishable from a

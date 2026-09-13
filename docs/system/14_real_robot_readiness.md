@@ -2,7 +2,7 @@
 
 **A PAPER EXERCISE, 2026-08-11.** Nothing here was tested against hardware and
 no connection was attempted. Every verdict is read off the code and the
-machine's current state, and where the code and `CLAUDE.md` disagree the code
+machine's current state, and where the code and `docs/ENGINEERING_LOG.md` disagree the code
 wins and the disagreement is named.
 
 Three verdicts, used strictly:
@@ -86,7 +86,7 @@ entirely.
 A gripper fault is caught and logged and **does not take down the arm loop** —
 correct, because the arm is the safety-relevant path.
 
-**Correction to `CLAUDE.md`:** it states that `robotiq_driver` and
+**Correction to `docs/ENGINEERING_LOG.md`:** it states that `robotiq_driver` and
 `robotiq_hardware_tests` are both `COLCON_IGNORE`d. Only
 `robotiq_hardware_tests` is; `robotiq_driver` builds and is installed. The
 `0003` prefix patch therefore is compiled now, contrary to the note that it

@@ -67,7 +67,7 @@ def _find_ws(start):
     d = os.path.abspath(start)
     for _ in range(6):
         if os.path.isdir(os.path.join(d, "src")) and \
-                os.path.isfile(os.path.join(d, "CLAUDE.md")):
+                os.path.isfile(os.path.join(d, "docs/ENGINEERING_LOG.md")):
             return d
         nd = os.path.dirname(d)
         if nd == d:

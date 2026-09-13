@@ -24,7 +24,7 @@ be comparing the autonomy against itself. So the rule is mechanical:
     grep -rnE "^\s*(from|import)\s+srl_(autonomy|perception)" src/srl_teleop/
 
 must return nothing, and `srl_teleop` must still run with the other packages
-physically removed from `install/`. Both are checked in Part 9 of `CLAUDE.md`.
+physically removed from `install/`. Both are checked in Part 9 of `docs/ENGINEERING_LOG.md`.
 
 The one signal that crosses the boundary goes the *right* way:
 `srl_teleop` publishes `/master_pointing_<arm>` and `srl_autonomy` subscribes.

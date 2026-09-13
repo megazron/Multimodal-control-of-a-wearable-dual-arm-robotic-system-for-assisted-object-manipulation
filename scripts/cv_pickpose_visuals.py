@@ -3505,7 +3505,7 @@ def st_distances(fr):
 def st_people(fr):
     """MediaPipe Pose, run in .venv_pose because mediapipe is only there.
 
-    A SEPARATE INTERPRETER ON PURPOSE. CLAUDE.md records that installing a
+    A SEPARATE INTERPRETER ON PURPOSE. docs/ENGINEERING_LOG.md records that installing a
     package into .venv_vision once took real_calibration/check_all.py from
     4/4 to 2/4, so the environments here are left alone and this shells out.
     """

@@ -99,7 +99,7 @@ REACH = os.path.join(ROOT, "recordings/baselines/reachable_cells.json")
 # are small, but because the guessed box sat badly inside a much larger one.
 #
 # THE INBOARD BOUND IS NOT FROM THAT MEASUREMENT AND MUST NOT BE.
-# IK reports x = 0.10 as reachable and IK IS NOT THE WEARER CHECK -- CLAUDE.md
+# IK reports x = 0.10 as reachable and IK IS NOT THE WEARER CHECK -- docs/ENGINEERING_LOG.md
 # hard constraint 11: the SRDF excludes the 44 proximal pairs a shoulder mount
 # actually threatens, so a pose MoveIt calls valid can have the tube inside
 # the person. The innermost columns this project has measured GEOMETRICALLY

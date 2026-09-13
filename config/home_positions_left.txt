@@ -68,7 +68,7 @@
 # `master_calibration.WORKSPACE_ORIENT` -- the 30.7 deg approach direction --
 # is a DIFFERENT quantity, read once as a parameter default, and nothing
 # recomputes it from home. Re-deriving it to match costs T2 its right arm.
-# CLAUDE.md hard constraint 1. `WORKSPACE_CENTRE` DID have to follow, because
+# docs/ENGINEERING_LOG.md hard constraint 1. `WORKSPACE_CENTRE` DID have to follow, because
 # it is documented as `offset = P_HOME`; it now reads the hand above.
 #
 # Solved pose, converted through kortex_convention:

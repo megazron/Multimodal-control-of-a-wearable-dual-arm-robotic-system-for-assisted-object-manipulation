@@ -119,7 +119,7 @@ implementation:
   bench-top bimanual workspace would be;
 * the residual asymmetry `|v_R − M·v_L| = 1.3837 m` is a property of the home
   joint angles and is **provably independent of the mount rotation** (the
-  proof is in `CLAUDE.md`); it is fixed by re-parking an arm in hardware, not
+  proof is in `docs/ENGINEERING_LOG.md`); it is fixed by re-parking an arm in hardware, not
   by software.
 
 A mount sweep over 108 candidates raises the shared count from 3 to 22 of 63

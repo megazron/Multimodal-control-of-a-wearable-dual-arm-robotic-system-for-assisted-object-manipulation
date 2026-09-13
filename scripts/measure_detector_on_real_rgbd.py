@@ -105,7 +105,7 @@ def main():
     model = YOLOWorld("yolov8s-world.pt")
     # SET CLASSES BEFORE THE FIRST GPU PREDICT. ultralytics 8.4 + torch 2.13
     # raises "Expected all tensors to be on the same device" if set_classes()
-    # is called after the model has moved to CUDA. Documented in CLAUDE.md.
+    # is called after the model has moved to CUDA. Documented in docs/ENGINEERING_LOG.md.
     names = [PROMPT[k] for k in sorted(PROMPT)]
     model.set_classes(names)
 

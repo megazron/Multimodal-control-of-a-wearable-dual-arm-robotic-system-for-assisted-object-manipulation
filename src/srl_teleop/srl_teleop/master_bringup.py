@@ -362,7 +362,7 @@ def clear_stale_shm():
 
 #: The variables scripts/env.sh exists to pin. A process missing these joins
 #: a DIFFERENT bus and sees nothing, which is indistinguishable from a dead
-#: stack -- CLAUDE.md HARD CONSTRAINT 5 and the whole reason env.sh exists.
+#: stack -- docs/ENGINEERING_LOG.md HARD CONSTRAINT 5 and the whole reason env.sh exists.
 ENV_KEYS = ("ROS_DOMAIN_ID", "RMW_IMPLEMENTATION",
             "FASTDDS_BUILTIN_TRANSPORTS", "ROS_AUTOMATIC_DISCOVERY_RANGE")
 

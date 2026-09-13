@@ -74,7 +74,7 @@ def angle_stats(mp4):
     d = np.abs(np.diff(F, axis=0))
     return float(F.mean()), float(d.mean(axis=(1, 2)).max() if len(d) else 0.0)
 FFMPEG = os.path.expanduser("~/.local/bin/ffmpeg")
-TMP = "/tmp/claude-1000/-home-gausms-kortex-ws/3732aa29-5a7e-4c8e-b77e-379233bdc9c9/scratchpad/vfy"
+TMP = "/tmp/scratch/vfy"
 
 # OBJECT DETECTORS, CALIBRATED ON FRAMES I CONFIRMED BY EYE.
 #
@@ -259,7 +259,7 @@ REQUIRED = {
 # The tree is parsed as <mode>/<task>/<scenario>, task lowercased -- so an
 # MSc T2 clip was looked up as "t2" and checked for a TEAL CONTAINER and an
 # ORANGE BLOCK, neither of which is in that scene or ever could be. It is the
-# substring/prefix family from CLAUDE.md's instrument table: two namespaces,
+# substring/prefix family from docs/ENGINEERING_LOG.md's instrument table: two namespaces,
 # one key space, and every symptom looks like a real object failure.
 #
 # The two trees are distinguishable without guessing, because they are shaped
@@ -313,7 +313,7 @@ MSC_REQUIRED = {
     # reported the right answer for the wrong reason. Redrawing the marking as
     # a 12 mm OUTLINE removed those pixels and the mismatch surfaced at once.
     #
-    # This is CLAUDE.md's "everything matches" row: a detector keyed to the
+    # This is docs/ENGINEERING_LOG.md's "everything matches" row: a detector keyed to the
     # wrong referent, agreeing by coincidence. The lesson is not that the
     # outline broke a check -- it is that the check was never measuring cubes.
     "t1s2": ["msc_blue", "msc_green"],

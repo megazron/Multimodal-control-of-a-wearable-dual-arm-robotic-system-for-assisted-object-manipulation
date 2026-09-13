@@ -365,7 +365,7 @@ def main():
         # a grasp actually has to hit: the 30 mm capture gate.
         #
         # Loosening the 2 mm bound to cover the tilted case would be a
-        # tolerance that binds nothing, which is a row in CLAUDE.md's own
+        # tolerance that binds nothing, which is a row in docs/ENGINEERING_LOG.md's own
         # table. So the bound is chosen by WHICH CLAIM is being made, the
         # tilt is recorded beside the miss, and a tilt appearing where there
         # was none is visible rather than absorbed.

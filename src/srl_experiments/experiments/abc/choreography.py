@@ -111,7 +111,7 @@ V_MAX = 0.30
 
 # THE DANCE ENVELOPE, inside the measured reachable volume with margin.
 # Forward reach is 0.475 m at z=1.20 with no furniture; y stops at 0.40 here,
-# 75 mm inside that, per CLAUDE.md's rule of staying at least 20 mm inside the
+# 75 mm inside that, per docs/ENGINEERING_LOG.md's rule of staying at least 20 mm inside the
 # last pose that passed N/N.
 # MEASURED THE HARD WAY. The first version of this envelope was taken from
 # the forward-reach sweep, which probed only |x| = 0.35 -- so it said nothing
@@ -137,7 +137,7 @@ V_MAX = 0.30
 #
 # So the routines now span z 1.06..1.54 -- 480 mm, nearly three times the old
 # range -- and stay at least 20 mm inside the last pose that passed N/N, per
-# CLAUDE.md's rule. scripts/verify_dance_paths.py checks every rendered
+# docs/ENGINEERING_LOG.md's rule. scripts/verify_dance_paths.py checks every rendered
 # waypoint through /compute_ik with avoid_collisions before anything is
 # filmed, with controls, because an envelope taken from another task's
 # verification is an inference until it is measured here.

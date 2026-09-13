@@ -16,7 +16,7 @@ THE THREE HARD CONSTRAINTS, and none of them come from the science:
 The binding one is PACK-ON, not the clock. That is what forced the shape
 below, and it is why TASK A IS BENCH-MOUNTED. The project's own rule is that
 E1/E5-style characterisation runs bench-mounted and only tasks whose CLAIM is
-about wearable SRLs need to be worn (CLAUDE.md, gravity and load). Task A is
+about wearable SRLs need to be worn (docs/ENGINEERING_LOG.md, gravity and load). Task A is
 an uncoupled Fitts characterisation -- its claim is about pointing, not about
 wearing -- so bench-mounting it is honest and it buys 15 minutes of pack-on
 budget that Tasks B and C actually need.

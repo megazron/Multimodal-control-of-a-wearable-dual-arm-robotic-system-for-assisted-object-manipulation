@@ -23,7 +23,7 @@ anywhere else: the operator is not wearing the headset and cannot see an
 overlay, so `vr_desk_monitor` is their ONLY status display -- and it would
 have shown a healthy green link with nothing arriving.
 
-This is the "data fresh but never changes" row of CLAUDE.md's instrument
+This is the "data fresh but never changes" row of docs/ENGINEERING_LOG.md's instrument
 table, in the instrument this project uses to watch itself.
 """
 import os

@@ -198,7 +198,7 @@ def test_every_stage2_cube_is_on_a_measured_column(MCT, T1M, seed):
 def test_the_split_actually_varies_across_seeds(T1M):
     """A draw that is 2/2 every time is not a draw.
 
-    This is the "feature present but does nothing" row of CLAUDE.md's table:
+    This is the "feature present but does nothing" row of docs/ENGINEERING_LOG.md's table:
     stage 2's whole claim is that the side is randomised, and a seed that is
     recorded but never changes the layout asserts a randomisation that did not
     happen. It has been exactly that fault once already.
@@ -252,7 +252,7 @@ def test_both_stages_DECLARE_the_approach_they_were_solved_at(MCT, T1M):
     every cube -- because the SCENE was drawing them through the same wrong
     offset, so the two errors agreed -- while the knuckle stayed 0.00 for the
     whole run and NO GRASP WAS RECORDED AT ALL. Two descriptions sharing one
-    error, which is CLAUDE.md's "everything matches" row, and it read as a
+    error, which is docs/ENGINEERING_LOG.md's "everything matches" row, and it read as a
     perfect approach and a dead gripper.
 
     Stage 1 declared it. Stage 2 did not, and nothing compared them.

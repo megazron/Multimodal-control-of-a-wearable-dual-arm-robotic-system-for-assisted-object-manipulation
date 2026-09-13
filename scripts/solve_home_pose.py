@@ -84,7 +84,7 @@ OUT = os.path.join(ROOT, "recordings/baselines/home_solved.json")
 #
 # Taken from mount_guard_node, which is what the follower, the homing node and
 # the bridge actually enforce, so a pose this file calls clear is clear by the
-# same model that would stop the arm. CLAUDE.md rule 11: wearer_posture.py is
+# same model that would stop the arm. docs/ENGINEERING_LOG.md rule 11: wearer_posture.py is
 # the ONE source, and reaching for it here rather than re-declaring a torso is
 # the difference between measuring the wearer and measuring a copy of them.
 TORSO = [w for w in MG.WEARER if w[0] == "torso"][0]
@@ -113,7 +113,7 @@ SEAM_MARGIN_RAD = 0.30
 # clearance over the whole chain can never exceed the clearance of that one
 # point, no matter what the seven joints do.
 #
-# CLAUDE.md carries this as "base_link sits 0.1610 m from the torso". THAT
+# docs/ENGINEERING_LOG.md carries this as "base_link sits 0.1610 m from the torso". THAT
 # FIGURE IS STALE: the mounts moved 150 mm outboard and 15 deg of yaw on
 # 2026-08-18 and nothing re-measured it. It is 0.2202 m today, computed below
 # from the geometry that is actually loaded.
@@ -483,7 +483,7 @@ class Target:
 # so the optimiser parks exactly on the boundary: the first run of this sweep
 # returned 0.14950 m of clearance against a 0.150 floor and 25.78 deg against
 # a 25 deg limit, which is not a solution, it is a rounding error away from
-# one. CLAUDE.md's own rule says to stay 20 mm inside the last pose that
+# one. docs/ENGINEERING_LOG.md's own rule says to stay 20 mm inside the last pose that
 # passed. So the COST aims for these margins and the CHECK still uses the
 # stated constraint -- the reported numbers are therefore true of the
 # constraint as written, with room to spare rather than none.
@@ -693,7 +693,7 @@ def refine_pair(sc, tg, ql, qr, iters=900):
         # `SOLVE_MARGIN`'s whole rationale is that a hinge penalty parks the
         # optimiser exactly on the boundary; (g) had no margin, and the
         # |x| = 0.600 solve duly returned 0.0199 m against a 0.020 m limit --
-        # 0.1 mm of room, which CLAUDE.md calls MARGINAL and not usable.
+        # 0.1 mm of room, which docs/ENGINEERING_LOG.md calls MARGINAL and not usable.
         ok_g = ee_new <= tg.mirror_tol - SOLVE_MARGIN["mirror"]
         if okl and okr and ok_g and ch_new < best[0]:
             best = (ch_new, out_l, out_r)
@@ -836,7 +836,7 @@ def recapture_table(q_left, q_right):
 #                                         the session report: it is inert only
 #                                         because it loads last.
 #
-# WORKSPACE_ORIENT is deliberately NOT touched. CLAUDE.md hard constraint 1
+# WORKSPACE_ORIENT is deliberately NOT touched. docs/ENGINEERING_LOG.md hard constraint 1
 # and home_wrist_is_real.md section 3 both say so, with the measurement:
 # re-deriving the anchor to match a level home costs T2 its right arm.
 def apply_pose(ql, qr, hand_xyz=None, dry_run=False, sc=None):
@@ -1057,7 +1057,7 @@ def main():
     caps = {arm: sc.mount_cap(arm) for arm in ("left", "right")}
     print("   the immobile mount clears the wearer by            "
           "L %.4f m / R %.4f m" % (caps["left"], caps["right"]))
-    print("      -> no home pose can score (f) above that. CLAUDE.md's "
+    print("      -> no home pose can score (f) above that. docs/ENGINEERING_LOG.md's "
           "0.1610 m is stale (the mounts moved 2026-08-18).")
     # A CONTROL ON THE NEW METRIC, because a number that can only go up is
     # not a measurement. The moving chain is a SUBSET of the whole chain, so

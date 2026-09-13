@@ -118,7 +118,7 @@ class Rig:
     #     left    home tool axis -1.47 deg elevation, anchor +30.77   32.26 deg apart
     #     right   home           -1.42                        +22.10  24.14 deg apart
     #
-    # so `verify_t1_paths.py` -- the instrument CLAUDE.md cites for T1's
+    # so `verify_t1_paths.py` -- the instrument docs/ENGINEERING_LOG.md cites for T1's
     # "0 IK failures over 7522 IK calls" -- was walking T1's waypoints at an
     # orientation the task never sends, on the very arm T1 runs on. TASK_SPEC
     # section 9 records this fault for `search_centre_on_surface`, which works
@@ -231,7 +231,7 @@ class Rig:
         its clearance from the left arm sitting at home: 80 cells, ONE
         distinct value, 0.1610 m, in a map whose left half varied from
         -0.003 to 0.161. A single value across a whole map is the "zero
-        variance" row of CLAUDE.md's table and it is why this was caught
+        variance" row of docs/ENGINEERING_LOG.md's table and it is why this was caught
         before the number was used, rather than after.
         """
         self.calls += 1

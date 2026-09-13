@@ -505,7 +505,7 @@ def level2_click():
     # That happened, and it read exactly like the defect it was written to
     # catch: an e-stop that logs and does not publish. The publisher was
     # matched, the GUI logged "E-STOP published", and the message was
-    # delivered to a callback nobody was pumping. CLAUDE.md's standing rule,
+    # delivered to a callback nobody was pumping. docs/ENGINEERING_LOG.md's standing rule,
     # in the audit itself -- a surprising failure is evidence about the
     # INSTRUMENT until the instrument has been cleared.
     from rclpy.executors import SingleThreadedExecutor as _Exec
@@ -719,7 +719,7 @@ def level2_click():
     #
     # THE PRESS IS NOT THE POINT. A combo box that logs a new value and then
     # does not change the command line is the "feature present but does
-    # nothing" row of CLAUDE.md's table, and it is invisible from a return
+    # nothing" row of docs/ENGINEERING_LOG.md's table, and it is invisible from a return
     # code -- the button still launches, the stack still comes up, and the
     # followers run the default. So the check is on the ARGV: select the
     # legacy generator and require that a stack-starting spec picks it up,

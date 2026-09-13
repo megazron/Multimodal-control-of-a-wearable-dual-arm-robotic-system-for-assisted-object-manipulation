@@ -92,7 +92,7 @@ def ik_link(fk, arm, link, p_des, R_des, q0, grip=0.0, iters=300,
 
     `R_des=None` solves POSITION ONLY, which is what a reach wants: fixing an
     orientation a 7-DOF arm does not need spends the redundancy that keeps the
-    elbow out of the wearer (CLAUDE.md, "what the pinned wrist COSTS").
+    elbow out of the wearer (docs/ENGINEERING_LOG.md, "what the pinned wrist COSTS").
     """
     q = np.array(q0, float)
     lo, hi, cont = fk.limits(arm)

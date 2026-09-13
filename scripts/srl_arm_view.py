@@ -330,7 +330,7 @@ class ArmView(QWidget):                                       # pragma: no cover
                             QColor(self.c["accent"]), 3)
                 # LABELLED BY FRAME NAME, NOT BY THE WEARER'S BODY. Whether
                 # world +x is the wearer's right is an OPEN contradiction in
-                # this repository (CLAUDE.md, desk operation row): the docs
+                # this repository (docs/ENGINEERING_LOG.md, desk operation row): the docs
                 # say it is and the arms sit the other way round. "left arm"
                 # is a fact about the frame and is true either way; "the
                 # wearer's right" would be a claim this panel cannot support.

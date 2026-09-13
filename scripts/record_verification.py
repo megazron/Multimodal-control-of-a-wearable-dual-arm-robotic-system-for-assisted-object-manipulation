@@ -83,7 +83,7 @@ ARM_LINKS = ["base_link", "shoulder_link", "half_arm_1_link", "half_arm_2_link",
 #   (link, local origin offset, kind, dims)
 # Looked up through TF at runtime rather than hardcoded in world coordinates.
 # The first version of this file guessed world-frame boxes and reported 0.064 m
-# of clearance at a pose CLAUDE.md measures at 0.224 m -- the model was wrong,
+# of clearance at a pose docs/ENGINEERING_LOG.md measures at 0.224 m -- the model was wrong,
 # not the robot. Instrument first, finding second.
 WEARER_SPEC = [
     ("torso", (0, 0, 0.17), "box", (0.18, 0.11, 0.24)),

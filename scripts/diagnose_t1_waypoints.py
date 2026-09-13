@@ -7,7 +7,7 @@
 WHY THIS EXISTS. `measure_pad_columns.py` reports a pad cell as reachable and
 clear over the full path at N=10, and `measure_home_change.py` reports T1
 losing 14 waypoints on the same layout in the same stack. Both cannot be
-right, and CLAUDE.md's standing rule says a result contradicting an earlier
+right, and docs/ENGINEERING_LOG.md's standing rule says a result contradicting an earlier
 measurement is an INSTRUMENT CHECK until the two are reconciled.
 
 The two ask different questions and neither says so:

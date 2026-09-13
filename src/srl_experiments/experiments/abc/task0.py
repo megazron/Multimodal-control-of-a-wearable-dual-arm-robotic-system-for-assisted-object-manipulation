@@ -106,7 +106,7 @@ TARGET_R_M = TARGET_W_M / 2.0
 # measured against the bench at all.
 #
 # And the band must be common to BOTH ARMS, not one arm's.  The two arms are
-# parked asymmetrically -- CLAUDE.md records the residual as 1.3837 m and
+# parked asymmetrically -- docs/ENGINEERING_LOG.md records the residual as 1.3837 m and
 # proves it independent of the mount -- so the right arm's reachable band is
 # NOT the mirror of the left's.  A set derived from the left alone did
 # exactly what that predicts: left 4/4 spheres and 0 waypoint failures, right

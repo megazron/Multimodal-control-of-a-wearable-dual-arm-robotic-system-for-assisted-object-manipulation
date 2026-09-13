@@ -93,7 +93,7 @@ not choose the motion.
 
 **2. This machine cannot train one.** RTX A500, 4 GB, and `.venv_vision`'s
 torch is deliberately the CPU wheel. ACT at ~80M parameters is borderline;
-SmolVLA at 450M is not happening locally. CLAUDE.md already records YOLO-World
+SmolVLA at 450M is not happening locally. docs/ENGINEERING_LOG.md already records YOLO-World
 being chosen over GroundingDINO (218M) and OWLv2 (428M) for exactly this
 reason.
 

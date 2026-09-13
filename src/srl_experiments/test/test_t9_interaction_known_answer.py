@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """KNOWN-ANSWER test for T9's interaction fit — the headline of the task.
 
-Standing rule (CLAUDE.md): before a metric touches participant data it must
+Standing rule (docs/ENGINEERING_LOG.md): before a metric touches participant data it must
 recover an answer known by construction. T7's `b_cross` earned this the hard
 way — the pilot injected 90/60 and the fit returned 358/289, and it took a
 separate calibration block to show that the fit was right and the claim about

@@ -39,7 +39,7 @@ system would cope with an unrehearsed object or an unrehearsed phrasing, and
 the study should not imply it does.
 
 **It is not a VLA comparison.** This is a modular pipeline by choice (see
-CLAUDE.md). A paper claiming "modular beats end-to-end" would need the
+docs/ENGINEERING_LOG.md). A paper claiming "modular beats end-to-end" would need the
 end-to-end arm of that comparison, which was deliberately not built and for
 reasons of safety architecture rather than performance.
 

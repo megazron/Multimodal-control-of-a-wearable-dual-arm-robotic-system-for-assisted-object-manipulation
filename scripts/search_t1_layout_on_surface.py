@@ -54,7 +54,7 @@ to 1.000, so x is affordable and y is not.
 
 STAGE 2 measures the y window, STAGE 3 the pad depth, STAGE 4 how far outboard
 the row stays workable -- the surveyed region stops at |x| = 1.000 because the
-survey BOX did, which CLAUDE.md says in as many words -- and STAGE 5 packs the
+survey BOX did, which docs/ENGINEERING_LOG.md says in as many words -- and STAGE 5 packs the
 row and REFUSES to emit a layout with any margin closed.
 
 CONTROLS, and no report without them:

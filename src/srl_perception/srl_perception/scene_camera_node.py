@@ -19,7 +19,7 @@ repository requires of anything that produces frames:
     node publishes NOTHING and says so on /scene_camera/state. It never
     re-sends the last good frame. A frozen picture of a workspace cannot be
     told from a live picture of a workspace that is not moving, which is
-    CLAUDE.md's "data fresh but never changes" row -- and here the consumer
+    docs/ENGINEERING_LOG.md's "data fresh but never changes" row -- and here the consumer
     is a body tracker feeding a collision model.
   * IT PUBLISHES CameraInfo THAT IS EITHER REAL OR EMPTY. An uncalibrated
     camera publishes a ZERO K and says `calibrated: false`, rather than a

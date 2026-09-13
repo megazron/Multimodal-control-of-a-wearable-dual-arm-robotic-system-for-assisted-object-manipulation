@@ -11,7 +11,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = os.path.join(ROOT, "thesis_report/figures")
+OUT = os.path.join(ROOT, "extras/thesis/thesis_report/figures")
 os.makedirs(OUT, exist_ok=True)
 plt.rcParams.update({
     "font.size": 9, "axes.grid": True, "grid.alpha": 0.3,
@@ -80,7 +80,7 @@ def fig_overlap():
 def fig_mount_sweep():
     p = os.path.join(ROOT, "recordings/baselines/mount_overlap_sweep.json")
     fig, ax = plt.subplots(figsize=(6.0, 3.0))
-    # the single-parameter sweeps recorded in CLAUDE.md, from the sweep output
+    # the single-parameter sweeps recorded in docs/ENGINEERING_LOG.md, from the sweep output
     series = {
         "forward tilt (deg)": ([0, -30, -60], [3, 6, 12]),
         "mounts inboard (m)": ([0, -0.10, -0.20], [3, 6, 14]),

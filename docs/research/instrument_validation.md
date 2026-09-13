@@ -166,7 +166,7 @@ over seed, link name and timeout — all six configurations returned 6 of 6.
 **Looked like:** test harnesses dying mid-run with no output, repeatedly.
 **Actually was:** the pattern matched the invoking shell's own command line.
 **Caught by:** the exit code 144 and empty logs.
-**Documented in `CLAUDE.md` before this run, and hit anyway**, three times —
+**Documented in `docs/ENGINEERING_LOG.md` before this run, and hit anyway**, three times —
 which is itself the finding: a documented trap is not a solved trap.
 
 ---

@@ -97,7 +97,7 @@ def test_the_guard_asks_for_the_body_rather_than_reading_the_constant():
     """The wiring, asserted at the call site.
 
     A `wearer()` method that exists and is never called is the 'feature
-    present but does nothing' row of CLAUDE.md's instrument table, and it is
+    present but does nothing' row of docs/ENGINEERING_LOG.md's instrument table, and it is
     invisible: the guard keeps working, against the wrong body.
     """
     src = open(GUARD_SRC).read()

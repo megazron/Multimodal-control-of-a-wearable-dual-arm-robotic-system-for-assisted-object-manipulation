@@ -222,7 +222,7 @@ def test_the_bridge_deadband_is_narrower_than_the_measured_park():
 
 
 def test_the_bridge_applies_the_overshoot_rather_than_only_declaring_it():
-    """CLAUDE.md's own 'feature present but does nothing'. A parameter that
+    """docs/ENGINEERING_LOG.md's own 'feature present but does nothing'. A parameter that
     is stored and never read is the defect this repository lists first."""
     src = open(BRIDGE).read()
     assert 'declare_parameter("terminal_overshoot", False)' in src

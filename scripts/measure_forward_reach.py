@@ -31,7 +31,7 @@ FOUR MEASUREMENTS, and they are NOT equally trustworthy -- read the caveats:
       without re-checking the URDF.
 
 WHAT NONE OF THEM ESTABLISH. This is SINGLE-POSE IK at N=3: an envelope, not
-a verified coordinate. CLAUDE.md's own corollary applies -- a pose that passes
+a verified coordinate. docs/ENGINEERING_LOG.md's own corollary applies -- a pose that passes
 one IK call is not a reachable pose, and a task coordinate needs N=10 over the
 full densified PATH. Use these numbers to CHOOSE a layout; verify the layout
 you choose with audit_scenario_reachability.py before recording anything.

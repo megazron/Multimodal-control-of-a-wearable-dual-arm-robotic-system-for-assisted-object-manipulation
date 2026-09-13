@@ -19,7 +19,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 import solve_home_pose as S
 cv2.setLogLevel(0)
-SC="/tmp/claude-1000/-home-gausms-kortex-ws/6fb0cbe9-3047-4da2-9236-822179e1174c/scratchpad/"
+SC="/tmp/scratch/"
 IP="192.168.1.10"; ARM="left"
 C=dict(w=1280,h=720,fx=1297.6729,fy=1298.6313,cx=620.914,cy=238.28032)
 D=dict(w=480,h=270,fx=342.2138,fy=342.2138,cx=233.06856,cy=132.48465)

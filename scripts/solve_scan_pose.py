@@ -35,7 +35,7 @@ bought by throwing the wrist far out while the elbow grazes the chest.
 WHY TOOL-DOWN AND NOT THE PINNED ANCHOR
 ---------------------------------------
 A scan wants the camera looking at the table, and the wrist camera looks along
-the tool axis. CLAUDE.md records top-down-on-a-surface as 0 of 840 cells at
+the tool axis. docs/ENGINEERING_LOG.md records top-down-on-a-surface as 0 of 840 cells at
 the pinned anchor -- but that was measured for a GRASP, with the pads at the
 object. A scan hovers 250-400 mm above the surface, which is a different
 question, and it is asked here rather than assumed either way.

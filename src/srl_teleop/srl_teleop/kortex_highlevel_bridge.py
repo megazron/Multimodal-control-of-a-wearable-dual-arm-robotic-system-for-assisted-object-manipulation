@@ -248,7 +248,7 @@ class KortexHighLevelBridge(Node):
         # attribute forever. `ros2 param set` answered "Set parameter
         # successful", the parameter store held the new value, and the arm
         # went on moving at the old one -- the exact "feature present but does
-        # nothing" shape CLAUDE.md lists, where a field is STORED and no
+        # nothing" shape docs/ENGINEERING_LOG.md lists, where a field is STORED and no
         # consumer READS it.
         #
         # Measured 2026-08-21: a directional calibration swept vmax over

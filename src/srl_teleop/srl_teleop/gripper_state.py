@@ -120,7 +120,7 @@ def holding(knuckle, width_mm=None):
         # t=0.0 with the arm still at home, then a RELEASED that carried
         # 0.000 m, and the real grasp 56 s later was reported as "51.3 s
         # outside the clip". The no-width branch below always had both bounds;
-        # only this one lost the upper. CLAUDE.md records the same failure
+        # only this one lost the upper. docs/ENGINEERING_LOG.md records the same failure
         # from the original pilot ("the mock gripper boots at 0.79 rad --
         # already past any closed threshold"), so this is a regression of a
         # known bug, not a new one.

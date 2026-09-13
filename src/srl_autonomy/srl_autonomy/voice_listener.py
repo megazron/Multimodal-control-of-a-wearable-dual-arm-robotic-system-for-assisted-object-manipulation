@@ -26,7 +26,7 @@ only way the refusal matrix can be exercised deterministically.
 
 STT MODEL -- faster-whisper `small`, int8, CTranslate2
 ------------------------------------------------------
-Chosen against a 4 GB VRAM ceiling (RTX A500 Laptop). See CLAUDE.md for the
+Chosen against a 4 GB VRAM ceiling (RTX A500 Laptop). See docs/ENGINEERING_LOG.md for the
 full comparison. `small` int8 is ~1 GB and 3.4% WER; `large-v3-turbo` would
 be better English but needs ~6 GB and would leave nothing for the detector,
 which has to be resident at the same time.

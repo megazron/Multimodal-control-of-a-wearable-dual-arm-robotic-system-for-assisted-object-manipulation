@@ -7,14 +7,14 @@ IS_ROLL      = [True,False,True,False,True,False,True]
 FULL_EXT     = sum(LINK_LENGTHS)
 CONFIG_DIR   = Path(os.path.expanduser("~/kortex_ws/config"))
 
-# MEASURED from the 2026-07-31 button-gated recording (see CLAUDE.md).
+# MEASURED from the 2026-07-31 button-gated recording (see docs/ENGINEERING_LOG.md).
 # The old ("+x","-y","-z") was derived for the FK path. In SPHERICAL mode the
 # vertical sign is already carried by the elevation convention (-90 hanging,
 # +90 up), so a "-z" entry DOUBLE-negates it: the measured gain was
 # cmd_z = -1.011 * phys_z, i.e. raising the master drove the robot down.
 # Likewise cmd_y = -0.993 * phys_y inverted fore/aft.
 # Identity fixes both. The lateral axis is NOT fixed by this and cannot be --
-# see the AZIMUTH LIMITATION note in CLAUDE.md.
+# see the AZIMUTH LIMITATION note in docs/ENGINEERING_LOG.md.
 AXIS_MAP        = ("+x","+y","+z")
 
 # ---------------------------------------------------------------------------
@@ -50,13 +50,13 @@ WORKSPACE_SCALE = 1.0   # DEAD -- see quarantine note above
 #   left  rpy  ( 1.247666407, -0.232161321,  1.508064663)
 #   right rpy  (-1.256457931, -0.033197491,  1.699631975)
 #   NOT exact rpy mirrors, deliberately: the plate NORMAL is mirrored, the
-#   per-arm CLOCKING is not. See CLAUDE.md.
+#   per-arm CLOCKING is not. See docs/ENGINEERING_LOG.md.
 #
 #   at home: ZERO colliding link pairs (MoveIt valid=True, contacts=0 both arms)
 #            min clearance 0.1664 m, every arm link vs every wearer link
 #            both EEs in front of the wearer at working height
 #   BUT IK over a frontal task volume is 18.8% / 18.8% (live /compute_ik).
-#   Clearance and reach are in DIRECT CONFLICT at this scale - see CLAUDE.md.
+#   Clearance and reach are in DIRECT CONFLICT at this scale - see docs/ENGINEERING_LOG.md.
 # ==========================================================================
 # 2026-08-15: HOME MOVED AND THESE DID NOT. READ THIS BEFORE RUNNING TELEOP.
 # ==========================================================================
@@ -332,7 +332,7 @@ class PotCalibration:
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         L=["# %s master arm reference, captured with the arm HANGING" % self.arm,
            "# STRAIGHT DOWN at rest. (The old header here said STRAIGHT OUT IN",
-           "# FRONT; that was stale and wrong -- see CLAUDE.md. The hanging-down",
+           "# FRONT; that was stale and wrong -- see docs/ENGINEERING_LOG.md. The hanging-down",
            "# posture is now REQUIRED, because a_hat below is only meaningful",
            "# when the arm axis is along gravity at capture time.)",
            ""]
@@ -397,13 +397,13 @@ class PotCalibration:
 # Load-bearing pot channels: an exact 0.0 here is a firmware dropout clamp,
 # not a real reading. j6 legitimately clamps to 0 (mounted at the bottom of
 # its travel) and j7 is a terminal roll that moves the tip 0.000000 m, so
-# neither is checked. Canonical copy of the policy documented in CLAUDE.md.
+# neither is checked. Canonical copy of the policy documented in docs/ENGINEERING_LOG.md.
 LOAD_BEARING_IDX = (0, 1, 2, 3, 4)   # j1..j5
 
 # Gravity direction in the MASTER FK BASE frame, as a unit vector.
 # Sign convention is resolved empirically by the mount calibration rather
 # than assumed -- solve_imu_mount() fits both +z and -z and keeps whichever
-# actually matches the recorded data. See CLAUDE.md: the pot zeros were
+# actually matches the recorded data. See docs/ENGINEERING_LOG.md: the pot zeros were
 # captured with the arms HANGING DOWN, and fk() puts the tip along +z at
 # q=0, so base +z is expected to point downward -- but "expected" is not
 # "measured", and an accelerometer at rest reports specific force (up),

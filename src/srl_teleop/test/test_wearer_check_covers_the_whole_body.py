@@ -6,7 +6,7 @@ computed over the wrong set, so it reads as protection and is not.
 
   1. `for part in ("torso", "head", "hips")` -- THREE of TWELVE. The wearer
      model holds torso, head, neck, hips, both thighs, and the wearer's own
-     upper arms, forearms and hands. CLAUDE.md records that the wearer's ARMS
+     upper arms, forearms and hands. docs/ENGINEERING_LOG.md records that the wearer's ARMS
      are what bind the right arm inboard: precisely the geometry this loop
      could not see.
 

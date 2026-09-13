@@ -7,7 +7,7 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from builtin_interfaces.msg import Duration
 import solve_home_pose as S
 cv2.setLogLevel(0)
-SC="/tmp/claude-1000/-home-gausms-kortex-ws/6fb0cbe9-3047-4da2-9236-822179e1174c/scratchpad/"
+SC="/tmp/scratch/"
 POSES=json.load(open(SC+"look_poses.json"))
 ARM=sys.argv[1]; VIEW=int(sys.argv[2]); IP=sys.argv[3]
 sc=S.Scorer(); CONT=(0,2,4,6)

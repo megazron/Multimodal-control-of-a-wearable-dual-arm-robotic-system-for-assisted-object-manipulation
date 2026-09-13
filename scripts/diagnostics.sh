@@ -2,7 +2,7 @@
 # diagnostics.sh - the checks worth running BEFORE blaming the code.
 #
 # Every item here corresponds to a failure that has actually happened on this
-# rig and cost real time to diagnose. See CLAUDE.md.
+# rig and cost real time to diagnose. See docs/ENGINEERING_LOG.md.
 set -uo pipefail
 source "$(dirname "$0")/env.sh"
 

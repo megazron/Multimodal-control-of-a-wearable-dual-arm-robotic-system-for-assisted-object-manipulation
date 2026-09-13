@@ -24,7 +24,7 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "recordings/verification")
 FF = os.path.expanduser("~/.local/bin/ffmpeg")
-TMP = "/tmp/claude-1000/-home-gausms-kortex-ws/3732aa29-5a7e-4c8e-b77e-379233bdc9c9/scratchpad/gq"
+TMP = "/tmp/scratch/gq"
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from verify_rviz_clips import duration, PALETTE, below_hud
 

@@ -1,6 +1,6 @@
 # WSL, networking and screen capture
 
-Mirrored networking, the Kortex cyclic path, /mnt/c, /dev/shm, the Quest transport and x11grab under WSLg. Split out of CLAUDE.md on 2026-08-12. Nothing deleted.
+Mirrored networking, the Kortex cyclic path, /mnt/c, /dev/shm, the Quest transport and x11grab under WSLg. Split out of docs/ENGINEERING_LOG.md on 2026-08-12. Nothing deleted.
 
 Read this BEFORE debugging anything that looks like a driver fault on this machine. Several entries here cost a day each.
 

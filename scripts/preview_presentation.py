@@ -3,7 +3,7 @@
 
     .venv_vision/bin/python scripts/preview_presentation.py
 
-Writes one PNG per slide into ``docs/presentation/preview/`` and a contact
+Writes one PNG per slide into ``extras/presentation/preview/`` and a contact
 sheet beside them. There is no LibreOffice on this host, so the pages are
 drawn from the SAVED .pptx -- every rectangle, picture and text run is read
 back out of the file that will actually be opened, rather than from the

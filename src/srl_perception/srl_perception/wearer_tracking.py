@@ -44,7 +44,7 @@ test_wearer_tracking.py rather than argued about here:
      did not move; the detector jumped to somebody else, or to a coat.
   4. AGE. Past the staleness limit the estimate contributes nothing. A stale
      body pose cannot be told from a live pose of a person standing still --
-     CLAUDE.md's "data fresh but never changes" row, with the arms powered.
+     docs/ENGINEERING_LOG.md's "data fresh but never changes" row, with the arms powered.
 
 NO ROS, NO MEDIAPIPE, NO CAMERA. Everything arrives as plain numbers so the
 gates can be driven with a deliberately broken body and required to refuse.
@@ -347,7 +347,7 @@ def summarise(decisions):
 #
 # LEFT AND RIGHT ARE THE PERSON'S OWN. That is worth stating because the
 # repository's world frame uses +x for the wearer's left and the repo has an
-# OPEN contradiction about whether that is really so (CLAUDE.md, desk
+# OPEN contradiction about whether that is really so (docs/ENGINEERING_LOG.md, desk
 # operation). This module never resolves it: it is handed world-frame points
 # by the caller and names parts `L-*` / `R-*` to match `wearer_model()`, so
 # whichever way that argument settles, the fix is in the caller's extrinsic

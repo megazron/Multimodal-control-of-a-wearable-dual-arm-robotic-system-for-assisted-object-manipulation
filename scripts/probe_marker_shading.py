@@ -142,7 +142,7 @@ def faces(path, bg=(45, 45, 48)):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.path.join(
-        "/tmp/claude-1000/-home-gausms-kortex-ws/"
+        "/tmp/scratch/"
         "56c2ed37-1c90-48cc-88af-370fd1cba1c5/scratchpad", "shading"))
     ap.add_argument("--view", default="front")
     a = ap.parse_args()

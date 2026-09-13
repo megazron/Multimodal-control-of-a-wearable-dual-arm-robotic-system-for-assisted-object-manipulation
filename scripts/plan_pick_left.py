@@ -113,7 +113,7 @@ def _main():
     # far the hand is closed: 0.09833 m wide open, 0.10976 m closed on a 40 mm
     # cube -- 11.43 mm apart.  Solving the grasp with the hand OPEN and then
     # closing it drives the pads 11.43 mm FURTHER along the tool axis than
-    # planned, which is straight into the table.  This is CLAUDE.md's own
+    # planned, which is straight into the table.  This is docs/ENGINEERING_LOG.md's own
     # "T1's grasp was built 11.43 mm short".
     #
     # So the GRASP pose is solved at the opening the hand will actually be at when

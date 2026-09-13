@@ -365,7 +365,7 @@ working perception path.
   `frame_pose_is_stamped: false` in the detection info.
 * `Vision._rgb` stores the newest frame with **no age check**. A driver that
   republishes a stale frame is the "data fresh but never changes" row of
-  CLAUDE.md's instrument table, and nothing here would catch it.
+  docs/ENGINEERING_LOG.md's instrument table, and nothing here would catch it.
 
 Also: the observe pose was solved for the MOCK's intrinsics (640x480, f=615,
 54.9 x 42.6 deg) and for the camera frame's URDF position. A real camera with
@@ -1204,7 +1204,7 @@ of the wearer. Taken.
 2. **`positions[:7]` on an IK response is always the LEFT arm.** The response
    carries all 26 joints, left first. The right arm's clearance therefore read
    one constant — 0.1610 m — across 80 cells while the left varied from −0.003
-   to 0.161. Caught by the zero-variance row of CLAUDE.md's table before the
+   to 0.161. Caught by the zero-variance row of docs/ENGINEERING_LOG.md's table before the
    number was used. `Solver.solve_arm_joints()` selects by name now.
 3. **`verify_msc_tasks.py` carried its own copy of T1's layout**, frozen at
    2026-08-11. It verified coordinates nothing runs, through three layout
@@ -1392,7 +1392,7 @@ has one number.
 **AND IT EXPLAINS "T1 IS FLAKY ACROSS MODES."** 31.4 mm against a 30 mm gate
 is 1.4 mm outside. A constant error that lands the closure a millimetre and a
 half past the gate is exactly a coin flip: 4/4 under 01 and 04, 0/4 under 02,
-03 and 06, identical layout, identical waypoints. This is CLAUDE.md's
+03 and 06, identical layout, identical waypoints. This is docs/ENGINEERING_LOG.md's
 "MARGINAL is not usable" rule appearing at the task level, and the marginality
 has a cause rather than being noise.
 
@@ -2150,7 +2150,7 @@ DONE this session:
   * the coupling-vs-role distinction recorded in BOTH task specs, so the two
     claims cannot be merged in the write-up (`bimanual_kind` on each)
   * the 15 superseded clips archived to
-    `archive/recordings/verification_20260811/` with GEOMETRY_NOTE.md naming
+    `extras/archive/recordings/verification_20260811/` with GEOMETRY_NOTE.md naming
     both reasons: T2's band was inside the bench slab, and T3's box has moved
     190 mm outboard
 
@@ -2172,7 +2172,7 @@ been modified, no clip archived.
    the 15 clips of the A/B/C set. They are recorded against **the old T2 band
    (z 1.10-1.30), which is now known to be inside the bench**, so they are
    superseded geometry, not merely old. Move them to
-   `archive/recordings/verification_20260811/` with a `GEOMETRY_NOTE.md`
+   `extras/archive/recordings/verification_20260811/` with a `GEOMETRY_NOTE.md`
    saying exactly that.
 2. **Xvfb :99, never WSLg's :0.** `x11grab` on `:0` records BLACK -- measured,
    mean pixel value 0.0 with RViz plainly visible, because WSLg composites in
@@ -2393,7 +2393,7 @@ commands before concluding the box is unreachable.** This is exactly the
 
 # RE-RECORD 2026-08-10 — STOPPED AT 3.5 OF 5 MODES, AND WHY
 
-Old clips moved to `archive/recordings/verification_20260810/` with
+Old clips moved to `extras/archive/recordings/verification_20260810/` with
 `GEOMETRY_NOTE.md`. New clips in `recordings/verification/<mode>/<TASK>/<scen>/`,
 8 angles each, against the verified geometry.
 
@@ -2437,7 +2437,7 @@ does not explain both.
    no-width branch bounds both ends, the width branch had lost the upper. A
    gripper closed on nothing (the mock boots at 0.7929 rad) satisfied it for
    every object, so task A logged GRASPED at t=0.0 with the arm at home.
-   A regression of a failure CLAUDE.md already records from the pilot.
+   A regression of a failure docs/ENGINEERING_LOG.md already records from the pilot.
 2. `clip_scene` had **no proximity test at all** — any closure anywhere counted
    as grasping the object. `record_rviz` gates on `near_pick`; the file the
    sweep judges completion from did not.
@@ -2858,7 +2858,7 @@ real node now gives "full channel set", 14/14 coherent, all seven channels in
 use on both arms. Before this that file was ignored entirely.
 
 `check_channels.sh` is documented as the FIRST ACTION OF EVERY LAB SESSION in
-CLAUDE.md, README.md, docs/system/02_bringup.md (step 0a) and the lab list
+docs/ENGINEERING_LOG.md, README.md, docs/system/02_bringup.md (step 0a) and the lab list
 above, where it is now step 1 — before the soldering, because it is both the
 reference every repair is diffed against and the only thing that makes a
 repair visible to the software.
@@ -3042,7 +3042,7 @@ command per view) and the CAD figures (cadquery installed, can render).
   Two arrow tips were wrong on the first pass -- the "right arm" arrow pointed
   at the torso -- and were corrected against the rendered image.
 * **Full participant-Results chapter skeleton**,
-  `thesis_report/results_skeleton/participant_results.tex`. Every planned
+  `extras/thesis/thesis_report/results_skeleton/participant_results.tex`. Every planned
   figure and table as a labelled placeholder naming the analysis script that
   produces it: completion time by mode, coordination error traces, cross-arm
   interference, NASA-TLX, Borg CR10, trust, embodiment, proprioceptive drift,
@@ -3070,7 +3070,7 @@ derives from it, and that the working URDFs come from measured link lengths.
 
 # C3 DONE - prior work recovered and read (2026-08-09)
 
-Source archived at `thesis_report/_source/prior_work/`. The development
+Source archived at `extras/thesis/thesis_report/_source/prior_work/`. The development
 chapter is no longer reconstructed: it now cites the actual programs, and
 file dates give the calendar directly (7 June to 27 July 2026).
 
@@ -3543,7 +3543,7 @@ The master arm chapter (2799 words), the MuJoCo-to-ROS development path
 rewrite. Checked before writing rather than duplicated.
 
 The genuinely missing piece was the methods contribution, now written:
-`thesis_report/methods/instrument.tex`, Chapter 6, "When the instrument is the
+`extras/thesis/thesis_report/methods/instrument.tex`, Chapter 6, "When the instrument is the
 fault". Sixteen cases in one table (looked like / actually was / caught by),
 four mechanisms, and the finding that **9 of 16 were caught by an
 independently known quantity and only 3 by inspection** -- which is the
@@ -4187,7 +4187,7 @@ the wiring and must be fixed before T2/T3/T5 can run at all. See
 Priority order. Item 1 is first because a number derived from it currently
 shapes the whole experiment design and **may be a measurement bug**.
 
-Read `CLAUDE.md`'s final section — "HARDENING PASS — CONSOLIDATED SUMMARY" —
+Read `docs/ENGINEERING_LOG.md`'s final section — "HARDENING PASS — CONSOLIDATED SUMMARY" —
 before touching anything. The single most important line in it:
 **nothing in the hardening pass has ever run against a real arm.**
 
@@ -4266,7 +4266,7 @@ One committed harness, run twice with the two configurations, reproducing
 BOTH numbers and explaining the gap in one sentence — e.g. "95.8% was
 collisions-off with yaw free; 18.8% was collisions-on with an exact pose."
 Then a single agreed figure, with its configuration recorded, replacing the
-18.8% in `CLAUDE.md`'s constraint 7.
+18.8% in `docs/ENGINEERING_LOG.md`'s constraint 7.
 
 A pass is **not** "the new number is 60%". It is knowing which of the two old
 numbers was wrong and why.
@@ -4784,7 +4784,7 @@ in this repository predates the repair**. Re-running them now would measure
 the broken pots and report the answer as the repaired capability:
 
 - **azimuth / lateral** (the 54.8 / 54.7 deg pairwise-angle residual; FK vs
-  gyro vs j1-alone). CLAUDE.md's own instruction was "do not re-try the hybrid
+  gyro vs j1-alone). docs/ENGINEERING_LOG.md's own instruction was "do not re-try the hybrid
   without first fixing the pot angle calibration" -- that precondition is now
   met, but the re-test needs new data.
 - **the R0-R5 position ladder** against full 7-DOF FK.
@@ -5066,7 +5066,7 @@ written and drives the commanded pose straight at the wearer at both dial
 extremes, but it recorded **zero clearance samples** and correctly refused to
 conclude anything ("NO CLEARANCE SAMPLES -- nothing may be concluded"). Cause:
 `/ik_status_<arm>` publishes an **EMPTY data array** in this state, so the
-clearance field CLAUDE.md documents at index 5 is not there to read. Fix that
+clearance field docs/ENGINEERING_LOG.md documents at index 5 is not there to read. Fix that
 first -- either the follower only fills the array after activity, or the
 documented layout has drifted from the code -- then re-run the probe.
 
@@ -5446,7 +5446,7 @@ segment a live participant holds is worse than leaving it.
   only scans `src/`.
 - **Four identity-quaternion drive sites.** Each needs the anchor lookup and a
   re-run of the measurement it feeds; changing them without re-measuring would
-  leave numbers in CLAUDE.md whose provenance nobody could state.
+  leave numbers in docs/ENGINEERING_LOG.md whose provenance nobody could state.
 - **`audit_unreachable_clear.py`'s two blind spots.** Worth fixing before its
   clean bill is relied on again.
 - **D2, second-stack prevention** — not audited.
@@ -5515,7 +5515,7 @@ NOT full (12K used, 6 entries), so it is not exhaustion.
 
 `ik=True` with `joint_state_msgs=0` is the tell: the probe discovered
 move_group's service and nothing from ros2_control. That is a PARTIAL
-discovery, which CLAUDE.md already records as the stale-shm signature --
+discovery, which docs/ENGINEERING_LOG.md already records as the stale-shm signature --
 "services appear for one client and not another, and wait_for_service times
 out on a service get_service_names_and_types() can see".
 
@@ -5535,7 +5535,7 @@ the stack talks to itself perfectly.
 Cycling the ros2 daemon does NOT fix it -- tried, third identical
 reproduction. So it is below the daemon, in the RMW.
 
-**The prime suspect is the ENVIRONMENT, not the transport.** CLAUDE.md records
+**The prime suspect is the ENVIRONMENT, not the transport.** docs/ENGINEERING_LOG.md records
 that `scripts/env.sh` is the single source of environment truth -- it pins
 `ROS_DOMAIN_ID=0` and actively unsets any inherited `ROS_LOCALHOST_ONLY` --
 and that `teleop.launch.py` applies the same settings IN-PROCESS "because
@@ -5575,7 +5575,7 @@ there again.
 1. Sanity floor: with NO ROS stack at all, run `ros2 topic list` in one shell
    and `ros2 topic pub` in another. If two bare shells cannot see each other,
    the fault is the machine, not this repo, and `wsl --shutdown` from Windows
-   is the next step (CLAUDE.md records that /mnt/c and the 9p transport have
+   is the next step (docs/ENGINEERING_LOG.md records that /mnt/c and the 9p transport have
    needed it before).
 
 **THEN, only if the environments match:**
@@ -5828,7 +5828,7 @@ centres near x 0 with the empty LEFT-arm marking mid-frame.
   REUSED, so an edit to any camera constant has no effect until it is
   cleared:
 
-      rm -rf /tmp/claude-1000/-home-gausms-kortex-ws/*/scratchpad/rvizcfg
+      rm -rf /tmp/scratch/rvizcfg
 
 * **A dead stack renders no robot and looks exactly like a framing bug.** The
   clip still records: ground grid, markings and scene objects, no arms, and
@@ -5841,7 +5841,7 @@ values, so the repo is in a known state.
 
 **Test loop, about four minutes:**
 
-    rm -rf /tmp/claude-1000/-home-gausms-kortex-ws/*/scratchpad/rvizcfg
+    rm -rf /tmp/scratch/rvizcfg
     SRL_CLIP_OUT=recordings/framing_test python3 scripts/record_abc_sweep.py \
         --taskset msc --only 01_master_teleop --tasks t1 --no-verify
     ffmpeg -ss 16 -i .../rviz_front.mp4 -frames:v 1 out.png     # then LOOK

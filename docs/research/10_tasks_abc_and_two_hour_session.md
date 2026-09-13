@@ -22,7 +22,7 @@ not fit.
 Two consolidations, each already justified by a recorded finding rather than
 by the clock:
 
-**Tasks 3 and 4 were never two mechanisms.** CLAUDE.md records it plainly:
+**Tasks 3 and 4 were never two mechanisms.** docs/ENGINEERING_LOG.md records it plainly:
 they are the same mechanism — a coupled object spanning the dead band — run
 with a rigid and a compliant object. Rigid-versus-compliant is the scientific
 contrast, so it belongs *inside* one task as a within-task factor. Merging

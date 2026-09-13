@@ -12,7 +12,7 @@ Two exclusion groups matter and must not be widened casually:
 - 8 **proximal-vs-wearer's-upper-arm** exclusions, added with the 2026-08-05
   mount fix. These cover a *static* interference set by the mount position —
   no joint moves `base_link`, so no planner can avoid it. Recorded as a
-  mechanical action item in CLAUDE.md rather than hidden.
+  mechanical action item in docs/ENGINEERING_LOG.md rather than hidden.
 
 **Everything distal of `half_arm_1` stays enabled.** That is what actually
 keeps the arms off the operator, and its measured home clearance is 0.224 m.

@@ -27,7 +27,7 @@ nothing to arrive at. Measured on the 2026-08-23 re-record, all five modes:
     04_vr_shared        666 samples   0.000 .. 0.000
     06_full_autonomy    697 samples   0.000 .. 0.000
 
-CLAUDE.md records the consequence -- "T2-1 'held by BOTH grippers' is false
+docs/ENGINEERING_LOG.md records the consequence -- "T2-1 'held by BOTH grippers' is false
 and has been for the life of the task" -- and attributes it to the elastic
 tray hiding it. The tray was fixed on 2026-08-16 and the grippers still never
 closed, because the cause is this gate.

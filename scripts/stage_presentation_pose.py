@@ -151,7 +151,7 @@ def move_seconds(worst_rad, floor_s=2.5, rate_rad_s=STAGE_RATE_RAD_S,
 # "NOT CURRENTLY MAPPED" IS NOT "ORPHANED", and no amount of refining the
 # test fixes that -- the information simply is not in /proc.
 #
-# So the port pressure is left alone. CLAUDE.md's rule stands: clear
+# So the port pressure is left alone. docs/ENGINEERING_LOG.md's rule stands: clear
 # /dev/shm/fastrtps_* only with the stack STOPPED. When staging loses the
 # race the sweep records opened_on="home" for that clip, which is a true
 # statement about a real clip rather than a graph broken to avoid it.
@@ -245,7 +245,7 @@ def main():
     # ==================================================================
     # This staged to `recordings/baselines/presentation_pose.json` -- a SIXTH
     # copy of the home pose, in a file `test_home_has_one_source` does not
-    # look at. CLAUDE.md's own note on `initial_positions.yaml` warns about
+    # look at. docs/ENGINEERING_LOG.md's own note on `initial_positions.yaml` warns about
     # exactly this shape, in exactly these words, about a different file.
     #
     # HOME BECAME THE PRESENTATION POSE ON 2026-08-16 (HARD CONSTRAINT 0) and
@@ -310,7 +310,7 @@ def main():
     # other four, so four clips silently opened on home.
     #
     # A retry gets a different port. The segments are NOT cleared here on
-    # purpose: CLAUDE.md is explicit that /dev/shm/fastrtps_* may only be
+    # purpose: docs/ENGINEERING_LOG.md is explicit that /dev/shm/fastrtps_* may only be
     # cleared with the stack STOPPED, and a staging script that wiped them
     # mid-sweep would take the running stack's discovery with it.
     last = None

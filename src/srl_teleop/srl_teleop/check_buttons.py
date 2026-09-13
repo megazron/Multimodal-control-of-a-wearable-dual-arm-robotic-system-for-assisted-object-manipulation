@@ -123,7 +123,7 @@ def main(argv=None):
         for arm in ("left", "right"):
             print("      ros2 param set /master_pose_node %s_clutch_button %d"
                   % (arm, found[arm]))
-        print("\n  Then record it in CLAUDE.md -- this is the first "
+        print("\n  Then record it in docs/ENGINEERING_LOG.md -- this is the first "
               "hardware confirmation of the mapping.")
     n.destroy_node()
     rclpy.shutdown()

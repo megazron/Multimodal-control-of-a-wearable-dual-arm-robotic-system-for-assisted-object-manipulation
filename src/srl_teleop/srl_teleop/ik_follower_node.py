@@ -37,7 +37,7 @@ import copy
 import sys
 import os
 import math
-import time    # monotonic ONLY -- never time.time() for an interval, see CLAUDE.md
+import time    # monotonic ONLY -- never time.time() for an interval, see docs/ENGINEERING_LOG.md
 sys.path.insert(0, os.path.expanduser("~/kortex_ws/config"))
 import home_positions  # loads from ~/kortex_ws/config/home_positions_<arm>.txt
 
@@ -265,7 +265,7 @@ class IKFollowerNode(Node):
         # limit. This is how far the two may drift before it snaps back to
         # reality and stops. Every resync is logged.
         self.declare_parameter("generator_resync_rad", 0.35)
-        # real_robot mode -- see CLAUDE.md. Slower, stricter, opt-in motion.
+        # real_robot mode -- see docs/ENGINEERING_LOG.md. Slower, stricter, opt-in motion.
         self.declare_parameter("real_robot", False)
         # time_from_start = unwrapped_delta / max_vel, floored at min_time.
         self.declare_parameter("max_vel_rad_s", 0.6)

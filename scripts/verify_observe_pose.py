@@ -22,7 +22,7 @@ So this checks four separate things and reports them separately:
      guard's own capsule model. `/check_state_validity` is NOT the wearer
      check and must never be used as one -- the SRDF permanently excludes
      torso/harness/backpack against each arm's base, shoulder and half_arm_1,
-     which are exactly the pairs a shoulder mount threatens. CLAUDE.md hard
+     which are exactly the pairs a shoulder mount threatens. docs/ENGINEERING_LOG.md hard
      constraint 11.
   3. THE POSE IS CLEAR OF EVERYTHING ELSE -- itself, the other arm and the
      furniture -- which IS what `/check_state_validity` is for.

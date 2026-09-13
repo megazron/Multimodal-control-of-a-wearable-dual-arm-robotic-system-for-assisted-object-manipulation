@@ -13,7 +13,7 @@ between a_hat and measured gravity, with no mount rotation to estimate and
 no integration anywhere.
 
 (The old prompt here said STRAIGHT OUT IN FRONT. That was stale -- see
-CLAUDE.md -- and the hanging-down posture is now REQUIRED, not merely
+docs/ENGINEERING_LOG.md -- and the hanging-down posture is now REQUIRED, not merely
 preferred, because a_hat is only meaningful when the arm axis lies along
 gravity at capture time.)
 

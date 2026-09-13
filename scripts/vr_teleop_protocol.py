@@ -13,7 +13,7 @@ WHAT EACH SEGMENT MEASURES, AND WHY THESE AND NOT OTHERS
 --------------------------------------------------------
 The six translation segments are the axes, one at a time, because the open
 question this rig has is a FRAME question and it cannot be answered by moving
-diagonally. CLAUDE.md records that the repository disagrees with itself about
+diagonally. docs/ENGINEERING_LOG.md records that the repository disagrees with itself about
 whether world +x is the wearer's right, and that at align_yaw_deg = 0 the lab
 measured left/right inverted, forward/back inverted, and ONLY UP AND DOWN
 WORKING -- because a yaw does not touch z, so z is the one axis a wrong yaw

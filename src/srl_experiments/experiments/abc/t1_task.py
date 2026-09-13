@@ -12,7 +12,7 @@ those properties were consequences of ONE constraint: every mode commands
 `master_calibration.WORKSPACE_ORIENT`, the pinned near-side anchor, which
 points 30.8 deg ABOVE horizontal, so the hand arrives from the near side and
 from BELOW -- through the volume a table top occupies, and never far enough
-inboard to work in front of the person. `archive/recordings/
+inboard to work in front of the person. `extras/archive/recordings/
 t1_20260817_deleted_and_rebuilt/NOTE.md` holds the whole account.
 
 THIS T1 RUNS UNDER `06_full_autonomy` AND NOTHING ELSE, and that is what makes

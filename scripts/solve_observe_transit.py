@@ -24,7 +24,7 @@ WHY NOT JUST ASK MOVEIT TO PLAN IT. Because MoveIt cannot see the wearer where
 it matters. The SRDF permanently excludes torso/harness/backpack against each
 arm's base, shoulder and half_arm_1 -- exactly the pairs a shoulder mount
 threatens -- so a planned path can be returned `valid` with the tube inside the
-person. CLAUDE.md hard constraint 11. The wearer check here is geometric, with
+person. docs/ENGINEERING_LOG.md hard constraint 11. The wearer check here is geometric, with
 the mount guard's own capsule model.
 
 CONTROLS, and there is no report without them:

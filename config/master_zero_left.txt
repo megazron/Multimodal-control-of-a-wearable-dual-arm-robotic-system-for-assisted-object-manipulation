@@ -1,6 +1,6 @@
 # left master arm reference, captured with the arm HANGING
 # STRAIGHT DOWN at rest. (The old header here said STRAIGHT OUT IN
-# FRONT; that was stale and wrong -- see CLAUDE.md. The hanging-down
+# FRONT; that was stale and wrong -- see docs/ENGINEERING_LOG.md. The hanging-down
 # posture is now REQUIRED, because a_hat below is only meaningful
 # when the arm axis is along gravity at capture time.)
 

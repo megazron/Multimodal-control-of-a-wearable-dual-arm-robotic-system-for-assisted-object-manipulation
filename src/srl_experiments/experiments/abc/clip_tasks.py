@@ -78,7 +78,7 @@ def _hold(pt, n):
 #  2. The bench was DECORATION. clip_scene published a MarkerArray to
 #     /task_objects and nothing at all to /planning_scene, so `avoid_collisions`
 #     could not see it and the arm swept straight through a bench that looked
-#     solid on screen. CLAUDE.md already records this exact failure for the
+#     solid on screen. docs/ENGINEERING_LOG.md already records this exact failure for the
 #     earlier task_scene work -- "rehearsing against decoration teaches a
 #     motion that will collide on the real rig" -- and the clip scene had
 #     regressed it.

@@ -30,7 +30,7 @@ optical-frame convention (z forward, x right, y down) is exercised for real.
 WHAT THIS CAN AND CANNOT VERIFY -- READ BEFORE CITING ANYTHING FROM IT
 =====================================================================
 
-The standing rule in CLAUDE.md is that synthetic ONLY counts where the ground
+The standing rule in docs/ENGINEERING_LOG.md is that synthetic ONLY counts where the ground
 truth is CONSTRUCTED, not RENDERED. That line runs straight through this node,
 and it is the whole reason the file has this section:
 
@@ -114,7 +114,7 @@ BG_DEPTH_MM = 0                # 0 = invalid, the real sensor's no-return code
 # can SEE, and at the home pose neither wrist camera frames the work surface:
 # measured, the bench and table sit at pixel (954, 539) and (1115, 765) for the
 # right camera -- in front of it, but outside a 640 x 480 frame. That is not a
-# defect, it is the documented parking (CLAUDE.md: the left wrist "points
+# defect, it is the documented parking (docs/ENGINEERING_LOG.md: the left wrist "points
 # UPWARD - sees nothing at table height from home"; point the arms first).
 # Verifying against an empty frame measures nothing and reports it as a
 # pipeline failure, which is the instrument-blaming-the-system error the

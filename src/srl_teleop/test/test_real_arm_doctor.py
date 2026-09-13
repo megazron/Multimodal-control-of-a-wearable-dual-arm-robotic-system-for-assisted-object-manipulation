@@ -2,7 +2,7 @@
 unknown.
 
 A CHECK THAT CANNOT FAIL ON A DELIBERATELY BROKEN INPUT IS NOT A CHECK -- the
-standing rule in CLAUDE.md, and the reason this file exists rather than a
+standing rule in docs/ENGINEERING_LOG.md, and the reason this file exists rather than a
 "the panel renders" smoke test. The seven checks in `real_arm_doctor` are the
 seven ways connecting the real arms has actually gone wrong on this rig, and
 each one is here driven three ways:

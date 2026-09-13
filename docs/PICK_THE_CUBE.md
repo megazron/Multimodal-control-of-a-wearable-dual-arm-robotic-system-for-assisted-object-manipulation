@@ -52,7 +52,7 @@ answer before it was found.
    on a four-bar: wrist-to-pad is 0.09833 m open, 0.10976 m closed on a 40 mm
    cube. Solving with the hand open and then closing drives the pads **11.43 mm**
    further along the tool axis — into the table. Poses are solved at
-   `CUBE_GRIP`. (CLAUDE.md already records this as "T1's grasp was built
+   `CUBE_GRIP`. (docs/ENGINEERING_LOG.md already records this as "T1's grasp was built
    11.43 mm short".)
 
 3. **The wrist camera cannot see its own grasp.** The last ~80 mm pushes the

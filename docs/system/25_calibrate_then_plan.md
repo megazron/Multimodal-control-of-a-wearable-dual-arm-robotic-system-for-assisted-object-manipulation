@@ -22,7 +22,7 @@ Three pieces that could have sensed instead existed and were never composed:
   wearer — and was **constructed nowhere outside its own self-test**, so no
   path this project has ever planned knew the table was there;
 * `work_surface.set_measured()` exists so the surface height can come from
-  depth, and CLAUDE.md records that nothing calls it.
+  depth, and docs/ENGINEERING_LOG.md records that nothing calls it.
 
 ## IS THIS A ONE-TIME THING?
 

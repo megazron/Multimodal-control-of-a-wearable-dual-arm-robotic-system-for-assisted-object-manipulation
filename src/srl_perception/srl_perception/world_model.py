@@ -27,7 +27,7 @@ COMPOSED:
   * `grasp_pipeline.plan_grasp` plans a grasp from a cloud, for one prompt,
     with no memory between calls;
   * `work_surface.set_measured()` exists so the surface height can come from
-    depth, and CLAUDE.md records that nothing calls it.
+    depth, and docs/ENGINEERING_LOG.md records that nothing calls it.
 
 So the robot has eyes, a planner that can avoid obstacles, and a place to put
 the answer -- and no stage that joins them. This module is that stage's

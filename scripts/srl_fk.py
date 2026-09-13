@@ -30,7 +30,7 @@ only in the sense that it is cheap enough not to need to be.
 THE INSTRUMENT IS CHECKED BEFORE IT IS USED. `self_test()` reproduces the
 world positions that `recordings/baselines/home_render.json` recorded from
 LIVE TF on a booted stack, for the shipped home pose, on eight links per arm.
-That file is real data with known ground truth, which is what CLAUDE.md's
+That file is real data with known ground truth, which is what docs/ENGINEERING_LOG.md's
 standing rule asks for -- not a synthetic pose whose "right answer" came from
 this same code. A tolerance of 1 mm is used because home_render.json stores 4
 decimal places.

@@ -155,4 +155,4 @@ Stated here rather than left as an absence that reads like a clean bill.
 `docs/system/findings.md` — the measurement session itself, the four
 instrument defects found on the way, and the per-direction table.
 `docs/TASK_SPEC.md` §2A — the workspace as it now stands.
-`CLAUDE.md` HARD CONSTRAINT 11 — why the floor is not lowered.
+`docs/ENGINEERING_LOG.md` HARD CONSTRAINT 11 — why the floor is not lowered.

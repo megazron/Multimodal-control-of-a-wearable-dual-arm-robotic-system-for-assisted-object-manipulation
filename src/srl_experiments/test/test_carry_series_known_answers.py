@@ -7,7 +7,7 @@ both every tick and `_carry_summary()` reduces the series.
 
 The ground truth here is CONSTRUCTED, not rendered -- it is trigonometry over
 numbers written down in this file -- which is the only kind of synthetic input
-CLAUDE.md allows for an instrument check.
+docs/ENGINEERING_LOG.md allows for an instrument check.
 
 THE CASE THAT MATTERS is the last one: a tray that swings past the failure
 tilt in the middle of the carry and comes back level. Every end-state check

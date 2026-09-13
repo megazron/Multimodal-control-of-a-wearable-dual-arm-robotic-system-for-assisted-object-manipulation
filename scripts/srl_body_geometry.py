@@ -15,7 +15,7 @@ a set of tubes and a hand between them.
   about a pose in which the arm was PHYSICALLY JAMMED AGAINST THE MANNEQUIN,
   `ClearanceModel` returned 367.0 mm -- the same number it returns for a
   visibly clear pose. It samples origins, so the metal BETWEEN the joints is
-  invisible to it, and that metal is what touches the person. CLAUDE.md lists
+  invisible to it, and that metal is what touches the person. docs/ENGINEERING_LOG.md lists
   HARD CONSTRAINT 11 as currently unenforced in code for exactly this reason.
 
   THE DESCENT.  The gripper's lowest point is not the end-effector origin and
@@ -28,7 +28,7 @@ meshes the URDF already names, transforms their vertices by the same FK the
 planner uses, and answers in world coordinates.
 
 NO NEW DEPENDENCY. trimesh is not installed and this deliberately does not
-install it: CLAUDE.md records that adding a package to `.venv_vision` once
+install it: docs/ENGINEERING_LOG.md records that adding a package to `.venv_vision` once
 took `real_calibration/check_all.py` from 4/4 to 2/4. Binary STL is 84 bytes
 of header and 50 bytes per triangle; the reader below is fifteen lines.
 
@@ -301,7 +301,7 @@ def wearer_clearance(fk, arm, q, grip=0.0, model=None, pad=0.0,
         if skip_static and link.endswith("_base_link"):
             # THE MOUNT IS NOT A CLEARANCE RESULT.
             #
-            # `base_link` is bolted to the frame: CLAUDE.md records it sitting
+            # `base_link` is bolted to the frame: docs/ENGINEERING_LOG.md records it sitting
             # a fixed distance from the torso with NO JOINT ABLE TO MOVE IT,
             # and warns that a reading of exactly that number is "the MOUNT,
             # not the arm". Including it means every pose reports the same

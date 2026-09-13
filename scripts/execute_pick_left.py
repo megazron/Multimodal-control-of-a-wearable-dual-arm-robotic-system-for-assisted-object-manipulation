@@ -22,7 +22,7 @@ WHY THE DEADBAND IS LOWERED
 ---------------------------
 The bridge runs a proportional law with a deadband inside which the term is
 off by design.  At the shipped 1.0 deg, a target ramped in small steps can sit
-inside the deadband and produce no velocity at all.  CLAUDE.md already records
+inside the deadband and produce no velocity at all.  docs/ENGINEERING_LOG.md already records
 0.10 deg as the correct value; this sets it for the run.
 
 SAFETY PROPERTIES

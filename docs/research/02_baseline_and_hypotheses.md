@@ -19,7 +19,7 @@ checks and correction *before* data collection. Effect sizes used in the power s
 **guesses** and are labelled as such; they must be replaced with pilot estimates before
 the design is locked.
 
-**Prerequisite that is not yet satisfied.** `CLAUDE.md` records that the robot's tracking
+**Prerequisite that is not yet satisfied.** `docs/ENGINEERING_LOG.md` records that the robot's tracking
 of a *moving* master has never been measured — all sub-millimetre tracking figures were
 taken with the master at rest, and the one recording with a moving master (right arm,
 2097 samples, superseded settings) showed an end-effector gain of ~0.1 against a commanded
@@ -54,7 +54,7 @@ category error, for four independent reasons:
 
 2. **Different task.** The comparison tasks in that literature (assistive feeding, bottle
    grasping, cluttered reaching) are not the same task and are not calibrated to a common
-   index of difficulty. `CLAUDE.md` records that the volume in this project's own brief is
+   index of difficulty. `docs/ENGINEERING_LOG.md` records that the volume in this project's own brief is
    not even reachable: 5.6% IK success with collisions on, 11.1% with them off; moving the
    same box to the arm's own side at chest height gives 77.8–100%. A number produced on an
    unreachable volume is not comparable to anything.
@@ -123,7 +123,7 @@ a literature.
 
 - Fitts' law was derived for planar aimed movement. Its fit to 3D robotic-arm control is
   known to be anisotropic in the literature, and this system has a *known* directional
-  defect: `CLAUDE.md` records that up/down and fore/aft track correctly on both arms while
+  defect: `docs/ENGINEERING_LOG.md` records that up/down and fore/aft track correctly on both arms while
   lateral does not, with a Kabsch residual of 54.8° (left) / 54.7° (right) between measured
   and intended sweep directions. **Throughput must therefore be reported per axis as well
   as pooled**, or the pooled number will silently average a working axis with a broken one.
@@ -166,14 +166,14 @@ a literature.
 be meaningful, and produce the throughput figure and the per-axis breakdown.
 
 **Task.** ISO 9241-411-style 3D reciprocal pointing: spherical targets presented in the
-arm's own-side chest-height volume (the volume `CLAUDE.md` measures at 77.8–100% IK, not
+arm's own-side chest-height volume (the volume `docs/ENGINEERING_LOG.md` measures at 77.8–100% IK, not
 the unreachable table volume), at 3 amplitudes × 3 widths, giving IDs spanning roughly
 2–5 bits. Directions blocked so that vertical, fore/aft and lateral are separable.
 
 | | statement |
 |---|---|
 | **H1.1** | Movement time increases linearly with the effective index of difficulty. **Direction:** positive slope. **DV:** MT (s) per trial. **Test:** ordinary least-squares regression of mean MT on IDe per participant; report r² per participant and the group mean r². **Pre-registered acceptance threshold:** group mean r² ≥ 0.85, which is the conventional bar for "the model applies". |
-| **H1.2** | Throughput differs by movement axis, and is **lowest for the lateral axis**. **Direction:** TP(lateral) < TP(vertical) and TP(lateral) < TP(fore/aft). **Rationale:** not a guess — `CLAUDE.md` measures azimuth as the broken channel (Kabsch residual ~54.8°, intended-orthogonal directions measured 137.7° apart). **DV:** TP (bits/s) per participant per axis. **Test:** one-way repeated-measures ANOVA, factor = axis (3 levels), followed by two pre-planned contrasts (lateral vs vertical, lateral vs fore/aft). **Non-parametric fallback:** Friedman + Wilcoxon signed-rank on the two contrasts. |
+| **H1.2** | Throughput differs by movement axis, and is **lowest for the lateral axis**. **Direction:** TP(lateral) < TP(vertical) and TP(lateral) < TP(fore/aft). **Rationale:** not a guess — `docs/ENGINEERING_LOG.md` measures azimuth as the broken channel (Kabsch residual ~54.8°, intended-orthogonal directions measured 137.7° apart). **DV:** TP (bits/s) per participant per axis. **Test:** one-way repeated-measures ANOVA, factor = axis (3 levels), followed by two pre-planned contrasts (lateral vs vertical, lateral vs fore/aft). **Non-parametric fallback:** Friedman + Wilcoxon signed-rank on the two contrasts. |
 | **H1.3** | Overall throughput of the master arm is **below the published mouse range** (3.7–4.9 bits/s, Soukoreff and MacKenzie, 2004). **Direction:** lower. **DV:** pooled TP per participant. **Test:** one-sample t-test against 3.7 bits/s, one-tailed, as a descriptive anchor only. **This is explicitly labelled a weak comparison** (different task, different participants, different apparatus) and is reported as context, not as a finding. |
 
 **Confirmatory family for E1:** {H1.2 contrast 1, H1.2 contrast 2}. H1.1 is a model-fit
@@ -383,7 +383,7 @@ deserves a full answer rather than a deflection.
 
 ### 4.1 What the objection gets right, conceded without hedging
 
-This rig genuinely has broken sensors, and the record is specific about it (`CLAUDE.md`):
+This rig genuinely has broken sensors, and the record is specific about it (`docs/ENGINEERING_LOG.md`):
 
 - **LEFT:** j1–j4 live; j5 shows 2.8% exact zeros and 14% railed; j6 is clamped at 0 for
   12.8% of frames; j7 is railed 75% of the time.
@@ -423,7 +423,7 @@ unchanged and is therefore **unobservable in principle**, not merely poorly cali
 
 This project's own design exploits exactly that structure, which is why it is a clean
 demonstration rather than an excuse. Elevation is taken as
-`asin(dot(a_hat, normalize(accel)))`, which `CLAUDE.md` describes as mount-independent and
+`asin(dot(a_hat, normalize(accel)))`, which `docs/ENGINEERING_LOG.md` describes as mount-independent and
 drift-free with no integration — because it uses the observable part. Azimuth is precisely
 the unobservable part, and it is taken from a single joint angle (j1) as a substitute. The
 consequence is measured, not asserted: fitting the best rotation from measured sweep
@@ -456,7 +456,7 @@ of a wearable, or adds a second body-worn subsystem with its own drift and its o
 budget. This is a genuine design space with genuine trade-offs, which is what makes it
 worth studying.
 
-**(d) The consequence is already measured on this rig.** `CLAUDE.md` records IK
+**(d) The consequence is already measured on this rig.** `docs/ENGINEERING_LOG.md` records IK
 feasibility with orientation taken from the wrist versus held at a fixed anchor:
 
 | arm | scale | orientation from wrist | held at anchor |
@@ -504,14 +504,14 @@ variable the *structural* deficit — the one that no repair can remove — rath
 soldering failure. The manipulation is then reversible, calibrated and identical across
 participants, which a hardware fault can never be.
 
-The left arm is the candidate for this: `CLAUDE.md` records j1–j4 live, gyro drift
+The left arm is the candidate for this: `docs/ENGINEERING_LOG.md` records j1–j4 live, gyro drift
 −5.0 °/min (usable), and a clean 109 distinct j1 values over 193.5° during shoulder
 rotation. The right arm's j3/j5/j7 harness fault and 12.9% j4 dropout make it unsuitable
 for E4 until repaired, and that should be stated in the methods rather than worked around.
 
 **Control 2 — channel liveness is reported for every trial, as data.**
 The recorder already writes a `<csv>.meta.json` sidecar per run and a per-frame validity
-flag; `CLAUDE.md` shows the validator tracks dropouts to within 0.1% (`valid==0` at 13.0%
+flag; `docs/ENGINEERING_LOG.md` shows the validator tracks dropouts to within 0.1% (`valid==0` at 13.0%
 against `j4==0` at 12.9%), so no fabricated data reaches the command. E4 extends this into
 the reporting requirement:
 
@@ -622,7 +622,7 @@ amount of order counterbalancing removes.
 ### 5.2 Channel dropouts mid-trial
 
 **The threat.** A right-arm j4 dropout freezes the command at the last good joint vector.
-`CLAUDE.md` records the effect precisely: the right command freezes for half of one sweep
+`docs/ENGINEERING_LOG.md` records the effect precisely: the right command freezes for half of one sweep
 and a quarter of another, which "flattens measured displacement, biases the gain toward
 zero and adds apparent lag". A frozen command during a Fitts trial inflates movement time
 and looks exactly like poor operator performance.
@@ -638,7 +638,7 @@ in the methods.
 **The threat.** Running the rig on a bench and running it worn are not the same experiment,
 and conflating them changes what is being claimed. Worn operation adds: the wearer's own
 postural sway coupling into the mount; a real collision risk from the arms to the wearer
-(`CLAUDE.md` records a measured 0.126 m clearance to the head at the current right home —
+(`docs/ENGINEERING_LOG.md` records a measured 0.126 m clearance to the head at the current right home —
 6 mm above the 0.12 m floor); genuine mass on the shoulders; and the psychological effect
 of a 7-DOF arm moving near one's own head, which plausibly changes how much authority an
 operator is willing to cede.
@@ -843,7 +843,7 @@ sources; [UNVERIFIED] in detail)*
 
 **Project-internal source (not a publication)**
 
-`kortex_ws/CLAUDE.md` — engineering log. All numeric claims attributed to "`CLAUDE.md`" in
+`docs/ENGINEERING_LOG.md` — engineering log. All numeric claims attributed to "`docs/ENGINEERING_LOG.md`" in
 this document (channel health, dropout rates, gyro drift, Kabsch residuals, IK feasibility
 by orientation mode, clearance margins, master reach 0.272 m, real-arm loop rate and
 latency) are measurements from this rig, not published results.

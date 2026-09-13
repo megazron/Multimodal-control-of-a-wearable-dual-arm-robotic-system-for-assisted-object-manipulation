@@ -14,7 +14,7 @@ The parts that could sense instead already existed and were never composed:
     wearer -- and was constructed NOWHERE outside its own self-test, so the
     planner has never known the table exists;
   * `work_surface.set_measured()` exists so the surface height can come from
-    depth, and CLAUDE.md records that nothing calls it.
+    depth, and docs/ENGINEERING_LOG.md records that nothing calls it.
 
 So: eyes, a planner that can avoid obstacles, somewhere to put the answer,
 and no stage joining them. These tests are about that stage.
@@ -28,7 +28,7 @@ and no stage joining them. These tests are about that stage.
   4  every stage says what it is doing, in one vocabulary.
 
 Constructed geometry throughout: the ground truth is arithmetic, which is
-what CLAUDE.md's standing rule allows synthetic data for. NO CAMERA HAS EVER
+what docs/ENGINEERING_LOG.md's standing rule allows synthetic data for. NO CAMERA HAS EVER
 BEEN ATTACHED TO THIS HOST, so "the robot has seen the room" is not tested
 here and is not claimed anywhere.
 """

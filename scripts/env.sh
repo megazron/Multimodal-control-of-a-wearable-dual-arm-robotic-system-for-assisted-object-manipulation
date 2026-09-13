@@ -99,7 +99,7 @@ export RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
 export ROS_AUTOMATIC_DISCOVERY_RANGE="${ROS_AUTOMATIC_DISCOVERY_RANGE:-SUBNET}"
 # THE ONE HARD CONSTRAINT 5 CALLS MANDATORY, AND IT WAS NOT IN HERE.
 #
-# CLAUDE.md names this file the single source of environment truth and rule 5
+# docs/ENGINEERING_LOG.md names this file the single source of environment truth and rule 5
 # says FASTDDS_BUILTIN_TRANSPORTS=SHM is "NOT optional" because UDP discovery
 # is dead on this host. It was set in exactly one place: the shells
 # sim_session.py opens for the LAUNCH. So a stack started through sim_session

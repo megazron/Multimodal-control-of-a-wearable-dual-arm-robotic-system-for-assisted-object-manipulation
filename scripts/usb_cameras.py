@@ -113,7 +113,7 @@ def video_nodes():
 # delivered a frame. This script said "Nothing to do -- the cameras are in
 # WSL" while the scene camera could not see the room.
 #
-# That is CLAUDE.md's own instrument row -- "feature present but does
+# That is docs/ENGINEERING_LOG.md's own instrument row -- "feature present but does
 # nothing" -- and its own standing rule, PREFER A PROBE OVER A FIND: asking
 # whether a process or a device node exists is a proxy for asking whether
 # the thing works, and the proxy and the answer came apart here.

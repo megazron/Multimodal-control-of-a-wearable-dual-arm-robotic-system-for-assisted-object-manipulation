@@ -10,13 +10,13 @@ clips. Both fixes were about the KEY. Neither looked inside a clip.
 So a clip recorded as one task and written into another task's directory would
 still have been counted, and the table would have reported a task as covered on
 the strength of another task's footage -- with no gap showing anywhere. That is
-the "everything matches" row of CLAUDE.md's instrument table again: two
+the "everything matches" row of docs/ENGINEERING_LOG.md's instrument table again: two
 namespaces, one key space.
 
 `clip_scene` stamps the task it was publishing into `scene_events.json`, so the
 check costs one string comparison per clip. This file proves the guard can
 actually reject, because an audit that finds nothing today proves only that
-today is clean -- CLAUDE.md: a check that cannot fail on a deliberately broken
+today is clean -- docs/ENGINEERING_LOG.md: a check that cannot fail on a deliberately broken
 input is not a check.
 
 Audited over all 37 clips on 2026-08-17: 0 mismatched, 0 without a record, 0

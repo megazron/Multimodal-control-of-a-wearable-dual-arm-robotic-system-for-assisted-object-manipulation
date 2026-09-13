@@ -272,7 +272,7 @@ def main():
             # prints "SKIP (t1 runs under 06_full_autonomy only)". This table
             # was calling the other four modes REAL GAPS, so a set that is
             # complete by the task's own declaration reported four defects.
-            # That is CLAUDE.md's "a gap that is not a gap" row exactly: a
+            # That is docs/ENGINEERING_LOG.md's "a gap that is not a gap" row exactly: a
             # by-design absence rendered identically to a missing clip.
             #
             # Read off the TASK SPEC through the same helper the sweep uses,

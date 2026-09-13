@@ -13,7 +13,7 @@ THE COLLISION. Two task families in this repository both have a `t2` and a
 so an MSc T2 clip was looked up as "t2" and checked for a TEAL CONTAINER --
 an object that is not in that scene and never could be. Every symptom of it
 looks like a real object failure, which is the substring/prefix family from
-CLAUDE.md's instrument table.
+docs/ENGINEERING_LOG.md's instrument table.
 
 The two trees are shaped differently and that is what `requirements_for`
 reads: the MSc and A/B/C sweeps write <mode>/<task>/..., and a mode is always

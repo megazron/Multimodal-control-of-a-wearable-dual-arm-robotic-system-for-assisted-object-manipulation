@@ -33,7 +33,7 @@ FRAMES -- stated explicitly, because getting this wrong is silent
 -----------------------------------------------------------------
 Unity/Quest is LEFT-handed: **x right, y UP, z forward**.
 This repo's world frame is **x = wearer's RIGHT, y = FORWARD, z = UP**
-(NOT the ROS x-forward convention; see CLAUDE.md).
+(NOT the ROS x-forward convention; see docs/ENGINEERING_LOG.md).
 
     p_world = (x_q, z_q, y_q)
 

@@ -91,7 +91,7 @@ class V(Node):
             self.saw_blocking += 1
             self.active.update(d.get("active") or [])
             # expired counts as blocking: the asserting loop stopped, so the
-            # condition is UNKNOWN, not clear. See CLAUDE.md.
+            # condition is UNKNOWN, not clear. See docs/ENGINEERING_LOG.md.
             self.active.update(d.get("expired") or [])
             self.registered.update(b.get("name") for b in d.get("blockers") or []
                                    if isinstance(b, dict))

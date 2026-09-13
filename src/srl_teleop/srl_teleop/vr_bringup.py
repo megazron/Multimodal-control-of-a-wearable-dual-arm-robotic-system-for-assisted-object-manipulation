@@ -417,7 +417,7 @@ class World:
     # simulation, `step_ready` believed it, and the button reported
     # "the simulation is not saying where the robot is" about a simulation
     # that was saying it 98 times a second. The instrument was the fault --
-    # CLAUDE.md's standing rule, and it caught this one on the first check.
+    # docs/ENGINEERING_LOG.md's standing rule, and it caught this one on the first check.
     #
     # And the plain `timeout` is the second half: SIGTERM hard-kills a DDS
     # participant holding shared memory, which is the exact hazard
@@ -1272,7 +1272,7 @@ def step_ready(w, window_s=2.0):
     # "ALMOST READY: THE SIMULATION IS NOT REPORTING" in the same run that
     # step 5 had logged "the simulation is running": same predicate, one
     # working probe and one failed one, and only the second was allowed to
-    # sound certain. It is CLAUDE.md's worst combination -- false, specific
+    # sound certain. It is docs/ENGINEERING_LOG.md's worst combination -- false, specific
     # and confident -- and it sends the operator to the wrong log.
     t = w.topics()
     if t is None:
@@ -1434,7 +1434,7 @@ def _sweep_unowned(w):
     # a stack that has been up for an hour has hour-old segments. Ownership
     # narrows what is removed; it does not make removal safe.
     #
-    # CLAUDE.md HARD CONSTRAINT 5 and env.sh both said "with the stack
+    # docs/ENGINEERING_LOG.md HARD CONSTRAINT 5 and env.sh both said "with the stack
     # STOPPED". They were right and this file overrode them with an
     # inference.
     live = _anything_running(w)
@@ -1619,7 +1619,7 @@ def fix_restart_sim(w):
     # the simulation absent, and RViz was still a grey window while both
     # sentences were on screen. A repair that returns before it has
     # repaired anything is the "feature present but does nothing" row of
-    # CLAUDE.md, in the button whose whole job is to fix this.
+    # docs/ENGINEERING_LOG.md, in the button whose whole job is to fix this.
     ok, secs, why = _wait_for_sim(w)
     if ok:
         return True, ("Stopped %d part(s), started the simulation again and "

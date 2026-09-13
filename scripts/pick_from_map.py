@@ -193,7 +193,7 @@ def choose(doc, index=None, nearest=None, colour=None, graspable_only=True):
 #   ...
 #   -31 deg   2 of 5              -- the anchor, from below
 #
-# CLAUDE.md records "top-down on a surface: 0 of 840 cells". That was measured
+# docs/ENGINEERING_LOG.md records "top-down on a surface: 0 of 840 cells". That was measured
 # on the OLD MOUNT, before the mounts moved 150 mm outboard and 15 degrees of
 # yaw, and it is still right about STRAIGHT DOWN. It is wrong about steeply
 # from above, which nobody had asked.
@@ -217,7 +217,7 @@ def approach_axis(arm):
     """The rig's shipped anchor direction. Kept for callers that want it.
 
     NOT recomputed from anything. `master_calibration.WORKSPACE_ORIENT` is a
-    stored constant and CLAUDE.md's hard constraint 1 says re-deriving it
+    stored constant and docs/ENGINEERING_LOG.md's hard constraint 1 says re-deriving it
     costs T2 its right arm. This is the -31 degree, from-BELOW approach, which
     is why a grasp built on it looks like the hand coming up out of the table.
     """
@@ -423,7 +423,7 @@ def run(node, arm, doc, obj, place_xy, execute, plan_joints=True):
     # toward the object. It is what the arm was pinned to and it is not what
     # anybody wants to watch.
     #
-    # Straight down is genuinely unreachable, and CLAUDE.md's "0 of 840 cells"
+    # Straight down is genuinely unreachable, and docs/ENGINEERING_LOG.md's "0 of 840 cells"
     # is right about that. But it was measured on the OLD MOUNT and it is
     # wrong about STEEPLY from above: at +70 degrees every object the
     # calibration found solves, on both arms.

@@ -43,7 +43,7 @@ carries the confidence that inference earns.
 
 ## 0. `/mnt/c`
 
-Healthy. The I/O errors recorded in `CLAUDE.md` are gone — a WSL restart at
+Healthy. The I/O errors recorded in `docs/ENGINEERING_LOG.md` are gone — a WSL restart at
 some point fixed the dead 9p mount. Both files read directly, no remount
 needed.
 

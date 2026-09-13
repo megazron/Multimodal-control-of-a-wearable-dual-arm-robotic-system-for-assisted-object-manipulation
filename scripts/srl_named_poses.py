@@ -5,7 +5,7 @@
 
 ONE SOURCE PER POSE, NAMED IN THE FILE IT COMES FROM. This module exists so
 the GUI's buttons and every script agree on what "home" and "the pick pose"
-mean, rather than each carrying its own copy. CLAUDE.md records that home was
+mean, rather than each carrying its own copy. docs/ENGINEERING_LOG.md records that home was
 stored in FIVE places and drifted between them; adding a button that hardcodes
 an eighth copy would be repeating exactly that.
 

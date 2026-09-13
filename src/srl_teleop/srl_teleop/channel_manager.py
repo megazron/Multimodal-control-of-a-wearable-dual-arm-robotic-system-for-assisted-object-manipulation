@@ -41,7 +41,7 @@ CAPABILITY = {
            "disabled, azimuth is FROZEN and lateral teleop is unusable"),
     "j2": ("shoulder bend, feeds reach magnitude",
            "reach magnitude degrades; measured tip error rises (see the "
-           "reduction ladder in CLAUDE.md)"),
+           "reduction ladder in docs/ENGINEERING_LOG.md)"),
     "j3": ("upper-arm roll; contributes almost nothing to reach magnitude",
            "negligible - already passed through as 0 when dead"),
     "j4": ("elbow bend, the dominant term in reach magnitude",

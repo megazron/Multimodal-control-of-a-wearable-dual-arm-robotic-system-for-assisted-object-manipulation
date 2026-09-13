@@ -13,7 +13,7 @@ SNAPSHOT tool: it blocks on `input()` at line 167 waiting for the operator to
 press ENTER in a terminal. The GUI launches it detached with stdout and
 stderr at DEVNULL and no controlling terminal, so it captured NOTHING, said
 nothing, and exited zero. Every "recorded" trial since produced an empty
-directory. That is CLAUDE.md's own "feature present but does nothing" row,
+directory. That is docs/ENGINEERING_LOG.md's own "feature present but does nothing" row,
 in the button whose entire job is to produce the evidence.
 
 WHAT IS CAPTURED
@@ -36,7 +36,7 @@ THE RATE IS SEPARATE FROM THE BAG ON PURPOSE. The bag holds every message at
 its own rate; `trail.csv` is a uniform resample so that "master vs commanded
 vs real" can be subtracted sample by sample without interpolation games. A
 statistic of 0.000 everywhere is the classic oversampling artefact
-(CLAUDE.md's instrument table), so the trail records, per row, whether each
+(docs/ENGINEERING_LOG.md's instrument table), so the trail records, per row, whether each
 source actually DELIVERED a new message since the last row -- the `*_fresh`
 columns. A column that is never fresh is a DEAD channel, not a steady value.
 """
@@ -960,7 +960,7 @@ def main():
     for bad in ("@", " "):
         if bad in a.participant:
             print("REFUSED: --participant must be an anonymous code, not a name "
-                  "or an address (CLAUDE.md hard constraint 12).")
+                  "or an address (docs/ENGINEERING_LOG.md hard constraint 12).")
             os.remove(CURRENT)
             return 3
     with open(os.path.join(outdir, "manifest.json"), "w") as f:

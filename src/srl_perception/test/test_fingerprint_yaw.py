@@ -8,7 +8,7 @@ anywhere could tell that apart from a correct grasp on a square object. It is
 listed as `object_rotated_30deg`, SILENT, in the lab-day fault table.
 
 These are arithmetic against angles written down here, which is the
-constructed ground truth CLAUDE.md permits.
+constructed ground truth docs/ENGINEERING_LOG.md permits.
 """
 
 import math

@@ -80,10 +80,10 @@ json.dump({"q":q,"grasp_world":gw.tolist(),"grasp_base":gb.tolist(),"grasp_cam":
 "table_normal_world":nw.tolist(),"tilt_deg":tilt,"height_mm":float(hc.max()*1000),
 "footprint_mm":[float((a.max()-a.min())*1000),float((b.max()-b.min())*1000)],
 "plane_rms_mm":float(np.sqrt((h[minl]**2).mean())*1000),"n_cube":int(cube.sum())},
- open("/tmp/claude-1000/-home-gausms-kortex-ws/0353f722-b129-4dcb-bf5e-6f4c8caf94a7/scratchpad/cube_v2.json","w"),indent=1)
+ open("/tmp/scratch/cube_v2.json","w"),indent=1)
 ov=col.copy()
 cont,_=cv2.findContours(mask,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE); cv2.drawContours(ov,cont,-1,(0,255,255),2)
 gu,gv=uu[cube].astype(int),vv[cube].astype(int)
 for Xp,Yp in zip(gu,gv): cv2.circle(ov,(Xp,Yp),1,(0,0,255),-1)
-cv2.imwrite("/tmp/claude-1000/-home-gausms-kortex-ws/0353f722-b129-4dcb-bf5e-6f4c8caf94a7/scratchpad/cam/locate.png",ov)
+cv2.imwrite("/tmp/scratch/cam/locate.png",ov)
 print("wrote locate.png")

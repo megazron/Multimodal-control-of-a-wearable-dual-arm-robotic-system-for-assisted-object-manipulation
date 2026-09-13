@@ -114,7 +114,7 @@ def test_exactly_home_reads_zero_not_nothing():
 def test_a_known_displacement_reads_back_as_itself(arm, joint, delta):
     """The instrument must return the number that was put in, on the right
     joint. A reading that is the same whatever is displaced is the
-    'every pose returns one value' row of CLAUDE.md's failure table."""
+    'every pose returns one value' row of docs/ENGINEERING_LOG.md's failure table."""
     ra = _run_abc()
     js = _js_at_home({(arm, joint): delta})
     err = ra.home_error(FakeNode(js))

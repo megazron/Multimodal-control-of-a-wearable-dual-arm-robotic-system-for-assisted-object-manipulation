@@ -11,7 +11,7 @@ start fails and the function reports:
 
 which is a CONCLUSION, not a measurement. Measured on 2026-08-21: a target it
 refused at 301 restarts was walked to within 42 mm by plain random FK
-sampling. CLAUDE.md already records this failure for this function -- "every
+sampling. docs/ENGINEERING_LOG.md already records this failure for this function -- "every
 'cannot reach' it produced meant 'I did not look'" -- and it was still the
 default path.
 

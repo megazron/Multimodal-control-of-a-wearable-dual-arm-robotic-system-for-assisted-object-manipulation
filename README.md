@@ -1,427 +1,153 @@
-# kortex_ws — shared autonomy for a wearable supernumerary robotic limb
+# Multimodal control of a wearable dual-arm robotic system for assisted object manipulation
 
-## HOW TO RUN THINGS
+Two Kinova Gen3 seven-joint arms on a backpack frame, worn by one person and
+driven by another. The operator commands the arms through either an
+instrumented mannequin master (a hand-sized model of the arm moved with the
+fingers, read by a Teensy 4.1) or a pair of Meta Quest controllers; a
+shared-autonomy layer can supply the wrist orientation while the operator keeps
+position control; and a safety layer holds every link of the arms at least
+150 mm from the wearer. ROS 2 Jazzy, MoveIt 2, TRAC-IK, Ruckig.
 
-```bash
-source /opt/ros/jazzy/setup.bash && source ~/kortex_ws/install/setup.bash
+This repository is the software, firmware, design files and analysis behind
+the MSc thesis of the same title (Imperial College London, Bioengineering,
+2026). The thesis itself is in `extras/thesis/thesis_v3/main.pdf`.
 
-ros2 run srl_teleop console       # Dear PyGui dashboard  -- PRIMARY
-ros2 run srl_teleop launcher      # tkinter launcher      -- simpler
-ros2 run srl_teleop teleop_gui    # terminal console      -- SSH / no display
-```
+## Repository layout
 
-Everything else — every mode, experiment, calibration and diagnostic — is a
-button inside them. The console refuses to start a second stack and says why:
-two `master_pose_node` instances split the serial stream and invalidated a
-full day of measurements.
+| path | what it holds |
+| --- | --- |
+| `src/srl_teleop` | teleoperation only: master sensing and health verdicts, VR pose mapping and clutch, the IK follower, the Ruckig motion generator, the clearance floor, the emergency stop, the sim-to-real bridge, the operator GUI |
+| `src/srl_perception` | **computer vision**: cameras, the table-scanning sweep, segmentation and detection, wearer tracking, the world model (see below) |
+| `src/srl_autonomy` | intent estimation, grasp generation, the arbitration rule between operator and robot |
+| `src/srl_experiments` | the task set, operating modes, session recorder, the study analysis |
+| `src/srl_description` | `srl_dual.urdf.xacro`: both arms, the mount and the wearer's collision model |
+| `src/srl_moveit_config` | MoveIt configuration, TRAC-IK, the SRDF |
+| `src/srl_vr_teleop`, `src/srl_vr_autonomy` | the Quest bridge (WebXR client served over TLS) and its assisted mode |
+| `firmware/master_arm` | the Teensy 4.1 firmware of the master mannequin |
+| `scripts/` | launch scripts, calibration, verification runs and the analysis that produced every number in the thesis |
+| `config/` | home poses, master zero offsets, wearer sizes, DDS transport |
+| `patches/` | the changes the vendor ROS packages need for dual-arm operation |
+| `quest_app/`, `vendor_quest/` | the WebXR page and the earlier Quest pose servers |
+| `docs/` | `HOW_TO_RUN.md`, the engineering log, the system documentation and the research notes |
+| `extras/` | **everything that is not code**: the thesis sources and figures, the presentation, the reports, the recorded verification data and the archived recordings |
 
-Experiments from the command line:
+The dependency arrow runs one way: `srl_teleop` imports nothing else in this
+repository, because it is the baseline every experiment is compared against.
 
-```bash
-scripts/run_experiment.sh t3 --participant P01 --condition direct --scenario S1
-scripts/run_experiment.sh t7 --participant P01 --dry-run
-```
+## Computer vision and perception
 
-## The six operating modes
+All of it is in `src/srl_perception/srl_perception/`:
 
-Two axes: what drives the arm, and how much the robot decides.
+| stage | modules |
+| --- | --- |
+| cameras | `srl_cameras.py`, `video_devices.py` (wrist RealSense cameras and the room camera over USB/IP), `scene_camera_node.py`, `mock_rgbd_camera.py` for the simulation |
+| table scanning | `calibration_sweep.py` plans the serpentine sweep of both arms; `segment_lift.py` cuts every region out of each frame with FastSAM and lifts it through depth; `surface_from_depth.py` fits the work surface by RANSAC; `table_scene.py` and `world_model.py` fuse the views into the map the planner uses; `scene_calibration.py` the camera-to-wrist calibration |
+| detection | `prompt_detector.py` (YOLO-World, open vocabulary), `colour_shape_detector.py` (the colour-and-depth fallback that carries the load on real frames), `apriltag_detector.py`, `vlm_object_locator.py`, `measure_detector.py` |
+| grasping | `grasp_pipeline.py`, `rgbd_grasp.py`, `joint_planner.py`, `map_obstacles_node.py` (the map becomes the planner's world) |
+| the wearer | `wearer_tracking.py` and `wearer_tracker_node.py`: MediaPipe Pose landmarks lifted to metric by PnP, feeding the clearance floor; the tracker may only ever make the wearer *bigger* than the mannequin fallback |
+| scene state | `scene_understanding_node.py`, `scene_fingerprint.py`, `scene_change.py`, `scene_markers.py`, `object_pose_tracker.py` |
 
-| # | mode | input | robot decides | max vel | state |
-| --- | --- | --- | --- | --- | --- |
-| 1 | DIRECT_MANNEQUIN | master arm | nothing | 0.60 | works |
-| 2 | DIRECT_VR | Quest | nothing | 0.60 | works against the mock |
-| 3 | ORIENTATION_ASSIST | master + vision | wrist | 0.60 | **stub** — this `/compute_ik` plugin ignores `OrientationConstraint` |
-| 4 | SHARED_AUTONOMY | master + vision | wrist, target, approach | 0.60 | works |
-| 5 | SUPERVISED_AUTO | point / voice | + grasp, transport, place | **0.25** | works |
-| 6 | FULL_AUTONOMY | voice | + target | **0.15** | works; **perception models unmeasured** |
+Each module has a known-answer test in `src/srl_perception/test/`. The real
+camera calibration tools are in `scripts/real_calibration/`, and the pipeline
+figures in the thesis are generated by
+`extras/thesis/thesis_v3/figures/make_cv_collage*.py` from
+`extras/recordings/vision_thesis/`.
 
-Autonomy runs **slower** than teleop by design: nobody is watching, so the
-only bound on a wrong motion is how long it takes to happen. All six share one
-safety stack — collision-aware IK, clearance floor, graduated avoidance, joint
-wrapping, e-stop, dead-man — and `assert_safety_invariant()` raises on any
-transition that cannot prove it.
-
-## What works
-
-Real dual-arm control at **21.4 Hz per arm** (two simultaneous Kortex
-sessions, no halving). Homing to within tolerance with residuals scattering
-0.037–0.126°. Grippers on the Kinova **internal bus**, over the existing
-session. Clutch indexing **unbounded** — 338.8 mm over 6 cycles, re-engage
-jump 0.29 mm mean. Graduated collision avoidance, held at 0.072–0.079 m with
-zero hard-floor blocks. E-stop trips on a frozen-but-publishing master in
-0.94 s. Up/down and fore/aft tracking. The full autonomy pipeline, 10/10
-mode-6 checks. The Dear PyGui console at 0.80 ms median frame time.
-
-## What does not
-
-**Lateral tracking** — azimuth comes from j1 alone and couples with arm bend.
-**Left-arm radial motion** — `l_j2` and `l_j4` are incoherent, and no reach
-observable survives them (R² = 0.133). **T4 inter-arm handover** — blocked by
-geometry, 0 of 16 transfer points reachable by both arms. **Mode 3.**
-**Detection rate** — unmeasured, so mode 6 is not participant-ready.
-**Voice input** — `/dev/snd` holds only `timer`. **VR on hardware** — `adb`
-is installed nowhere yet.
-
-## VR: connecting the Quest
-
-### Prerequisite, before anything else: Android Platform-Tools on WINDOWS
-
-**Not installed on this machine.** It is the one hard blocker and nothing in
-the software can work around it.
-
-Download (Google's official link, Windows build):
-
-```
-https://dl.google.com/android/repository/platform-tools-latest-windows.zip
-```
-
-Unzip it to `C:\platform-tools`. Nothing to install and no admin rights
-needed; it is a folder of executables.
-
-Verify it works, from **WSL**, in one command:
+## Building
 
 ```bash
-/mnt/c/platform-tools/adb.exe devices
-```
-
-Expected once the headset is plugged in and Developer Mode is on:
-
-```
-List of devices attached
-1WMHHxxxxxxxxx   device
-```
-
-`unauthorized` instead of `device` means the **Allow USB debugging** prompt has
-not been accepted. That prompt appears *inside the headset*, so put it on to
-answer it. This is the step that traps everyone.
-
-**It must be the Windows build, not a WSL package.** The headset enumerates as
-a Windows USB device, so `apt install adb` inside WSL gives you a binary that
-cannot see it. `scripts/vr_connect.sh` searches `C:\platform-tools` and the
-usual SDK locations and refuses with this instruction if it finds nothing.
-
-### Then, one command
-
-It finds `adb`, waits for the headset, opens the reverse tunnel, starts the
-bridge, and then supervises the tunnel for as long as it runs.
-
-```bash
-bash scripts/vr_connect.sh
-```
-
-The transport is `adb reverse` over USB rather than the network, for one
-reason worth knowing: the headset then connects to `ws://127.0.0.1`, which is
-a secure origin **by definition**. Over a LAN the same connection needs a
-certificate carrying the address, a firewall exception, and an operator
-accepting a browser warning inside a headset they are wearing. It is also USB,
-so it does not share the wireless network the arms are on.
-
-The tunnel is supervised rather than opened once. `adb reverse` dies with the
-USB connection, and if it is opened only at start-up a nudged cable leaves the
-bridge running and the headset silently unable to reach it, which from the
-operator's side is indistinguishable from a frozen application.
-
-### What every control does
-
-![Quest controller mapping](docs/img/vr_controls.svg)
-
-Three points the diagram makes that are easy to get wrong:
-
-* **The grip is the clutch, and releasing it is the normal stop.** It needs no
-  button press and no software to be healthy, which is why it is the one an
-  operator should reach for by reflex.
-* **Re-gripping anywhere carries on from there.** The anchor re-latches on
-  engagement, so indexing across a large workspace costs nothing and produces
-  no jump. Measured on the mannequin path: re-engagement jump 0.29 mm mean,
-  0.35 mm max.
-* **A/X and B/Y are deliberately unbound.** A mis-pressed button should never
-  be able to start a motion.
-
-The emergency stop is **not on the controller**. It is a physical button held
-by the observer, and the bridge refuses to drive at all unless that observer
-e-stop is present and reporting. Tracking loss freezes the arm within 0.20 s
-and link loss within 0.30 s; both are measured against the desktop mock, not
-against a headset.
-
-### State of this path
-
-The bridge, the tunnel script and the mapping are implemented and the command
-path is verified connected end to end in simulation. **No part of it has run
-against a headset**, because `adb` is not installed on this machine. The
-round-trip figure of 8.66 ms median, 16.5 ms p95 was measured against the
-desktop mock and is a lower bound: it excludes the headset's own frame period,
-which is 13.9 ms at 72 Hz.
-
-## Hardware state
-
-7 of 14 master channels are **INCOHERENT** (over 5% of updates jumping >60°,
-faster than any hand). Degraded mode freezes them and runs on what is left.
-**Repairing `l_j2` and `l_j4` buys the most** — see `docs/NEXT_SESSION.md`.
-
-> **FIRST ACTION OF EVERY LAB SESSION:**
-> ```bash
-> bash scripts/check_channels.sh      # ~3 min
-> ```
-> Which channels are frozen is decided from the **newest**
-> `recordings/baselines/channels_*.json`, not from live hardware. A baseline
-> older than the wiring makes the software freeze channels that now work, and
-> the repair is silently discarded. Save a new one at the end of the run and
-> the next launch picks it up automatically.
-
-> **Every number in the protocols is IK feasibility in simulation.** Nothing
-> in the bimanual programme has been driven by a human through the master arm,
-> and the DIRECT condition of every task depends on those incoherent channels.
-
-## WSL specifics that cost days
-
-**Mirrored networking is MANDATORY.** In `%UserProfile%\.wslconfig`:
-
-```ini
-[wsl2]
-networkingMode=mirrored
-```
-
-then `wsl --shutdown`. The Kortex driver opens TCP 10000 for config **and UDP
-10001 for the realtime cyclic channel**. Under WSL2's default NAT the UDP
-channel times out: writes take **3–6 seconds**, the controller manager
-overruns permanently, and feedback freezes at one distinct value per joint
-while `ros2 control list_controllers` still reports every controller
-"active". The arm looks faulted and is not.
-
-**The cyclic path is unusable here regardless — use the high-level API.**
-Cyclic control is built for a 1 kHz loop on a dedicated link; over WSL every
-write is a network round trip costing ~10 ms, so at 100 Hz the write alone
-consumes the entire cycle budget. `SendJointSpeedsCommand` over the TCP
-session is a *velocity* command — it holds a motion between sends, so it does
-not need 1 kHz. Measured end to end: **18.4–18.7 Hz**, send latency ~26 ms,
-tracking error 0.01–0.15°. That is far more than the motion needs.
-
-Two traps already paid for: never apply the velocity law twice (the bridge
-uses feedforward + feedback, and the deadband suppresses the *correction*
-only), and never use `time.time()` for intervals — the WSL wall clock steps
-backwards on host resync and once produced a **−2321 ms** latency.
-
-**One Kortex session only.** The arm permits exactly one; a leaked one blocks
-the next run. SIGINT the bridge, never SIGKILL.
-
-
-Two Kinova Gen3 7-DOF arms on a backpack frame, teleoperated from an
-instrumented mannequin arm, with a shared-autonomy layer that supplies the
-degrees of freedom the wearable master physically cannot measure. ROS 2 Jazzy.
-
-**If you have never seen this project before, read this page and then
-`docs/system/01_architecture.md`.**
-
----
-
-
-## Getting a buildable checkout
-
-This repo tracks what we wrote. Three categories are deliberately **not**
-committed, and this is how to get them back.
-
-### 1. Vendor ROS packages — clone, then patch
-
-```bash
+# vendor ROS packages: cloned, then patched for two arms on one bus
 cd src
-git clone -b main   https://github.com/Kinovarobotics/ros2_kortex.git
-git clone -b main   https://github.com/Kinovarobotics/ros2_kortex_vision.git
-git clone -b main   https://github.com/PickNikRobotics/ros2_robotiq_gripper.git
+git clone -b main https://github.com/Kinovarobotics/ros2_kortex.git
+git clone -b main https://github.com/Kinovarobotics/ros2_kortex_vision.git
+git clone -b main https://github.com/PickNikRobotics/ros2_robotiq_gripper.git
 cd ..
-# From the REPO ROOT. The patch paths already begin with src/, so
-# `git apply --directory=src` doubles it into src/src/ and every hunk fails.
-# --fuzz absorbs upstream line drift: these are cut against a moving `main`.
 for p in patches/000*.patch; do patch -p1 --forward --fuzz=3 -i "$p"; done
-```
 
-**Verified from a clean clone on 2026-08-08.** 0001 and 0002 applied exactly;
-0003 needed `fuzz 3 (offset -10 lines)` because `ros2_robotiq_gripper` `main`
-has moved since it was cut. If a hunk ever fails outright, the change each
-patch makes is one line of prose in `patches/README.md` and can be redone by
-hand — they are small.
-
-Confirm they landed:
-
-```bash
-grep -n 'prefix}reactivate_gripper' \
-  src/ros2_robotiq_gripper/robotiq_description/urdf/2f_85.ros2_control.xacro
-grep -n 'prefix + "reactivate_gripper"' \
-  src/ros2_robotiq_gripper/robotiq_driver/src/hardware_interface.cpp
-```
-
-The patches are **required** for dual-arm operation — without them both arms
-register the same unprefixed hardware resources and the second gripper
-exports no command interface. See `patches/README.md`.
-
-### 2. `src/serial` — already here, vendored on purpose
-
-`src/serial` is committed as **plain files**, not a submodule. It is a
-612 KB checkout of `tylerjw/serial` branch `ros2` at commit `d8d1606`, with
-its `.git` removed. Reasoning and the command to refresh it are in
-`src/serial/VENDORED.md`.
-
-It is a build dependency of `robotiq_driver`, which is currently
-`COLCON_IGNORE`d for unrelated reasons, so nothing in the default build
-needs it today.
-
-### 2b. Build it
-
-```bash
-colcon build --symlink-install
-```
-
-**Verified from a clean clone on 2026-08-08: 21 packages, 0 failures.**
-
-Note that a fresh clone builds *more* than the original working tree did.
-`robotiq_driver` and `robotiq_hardware_tests` were `COLCON_IGNORE`d there
-because the `serial` CMake package was missing; vendoring `src/serial` into
-this repo removed that obstacle, so both now build. Those `COLCON_IGNORE`
-files were never tracked (they live inside a gitignored vendor package), so
-they do not come across.
-
-### 3. Python environments and model weights — rebuild, do not clone
-
-Both venvs are gitignored. `.percep_venv` alone is 5.6 GB.
-
-```bash
-# Kinova API. protobuf 3.5.1 is broken on py3.12 and shadows the one ROS
-# needs, so it lives in its own venv built with --system-site-packages.
-python3 -m venv --system-site-packages .kortex_venv
-.kortex_venv/bin/pip install protobuf==3.20.3
-.kortex_venv/bin/pip install --no-deps   https://artifactory.kinovaapps.com/artifactory/generic-public/kortex/API/2.6.0/kortex_api-2.6.0.post3-py3-none-any.whl
-
-# Perception. --ignore-installed sympy, or it collides with the system copy.
-python3 -m venv --system-site-packages .percep_venv
-.percep_venv/bin/pip install --ignore-installed sympy matplotlib
-.percep_venv/bin/pip install faster-whisper ultralytics
-```
-
-**Model weights download themselves on first use** and are gitignored:
-
-| file | size | note |
-| --- | --- | --- |
-| `weights/clip/ViT-B-32.pt` | 338 MB | **over GitHub's 100 MB limit.** Pulled by ultralytics the first time YOLO-World's `set_classes()` runs |
-| `yolov8s-worldv2.pt` | 25 MB | the detector itself |
-
-### 4. Research data — committed
-
-`recordings/` (98 MB) **is** in the repo: the 2026-07-31 teleop captures and
-the 2026-08-06 trajectory capture, plus the analysis PNGs and the channel
-and workspace baselines under `recordings/baselines/`. The largest single
-file is 30 MB, inside GitHub's limits, so **nothing was omitted**.
-
-## The one-paragraph version
-
-A body-mounted master arm must be light, wearable and leave the operator's
-hands free. That rules out a grounded 6-DOF measurement chain, so a wearable
-master will always measure fewer degrees of freedom than a desk-mounted haptic
-device — gravity gives roll and pitch but **never yaw**, and integrating
-acceleration for position diverges. This project treats that as a design
-constraint rather than a defect: the autonomy supplies the missing wrist
-orientation during approach, and the operator keeps position control
-throughout. The research question is whether that helps most when the
-operator's attention is divided, which is the situation a supernumerary limb
-actually creates.
-
----
-
-## Layout
-
-| package | role | depends on |
-| --- | --- | --- |
-| `srl_teleop` | **teleoperation only** — master sensing, IK follower, clutch, scaling, sim→real bridge, e-stop | nothing in this repo |
-| `srl_perception` | AprilTag detection, 6-DOF object pose | nothing in this repo |
-| `srl_autonomy` | grasp generation, intent inference, handover arbitration | `srl_teleop`, `srl_perception` |
-| `srl_experiments` | E1–E5, logging, conditions, analysis | all of the above |
-| `srl_description` | `srl_dual.urdf.xacro` — the arms, the mount, and the wearer | — |
-| `srl_moveit_config` | MoveIt config, TRAC-IK, the SRDF | `srl_description` |
-
-**The dependency arrow runs one way.** `srl_teleop` is the baseline condition
-of every experiment, so it must run with `srl_autonomy` absent — and that is
-tested, not assumed (Part 9 of `CLAUDE.md`).
-
----
-
-## Quick start
-
-```bash
-# build (16 packages; two vendor gripper packages are COLCON_IGNOREd — see
-# src/ros2_robotiq_gripper/README_BUILD.md)
-colcon build --symlink-install
+colcon build --symlink-install          # 16 packages
 source install/setup.bash
-
-# teleoperation only
-bash scripts/run_teleop.sh
-
-# teleoperation + perception + shared autonomy
-bash scripts/run_autonomy.sh
-
-# an experiment, with no human and no hardware
-bash scripts/run_experiment.sh e1 --participant PILOT --scripted
-
-# when something is wrong, before blaming the code
-bash scripts/diagnostics.sh
 ```
 
-Three-terminal split for real work:
+Python environments are not committed. The Kinova API needs its own
+(`.kortex_venv`, protobuf 3.20) and the vision stack its own (`.venv_vision`:
+torch, ultralytics, opencv, pyrealsense2, built with
+`--system-site-packages` so rclpy stays visible); the recipes are in
+`docs/HOW_TO_RUN.md`. Model weights (YOLO-World, CLIP, FastSAM) download
+themselves on first use.
 
-```
-terminal 1:  bash scripts/run_teleop.sh gate:=false
-terminal 2:  ros2 run srl_teleop live_monitor
-terminal 3:  bash scripts/start_real.sh          # --mock to rehearse
+## Running
+
+```bash
+source /opt/ros/jazzy/setup.bash && source install/setup.bash
+export FASTDDS_BUILTIN_TRANSPORTS=SHM    # required on WSL, see docs/system/wsl.md
+
+bash scripts/start_gui.sh                # THE ONE COMMAND: sources everything and opens the window
 ```
 
----
+Every mode, calibration, experiment and diagnostic is a button in that window,
+and it refuses to start a second stack. From the command line:
+
+```bash
+bash scripts/run_teleop.sh               # teleoperation only
+bash scripts/run_autonomy.sh             # with perception and shared autonomy
+bash scripts/run_experiment.sh m1 --participant P01 --scripted
+bash scripts/check_channels.sh           # first action of every lab session
+python3 scripts/check_tests.py           # the test gate, ~900 tests
+```
+
+Three-terminal split for hardware: `run_teleop.sh gate:=false`, then
+`ros2 run srl_teleop live_monitor`, then `scripts/start_real.sh` (`--mock` to
+rehearse). The procedure that worked on the real arms, step by step with the
+failure branch at each step, is `docs/system/VR_REAL_ARM_RUN.md`.
+
+## Operating modes
+
+| mode | input | the robot decides | max joint speed |
+| --- | --- | --- | --- |
+| 01 direct, mannequin master | fourteen joint sensors at 100 Hz | nothing | 0.60 rad/s |
+| 02 direct, VR controllers | hand pose at 90 Hz, clutched | nothing | 0.60 rad/s |
+| 03 / 04 shared autonomy | either input plus vision | the wrist orientation, only when it is confident which object is meant | 0.60 rad/s |
+| 06 full autonomy | a typed or spoken sentence | target, approach, grasp and place | 0.15 rad/s |
+
+The hardware bridge caps every mode at 0.15 rad/s. In every mode the
+operator's position command passes straight through; the robot may supply
+the wrist orientation only.
+
+## Safety
+
+The clearance floor is measured geometrically on the robot's own link model
+against the wearer (tracked by camera, or the mannequin fallback, whichever is
+closer to the arm); the joint solver rejects colliding poses; the emergency
+stop latches on a software call, on both master buttons held together, and on
+a watchdog over the master data's *source* timestamp, because a failing sensor
+keeps sending stale values rather than going silent. The whole layer was
+verified by fault injection, fourteen of fourteen faults handled.
+
+## Hardware notes
+
+* The arms permit exactly **one** Kortex session each; stop the bridge with
+  SIGINT, never SIGKILL.
+* Over WSL2 the Kortex cyclic path is unusable; the high-level velocity API is
+  used, at 18.4 to 18.7 Hz. Mirrored networking is mandatory.
+* Sim and real home poses differ on purpose; the bridge refuses to enable on
+  the difference rather than commanding it.
+
+## Data and anonymity
+
+`extras/recordings/` holds the verification recordings, baselines and the
+calibration data every reported number was derived from. Participant session
+recordings are **not** in the repository: they are held on encrypted College
+storage under the study's ethics approval, and the session recorder's manifest
+writer refuses to record a name, email, date of birth, address or telephone
+number. The anonymised, derived session tables the thesis figures read are in
+`extras/thesis/thesis_v3/figures/pilot/data/`.
 
 ## Documentation
 
 | | |
 | --- | --- |
-| `CLAUDE.md` | **the engineering log.** Every measured number, every trap, and why each decision was made. Long, and worth it. |
-| `docs/system/01_architecture.md` | how the pieces fit together and which way the dependencies point |
-| `docs/system/02_bringup.md` | bringing the system up, in order |
-| `docs/system/03_real_robot_bringup.md` | the staged checklist for real hardware |
-| `docs/system/04_calibration.md` | every calibration, in the order that matters |
-| `docs/system/05_gravity_and_load.md` | robot payload, master fatigue, worn mass — three different problems |
-| `docs/system/06_troubleshooting.md` | symptoms that have actually happened, and what they meant |
-| `docs/research/01_literature_review.md` | 55 references, and an honest assessment of what is novel |
-| `docs/research/02_baseline_and_hypotheses.md` | pre-registered hypotheses and the reviewer objection, answered |
-| `docs/research/03_ethics_and_safety.md` | protocol, risks, consent, data handling |
-
----
-
-## Status — what is real and what is not
-
-**Verified in simulation:**
-IK 93.8% / 91.7% over a frontal working volume; tracking under a *moving*
-master 16 mm RMS (left) / 69 mm (right); the mount fix; the full experiment
-pipeline end to end for all five studies.
-
-**Verified against real hardware:** the master arm's serial path and the
-Kortex high-level velocity bridge (~18 Hz, 0.01–0.15° tracking).
-
-**NOT verified without hardware, and it matters:**
-- perception's detection rate on real cameras (characterised on synthetic
-  images only — the ≥95% study gate has been passed in simulation only);
-- payload compensation on a real arm (the Kortex call is a stub);
-- the gated real-arm flow (exercised only against `mock_real.launch.py`);
-- the right arm's home joint values, which were never read from hardware.
-
-**A known mechanical problem:** the arm bases statically interfere with the
-wearer's own upper arms in the collision model. It is excluded in the SRDF and
-recorded; **worn operation is not recommended until the bracket is changed.**
-See `docs/research/03_ethics_and_safety.md` §2.
-
----
-
-## The rules this repo is built on
-
-1. **Measure, don't assert.** Every number in `CLAUDE.md` has a procedure
-   behind it. Where a figure could not be measured, it says so.
-2. **Degrade, never fail.** A dead sensor channel reduces capability and says
-   which; it does not stop the node or fabricate a value.
-3. **Never invent data.** A frozen command, a held pose and a cached reading
-   are all indistinguishable from live ones downstream. Several bugs in this
-   project's history were exactly that.
-4. **The operator keeps position control.** In every autonomy state. That line
-   in `handover_arbiter.py` is the safety argument of the whole design.
+| `docs/HOW_TO_RUN.md` | one page: the two commands, every mode and where its button is |
+| `docs/ENGINEERING_LOG.md` | the standing rules, the current measured state of every subsystem, and the instrument failure modes met along the way |
+| `docs/system/` | architecture, hardware, WSL, bring-up, calibration, troubleshooting, the VR checklist |
+| `docs/research/` | literature, hypotheses, protocol and ethics |
+| `extras/thesis/thesis_v3/` | the thesis sources, and the scripts that regenerate every figure from the recorded data |

@@ -25,7 +25,7 @@ WHAT IS CHECKED HERE:
     REFUSED, not "corrected" into nonsense.
 
 Constructed geometry only: the ground truth is arithmetic, which is what
-CLAUDE.md's standing rule permits synthetic data for.
+docs/ENGINEERING_LOG.md's standing rule permits synthetic data for.
 """
 import numpy as np
 import pytest
@@ -146,7 +146,7 @@ def test_plan_grasp_declares_when_it_has_not_corrected():
 
 def test_find_object_passes_the_work_surface_by_default():
     """A capability nothing calls is the 'feature present but does nothing'
-    row of CLAUDE.md's own table. This is the caller."""
+    row of docs/ENGINEERING_LOG.md's own table. This is the caller."""
     import os
     here = os.path.dirname(os.path.abspath(__file__))
     ws = os.path.abspath(os.path.join(here, "..", "..", ".."))

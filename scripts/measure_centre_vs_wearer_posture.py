@@ -344,7 +344,7 @@ def main():
                      binds.get(inner_safe) or "-"))
 
     # THE MAP MUST NOT BE A CONSTANT, and this is the place to ask.
-    # CLAUDE.md's instrument table lists "zero variance" as a dead channel or
+    # docs/ENGINEERING_LOG.md's instrument table lists "zero variance" as a dead channel or
     # a cached value republished, and a clearance map with one number in it is
     # exactly that picture. Asked of the MAP rather than of two hand-picked
     # cells, because under `out` the wearer's hand sits at |x| = 0.655 and one

@@ -18,7 +18,7 @@ used is logged per trial.
 HOW IT TALKS TO THE ARM. Payload configuration is a HIGH-LEVEL Kortex API
 call (Base/ControlConfig SetPayloadInformation), not a cyclic one, so it goes
 through the same isolated interpreter as kortex_highlevel_bridge — see the
-kortex_api note in CLAUDE.md. In sim, and whenever the API is unavailable, the
+kortex_api note in docs/ENGINEERING_LOG.md. In sim, and whenever the API is unavailable, the
 node stays up and records what it WOULD have set, so the logged value is
 correct even when the call is a no-op.
 """
@@ -128,7 +128,7 @@ class PayloadManager(Node):
         if not os.path.exists(venv):
             self.get_logger().warn(
                 "[%s] apply_to_hardware is set but %s is missing; payload NOT "
-                "applied. See the kortex_api isolation note in CLAUDE.md."
+                "applied. See the kortex_api isolation note in docs/ENGINEERING_LOG.md."
                 % (arm, venv), throttle_duration_sec=30.0)
             return
         self.get_logger().warn(

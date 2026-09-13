@@ -31,7 +31,7 @@
       RTPS_TRANSPORT_SHM Error] Failed init_port fastrtps_port7002:
       open_and_lock_file failed
 
-  CLAUDE.md already records this class -- "stale /dev/shm/fastrtps_* segments
+  docs/ENGINEERING_LOG.md already records this class -- "stale /dev/shm/fastrtps_* segments
   ... discovery goes intermittent: services appear for one client and not
   another" -- and prescribes clearing them with the stack stopped. That was
   done repeatedly this session (up to 153 segments at a time) and did not fix

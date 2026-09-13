@@ -40,7 +40,7 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "recordings/verification")
 FFMPEG = os.path.expanduser("~/.local/bin/ffmpeg")
-TMP = "/tmp/claude-1000/-home-gausms-kortex-ws/3732aa29-5a7e-4c8e-b77e-379233bdc9c9/scratchpad/grip"
+TMP = "/tmp/scratch/grip"
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # THE TASK SPECS, so `_task_releases` can read a task's own grip schedule

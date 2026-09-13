@@ -441,7 +441,7 @@ def analyse(path=SRC, verbose=True):
     # own source: `vmax_rad_s` was read ONCE at start-up and the control loop
     # used the cached attribute, so every one of these 36 runs actually ran
     # at the vmax the bridge happened to start with. The parameter store
-    # accepted the change and the arm ignored it -- CLAUDE.md's "feature
+    # accepted the change and the arm ignored it -- docs/ENGINEERING_LOG.md's "feature
     # present but does nothing", in the parameter this sweep was sweeping.
     #
     # The giveaway is in the data and is asserted here so the claim cannot

@@ -3,7 +3,7 @@
 An uncalibrated or mis-framed scene camera does not fail loudly: it produces
 smooth, confident body positions in the wrong place. So every transform here
 is driven round-trip against constructed geometry, which is the one case
-CLAUDE.md's standing rule allows synthetic data for -- the ground truth is
+docs/ENGINEERING_LOG.md's standing rule allows synthetic data for -- the ground truth is
 projection arithmetic, not an appearance model.
 
 The specific mistakes these tests exist to catch have all been made once

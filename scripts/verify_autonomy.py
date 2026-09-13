@@ -53,7 +53,7 @@ class Harness(Node):
         Publishing before DDS has matched drops the message silently, and the
         harness then reports every refusal case as a failure -- a discovery
         race masquerading as a broken state machine. The same trap is already
-        documented for the fault injector in CLAUDE.md; I walked into it
+        documented for the fault injector in docs/ENGINEERING_LOG.md; I walked into it
         again.
         """
         t0 = time.monotonic()

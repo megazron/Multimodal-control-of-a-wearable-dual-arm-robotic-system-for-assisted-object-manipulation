@@ -2,7 +2,7 @@
 
 Every fixture here is CONSTRUCTED -- a cube of a stated size at a stated
 place -- so the right answer is known before the code runs. That is the only
-synthetic data CLAUDE.md permits: arithmetic and geometry, never a render.
+synthetic data docs/ENGINEERING_LOG.md permits: arithmetic and geometry, never a render.
 
 The refusals are tested as hard as the successes. A grasp planner that
 cannot say "too wide" will hand the arm a grasp it discovers by collision.

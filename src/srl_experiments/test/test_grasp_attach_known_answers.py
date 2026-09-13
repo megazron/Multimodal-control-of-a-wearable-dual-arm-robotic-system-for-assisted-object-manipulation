@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Known answers for the grasp attach test and the single-owner gripper.
 
-STANDING RULE (CLAUDE.md): validate the instrument before believing it. Both
+STANDING RULE (docs/ENGINEERING_LOG.md): validate the instrument before believing it. Both
 defects these tests pin were invisible to inspection and visible only in a
 recorded trace, so they get a test that fails on the old behaviour.
 """

@@ -10,7 +10,7 @@ producer.
 
 This is the producer's arithmetic, deliberately split from the node so it can
 be given a CONSTRUCTED depth frame whose true answer is known to the
-millimetre. That is the only kind of synthetic input CLAUDE.md permits: the
+millimetre. That is the only kind of synthetic input docs/ENGINEERING_LOG.md permits: the
 geometry here is constructed, never rendered, so the known-answer test means
 something.
 

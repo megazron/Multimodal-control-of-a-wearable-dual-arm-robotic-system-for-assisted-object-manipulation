@@ -5,7 +5,7 @@ WHY THIS IS A SEPARATE, IMPORTABLE MODULE. Everything here is arithmetic on
 arrays: a pixel and a depth become a point, points become a cloud, a cloud
 becomes a grasp. None of it needs a robot, a camera or a network, so all of
 it can be tested against constructed ground truth -- which is the only kind
-of synthetic data this project trusts (CLAUDE.md: synthetic only where the
+of synthetic data this project trusts (docs/ENGINEERING_LOG.md: synthetic only where the
 ground truth is CONSTRUCTED, never RENDERED).
 
 THE GRASP IS GEOMETRIC AND DELIBERATELY NOT LEARNED. A parallel jaw on a

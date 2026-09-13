@@ -296,7 +296,7 @@ class RealHoming(Node):
         # This iterated ("torso", "head", "hips") while the wearer model holds
         # twelve primitives -- neck, both thighs, and both of the wearer's own
         # upper arms, forearms and hands. Nine of twelve were unprotected, and
-        # CLAUDE.md records that the wearer's ARMS are what bind the right arm
+        # docs/ENGINEERING_LOG.md records that the wearer's ARMS are what bind the right arm
         # inboard: the exact geometry this check could not see.
         #
         # A part the model has but TF cannot resolve is NAMED, not skipped in

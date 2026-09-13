@@ -1378,7 +1378,7 @@ def main(argv=None):
                         # is no object to arrive at. Measured on the
                         # 2026-08-23 re-record, all five modes: the grip trace
                         # reads 0.000 rad for every one of 620-1219 samples on
-                        # BOTH arms. CLAUDE.md records the consequence --
+                        # BOTH arms. docs/ENGINEERING_LOG.md records the consequence --
                         # "T2-1 'held by BOTH grippers' is false and has been
                         # for the life of the task" -- and the cause was this
                         # gate, not the tray and not the arms.

@@ -20,7 +20,7 @@ same pipeline has already scored 0-4% on rendered primitives against 0.89-0.91
 on real images for a learned detector. What IS transferable here is the
 plumbing -- the frame chain, the intrinsics, the deprojection arithmetic, the
 consumer that reads a DETECTION instead of a file -- because those are
-constructed geometry with a known answer, which is the case CLAUDE.md's
+constructed geometry with a known answer, which is the case docs/ENGINEERING_LOG.md's
 standing rule permits. The HSV thresholds are not transferable and are marked
 as needing recalibration against real photographs.
 

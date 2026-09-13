@@ -204,7 +204,7 @@ direct conflict in y:
 
 The band that clears the floor cannot be reached; the band that can be reached
 does not clear the floor. This is the same trade-off recorded for the mount in
-CLAUDE.md, reappearing at the task level.
+docs/ENGINEERING_LOG.md, reappearing at the task level.
 
 **3. MOVING THE BAND OUTBOARD DOES WORK, and this is the fix.** Sweeping the
 half-span at y = 0.35:

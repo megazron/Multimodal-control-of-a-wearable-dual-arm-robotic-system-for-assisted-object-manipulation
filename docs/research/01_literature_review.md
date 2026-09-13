@@ -16,7 +16,7 @@ Jazzy).
 **Scope and method.** Citations below were located by web search and, where possible,
 verified against the publisher record or the paper text itself. Claims I could not
 verify are marked **[UNVERIFIED]**. Where this project's own measurements are quoted
-they are taken from `CLAUDE.md` in this repository and are labelled as such; they are
+they are taken from `docs/ENGINEERING_LOG.md` in this repository and are labelled as such; they are
 engineering measurements from a single rig, not published results.
 
 A caveat on the search itself: this was a web search, not an exhaustive query of
@@ -314,7 +314,7 @@ Stated plainly, because it is easy to overclaim here:
 
 This matters to the present project because its master arm measures a *shoulder
 direction*, not an end-effector command, and because its lateral (azimuth) channel is
-known-bad (see `CLAUDE.md`: azimuth is derived from j1 alone; Kabsch fit of measured to
+known-bad (see `docs/ENGINEERING_LOG.md`: azimuth is derived from j1 alone; Kabsch fit of measured to
 intended sweep directions leaves 54.8° RMS residual on the left arm and 54.7° on the
 right; intended left-right and forward-back directions are 90° apart but measured 137.7°
 apart, so no rotation can reconcile them). A pointing-direction intent cue on this rig
@@ -443,12 +443,12 @@ The reasons are concrete and specific to this rig, not ideological:
    sensor channels — three orders of magnitude short, on non-stationary hardware.
 3. **Latency budget.** The real-arm command path here is already latency-bound: the
    Kortex cyclic path is unusable over WSL, and the high-level `SendJointSpeedsCommand`
-   bridge achieves **18.4–18.7 Hz with ~26 ms average send latency** (`CLAUDE.md`).
+   bridge achieves **18.4–18.7 Hz with ~26 ms average send latency** (`docs/ENGINEERING_LOG.md`).
    Inserting a ~6 Hz / ~160 ms policy in front of that produces a control loop slower
    than the operator's own corrective bandwidth.
 4. **Reliability floor.** <90% task success is acceptable for a benchmark and
    unacceptable for a 7-DOF arm mounted 0.126 m from the wearer's head — the tightest
-   measured clearance in this system (`CLAUDE.md`). The autonomy in this project must be
+   measured clearance in this system (`docs/ENGINEERING_LOG.md`). The autonomy in this project must be
    auditable: a goal posterior and an arbitration weight can be logged, inspected and
    bounded; a 7B token-prediction policy's action cannot.
 5. **Reproducibility of the claim.** A VLA result would be a claim about the policy's
@@ -616,7 +616,7 @@ comparable outside this hardware.
    This project has already measured that a shoulder-roll-derived azimuth cannot produce
    an orthogonal direction triad: Kabsch residual 54.8° (left) / 54.7° (right), and
    intended-90°-apart directions measured 137.7° apart, which no rotation can reconcile
-   (`CLAUDE.md`). That is a *structural* statement about single-angle azimuth on a
+   (`docs/ENGINEERING_LOG.md`). That is a *structural* statement about single-angle azimuth on a
    wearable master and is publishable as such, independent of the autonomy question.
 
 4. **An engineering account of what a wearable master actually costs**, with numbers:
@@ -624,7 +624,7 @@ comparable outside this hardware.
    dead, j4 intermittent at 12.9% dropout), gyro drift of −5.0 °/min (left) versus
    +44.0 °/min (right), and IK feasibility collapsing from 92–100% to 8–75% when
    orientation is taken from an unreliable wrist rather than held at an anchor
-   (`CLAUDE.md`). Papers that propose wearable masters rarely report this.
+   (`docs/ENGINEERING_LOG.md`). Papers that propose wearable masters rarely report this.
 
 5. **What it cannot claim:** that shared autonomy for SRLs is new; that pointing beats
    end-effector velocity as an intent cue (unestablished — see 3.3); that blending is
@@ -861,7 +861,7 @@ secondary sources; [UNVERIFIED] in detail)*
 
 **Project-internal source (not a publication)**
 
-`kortex_ws/CLAUDE.md` — engineering log of measured channel health, azimuth/Kabsch
+`docs/ENGINEERING_LOG.md` — engineering log of measured channel health, azimuth/Kabsch
 residuals, gyro drift, IK reachability, clearance and real-arm latency for this rig.
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Verify every coordinate of TASKS A, B and C at N=10 over the FULL PATH.
 
-TWO RULES, BOTH LEARNED THE HARD WAY (CLAUDE.md, "A POSE THAT PASSES ONE IK
+TWO RULES, BOTH LEARNED THE HARD WAY (docs/ENGINEERING_LOG.md, "A POSE THAT PASSES ONE IK
 CALL IS NOT A REACHABLE POSE"):
 
   N REPEATS, because TRAC-IK restarts randomly and a pose at the edge of the

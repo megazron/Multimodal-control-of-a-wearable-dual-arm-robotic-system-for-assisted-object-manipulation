@@ -58,7 +58,7 @@ python3 "$SCRIPTS/locate_cube_left.py" || {
 step "3/4  PLAN the grasp"
 python3 "$SCRIPTS/plan_pick_left.py" || {
     echo "FAILED at step 3 -- planning failed; not proceeding."; exit 1; }
-for f in /tmp/claude-*/-home-gausms-kortex-ws/*/scratchpad/pick_plan.json; do
+for f in /tmp/scratch/pick_plan.json; do
     [ -f "$f" ] && cp "$f" "$PLAN"
 done
 echo "plan -> $PLAN"

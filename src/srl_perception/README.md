@@ -36,4 +36,4 @@ optimises for predictable failure over capability.
 Reports detection rate, pose accuracy against a known ground truth and
 end-to-end latency. **Under 95% detection at working distance is a BLOCKER for
 the user study** — see `docs/research/03_ethics_and_safety.md` and the measured
-numbers in `CLAUDE.md`.
+numbers in `docs/ENGINEERING_LOG.md`.

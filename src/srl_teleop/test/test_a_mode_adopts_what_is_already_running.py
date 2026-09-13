@@ -165,7 +165,7 @@ class TestAModeAdoptsWhatIsRunning(unittest.TestCase):
 class TestTheVrRouteIsOneThisMachineCanTake(unittest.TestCase):
     """The VR button launched a route that dies on its first line.
 
-    `vr_connect.sh` needs adb. CLAUDE.md records "no adb" for this host under
+    `vr_connect.sh` needs adb. docs/ENGINEERING_LOG.md records "no adb" for this host under
     Blocked on the lab, so the spawned process refused and exited before
     anything drew -- indistinguishable from a dead button.
     """

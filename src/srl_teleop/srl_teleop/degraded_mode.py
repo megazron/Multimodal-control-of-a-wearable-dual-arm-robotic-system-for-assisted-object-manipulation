@@ -57,7 +57,7 @@ TOTAL_CHANNELS = 14
 ARMS = ("left", "right")
 
 # What losing each channel costs in SPHERICAL mode, which is the shipped
-# position mode. Numbers are the measured pot-reduction ladder (CLAUDE.md,
+# position mode. Numbers are the measured pot-reduction ladder (docs/ENGINEERING_LOG.md,
 # 20430 real frames): commanded master-tip error against the 4-pot reach.
 CHANNEL_ROLE = {
     0: ("AZIMUTH (left/right)",

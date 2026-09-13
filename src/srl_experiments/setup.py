@@ -18,7 +18,7 @@ EXP_SCRIPTS = sorted(
     + glob('experiments/*/*/run_*.py') + glob('experiments/*/*/analyse_*.py')
     # THREE levels now, because the superseded sets live under
     # experiments/_archive/<set>/<task>/. They are ARCHIVED, NOT DELETED --
-    # CLAUDE.md cites several of them by name -- so they must still install,
+    # docs/ENGINEERING_LOG.md cites several of them by name -- so they must still install,
     # and a stale two-level glob broke the whole package build after the move.
     + glob('experiments/_archive/*/*/run_*.py')
     + glob('experiments/_archive/*/*/analyse_*.py'))

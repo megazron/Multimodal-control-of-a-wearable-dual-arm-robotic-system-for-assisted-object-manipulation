@@ -156,7 +156,7 @@ class Solver(Node):
                 # asked about. For a right-arm query those seven are the left
                 # arm sitting at its seed, i.e. a CONSTANT, and anything
                 # measured from them (FK, clearance) reads the same value for
-                # every target. That is two rows of CLAUDE.md's table at once,
+                # every target. That is two rows of docs/ENGINEERING_LOG.md's table at once,
                 # "every pose returns one value" and "zero variance", and
                 # find_presentation_pose already had to work around it by
                 # reading the order off /joint_states. The order is now taken
@@ -209,7 +209,7 @@ def task_anchor(node, which="workspace"):
     and the two are not close: measured on 2026-08-23 against the shipped
     home, the LEFT arm's home wrist is **42.94 deg** from the anchor.
 
-    CLAUDE.md already records this fault -- "the wrist every sweep measured
+    docs/ENGINEERING_LOG.md already records this fault -- "the wrist every sweep measured
     at: it was the HOME wrist, not the anchor the task sends" -- and it was
     fixed in `measure_what_binds.Rig` on 2026-08-17 and NOWHERE ELSE. Around
     twenty scripts still read `ee_quat`. What that costs is not subtle: with

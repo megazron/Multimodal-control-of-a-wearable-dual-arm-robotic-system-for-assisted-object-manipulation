@@ -31,7 +31,7 @@ pipeline from a pipeline that happens to be accurate today.
 B is the important one and it is a CONSTRUCTED ground truth: deprojection is
 `p_cam + R_wc * ray`, so translating `p_cam` by d translates every world point
 by exactly d. If the measured shift is not d, the deprojection is not using
-the pose it is given -- the "every pose returns one value" row of CLAUDE.md's
+the pose it is given -- the "every pose returns one value" row of docs/ENGINEERING_LOG.md's
 instrument table.
 
 C is what makes the failure impossible to record silently, and a check that

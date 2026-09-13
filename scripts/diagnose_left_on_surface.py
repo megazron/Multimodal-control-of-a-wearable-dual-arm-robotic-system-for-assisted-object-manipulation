@@ -146,7 +146,7 @@ def main():
     # clip_scene's OWN furniture on and off, and it leaves it ON -- so
     # everything after this call ran with the shipped table at 0.980 AND the
     # search slab at 0.900 in the scene at once. Measured, and it is the
-    # "results depend on run order" row of CLAUDE.md's table: the first
+    # "results depend on run order" row of docs/ENGINEERING_LOG.md's table: the first
     # version of this script reported the left arm reaching the cell over the
     # FULL path and then 0 of 181 approaches reaching the GRASP POSE inside
     # it, which cannot both be true of one scene.

@@ -223,7 +223,7 @@ TABLE_APRON = 0.06               # skirt depth under the top, so it reads as
 # RGB(118,118,118) -- mid grey -- while the arm's own meshes in the same
 # frame reach (208,207,210). Nothing here noticed, because the only check on
 # T1-8 (audit_task_spec) reads CS.OAK and asks whether the REQUESTED colour
-# is neutral and >= 0.80. It never looks at a pixel. That is CLAUDE.md's own
+# is neutral and >= 0.80. It never looks at a pixel. That is docs/ENGINEERING_LOG.md's own
 # "matched requested RGB, not RENDERED colour" row, arrived at from the
 # authoring side instead of the verifying one.
 #

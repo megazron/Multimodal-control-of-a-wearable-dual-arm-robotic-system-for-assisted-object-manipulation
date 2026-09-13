@@ -5,7 +5,7 @@
 
 WHY THIS IS A MEASUREMENT AND NOT A LOOKUP
 ------------------------------------------
-CLAUDE.md records "top-down on a surface: **0 of 840 cells**, any table height
+docs/ENGINEERING_LOG.md records "top-down on a surface: **0 of 840 cells**, any table height
 0.70-1.10, either arm". That is a real result and it may no longer be true:
 it was measured on the OLD MOUNT. The mounts moved **150 mm outboard and 15
 degrees of yaw** on 2026-08-18, and the same file records that every earlier
@@ -31,7 +31,7 @@ table.
 
 WHAT IS NOT ANSWERED HERE
 -------------------------
-Whether the pose is SAFE. `avoid_collisions` is on, and CLAUDE.md hard
+Whether the pose is SAFE. `avoid_collisions` is on, and docs/ENGINEERING_LOG.md hard
 constraint 11 says that is not the wearer check -- the SRDF excludes the 44
 proximal pairs a shoulder mount actually threatens. This reports reachability;
 clearance is a separate gate and is named as one in the output.

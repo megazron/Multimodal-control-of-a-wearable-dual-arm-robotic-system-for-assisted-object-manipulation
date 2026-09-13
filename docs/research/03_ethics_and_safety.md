@@ -39,7 +39,7 @@ in any submission:
    clear of the wearer's upper-arm cylinder and no mount rotation exceeds
    −15 mm clearance while also placing the hands usefully. This is set by the
    mount POSITION, not by any joint, so no planner can avoid it. It is
-   excluded in the SRDF and recorded in `CLAUDE.md` as a mechanical action.
+   excluded in the SRDF and recorded in `docs/ENGINEERING_LOG.md` as a mechanical action.
    **Until the bracket stands the arm bases off the shoulder, WORN operation
    must not be approved.** Bench-mounted operation is unaffected.
 2. **The rig has never been run against real hardware in the gated flow.**

@@ -236,7 +236,7 @@ MODES = [
     # `vr_connect.sh` is route A: a sideloaded Unity client reaching
     # ws://127.0.0.1:8766 through `adb reverse` over USB. It dies on its
     # first line with "adb is not installed" on a host without Android
-    # platform-tools -- which is this one, and which is why CLAUDE.md records
+    # platform-tools -- which is this one, and which is why docs/ENGINEERING_LOG.md records
     # "no adb" under Blocked on the lab. The button therefore appeared to do
     # nothing: the process spawned, refused, and exited before anything drew.
     #

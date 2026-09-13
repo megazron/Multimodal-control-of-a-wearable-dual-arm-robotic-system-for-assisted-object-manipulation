@@ -40,7 +40,7 @@ import time
 WS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # EVERY SHELL THIS FILE OPENS MUST SOURCE env.sh, INCLUDING THE PROBE'S.
 #
-# CLAUDE.md names scripts/env.sh the single source of environment truth: it
+# docs/ENGINEERING_LOG.md names scripts/env.sh the single source of environment truth: it
 # pins ROS_DOMAIN_ID=0, RMW_IMPLEMENTATION=rmw_fastrtps_cpp and
 # ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET, and it actively unsets any inherited
 # ROS_LOCALHOST_ONLY. teleop.launch.py applies the same settings IN-PROCESS,
@@ -59,7 +59,7 @@ WS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # cannot: three consecutive probes reported joint_state_msgs=0 with ik=True,
 # while fsr_gripper_node INSIDE the stack was reading /joint_states happily.
 # It also made `ros2 node list --no-daemon` time out from a fresh shell, which
-# reads as "nothing is running" -- the exact misdiagnosis CLAUDE.md warns
+# reads as "nothing is running" -- the exact misdiagnosis docs/ENGINEERING_LOG.md warns
 # about, arriving by a different route than the stale daemon.
 #
 # SOURCING env.sh HERE WAS TRIED AND MADE IT WORSE. MEASURED, NOT REASONED:
@@ -188,7 +188,7 @@ _STACK_PATTERNS = (
 # grace period by ten leaked `ros2 launch` parents (six demo.launch.py, four
 # teleop.launch.py) still running from earlier sessions.
 #
-# CLAUDE.md already records the converse -- killing a launch by its parent pid
+# docs/ENGINEERING_LOG.md already records the converse -- killing a launch by its parent pid
 # alone leaves orphans, which is what the child patterns above are for. Both
 # halves are needed, in this order.
 _LAUNCH_PATTERNS = (

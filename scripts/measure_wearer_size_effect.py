@@ -18,7 +18,7 @@ measured the centre SHUT at 780 configurations, min |x| 0.300 (L) / 0.375 (R).
 Both are correct and they are about different things: at 0.30 m forward the
 HAND clears a 0.22 m deep torso easily, while the FOREARM and WRIST links
 swing inboard and do not. A result that contradicts an earlier measurement is
-an instrument check until the two are reconciled (CLAUDE.md), so the default
+an instrument check until the two are reconciled (docs/ENGINEERING_LOG.md), so the default
 here is now the whole arm, through IK, exactly as the published number was.
 
 `--ee-only` keeps the cheap version because it is genuinely useful -- every
@@ -248,7 +248,7 @@ def main(argv=None):
         # NOT COMPARED WITH THE PUBLISHED COLUMNS, and that is deliberate.
         #
         # The published 0.325 / 0.450 were certified over the WHOLE DENSIFIED
-        # PATH at N = 10, and CLAUDE.md is explicit that a pose passing one IK
+        # PATH at N = 10, and docs/ENGINEERING_LOG.md is explicit that a pose passing one IK
         # call is not reachable and that MARGINAL is not usable. This is a
         # single-point probe. The two are different quantities, and printing
         # AGREES or DIFFERS against them would compare a spot reading with a

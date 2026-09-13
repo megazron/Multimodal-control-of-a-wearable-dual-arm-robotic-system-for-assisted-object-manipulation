@@ -149,7 +149,7 @@ def test_the_transcription_matches_the_node():
     # (the audited working-alone bypass) and the expression wrapped across two
     # lines, so the test failed while the behaviour it guards was intact --
     # a transcription check that broke on reformatting, which is the "test
-    # breaks with no behaviour change" entry in CLAUDE.md's own table.
+    # breaks with no behaviour change" entry in docs/ENGINEERING_LOG.md's own table.
     #
     # What must be true is that _observer_satisfied() is the OR of the three
     # ways an observer requirement can be met, whatever the whitespace.

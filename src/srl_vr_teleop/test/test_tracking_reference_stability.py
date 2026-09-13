@@ -13,7 +13,7 @@ stay valid, the rate stays at 90 Hz, the controllers stay tracked -- and every
 pose after the nudge is expressed in a frame that has silently rotated, so the
 operator's calibrated yaw is now wrong by however far it turned. It is
 indistinguishable from correct operation from inside ROS, which is exactly the
-"data fresh but never changes" family in CLAUDE.md's instrument table, one
+"data fresh but never changes" family in docs/ENGINEERING_LOG.md's instrument table, one
 level out.
 
 Each test below fails against the node as it was, which had no notion of a

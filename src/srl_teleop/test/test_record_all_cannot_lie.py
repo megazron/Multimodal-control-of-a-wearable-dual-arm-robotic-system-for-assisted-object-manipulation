@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """record_all's summary must FAIL on a recording that captured nothing.
 
-CLAUDE.md's standing rule: a check that cannot fail on a deliberately broken
+docs/ENGINEERING_LOG.md's standing rule: a check that cannot fail on a deliberately broken
 input is not a check. The defect this recorder replaces was precisely a
 capture step that ran, exited zero and produced an empty directory -- so the
 one thing the summary MUST do is name a channel that never published, rather
@@ -122,7 +122,7 @@ def test_clutch_refusals_are_counted_by_reason():
 
 
 def test_the_participant_field_refuses_a_name():
-    """CLAUDE.md hard constraint 12: anonymity is enforced in code."""
+    """docs/ENGINEERING_LOG.md hard constraint 12: anonymity is enforced in code."""
     import subprocess
     r = subprocess.run(
         [sys.executable, SCRIPT, "--participant", "someone@example.com",

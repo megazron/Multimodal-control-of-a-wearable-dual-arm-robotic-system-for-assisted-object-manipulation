@@ -29,7 +29,7 @@ import sys
 
 WS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Known-failing, by exact node id. Pre-existing and documented in CLAUDE.md.
+# Known-failing, by exact node id. Pre-existing and documented in docs/ENGINEERING_LOG.md.
 ALLOWED = {
     "src/srl_teleop/test/test_flake8.py::test_flake8",
     "src/srl_teleop/test/test_pep257.py::test_pep257",

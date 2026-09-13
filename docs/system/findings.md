@@ -1,8 +1,8 @@
 # Findings and diagnostic history
 
-Every measurement, wrong turn and worked example, in the order it happened. Split out of CLAUDE.md on 2026-08-12 because it was 98k tokens and 10% of a session's context before any work started. NOTHING HERE WAS DELETED. Sections marked SUPERSEDED are kept for their diagnosis, not their conclusion.
+Every measurement, wrong turn and worked example, in the order it happened. Split out of docs/ENGINEERING_LOG.md on 2026-08-12 because it was 98k tokens and 10% of a session's context before any work started. NOTHING HERE WAS DELETED. Sections marked SUPERSEDED are kept for their diagnosis, not their conclusion.
 
-CLAUDE.md carries the one-line rules; this file carries why each one exists.
+docs/ENGINEERING_LOG.md carries the one-line rules; this file carries why each one exists.
 
 # Historical log
 
@@ -2421,7 +2421,7 @@ reach toward the centre" is not a control fault — the centreline is reachable
 by neither arm.**
 
 The cause is the home JOINT ANGLES, which are ground truth and were not
-touched: CLAUDE.md already records `|v_R - M v_L| = 1.3837 m` and that the
+touched: docs/ENGINEERING_LOG.md already records `|v_R - M v_L| = 1.3837 m` and that the
 two arms are parked asymmetrically, with the residual **provably independent
 of the mount rotation**. Fixing this needs the right arm re-parked in
 hardware, not a mount change and not a layout change.
@@ -2875,7 +2875,7 @@ Recording every task surfaced something no amount of IK verification would:
 
 MoveIt's `avoid_collisions` is **binary contact**; the real-robot floor is a
 **margin**. A scenario can pass one and be refused by the other, and this pair
-does. Consistent with CLAUDE.md's own "through-range clearance +0.0495 /
+does. Consistent with docs/ENGINEERING_LOG.md's own "through-range clearance +0.0495 /
 +0.0544 m" — the number was known, but had never been connected to the task
 scenarios.
 
@@ -2942,10 +2942,10 @@ Fifth instance of the standing rule, and the reason it is a rule.
 
 ---
 
-# APPENDIX: the CLAUDE.md header as it stood before the 2026-08-12 split
+# APPENDIX: the docs/ENGINEERING_LOG.md header as it stood before the 2026-08-12 split
 
 Kept verbatim because the split promised nothing would be deleted. The new
-CLAUDE.md rewrites this material rather than copying it, so the COUNTS below
+docs/ENGINEERING_LOG.md rewrites this material rather than copying it, so the COUNTS below
 are the ones that were current on 2026-08-10 and are NOT maintained. Re-measure
 with the commands in the table rather than quoting them.
 
@@ -3198,7 +3198,7 @@ overstating it by 175 mm at the inboard end, where it is not safe.
    right-arm query those seven are the left arm sitting at its seed. The right
    arm's clearance therefore read ONE value, 0.1610 m, across 80 cells while
    the left varied from −0.003 to 0.161. Caught by the "zero variance" row of
-   CLAUDE.md's table before the number was used for anything.
+   docs/ENGINEERING_LOG.md's table before the number was used for anything.
    `Solver.solve_arm_joints()` selects by name now, and
    `measure_clearance_region` carries a per-arm differential control that
    fails if an arm's clearance does not fall as the target comes inboard.
@@ -3289,7 +3289,7 @@ IK column was the CLEAR set's range. The row therefore quoted the safe
 boundary while counting the unsafe cells, and the 175 mm inboard strip that is
 the entire subject of the measurement did not appear in the table at all.
 
-This is the "everything matches" row of CLAUDE.md's instrument table wearing
+This is the "everything matches" row of docs/ENGINEERING_LOG.md's instrument table wearing
 a new hat: two numbers from the same measurement, printed side by side,
 looking consistent because one of them was copied from the other's source.
 
@@ -3758,7 +3758,7 @@ same frame reach (208,207,210).
 
 **The audit passed it every time**, because `audit_task_spec` read `CS.OAK`
 and asked whether the REQUESTED colour was neutral and >= 0.80. It never
-looked at a pixel. That is CLAUDE.md's "matched requested RGB, not RENDERED
+looked at a pixel. That is docs/ENGINEERING_LOG.md's "matched requested RGB, not RENDERED
 colour" row arrived at from the authoring side instead of the verifying one.
 
 `scripts/probe_marker_shading.py` measures the renderer's actual response, one
@@ -5367,7 +5367,7 @@ asked to reach. TASK_SPEC §9 records this fault for `search_centre_on_surface`,
 which worked around it by passing its own anchor to `solve()` — but the
 work-around read `as_tuple(rig.quat[arm])`, i.e. it *was* the home wrist, so the
 work-around did not work. `solve_joints()` had no `quat` argument at all, so
-`verify_t1_paths` — the instrument CLAUDE.md cites for T1 — could not have asked
+`verify_t1_paths` — the instrument docs/ENGINEERING_LOG.md cites for T1 — could not have asked
 for the right orientation even in principle.
 
 `Rig(anchor="workspace")` is now the default; `anchor="home"` asks for the old
@@ -5491,7 +5491,7 @@ real failure: `tick()` raised before the `planes` and `item` blocks.
 Stage 2, seed 2, LEFT arm: **16 of 91** at N=10. Measured at the raised surface
 AND at the old 0.950 — **identically 16** — so it is the anchor fix, not the
 surface. Seeds 0 and 1 are clean on both arms, and the recording sweep runs
-`--seed 0`, so no recorded clip is affected. CLAUDE.md's "0 IK failures … stage 1
+`--seed 0`, so no recorded clip is affected. docs/ENGINEERING_LOG.md's "0 IK failures … stage 1
 AND all three stage-2 seeds" was measured at the home wrist and is corrected.
 
 ## A run's home pose, at the moment it matters
@@ -6429,7 +6429,7 @@ cyclic one. `KORTEX_RATE` defaults to 12 Hz per arm for `arm:=both`.
 
 `real_homing_node.measure_clearance()` iterated `("torso", "head", "hips")`
 against a model holding **twelve** primitives — it never checked the neck, the
-thighs, or the wearer's own upper arms, forearms and hands, which CLAUDE.md
+thighs, or the wearer's own upper arms, forearms and hands, which docs/ENGINEERING_LOG.md
 records as the geometry that binds the right arm inboard.
 
 It also swept `DISTAL_LINKS`, which starts at the forearm. The shoulder and
@@ -6770,7 +6770,7 @@ waypoint. Around twenty scripts read `Solver.ee_quat()` — the live home wrist
 
     left  42.94 deg apart      right  27.29 deg apart
 
-CLAUDE.md already records this fault and it was fixed in
+docs/ENGINEERING_LOG.md already records this fault and it was fixed in
 `measure_what_binds.Rig` on 2026-08-17 **and nowhere else**. What it costs,
 measured with A/B/C's own furniture applied: task A's own pick solves **10 of
 10 at the anchor and 0 of 10 at the home wrist**. `verify_msc_tasks`'s
@@ -6840,7 +6840,7 @@ red with a result from a different stage. One file per stage now.
 
 The whole verification set was re-recorded on 2026-08-23 against the fixed
 geometry -- 17 cells, eight camera angles each. The old set is in
-`archive/recordings/verification_20260823_pre_accuracy_pass`.
+`extras/archive/recordings/verification_20260823_pre_accuracy_pass`.
 
 **The recording is what caught my own regression.** Moving T1's grasp onto the
 gripper-opening-aware pad offset changed the TASK side and not the SCENE side,
@@ -6854,7 +6854,7 @@ miss. That disagreement has now produced that sentence three times (49 mm,
 111.8 mm, 11.43 mm) and is asserted directly per task and per arm, with a
 control that feeds the check the old offset and requires it to fail.
 
-**T2's grippers have never closed, and the tray was not why.** CLAUDE.md
+**T2's grippers have never closed, and the tray was not why.** docs/ENGINEERING_LOG.md
 records "T2-1 'held by BOTH grippers' is false and has been for the life of
 the task" and attributes it to the elastic tray hiding it. The tray was made
 rigid on 2026-08-16 and the fresh clips still read **0.000 rad for every one
@@ -6879,7 +6879,7 @@ schedule asks for. `verify_gripper_motion` goes 8 of 12 to **12 of 12**.
   * `status_table` called T1 under four modes a REAL GAP. T1 and T1S2 declare
     they run under `06_full_autonomy` only and the recorder honours it,
     printing `SKIP (t1 runs under 06 only)`. A by-design absence rendered
-    identically to a missing clip, which is CLAUDE.md's own row. It reads the
+    identically to a missing clip, which is docs/ENGINEERING_LOG.md's own row. It reads the
     task's declaration through the same helper the recorder uses.
   * `verify_gripper_motion` required a RELEASE from every grasp task, with a
     hardcoded `task in ("t3", "t6")` exemption. T2's whole definition is that
@@ -7053,7 +7053,7 @@ from four poses: 9.74, 15.42, 16.26, 18.14 deg off world vertical — a worst
 pairwise disagreement of **8.45 deg**, i.e. 34 mm of position error at 0.23 m
 and 59 mm at 0.40 m. No open-loop grasp planned through that transform can
 land inside the 30 mm capture gate, and none did. `camera_link` vs the
-physical module was already CLAUDE.md's largest unmeasured unknown; this
+physical module was already docs/ENGINEERING_LOG.md's largest unmeasured unknown; this
 sizes it. The pick now servos closed-loop in the camera's own frame instead.
 
 **The depth camera itself is excellent** and was never the problem: table
@@ -7092,7 +7092,7 @@ on reconnect, so all four camera nodes abort with
 **The pad midpoint moves when the hand closes** — 0.09833 m open, 0.10976 m on
 a 40 mm cube. Solving a grasp open and then closing drives the pads 11.43 mm
 further along the tool axis, into the table. Independently reproduces the
-figure CLAUDE.md records for T1.
+figure docs/ENGINEERING_LOG.md records for T1.
 
 **Still open:** the wearer check above; a real hand-eye calibration for the
 gripper camera; and the left arm dropped its Kortex session three times with
@@ -7270,7 +7270,7 @@ Nothing was wrong with the simulation. Three defects in what asked it:
    the launch and returned "press the button again when it settles" -- and
    the window did not wait for the operator: `on_vr_fix` re-ran the whole
    sequence 400 ms later. A repair that returns before it has repaired
-   anything is CLAUDE.md's own "feature present but does nothing" row, in
+   anything is docs/ENGINEERING_LOG.md's own "feature present but does nothing" row, in
    the button whose entire job is to fix this. It now waits for the
    simulation to REPORT (`_wait_for_sim`, 150 s bound) and fails loudly if
    it does not.
@@ -7331,7 +7331,7 @@ Two defects in the REAL ARM SEQUENCE panel of `scripts/srl_gui.py`:
 Grep the tree for that parameter: the node that declares it, the launch files
 that pass it, and **no consumer**. Nothing gates on it, nothing starts because
 of it. The service returned success, the panel said "Asked for real-arm
-control", and the arms could not have moved. CLAUDE.md's own *feature present
+control", and the arms could not have moved. docs/ENGINEERING_LOG.md's own *feature present
 but does nothing* row — checked that a field is STORED, not that a consumer
 READS it — in the one control in the window whose whole job is to let VR move
 real metal.
@@ -7809,7 +7809,7 @@ reach `/master_fsr_buttons` for the gate to read. So:
 
 **And `force_clutch_engaged` did not work.** It was copied into an attribute
 in `__init__` and never re-read, so `ros2 param set` reported SUCCESS and
-changed nothing — CLAUDE.md's own "feature present but does nothing" row, in
+changed nothing — docs/ENGINEERING_LOG.md's own "feature present but does nothing" row, in
 the parameter the capture's whole safety argument rests on. Had the pin been
 built on it as found, the confirmation would have been a parameter agreeing
 with itself and the capture would have recorded another still arm. Both

@@ -506,7 +506,7 @@ def self_test(tol=TOL_M):
         # the documented gap set to exactly 80 mm, an object 80 mm up is
         # BLOCKED and an object 85 mm up is still FLOATING. A tolerance that
         # accepts anything above the surface would be the "so loose it binds
-        # nothing" row of CLAUDE.md's table.
+        # nothing" row of docs/ENGINEERING_LOG.md's table.
         ("blocked   exactly the documented 80 mm gap",
          ("c", [0.0, 0.0, 1.100], [0.04] * 3), [slab], BLOCKED, 0.080),
         ("drift     85 mm, 5 mm off the documented gap -- must NOT be excused",

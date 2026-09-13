@@ -141,7 +141,7 @@ class Refused(Exception):
 # ---------------------------------------------------------- channel health
 def newest_channel_baseline(root=ROOT):
     """The NEWEST channels_*.json, because a stale one freezes channels that
-    now work and nothing downstream disagrees. CLAUDE.md's own rule."""
+    now work and nothing downstream disagrees. docs/ENGINEERING_LOG.md's own rule."""
     pat = os.path.join(root, "recordings/baselines/channels_*.json")
     files = sorted(glob.glob(pat))
     if not files:

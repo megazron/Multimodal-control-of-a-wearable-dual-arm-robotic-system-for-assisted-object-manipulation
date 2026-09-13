@@ -24,7 +24,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection          # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MESH = os.path.join(ROOT, "src/srl_description/meshes/master_arm_cad")
-OUT = os.path.join(ROOT, "thesis_report/figures")
+OUT = os.path.join(ROOT, "extras/thesis/thesis_report/figures")
 
 JOINT_Z = [0.023, 0.0607, 0.1030, 0.1397, 0.1800, 0.2187, 0.2600]
 KIND = ["roll", "bend", "roll", "bend", "roll", "bend", "roll"]

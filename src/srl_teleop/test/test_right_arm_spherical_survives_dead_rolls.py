@@ -89,7 +89,7 @@ def test_rolls_barely_change_reach_magnitude():
     Not zero: rolling the upper arm reorients the elbow bend relative to the
     shoulder, so with j4 bent it does move the tip. Measured here, the worst
     case over the full roll range is ~20 mm against the master arm's 0.272 m
-    reach (7.5%), and CLAUDE.md's reduction ladder puts the TYPICAL cost of
+    reach (7.5%), and docs/ENGINEERING_LOG.md's reduction ladder puts the TYPICAL cost of
     dropping j3 on the right arm at 4.5 mm. Small enough that position
     survives; large enough that "free" would be the wrong word.
     """

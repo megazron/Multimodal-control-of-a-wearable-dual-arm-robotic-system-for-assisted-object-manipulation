@@ -1,7 +1,7 @@
 # Superseded scripts
 
 Kept runnable, not deleted: they hold measurements and diagnoses that the log
-in `CLAUDE.md` refers to by name, and a reader following a citation to a
+in `docs/ENGINEERING_LOG.md` refers to by name, and a reader following a citation to a
 deleted script cannot tell whether the tool was wrong or merely gone.
 
 ## Scenario verifiers for the ARCHIVED task sets

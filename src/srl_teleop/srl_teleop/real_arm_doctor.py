@@ -20,7 +20,7 @@ every one of them was diagnosed by a person remembering something:
   7. a SIGKILLed bridge leaked the one Kortex session the arm permits, and
      the next run could not connect.
 
-THE RULES THIS MODULE IS WRITTEN TO, taken from CLAUDE.md:
+THE RULES THIS MODULE IS WRITTEN TO, taken from docs/ENGINEERING_LOG.md:
 
   * NEVER GREEN ON UNKNOWN. A check that could not be run returns UNKNOWN,
     which is its own state and is never drawn as healthy. `verdict()` returns

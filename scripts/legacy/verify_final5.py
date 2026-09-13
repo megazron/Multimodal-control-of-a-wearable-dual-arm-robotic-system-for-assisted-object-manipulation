@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Verify every coordinate of the five-task set at N repeats over the FULL path.
 
-A pose that passes one IK call is not a reachable pose (CLAUDE.md standing
+A pose that passes one IK call is not a reachable pose (docs/ENGINEERING_LOG.md standing
 rule): TRAC-IK restarts randomly, so a pose at the edge of the feasible set is
 a coin flip. And the arm FLIES the segments between declared waypoints, so
 endpoints alone prove nothing. N=10 over paths densified to 20 mm.

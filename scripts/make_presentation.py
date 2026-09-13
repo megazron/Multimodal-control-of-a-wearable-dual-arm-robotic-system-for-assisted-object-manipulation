@@ -3,14 +3,14 @@
 
     .venv_vision/bin/python scripts/make_presentation.py
 
-Writes ``docs/presentation/SRL_project_presentation.pptx`` and the figure set
-it uses into ``docs/presentation/figures/``.
+Writes ``extras/presentation/SRL_project_presentation.pptx`` and the figure set
+it uses into ``extras/presentation/figures/``.
 
 THE RULES, WHICH ARE THE REPO'S OWN (scripts/make_results.py, THE STANDING
-RULE in CLAUDE.md):
+RULE in docs/ENGINEERING_LOG.md):
 
 * Every figure comes from a committed artefact -- a recording, a rendered
-  clip, a screenshot, or a LaTeX diagram in ``thesis_v2/`` -- and every slide
+  clip, a screenshot, or a LaTeX diagram in ``extras/thesis/thesis_v2/`` -- and every slide
   names the file it was drawn from on the slide itself. No number is typed in
   from memory that is not also on disk.
 * A figure whose source is missing is REFUSED BY NAME and the slide is not
@@ -20,11 +20,11 @@ RULE in CLAUDE.md):
   says so in the same breath -- the accuracy figures predate the VR smoothing,
   the arm in the autonomy clips is simulated, the sim-to-real compensation is
   modelled and untried.
-* Rule 13 of CLAUDE.md: a demonstration is not evidence. Slides built from
+* Rule 13 of docs/ENGINEERING_LOG.md: a demonstration is not evidence. Slides built from
   demonstration footage say DEMONSTRATION on the slide.
 
 Asset preparation is idempotent and re-runs the upstream generators:
-``scripts/make_thesis_figures.py`` and ``thesis_v2/figures/make_figures.py``
+``scripts/make_thesis_figures.py`` and ``extras/thesis/thesis_v2/figures/make_figures.py``
 for the data plots, ``xelatex`` for the TikZ diagrams, ``ffmpeg`` for frames
 cut from the verification clips. Anything that cannot be regenerated is
 copied from where it is committed.
@@ -358,12 +358,12 @@ FRAMES = [
 
 # committed screenshots and renders, copied verbatim
 COPIES = [
-    ("thesis_v2/figures/master_arm_cad_views.png", "master_arm_cad_views.png"),
-    ("thesis_v2/figures/master_arm_chain.png", "master_arm_chain.png"),
-    ("thesis_v2/figures/master_arm_rviz.png", "master_arm_rviz.png"),
-    ("thesis_v2/figures/rviz/home_pose_labelled.png", "rviz_home_pose_labelled.png"),
-    ("thesis_v2/figures/rviz_after_fix.png", "gui_rviz_after_fix.png"),
-    ("thesis_v2/figures/ready_to_run_live.png", "gui_ready_to_run_live.png"),
+    ("extras/thesis/thesis_v2/figures/master_arm_cad_views.png", "master_arm_cad_views.png"),
+    ("extras/thesis/thesis_v2/figures/master_arm_chain.png", "master_arm_chain.png"),
+    ("extras/thesis/thesis_v2/figures/master_arm_rviz.png", "master_arm_rviz.png"),
+    ("extras/thesis/thesis_v2/figures/rviz/home_pose_labelled.png", "rviz_home_pose_labelled.png"),
+    ("extras/thesis/thesis_v2/figures/rviz_after_fix.png", "gui_rviz_after_fix.png"),
+    ("extras/thesis/thesis_v2/figures/ready_to_run_live.png", "gui_ready_to_run_live.png"),
     ("docs/img/gui_dual_panels.png", "gui_dual_panels.png"),
     ("docs/img/gui_hud_master_arm.png", "gui_hud_master_arm.png"),
     ("docs/img/presentation_pose_iso.png", "home_presentation_iso.png"),
@@ -769,7 +769,7 @@ def build_deck():
     bullets(sl, right, x=MARGIN + 6.4, w=5.7, size=15)
     caption(sl, "The deck is ordered as the thesis is: what was built, what "
                 "was measured, and what the measurement does not support.",
-            "thesis_v2/main.tex — chapters 1-14")
+            "extras/thesis/thesis_v2/main.tex — chapters 1-14")
 
     # ================================================== PART 1 — the problem
     section("1", "The problem",
@@ -784,7 +784,7 @@ def build_deck():
                 "holds the emergency stop and watches the wearer, not the "
                 "screen. This split is what makes the safety case different "
                 "from ordinary teleoperation.",
-            "thesis_v2/figures/tikz/overview.tex")
+            "extras/thesis/thesis_v2/figures/tikz/overview.tex")
 
     sl = new("What the project set out to build", "objectives")
     bullets(sl, [
@@ -841,7 +841,7 @@ def build_deck():
                   "CAD-inferred and then checked against the measured arm — "
                   "the two disagree by a few millimetres per link, and the "
                   "measured value is the one the software uses.",
-                  "thesis_v2/figures/master_arm_cad_views.png, "
+                  "extras/thesis/thesis_v2/figures/master_arm_cad_views.png, "
                   "master_arm_chain.png",
                   kicker="master interface",
                   labels=["CAD, zero configuration",
@@ -852,7 +852,7 @@ def build_deck():
               "Fourteen channels over one Teensy 4.1. The call-out records "
               "why two analog-capable pins could not be used — a wiring "
               "constraint that later shows up in the channel health results.",
-              "thesis_v2/figures/diagrams/electronics.tex",
+              "extras/thesis/thesis_v2/figures/diagrams/electronics.tex",
               kicker="master interface")
 
     sl = new("Master channel health — the honest picture", "measured")
@@ -872,13 +872,13 @@ def build_deck():
               "srl_teleop imports nothing in-repo, so the baseline condition "
               "of every experiment cannot be contaminated by the autonomy "
               "layer it is compared against.",
-              "thesis_v2/figures/diagrams/architecture.tex",
+              "extras/thesis/thesis_v2/figures/diagrams/architecture.tex",
               kicker="architecture")
 
     fig_slide("The data path, end to end", "diag_datapath",
               "From a sensed master joint to a commanded arm joint, with "
               "every rate and every gate on the way.",
-              "thesis_v2/figures/tikz/datapath.tex", kicker="architecture")
+              "extras/thesis/thesis_v2/figures/tikz/datapath.tex", kicker="architecture")
 
     # The mode diagrams are four to five times wider than they are tall, so
     # they go two to a slide at full width. Four in a 2x2 grid made every
@@ -923,7 +923,7 @@ def build_deck():
     caption(sl, "Blue is sensing, grey is processing, red can stop the arm, "
                 "green commands motion — the same colour law in every mode "
                 "diagram.",
-            "thesis_v2/figures/diagrams/mode1_mannequin.tex, mode2_vr.tex",
+            "extras/thesis/thesis_v2/figures/diagrams/mode1_mannequin.tex, mode2_vr.tex",
             top=BODY_BOT + 0.32)
 
     sl = new("Sharing control, and giving up control entirely",
@@ -940,7 +940,7 @@ def build_deck():
                 "— run_abc builds them with no mode argument — so any "
                 "difference in what the robot does is a property of the mode, "
                 "not of the task.",
-            "thesis_v2/figures/diagrams/mode3_shared.tex, mode4_voice.tex",
+            "extras/thesis/thesis_v2/figures/diagrams/mode3_shared.tex, mode4_voice.tex",
             top=BODY_BOT + 0.32)
 
     fig_slide("The safety chain", "diag_safety",
@@ -950,7 +950,7 @@ def build_deck():
               "deliberately excludes the 44 proximal pairs a shoulder mount "
               "actually threatens, and would report a clear pose with the "
               "tube inside the person.",
-              "thesis_v2/figures/tikz/safety.tex", kicker="safety")
+              "extras/thesis/thesis_v2/figures/tikz/safety.tex", kicker="safety")
 
     eq_slide("The safety case, as two expressions",
              [("fuse",
@@ -983,7 +983,7 @@ def build_deck():
                 "is a variable with one source — a posture that reaches the "
                 "planner but not the clearance guard measures the old body "
                 "under a new name.",
-            "thesis_v2/figures/rviz/home_pose_labelled.png; "
+            "extras/thesis/thesis_v2/figures/rviz/home_pose_labelled.png; "
             "docs/img/presentation_pose_iso.png (2026-08-15)")
 
     fig_slide("Predictive avoidance: what it actually buys",
@@ -1024,7 +1024,7 @@ def build_deck():
               "Four cameras — both wrist RGB-D, a RealSense and a USB scene "
               "camera — reduced to a plane and a set of objects per camera "
               "per cycle, with per-camera health and named refusals.",
-              "thesis_v2/figures/tikz/perception.tex", kicker="perception")
+              "extras/thesis/thesis_v2/figures/tikz/perception.tex", kicker="perception")
 
     sl = new("The camera may only make the wearer BIGGER", "safety case")
     bullets(sl, [
@@ -1656,7 +1656,7 @@ def build_deck():
                   "under both. The RViz master draws three states, not two — "
                   "commanded, actual, and PLANNED-BUT-REFUSED with its reason "
                   "string, which cannot be drawn without one.",
-                  "thesis_v2/figures/rviz_after_fix.png; "
+                  "extras/thesis/thesis_v2/figures/rviz_after_fix.png; "
                   "docs/img/gui_dual_panels.png", kicker="operator",
                   labels=["the embedded COMMANDED view",
                           "both panels and the divergence readout"])
@@ -1686,7 +1686,7 @@ def build_deck():
     ], y=BODY_TOP + 0.95, widths=[4.7, 7.41], size=10.5, row_h=0.62)
     caption(sl, "Every analysis script carries a known-answer test, and a "
                 "check that cannot fail on a deliberately broken input is not "
-                "a check.", "CLAUDE.md — THE STANDING RULE; "
+                "a check.", "docs/ENGINEERING_LOG.md — THE STANDING RULE; "
                             "docs/system/findings.md", top=BODY_BOT + 0.30)
 
     sl = new("What is verified, and what is not", "limits")
@@ -1728,7 +1728,7 @@ def build_deck():
     caption(sl, "Worn operation is >17 kg with no gravity compensation on "
                 "someone who did not choose the motion. The operator and the "
                 "wearer are different people and consent separately.",
-            "CLAUDE.md — Blocked on the lab / Blocked on ethics",
+            "docs/ENGINEERING_LOG.md — Blocked on the lab / Blocked on ethics",
             top=BODY_BOT + 0.30)
 
     fig_slide("The study that is designed but not run", "diag_experiment_design",
@@ -1738,7 +1738,7 @@ def build_deck():
               "date of birth, address and phone — but consent has not been "
               "sought, so the participant results chapter is deliberately "
               "empty.",
-              "thesis_v2/figures/diagrams/experiment_design.tex; "
+              "extras/thesis/thesis_v2/figures/diagrams/experiment_design.tex; "
               "docs/research/", kicker="limits", warn=False)
 
     sl = new("Contributions", "conclusion")

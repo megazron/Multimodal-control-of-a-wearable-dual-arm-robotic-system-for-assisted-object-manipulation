@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """KNOWN-ANSWER tests for the T2 discrete outcome.
 
-The standing rule in CLAUDE.md: before a metric touches participant data it
+The standing rule in docs/ENGINEERING_LOG.md: before a metric touches participant data it
 must recover an answer that is known by construction. These sequences are
 constructed, not rendered or simulated -- a gripper angle of 0.05 rad IS open
 and a release 200 mm from the opening IS a miss, by arithmetic. That is the

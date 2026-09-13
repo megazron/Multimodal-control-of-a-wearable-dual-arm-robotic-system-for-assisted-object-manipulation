@@ -11,7 +11,7 @@ The recorded T1 layout puts its pads at |x| = 0.595 and 0.825 -- the table's
 side edge -- while `recordings/baselines/centre_reach.json` records an
 innermost workable column of x = 0.075 for the right arm. Both numbers are in
 the repository and they are about DIFFERENT QUESTIONS, which is exactly the
-condition CLAUDE.md's standing rule says to resolve by measurement rather than
+condition docs/ENGINEERING_LOG.md's standing rule says to resolve by measurement rather than
 by argument:
 
     centre_reach 0.075   IK ONLY, no clearance floor, work plane 1.120,
@@ -263,7 +263,7 @@ def clearance_vs(rig, arm, joints, posture):
     """
     if posture not in _WEARER_CACHE:
         # THE NAMES ARE `wearer_posture.POSTURES`, NOT NAMES INVENTED HERE.
-        # This asked for a posture called "clear", which CLAUDE.md's prose
+        # This asked for a posture called "clear", which docs/ENGINEERING_LOG.md's prose
         # uses for "arms held clear" and the module has never carried, and
         # `wearer_model` correctly raised on it -- 9 minutes into the sweep,
         # after stage 1 had already done its work. `none` IS the arms-removed
@@ -461,7 +461,7 @@ def prune_fan(rig, pad_ee, floor, fan, probes, log, cap=14):
     if len(kept) > cap:
         # SAY WHAT WAS DROPPED. A cap that is not printed reads as "the fan was
         # searched" when it was truncated, which is the silent-truncation row
-        # of CLAUDE.md's table.
+        # of docs/ENGINEERING_LOG.md's table.
         log("      ... CAPPED at %d of %d survivors, best-probe-count first. "
             "DROPPED: %s" % (cap, len(kept),
                              ", ".join(n for n, _q, _h in kept[cap:])))

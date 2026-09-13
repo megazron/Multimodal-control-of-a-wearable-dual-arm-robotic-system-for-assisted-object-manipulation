@@ -6,7 +6,7 @@
 WHY THIS INTERPRETER.  pyrealsense2 lives in .venv_vision and rclpy comes from
 the sourced ROS install; .venv_vision is the only python on this box that has
 BOTH.  The system python3 has rclpy and no pyrealsense2, and installing
-pyrealsense2 into it is not worth the risk -- CLAUDE.md records that adding a
+pyrealsense2 into it is not worth the risk -- docs/ENGINEERING_LOG.md records that adding a
 package to .venv_vision once took real_calibration/check_all.py from 4/4 to
 2/4, so environments here are left alone.
 

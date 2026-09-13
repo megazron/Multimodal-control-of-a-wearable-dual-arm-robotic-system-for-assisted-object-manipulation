@@ -14,7 +14,7 @@ to reach -- so it could never be handed a broken input. `scene_travel_verdict`
 is that decision pulled out where it can be.
 
 THE GROUND TRUTH IS CONSTRUCTED, not rendered: these are dictionaries written
-down in this file, which is the only kind of synthetic input CLAUDE.md allows
+down in this file, which is the only kind of synthetic input docs/ENGINEERING_LOG.md allows
 for an instrument check.
 
 The numbers here are MEASURED, off the 25 clips recorded 2026-08-15, and the

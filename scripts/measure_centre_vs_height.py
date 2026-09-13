@@ -211,7 +211,7 @@ def main():
         got="%s / %s" % (ok_o, None if c_o is None else round(c_o, 4)))
 
     # Clearance must FALL as the target comes inboard, per arm. A map with one
-    # value in it is the "zero variance" row of CLAUDE.md's instrument table.
+    # value in it is the "zero variance" row of docs/ENGINEERING_LOG.md's instrument table.
     varies = True
     for arm in ("left", "right"):
         sgn = 1.0 if arm == "left" else -1.0

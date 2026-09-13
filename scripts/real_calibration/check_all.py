@@ -6,7 +6,7 @@
 Run this BEFORE any session that moves an arm. Each module here refuses to be
 trusted on assertion alone: every one of them must recover a known answer AND
 must fail on a deliberately broken input, because a check that cannot fail is
-not a check -- CLAUDE.md's standing rule, which has been the fault seventeen
+not a check -- docs/ENGINEERING_LOG.md's standing rule, which has been the fault seventeen
 times in this project and three more on 2026-08-21.
 
 What each one proves:

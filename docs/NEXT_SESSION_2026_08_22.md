@@ -58,7 +58,7 @@ the rest of the repo still has the same shapes.
 
 **The meta-lesson, and it is the one worth carrying:** in six separate cases
 the instrument was wrong and the hardware was fine. Twice I told the operator
-to go check a power fault that did not exist. CLAUDE.md's standing rule
+to go check a power fault that did not exist. docs/ENGINEERING_LOG.md's standing rule
 already covers this — *a surprising failure is evidence about the INSTRUMENT
 until the instrument has been cleared* — and it was violated by writing new
 instruments without known-answer tests. Every new module below ships with one
@@ -192,7 +192,7 @@ depth points and zero false positives from the teal robots. What failed was
 nothing that broke on 2026-08-21.
 
 **The hard constraint is VRAM: this machine has an RTX A500 with 4 GB.**
-CLAUDE.md already records that YOLO-World was chosen over GroundingDINO
+docs/ENGINEERING_LOG.md already records that YOLO-World was chosen over GroundingDINO
 (218M) and OWLv2 (428M) for exactly this reason. Anything below must fit or
 run on CPU.
 

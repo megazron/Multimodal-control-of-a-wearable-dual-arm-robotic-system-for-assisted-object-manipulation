@@ -29,7 +29,7 @@ which constraint bound. Treat these as an upper bound on reachability and a
 lower bound on clearance.
 
 VERIFICATION STANDARD -- the same as everything else in this project:
-N repeats per pose over the whole DENSIFIED path (CLAUDE.md, "a pose that
+N repeats per pose over the whole DENSIFIED path (docs/ENGINEERING_LOG.md, "a pose that
 passes one IK call is not a reachable pose").
 """
 import argparse

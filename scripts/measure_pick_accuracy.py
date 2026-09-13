@@ -36,7 +36,7 @@ against the same truth, so the comparison is not between two beliefs.
 
 ABOUT "ALL MODES"
 -----------------
-CLAUDE.md records, and `run_abc` shows, that THE SAME WAYPOINTS ARE COMMANDED
+docs/ENGINEERING_LOG.md records, and `run_abc` shows, that THE SAME WAYPOINTS ARE COMMANDED
 UNDER EVERY MODE -- the builder takes no mode argument. So the PLANNING error
 measured here is one number that applies to all of them. What differs per mode
 is EXECUTION: how faithfully the arm follows the waypoints once commanded, and

@@ -84,7 +84,7 @@ else
     echo "starting $ARM bridge -> $IP"
     # deadband 0.10 deg, NOT the shipped 1.00: inside the deadband the
     # proportional term is off by design, and a target ramped in small steps
-    # then produces no velocity at all.  CLAUDE.md already records 0.10.
+    # then produces no velocity at all.  docs/ENGINEERING_LOG.md already records 0.10.
     setsid nohup "$VENV" -m srl_teleop.kortex_highlevel_bridge \
         --ros-args -r __node:="kortex_highlevel_bridge_$ARM" \
         -p arm:="$ARM" -p robot_ip:="$IP" -p rate_hz:=12.0 -p kp:=0.5 \

@@ -58,7 +58,7 @@ park = CT.park
 #     first two possible: 06 does not pin the wrist, and the pinned wrist is
 #     what forced the old layout to the table's edge and into the air.
 #
-# `archive/recordings/t1_20260817_deleted_and_rebuilt/NOTE.md` is the account.
+# `extras/archive/recordings/t1_20260817_deleted_and_rebuilt/NOTE.md` is the account.
 # ==========================================================================
 import t1_task as T1M                                        # noqa: E402
 
@@ -527,7 +527,7 @@ TASKS = {
         # because the SCENE was drawing them through the same wrong offset, so
         # the two errors agreed -- while the knuckle stayed 0.00 for the whole
         # run and NO GRASP WAS RECORDED AT ALL. Two descriptions sharing one
-        # error is CLAUDE.md's "everything matches" row, and it read as a
+        # error is docs/ENGINEERING_LOG.md's "everything matches" row, and it read as a
         # perfect approach and a dead gripper.
         orient=T1M.APPROACH,
         # THE SAME MODE RESTRICTION STAGE 1 CARRIES, AND IT WAS MISSING.

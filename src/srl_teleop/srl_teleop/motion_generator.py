@@ -88,7 +88,7 @@ limits enforced by that same factor. What it does not give is jerk limiting,
 and it says so -- `Step.backend` reads `synchronised-clamp` and
 `Step.reason` names the missing package and the pip command. A fallback that
 is silent about being a fallback is the "feature present but does nothing"
-row of CLAUDE.md's own table.
+row of docs/ENGINEERING_LOG.md's own table.
 
 CONTINUOUS JOINTS
 -----------------
@@ -564,7 +564,7 @@ class MotionGenerator:
         own travel at every instant, so it is checkable: sample the middle of
         the trajectory and compare the fractions. Reporting the REQUESTED
         setting instead would be the "checked that a field is STORED, not that
-        a consumer READS it" row of CLAUDE.md's own table.
+        a consumer READS it" row of docs/ENGINEERING_LOG.md's own table.
         """
         if traj.duration <= 0.0:
             return "phase"
@@ -602,7 +602,7 @@ class MotionGenerator:
         self.vel = [d * scale / dt for d in delta]
         # THE IMPLIED ACCELERATION, NOT ZERO. Reporting zeros here would have
         # made the fallback pass the continuity check by fabricating the
-        # quantity the check reads -- CLAUDE.md's "feature present but does
+        # quantity the check reads -- docs/ENGINEERING_LOG.md's "feature present but does
         # nothing" row, inside a test. This backend is genuinely not
         # jerk-limited and the number now says so: from rest it steps straight
         # to the velocity limit, which is an acceleration of v_max/dt.

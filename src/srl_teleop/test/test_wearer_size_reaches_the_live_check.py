@@ -1,7 +1,7 @@
 """The wearer's SIZE must reach the check that stops the arm, not just the
 offline one.
 
-`SRL_WEARER_SIZE` has been a variable since 2026-08-15. CLAUDE.md describes it
+`SRL_WEARER_SIZE` has been a variable since 2026-08-15. docs/ENGINEERING_LOG.md describes it
 as going "through the SAME one source the posture uses". Measured on
 2026-08-21, with a real arm session behind us in which the arms touched the
 wearer, it went to exactly one of the two places that matter:
@@ -18,7 +18,7 @@ was bigger and the LIVE floor was still held against a mannequin -- the arm
 stopped 150 mm from a chest 70 mm narrower than the one the operator had
 selected, and every consumer logged the floor as satisfied.
 
-That is CLAUDE.md's "feature present but does nothing" row: the size was
+That is docs/ENGINEERING_LOG.md's "feature present but does nothing" row: the size was
 STORED and a consumer did not READ it. These tests are about the reading.
 """
 import os

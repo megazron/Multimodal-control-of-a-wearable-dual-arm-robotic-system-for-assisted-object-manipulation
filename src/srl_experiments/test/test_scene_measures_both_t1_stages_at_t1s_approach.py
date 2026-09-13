@@ -31,7 +31,7 @@ the object -- is 99.1 mm (left) and 83.3 mm (right); the mounts are mirrored
 in position but differ by 168 deg of roll, so the two arms are not symmetric
 here and one number would not have covered both.
 
-This is CLAUDE.md's "everything matches" row turned inside out: there the
+This is docs/ENGINEERING_LOG.md's "everything matches" row turned inside out: there the
 danger is a prefix matching too much (`t1s2`.startswith(`t1`)), here it is an
 equality matching too little. Both come from testing a task key with the wrong
 operator.

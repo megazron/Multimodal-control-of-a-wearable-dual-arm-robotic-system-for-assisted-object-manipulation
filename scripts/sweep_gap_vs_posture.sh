@@ -13,7 +13,7 @@
 # failure `gen_wearer_posture_xacro.py` exists to prevent. This kills the
 # stack, brings it up under the posture, measures, and moves on.
 #
-# `behind` and `out` are included ON PURPOSE even though CLAUDE.md records
+# `behind` and `out` are included ON PURPOSE even though docs/ENGINEERING_LOG.md records
 # both as breaching the floor at the HOME pose: a posture that is unusable
 # should be shown to be unusable with a number, not omitted from the table.
 set -u

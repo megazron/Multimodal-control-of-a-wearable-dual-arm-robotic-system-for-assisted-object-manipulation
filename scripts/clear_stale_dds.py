@@ -10,7 +10,7 @@ THE FAULT THIS FIXES
 Every node is up and healthy, publishing to each other perfectly -- and a
 FRESH process sees an empty graph. `ros2 topic list` hangs. `ros2 topic hz`
 reports nothing on a topic that is plainly flowing. This is recorded in
-CLAUDE.md as R-9 and it is what made a previous session pin the arms to
+docs/ENGINEERING_LOG.md as R-9 and it is what made a previous session pin the arms to
 ROS_DOMAIN_ID=7: switching domain gave a clean shared-memory namespace and
 looked like a cure, so the workaround outlived its cause and split the system
 in half for months (see scripts/bringup_arm.sh).

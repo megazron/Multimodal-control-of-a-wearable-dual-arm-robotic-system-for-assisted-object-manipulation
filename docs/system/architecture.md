@@ -1,6 +1,6 @@
 # Architecture: packages, nodes, GUIs, modes
 
-Package layout, the one-way dependency arrow, the IK follower, the operating modes, the VR stack and the three GUIs. Split out of CLAUDE.md on 2026-08-12. Nothing deleted.
+Package layout, the one-way dependency arrow, the IK follower, the operating modes, the VR stack and the three GUIs. Split out of docs/ENGINEERING_LOG.md on 2026-08-12. Nothing deleted.
 
 ## IK follower
 

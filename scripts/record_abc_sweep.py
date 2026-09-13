@@ -59,7 +59,7 @@ import record_rviz as rr                                     # noqa: E402
 
 # WHERE CLIPS LAND. Overridable with SRL_CLIP_OUT so a re-record can go to a
 # NEW directory instead of overwriting the set already on disk. The frozen
-# archive under archive/recordings/ is never a target either way -- it is a
+# archive under extras/archive/recordings/ is never a target either way -- it is a
 # snapshot, and a snapshot you can write to is not one.
 OUT = os.environ.get("SRL_CLIP_OUT") or os.path.join(WS,
                                                      "recordings/verification")

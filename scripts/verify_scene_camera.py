@@ -6,7 +6,7 @@
 
 WHAT THIS IS FOR. The scene camera path has six stages and five of them can
 fail silently. This drives all six on a REAL photograph of a REAL person --
-not a render, because a learned detector on a rendered person is CLAUDE.md's
+not a render, because a learned detector on a rendered person is docs/ENGINEERING_LOG.md's
 "learned model scores near zero: synthetic renderer out of distribution" --
 and prints, for each stage, whether the number is MEASURED here or INFERRED
 from something not present on this machine.
@@ -84,7 +84,7 @@ def main(argv=None):
         #
         # This verifier had two independent ways of failing a WORKING camera,
         # and it is the instrument the reader trusts to tell them whether the
-        # camera works -- CLAUDE.md's standing rule, in the tool whose whole
+        # camera works -- docs/ENGINEERING_LOG.md's standing rule, in the tool whose whole
         # job is the measurement.
         #
         #   * It never set MJPG. Uncompressed YUYV negotiates happily over

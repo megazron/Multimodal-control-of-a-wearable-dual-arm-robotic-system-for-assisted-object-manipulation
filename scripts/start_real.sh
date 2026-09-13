@@ -483,7 +483,7 @@ while :; do
   NARMS=$(echo $ARMS | wc -w)
   # grep -c PRINTS 0 and EXITS 1 when there is no match, so a
   # `|| echo 0` fallback yields "0\n0" and breaks the integer test
-  # below. This is documented in CLAUDE.md and was reintroduced here.
+  # below. This is documented in docs/ENGINEERING_LOG.md and was reintroduced here.
   # Take the last line and default only when the output is empty.
   NDONE=$(grep -c "HOMING COMPLETE" "$LOG" 2>/dev/null | tail -1)
   NDONE=${NDONE:-0}

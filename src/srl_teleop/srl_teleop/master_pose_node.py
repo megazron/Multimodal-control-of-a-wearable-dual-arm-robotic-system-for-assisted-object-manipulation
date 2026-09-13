@@ -85,7 +85,7 @@ FSR_BTN_PATTERN = _re.compile(
     r"fsr1:(-?\d+\.?\d*),fsr2:(-?\d+\.?\d*),btn1:(\d+),btn2:(\d+)"
 )
 
-# ---- Channel validation policy (see CLAUDE.md "Known-bad pot channels") ----
+# ---- Channel validation policy (see docs/ENGINEERING_LOG.md "Known-bad pot channels") ----
 # Joints whose exact-0.0 reading means "dropout", not "real reading".
 # j6 is EXEMPT: it is mounted at the bottom of its travel and legitimately
 # clamps to 0. j7 is EXEMPT: it is railed at 360 and is a terminal roll
@@ -338,7 +338,7 @@ class MasterPoseNode(Node):
         self.declare_parameter("max_channel_rate_deg_s", 800.0)
         # AZIMUTH SOURCE.
         #   "j1"   -- j1 alone (default until the gyro model is validated
-        #             against a MOVING master; see CLAUDE.md)
+        #             against a MOVING master; see docs/ENGINEERING_LOG.md)
         #   "gyro" -- integrate yaw rate about the measured vertical, reset to
         #             the j1 estimate at every clutch engage, and blend slowly
         #             back toward j1 so a long segment cannot run away.

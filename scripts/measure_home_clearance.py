@@ -28,7 +28,7 @@ So every row below is split three ways:
 THE MODEL IS A PARAMETER, because the mannequin is not the wearer.
 `--size` selects a profile from config/wearer_sizes through
 `wearer_posture.wearer_model`, which is the ONE source the guard itself reads
-(CLAUDE.md rule 11). Comparing two poses against two different bodies is a
+(docs/ENGINEERING_LOG.md rule 11). Comparing two poses against two different bodies is a
 mistake this file makes impossible: the body is chosen once and both poses are
 scored against it.
 
@@ -41,7 +41,7 @@ CONTROLS, and there is no table without them:
     it can FAIL                   a pose driven into the torso must read
                                   NEGATIVE, not a small positive number
     it can tell poses apart       two different poses must not produce
-                                  identical rows (CLAUDE.md's "everything
+                                  identical rows (docs/ENGINEERING_LOG.md's "everything
                                   matches" failure mode)
 """
 from __future__ import annotations
@@ -287,7 +287,7 @@ def controls(rig, verbose=True):
               % (hard, near, STUB_SLOP_M, far,
                  "PASS" if (fixed_ok and moves_ok) else "FAIL"))
 
-    # 5. IT MUST BE ABLE TO TELL TWO POSES APART. CLAUDE.md's "everything
+    # 5. IT MUST BE ABLE TO TELL TWO POSES APART. docs/ENGINEERING_LOG.md's "everything
     #    matches" row: a comparison that cannot differ is not a comparison.
     # The two poses are chosen to be far apart in the quantity being
     # measured -- the shipped home, which is close to the wearer, against a

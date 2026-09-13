@@ -2979,7 +2979,7 @@ class Gui(QMainWindow):
         `/vr/safety` status string -- and grepping the whole tree for that
         parameter finds the node that declares it, the launch files that
         pass it, and NO CONSUMER. Nothing gates on it, nothing starts on it,
-        nothing moves because of it. CLAUDE.md's own "feature present but
+        nothing moves because of it. docs/ENGINEERING_LOG.md's own "feature present but
         does nothing" row: checked that a field is STORED, not that a
         consumer READS it.
 
@@ -5103,7 +5103,7 @@ class Gui(QMainWindow):
             #
             # `load_map()` has always computed `_age_s` and this panel has
             # always thrown it away, which is the "feature present but does
-            # nothing" row of CLAUDE.md's own instrument table: the field is
+            # nothing" row of docs/ENGINEERING_LOG.md's own instrument table: the field is
             # STORED and no consumer READS it. Measured 2026-08-25: the panel
             # said "6 object(s)" about a map 22.3 hours old, describing the
             # simulated T1 layout, while the real table in front of the
@@ -5611,7 +5611,7 @@ class Gui(QMainWindow):
         """GO HOME / GO TO PICK POSE -- one press, both arms.
 
         THE VALUES COME FROM `srl_named_poses`, which reads the SAME files
-        every other consumer reads. CLAUDE.md records home living in five
+        every other consumer reads. docs/ENGINEERING_LOG.md records home living in five
         places and drifting between them; a button carrying its own copy of
         the joint angles would be the sixth, and the one nobody would think
         to check.
@@ -6708,7 +6708,7 @@ class Gui(QMainWindow):
             fix.setVisible(True)
         else:
             # HIDDEN AND UNBOUND. A visible button with no repair behind it is
-            # the "feature present but does nothing" row of CLAUDE.md's
+            # the "feature present but does nothing" row of docs/ENGINEERING_LOG.md's
             # instrument table.
             fix.setVisible(False)
             self._vr_fixes.pop(key, None)
@@ -7231,7 +7231,7 @@ class Gui(QMainWindow):
             else:
                 # HIDDEN AND UNBOUND. A button left visible with no repair
                 # behind it is the "feature present but does nothing" row of
-                # CLAUDE.md's instrument table.
+                # docs/ENGINEERING_LOG.md's instrument table.
                 fix.setVisible(False)
                 fix.setText("")
             box.setToolTip(c.detail)
@@ -9218,7 +9218,7 @@ class Gui(QMainWindow):
                             # the pixel proof had no region for the one panel
                             # that was added to satisfy "two views side by
                             # side" -- a check with nothing to crop cannot
-                            # fail, which is the shape CLAUDE.md's standing
+                            # fail, which is the shape docs/ENGINEERING_LOG.md's standing
                             # rule is about.
                             ("actual_arms", getattr(self, "arm_view", None)),
                             ("controls", self.split.widget(0)),

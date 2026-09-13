@@ -12,7 +12,7 @@ The right mount is **derived** as the exact sagittal mirror, so an asymmetric
 pair cannot be written. In this file's frame `x` is lateral and `y` is
 fore/aft, so a rotation about `y` is a lateral splay and **not** a forward
 pitch — the previous value, `rpy="0 0.6 0"`, made exactly that mistake and
-pointed both arms up and back over the shoulders. See CLAUDE.md.
+pointed both arms up and back over the shoulders. See docs/ENGINEERING_LOG.md.
 
     xacro src/srl_description/urdf/srl_dual.urdf.xacro mount_tilt_deg:=65
 

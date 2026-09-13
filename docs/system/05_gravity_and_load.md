@@ -145,12 +145,12 @@ unrecorded mounting is unanalysable.
   onto a seated participant is the largest physical risk in the whole study
   and it has nothing to do with the robot moving.
 - Record participant height and mass. The collision model is a 1.75 m
-  mannequin, and the clearance figures in `CLAUDE.md` are for that geometry;
+  mannequin, and the clearance figures in `docs/ENGINEERING_LOG.md` are for that geometry;
   a substantially different participant needs the padded model re-checked
   (`min_clearance_m`, and `REAL_ROBOT_PAD_M` in `srl_teleop/clearance.py`).
 
 **Honest limitation:** with the arms bolted at (±0.15, −0.12, 1.25) on a
 1.75 m model, the measured proximal clearance to the wearer's own upper arms
-is already a **static interference** (see the mount section of `CLAUDE.md`).
+is already a **static interference** (see the mount section of `docs/ENGINEERING_LOG.md`).
 Until the bracket stands the bases off the shoulder, worn operation is not
 recommended, and that is a mechanical prerequisite for E2–E4 in worn form.

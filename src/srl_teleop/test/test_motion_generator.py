@@ -247,7 +247,7 @@ def test_the_fallback_does_not_claim_to_be_jerk_limited():
     """It reports its REAL implied acceleration, not zeros.
 
     The first version returned zeros here, which made it pass the continuity
-    check by fabricating the quantity the check reads -- CLAUDE.md's "feature
+    check by fabricating the quantity the check reads -- docs/ENGINEERING_LOG.md's "feature
     present but does nothing" row, inside a test.
     """
     lim = limits_for("left")

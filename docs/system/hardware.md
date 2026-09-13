@@ -1,6 +1,6 @@
 # Hardware: Teensy, channels, calibration, grippers
 
-Master arm sensing, channel health, the spherical position model, calibration procedures and the gripper stack. Split out of CLAUDE.md on 2026-08-12. Nothing deleted.
+Master arm sensing, channel health, the spherical position model, calibration procedures and the gripper stack. Split out of docs/ENGINEERING_LOG.md on 2026-08-12. Nothing deleted.
 
 ## Hardware / serial
 

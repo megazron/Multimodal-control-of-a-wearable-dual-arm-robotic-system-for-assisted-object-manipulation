@@ -122,7 +122,7 @@ class MockReal(Node):
         m.position = list(self.q)
         # A tiny deterministic dither, because a real encoder always has some
         # and a perfectly constant channel is the signature of a DEAD one --
-        # this project has been bitten by exactly that (see CLAUDE.md).
+        # this project has been bitten by exactly that (see docs/ENGINEERING_LOG.md).
         m.velocity = [0.0] * 7
         self.pub.publish(m)
 

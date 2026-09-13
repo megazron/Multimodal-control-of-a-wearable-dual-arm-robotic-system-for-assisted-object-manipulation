@@ -28,7 +28,7 @@ cannot hold the margin is not returned -- the planner says so rather than
 handing back something that looks like a plan.
 
 WHY WAYPOINTS AND NOT A REAL PLANNER. MoveIt is available and is the right
-long-term answer, but its collision model is blind to exactly this: CLAUDE.md
+long-term answer, but its collision model is blind to exactly this: docs/ENGINEERING_LOG.md
 records that the SRDF excludes the 44 proximal pairs a shoulder mount actually
 threatens, so `avoid_collisions` can call a pose valid with the tube inside
 the person. A search over lift-first waypoints, scored by the geometry that

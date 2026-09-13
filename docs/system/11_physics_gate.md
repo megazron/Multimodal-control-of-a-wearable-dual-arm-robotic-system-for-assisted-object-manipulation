@@ -195,7 +195,7 @@ the half that works, so declining it costs something real for no saving.
 
 Every tracking, clearance and placement number currently in this repository
 was measured against `mock_components/GenericSystem`, **which echoes commands
-and has no dynamics**. CLAUDE.md already records the consequence: payload made
+and has no dynamics**. docs/ENGINEERING_LOG.md already records the consequence: payload made
 *exactly zero* difference to tracking RMS (0.0164 m both ways, difference
 0.0000 m) — a property of the mock, not evidence about payload.
 

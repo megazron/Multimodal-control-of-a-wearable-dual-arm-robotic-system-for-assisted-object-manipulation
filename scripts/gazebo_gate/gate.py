@@ -38,7 +38,7 @@ HERE = Path(__file__).resolve().parent
 WS = HERE.parent.parent
 SCRATCH = Path(os.environ.get(
     "GATE_SCRATCH",
-    "/tmp/claude-1000/-home-gausms-kortex-ws/"
+    "/tmp/scratch/"
     "39ddc0a7-8b69-4984-92ae-fe1f20d56237/scratchpad/gate"))
 WORLD_NAME = "gate"
 

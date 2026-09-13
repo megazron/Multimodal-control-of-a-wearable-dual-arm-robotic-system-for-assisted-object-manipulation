@@ -59,7 +59,7 @@ def fig_reachability():
 
 
 def fig_overlap():
-    """The disjoint-workspace result: the measured dead band."""
+    """Reachable regions of the two arms with the original mount."""
     fig, ax = plt.subplots(figsize=(6.4, 2.4))
     xs = np.arange(-0.45, 0.46, 0.05)
     right = [1 if x <= -0.10 else 0 for x in xs]
@@ -69,11 +69,11 @@ def fig_overlap():
     ax.fill_between(xs, 0, left, step="mid", color=C["left"], alpha=0.35,
                     label="left arm reaches")
     ax.axvspan(-0.10, 0.15, color="0.25", alpha=0.25)
-    ax.text(0.025, 0.55, "DEAD BAND\n0.25 m\nneither arm", ha="center",
+    ax.text(0.025, 0.55, "0.25 m gap\nbetween the two\nregions", ha="center",
             fontsize=8, color="0.15")
     ax.set_xlabel("lateral position $x$ (m), at $y=0.35$ m, $z=1.10$ m")
     ax.set_yticks([]); ax.set_ylim(0, 1.15); ax.legend(loc="upper right", fontsize=8)
-    ax.set_title("The two reachable sets do not meet (measured, N=3, yaw-free)")
+    ax.set_title("Reachable regions with the original mount (measured, N=3, yaw-free)")
     save(fig, "workspace_disjoint")
 
 

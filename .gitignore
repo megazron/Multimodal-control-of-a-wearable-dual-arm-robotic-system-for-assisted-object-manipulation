@@ -156,3 +156,10 @@ docs/presentation/.build/
 # see what was captured.
 recordings/sessions/*/bag/
 recordings/vr_teleop/*/*.mcap
+
+# ------------------------------------------------------- participant sessions
+# recordings/sessions/ is 129 GB of pilot recordings and its folder names
+# were typed at the console, so they can carry a participant's name. Never
+# commit it: anonymity is enforced in code and this keeps it enforced in git.
+# The derived, anonymised session tables live in thesis_v3/figures/pilot/data/.
+recordings/sessions/

@@ -15,7 +15,7 @@ import numpy as np
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), *[".."] * 4))
 BASE = os.path.join(ROOT, "recordings", "baselines")
-OUT = os.path.join(ROOT, "thesis_v2", "figures")
+OUT = os.path.join(ROOT, "extras", "thesis", "thesis_v3", "figures")
 
 plt.rcParams.update({
     "font.size": 9, "axes.titlesize": 10, "axes.labelsize": 9,

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The master arm's circuit, every wire to its pin, drawn from the firmware's
 own pin map (firmware/master_arm/teensy_final.ino) and the parts in the
-purchase records (extras/thesis/thesis_report/_source/artefacts/BOM).
+purchase records (the purchase records held with the design files).
 
     ~/.venv_schem/bin/python extras/thesis/thesis_v3/figures/make_master_schematic.py
 

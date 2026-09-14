@@ -11,7 +11,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = os.path.join(ROOT, "extras/thesis/thesis_v3/figures")
+OUT = os.path.join(ROOT, "extras/figures")
 os.makedirs(OUT, exist_ok=True)
 plt.rcParams.update({
     "font.size": 9, "axes.grid": True, "grid.alpha": 0.3,

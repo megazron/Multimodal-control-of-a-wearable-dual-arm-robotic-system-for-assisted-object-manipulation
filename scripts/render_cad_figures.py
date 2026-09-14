@@ -21,7 +21,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CAD = "/mnt/c/Users/Gausms/Desktop/MSc_Project/CAD"
-OUT = os.path.join(ROOT, "extras/thesis/thesis_v3/figures/cad")
+OUT = os.path.join(ROOT, "extras/figures/cad")
 
 VIEWS = {
     "iso":   ((1.0, -1.0, 0.6), "isometric"),

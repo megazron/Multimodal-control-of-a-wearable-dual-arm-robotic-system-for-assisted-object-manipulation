@@ -142,8 +142,6 @@ extras/recordings/baselines/scene_reference.npz
 
 # derived: one PNG per slide, regenerable by scripts/preview_presentation.py
 # (contact_sheet.png IS committed -- it is the "look at it" artefact)
-extras/presentation/preview/slide_*.png
-extras/presentation/.build/
 
 # ------------------------------------------------- session recordings
 # `recordings/sessions/*/bag/` holds one rosbag2 per RECORD EVERYTHING

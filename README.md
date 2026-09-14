@@ -30,7 +30,7 @@ the MSc thesis of the same title (Imperial College London, Bioengineering,
 | `patches/` | the changes the vendor ROS packages need for dual-arm operation |
 | `quest_app/`, `vendor_quest/` | the WebXR page and the earlier Quest pose servers |
 | `docs/` | `HOW_TO_RUN.md`, the engineering log, the system documentation and the research notes |
-| `extras/` | **everything that is not code**: the figure scripts and the anonymised pilot tables (`extras/figures`), the presentation, the recorded verification data and the archived recordings |
+| `extras/` | **everything that is not code**: the figure scripts and the anonymised pilot tables (`extras/figures`), the recorded verification data and the archived recordings |
 
 The dependency arrow runs one way: `srl_teleop` imports nothing else in this
 repository, because it is the baseline every experiment is compared against.

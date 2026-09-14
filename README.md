@@ -24,6 +24,7 @@ the MSc thesis of the same title (Imperial College London, Bioengineering,
 | `src/srl_moveit_config` | MoveIt configuration, TRAC-IK, the SRDF |
 | `src/srl_vr_teleop`, `src/srl_vr_autonomy` | the Quest bridge (WebXR client served over TLS) and its assisted mode |
 | `firmware/master_arm` | the Teensy 4.1 firmware of the master mannequin |
+| `cad/` | the design files: the master mannequin (Fusion 360 archive and STEP) and the backpack frame (STEP) |
 | `scripts/` | launch scripts, calibration, verification runs and the analysis that produced every number in the thesis |
 | `config/` | home poses, master zero offsets, wearer sizes, DDS transport |
 | `patches/` | the changes the vendor ROS packages need for dual-arm operation |

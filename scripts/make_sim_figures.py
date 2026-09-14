@@ -26,7 +26,7 @@ import re
 import sys
 
 WS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = os.path.join(WS, "extras", "thesis", "thesis_v3", "figures", "sim")
+OUT = os.path.join(WS, "extras", "figures", "sim")
 
 
 #: THE CAMPAIGNS THIS RUN WAS GIVEN. Set by main() and by the self-test.

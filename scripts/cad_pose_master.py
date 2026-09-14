@@ -119,7 +119,7 @@ def bounds(parts, pad=0.02):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=os.path.join(ROOT, "thesis_v3", "figures", "cad_posed"))
+    ap.add_argument("--out", default=os.path.join(ROOT, "extras", "figures", "cad_posed"))
     ap.add_argument("--pose", help="J1..J7 degrees, comma-separated (overrides the built-in set)")
     ap.add_argument("--name", default="custom")
     ap.add_argument("--views", default="iso,front,side")
